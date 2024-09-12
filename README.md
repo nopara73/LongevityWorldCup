@@ -1,3 +1,8 @@
 # Longevity World Cup
 
-Launches on January 1st
+## Website
+
+http://www.longevityworldcup.com/
+
+## Launch
+January 1st
