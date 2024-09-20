@@ -1,0 +1,25 @@
+# Ignore Visual Studio-specific files
+.vs/
+*.suo
+
+# Ignore build output
+bin/
+obj/
+
+# Ignore NuGet-generated files
+project.assets.json
+project.nuget.cache
+
+# Ignore user-specific settings
+*.user
+*.userosscache
+*.sln.docstates
+
+# Ignore logs
+*.log
+
+# Ignore any other temporary or lock files
+*.lock
+
+# Ignore Visual Studio user-specific files
+*.csproj.user
