@@ -17,19 +17,17 @@ January 1st
 3. Disable .NET's telemetry by executing in the terminal `export DOTNET_CLI_TELEMETRY_OPTOUT=1` on Linux and macOS or `setx DOTNET_CLI_TELEMETRY_OPTOUT 1` on Windows.
 4. Get Visual Studio with ASP.NET web development installed: https://visualstudio.microsoft.com/
 
-### Get LongevityWorldCup
-
-Clone & Restore & Build
+### Clone
 
 ```sh
 git clone https://github.com/nopara73/LongevityWorldCup.git
 ```
 
-### Run LongevityWorldCup
+### Run
 
-Run LongevityWorldCup through Visual Studio
+Open the `.sln` file with Visual Studio & run the project.
 
-### Update Wasabi
+### Update
 
 ```sh
 git pull
