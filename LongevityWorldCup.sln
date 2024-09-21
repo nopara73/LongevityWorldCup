@@ -5,14 +5,14 @@ VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LongevityWorldCup.Website", "LongevityWorldCup.Website\LongevityWorldCup.Website.csproj", "{F83A207D-7221-4649-A465-1A3590721ACA}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{FBC57724-9D33-4465-8275-EB7657483C34}"
-	ProjectSection(SolutionItems) = preProject
-		ServerDeployment.md = ServerDeployment.md
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0EC3114A-DDDC-44E7-B288-3946832A5B20}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LongevityWorldCup.Documentation", "LongevityWorldCup.Documentation", "{AAB28398-B9D0-47F0-9E19-A8F0D32F55D5}"
+	ProjectSection(SolutionItems) = preProject
+		LongevityWorldCup.Documentation\ServerDeployment.md = LongevityWorldCup.Documentation\ServerDeployment.md
 	EndProjectSection
 EndProject
 Global
