@@ -3,7 +3,7 @@
 
 ## Website
 
-http://www.longevityworldcup.com/
+https://www.longevityworldcup.com/
 
 ## Launch
 January 1st
