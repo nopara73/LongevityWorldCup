@@ -33,5 +33,5 @@ Open the `.sln` file with Visual Studio & run the project.
 git pull
 ```
 
-## [Server Deployment Documentation](LongevityWorldCup.Documentation/ServerDeployment.md)
+## [Deployment](LongevityWorldCup.Documentation/ServerDeployment.md)
 
