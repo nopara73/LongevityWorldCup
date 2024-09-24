@@ -8,7 +8,7 @@ https://www.longevityworldcup.com/
 ## Launch
 January 1st
 
-# Build From Source Code
+## Build From Source Code
 
 ### Get The Requirements
 
@@ -32,3 +32,6 @@ Open the `.sln` file with Visual Studio & run the project.
 ```sh
 git pull
 ```
+
+## [Deployment](LongevityWorldCup.Documentation/ServerDeployment.md)
+
