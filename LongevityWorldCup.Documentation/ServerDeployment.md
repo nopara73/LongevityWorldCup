@@ -1,4 +1,6 @@
-# Updating Server
+# Deployment
+
+## SSH
 
 ```sh
 sudo apt update && sudo apt upgrade -y
@@ -10,4 +12,7 @@ sudo systemctl start longevityworldcup.service
 sudo systemctl status longevityworldcup.service
 ```
 
-Check https://www.longevityworldcup.com/
+## Browser
+
+1. Check https://www.longevityworldcup.com/ on Desktop
+2. Check the website on mobile
