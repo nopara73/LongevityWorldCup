@@ -433,6 +433,11 @@ function getAchievement(name) {
 function getRandomAge() {
     return Math.floor(Math.random() * (80 - 40 + 1)) + 40;
 }
+
+document.querySelector('.join-game').addEventListener('click', function () {
+    window.location.href = `${window.location.origin}/api/home/join`;
+});
+
 </script>
 </body>
 </html>
