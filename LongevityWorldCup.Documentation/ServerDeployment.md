@@ -12,7 +12,7 @@ sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj -
 sudo systemctl status longevityworldcup.service
 ```
 
-## Browserz
+## Browser
 
 1. Check https://www.longevityworldcup.com/ on Desktop
 2. Check the website on mobile
