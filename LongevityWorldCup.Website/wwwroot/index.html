@@ -57,7 +57,20 @@
             transition: all 0.3s ease;
             box-shadow: 0 0.4px 8px rgba(0, 0, 0, 0.15);
             animation: glow 1s ease-in-out 3;
+            position: relative;
+            z-index: 1;
         }
+
+            .join-game::before {
+                content: '';
+                position: absolute;
+                top: -20px; /* Increase the clickable area upwards */
+                bottom: -20px; /* Increase the clickable area downwards */
+                left: -20px; /* Increase the clickable area to the left */
+                right: -20px; /* Increase the clickable area to the right */
+                background: transparent; /* Make the area invisible */
+                pointer-events: auto; /* Ensure the pseudo-element can capture clicks */
+            }
 
         .join-game:hover {
             background-color: #45a049;
