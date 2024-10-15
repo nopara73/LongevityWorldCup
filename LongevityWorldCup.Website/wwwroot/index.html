@@ -245,6 +245,10 @@
             color: var(--primary-color);
         }
 
+        .no-scroll {
+            overflow: hidden;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -515,13 +519,24 @@
 
         closeBtn.onclick = function () {
             modal.style.display = "none";
+            document.body.classList.remove('no-scroll'); // Re-enable scrolling when the modal closes
         };
 
         window.onclick = function (event) {
             if (event.target === modal) {
                 modal.style.display = "none";
+                document.body.classList.remove('no-scroll'); // Re-enable scrolling when the modal closes
             }
         };
+
+        // When opening the modal
+        document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
+            athleteNameElement.addEventListener('click', function () {
+                // Existing code...
+                modal.style.display = "block";
+                document.body.classList.add('no-scroll'); // Disable scrolling when the modal opens
+            });
+        });
 
         function getSpecialization(sponsor) {
             const specializations = {
