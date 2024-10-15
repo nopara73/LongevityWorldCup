@@ -366,7 +366,11 @@
     <header>
         <h1>Longevity World Cup 2025</h1>
         <p>Race To Longevity Escape Velocity🚀</p>
-        <button class="join-game"><strong>PLAY</strong> <span style="font-size: 1rem;">THE</span> <strong>GAME</strong></button>
+        <button class="join-game">
+            <strong>PLAY</strong>
+            <span class="join-game-middle" style="font-size: 1rem;">THE</span>
+            <strong class="join-game-end">GAME</strong>
+        </button>
     </header>
 
     <main>
@@ -458,15 +462,14 @@
             });
         });
 
-        document.querySelectorAll('.athlete-name').forEach(name => {
-            name.addEventListener('click', function () {
+        document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
+            athleteNameElement.addEventListener('click', function () {
                 const athleteRow = this.closest('tr');
-                const name = this.textContent;
+                const athleteNameText = this.textContent;
                 const sponsorElement = athleteRow.querySelector('td:nth-child(4) a');
                 const sponsor = sponsorElement ? sponsorElement.textContent : 'No sponsor';
                 const ageReduction = athleteRow.querySelector('td:nth-child(5)').textContent;
 
-                athleteName.textContent = name;
                 athleteDetails.innerHTML = `
                 <strong>Sponsor:</strong> ${sponsor}<br>
                 <strong>Age Reduction:</strong> ${ageReduction}<br>
@@ -528,6 +531,9 @@
                 'Epigenetic Elites': 'Epigenetic reprogramming',
                 'Senolytic Savants': 'Selective elimination of senescent cells'
             };
+            if (!sponsor || sponsor === 'No sponsor') {
+                return 'Independent research and development';
+            }
             return specializations[sponsor] || 'Advanced longevity techniques';
         }
 
@@ -552,44 +558,58 @@
 
         window.addEventListener('scroll', function () {
             const button = document.querySelector('.join-game');
-            if (window.scrollY > 100) { // Adjust this value to control when the button moves
+            const middleSpan = button.querySelector('.join-game-middle');
+            const endStrong = button.querySelector('.join-game-end');
+            if (window.scrollY > 100) {
                 button.classList.add('scrolled');
-                button.innerHTML = '<strong>PLAY</strong>';
+                middleSpan.style.display = 'none';
+                endStrong.style.display = 'none';
             } else {
                 button.classList.remove('scrolled');
-                button.innerHTML = '<strong>PLAY</strong> <span style="font-size: 1rem;">THE</span> <strong>GAME</strong>';
+                middleSpan.style.display = '';
+                endStrong.style.display = '';
             }
         });
+
 
         const joinButton = document.querySelector('.join-game');
         let intensityTimer;
         let animationDuration = 15; // Start with 15 seconds
 
+        let timeoutTimer;
+
         joinButton.addEventListener('mouseenter', function () {
-            clearInterval(intensityTimer); // Clear any existing intervals
-            if (!document.querySelector('.sparkle')) {
-                joinButton.innerHTML += ' <span class="sparkle">✨</span>';
+            clearInterval(intensityTimer);
+            if (!joinButton.querySelector('.sparkle')) {
+                const sparkleSpan = document.createElement('span');
+                sparkleSpan.classList.add('sparkle');
+                sparkleSpan.textContent = '✨';
+                joinButton.appendChild(sparkleSpan);
             }
 
             // Start increasing intensity by reducing animation duration over time
             intensityTimer = setInterval(() => {
                 animationDuration = Math.max(1, animationDuration - 0.5); // Decrease duration gradually, but stop at 1s
-                document.querySelector('.sparkle').style.animationDuration = `${animationDuration}s`;
+                const sparkleElement = joinButton.querySelector('.sparkle');
+                if (sparkleElement) {
+                    sparkleElement.style.animationDuration = `${animationDuration}s`;
+                }
             }, 1000); // Decrease duration every 1 second
 
             // Stop the interval after 15 seconds (since we want to increase intensity over 15 seconds)
-            setTimeout(() => {
+            timeoutTimer = setTimeout(() => {
                 clearInterval(intensityTimer);
-            }, 15000); // 15000 milliseconds = 15 seconds
+            }, 15000);
         });
 
         joinButton.addEventListener('mouseleave', function () {
-            const sparkle = document.querySelector('.sparkle');
+            const sparkle = joinButton.querySelector('.sparkle');
             if (sparkle) {
                 sparkle.remove();
             }
             clearInterval(intensityTimer);
-            animationDuration = 15; // Reset duration to initial 15 seconds
+            animationDuration = 15;
+            clearTimeout(timeoutTimer);
         });
 
 
