@@ -89,6 +89,64 @@
             }
         }
 
+        @keyframes wiggle-intense {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            10% {
+                transform: rotate(3deg);
+            }
+
+            20% {
+                transform: rotate(-3deg);
+            }
+
+            30% {
+                transform: rotate(5deg);
+            }
+
+            40% {
+                transform: rotate(-5deg);
+            }
+
+            50% {
+                transform: rotate(7deg);
+            }
+
+            60% {
+                transform: rotate(-7deg);
+            }
+
+            70% {
+                transform: rotate(9deg);
+            }
+
+            80% {
+                transform: rotate(-9deg);
+            }
+
+            90% {
+                transform: rotate(11deg);
+            }
+
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        .join-game .sparkle {
+            display: inline-block;
+            animation: none;
+            transition: animation 0.5s ease;
+        }
+
+        .join-game:hover .sparkle {
+            animation: wiggle-intense 15s infinite ease-in-out;
+        }
+
+
+
         main {
             max-width: 1200px;
             margin: 3rem auto;
@@ -489,6 +547,39 @@
                 button.innerHTML = '<strong>PLAY</strong> <span style="font-size: 1rem;">THE</span> <strong>GAME</strong>';
             }
         });
+
+        const joinButton = document.querySelector('.join-game');
+        let intensityTimer;
+        let animationDuration = 15; // Start with 15 seconds
+
+        joinButton.addEventListener('mouseenter', function () {
+            clearInterval(intensityTimer); // Clear any existing intervals
+            if (!document.querySelector('.sparkle')) {
+                joinButton.innerHTML += ' <span class="sparkle">✨</span>';
+            }
+
+            // Start increasing intensity by reducing animation duration over time
+            intensityTimer = setInterval(() => {
+                animationDuration = Math.max(1, animationDuration - 0.5); // Decrease duration gradually, but stop at 1s
+                document.querySelector('.sparkle').style.animationDuration = `${animationDuration}s`;
+            }, 1000); // Decrease duration every 1 second
+
+            // Stop the interval after 15 seconds (since we want to increase intensity over 15 seconds)
+            setTimeout(() => {
+                clearInterval(intensityTimer);
+            }, 15000); // 15000 milliseconds = 15 seconds
+        });
+
+        joinButton.addEventListener('mouseleave', function () {
+            const sparkle = document.querySelector('.sparkle');
+            if (sparkle) {
+                sparkle.remove();
+            }
+            clearInterval(intensityTimer);
+            animationDuration = 15; // Reset duration to initial 15 seconds
+        });
+
+
 
     </script>
 </body>
