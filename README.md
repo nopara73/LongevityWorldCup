@@ -5,8 +5,12 @@
 
 https://www.longevityworldcup.com/
 
-## Launch
-January 1st
+## Roadmap
+- [x] Sept: Inception
+- [ ] Oct: Design
+- [ ] Nov: Code
+- [ ] Dec: Communication
+- [ ] January 1st: Launch
 
 ## Build From Source Code
 
