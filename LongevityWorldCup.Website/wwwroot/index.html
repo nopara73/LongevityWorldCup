@@ -191,22 +191,48 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             margin: 0 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Ensure content is centered horizontally */
+            justify-content: center;
+            width: 200px; /* Uniform width for all podium items */
         }
 
-            .podium-item.first {
-                order: 2;
-                height: 300px;
+            .podium-item .podium-portrait {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 3px solid var(--secondary-color);
+                margin: 1rem 0;
             }
 
-            .podium-item.second {
-                order: 1;
-                height: 250px;
+            .podium-item:hover {
+                transform: scale(1.02);
+                transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
             }
 
-            .podium-item.third {
-                order: 3;
-                height: 200px;
-            }
+
+        .podium-item.first {
+            order: 2;
+            height: 270px;
+        }
+
+        .podium-item.second {
+            order: 1;
+            height: 250px;
+        }
+
+        .podium-item.third {
+            order: 3;
+            height: 230px;
+        }
+
+        .prize-money {
+            font-weight: bold;
+            color: #333; /* Change to a darker shade */
+        }
 
         .podium-rank {
             font-size: 2rem;
@@ -465,30 +491,6 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td data-label="Rank"><span class="rank">1</span></td>
-                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="portrait" /></td>
-                        <td data-label="Athlete"><span class="athlete-name">Amelia Zhao</span></td>
-                        <td data-label="Sponsor"><a href="https://quantumrenewal.org" class="sponsor-link">Quantum Renewal</a></td>
-                        <td data-label="Age Reduction" class="age-reduction">17 years</td>
-                        <td data-label="Media Contact"><a href="mailto:press@quantumrenewal.org" class="media-contact">press@quantumrenewal.org</a></td>
-                    </tr>
-                    <tr>
-                        <td data-label="Rank"><span class="rank">2</span></td>
-                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/men/92.jpg" alt="Nikolai Volkov portrait" class="portrait" /></td>
-                        <td data-label="Athlete"><span class="athlete-name">Nikolai Volkov</span></td>
-                        <td data-label="Sponsor"><a href="https://chronoshackers.com" class="sponsor-link">Chronos Hackers</a></td>
-                        <td data-label="Age Reduction" class="age-reduction">16 years</td>
-                        <td data-label="Media Contact"><a href="mailto:media@chronoshackers.com" class="media-contact">media@chronoshackers.com</a></td>
-                    </tr>
-                    <tr>
-                        <td data-label="Rank"><span class="rank">3</span></td>
-                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="portrait" /></td>
-                        <td data-label="Athlete"><span class="athlete-name">Isabella Rodriguez</span></td>
-                        <td data-label="Sponsor"><a href="https://telomeretitans.net" class="sponsor-link">Telomere Titans</a></td>
-                        <td data-label="Age Reduction" class="age-reduction">15 years</td>
-                        <td data-label="Media Contact"><a href="mailto:pr@telomeretitans.net" class="media-contact">pr@telomeretitans.net</a></td>
-                    </tr>
-                    <tr>
                         <td data-label="Rank"><span class="rank">4</span></td>
                         <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jamal Okonkwo portrait" class="portrait" /></td>
                         <td data-label="Athlete"><span class="athlete-name">Jamal Okonkwo</span></td>
@@ -503,6 +505,46 @@
                         <td data-label="Sponsor"><a href="https://senolytics.jp" class="sponsor-link">Senolytic Savants</a></td>
                         <td data-label="Age Reduction" class="age-reduction">13 years</td>
                         <td data-label="Media Contact"><a href="mailto:media@senolytics.jp" class="media-contact">media@senolytics.jp</a></td>
+                    </tr>
+                    <tr>
+                        <td data-label="Rank"><span class="rank">6</span></td>
+                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/men/44.jpg" alt="Liam O'Connor portrait" class="portrait" /></td>
+                        <td data-label="Athlete"><span class="athlete-name">Liam O'Connor</span></td>
+                        <td data-label="Sponsor"><a href="https://geneticrevivers.com" class="sponsor-link">Genetic Revivers</a></td>
+                        <td data-label="Age Reduction" class="age-reduction">12 years</td>
+                        <td data-label="Media Contact"><a href="mailto:press@geneticrevivers.com" class="media-contact">press@geneticrevivers.com</a></td>
+                    </tr>
+                    <tr>
+                        <td data-label="Rank"><span class="rank">7</span></td>
+                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/women/78.jpg" alt="Emma Johansson portrait" class="portrait" /></td>
+                        <td data-label="Athlete"><span class="athlete-name">Emma Johansson</span></td>
+                        <td data-label="Sponsor"><a href="https://longevitylabs.com" class="sponsor-link">Longevity Labs</a></td>
+                        <td data-label="Age Reduction" class="age-reduction">11 years</td>
+                        <td data-label="Media Contact"><a href="mailto:media@longevitylabs.com" class="media-contact">media@longevitylabs.com</a></td>
+                    </tr>
+                    <tr>
+                        <td data-label="Rank"><span class="rank">8</span></td>
+                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/men/67.jpg" alt="Chen Wei portrait" class="portrait" /></td>
+                        <td data-label="Athlete"><span class="athlete-name">Chen Wei</span></td>
+                        <td data-label="Sponsor"><a href="https://ageevolution.com" class="sponsor-link">Age Evolution</a></td>
+                        <td data-label="Age Reduction" class="age-reduction">10 years</td>
+                        <td data-label="Media Contact"><a href="mailto:press@ageevolution.com" class="media-contact">press@ageevolution.com</a></td>
+                    </tr>
+                    <tr>
+                        <td data-label="Rank"><span class="rank">9</span></td>
+                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/women/34.jpg" alt="Maria Gonzalez portrait" class="portrait" /></td>
+                        <td data-label="Athlete"><span class="athlete-name">Maria Gonzalez</span></td>
+                        <td data-label="Sponsor"><a href="https://biohackinnovators.com" class="sponsor-link">Biohack Innovators</a></td>
+                        <td data-label="Age Reduction" class="age-reduction">9 years</td>
+                        <td data-label="Media Contact"><a href="mailto:press@biohackinnovators.com" class="media-contact">press@biohackinnovators.com</a></td>
+                    </tr>
+                    <tr>
+                        <td data-label="Rank"><span class="rank">10</span></td>
+                        <td data-label="Portrait"><img src="https://randomuser.me/api/portraits/men/85.jpg" alt="Ethan Park portrait" class="portrait" /></td>
+                        <td data-label="Athlete"><span class="athlete-name">Ethan Park</span></td>
+                        <td data-label="Sponsor"><a href="https://regenesisbiotech.com" class="sponsor-link">Regenesis Biotech</a></td>
+                        <td data-label="Age Reduction" class="age-reduction">8 years</td>
+                        <td data-label="Media Contact"><a href="mailto:press@regenesisbiotech.com" class="media-contact">press@regenesisbiotech.com</a></td>
                     </tr>
                 </tbody>
             </table>
