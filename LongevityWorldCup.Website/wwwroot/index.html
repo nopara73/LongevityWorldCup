@@ -1,4 +1,7 @@
-<html><head><base href="https://longevityworldcup.com/"></head>
+<html>
+<head>
+    <base href="https://longevityworldcup.com/">
+</head>
 <title>Longevity World Cup 2025 - Leaderboard</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -78,6 +81,7 @@
         margin: 3rem auto;
         padding: 0 1rem;
     }
+
     .game-description {
         text-align: center;
         margin-bottom: 2rem;
@@ -85,21 +89,25 @@
         line-height: 1.6;
         color: var(--text-color);
     }
+
     .leaderboard {
         background-color: var(--card-bg);
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         overflow: hidden;
     }
+
     table {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
     }
+
     th, td {
         padding: 1.2rem 1rem;
         text-align: left;
     }
+
     th {
         background-color: rgba(0, 188, 212, 0.1);
         color: var(--primary-color);
@@ -108,16 +116,20 @@
         font-size: 0.9rem;
         letter-spacing: 1px;
     }
+
     tr:nth-child(even) {
         background-color: rgba(240, 244, 248, 0.5);
     }
+
     tr {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    tr:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
+
+        tr:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
     .portrait {
         width: 60px;
         height: 60px;
@@ -127,23 +139,28 @@
         transition: transform 0.3s ease;
         cursor: pointer;
     }
+
     .age-reduction {
         font-weight: 700;
         color: #4caf50;
     }
+
     .media-contact {
         color: rgba(255, 64, 129, 0.7);
         text-decoration: none;
         transition: color 0.2s ease-in-out;
     }
-    .media-contact:hover {
-        color: var(--primary-color);
-    }
+
+        .media-contact:hover {
+            color: var(--primary-color);
+        }
+
     .rank {
         font-weight: 700;
         font-size: 1.2rem;
         color: var(--primary-color);
     }
+
     .modal {
         display: none;
         position: fixed;
@@ -155,6 +172,7 @@
         overflow: auto;
         background-color: rgba(0,0,0,0.4);
     }
+
     .modal-content {
         background-color: #fefefe;
         margin: 15% auto;
@@ -165,18 +183,21 @@
         border-radius: 15px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
+
     .close {
         color: #aaa;
         float: right;
         font-size: 28px;
         font-weight: bold;
     }
-    .close:hover,
-    .close:focus {
-        color: black;
-        text-decoration: none;
-        cursor: pointer;
-    }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
     .enlarged-portrait {
         position: fixed;
         top: 0;
@@ -190,60 +211,70 @@
         z-index: 1000;
         cursor: pointer;
     }
-    .enlarged-portrait img {
-        max-width: 90%;
-        max-height: 90%;
-        object-fit: contain;
-    }
+
+        .enlarged-portrait img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
     .athlete-name {
         color: var(--primary-color);
         text-decoration: underline;
         cursor: pointer;
         transition: color 0.2s ease-in-out;
     }
-    .athlete-name:hover {
-        color: var(--secondary-color);
-    }
+
+        .athlete-name:hover {
+            color: var(--secondary-color);
+        }
+
     .sponsor-link {
         color: var(--text-color);
         text-decoration: none;
         transition: color 0.2s ease-in-out;
     }
-    .sponsor-link:hover {
-        color: var(--primary-color);
-        text-decoration: underline;
-    }
+
+        .sponsor-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
     @media (max-width: 768px) {
         table, thead, tbody, th, td, tr {
             display: block;
         }
-        thead tr {
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-        }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
         tr {
             margin-bottom: 1rem;
             border-bottom: 2px solid var(--primary-color);
         }
+
         td {
             border: none;
             position: relative;
             padding-left: 50%;
         }
-        td:before {
-            position: absolute;
-            top: 6px;
-            left: 6px;
-            width: 45%;
-            padding-right: 10px;
-            white-space: nowrap;
-            content: attr(data-label);
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            color: var(--primary-color);
-        }
+
+            td:before {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                content: attr(data-label);
+                font-weight: 700;
+                text-transform: uppercase;
+                font-size: 0.8rem;
+                color: var(--primary-color);
+            }
     }
 </style>
 </head>
@@ -253,7 +284,7 @@
         <p>Race To Longevity Escape Velocity🚀</p>
         <button class="join-game" style="font-size: 1.5rem; padding: 1rem 2rem; background-color: #4CAF50; box-shadow: 0 0.4px 8px rgba(0, 0, 0, 0.15); transition: all 0.3s ease; border-radius: 150px; margin-top: 2rem;" onmouseover="this.style.backgroundColor='#45a049'; this.style.transform='scale(1.05)';" onmouseout="this.style.backgroundColor='#4CAF50'; this.style.transform='scale(1)';"><strong>PLAY</strong> <span style="font-size: 1rem;">THE</span> <strong>GAME</strong></button>
     </header>
-    
+
     <main>
         <p class="game-description">The Longevity World Cup is a game of agency, where competitors take control of time itself. Clear goals, measurable results — reverse your age and rise on the leaderboard.</p>
         <div class="leaderboard">
@@ -323,117 +354,117 @@
         </div>
     </div>
 
-<script>
-const modal = document.getElementById("detailsModal");
-const closeBtn = document.getElementsByClassName("close")[0];
-const athleteName = document.getElementById("athleteName");
-const athleteDetails = document.getElementById("athleteDetails");
-let ageChart;
+    <script>
+        const modal = document.getElementById("detailsModal");
+        const closeBtn = document.getElementsByClassName("close")[0];
+        const athleteName = document.getElementById("athleteName");
+        const athleteDetails = document.getElementById("athleteDetails");
+        let ageChart;
 
-document.querySelectorAll('.portrait').forEach(portrait => {
-    portrait.addEventListener('click', function() {
-        const enlargedImg = document.createElement('div');
-        enlargedImg.classList.add('enlarged-portrait');
-        enlargedImg.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
-        document.body.appendChild(enlargedImg);
-        
-        enlargedImg.onclick = function() {
-            document.body.removeChild(this);
-        };
-    });
-});
+        document.querySelectorAll('.portrait').forEach(portrait => {
+            portrait.addEventListener('click', function () {
+                const enlargedImg = document.createElement('div');
+                enlargedImg.classList.add('enlarged-portrait');
+                enlargedImg.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
+                document.body.appendChild(enlargedImg);
 
-document.querySelectorAll('.athlete-name').forEach(name => {
-    name.addEventListener('click', function() {
-        const athleteRow = this.closest('tr');
-        const name = this.textContent;
-        const sponsor = athleteRow.querySelector('td:nth-child(4) a').textContent;
-        const ageReduction = athleteRow.querySelector('td:nth-child(5)').textContent;
-        
-        athleteName.textContent = name;
-        athleteDetails.innerHTML = `
-            <strong>Sponsor:</strong> ${sponsor}<br>
-            <strong>Age Reduction:</strong> ${ageReduction}<br>
-            <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
-            <strong>Key Achievement:</strong> ${getAchievement(name)}
-        `;
-        
-        modal.style.display = "block";
-        
-        if (ageChart) {
-            ageChart.destroy();
-        }
-        
-        const ctx = document.getElementById('ageChart').getContext('2d');
-        ageChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Chronological Age', 'Biological Age'],
-                datasets: [{
-                    label: 'Age Comparison',
-                    data: [getRandomAge(), getRandomAge()],
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(75, 192, 192, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(75, 192, 192, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
+                enlargedImg.onclick = function () {
+                    document.body.removeChild(this);
+                };
+            });
         });
-    });
-});
 
-closeBtn.onclick = function() {
-    modal.style.display = "none";
-}
+        document.querySelectorAll('.athlete-name').forEach(name => {
+            name.addEventListener('click', function () {
+                const athleteRow = this.closest('tr');
+                const name = this.textContent;
+                const sponsor = athleteRow.querySelector('td:nth-child(4) a').textContent;
+                const ageReduction = athleteRow.querySelector('td:nth-child(5)').textContent;
 
-window.onclick = function(event) {
-    if (event.target == modal) {
-        modal.style.display = "none";
-    }
-}
+                athleteName.textContent = name;
+                athleteDetails.innerHTML = `
+                <strong>Sponsor:</strong> ${sponsor}<br>
+                <strong>Age Reduction:</strong> ${ageReduction}<br>
+                <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
+                <strong>Key Achievement:</strong> ${getAchievement(name)}
+            `;
 
-function getSpecialization(sponsor) {
-    const specializations = {
-        'Quantum Renewal': 'Quantum cellular regeneration',
-        'Chronos Hackers': 'Time perception manipulation',
-        'Telomere Titans': 'Telomere lengthening techniques',
-        'Epigenetic Elites': 'Epigenetic reprogramming',
-        'Senolytic Savants': 'Selective elimination of senescent cells'
-    };
-    return specializations[sponsor] || 'Advanced longevity techniques';
-}
+                modal.style.display = "block";
 
-function getAchievement(name) {
-    const achievements = {
-        'Amelia Zhao': 'First to achieve 50% reduction in epigenetic age markers',
-        'Nikolai Volkov': 'Pioneered the "Chronos Protocol" for time dilation',
-        'Isabella Rodriguez': 'Broke the record for telomere length restoration',
-        'Jamal Okonkwo': 'Developed the "Epigenetic Reset" meditation technique',
-        'Sophia Nakamura': 'Created the most effective senolytic compound to date'
-    };
-    return achievements[name] || 'Significant advancements in longevity science';
-}
+                if (ageChart) {
+                    ageChart.destroy();
+                }
 
-function getRandomAge() {
-    return Math.floor(Math.random() * (80 - 40 + 1)) + 40;
-}
+                const ctx = document.getElementById('ageChart').getContext('2d');
+                ageChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Chronological Age', 'Biological Age'],
+                        datasets: [{
+                            label: 'Age Comparison',
+                            data: [getRandomAge(), getRandomAge()],
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.2)',
+                                'rgba(75, 192, 192, 0.2)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(75, 192, 192, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            });
+        });
 
-document.querySelector('.join-game').addEventListener('click', function () {
-    window.location.href = `${window.location.origin}/api/home/join`;
-});
+        closeBtn.onclick = function () {
+            modal.style.display = "none";
+        }
 
-</script>
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        function getSpecialization(sponsor) {
+            const specializations = {
+                'Quantum Renewal': 'Quantum cellular regeneration',
+                'Chronos Hackers': 'Time perception manipulation',
+                'Telomere Titans': 'Telomere lengthening techniques',
+                'Epigenetic Elites': 'Epigenetic reprogramming',
+                'Senolytic Savants': 'Selective elimination of senescent cells'
+            };
+            return specializations[sponsor] || 'Advanced longevity techniques';
+        }
+
+        function getAchievement(name) {
+            const achievements = {
+                'Amelia Zhao': 'First to achieve 50% reduction in epigenetic age markers',
+                'Nikolai Volkov': 'Pioneered the "Chronos Protocol" for time dilation',
+                'Isabella Rodriguez': 'Broke the record for telomere length restoration',
+                'Jamal Okonkwo': 'Developed the "Epigenetic Reset" meditation technique',
+                'Sophia Nakamura': 'Created the most effective senolytic compound to date'
+            };
+            return achievements[name] || 'Significant advancements in longevity science';
+        }
+
+        function getRandomAge() {
+            return Math.floor(Math.random() * (80 - 40 + 1)) + 40;
+        }
+
+        document.querySelector('.join-game').addEventListener('click', function () {
+            window.location.href = `${window.location.origin}/api/home/join`;
+        });
+
+    </script>
 </body>
 </html>
