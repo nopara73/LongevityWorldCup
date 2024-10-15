@@ -64,6 +64,21 @@
             transform: scale(1.05);
         }
 
+            .join-game.scrolled {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                transform: translateX(0);
+                z-index: 1000;
+                transition: transform 0.5s ease, background-color 0.3s ease;
+                padding: 1rem 1.5rem;
+            }
+
+                .join-game.scrolled:hover {
+                    background-color: #45a049;
+                    transform: scale(1.05);
+                }
+
         @keyframes glow {
             0%, 100% {
                 box-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff, 0 0 20px #00ffff;
@@ -463,6 +478,18 @@
         document.querySelector('.join-game').addEventListener('click', function () {
             window.location.href = `${window.location.origin}/api/home/join`;
         });
+
+        window.addEventListener('scroll', function () {
+            const button = document.querySelector('.join-game');
+            if (window.scrollY > 100) { // Adjust this value to control when the button moves
+                button.classList.add('scrolled');
+                button.innerHTML = '<strong>PLAY</strong>';
+            } else {
+                button.classList.remove('scrolled');
+                button.innerHTML = '<strong>PLAY</strong> <span style="font-size: 1rem;">THE</span> <strong>GAME</strong>';
+            }
+        });
+
     </script>
 </body>
 </html>
