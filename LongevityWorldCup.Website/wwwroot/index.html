@@ -46,17 +46,29 @@
         }
 
         .join-game {
-            margin-top: 1rem;
-            padding: 0.5rem 1rem;
+            margin-top: 2rem;
+            padding: 1rem 2rem;
             font-size: 1.5rem;
-            background-color: var(--secondary-color);
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 150px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 0.4px 8px rgba(0, 0, 0, 0.15);
             animation: glow 1s ease-in-out 3;
         }
+
+        .join-game:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        .join-game:mouseout {
+            background-color: #4CAF50;
+            transform: scale(1);
+        }
+
 
         @keyframes glow {
             0%, 100% {
@@ -66,10 +78,6 @@
             50% {
                 box-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff, 0 0 50px #00ffff;
             }
-        }
-
-        .join-game:hover {
-            background-color: #e91e63;
         }
 
         main {
@@ -278,7 +286,7 @@
     <header>
         <h1>Longevity World Cup 2025</h1>
         <p>Race To Longevity Escape Velocity🚀</p>
-        <button class="join-game" style="font-size: 1.5rem; padding: 1rem 2rem; background-color: #4CAF50; box-shadow: 0 0.4px 8px rgba(0, 0, 0, 0.15); transition: all 0.3s ease; border-radius: 150px; margin-top: 2rem;" onmouseover="this.style.backgroundColor='#45a049'; this.style.transform='scale(1.05)';" onmouseout="this.style.backgroundColor='#4CAF50'; this.style.transform='scale(1)';"><strong>PLAY</strong> <span style="font-size: 1rem;">THE</span> <strong>GAME</strong></button>
+        <button class="join-game"><strong>PLAY</strong> <span style="font-size: 1rem;">THE</span> <strong>GAME</strong></button>
     </header>
 
     <main>
