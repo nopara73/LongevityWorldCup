@@ -168,7 +168,7 @@
 
         .game-description {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 4rem; /* Increased space between description and podium */
             font-size: 0.9rem;
             line-height: 1.6;
             color: var(--text-color);
@@ -185,6 +185,7 @@
         }
 
         .podium-item {
+            position: relative;
             text-align: center;
             padding: 1rem;
             background-color: var(--card-bg);
@@ -193,9 +194,9 @@
             margin: 0 1rem;
             display: flex;
             flex-direction: column;
-            align-items: center; /* Ensure content is centered horizontally */
-            justify-content: center;
-            width: 200px; /* Uniform width for all podium items */
+            align-items: center;
+            justify-content: space-between;
+            width: 200px;
         }
 
         .podium-item .podium-portrait {
@@ -228,17 +229,46 @@
             height: 230px;
         }
 
+        .podium-item-lower {
+            background-color: #e0f7fa;
+            width: 100%;
+            padding: 10px 0;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+        }
+
         .prize-money {
             font-weight: bold;
-            color: #333; /* Change to a darker shade */
-            margin-top: auto;
+            font-size: 2rem;
+            color: #4caf50;
+            margin-top: 10px;
+        }
+
+        .btc-amount {
+            font-weight: normal;
+            font-size: 0.9rem;
+            color: #333;
+            margin-bottom: 0.3rem;
         }
 
         .podium-rank {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem
+            position: absolute;
+            top: -40px; /* Adjust this for proper vertical alignment */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            padding: 2px; /* Add some padding for a cleaner look */
+            border-radius: 50%;
+            width: 60px; /* Increased size for larger medals, slightly smaller than before */
+            height: 60px; /* Match width to keep the circle */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem; /* Adjust font size to fit the new medal size */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add some shadow for a 3D effect */
         }
 
         .podium-portrait {
@@ -461,23 +491,32 @@
                 <img src="https://randomuser.me/api/portraits/men/92.jpg" alt="Nikolai Volkov portrait" class="podium-portrait">
                 <div>Nikolai Volkov</div>
                 <div><span class="age-reduction">16 years</span> reduced</div>
-                <div class="prize-money">$20.16</div>
-            </div>
-            <div class="podium-item first">
-                <div class="podium-rank">🥇</div>
-                <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
-                <div>Amelia Zhao</div>
-                <div><span class="age-reduction">17 years</span> reduced</div>
-                <div class="prize-money">$100.80</div>
-            </div>
-            <div class="podium-item third">
-                <div class="podium-rank">🥉</div>
-                <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
-                <div>Isabella Rodriguez</div>
-                <div><span class="age-reduction">15 years</span> reduced</div>
-                <div class="prize-money">$4.03</div>
-            </div>
-        </div>
+                <div class="podium-item-lower">
+                    <div class="btc-amount">0.00072578 BTC</div>
+                    <div class="prize-money">$20.16</div>
+                </div>
+                </div>
+                <div class="podium-item first">
+                    <div class="podium-rank">🥇</div>
+                    <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
+                    <div>Amelia Zhao</div>
+                    <div><span class="age-reduction">17 years</span> reduced</div>
+                    <div class="podium-item-lower">
+                        <div class="btc-amount">0.00360248 BTC</div>
+                        <div class="prize-money">$100.80</div>
+                    </div>
+                </div>
+                <div class="podium-item third">
+                    <div class="podium-rank">🥉</div>
+                    <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
+                    <div>Isabella Rodriguez</div>
+                    <div><span class="age-reduction">15 years</span> reduced</div>
+                    <div class="podium-item-lower">
+                        <div class="btc-amount">0.00014401 BTC</div>
+                        <div class="prize-money">$4.03</div>
+                    </div>
+                </div>
+                </div>
         <div class="leaderboard">
             <table>
                 <thead>
