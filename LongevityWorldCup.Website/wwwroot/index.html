@@ -508,27 +508,27 @@
             <div class="podium-item second">
                 <div class="podium-rank">🥈</div>
                 <img src="https://randomuser.me/api/portraits/men/92.jpg" alt="Nikolai Volkov portrait" class="podium-portrait">
-                <div>Nikolai Volkov</div>
+                <div><span class="athlete-name" style="cursor: pointer;">Nikolai Volkov</span></div>
                 <div><span class="age-reduction">16 years</span> reduced</div>
                 <div class="podium-item-lower">
                     <div class="btc-amount">0.00072578 BTC</div>
                     <div class="prize-money">$20.16</div>
                 </div>
                 </div>
-                <div class="podium-item first">
-                    <div class="podium-rank">🥇</div>
-                    <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
-                    <div>Amelia Zhao</div>
-                    <div><span class="age-reduction">17 years</span> reduced</div>
-                    <div class="podium-item-lower">
-                        <div class="btc-amount">0.00360248 BTC</div>
-                        <div class="prize-money">$100.80</div>
-                    </div>
+            <div class="podium-item first">
+                <div class="podium-rank">🥇</div>
+                <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
+                <div><span class="athlete-name" style="cursor: pointer;">Amelia Zhao</span></div>
+                <div><span class="age-reduction">17 years</span> reduced</div>
+                <div class="podium-item-lower">
+                    <div class="btc-amount">0.00360248 BTC</div>
+                    <div class="prize-money">$100.80</div>
                 </div>
+            </div>
                 <div class="podium-item third">
                     <div class="podium-rank">🥉</div>
                     <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
-                    <div>Isabella Rodriguez</div>
+                    <div><span class="athlete-name" style="cursor: pointer;">Isabella Rodriguez</span></div>
                     <div><span class="age-reduction">15 years</span> reduced</div>
                     <div class="podium-item-lower">
                         <div class="btc-amount">0.00014401 BTC</div>
@@ -639,23 +639,29 @@
             });
         });
 
+        // Select both table and podium athlete names
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
             athleteNameElement.addEventListener('click', function () {
-                const athleteRow = this.closest('tr');
+                // Check if it's a table row or podium item
+                const athleteRow = this.closest('tr') || this.closest('.podium-item');
                 const athleteNameText = this.textContent;
-                const sponsorElement = athleteRow.querySelector('td:nth-child(4) a');
+                const sponsorElement = athleteRow.querySelector('td:nth-child(4) a'); // Table sponsor
                 const sponsor = sponsorElement ? sponsorElement.textContent : 'No sponsor';
-                const ageReduction = athleteRow.querySelector('td:nth-child(5)').textContent;
+                const ageReduction = athleteRow.querySelector('.age-reduction').textContent;
 
+                // Populate the modal
                 athleteDetails.innerHTML = `
-                <strong>Sponsor:</strong> ${sponsor}<br>
-                <strong>Age Reduction:</strong> ${ageReduction}<br>
-                <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
-                <strong>Key Achievement:</strong> ${getAchievement(name)}
-            `;
+            <strong>Sponsor:</strong> ${sponsor}<br>
+            <strong>Age Reduction:</strong> ${ageReduction}<br>
+            <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
+            <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+        `;
 
+                // Display the modal
                 modal.style.display = "block";
+                document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
 
+                // Update or create the chart
                 if (ageChart) {
                     ageChart.destroy();
                 }
@@ -689,6 +695,7 @@
                 });
             });
         });
+
 
         closeBtn.onclick = function () {
             modal.style.display = "none";
