@@ -197,6 +197,7 @@
             align-items: center;
             justify-content: flex-start; /* Adjusted for top alignment */
             width: 200px;
+            min-height: 230px; /* Set a minimum height, no fixed height */
         }
 
         .podium-item .podium-portrait {
@@ -216,43 +217,60 @@
 
         .podium-item.first {
             order: 2;
-            height: 270px;
+            height: 290px;
         }
 
         .podium-item.second {
             order: 1;
-            height: 250px;
+            height: 270px;
         }
 
         .podium-item.third {
             order: 3;
-            height: 230px;
+            height: 250px;
         }
 
         .podium-item-lower {
             position: absolute;
-            bottom: 0; /* Ensures it stays at the bottom */
-            background-color: #e0f7fa;
+            bottom: 0;
             width: 100%;
             padding: 10px 0;
             border-radius: 0 0 15px 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            clip-path: polygon(0 30%, 100% 0, 100% 100%, 0% 100%);
+            transition: clip-path 0.3s ease-in-out;
+        }
+
+        .podium-item-lower:hover{
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+        }
+
+        .podium-item.first .podium-item-lower {
+            background-color: #FFF9C4; /* Light gold */
+        }
+
+        .podium-item.second .podium-item-lower {
+            background-color: #E0E0E0; /* Light silver */
+        }
+
+        .podium-item.third .podium-item-lower {
+            background-color: #D7CCC8; /* Light bronze */
         }
 
         .prize-money {
             font-weight: bold;
             font-size: 2rem;
             color: #4caf50;
-            margin-top: 10px;
+            margin-top: 2px;
         }
 
         .btc-amount {
+            margin-top: 1rem;
             font-weight: normal;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #333;
-            margin-bottom: 0.3rem;
         }
 
         .podium-rank {
