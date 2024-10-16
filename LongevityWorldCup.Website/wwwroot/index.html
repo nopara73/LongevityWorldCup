@@ -200,13 +200,14 @@
             min-height: 230px; /* Set a minimum height, no fixed height */
         }
 
-        .podium-item .podium-portrait {
+        .podium-portrait {
             width: 100px;
             height: 100px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid var(--secondary-color);
-            margin: 0.7rem 0;
+            margin: 1rem 0;
+            cursor: pointer; /* Add this to indicate it's clickable */
         }
 
         .podium-item:hover {
@@ -297,6 +298,21 @@
             object-fit: cover;
             border: 3px solid var(--secondary-color);
             margin: 1rem 0;
+        }
+
+        .portrait, .podium-portrait {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--secondary-color);
+            margin: 1rem 0;
+            cursor: pointer;
+            transition: transform 0.3s ease; /* Smooth transition for the grow effect */
+        }
+
+        .portrait:hover, .podium-portrait:hover {
+            transform: scale(1.1); /* Slightly grows the image on hover */
         }
 
         .leaderboard {
@@ -626,15 +642,21 @@
         const athleteDetails = document.getElementById("athleteDetails");
         let ageChart;
 
-        document.querySelectorAll('.portrait').forEach(portrait => {
+        document.querySelectorAll('.portrait, .podium-portrait').forEach(portrait => {
             portrait.addEventListener('click', function () {
                 const enlargedImg = document.createElement('div');
                 enlargedImg.classList.add('enlarged-portrait');
                 enlargedImg.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
                 document.body.appendChild(enlargedImg);
 
+                // Disable scrolling when the image is enlarged
+                document.body.classList.add('no-scroll');
+
                 enlargedImg.onclick = function () {
                     document.body.removeChild(this);
+
+                    // Re-enable scrolling when the image is closed
+                    document.body.classList.remove('no-scroll');
                 };
             });
         });
