@@ -198,21 +198,20 @@
             width: 200px; /* Uniform width for all podium items */
         }
 
-            .podium-item .podium-portrait {
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                object-fit: cover;
-                border: 3px solid var(--secondary-color);
-                margin: 1rem 0;
-            }
+        .podium-item .podium-portrait {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--secondary-color);
+            margin: 0.7rem 0;
+        }
 
-            .podium-item:hover {
-                transform: scale(1.02);
-                transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            }
-
+        .podium-item:hover {
+            transform: scale(1.02);
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
 
         .podium-item.first {
             order: 2;
@@ -232,12 +231,14 @@
         .prize-money {
             font-weight: bold;
             color: #333; /* Change to a darker shade */
+            margin-top: auto;
         }
 
         .podium-rank {
             font-size: 2rem;
             font-weight: bold;
             color: var(--primary-color);
+            margin-bottom: 0.5rem
         }
 
         .podium-portrait {
@@ -456,21 +457,21 @@
         <p class="game-description">Too old for your sport? Not this one! In the Longevity World Cup, you don't age out - you age in. Reverse your age and <strong>rise on the leaderboard!</strong></p>
         <div class="podium">
             <div class="podium-item second">
-                <div class="podium-rank">2nd</div>
+                <div class="podium-rank">🥈</div>
                 <img src="https://randomuser.me/api/portraits/men/92.jpg" alt="Nikolai Volkov portrait" class="podium-portrait">
                 <div>Nikolai Volkov</div>
                 <div><span class="age-reduction">16 years</span> reduced</div>
                 <div class="prize-money">$200,000</div>
             </div>
             <div class="podium-item first">
-                <div class="podium-rank">1st</div>
+                <div class="podium-rank">🥇</div>
                 <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
                 <div>Amelia Zhao</div>
                 <div><span class="age-reduction">17 years</span> reduced</div>
                 <div class="prize-money">$1,000,000</div>
             </div>
             <div class="podium-item third">
-                <div class="podium-rank">3rd</div>
+                <div class="podium-rank">🥉</div>
                 <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
                 <div>Isabella Rodriguez</div>
                 <div><span class="age-reduction">15 years</span> reduced</div>
