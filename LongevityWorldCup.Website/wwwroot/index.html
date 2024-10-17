@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -72,10 +73,10 @@
                 pointer-events: auto; /* Ensure the pseudo-element can capture clicks */
             }
 
-        .join-game:hover {
-            background-color: #45a049;
-            transform: scale(1.05);
-        }
+            .join-game:hover {
+                background-color: #45a049;
+                transform: scale(1.05);
+            }
 
             .join-game.scrolled {
                 position: fixed;
@@ -248,9 +249,9 @@
             transition: clip-path 0.3s ease-in-out;
         }
 
-        .podium-item-lower:hover{
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-        }
+            .podium-item-lower:hover {
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+            }
 
         .podium-item.first .podium-item-lower {
             background-color: #FFF9C4; /* Light gold */
@@ -315,9 +316,9 @@
             transition: transform 0.3s ease; /* Smooth transition for the grow effect */
         }
 
-        .portrait:hover, .podium-portrait:hover {
-            transform: scale(1.1); /* Slightly grows the image on hover */
-        }
+            .portrait:hover, .podium-portrait:hover {
+                transform: scale(1.1); /* Slightly grows the image on hover */
+            }
 
         .leaderboard {
             background-color: var(--card-bg);
@@ -445,11 +446,11 @@
             cursor: pointer;
         }
 
-        .enlarged-portrait img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-        }
+            .enlarged-portrait img {
+                max-width: 90%;
+                max-height: 90%;
+                object-fit: contain;
+            }
 
         .athlete-name {
             color: var(--primary-color);
@@ -458,9 +459,9 @@
             transition: color 0.2s ease-in-out;
         }
 
-        .athlete-name:hover {
-            color: var(--secondary-color);
-        }
+            .athlete-name:hover {
+                color: var(--secondary-color);
+            }
 
         .sponsor-link {
             color: var(--primary-color); /* Make the sponsor link stand out */
@@ -469,10 +470,10 @@
             transition: color 0.2s ease-in-out;
         }
 
-        .sponsor-link:hover {
-            color: var(--secondary-color); /* Change color on hover to make it interactive */
-            text-decoration: underline; /* Ensure underline remains on hover */
-        }
+            .sponsor-link:hover {
+                color: var(--secondary-color); /* Change color on hover to make it interactive */
+                text-decoration: underline; /* Ensure underline remains on hover */
+            }
 
         @media (max-width: 768px) {
             table, thead, tbody, th, td, tr {
@@ -509,6 +510,66 @@
                     font-size: 0.8rem;
                     color: var(--primary-color);
                 }
+        }
+
+        /* Footer styles */
+        .footer {
+            background-color: #333;
+            color: #fff;
+            padding: 2rem 0;
+            margin-top: 4rem; /* Increased margin-top for more spacing */
+            position: relative;
+            width: 100%;
+            clear: both; /* Ensure it clears any floated content */
+        }
+
+        
+
+        .footer-link {
+            color: #fff;
+            text-decoration: none;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+            .footer-link:hover {
+                color: var(--primary-color); /* Hover effect matches primary color */
+            }
+
+            .footer-link i {
+                margin-right: 0.5rem;
+                width: 20px;
+                text-align: center;
+            }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center; /* Center the content horizontally */
+            align-items: flex-start; /* Ensure columns start at the same place */
+            flex-wrap: wrap; /* Ensure responsiveness */
+            padding: 0 1.5rem;
+        }
+
+        .footer-column {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1rem;
+            width: auto; /* Set to auto to allow the columns to shrink */
+            margin: 0 3rem; /* Add some space between columns */
+            align-items: flex-start; /* Align content inside each column at the start */
+        }
+
+        @media (max-width: 768px) {
+            .footer-container {
+                flex-direction: column; /* Stack columns vertically on small screens */
+                text-align: center; /* Center text for small screens */
+            }
+
+            .footer-column {
+                width: 100%; /* Full width on small screens */
+            }
         }
     </style>
 </head>
@@ -648,6 +709,26 @@
         </div>
     </div>
 
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-column">
+                <a href="rules.html" class="footer-link"><i class="fas fa-book"></i> Rules</a>
+                <a href="https://github.com/nopara73/LongevityWorldCup/" class="footer-link"><i class="fab fa-github"></i> GitHub</a>
+                <a href="mailto:longevityworldcup@gmail.com" class="footer-link"><i class="fas fa-envelope"></i> Contact</a>
+                <a href="https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL" class="footer-link"><i class="fas fa-podcast"></i> Podcast</a>
+            </div>
+            <div class="footer-column">
+                <a href="https://x.com/LongevityWorldC" class="footer-link"><i class="fab fa-twitter"></i> X</a>
+                <a href="https://old.reddit.com/r/LongevityWorldCup/" class="footer-link"><i class="fab fa-reddit"></i> Reddit</a>
+                <a href="https://www.tiktok.com/@nopara73" class="footer-link"><i class="fab fa-tiktok"></i> TikTok</a>
+                <a href="https://www.facebook.com/LongevityWorldCup/" class="footer-link"><i class="fab fa-facebook"></i> Facebook</a>
+                <a href="https://www.instagram.com/nopara73" class="footer-link"><i class="fab fa-instagram"></i> Instagram</a>
+            </div>
+        </div>
+    </footer>
+
+
+
     <script>
         const modal = document.getElementById("detailsModal");
         const closeBtn = document.getElementsByClassName("close")[0];
@@ -686,11 +767,11 @@
 
                 // Populate the modal
                 athleteDetails.innerHTML = `
-            <strong>Sponsor:</strong> ${sponsor}<br>
-            <strong>Age Reduction:</strong> ${ageReduction}<br>
-            <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
-            <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-        `;
+                    <strong>Sponsor:</strong> ${sponsor}<br>
+                    <strong>Age Reduction:</strong> ${ageReduction}<br>
+                    <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
+                    <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+                `;
 
                 // Display the modal
                 modal.style.display = "block";
