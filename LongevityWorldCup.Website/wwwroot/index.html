@@ -709,7 +709,25 @@
         </div>
     </div>
 
-    <footer class="footer">
+    <!-- Minimal Newsletter Subscription Section -->
+    <div style="text-align: center; margin-bottom: 1rem;">
+        <!-- Reduced the margin-bottom -->
+        <h3 style="font-size: 1rem; color: var(--text-color); margin-bottom: 0.5rem;">
+            Annual Update
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 0.5rem;">
+            Want to know who wins? Get last year’s winner and next year’s competition announcements – no spam, just the essentials.
+        </p>
+        <form id="newsletter-form" style="display: inline-block;">
+            <input type="email" placeholder="Email" style="padding: 0.4rem 1rem; width: 180px; border-radius: 25px; border: 1px solid var(--primary-color);">
+            <button type="submit" style="padding: 0.4rem 1rem; background-color: var(--primary-color); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 0.85rem;">
+                Subscribe
+            </button>
+        </form>
+    </div>
+
+
+    <footer class="footer" style="margin-top: 1.5rem;">
         <div class="footer-container">
             <div class="footer-column">
                 <a href="https://github.com/nopara73/LongevityWorldCup/" class="footer-link"><i class="fab fa-github"></i> GitHub</a>
@@ -768,11 +786,11 @@
 
                 // Populate the modal
                 athleteDetails.innerHTML = `
-                    <strong>Sponsor:</strong> ${sponsor}<br>
-                    <strong>Age Reduction:</strong> ${ageReduction}<br>
-                    <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
-                    <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-                `;
+                                <strong>Sponsor:</strong> ${sponsor}<br>
+                                <strong>Age Reduction:</strong> ${ageReduction}<br>
+                                <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
+                                <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+                            `;
 
                 // Display the modal
                 modal.style.display = "block";
