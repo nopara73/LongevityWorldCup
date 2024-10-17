@@ -218,17 +218,17 @@
 
         .podium-item.first {
             order: 2;
-            height: 290px;
+            height: 320px;
         }
 
         .podium-item.second {
             order: 1;
-            height: 270px;
+            height: 300px;
         }
 
         .podium-item.third {
             order: 3;
-            height: 250px;
+            height: 280px;
         }
 
         .podium-item-lower {
@@ -441,11 +441,11 @@
             cursor: pointer;
         }
 
-            .enlarged-portrait img {
-                max-width: 90%;
-                max-height: 90%;
-                object-fit: contain;
-            }
+        .enlarged-portrait img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
 
         .athlete-name {
             color: var(--primary-color);
@@ -454,20 +454,21 @@
             transition: color 0.2s ease-in-out;
         }
 
-            .athlete-name:hover {
-                color: var(--secondary-color);
-            }
+        .athlete-name:hover {
+            color: var(--secondary-color);
+        }
 
         .sponsor-link {
-            color: var(--text-color);
-            text-decoration: none;
+            color: var(--primary-color); /* Make the sponsor link stand out */
+            text-decoration: underline; /* Add underline to indicate it's a link */
+            cursor: pointer; /* Change the cursor to pointer for clickability */
             transition: color 0.2s ease-in-out;
         }
 
-            .sponsor-link:hover {
-                color: var(--primary-color);
-                text-decoration: underline;
-            }
+        .sponsor-link:hover {
+            color: var(--secondary-color); /* Change color on hover to make it interactive */
+            text-decoration: underline; /* Ensure underline remains on hover */
+        }
 
         @media (max-width: 768px) {
             table, thead, tbody, th, td, tr {
@@ -525,32 +526,35 @@
                 <div class="podium-rank">🥈</div>
                 <img src="https://randomuser.me/api/portraits/men/92.jpg" alt="Nikolai Volkov portrait" class="podium-portrait">
                 <div><span class="athlete-name" style="cursor: pointer;">Nikolai Volkov</span></div>
+                <div><a href="https://some-sponsor-url.com" class="sponsor-link">Epigenetic Elites</a></div> <!-- Sponsor added here -->
                 <div><span class="age-reduction">16 years</span> reduced</div>
                 <div class="podium-item-lower">
-                    <div class="btc-amount">0.00072578 BTC</div>
+                    <div class="btc-amount">(0.00072578 BTC)</div>
                     <div class="prize-money">$20.16</div>
                 </div>
-                </div>
+            </div>
             <div class="podium-item first">
                 <div class="podium-rank">🥇</div>
                 <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
                 <div><span class="athlete-name" style="cursor: pointer;">Amelia Zhao</span></div>
+                <div><a href="https://some-sponsor-url.com" class="sponsor-link">Quantum Renewal</a></div> <!-- Sponsor added here -->
                 <div><span class="age-reduction">17 years</span> reduced</div>
                 <div class="podium-item-lower">
-                    <div class="btc-amount">0.00360248 BTC</div>
+                    <div class="btc-amount">(0.00360248 BTC)</div>
                     <div class="prize-money">$100.80</div>
                 </div>
             </div>
-                <div class="podium-item third">
-                    <div class="podium-rank">🥉</div>
-                    <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
-                    <div><span class="athlete-name" style="cursor: pointer;">Isabella Rodriguez</span></div>
-                    <div><span class="age-reduction">15 years</span> reduced</div>
-                    <div class="podium-item-lower">
-                        <div class="btc-amount">0.00014401 BTC</div>
-                        <div class="prize-money">$4.03</div>
-                    </div>
+            <div class="podium-item third">
+                <div class="podium-rank">🥉</div>
+                <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
+                <div><span class="athlete-name" style="cursor: pointer;">Isabella Rodriguez</span></div>
+                <div><a href="https://some-sponsor-url.com" class="sponsor-link">Senolytic Savants</a></div> <!-- Sponsor added here -->
+                <div><span class="age-reduction">15 years</span> reduced</div>
+                <div class="podium-item-lower">
+                    <div class="btc-amount">(0.00014401 BTC)</div>
+                    <div class="prize-money">$4.03</div>
                 </div>
+            </div>
                 </div>
         <div class="leaderboard">
             <table>
