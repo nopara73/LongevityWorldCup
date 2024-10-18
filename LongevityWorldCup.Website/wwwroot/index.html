@@ -165,6 +165,18 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Add shadow effect */
         }
 
+        .copy-btn:hover {
+            background: none; /* Prevent the background change */
+            transform: none; /* Prevent scaling of the button */
+            box-shadow: none; /* Remove the shadow */
+        }
+
+        .copy-btn:hover i {
+            color: var(--secondary-color); /* Change icon color on hover */
+            transform: scale(1.2); /* Slightly enlarge the icon */
+            transition: transform 0.2s ease, color 0.2s ease; /* Smooth transition for both color and size */
+        }
+        
         main {
             max-width: 1200px;
             margin: 3rem auto;
@@ -179,7 +191,96 @@
             color: var(--text-color);
         }
 
+        /* Common container for sections */
+        .section-container {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 800px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
 
+            /* Heading style */
+            .section-container h3 {
+                font-size: 1.5rem;
+                color: var(--text-color);
+                margin-bottom: 1rem;
+            }
+
+            /* Paragraph style */
+            .section-container p {
+                font-size: 1rem;
+                color: var(--text-color);
+                margin-bottom: 1.5rem;
+                line-height: 1.6;
+            }
+
+            /* Input field style */
+            .section-container input[type="email"] {
+                padding: 0.6rem 1rem;
+                width: 250px;
+                border-radius: 25px;
+                border: 1px solid var(--primary-color);
+                margin-right: 1rem;
+                box-sizing: border-box;
+            }
+
+            /* Button style */
+            .section-container button {
+                padding: 0.6rem 1.5rem;
+                font-size: 1rem;
+                background-color: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 25px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+
+            /* Button hover effect */
+            .section-container button:hover {
+                background-color: var(--secondary-color);
+            }
+
+
+        /* BTC address text */
+        .btc-address {
+            font-size: 1rem;
+            color: var(--primary-color);
+            font-weight: bold;
+            word-break: break-all;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Align form elements */
+        #newsletter-form {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Adjust spacing for mobile */
+        @media (max-width: 768px) {
+            .section-container {
+                padding: 1.5rem;
+            }
+
+                .section-container input[type="email"] {
+                    width: 100%;
+                    margin: 0 0 1rem 0;
+                }
+
+            #newsletter-form {
+                flex-direction: column;
+            }
+
+            .section-container button {
+                width: 100%;
+            }
+        }
 
         /* Podium styling */
         .podium {
@@ -394,6 +495,45 @@
         .no-scroll {
             overflow: hidden;
         }
+
+        /* Styles for the copy button */
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copy-btn i {
+            font-size: 1rem;
+            color: var(--primary-color);
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .copy-btn:hover i {
+            transform: scale(1.2);
+            color: var(--secondary-color);
+        }
+
+        /* Flash animation */
+        @keyframes flash {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.1;
+            }
+        }
+
+        .flash-animation {
+            animation: flash 1s ease-in-out 4;
+        }
+
 
         .modal {
             display: none;
@@ -705,6 +845,37 @@
                 VIEW FULL RANKINGS
             </button>
         </div>
+
+        <!-- Bitcoin Donation Section -->
+        <div class="section-container">
+            <h3>Contribute to the Prize Pool</h3>
+            <p>
+                Your contribution increases the prize pool for the Longevity World Cup champions. Send BTC to our transparent prize pool address below:
+            </p>
+            <div class="btc-address">
+                <a id="btcAddressLink" href="#" target="_blank" style="text-decoration: none;">
+                    <!-- Bitcoin address will be inserted here by JavaScript -->
+                </a>
+                <span class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin Address">
+                    <i class="fas fa-copy"></i>
+                </span>
+            </div>
+        </div>
+
+
+        <!-- Minimal Newsletter Subscription Section -->
+        <div class="section-container">
+            <h3>Once-a-Year Newsletter</h3>
+            <p>
+                Want to know who wins? Get last year’s winner and next year’s competition announcements—no spam, just the essentials.
+            </p>
+            <form id="newsletter-form">
+                <input type="email" placeholder="Enter your email" required>
+                <button type="submit">Subscribe</button>
+            </form>
+        </div>
+
+
     </main>
 
     <div id="detailsModal" class="modal">
@@ -714,23 +885,6 @@
             <p id="athleteDetails"></p>
             <canvas id="ageChart"></canvas>
         </div>
-    </div>
-
-    <!-- Minimal Newsletter Subscription Section -->
-    <div style="text-align: center; margin-bottom: 1rem;">
-        <!-- Reduced the margin-bottom -->
-        <h3 style="font-size: 1rem; color: var(--text-color); margin-bottom: 0.5rem;">
-            Once/Year Newsletter
-        </h3>
-        <p style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 0.5rem;">
-            Want to know who wins? Get last year’s winner and next year’s competition announcements – no spam, just the essentials.
-        </p>
-        <form id="newsletter-form" style="display: inline-block;">
-            <input type="email" placeholder="Email" style="padding: 0.4rem 1rem; width: 180px; border-radius: 25px; border: 1px solid var(--primary-color); height: 2.2rem; box-sizing: border-box;">
-            <button type="submit" style="padding: 0 1rem; height: 2.2rem; background-color: var(--primary-color); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 0.85rem;">
-                Subscribe
-            </button>
-        </form>
     </div>
 
 
@@ -780,6 +934,28 @@
                 };
             });
         });
+
+        const bitcoinAddress = "tbtc1q5zw0v70zszdhlm0lk7smn9xnhgdzvc88rksrml";
+
+        // Set the address and link
+        document.getElementById("btcAddressLink").textContent = bitcoinAddress;
+        document.getElementById("btcAddressLink").href = `https://mempool.space/address/${bitcoinAddress}`;
+
+        // Copy function
+        function copyBitcoinAddress() {
+            navigator.clipboard.writeText(bitcoinAddress).then(function () {
+                // Get the copy icon element
+                const copyIcon = document.querySelector('.copy-btn i');
+                // Add the flash animation class
+                copyIcon.classList.add('flash-animation');
+                // Remove the flash animation class after it completes
+                setTimeout(function () {
+                    copyIcon.classList.remove('flash-animation');
+                }, 800); // Duration is 0.2s * 4 flashes = 0.8s
+            }, function (err) {
+                alert('Failed to copy the address');
+            });
+        }
 
         // Select both table and podium athlete names
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
