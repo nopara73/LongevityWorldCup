@@ -255,6 +255,27 @@
             align-items: center;
         }
 
+        /* Styling for the VIEW FULL RANKINGS button */
+        .rankings-btn {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 150px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+            /* Hover effect for the VIEW FULL RANKINGS button */
+            .rankings-btn:hover {
+                background-color: var(--secondary-color); /* Change to secondary color on hover */
+                transform: scale(1.05); /* Slightly enlarge the button */
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Add shadow effect */
+            }
+
+
         /* Align form elements */
         #newsletter-form {
             display: flex;
@@ -531,9 +552,21 @@
         }
 
         .flash-animation {
-            animation: flash 1s ease-in-out 4;
+            animation: flash 0.5s ease-in-out 4;
+        }
+        @keyframes fadeInOut {
+            0%, 100% {
+                opacity: 0;
+            }
+
+            10%, 90% {
+                opacity: 1;
+            }
         }
 
+        .fade-in-out {
+            animation: fadeInOut 2s ease-in-out forwards;
+        }
 
         .modal {
             display: none;
@@ -841,25 +874,29 @@
             </table>
         </div>
         <div style="text-align: center; margin-top: 20px;">
-            <button onclick="window.location.href='https://longevityworldcup.com/full-rankings'" style="padding: 1rem 2rem; font-size: 1.2rem; background-color: var(--primary-color); color: white; border: none; border-radius: 150px; cursor: pointer; transition: all 0.3s ease; font-weight: bold;">
+            <button onclick="window.location.href='https://longevityworldcup.com/full-rankings'" class="rankings-btn">
                 VIEW FULL RANKINGS
             </button>
         </div>
 
         <!-- Bitcoin Donation Section -->
         <div class="section-container">
-            <h3>Contribute to the Prize Pool</h3>
+            <h3>Contribute</h3>
             <p>
-                Your contribution increases the prize pool for the Longevity World Cup champions. Send BTC to our transparent prize pool address below:
+                90% of your Bitcoin donations boost the prize pool for Longevity World Cup champions:
             </p>
             <div class="btc-address">
                 <a id="btcAddressLink" href="#" target="_blank" style="text-decoration: none;">
                     <!-- Bitcoin address will be inserted here by JavaScript -->
                 </a>
+                <span id="copiedText" style="display: none;">
+                    Copied <i class="fas fa-check" style="color: green;"></i>
+                </span>
                 <span class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin Address">
                     <i class="fas fa-copy"></i>
                 </span>
             </div>
+
         </div>
 
 
@@ -944,18 +981,35 @@
         // Copy function
         function copyBitcoinAddress() {
             navigator.clipboard.writeText(bitcoinAddress).then(function () {
+                // Hide the BTC address
+                document.getElementById('btcAddressLink').style.display = 'none';
+                // Show the 'Copied' text
+                const copiedTextElement = document.getElementById('copiedText');
+                copiedTextElement.style.display = 'inline';
+
+                // Optional: Add fade animation to the 'Copied' text
+                // copiedTextElement.classList.add('fade-in-out');
+
                 // Get the copy icon element
                 const copyIcon = document.querySelector('.copy-btn i');
                 // Add the flash animation class
                 copyIcon.classList.add('flash-animation');
-                // Remove the flash animation class after it completes
+
+                // Remove the flash animation class and revert back after the duration
                 setTimeout(function () {
                     copyIcon.classList.remove('flash-animation');
-                }, 800); // Duration is 0.2s * 4 flashes = 0.8s
+                    // Hide 'Copied' text
+                    copiedTextElement.style.display = 'none';
+                    // Show BTC address
+                    document.getElementById('btcAddressLink').style.display = 'inline';
+                    // Optional: Remove fade animation class
+                    // copiedTextElement.classList.remove('fade-in-out');
+                }, 2000); // Duration is 0.5s * 4 flashes = 2s
             }, function (err) {
                 alert('Failed to copy the address');
             });
         }
+
 
         // Select both table and podium athlete names
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
