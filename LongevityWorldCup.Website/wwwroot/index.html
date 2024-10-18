@@ -744,6 +744,85 @@
                 width: 100%; /* Full width on small screens */
             }
         }
+
+        /* Contribute Section Styles */
+        .contribute-section {
+            position: relative;
+            overflow: hidden;
+            color: var(--text-color); /* Use the main text color */
+            padding: 2rem;
+            border-radius: 15px;
+            margin-top: 2rem;
+            background-color: var(--card-bg); /* Use the original background color */
+        }
+
+        .progress-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%; /* Will be updated via JavaScript */
+            height: 100%;
+            background-color: rgba(144, 238, 144, 0.1); /* Very pale green with transparency */
+            z-index: 1;
+            transition: width 1s ease-in-out;
+        }
+
+        .contribute-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .contribute-section h3,
+        .contribute-section p {
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        .btc-status {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .btc-address {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+            .btc-address a,
+            .btc-address span {
+                font-size: 1rem;
+                color: var(--primary-color);
+                margin: 0.5rem;
+                word-break: break-all;
+            }
+
+        .copy-btn {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-left: 0.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+            .copy-btn:hover {
+                color: var(--secondary-color);
+            }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .contribute-section {
+                padding: 1.5rem;
+            }
+
+            .btc-status {
+                font-size: 1.2rem;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -880,29 +959,36 @@
         </div>
 
         <!-- Bitcoin Donation Section -->
-        <div class="section-container">
-            <h3>Contribute</h3>
-            <p>
-                90% of your Bitcoin donations boost the prize pool for Longevity World Cup champions:
-            </p>
-            <div class="btc-address">
-                <a id="btcAddressLink" href="#" target="_blank" style="text-decoration: none;">
-                    <!-- Bitcoin address will be inserted here by JavaScript -->
-                </a>
-                <span id="copiedText" style="display: none;">
-                    Copied <i class="fas fa-check" style="color: green;"></i>
-                </span>
-                <span class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin Address">
-                    <i class="fas fa-copy"></i>
-                </span>
+        <div class="section-container contribute-section">
+            <div class="progress-overlay"></div>
+            <div class="contribute-content">
+                <h3>Contribute</h3>
+                <p>
+                    90% of your Bitcoin donations boost the prize pool for Longevity World Cup champions:
+                </p>
+                <div class="btc-status">
+                    <span id="current-btc">0.23 BTC</span> of <span id="goal-btc">1 BTC</span> goal reached!
+                </div>
+                <div class="btc-address">
+                    <a id="btcAddressLink" href="#" target="_blank">
+                        <!-- Bitcoin address will be inserted here by JavaScript -->
+                    </a>
+                    <span id="copiedText" style="display: none;">
+                        Copied <i class="fas fa-check" style="color: green;"></i>
+                    </span>
+                    <span class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin Address">
+                        <i class="fas fa-copy"></i>
+                    </span>
+                </div>
             </div>
-
         </div>
+
+
 
 
         <!-- Minimal Newsletter Subscription Section -->
         <div class="section-container">
-            <h3>Once-a-Year Newsletter</h3>
+            <h3>Once/Year Newsletter</h3>
             <p>
                 Want to know who wins? Get last year’s winner and next year’s competition announcements—no spam, just the essentials.
             </p>
@@ -945,11 +1031,9 @@
     </footer>
 
 
-
     <script>
         const modal = document.getElementById("detailsModal");
         const closeBtn = document.getElementsByClassName("close")[0];
-        const athleteName = document.getElementById("athleteName");
         const athleteDetails = document.getElementById("athleteDetails");
         let ageChart;
 
@@ -1010,24 +1094,28 @@
             });
         }
 
-
         // Select both table and podium athlete names
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
             athleteNameElement.addEventListener('click', function () {
                 // Check if it's a table row or podium item
                 const athleteRow = this.closest('tr') || this.closest('.podium-item');
+                if (!athleteRow) {
+                    console.error('Athlete row not found');
+                    return;
+                }
                 const athleteNameText = this.textContent;
                 const sponsorElement = athleteRow.querySelector('td:nth-child(4) a'); // Table sponsor
                 const sponsor = sponsorElement ? sponsorElement.textContent : 'No sponsor';
-                const ageReduction = athleteRow.querySelector('.age-reduction').textContent;
+                const ageReductionElement = athleteRow.querySelector('.age-reduction');
+                const ageReduction = ageReductionElement ? ageReductionElement.textContent : 'N/A';
 
                 // Populate the modal
                 athleteDetails.innerHTML = `
-                                <strong>Sponsor:</strong> ${sponsor}<br>
-                                <strong>Age Reduction:</strong> ${ageReduction}<br>
-                                <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
-                                <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-                            `;
+                    <strong>Sponsor:</strong> ${sponsor}<br>
+                    <strong>Age Reduction:</strong> ${ageReduction}<br>
+                    <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
+                    <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+                `;
 
                 // Display the modal
                 modal.style.display = "block";
@@ -1068,7 +1156,6 @@
             });
         });
 
-
         closeBtn.onclick = function () {
             modal.style.display = "none";
             document.body.classList.remove('no-scroll'); // Re-enable scrolling when the modal closes
@@ -1080,15 +1167,6 @@
                 document.body.classList.remove('no-scroll'); // Re-enable scrolling when the modal closes
             }
         };
-
-        // When opening the modal
-        document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-            athleteNameElement.addEventListener('click', function () {
-                // Existing code...
-                modal.style.display = "block";
-                document.body.classList.add('no-scroll'); // Disable scrolling when the modal opens
-            });
-        });
 
         function getSpecialization(sponsor) {
             const specializations = {
@@ -1119,30 +1197,41 @@
             return Math.floor(Math.random() * (80 - 40 + 1)) + 40;
         }
 
-        document.querySelector('.join-game').addEventListener('click', function () {
+        const joinButton = document.querySelector('.join-game');
+        joinButton.addEventListener('click', function () {
             window.location.href = `${window.location.origin}/api/home/join`;
         });
 
         window.addEventListener('scroll', function () {
-            const button = document.querySelector('.join-game');
-            const middleSpan = button.querySelector('.join-game-middle');
-            const endStrong = button.querySelector('.join-game-end');
+            const middleSpan = joinButton.querySelector('.join-game-middle');
+            const endStrong = joinButton.querySelector('.join-game-end');
             if (window.scrollY > 100) {
-                button.classList.add('scrolled');
+                joinButton.classList.add('scrolled');
                 middleSpan.style.display = 'none';
                 endStrong.style.display = 'none';
             } else {
-                button.classList.remove('scrolled');
+                joinButton.classList.remove('scrolled');
                 middleSpan.style.display = '';
                 endStrong.style.display = '';
             }
         });
 
+        // Mock progress for Bitcoin donations
+        const goalBTC = 1; // Goal in BTC
+        const currentBTC = 0.23; // Current donated amount in BTC
 
-        const joinButton = document.querySelector('.join-game');
+        // Calculate the percentage
+        const progressPercentage = (currentBTC / goalBTC) * 100;
+
+        // Update the background fill
+        document.querySelector('.progress-overlay').style.width = progressPercentage + '%';
+
+        // Update the BTC status
+        document.getElementById('current-btc').textContent = currentBTC.toFixed(2) + ' BTC';
+        document.getElementById('goal-btc').textContent = goalBTC + ' BTC';
+
         let intensityTimer;
         let animationDuration = 15; // Start with 15 seconds
-
         let timeoutTimer;
 
         joinButton.addEventListener('mouseenter', function () {
@@ -1163,7 +1252,7 @@
                 }
             }, 1000); // Decrease duration every 1 second
 
-            // Stop the interval after 15 seconds (since we want to increase intensity over 15 seconds)
+            // Stop the interval after 15 seconds
             timeoutTimer = setTimeout(() => {
                 clearInterval(intensityTimer);
             }, 15000);
@@ -1178,9 +1267,6 @@
             animationDuration = 15;
             clearTimeout(timeoutTimer);
         });
-
-
-
     </script>
 </body>
 </html>
