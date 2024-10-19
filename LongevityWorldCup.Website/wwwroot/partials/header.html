@@ -1,0 +1,241 @@
+﻿<style>
+    :root {
+        --primary-color: #00bcd4;
+        --secondary-color: #ff4081;
+        --background-color: #f0f4f8;
+        --text-color: #333;
+        --card-bg: #ffffff;
+    }
+
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--background-color);
+        color: var(--text-color);
+    }
+
+    main {
+        max-width: 1200px;
+        margin: 3rem auto;
+        padding: 0 1rem;
+    }
+
+    /* Header Styles */
+    header {
+        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        text-align: center;
+        padding: 2rem 0;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 3rem;
+        font-weight: 700;
+        text-transform: capitalize;
+        letter-spacing: 2px;
+        position: relative;
+        text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .join-game {
+        margin-top: 2rem;
+        padding: 1rem 2rem;
+        font-size: 1.5rem;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 150px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0.4px 8px rgba(0, 0, 0, 0.15);
+        animation: glow 1s ease-in-out 3;
+        position: relative;
+        z-index: 1;
+    }
+
+        .join-game::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            bottom: -20px;
+            left: -20px;
+            right: -20px;
+            background: transparent;
+            pointer-events: auto;
+        }
+
+        .join-game:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        .join-game.scrolled {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            transform: translateX(0);
+            z-index: 1000;
+            transition: transform 0.5s ease, background-color 0.3s ease;
+            padding: 1rem 1.5rem;
+        }
+
+            .join-game.scrolled:hover {
+                background-color: #45a049;
+                transform: scale(1.05);
+            }
+
+    @keyframes glow {
+        0%, 100% {
+            box-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff, 0 0 20px #00ffff;
+        }
+
+        50% {
+            box-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff, 0 0 50px #00ffff;
+        }
+    }
+
+    @keyframes wiggle-intense {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        10% {
+            transform: rotate(3deg);
+        }
+
+        20% {
+            transform: rotate(-3deg);
+        }
+
+        30% {
+            transform: rotate(5deg);
+        }
+
+        40% {
+            transform: rotate(-5deg);
+        }
+
+        50% {
+            transform: rotate(7deg);
+        }
+
+        60% {
+            transform: rotate(-7deg);
+        }
+
+        70% {
+            transform: rotate(9deg);
+        }
+
+        80% {
+            transform: rotate(-9deg);
+        }
+
+        90% {
+            transform: rotate(11deg);
+        }
+
+        100% {
+            transform: rotate(0deg);
+        }
+    }
+
+    .join-game .sparkle {
+        display: inline-block;
+        animation: none;
+        transition: animation 0.5s ease;
+    }
+
+    .join-game:hover .sparkle {
+        animation: wiggle-intense 15s infinite ease-in-out;
+    }
+</style>
+
+<header>
+    <h1>Longevity World Cup 2025</h1>
+    <p>Race To Longevity Escape Velocity🚀</p>
+    <button onclick="window.location.href='/onboarding/join-game.html'" class="join-game">
+        <strong>PLAY</strong>
+        <span class="join-game-middle" style="font-size: 1rem;">THE</span>
+        <strong class="join-game-end">GAME</strong>
+    </button>
+</header>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const baseTag = document.querySelector("base");
+        if (window.location.hostname === "localhost") {
+            baseTag.href = "/";
+        } else {
+            baseTag.href = "https://longevityworldcup.com/";
+        }
+    });
+
+    const joinButton = document.querySelector('.join-game');
+
+    // API call example, don't delete it!
+    //joinButton.addEventListener('click', function () {
+    //    window.location.href = `${window.location.origin}/api/home/join`;
+    //});
+
+    // Event listener for scrolling to adjust the button
+    window.addEventListener('scroll', function () {
+        const middleSpan = joinButton.querySelector('.join-game-middle');
+        const endStrong = joinButton.querySelector('.join-game-end');
+        if (window.scrollY > 100) {
+            joinButton.classList.add('scrolled');
+            middleSpan.style.display = 'none';
+            endStrong.style.display = 'none';
+        } else {
+            joinButton.classList.remove('scrolled');
+            middleSpan.style.display = '';
+            endStrong.style.display = '';
+        }
+    });
+
+    let intensityTimer;
+    let animationDuration = 15; // Start with 15 seconds
+    let timeoutTimer;
+
+    // Event listeners for mouse interactions
+    joinButton.addEventListener('mouseenter', function () {
+        clearInterval(intensityTimer);
+        if (!joinButton.querySelector('.sparkle')) {
+            const sparkleSpan = document.createElement('span');
+            sparkleSpan.classList.add('sparkle');
+            sparkleSpan.textContent = '✨';
+            joinButton.appendChild(sparkleSpan);
+        }
+
+        // Increase intensity over time
+        intensityTimer = setInterval(() => {
+            animationDuration = Math.max(1, animationDuration - 0.5); // Decrease duration gradually, stop at 1s
+            const sparkleElement = joinButton.querySelector('.sparkle');
+            if (sparkleElement) {
+                sparkleElement.style.animationDuration = `${animationDuration}s`;
+            }
+        }, 1000); // Decrease duration every 1 second
+
+        // Stop after 15 seconds
+        timeoutTimer = setTimeout(() => {
+            clearInterval(intensityTimer);
+        }, 15000);
+    });
+
+    joinButton.addEventListener('mouseleave', function () {
+        const sparkle = joinButton.querySelector('.sparkle');
+        if (sparkle) {
+            sparkle.remove();
+        }
+        clearInterval(intensityTimer);
+        animationDuration = 15;
+        clearTimeout(timeoutTimer);
+    });
+</script>

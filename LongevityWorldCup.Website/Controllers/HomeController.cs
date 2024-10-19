@@ -11,7 +11,7 @@ namespace LongevityWorldCup.Website.Controllers
         {
             // Return the static index.html file from wwwroot
             // This is just a test
-            return PhysicalFile(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html"), "text/html");
+            return PhysicalFile(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "onboarding/join-game.html"), "text/html");
         }
     }
 }

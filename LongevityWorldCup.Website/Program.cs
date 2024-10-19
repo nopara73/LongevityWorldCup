@@ -1,3 +1,5 @@
+using LongevityWorldCup.Website.Middleware;
+
 namespace LongevityWorldCup.Website
 {
     public class Program
@@ -10,6 +12,9 @@ namespace LongevityWorldCup.Website
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
+
+            // Register the custom HTML injection middleware BEFORE static files
+            app.UseMiddleware<HtmlInjectionMiddleware>();
 
             // Enable default file serving (index.html) and static file serving
             app.UseDefaultFiles();  // <-- Add this line to serve default files like index.html
