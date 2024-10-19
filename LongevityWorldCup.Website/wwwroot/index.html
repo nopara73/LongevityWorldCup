@@ -1,164 +1,7 @@
 <html>
 <head>
-    <base href="https://longevityworldcup.com/" />
-    <title>Longevity World Cup 2025 - Leaderboard</title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!--HEAD-->
     <style>
-        :root {
-            --primary-color: #00bcd4;
-            --secondary-color: #ff4081;
-            --background-color: #f0f4f8;
-            --text-color: #333;
-            --card-bg: #ffffff;
-        }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
-        }
-
-        header {
-            background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            text-align: center;
-            padding: 2rem 0;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 3rem;
-            font-weight: 700;
-            text-transform: capitalize;
-            letter-spacing: 2px;
-            position: relative;
-            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .join-game {
-            margin-top: 2rem;
-            padding: 1rem 2rem;
-            font-size: 1.5rem;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 150px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 0.4px 8px rgba(0, 0, 0, 0.15);
-            animation: glow 1s ease-in-out 3;
-            position: relative;
-            z-index: 1;
-        }
-
-            .join-game::before {
-                content: '';
-                position: absolute;
-                top: -20px; /* Increase the clickable area upwards */
-                bottom: -20px; /* Increase the clickable area downwards */
-                left: -20px; /* Increase the clickable area to the left */
-                right: -20px; /* Increase the clickable area to the right */
-                background: transparent; /* Make the area invisible */
-                pointer-events: auto; /* Ensure the pseudo-element can capture clicks */
-            }
-
-            .join-game:hover {
-                background-color: #45a049;
-                transform: scale(1.05);
-            }
-
-            .join-game.scrolled {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                transform: translateX(0);
-                z-index: 1000;
-                transition: transform 0.5s ease, background-color 0.3s ease;
-                padding: 1rem 1.5rem;
-            }
-
-                .join-game.scrolled:hover {
-                    background-color: #45a049;
-                    transform: scale(1.05);
-                }
-
-        @keyframes glow {
-            0%, 100% {
-                box-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff, 0 0 20px #00ffff;
-            }
-
-            50% {
-                box-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff, 0 0 50px #00ffff;
-            }
-        }
-
-        @keyframes wiggle-intense {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            10% {
-                transform: rotate(3deg);
-            }
-
-            20% {
-                transform: rotate(-3deg);
-            }
-
-            30% {
-                transform: rotate(5deg);
-            }
-
-            40% {
-                transform: rotate(-5deg);
-            }
-
-            50% {
-                transform: rotate(7deg);
-            }
-
-            60% {
-                transform: rotate(-7deg);
-            }
-
-            70% {
-                transform: rotate(9deg);
-            }
-
-            80% {
-                transform: rotate(-9deg);
-            }
-
-            90% {
-                transform: rotate(11deg);
-            }
-
-            100% {
-                transform: rotate(0deg);
-            }
-        }
-
-        .join-game .sparkle {
-            display: inline-block;
-            animation: none;
-            transition: animation 0.5s ease;
-        }
-
-        .join-game:hover .sparkle {
-            animation: wiggle-intense 15s infinite ease-in-out;
-        }
-
         button:hover {
             background-color: var(--secondary-color); /* Change background on hover */
             transform: scale(1.05); /* Slightly enlarge the button */
@@ -171,17 +14,11 @@
             box-shadow: none; /* Remove the shadow */
         }
 
-        .copy-btn:hover i {
-            color: var(--secondary-color); /* Change icon color on hover */
-            transform: scale(1.2); /* Slightly enlarge the icon */
-            transition: transform 0.2s ease, color 0.2s ease; /* Smooth transition for both color and size */
-        }
-        
-        main {
-            max-width: 1200px;
-            margin: 3rem auto;
-            padding: 0 1rem;
-        }
+            .copy-btn:hover i {
+                color: var(--secondary-color); /* Change icon color on hover */
+                transform: scale(1.2); /* Slightly enlarge the icon */
+                transition: transform 0.2s ease, color 0.2s ease; /* Smooth transition for both color and size */
+            }
 
         .game-description {
             text-align: center;
@@ -238,10 +75,10 @@
                 transition: background-color 0.3s ease;
             }
 
-            /* Button hover effect */
-            .section-container button:hover {
-                background-color: var(--secondary-color);
-            }
+                /* Button hover effect */
+                .section-container button:hover {
+                    background-color: var(--secondary-color);
+                }
 
 
         /* BTC address text */
@@ -529,16 +366,16 @@
             justify-content: center;
         }
 
-        .copy-btn i {
-            font-size: 1rem;
-            color: var(--primary-color);
-            transition: transform 0.2s ease, color 0.2s ease;
-        }
+            .copy-btn i {
+                font-size: 1rem;
+                color: var(--primary-color);
+                transition: transform 0.2s ease, color 0.2s ease;
+            }
 
-        .copy-btn:hover i {
-            transform: scale(1.2);
-            color: var(--secondary-color);
-        }
+            .copy-btn:hover i {
+                transform: scale(1.2);
+                color: var(--secondary-color);
+            }
 
         /* Flash animation */
         @keyframes flash {
@@ -554,6 +391,7 @@
         .flash-animation {
             animation: flash 0.5s ease-in-out 4;
         }
+
         @keyframes fadeInOut {
             0%, 100% {
                 opacity: 0;
@@ -685,66 +523,6 @@
                 }
         }
 
-        /* Footer styles */
-        .footer {
-            background-color: #333;
-            color: #fff;
-            padding: 2rem 0;
-            margin-top: 4rem; /* Increased margin-top for more spacing */
-            position: relative;
-            width: 100%;
-            clear: both; /* Ensure it clears any floated content */
-        }
-
-        
-
-        .footer-link {
-            color: #fff;
-            text-decoration: none;
-            margin-bottom: 0.5rem;
-            transition: color 0.3s ease;
-        }
-
-            .footer-link:hover {
-                color: var(--primary-color); /* Hover effect matches primary color */
-            }
-
-            .footer-link i {
-                margin-right: 0.5rem;
-                width: 20px;
-                text-align: center;
-            }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: center; /* Center the content horizontally */
-            align-items: flex-start; /* Ensure columns start at the same place */
-            flex-wrap: wrap; /* Ensure responsiveness */
-            padding: 0 1.5rem;
-        }
-
-        .footer-column {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 1rem;
-            width: auto; /* Set to auto to allow the columns to shrink */
-            margin: 0 3rem; /* Add some space between columns */
-            align-items: flex-start; /* Align content inside each column at the start */
-        }
-
-        @media (max-width: 768px) {
-            .footer-container {
-                flex-direction: column; /* Stack columns vertically on small screens */
-                text-align: center; /* Center text for small screens */
-            }
-
-            .footer-column {
-                width: 100%; /* Full width on small screens */
-            }
-        }
-
         /* Contribute Section Styles */
         .contribute-section {
             position: relative;
@@ -822,20 +600,10 @@
                 font-size: 1.2rem;
             }
         }
-
     </style>
 </head>
 <body>
-    <header>
-        <h1>Longevity World Cup 2025</h1>
-        <p>Race To Longevity Escape Velocity🚀</p>
-        <button class="join-game">
-            <strong>PLAY</strong>
-            <span class="join-game-middle" style="font-size: 1rem;">THE</span>
-            <strong class="join-game-end">GAME</strong>
-        </button>
-    </header>
-
+    <!--HEADER-->
     <main>
         <p class="game-description">Too old for your sport? Not this one! In the Longevity World Cup, you don't age out - you age in. Reverse your age and <strong>rise on the leaderboard!</strong></p>
         <div class="podium">
@@ -1000,6 +768,7 @@
 
 
     </main>
+    <!--FOOTER-->
 
     <div id="detailsModal" class="modal">
         <div class="modal-content">
@@ -1009,27 +778,6 @@
             <canvas id="ageChart"></canvas>
         </div>
     </div>
-
-
-    <footer class="footer" style="margin-top: 1.5rem;">
-        <div class="footer-container">
-            <div class="footer-column">
-                <a href="https://github.com/nopara73/LongevityWorldCup/" class="footer-link"><i class="fab fa-github"></i> GitHub</a>
-                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md" class="footer-link"><i class="fas fa-book-open"></i> History</a>
-                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md" class="footer-link"><i class="fas fa-balance-scale"></i> Ruleset</a>
-                <a href="mailto:longevityworldcup@gmail.com" class="footer-link"><i class="fas fa-envelope"></i> Contact</a>
-                <a href="https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL" class="footer-link"><i class="fas fa-podcast"></i> Podcast</a>
-            </div>
-            <div class="footer-column">
-                <a href="https://x.com/LongevityWorldC" class="footer-link"><i class="fab fa-twitter"></i> X</a>
-                <a href="https://old.reddit.com/r/LongevityWorldCup/" class="footer-link"><i class="fab fa-reddit"></i> Reddit</a>
-                <a href="https://www.tiktok.com/@nopara73" class="footer-link"><i class="fab fa-tiktok"></i> TikTok</a>
-                <a href="https://www.facebook.com/LongevityWorldCup/" class="footer-link"><i class="fab fa-facebook"></i> Facebook</a>
-                <a href="https://www.instagram.com/nopara73" class="footer-link"><i class="fab fa-instagram"></i> Instagram</a>
-            </div>
-        </div>
-    </footer>
-
 
     <script>
         const modal = document.getElementById("detailsModal");
@@ -1111,11 +859,11 @@
 
                 // Populate the modal
                 athleteDetails.innerHTML = `
-                    <strong>Sponsor:</strong> ${sponsor}<br>
-                    <strong>Age Reduction:</strong> ${ageReduction}<br>
-                    <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
-                    <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-                `;
+                            <strong>Sponsor:</strong> ${sponsor}<br>
+                            <strong>Age Reduction:</strong> ${ageReduction}<br>
+                            <strong>Specialization:</strong> ${getSpecialization(sponsor)}<br>
+                            <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+                        `;
 
                 // Display the modal
                 modal.style.display = "block";
@@ -1197,25 +945,6 @@
             return Math.floor(Math.random() * (80 - 40 + 1)) + 40;
         }
 
-        const joinButton = document.querySelector('.join-game');
-        joinButton.addEventListener('click', function () {
-            window.location.href = `${window.location.origin}/api/home/join`;
-        });
-
-        window.addEventListener('scroll', function () {
-            const middleSpan = joinButton.querySelector('.join-game-middle');
-            const endStrong = joinButton.querySelector('.join-game-end');
-            if (window.scrollY > 100) {
-                joinButton.classList.add('scrolled');
-                middleSpan.style.display = 'none';
-                endStrong.style.display = 'none';
-            } else {
-                joinButton.classList.remove('scrolled');
-                middleSpan.style.display = '';
-                endStrong.style.display = '';
-            }
-        });
-
         // Mock progress for Bitcoin donations
         const goalBTC = 1; // Goal in BTC
         const currentBTC = 0.23; // Current donated amount in BTC
@@ -1229,44 +958,6 @@
         // Update the BTC status
         document.getElementById('current-btc').textContent = currentBTC.toFixed(2) + ' BTC';
         document.getElementById('goal-btc').textContent = goalBTC + ' BTC';
-
-        let intensityTimer;
-        let animationDuration = 15; // Start with 15 seconds
-        let timeoutTimer;
-
-        joinButton.addEventListener('mouseenter', function () {
-            clearInterval(intensityTimer);
-            if (!joinButton.querySelector('.sparkle')) {
-                const sparkleSpan = document.createElement('span');
-                sparkleSpan.classList.add('sparkle');
-                sparkleSpan.textContent = '✨';
-                joinButton.appendChild(sparkleSpan);
-            }
-
-            // Start increasing intensity by reducing animation duration over time
-            intensityTimer = setInterval(() => {
-                animationDuration = Math.max(1, animationDuration - 0.5); // Decrease duration gradually, but stop at 1s
-                const sparkleElement = joinButton.querySelector('.sparkle');
-                if (sparkleElement) {
-                    sparkleElement.style.animationDuration = `${animationDuration}s`;
-                }
-            }, 1000); // Decrease duration every 1 second
-
-            // Stop the interval after 15 seconds
-            timeoutTimer = setTimeout(() => {
-                clearInterval(intensityTimer);
-            }, 15000);
-        });
-
-        joinButton.addEventListener('mouseleave', function () {
-            const sparkle = joinButton.querySelector('.sparkle');
-            if (sparkle) {
-                sparkle.remove();
-            }
-            clearInterval(intensityTimer);
-            animationDuration = 15;
-            clearTimeout(timeoutTimer);
-        });
     </script>
 </body>
 </html>
