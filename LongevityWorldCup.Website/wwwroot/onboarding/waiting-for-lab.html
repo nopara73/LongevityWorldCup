@@ -57,17 +57,30 @@
             .option-button.already-have:hover {
                 background-color: #388E3C; /* Darker Green */
             }
-
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main>
-        <h2>Your Journey Starts In The Lab💉</h2>
+        <h2>Your Lab Awaits 🧪</h2>
+        <!-- Create distinct URLs or manually defined versions for each scenario -->
         <div style="text-align: center;">
-            <img src="../assets/lab.jpg" alt="Lab" style="max-width: 90%; height: auto;">
+            <img src="../assets/lab.jpg"
+                 alt="Lab"
+                 style="max-width: 90%; height: auto;"
+                 id="lab-image"
+                 onload="{
+                 (()=> {
+            const urlParams = new URLSearchParams(window.location.search);
+            const holding = urlParams.get('holding');
+            const img = document.getElementById('lab-image');
+            if (holding === 'beer') img.src = '../assets/beer.jpg';
+            else if (holding === 'beef') img.src = '../assets/beef.jpg';
+            else if (holding === 'veggies') img.src = '../assets/veggies.jpg';
+            })();
+            }">
         </div>
-        <p>Acquire a 2025 blood test from which we can compute your biological age, called <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>. You need the following biomarkers:</p>
+        <p>Find the nearest lab and request a blood test that includes the following biomarkers. These will help us calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>:</p>
         <ul>
             <li><strong>Albumin</strong> (also known as Serum Albumin)</li>
             <li><strong>Creatinine</strong> (sometimes called Serum Creatinine)</li>
@@ -81,11 +94,9 @@
         </ul>
 
         <div class="options-container">
-            <button class="option-button beer" onclick="window.location.href='onboarding/waiting-for-lab.html?holding=beer'">Hold my beer 🍺</button>
-            <button class="option-button beef" onclick="window.location.href='onboarding/waiting-for-lab.html?holding=beef'">Hold my beef 🥩</button>
-            <button class="option-button veggies" onclick="window.location.href='onboarding/waiting-for-lab.html?holding=veggies'">Hold my veggies 🥕</button>
-            <button class="option-button already-have">I already have 2025 biomarkers</button>
+            <button class="option-button back-button" onclick="window.location.href='/'">Go Back to Homepage</button>
         </div>
+
     </main>
     <!--FOOTER-->
 </body>
