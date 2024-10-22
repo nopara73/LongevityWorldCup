@@ -7,6 +7,52 @@
         .join-game {
             display: none;
         }
+
+        /* Button Styles */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .option-button {
+            padding: 1rem 2rem;
+            margin: 0.5rem 0;
+            font-size: 1.2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 80%;
+            max-width: 400px;
+        }
+
+            .option-button:hover {
+                background-color: var(--secondary-color);
+                transform: scale(1.03);
+            }
+
+            /* Specific styles for different buttons */
+            .option-button.beer, .option-button.beef, .option-button.veggies {
+                background-color: #607D8B; /* Blue Grey */
+            }
+
+            .option-button.already-have {
+                background-color: #4CAF50; /* Green */
+            }
+
+            /* Hover effects for specific buttons */
+            .option-button.beer:hover, .option-button.beef:hover, .option-button.veggies:hover {
+                background-color: #455A64; /* Darker Blue Grey */
+            }
+
+            .option-button.already-have:hover {
+                background-color: #388E3C; /* Darker Green */
+            }
+
     </style>
 </head>
 <body>
@@ -28,11 +74,13 @@
             <li><strong>Alkaline Phosphatase</strong> (ALP, also referred to as Alk Phos)</li>
             <li><strong>White Blood Cell Count</strong> (WBC Count, also called Leukocyte Count)</li>
         </ul>
-        <button>Hold my beer 🍺</button>
-        <button>Hold my beef 🥩</button>
-        <button>Hold my veggies 🥕</button>
-        <br><br>
-        <button>I already have 2025 biomarkers</button>
+
+        <div class="options-container">
+            <button class="option-button beer">Hold my beer 🍺</button>
+            <button class="option-button beef">Hold my beef 🥩</button>
+            <button class="option-button veggies">Hold my veggies 🥕</button>
+            <button class="option-button already-have">I already have 2025 biomarkers</button>
+        </div>
     </main>
     <!--FOOTER-->
 </body>
