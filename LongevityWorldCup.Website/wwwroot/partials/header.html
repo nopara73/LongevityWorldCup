@@ -156,10 +156,22 @@
     .join-game:hover .sparkle {
         animation: wiggle-intense 15s infinite ease-in-out;
     }
+
+    .header-link {
+        text-decoration: none;
+        color: inherit; /* Inherit the color from the parent element */
+        display: block; /* Makes the entire anchor area clickable */
+    }
+
+        .header-link h1 {
+            margin: 0; /* Retain the existing margin styles */
+        }
 </style>
 
 <header>
-    <h1>Longevity World Cup 2025</h1>
+    <a href="/" class="header-link">
+        <h1>Longevity World Cup 2025</h1>
+    </a>
     <p>Race To Longevity Escape Velocity🚀</p>
     <button onclick="window.location.href='/onboarding/join-game.html'" class="join-game">
         <strong>PLAY</strong>
