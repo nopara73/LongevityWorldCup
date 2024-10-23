@@ -1,0 +1,404 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--HEAD-->
+    <style>
+        /* Hide the join-game button in the header */
+        .join-game {
+            display: none;
+        }
+
+        /* Button Styles */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .option-button {
+            padding: 1rem 2rem;
+            margin: 0.5rem 0;
+            font-size: 1.2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 80%;
+            max-width: 400px;
+            height: 60px; /* Fixed height for all buttons */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Vertically center the text */
+        }
+
+        .option-button:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.03);
+        }
+
+        .option-button.already-have {
+            background-color: #4CAF50; /* Green */
+        }
+
+        .option-button.already-have:hover {
+            background-color: #388E3C; /* Darker Green */
+        }
+
+        /* Add these styles inside your <style> tag */
+        .bioageform {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+
+            .bioageform label {
+                display: block;
+                margin-top: 1rem;
+                font-weight: bold;
+                color: #333;
+            }
+
+            .bioageform input,
+            .bioageform select {
+                width: 100%;
+                padding: 0.5rem;
+                margin-top: 0.5rem;
+                box-sizing: border-box;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+            .input-group input {
+                flex: 1;
+            }
+
+            .input-group select {
+                margin-left: 0.5rem;
+                padding: 0.5rem;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                width: auto;
+            }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .bioageform {
+                padding: 1rem;
+            }
+
+            .calculate-button {
+                font-size: 1rem;
+            }
+        }
+
+        /* Adjust the back button styling */
+        .back-button {
+            background-color: #607D8B;
+        }
+
+            .back-button:hover {
+                background-color: #455A64;
+            }
+
+        /* Fieldset Styles */
+        .bioageform fieldset {
+            border: 1px solid #ccc;
+            padding: 1rem;
+            margin-top: 2rem;
+            border-radius: 8px;
+        }
+
+        .bioageform legend {
+            font-weight: bold;
+            padding: 0 0.5rem;
+        }
+
+        /* Visually Hidden Class for Accessibility */
+        .visually-hidden {
+            position: absolute !important;
+            height: 1px;
+            width: 1px;
+            overflow: hidden;
+            clip: rect(1px, 1px, 1px, 1px);
+            white-space: nowrap;
+        }
+
+        /* Error Highlighting */
+        .errorNaN {
+            border: 2px solid red;
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <h2>The Moment of Truth</h2>
+        <p>Calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>:</p>
+        <form id="phenoAgeForm" class="bioageform">
+            <!-- Date of Birth Field -->
+            <label for="dob">Date of Birth:</label>
+            <input type="date" id="dob" name="dob" required aria-required="true" oninput="calculateResult()">
+
+            <!-- Biomarker Fieldset -->
+            <fieldset>
+                <legend>Biomarkers:</legend>
+
+                <!-- Albumin -->
+                <label for="albumin">Albumin:</label>
+                <div class="input-group">
+                    <input type="number" id="albumin" name="albumin" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="albuminUnit" class="visually-hidden">Select unit for Albumin</label>
+                    <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" oninput="calculateResult()">
+                        <option value="1">g/L</option>
+                        <option value="0.1">g/dL</option>
+                        <option value="0.1">g%</option>
+                        <option value="15.0466">µmol/L</option>
+                    </select>
+                </div>
+
+                <!-- Creatinine -->
+                <label for="creatinine">Creatinine:</label>
+                <div class="input-group">
+                    <input type="number" id="creatinine" name="creatinine" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="creatinineUnit" class="visually-hidden">Select unit for Creatinine</label>
+                    <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" oninput="calculateResult()">
+                        <option value="1">µmol/L</option>
+                        <option value="88.42">mg/dL</option>
+                    </select>
+                </div>
+
+                <!-- Glucose -->
+                <label for="glucose">Glucose:</label>
+                <div class="input-group">
+                    <input type="number" id="glucose" name="glucose" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="glucoseUnit" class="visually-hidden">Select unit for Glucose</label>
+                    <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" oninput="calculateResult()">
+                        <option value="1">mmol/L</option>
+                        <option value="0.0555">mg/dL</option>
+                    </select>
+                </div>
+
+                <!-- C-Reactive Protein -->
+                <label for="crp">C-Reactive Protein:</label>
+                <div class="input-group">
+                    <input type="number" id="crp" name="crp" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
+                    <select id="crpUnit" name="crpUnit" aria-label="CRP unit" oninput="calculateResult()">
+                        <option value="10">mg/L</option>
+                        <option value="1">mg/dL</option>
+                        <option value="95.2381">nmol/L</option>
+                    </select>
+                </div>
+
+                <!-- Lymphocyte Percentage -->
+                <label for="lymphocyte">Lymphocytes:</label>
+                <div class="input-group">
+                    <input type="number" id="lymphocyte" name="lymphocyte" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
+                    <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" oninput="calculateResult()">
+                        <option value="1">%</option>
+                        <option value="1">1000 cells/μL</option>
+                        <option value="1">10⁹ cells/L</option>
+                    </select>
+                </div>
+
+
+                <!-- Mean Corpuscular Volume -->
+                <label for="mcv">Mean Corpuscular Volume:</label>
+                <div class="input-group">
+                    <input type="number" id="mcv" name="mcv" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
+                    <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" oninput="calculateResult()">
+                        <option value="1">fL</option>
+                    </select>
+                </div>
+
+                <!-- Red Cell Distribution Width -->
+                <label for="rcdw">Red Cell Distribution Width:</label>
+                <div class="input-group">
+                    <input type="number" id="rcdw" name="rcdw" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
+                    <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" oninput="calculateResult()">
+                        <option value="1">%</option>
+                    </select>
+                </div>
+
+                <!-- Alkaline Phosphatase -->
+                <label for="ap">Alkaline Phosphatase:</label>
+                <div class="input-group">
+                    <input type="number" id="ap" name="ap" required aria-required="true" oninput="calculateResult()">
+                    <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
+                    <select id="apUnit" name="apUnit" aria-label="ALP unit" oninput="calculateResult()">
+                        <option value="1">U/L</option>
+                    </select>
+                </div>
+
+                <!-- White Blood Cell Count -->
+                <label for="wbc">White Blood Cell Count:</label>
+                <div class="input-group">
+                    <input type="number" id="wbc" name="wbc" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
+                    <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" oninput="calculateResult()">
+                        <option value="1">1000 cells/μL</option>
+                        <option value="1">10⁹ cells/L</option>
+                    </select>
+                </div>
+
+            </fieldset>
+
+            <!-- Calculate Button -->
+            <button type="submit" class="option-button calculate-button" aria-label="Calculate your biological age">Calculate Biological Age</button>
+        </form>
+
+
+        <div id="phenoAgeResult" class="bioageform"></div>
+
+        <div class="options-container">
+            <button class="option-button already-have" onclick="window.location.href='nextpage.html'">Continue Your Journey</button>
+            <button class="option-button back-button" onclick="window.location.href='/'">Go Back to Homepage</button>
+        </div>
+    </main>
+    <!--FOOTER-->
+    <!-- JavaScript -->
+    <script>
+        document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent the form from submitting and reloading the page
+            calculateResult(); // Call the function to calculate the result
+        });
+
+        var text_placeholder = 'Enter a number';
+
+        var tests = [
+            { id: 'age', name: 'Age', units: ['years'], conversions: [1], coeff: 0.0804 },
+            { id: 'albumin', name: 'Albumin', units: ['g/L', 'g/dL', 'g%', 'µmol/L'], conversions: [1, 0.1, 0.1, 15.0466], coeff: -0.0336 },
+            { id: 'creatinine', name: 'Creatinine', units: ['µmol/L', 'mg/dL'], conversions: [1, 88.42], coeff: 0.0095 },
+            { id: 'glucose', name: 'Glucose', units: ['mmol/L', 'mg/dL'], conversions: [1, 0.0555], coeff: 0.1953 },
+            { id: 'crp', name: 'C-reactive protein', units: ['mg/dL', 'mg/L', 'nmol/L'], conversions: [1, 10, 95.2381], coeff: 0.0954 },
+            { id: 'wbc', name: 'White blood cell count', units: ['1000 cells/µL', '10⁹ cells/L'], conversions: [1, 1], coeff: 0.0554 },
+            { id: 'lymphocyte', name: 'Lymphocytes', units: ['%', '1000 cells/µL', '10⁹ cells/L'], conversions: [1, 1, 1], coeff: -0.012 },
+            { id: 'mcv', name: 'Mean corpuscular volume', units: ['fL'], conversions: [1], coeff: 0.0268 },
+            { id: 'rcdw', name: 'Red cell distribution width', units: ['%'], conversions: [1], coeff: 0.3306 },
+            { id: 'ap', name: 'Alkaline phosphatase', units: ['U/L'], conversions: [1], coeff: 0.0019 }
+        ];
+
+        function parseInput(value) {
+            if (value == '') {
+                return NaN;
+            } else {
+                return Number(value);
+            }
+        }
+
+        function calculateAgeFromDOB(dob) {
+            var birthDate = new Date(dob);
+            var today = new Date();
+            var age = today.getFullYear() - birthDate.getFullYear();
+            var m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        function calculateResult() {
+            console.log('### Calculating! ###');
+            var resultField = document.getElementById('phenoAgeResult');
+            var errorText = '';
+
+            // Initialize arrays for values, units, and prefactors
+            var testValuesRaw = [];
+            var testValues = [];
+            var testUnitsId = [];
+            var testUnits = [];
+
+            // Get age from Date of Birth
+            var dobValue = document.getElementById('dob').value;
+            if (dobValue) {
+                var age = calculateAgeFromDOB(dobValue);
+            } else {
+                var age = NaN;
+            }
+            testValuesRaw[0] = age;
+            testUnitsId[0] = 'years';
+            testUnits[0] = 1;
+
+            if (isNaN(testValuesRaw[0])) {
+                errorText += 'Invalid Date of Birth';
+            }
+
+            // Loop through field names to populate values and units arrays
+            for (var i = 1; i < tests.length; i++) {
+                var valueElement = document.getElementById(tests[i].id);
+                var unitsElement = document.getElementById(tests[i].id + 'Unit');
+                testValuesRaw[i] = parseInput(valueElement.value);
+                testUnitsId[i] = unitsElement.options[unitsElement.selectedIndex].text;
+                testUnits[i] = parseInput(unitsElement.value);
+
+                if (isNaN(testValuesRaw[i]) && valueElement.value != '') {
+                    document.getElementById(tests[i].id).classList.add('errorNaN');
+                    if (errorText == '') {
+                        errorText += 'Invalid value for ' + tests[i].name;
+                    } else {
+                        errorText += ', ' + tests[i].name;
+                    }
+                } else {
+                    document.getElementById(tests[i].id).classList.remove('errorNaN');
+                }
+            }
+
+            var rollingTotal = 0;
+            // Loop through values and calculate total
+            for (var i = 0; i < tests.length; i++) {
+                // CRP is used as a log in the calculation
+                if (tests[i].id == 'crp') {
+                    testValues[i] = Math.log(testValuesRaw[i] * testUnits[i]);
+                    // If lymphocyte count rather than percentage, divide by the total white blood cell count
+                } else if (tests[i].id == 'lymphocyte' && testUnitsId[i] != '%') {
+                    // Find the index for WBC to use its value
+                    var wbcIndex = tests.findIndex(test => test.id === 'wbc');
+                    var wbcValue = testValuesRaw[wbcIndex] * testUnits[wbcIndex];
+                    testValues[i] = (testValuesRaw[i] * testUnits[i] / wbcValue) * 100;
+                } else {
+                    testValues[i] = testValuesRaw[i] * testUnits[i];
+                }
+                rollingTotal += testValues[i] * tests[i].coeff;
+            }
+
+            var tmonths = 120; // ie 10 years
+            var b0 = -19.9067;
+            var gamma = 0.0076927;
+            rollingTotal = rollingTotal + b0;
+            var mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
+            var riskOfDeath = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * 12) - 1) / gamma);
+            var phenoAge = 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
+
+            // Display the result
+            if (isNaN(phenoAge)) {
+                if (errorText != '') {
+                    resultField.innerHTML = 'Error: ' + errorText;
+                } else {
+                    resultField.innerHTML = '<p>Please enter all values above to calculate your biological age.</p>';
+                }
+            } else {
+                var chronologicalAge = testValuesRaw[0];
+                resultField.innerHTML = '<p class="result"><strong>Result:</strong> ' + phenoAge.toFixed(2) + ' years (age acceleration ' + (phenoAge - chronologicalAge).toFixed(2) + ' years)</p>';
+                resultField.innerHTML += '<p>This means your risk of death from age-related causes in the coming year is approximately ' + (riskOfDeath * 100).toFixed(2) + '%, or around 1 in ' + parseFloat((1 / riskOfDeath).toPrecision(2)) + '.</p>';
+                resultField.innerHTML += '<p>If you\'d be participating in Longevity World Cup, then you\'d be placed 3. out of 124.</p>';
+            }
+        }
+    </script>
+
+
+</body>
+</html>
