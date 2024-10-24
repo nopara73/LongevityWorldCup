@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Progress Bar Example</title>
+    <style>
+        .progress-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 40px auto;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #00BCD4, #FF4081);
+            transition: width 1.5s ease-in-out;
+            position: relative;
+        }
+
+        .stages {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-top: -12px;
+        }
+
+        .stage {
+            position: relative;
+            text-align: center;
+            width: 30px;
+            z-index: 2;
+        }
+
+        .stage-dot {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 3px solid #e0e0e0;
+            border-radius: 50%;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+        }
+
+        .stage.active .stage-dot {
+            border-color: #FF4081;
+            background: #FF4081;
+            box-shadow: 0 0 10px rgba(255, 64, 129, 0.5);
+        }
+
+        .stage.completed .stage-dot {
+            border-color: #00BCD4;
+            background: #00BCD4;
+        }
+
+        .stage-label {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            color: #666;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        .stage.active .stage-label {
+            color: #FF4081;
+        }
+
+        .stage.completed .stage-label {
+            color: #00BCD4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="stages">
+            <div class="stage" id="stage1">
+                <div class="stage-dot"></div>
+                <div class="stage-label">Hardship</div>
+            </div>
+            <div class="stage" id="stage2">
+                <div class="stage-dot"></div>
+                <div class="stage-label">Moment of Truth</div>
+            </div>
+            <div class="stage" id="stage3">
+                <div class="stage-dot"></div>
+                <div class="stage-label">Convergence</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to update progress bar based on the current stage
+        function updateProgress(currentStage) {
+            const progressFill = document.getElementById('progressFill');
+            const stages = document.querySelectorAll('.stage');
+
+            // Reset all stages
+            stages.forEach((s, index) => {
+                if (index < currentStage - 1) {
+                    s.className = 'stage completed';
+                } else if (index === currentStage - 1) {
+                    s.className = 'stage active';
+                } else {
+                    s.className = 'stage';
+                }
+            });
+
+            // Update progress bar fill
+            const progress = ((currentStage - 1) / 2) * 100;
+            progressFill.style.width = `${progress}%`;
+        }
+    </script>
+</body>
+</html>

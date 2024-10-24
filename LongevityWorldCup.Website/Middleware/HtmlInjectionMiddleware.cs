@@ -33,12 +33,14 @@ namespace LongevityWorldCup.Website.Middleware
                     var head = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "head.html"));
                     var header = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "header.html"));
                     var footer = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "footer.html"));
+                    var progressBar = await File.ReadAllTextAsync(Path.Combine("wwwroot", "onboarding", "progress-bar.html"));
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("<!--HEAD-->", head)
                         .Replace("<!--HEADER-->", header)
-                        .Replace("<!--FOOTER-->", footer);
+                        .Replace("<!--FOOTER-->", footer)
+                        .Replace("<!--PROGRESS-BAR-->", progressBar);
 
                     // Optionally remove the play button on certain pages
                     if (path.Contains("join-game"))

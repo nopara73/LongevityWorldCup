@@ -143,7 +143,8 @@
 <body>
     <!--HEADER-->
     <main>
-        <h2>The Moment of Truth</h2>
+        <!--PROGRESS-BAR-->
+        <h2>Your Chronological vs Biological Age🧬</h2>
         <p>Calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>:</p>
         <form id="phenoAgeForm" class="bioageform">
             <!-- Date of Birth Field -->
@@ -272,6 +273,8 @@
     <!--FOOTER-->
     <!-- JavaScript -->
     <script>
+        updateProgress(2);
+
         document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
             event.preventDefault(); // Prevent the form from submitting and reloading the page
             calculateResult(); // Call the function to calculate the result
