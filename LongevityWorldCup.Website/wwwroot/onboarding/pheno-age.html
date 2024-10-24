@@ -265,7 +265,7 @@
         <div id="phenoAgeResult" class="bioageform"></div>
 
         <div class="options-container">
-            <button class="option-button already-have" onclick="window.location.href='nextpage.html'">Continue Your Journey</button>
+            <button id="continueButton" class="option-button already-have" onclick="window.location.href='nextpage.html'">Continue Your Journey</button>
             <button class="option-button back-button" onclick="window.location.href='/'">Go Back to Homepage</button>
         </div>
     </main>
@@ -314,6 +314,7 @@
         function calculateResult() {
             console.log('### Calculating! ###');
             var resultField = document.getElementById('phenoAgeResult');
+            var continueButton = document.getElementById('continueButton');
             var errorText = '';
 
             // Initialize arrays for values, units, and prefactors
@@ -385,18 +386,68 @@
 
             // Display the result
             if (isNaN(phenoAge)) {
+                continueButton.style.display = "none"; // Hide button if the calculation fails
                 if (errorText != '') {
                     resultField.innerHTML = 'Error: ' + errorText;
                 } else {
                     resultField.innerHTML = '<p>Please enter all values above to calculate your biological age.</p>';
                 }
             } else {
+                continueButton.style.display = "block"; // Show button if calculation is successful
                 var chronologicalAge = testValuesRaw[0];
                 resultField.innerHTML = '<p class="result"><strong>Result:</strong> ' + phenoAge.toFixed(2) + ' years (age acceleration ' + (phenoAge - chronologicalAge).toFixed(2) + ' years)</p>';
                 resultField.innerHTML += '<p>This means your risk of death from age-related causes in the coming year is approximately ' + (riskOfDeath * 100).toFixed(2) + '%, or around 1 in ' + parseFloat((1 / riskOfDeath).toPrecision(2)) + '.</p>';
                 resultField.innerHTML += '<p>If you\'d be participating in Longevity World Cup, then you\'d be placed 3. out of 124.</p>';
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if the URL has the query parameter "fake=1"
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFake = urlParams.get('fake') === '1';
+
+            if (isFake) {
+                fillFakeData();
+            }
+        });
+
+        function fillFakeData() {
+            // Set fake Date of Birth (e.g., 40 years old)
+            document.getElementById('dob').value = new Date(new Date().setFullYear(new Date().getFullYear() - 40)).toISOString().split('T')[0];
+
+            // Set fake values for all input fields
+            document.getElementById('albumin').value = 45; // g/L
+            document.getElementById('albuminUnit').value = 1; // g/L
+
+            document.getElementById('creatinine').value = 80; // µmol/L
+            document.getElementById('creatinineUnit').value = 1; // µmol/L
+
+            document.getElementById('glucose').value = 5; // mmol/L
+            document.getElementById('glucoseUnit').value = 1; // mmol/L
+
+            document.getElementById('crp').value = 1; // mg/L
+            document.getElementById('crpUnit').value = 10; // mg/L
+
+            document.getElementById('lymphocyte').value = 30; // %
+            document.getElementById('lymphocyteUnit').value = 1; // %
+
+            document.getElementById('mcv').value = 90; // fL
+            document.getElementById('mcvUnit').value = 1; // fL
+
+            document.getElementById('rcdw').value = 12; // %
+            document.getElementById('rcdwUnit').value = 1; // %
+
+            document.getElementById('ap').value = 70; // U/L
+            document.getElementById('apUnit').value = 1; // U/L
+
+            document.getElementById('wbc').value = 6; // 1000 cells/μL
+            document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
+
+            // Calculate result after filling fake data
+            calculateResult();
+        }
+
+
     </script>
 
 
