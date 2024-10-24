@@ -265,7 +265,7 @@
         <div id="phenoAgeResult" class="bioageform"></div>
 
         <div class="options-container">
-            <button id="continueButton" class="option-button already-have" onclick="window.location.href='nextpage.html'">Next</button>
+            <button id="continueButton" class="option-button already-have" onclick="window.location.href='nextpage.html'" style="display: none;">Next</button>
             <button class="option-button back-button" onclick="window.location.href='/'">Go Back to Homepage</button>
         </div>
     </main>
@@ -316,6 +316,7 @@
             var resultField = document.getElementById('phenoAgeResult');
             var continueButton = document.getElementById('continueButton');
             var errorText = '';
+            var isCalculationSuccessful = true;
 
             // Initialize arrays for values, units, and prefactors
             var testValuesRaw = [];
@@ -385,7 +386,7 @@
             var phenoAge = 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
 
             // Display the result
-            if (isNaN(phenoAge)) {
+            if (isNaN(phenoAge) || !isCalculationSuccessful) {
                 continueButton.style.display = "none"; // Hide button if the calculation fails
                 if (errorText != '') {
                     resultField.innerHTML = 'Error: ' + errorText;
@@ -395,9 +396,9 @@
             } else {
                 continueButton.style.display = "block"; // Show button if calculation is successful
                 var chronologicalAge = testValuesRaw[0];
-                resultField.innerHTML = '<p class="result"><strong>Result:</strong> ' + phenoAge.toFixed(2) + ' years (age acceleration ' + (phenoAge - chronologicalAge).toFixed(2) + ' years)</p>';
-                resultField.innerHTML += '<p>This means your risk of death from age-related causes in the coming year is approximately ' + (riskOfDeath * 100).toFixed(2) + '%, or around 1 in ' + parseFloat((1 / riskOfDeath).toPrecision(2)) + '.</p>';
-                resultField.innerHTML += '<p>If you\'d be participating in Longevity World Cup, then you\'d be placed 3. out of 124.</p>';
+                resultField.innerHTML = `<p class="result"><strong>Result:</strong> ${phenoAge.toFixed(2)} years (age acceleration ${(phenoAge - chronologicalAge).toFixed(2)} years)</p>`;
+                resultField.innerHTML += `<p>This means your risk of death from age-related causes in the coming year is approximately ${(riskOfDeath * 100).toFixed(2)}%, or around 1 in ${parseFloat((1 / riskOfDeath).toPrecision(2))}.</p>`;
+                resultField.innerHTML += "<p>If you'd be participating in Longevity World Cup, then you'd be placed 3. out of 124.</p>";
             }
         }
 
