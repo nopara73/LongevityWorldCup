@@ -1,0 +1,262 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--HEAD-->
+    <style>
+        /* Hide the join-game button in the header */
+        .join-game {
+            display: none;
+        }
+
+        /* Button Styles */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .option-button {
+            padding: 1rem 2rem;
+            margin: 0.5rem 0;
+            font-size: 1.2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 80%;
+            max-width: 400px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+            .option-button:hover {
+                background-color: var(--secondary-color);
+                transform: scale(1.03);
+            }
+
+            .option-button.already-have {
+                background-color: #4CAF50; /* Green */
+            }
+
+                .option-button.already-have:hover {
+                    background-color: #388E3C; /* Darker Green */
+                }
+
+        /* Form Styles */
+        .bioageform {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+
+            .bioageform label {
+                display: block;
+                margin-top: 1rem;
+                font-weight: bold;
+                color: #333;
+            }
+
+            .bioageform input,
+            .bioageform select {
+                width: 100%;
+                padding: 0.5rem;
+                margin-top: 0.5rem;
+                box-sizing: border-box;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .bioageform {
+                padding: 1rem;
+            }
+
+            .option-button {
+                font-size: 1rem;
+            }
+        }
+
+        /* Adjust the back button styling */
+        .back-button {
+            background-color: #607D8B;
+        }
+
+            .back-button:hover {
+                background-color: #455A64;
+            }
+
+        #nationality {
+            margin-bottom: 0; /* Reset any margin added here */
+        }
+
+        .bioageform {
+            position: relative; /* Position relative to make dropdown align correctly */
+        }
+
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            z-index: 9999;
+            max-height: 150px; /* Limit height if needed */
+            overflow-y: auto; /* Allow scrolling if the list is long */
+            width: 100%; /* Make sure it matches the width of the container */
+            top: 0; /* Keep this 0 because we are aligning relative to the input field */
+            left: 0;
+            margin-top: 0.5rem; /* Add a small margin to create separation */
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <!--PROGRESS-BAR-->
+        <h2>Stage 1: Personal Information</h2>
+        <p>Please enter your details:</p>
+        <form id="personalInfoForm" class="bioageform">
+            <!-- Name Field -->
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required aria-required="true">
+
+            <!-- Gender Field -->
+            <label for="gender">Gender:</label>
+            <select id="gender" name="gender" required aria-required="true">
+                <option value="" disabled selected>Select your gender</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_say">Prefer not to say</option>
+            </select>
+
+            <!-- Nationality Field with Autocomplete -->
+            <label for="nationality">Nationality:</label>
+            <input type="text" id="nationality" name="nationality" required aria-required="true" autocomplete="off">
+
+            <!-- Next Stage Button -->
+            <button type="submit" class="option-button calculate-button already-have" aria-label="Proceed to the next stage">Next</button>
+        </form>
+
+        <div class="options-container">
+            <button class="option-button back-button" onclick="window.history.back()">Go Back</button>
+        </div>
+    </main>
+    <!--FOOTER-->
+    <!-- JavaScript -->
+    <script>
+        // Update the progress bar to the appropriate stage
+        updateProgress(3, 1);
+
+        // Nationality Autocomplete Implementation
+        (function () {
+            const countries = [
+                "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Australia",
+                "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus",
+                "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina",
+                "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia",
+                "Cameroon", "Canada", "Cape Verde", "Central African Republic", "Chad", "Chile",
+                "China", "Colombia", "Comoros", "Congo (Brazzaville)", "Congo (Kinshasa)", "Costa Rica",
+                "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica",
+                "Dominican Republic", "East Timor (Timor-Leste)", "Ecuador", "Egypt", "El Salvador",
+                "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland",
+                "France", "Gabon", "Gambia, The", "Georgia", "Germany", "Ghana", "Greece", "Grenada",
+                "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary",
+                "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy",
+                "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Korea, North",
+                "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon",
+                "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar",
+                "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania",
+                "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro",
+                "Morocco", "Mozambique", "Myanmar (Burma)", "Namibia", "Nauru", "Nepal", "Netherlands",
+                "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman",
+                "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines",
+                "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis",
+                "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino",
+                "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles",
+                "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia",
+                "South Africa", "Spain", "Sri Lanka", "Sudan", "Sudan, South", "Suriname", "Sweden",
+                "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo",
+                "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+                "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+                "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen",
+                "Zambia", "Zimbabwe"
+            ];
+
+            const nationalityInput = document.getElementById('nationality');
+
+            nationalityInput.addEventListener('input', function () {
+                const inputVal = this.value.toLowerCase();
+                closeAllLists();
+                if (!inputVal) return false;
+
+                const listContainer = document.createElement('div');
+                listContainer.setAttribute('id', this.id + '-autocomplete-list');
+                listContainer.setAttribute('class', 'autocomplete-items');
+                this.parentNode.appendChild(listContainer);
+
+                let matchCount = 0;
+
+                for (let i = 0; i < countries.length; i++) {
+                    if (countries[i].toLowerCase().startsWith(inputVal)) {
+                        const listItem = document.createElement('div');
+                        listItem.innerHTML = "<strong>" + countries[i].substr(0, inputVal.length) + "</strong>";
+                        listItem.innerHTML += countries[i].substr(inputVal.length);
+                        listItem.innerHTML += "<input type='hidden' value='" + countries[i] + "'>";
+                        listItem.addEventListener('click', function () {
+                            nationalityInput.value = this.getElementsByTagName('input')[0].value;
+                            closeAllLists();
+                        });
+                        listContainer.appendChild(listItem);
+                        matchCount++;
+                        if (matchCount >= 5) break; // Limit to 5 suggestions
+                    }
+                }
+            });
+
+            function closeAllLists(elmnt) {
+                const items = document.getElementsByClassName('autocomplete-items');
+                for (let i = 0; i < items.length; i++) {
+                    if (elmnt != items[i] && elmnt != nationalityInput) {
+                        items[i].parentNode.removeChild(items[i]);
+                    }
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                closeAllLists(e.target);
+            });
+        })();
+
+        // Form Submission Handler
+        document.getElementById('personalInfoForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent form submission
+
+            // Collect form data
+            var name = document.getElementById('name').value.trim();
+            var gender = document.getElementById('gender').value;
+            var nationality = document.getElementById('nationality').value.trim();
+
+            // Validate form data
+            if (name && gender && nationality) {
+                // Store data in localStorage or proceed as needed
+                localStorage.setItem('name', name);
+                localStorage.setItem('gender', gender);
+                localStorage.setItem('nationality', nationality);
+
+                // Redirect to the next stage (replace 'nextstage.html' with the actual page)
+                window.location.href = 'nextstage.html';
+            } else {
+                alert('Please fill in all required fields.');
+            }
+        });
+    </script>
+</body>
+</html>

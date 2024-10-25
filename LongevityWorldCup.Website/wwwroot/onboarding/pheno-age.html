@@ -34,18 +34,18 @@
             align-items: center; /* Vertically center the text */
         }
 
-        .option-button:hover {
-            background-color: var(--secondary-color);
-            transform: scale(1.03);
-        }
+            .option-button:hover {
+                background-color: var(--secondary-color);
+                transform: scale(1.03);
+            }
 
-        .option-button.already-have {
-            background-color: #4CAF50; /* Green */
-        }
+            .option-button.already-have {
+                background-color: #4CAF50; /* Green */
+            }
 
-        .option-button.already-have:hover {
-            background-color: #388E3C; /* Darker Green */
-        }
+                .option-button.already-have:hover {
+                    background-color: #388E3C; /* Darker Green */
+                }
 
         /* Add these styles inside your <style> tag */
         .bioageform {
@@ -214,7 +214,6 @@
                     </select>
                 </div>
 
-
                 <!-- Mean Corpuscular Volume -->
                 <label for="mcv">Mean Corpuscular Volume:</label>
                 <div class="input-group">
@@ -255,18 +254,16 @@
                         <option value="1">10⁹ cells/L</option>
                     </select>
                 </div>
-
             </fieldset>
 
             <!-- Calculate Button -->
             <button type="submit" class="option-button calculate-button" aria-label="Calculate your biological age">Calculate My Biological Age</button>
         </form>
 
-
         <div id="phenoAgeResult" class="bioageform"></div>
 
         <div class="options-container">
-            <button id="continueButton" class="option-button already-have" onclick="window.location.href='nextpage.html'" style="display: none;">Next</button>
+            <button id="continueButton" class="option-button already-have" onclick="window.location.href='onboarding/convergence.html'" style="display: none;">Next</button>
             <button class="option-button back-button" onclick="window.location.href='/'">Go Back to Homepage</button>
         </div>
     </main>
@@ -450,10 +447,6 @@
             // Calculate result after filling fake data
             calculateResult();
         }
-
-
     </script>
-
-
 </body>
 </html>

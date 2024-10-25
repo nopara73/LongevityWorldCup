@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.IO;
-using System.Threading.Tasks;
-
-namespace LongevityWorldCup.Website.Middleware
+﻿namespace LongevityWorldCup.Website.Middleware
 {
     public class HtmlInjectionMiddleware(RequestDelegate next)
     {
