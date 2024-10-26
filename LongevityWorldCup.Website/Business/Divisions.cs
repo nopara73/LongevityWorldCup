@@ -4,8 +4,8 @@
     {
         public static readonly List<string> Division =
         [
-            "Men",
-            "Women",
+            "Men's",
+            "Women's",
             "Open"
         ];
     }
