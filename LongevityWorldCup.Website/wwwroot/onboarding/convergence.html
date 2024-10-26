@@ -101,6 +101,16 @@
             position: relative; /* Position relative to make dropdown align correctly */
         }
 
+            .bioageform textarea {
+                width: 100%;
+                padding: 0.5rem;
+                margin-top: 0.5rem;
+                box-sizing: border-box;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                resize: vertical; /* Allow users to resize vertically */
+            }
+
         .autocomplete-items {
             position: absolute;
             border: 1px solid #ccc;
@@ -114,6 +124,17 @@
             left: 0;
             margin-top: 0.5rem; /* Add a small margin to create separation */
         }
+
+        .illustration {
+            width: 100%;
+            height: auto;
+            max-width: 400px;
+            display: block;
+            margin: 0 auto 1.5rem;
+            border: 4px solid #333;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -123,7 +144,7 @@
         <h2>1. Character Creation</h2>
         <form id="personalInfoForm" class="bioageform">
             <div style="text-align: center;">
-                <img src="../assets/reaper.jpg" alt="Grim Reaper" style="width: 100%; height: auto; max-width: 400px; display: block; margin: 0 auto 1.5rem; border: 4px solid #333; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); border-radius: 8px;">
+                <img src="../assets/reaper.jpg" alt="Grim Reaper" class="illustration" id="illustrationImage">
             </div>
             <!--SUB-PROGRESS-BAR-->
             <p>
@@ -135,22 +156,31 @@
         </form>
 
         <form id="personalInfoForm" class="bioageform">
-            <!-- Name Field -->
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required aria-required="true" placeholder="Real name or cyber alias — your call">
+            <div id="personalDetails">
+                <!-- Name Field -->
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required aria-required="true" placeholder="Real name or cyber alias — your call">
 
-            <!-- Gender Field -->
-            <label for="division">Division:</label>
-            <select id="division" name="division" required aria-required="true">
-                <!-- Options will be populated dynamically -->
-            </select>
+                <!-- Division Field -->
+                <label for="division">Division:</label>
+                <select id="division" name="division" required aria-required="true">
+                    <!-- Options will be populated dynamically -->
+                </select>
 
-            <!-- Nationality Field with Autocomplete -->
-            <label for="nationality">Flag:</label>
-            <input type="text" id="nationality" name="nationality" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
+                <!-- Nationality Field with Autocomplete -->
+                <label for="nationality">Flag:</label>
+                <input type="text" id="nationality" name="nationality" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
+            </div>
+
+            <!-- New WHY Field (Initially Hidden) -->
+            <div id="whyField" style="display: none;">
+                <label for="why">Your WHY:</label>
+                <textarea id="why" name="why" placeholder="What motivates you?" rows="5"></textarea>
+            </div>
         </form>
+
         <div class="options-container">
-            <button type="submit" class="option-button calculate-button already-have" aria-label="Proceed to the next stage">Next</button>
+            <button type="submit" class="option-button calculate-button already-have" id="nextButton" aria-label="Proceed to the next stage">Next</button>
             <button class="option-button back-button" onclick="window.history.back()">Go Back</button>
         </div>
     </main>
@@ -256,13 +286,71 @@
             var name = document.getElementById('name').value.trim();
             var division = document.getElementById('division').value;
             var nationality = document.getElementById('nationality').value.trim();
+            var why = document.getElementById('why').value.trim(); // Collect the WHY input
 
             // Validate form data
-            if (name && division && nationality) {
+            if (name && division && nationality && why) {
                 // Store data in localStorage or proceed as needed
                 localStorage.setItem('name', name);
                 localStorage.setItem('division', division);
                 localStorage.setItem('nationality', nationality);
+                localStorage.setItem('why', why); // Store the WHY value
+
+                // Redirect to the next stage (replace 'nextstage.html' with the actual page)
+                window.location.href = 'nextstage.html';
+            } else {
+                alert('Please fill in all required fields.');
+            }
+        });
+
+        // "Next" Button Click Event Handler
+        document.getElementById('nextButton').addEventListener('click', function (event) {
+            event.preventDefault(); // Prevent the default button action
+
+            // Change image source and text content
+            document.getElementById('illustrationImage').src = "../assets/why.jpg";
+            document.getElementById('illustrationImage').alt = "Eye";
+            document.querySelector('h2').textContent = "2. Why?";
+            updateSubProgress(2);
+
+            // Scroll the heading into view
+            document.querySelector('h2').scrollIntoView({ behavior: 'smooth' });
+
+            // Hide the initial form fields
+            document.getElementById('personalDetails').style.display = 'none';
+
+            // Show the "Your WHY:" field
+            document.getElementById('whyField').style.display = 'block';
+
+            // Update the text content for the "Why" section
+            document.querySelector('main p').innerHTML = `
+                        <strong>What drives you forward?</strong> Uncover the core motivation that fuels your courage to stand against all odds.<br />
+                        <em>Your 'Why' is the light that will guide you through the coming shadows.</em>
+                    `;
+
+            // Change button text to "Submit" and adjust its behavior
+            this.textContent = 'Submit';
+            this.removeEventListener('click', arguments.callee); // Remove this click event listener
+            this.setAttribute('type', 'submit'); // Change button type to submit
+        });
+
+        // Form Submission Handler
+        document.getElementById('personalInfoForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent form submission
+
+            // Collect form data
+            var name = document.getElementById('name').value.trim();
+            var division = document.getElementById('division').value;
+            var nationality = document.getElementById('nationality').value.trim();
+            var why = document.getElementById('why').value.trim(); // Collect the WHY input
+
+            // Validate form data
+            if (name && division && nationality && why) {
+                // Store data in localStorage or proceed as needed
+                localStorage.setItem('name', name);
+                localStorage.setItem('division', division);
+                localStorage.setItem('nationality', nationality);
+                localStorage.setItem('why', why); // Store the WHY value
 
                 // Redirect to the next stage (replace 'nextstage.html' with the actual page)
                 window.location.href = 'nextstage.html';
