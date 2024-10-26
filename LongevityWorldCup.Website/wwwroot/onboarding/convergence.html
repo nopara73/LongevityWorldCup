@@ -121,27 +121,32 @@
     <main>
         <!--PROGRESS-BAR-->
         <h2>1. Character Creation</h2>
-        <p>Let’s get started with your journey:</p>
+        <form id="personalInfoForm" class="bioageform">
+            <div style="text-align: center;">
+                <img src="../assets/reaper.jpg" alt="Grim Reaper" style="width: 100%; height: auto; max-width: 400px; display: block; margin: 0 auto 1.5rem; border: 4px solid #333; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); border-radius: 8px;">
+            </div>
+            <p>
+                In the shadows beyond our world, Death waits, silent and relentless. It lurks at the edge of every breath, ready to claim its due. In these darkening times, we need a hero to rise—a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable. The question is not if Death will come, but who will stand in its path. Could it be you?
+            </p>
+        </form>
+
         <form id="personalInfoForm" class="bioageform">
             <!-- Name Field -->
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" required aria-required="true" placeholder="Real name or cyber alias — your call">
 
             <!-- Gender Field -->
-            <label for="gender">Division:</label>
-            <select id="gender" name="gender" required aria-required="true">
+            <label for="division">Division:</label>
+            <select id="division" name="division" required aria-required="true">
                 <!-- Options will be populated dynamically -->
             </select>
 
             <!-- Nationality Field with Autocomplete -->
             <label for="nationality">Flag:</label>
             <input type="text" id="nationality" name="nationality" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
-
-            <!-- Next Stage Button -->
-            <button type="submit" class="option-button calculate-button already-have" aria-label="Proceed to the next stage">Next</button>
         </form>
-
         <div class="options-container">
+            <button type="submit" class="option-button calculate-button already-have" aria-label="Proceed to the next stage">Next</button>
             <button class="option-button back-button" onclick="window.history.back()">Go Back</button>
         </div>
     </main>
@@ -220,7 +225,7 @@
             fetch('/api/data/divisions')
                 .then(response => response.json())
                 .then(divisions => {
-                    const divisionSelect = document.getElementById('gender');
+                    const divisionSelect = document.getElementById('division');
 
                     // Clear existing options (if any)
                     divisionSelect.innerHTML = '';
@@ -244,14 +249,14 @@
 
             // Collect form data
             var name = document.getElementById('name').value.trim();
-            var gender = document.getElementById('gender').value;
+            var division = document.getElementById('division').value;
             var nationality = document.getElementById('nationality').value.trim();
 
             // Validate form data
-            if (name && gender && nationality) {
+            if (name && division && nationality) {
                 // Store data in localStorage or proceed as needed
                 localStorage.setItem('name', name);
-                localStorage.setItem('gender', gender);
+                localStorage.setItem('division', division);
                 localStorage.setItem('nationality', nationality);
 
                 // Redirect to the next stage (replace 'nextstage.html' with the actual page)
