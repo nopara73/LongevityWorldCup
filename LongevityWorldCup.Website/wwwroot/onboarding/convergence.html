@@ -125,6 +125,7 @@
             <div style="text-align: center;">
                 <img src="../assets/reaper.jpg" alt="Grim Reaper" style="width: 100%; height: auto; max-width: 400px; display: block; margin: 0 auto 1.5rem; border: 4px solid #333; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); border-radius: 8px;">
             </div>
+            <!--SUB-PROGRESS-BAR-->
             <p>
                 In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
                 In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable.
@@ -157,7 +158,8 @@
     <!-- JavaScript -->
     <script>
         // Update the progress bar to the appropriate stage
-        updateProgress(3, 1);
+        updateMainProgress(3);
+        updateSubProgress(1);
 
         // Nationality Autocomplete Implementation
         document.addEventListener('DOMContentLoaded', function () {
