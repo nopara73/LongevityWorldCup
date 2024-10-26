@@ -174,8 +174,8 @@
 
             <!-- New WHY Field (Initially Hidden) -->
             <div id="whyField" style="display: none;">
-                <label for="why">Your WHY:</label>
-                <textarea id="why" name="why" placeholder="What motivates you?" rows="5"></textarea>
+                <label for="why">What drives you forward?</label>
+                <textarea id="why" name="why" placeholder="He who has a why can bear any how" rows="5"></textarea>
             </div>
         </form>
 
@@ -323,10 +323,7 @@
             document.getElementById('whyField').style.display = 'block';
 
             // Update the text content for the "Why" section
-            document.querySelector('main p').innerHTML = `
-                        <strong>What drives you forward?</strong> Uncover the core motivation that fuels your courage to stand against all odds.<br />
-                        <em>Your 'Why' is the light that will guide you through the coming shadows.</em>
-                    `;
+            document.querySelector('main p').innerHTML = `Your <em>'Why'</em> is the light that will guide you through the coming shadows.`;
 
             // Change button text to "Submit" and adjust its behavior
             this.textContent = 'Submit';
