@@ -130,9 +130,7 @@
             <!-- Gender Field -->
             <label for="gender">Division:</label>
             <select id="gender" name="gender" required aria-required="true">
-                <option value="female">Men's</option>
-                <option value="male">Women's</option>
-                <option value="open">Open</option>
+                <!-- Options will be populated dynamically -->
             </select>
 
             <!-- Nationality Field with Autocomplete -->
@@ -204,6 +202,39 @@
                 })
                 .catch(error => {
                     console.error('Error fetching flags:', error);
+                });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fetch flags and initialize nationality autocomplete
+            fetch('/api/data/flags')
+                .then(response => response.json())
+                .then(countries => {
+                    // Existing code for nationality autocomplete...
+                })
+                .catch(error => {
+                    console.error('Error fetching flags:', error);
+                });
+
+            // Fetch divisions and populate the division select element
+            fetch('/api/data/divisions')
+                .then(response => response.json())
+                .then(divisions => {
+                    const divisionSelect = document.getElementById('gender');
+
+                    // Clear existing options (if any)
+                    divisionSelect.innerHTML = '';
+
+                    // Populate divisions into the select element
+                    divisions.forEach(function (division) {
+                        const option = document.createElement('option');
+                        option.value = division.toLowerCase(); // Use lowercase or any appropriate value
+                        option.textContent = division; // Display text as is
+                        divisionSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching divisions:', error);
                 });
         });
 
