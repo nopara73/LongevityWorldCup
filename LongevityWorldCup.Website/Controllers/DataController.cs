@@ -12,5 +12,11 @@ namespace LongevityWorldCup.Website.Controllers
         {
             return Ok(Flags.Flag);
         }
+
+        [HttpGet("divisions")]
+        public IActionResult GetDivisions()
+        {
+            return Ok(Divisions.Division);
+        }
     }
 }
