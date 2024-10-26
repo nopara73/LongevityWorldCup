@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Progress Bar Example</title>
+    <title>Main Progress Bar</title>
     <style>
         .progress-container {
             width: calc(100% - 30px);
@@ -13,19 +13,19 @@
         }
 
         .progress-bar {
-            width: calc(100% - 15px); /* Adjust the width to account for the dots */
+            width: calc(100% - 15px);
             height: 4px;
             background: #e0e0e0;
             position: relative;
             z-index: 1;
-            margin: 0 auto; /* Center the bar */
+            margin: 0 auto;
         }
 
         .stages {
             display: flex;
             justify-content: space-between;
             position: relative;
-            margin-top: -16px; /* Adjusted from -12px to -16px */
+            margin-top: -16px;
         }
 
         .stage {
@@ -44,10 +44,10 @@
         }
 
         .stage-dot {
-            width: 24px; /* Increased size */
+            width: 24px;
             height: 24px;
             background: #fff;
-            border: 3px solid #00BCD4; /* Match the main fill gradient's starting color */
+            border: 3px solid #00BCD4;
             border-radius: 50%;
             margin: 0 auto;
             transition: all 0.3s ease;
@@ -60,37 +60,28 @@
             justify-content: center;
             font-family: Arial, sans-serif;
             font-weight: bold;
-            font-size: 14px; /* Increased font size for better visibility */
-            color: #333; /* Darker color for the number */
+            font-size: 14px;
+            color: #333;
         }
 
         .stage-dot {
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 16px;
-            position: relative;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 2;
             color: #fff;
-            text-shadow: 0 0 8px #fff, 0 0 16px #fff, 0 0 24px #fff, 0 0 32px #fff, 0 0 40px #fff; /* Additional layers for a stronger, more visible shadow */
+            text-shadow: 0 0 8px #fff, 0 0 16px #fff, 0 0 24px #fff, 0 0 32px #fff, 0 0 40px #fff;
         }
 
         .stage.completed .stage-dot {
-            border-width: 2px; /* Thinner border */
-            border-style: solid;
-            border-color: #00BCD4; /* Keep a strong border color */
-            background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, #00BCD4 100%); /* White to lighter blue to strong blue */
-            color: #fff; /* White color for completed emoji */
+            border-width: 2px;
+            border-color: #00BCD4;
+            background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, #00BCD4 100%);
+            color: #fff;
         }
 
         .stage.active .stage-dot {
-            border-width: 2px; /* Thinner border */
-            border-style: solid;
-            border-color: #FF4081; /* Keep a strong border color */
-            background: radial-gradient(circle, #fff 20%, #ffd1dc 50%, #FF4081 100%); /* White to lighter pink to strong pink */
-            color: #fff; /* White color for active emoji */
+            border-width: 2px;
+            border-color: #FF4081;
+            background: radial-gradient(circle, #fff 20%, #ffd1dc 50%, #FF4081 100%);
+            color: #fff;
         }
 
         .stage-label {
@@ -113,98 +104,6 @@
         .stage.completed .stage-label {
             color: #00BCD4;
         }
-
-        /* Visual connection between main and sub progress */
-        .connection-line {
-            display: none;
-            /* Remove opacity and related transitions */
-            position: absolute;
-            top: calc(100% - 20px); /* Adjust as needed */
-            left: 66.6%; /* Same as before to align with Convergence */
-            transform: translateX(-50%);
-            width: 2px;
-            height: 40px;
-            background: linear-gradient(to bottom, #FF4081, #00BCD4);
-            margin: 0 auto; /* Center the line */
-        }
-
-        /* Sub-progress bar styles */
-        .sub-progress-container {
-            display: none;
-            width: 80%;
-            max-width: 640px;
-            margin: 60px auto 40px;
-            position: relative;
-            padding: 20px 5px 10px 5px;
-            background: rgba(0, 188, 212, 0.05);
-            border-radius: 15px;
-            /* Removed box-shadow */
-        }
-
-            .sub-progress-container::before {
-                content: "Convergence";
-                position: absolute;
-                top: -25px;
-                left: 50%;
-                transform: translateX(-50%);
-                font-family: Arial, sans-serif;
-                font-size: 16px;
-                font-weight: bold;
-                color: #FF4081;
-                background: #fff;
-                padding: 5px 15px;
-                border-radius: 20px;
-                /* Removed box-shadow */
-            }
-
-            .sub-progress-container.visible {
-                display: block;
-            }
-
-            .sub-progress-container .progress-bar {
-                background: #e0e0e0;
-            }
-
-            .sub-progress-container .progress-fill {
-                height: 100%;
-                width: 0;
-                background: #00BCD4; /* Solid color */
-                transition: width 1.5s ease-in-out;
-                position: relative;
-            }
-
-            .sub-progress-container .stage-dot {
-                width: 16px;
-                height: 16px;
-                background: #e0e0e0; /* Default background */
-                border-radius: 50%;
-                margin: -3px auto 0 auto; /* Adjusted margin to align dot vertically */
-                position: relative;
-                z-index: 2;
-                color: #666;
-                font-size: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                /* Removed text-shadow and border */
-                text-shadow: none;
-                border: none;
-                /* Removed top and transform properties */
-            }
-
-            .sub-progress-container .stage.completed .stage-dot {
-                background: #00BCD4; /* Solid color for completed stages */
-                color: #fff;
-            }
-
-            .sub-progress-container .stage.active .stage-dot {
-                background: #FF4081; /* Solid color for active stage */
-                color: #fff;
-            }
-
-            .sub-progress-container .stages {
-                margin-top: -7px; /* Adjusted value for the sub-progress bar */
-            }
     </style>
 </head>
 <body>
@@ -215,54 +114,25 @@
         </div>
         <div class="stages">
             <div class="stage" id="stage1">
-                <div class="stage-dot main-progress">⚔️</div>
+                <div class="stage-dot">⚔️</div>
                 <div class="stage-label">Hardship</div>
             </div>
             <div class="stage" id="stage2">
-                <div class="stage-dot main-progress">💡</div>
+                <div class="stage-dot">💡</div>
                 <div class="stage-label">Moment of Truth</div>
             </div>
             <div class="stage" id="stage3">
-                <div class="stage-dot main-progress">🏆</div>
+                <div class="stage-dot">🏆</div>
                 <div class="stage-label">Convergence</div>
             </div>
         </div>
     </div>
 
-    <div class="connection-line" id="connectionLine"></div>
-
-    <div class="sub-progress-container" id="subProgress">
-        <div class="progress-bar">
-            <div class="progress-fill" id="subProgressFill"></div>
-        </div>
-        <div class="stages">
-            <div class="stage" id="subStage1">
-                <div class="stage-dot">1</div>
-            </div>
-            <div class="stage" id="subStage2">
-                <div class="stage-dot">2</div>
-            </div>
-            <div class="stage" id="subStage3">
-                <div class="stage-dot">3</div>
-            </div>
-            <div class="stage" id="subStage4">
-                <div class="stage-dot">4</div>
-            </div>
-            <div class="stage" id="subStage5">
-                <div class="stage-dot">5</div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Function to update progress bar based on the current stage
-        function updateProgress(currentStage, currentSubStage = 0) {
+        // Function to update main progress bar based on the current stage
+        function updateMainProgress(currentStage) {
             const progressFill = document.getElementById('progressFill');
             const stages = document.querySelectorAll('.progress-container .stage');
-            const subProgress = document.getElementById('subProgress');
-            const connectionLine = document.getElementById('connectionLine');
-            const subProgressFill = document.getElementById('subProgressFill');
-            const subStages = document.querySelectorAll('.sub-progress-container .stage');
 
             // Update main progress stages
             stages.forEach((s, index) => {
@@ -278,39 +148,10 @@
             // Update main progress bar fill
             const mainProgressPercentage = ((currentStage - 1) / (stages.length - 1)) * 100;
             progressFill.style.width = `${mainProgressPercentage}%`;
-
-            // Check if currentSubStage is greater than 0
-            if (currentSubStage > 0) {
-                // Show the sub-progress bar and connection line
-                connectionLine.classList.add('visible');
-                subProgress.classList.add('visible');
-
-                // Update sub-progress stages
-                subStages.forEach((s, index) => {
-                    if (index < currentSubStage - 1) {
-                        s.className = 'stage completed';
-                    } else if (index === currentSubStage - 1) {
-                        s.className = 'stage active';
-                    } else {
-                        s.className = 'stage';
-                    }
-                });
-
-                // Update sub-progress bar fill
-                const subProgressPercentage = ((currentSubStage - 1) / (subStages.length - 1)) * 100;
-                subProgressFill.style.width = `${subProgressPercentage}%`;
-            } else {
-                // Hide the sub-progress bar and connection line
-                connectionLine.classList.remove('visible');
-                subProgress.classList.remove('visible');
-
-                // Reset sub-progress bar and stages
-                subProgressFill.style.width = '0%';
-                subStages.forEach((s) => {
-                    s.className = 'stage';
-                });
-            }
         }
+
+        // Example usage:
+        // updateMainProgress(2);
     </script>
 </body>
 </html>
