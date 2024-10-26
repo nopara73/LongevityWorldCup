@@ -175,7 +175,7 @@
             <!-- New WHY Field (Initially Hidden) -->
             <div id="whyField" style="display: none;">
                 <label for="why">What drives you forward?</label>
-                <textarea id="why" name="why" placeholder="He who has a why can bear any how" rows="5"></textarea>
+                <textarea id="why" name="why" rows="5"></textarea>
             </div>
         </form>
 
@@ -310,7 +310,7 @@
             // Change image source and text content
             document.getElementById('illustrationImage').src = "../assets/why.jpg";
             document.getElementById('illustrationImage').alt = "Eye";
-            document.querySelector('h2').textContent = "2. Why?";
+            document.querySelector('h2').textContent = "2. Finding Your Why";
             updateSubProgress(2);
 
             // Scroll the heading into view
@@ -323,7 +323,7 @@
             document.getElementById('whyField').style.display = 'block';
 
             // Update the text content for the "Why" section
-            document.querySelector('main p').innerHTML = `Your <em>'Why'</em> is the light that will guide you through the coming shadows.`;
+            document.querySelector('main p').innerHTML = `He who has a <em>why</em> can bear almost any <em>how.</em>`;
 
             // Change button text to "Submit" and adjust its behavior
             this.textContent = 'Submit';
