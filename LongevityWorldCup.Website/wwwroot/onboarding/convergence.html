@@ -147,12 +147,12 @@
                 <img src="../assets/reaper.jpg" alt="Grim Reaper" class="illustration" id="illustrationImage">
             </div>
             <!--SUB-PROGRESS-BAR-->
-            <p>
+            <div id="content">
                 In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
                 In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable.
                 Death will come — but who will stand in its path?<br />
                 <em>Could it be you?</em>
-            </p>
+            </div>
         </form>
 
         <form id="personalInfoForm" class="bioageform">
@@ -180,13 +180,15 @@
         </form>
 
         <div class="options-container">
-            <button type="submit" class="option-button calculate-button already-have" id="nextButton" aria-label="Proceed to the next stage">Next</button>
+            <button type="button" class="option-button calculate-button already-have" id="nextButton" aria-label="Proceed to the next stage">Next</button>
             <button class="option-button back-button" onclick="window.history.back()">Go Back</button>
         </div>
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
     <script>
+        var currentStage = 1;
+
         // Update the progress bar to the appropriate stage
         updateMainProgress(3);
         updateSubProgress(1);
@@ -296,8 +298,13 @@
                 localStorage.setItem('nationality', nationality);
                 localStorage.setItem('why', why); // Store the WHY value
 
-                // Redirect to the next stage (replace 'nextstage.html' with the actual page)
-                window.location.href = 'nextstage.html';
+                if (currentStage === 3) {
+                    // Proceed to the next stage or final submission
+                    window.location.href = 'nextstage.html';
+                } else {
+                    // Do nothing or provide feedback if needed
+                    alert('Please complete all stages before submitting.');
+                }
             } else {
                 alert('Please fill in all required fields.');
             }
@@ -305,54 +312,69 @@
 
         // "Next" Button Click Event Handler
         document.getElementById('nextButton').addEventListener('click', function (event) {
-            event.preventDefault(); // Prevent the default button action
+            event.preventDefault(); // Prevent default button action
 
-            // Change image source and text content
-            document.getElementById('illustrationImage').src = "../assets/why.jpg";
-            document.getElementById('illustrationImage').alt = "Eye";
-            document.querySelector('h2').textContent = "2. Finding Your Why";
-            updateSubProgress(2);
+            if (currentStage === 1) {
+                // Proceed to Stage 2
+                // Change image source and text content
+                document.getElementById('illustrationImage').src = "../assets/why.jpg";
+                document.getElementById('illustrationImage').alt = "Eye";
+                document.querySelector('h2').textContent = "2. Finding Your Why";
+                updateSubProgress(2);
 
-            // Scroll the heading into view
-            document.querySelector('h2').scrollIntoView({ behavior: 'smooth' });
+                // Scroll the heading into view
+                document.querySelector('h2').scrollIntoView({ behavior: 'smooth' });
 
-            // Hide the initial form fields
-            document.getElementById('personalDetails').style.display = 'none';
+                // Hide the initial form fields
+                document.getElementById('personalDetails').style.display = 'none';
 
-            // Show the "Your WHY:" field
-            document.getElementById('whyField').style.display = 'block';
+                // Show the "Your WHY:" field
+                document.getElementById('whyField').style.display = 'block';
 
-            // Update the text content for the "Why" section
-            document.querySelector('main p').innerHTML = `He who has a <em>why</em> can bear almost any <em>how.</em>`;
+                // Update the text content for the "Why" section
+                document.getElementById('content').innerHTML = `<p>He who has a <em>why</em> can bear almost any <em>how.</em></p>`;
 
-            // Change button text to "Submit" and adjust its behavior
-            this.textContent = 'Submit';
-            this.removeEventListener('click', arguments.callee); // Remove this click event listener
-            this.setAttribute('type', 'submit'); // Change button type to submit
-        });
+                currentStage = 2;
 
-        // Form Submission Handler
-        document.getElementById('personalInfoForm').addEventListener('submit', function (event) {
-            event.preventDefault(); // Prevent form submission
+                // Optionally, update the button text
+                this.textContent = 'Next';
+            } else if (currentStage === 2) {
+                // Proceed to Stage 3
+                currentStage = 3;
 
-            // Collect form data
-            var name = document.getElementById('name').value.trim();
-            var division = document.getElementById('division').value;
-            var nationality = document.getElementById('nationality').value.trim();
-            var why = document.getElementById('why').value.trim(); // Collect the WHY input
+                // Hide the "Why" field
+                document.getElementById('whyField').style.display = 'none';
 
-            // Validate form data
-            if (name && division && nationality && why) {
-                // Store data in localStorage or proceed as needed
-                localStorage.setItem('name', name);
-                localStorage.setItem('division', division);
-                localStorage.setItem('nationality', nationality);
-                localStorage.setItem('why', why); // Store the WHY value
+                // Change image source and text content for stage 3
+                document.getElementById('illustrationImage').src = "../assets/cr7.jpg";
+                document.getElementById('illustrationImage').alt = "Cristiano Ronaldo";
+                document.querySelector('h2').textContent = "3. The Price of Glory";
+                updateSubProgress(3);
 
-                // Redirect to the next stage (replace 'nextstage.html' with the actual page)
-                window.location.href = 'nextstage.html';
-            } else {
-                alert('Please fill in all required fields.');
+                // Update the text content for stage 3 with formatting
+                document.getElementById('content').innerHTML = `
+                                                                                                        <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                                                                                                        <p>
+                                                                                                            Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                                                                                                        </p>
+                                                                                                        <p>
+                                                                                                            So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
+                                                                                                        </p>
+                                                                                                        <p>
+                                                                                                            <em>It's now your turn to make that decision.</em>
+                                                                                                        </p>
+                                                `;
+
+                // Add your specified text to the empty block (the div that held the input fields)
+                document.getElementById('personalDetails').innerHTML = `
+                                            <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
+                                            <p>Just remember, we’re not gonna beat Death by hiding in the shadows!</p>
+                                        `;
+                document.getElementById('personalDetails').style.display = '';
+
+                // Change button text to 'Submit' and set type to 'submit' for final submission
+                this.textContent = 'Submit';
+                this.setAttribute('type', 'submit');
             }
         });
     </script>
