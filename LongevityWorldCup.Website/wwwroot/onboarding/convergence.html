@@ -134,6 +134,7 @@
             border: 4px solid #333;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
             border-radius: 8px;
+            cursor: pointer; /* Add this line if you want the cursor to change when hovering over the image */
         }
     </style>
 </head>
@@ -245,18 +246,6 @@
                 .catch(error => {
                     console.error('Error fetching flags:', error);
                 });
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Fetch flags and initialize nationality autocomplete
-            fetch('/api/data/flags')
-                .then(response => response.json())
-                .then(countries => {
-                    // Existing code for nationality autocomplete...
-                })
-                .catch(error => {
-                    console.error('Error fetching flags:', error);
-                });
 
             // Fetch divisions and populate the division select element
             fetch('/api/data/divisions')
@@ -314,16 +303,17 @@
         document.getElementById('nextButton').addEventListener('click', function (event) {
             event.preventDefault(); // Prevent default button action
 
+            // Scroll the heading into view
+            document.querySelector('h2').scrollIntoView({ behavior: 'smooth' });
+
             if (currentStage === 1) {
-                // Proceed to Stage 2
+                currentStage = 2;
+                updateSubProgress(2);
+
                 // Change image source and text content
                 document.getElementById('illustrationImage').src = "../assets/why.jpg";
                 document.getElementById('illustrationImage').alt = "Eye";
                 document.querySelector('h2').textContent = "2. Finding Your Why";
-                updateSubProgress(2);
-
-                // Scroll the heading into view
-                document.querySelector('h2').scrollIntoView({ behavior: 'smooth' });
 
                 // Hide the initial form fields
                 document.getElementById('personalDetails').style.display = 'none';
@@ -333,14 +323,9 @@
 
                 // Update the text content for the "Why" section
                 document.getElementById('content').innerHTML = `<p>He who has a <em>why</em> can bear almost any <em>how.</em></p>`;
-
-                currentStage = 2;
-
-                // Optionally, update the button text
-                this.textContent = 'Next';
             } else if (currentStage === 2) {
-                // Proceed to Stage 3
                 currentStage = 3;
+                updateSubProgress(3);
 
                 // Hide the "Why" field
                 document.getElementById('whyField').style.display = 'none';
@@ -349,28 +334,95 @@
                 document.getElementById('illustrationImage').src = "../assets/cr7.jpg";
                 document.getElementById('illustrationImage').alt = "Cristiano Ronaldo";
                 document.querySelector('h2').textContent = "3. The Price of Glory";
-                updateSubProgress(3);
 
                 // Update the text content for stage 3 with formatting
                 document.getElementById('content').innerHTML = `
-                                                                                                            <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
-                                                                                                            <p>
-                                                                                                                Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
-                                                                                                            </p>
-                                                                                                            <p>
-                                                                                                                So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
-                                                                                                            </p>
-                                                                                                            <p>
-                                                                                                                <em>It's now your turn to make that decision.</em>
-                                                                                                            </p>
-                                                    `;
+                                    <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                                    <p>
+                                        Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                                    </p>
+                                    <p>
+                                        So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
+                                    </p>
+                                    <p>
+                                        <em>It's now your turn to make that decision.</em>
+                                    </p>
+                                `;
 
                 // Add your specified text to the empty block (the div that held the input fields)
                 document.getElementById('personalDetails').innerHTML = `
-                                                <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
-                                                <p><em>Just remember, we’re not gonna beat Death by hiding in the shadows!</em></p>
-                                            `;
+                                    <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
+                                    <p><em>Just remember, we’re not gonna beat Death by hiding in the shadows!</em></p>
+                                `;
                 document.getElementById('personalDetails').style.display = '';
+            } else if (currentStage === 3) {
+                currentStage = 4;
+                updateSubProgress(4);
+
+                document.querySelector('h2').textContent = "4. Don't Trust, Verify";
+                document.getElementById('illustrationImage').src = "../assets/headshot.jpg";
+                document.getElementById('illustrationImage').alt = "Headshot";
+                document.getElementById('content').innerHTML = `<p>Next, provide your profile picture. Smiling is optional!</p>`;
+                document.getElementById('personalDetails').innerHTML = `
+                    <p><strong>Upload a clear headshot:</strong></p>
+                    <ol style="padding-left: 20px; line-height: 1.6;">
+                        <li>It must be you.</li>
+                        <li>Face the camera directly.</li>
+                        <li>Include head and shoulders.</li>
+                    </ol>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+                        <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
+                    </div>
+                `;
+
+                // Check if there is a stored profile picture and set it
+                const storedProfilePic = localStorage.getItem('profilePic');
+                if (storedProfilePic) {
+                    document.getElementById('illustrationImage').src = storedProfilePic;
+                }
+
+                // Add the event listeners here, but only if they haven't been added before
+                // Set up event listener for the upload button
+                const uploadButton = document.getElementById('uploadButton');
+                if (!uploadButton.hasAttribute('data-listener')) {
+                    uploadButton.addEventListener('click', function () {
+                        document.getElementById('profilePicInput').click();
+                    });
+                    uploadButton.setAttribute('data-listener', 'true');
+                }
+
+                // Add click event to the image to trigger file selection
+                const illustrationImage = document.getElementById('illustrationImage');
+                if (!illustrationImage.hasAttribute('data-listener')) {
+                    illustrationImage.addEventListener('click', function () {
+                        document.getElementById('profilePicInput').click();
+                    });
+                    illustrationImage.setAttribute('data-listener', 'true');
+                }
+
+                // Handle the image upload and preview
+                const profilePicInput = document.getElementById('profilePicInput');
+                if (!profilePicInput.hasAttribute('data-listener')) {
+                    profilePicInput.addEventListener('change', function (event) {
+                        const file = event.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                document.getElementById('illustrationImage').src = e.target.result;
+                                // Optionally, store the image data in localStorage for later use
+                                localStorage.setItem('profilePic', e.target.result);
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                    profilePicInput.setAttribute('data-listener', 'true');
+                }
+            } else if (currentStage === 4) {
+                currentStage = 5;
+                updateSubProgress(5);
+
+                document.querySelector('h2').textContent = "5. ";
 
                 // Change button text to 'Submit' and set type to 'submit' for final submission
                 this.textContent = 'Submit';
