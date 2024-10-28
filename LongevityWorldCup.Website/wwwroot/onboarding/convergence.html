@@ -21,7 +21,7 @@
             padding: 1rem 2rem;
             margin: 0.5rem 0;
             font-size: 1.2rem;
-            background-color: var(--primary-color);
+            background-color: var(--primary-color, #3498db); /* Default color if not set */
             color: white;
             border: none;
             border-radius: 50px;
@@ -36,7 +36,7 @@
         }
 
             .option-button:hover {
-                background-color: var(--secondary-color);
+                background-color: var(--secondary-color, #2980b9); /* Default hover color */
                 transform: scale(1.03);
             }
 
@@ -197,7 +197,7 @@
 
             <div class="options-container">
                 <button type="button" class="option-button calculate-button already-have" id="nextButton" aria-label="Proceed to the next stage">Next</button>
-                <button class="option-button back-button" onclick="window.history.back()">Go Back</button>
+                <button type="button" class="option-button back-button" id="backButton">Go Back</button>
             </div>
         </form>
     </main>
@@ -207,11 +207,212 @@
         var currentStage = 1;
 
         // Update the progress bar to the appropriate stage
+        // Assuming updateMainProgress and updateSubProgress are defined elsewhere
         updateMainProgress(3);
         updateSubProgress(1);
 
+        // Function to update the UI based on the current stage
+        function goToStage(stage) {
+            // Reset the illustrationImage to be clickable or not based on stage
+            const illustrationImage = document.getElementById('illustrationImage');
+            const nextButton = document.getElementById('nextButton');
+
+            // Remove 'clickable' class initially
+            illustrationImage.classList.remove('clickable');
+
+            switch (stage) {
+                case 1:
+                    // Stage 1: Character Creation
+                    document.querySelector('h2').textContent = "1. Character Creation";
+                    illustrationImage.src = "../assets/reaper.jpg";
+                    illustrationImage.alt = "Grim Reaper";
+                    document.getElementById('content').innerHTML = `
+                                                In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
+                                                In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable.
+                                                Death will come — but who will stand in its path?<br />
+                                                <em>Could it be you?</em>
+                                            `;
+                    document.getElementById('personalDetails').style.display = '';
+                    document.getElementById('whyField').style.display = 'none';
+                    document.getElementById('proofImageContainer').style.display = 'none';
+                    nextButton.textContent = 'Next';
+                    nextButton.setAttribute('type', 'button');
+                    updateSubProgress(1);
+                    break;
+                case 2:
+                    // Stage 2: Finding Your Why
+                    document.querySelector('h2').textContent = "2. Finding Your Why";
+                    illustrationImage.src = "../assets/why.jpg";
+                    illustrationImage.alt = "Eye";
+                    document.getElementById('content').innerHTML = `<p>He who has a <em>why</em> can bear almost any <em>how.</em></p>`;
+                    document.getElementById('personalDetails').style.display = 'none';
+                    document.getElementById('whyField').style.display = 'block';
+                    nextButton.textContent = 'Next';
+                    nextButton.setAttribute('type', 'button');
+                    updateSubProgress(2);
+                    break;
+                case 3:
+                    // Stage 3: The Price of Glory
+                    document.querySelector('h2').textContent = "3. The Price of Glory";
+                    illustrationImage.src = "../assets/cr7.jpg";
+                    illustrationImage.alt = "Cristiano Ronaldo";
+                    document.getElementById('content').innerHTML = `
+                                                <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                                                <p>
+                                                    Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                                                </p>
+                                                <p>
+                                                    So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
+                                                </p>
+                                                <p>
+                                                    <em>It's now your turn to make that decision.</em>
+                                                </p>
+                                            `;
+                    document.getElementById('personalDetails').innerHTML = `
+                                                <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
+                                                <p><em>Just remember, we’re not gonna beat Death by hiding in the shadows!</em></p>
+                                            `;
+                    // In the goToStage function, within case 3, replace the existing line with the following:
+                    document.getElementById('whyField').style.display = 'none';
+                    document.getElementById('personalDetails').style.display = '';
+                    nextButton.textContent = 'Next';
+                    nextButton.setAttribute('type', 'button');
+                    updateSubProgress(3);
+                    break;
+                case 4:
+                    // Stage 4: Almost There
+                    document.querySelector('h2').textContent = "4. Almost There";
+                    illustrationImage.src = "../assets/headshot.jpg";
+                    illustrationImage.alt = "Headshot";
+                    document.getElementById('content').innerHTML = `<p>Next, provide your profile picture. Smiling is optional!</p>`;
+                    document.getElementById('personalDetails').innerHTML = `
+                                                <p><strong>Upload a clear headshot:</strong></p>
+                                                <ol style="padding-left: 20px; line-height: 1.6;">
+                                                    <li>It must be you.</li>
+                                                    <li>Face the camera directly.</li>
+                                                    <li>Include head and shoulders.</li>
+                                                </ol>
+                                                <div style="text-align: center; margin-top: 1rem;">
+                                                    <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+                                                    <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
+                                                </div>
+                                            `;
+                    illustrationImage.classList.add('clickable');
+                    nextButton.textContent = 'Next';
+                    nextButton.setAttribute('type', 'button');
+                    updateSubProgress(4);
+
+                    // Check if there is a stored profile picture and set it
+                    const storedProfilePic = localStorage.getItem('profilePic');
+                    if (storedProfilePic) {
+                        illustrationImage.src = storedProfilePic;
+                    }
+
+                    // Attach event listeners for upload
+                    attachUploadEventListeners();
+                    break;
+                case 5:
+                    // Stage 5: Don't Trust Verify
+                    document.querySelector('h2').textContent = "5. Don't Trust Verify";
+                    illustrationImage.src = "../assets/proof.jpg";
+                    illustrationImage.alt = "Proof Image";
+                    document.getElementById('content').innerHTML = "<p style='text-align: center; font-weight: bold;'>Don't Trust Verify</p>";
+                    document.getElementById('personalDetails').innerHTML = `
+                                                <p>
+                                                    Upload proof of your biomarkers: photo or screenshot. This image will be <strong>public</strong>, so you're encouraged to censor any non-relevant information. Make sure to upload an image file (like JPG or PNG) and not a PDF.
+                                                </p>
+                                                <div style="text-align: center; margin-top: 1rem;">
+                                                    <input type="file" id="proofPicInput" accept="image/*" style="display: none;">
+                                                    <button type="button" id="uploadProofButton" class="option-button">Upload Proof</button>
+                                                </div>
+                                            `;
+                    illustrationImage.classList.remove('clickable');
+                    nextButton.textContent = 'Next';
+                    nextButton.setAttribute('type', 'button');
+
+                    // Attach event listener to the Upload Proof button
+                    document.getElementById('uploadProofButton').addEventListener('click', function () {
+                        document.getElementById('proofPicInput').click();
+                    });
+
+                    // Handle the image upload (without cropping)
+                    document.getElementById('proofPicInput').addEventListener('change', function (event) {
+                        const file = event.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                // Overwrite the proof image data
+                                localStorage.setItem('proofPic', e.target.result);
+
+                                // Display the uploaded proof image in the proofImageContainer
+                                document.getElementById('proofImageContainer').innerHTML = `
+                                                            <p><strong>Proof image uploaded successfully.</strong></p>
+                                                            <img src="${e.target.result}" alt="Proof Image" style="max-width: 100%; border: 2px solid #333; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);">
+                                                        `;
+
+                                // Reset the file input's value to allow re-uploading the same file if needed
+                                document.getElementById('proofPicInput').value = "";
+                            };
+                            reader.readAsDataURL(file); // Read the new file to overwrite the previous one
+                        }
+                    });
+
+                    document.getElementById('proofImageContainer').style.display = 'block';
+                    break;
+                case 6:
+                    // Stage 6: Final Details
+                    document.querySelector('h2').textContent = "6. Final Details";
+                    illustrationImage.src = "../assets/finish.jpg";
+                    illustrationImage.alt = "Finish Line";
+                    document.getElementById('content').innerHTML = "<p style='text-align: center; font-weight: bold;'>Final Details</p>";
+                    document.getElementById('personalDetails').innerHTML = `
+                                                <!-- Link to Personal Page (Optional) -->
+                                                <label for="personalLink">Link (Optional):</label>
+                                                <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
+                                                <p style="margin-top: 0.5rem; color: #555;">
+                                                    Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
+                                                </p>
+
+                                                <!-- Media Contact (Required) -->
+                                                <label for="mediaContact">Media Contact:</label>
+                                                <input type="email" id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@youremail.com">
+
+                                                <p style="margin-top: 0.5rem; color: #555;">
+                                                    Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open.
+                                                </p>
+                                            `;
+
+                    document.getElementById('proofImageContainer').style.display = 'none';
+                    illustrationImage.classList.remove('clickable');
+                    nextButton.textContent = 'Next';
+                    nextButton.setAttribute('type', 'button');
+                    break;
+                case 7:
+                    // Stage 7: Application
+                    document.querySelector('h2').textContent = "5. Application";
+                    illustrationImage.src = "../assets/account-creation.jpg";
+                    illustrationImage.alt = "Application";
+                    document.getElementById('content').innerHTML = "<p>Congrats! All that's left to do is to provide your contact email.</p>";
+                    document.getElementById('personalDetails').innerHTML = `
+                                                <!-- Email Field -->
+                                                <label for="accountEmail">Email:</label>
+                                                <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="yourname@example.com">
+                                            `;
+                    illustrationImage.classList.remove('clickable');
+                    nextButton.textContent = 'Apply';
+                    nextButton.setAttribute('type', 'submit');
+                    updateSubProgress(5);
+                    break;
+                default:
+                    console.error('Unknown stage:', stage);
+            }
+        }
+
         // Nationality Autocomplete Implementation
         document.addEventListener('DOMContentLoaded', function () {
+            // Initialize the first stage
+            goToStage(currentStage);
+
             fetch('/api/data/flags')
                 .then(response => response.json())
                 .then(countries => {
@@ -279,6 +480,14 @@
                         option.textContent = division; // Display text as is
                         divisionSelect.appendChild(option);
                     });
+
+                    // Optionally, set a default value or prompt
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '-- Select Division --';
+                    defaultOption.disabled = true;
+                    defaultOption.selected = true;
+                    divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
                 })
                 .catch(error => {
                     console.error('Error fetching divisions:', error);
@@ -289,23 +498,41 @@
         document.getElementById('inputForm').addEventListener('submit', function (event) {
             event.preventDefault(); // Prevent form submission
 
-            // Collect form data
-            var name = document.getElementById('name').value.trim();
-            var division = document.getElementById('division').value;
-            var nationality = document.getElementById('nationality').value.trim();
-            var why = document.getElementById('why').value.trim(); // Collect the WHY input
+            // Collect form data based on current stage
+            let isValid = true;
+            let formData = {};
 
-            // Collect account creation data
-            var accountEmail = document.getElementById('accountEmail').value.trim();
+            if (currentStage >= 1 && currentStage <= 2) {
+                // Stage 1 and 2 require name, division, nationality, and why
+                const name = document.getElementById('name').value.trim();
+                const division = document.getElementById('division').value;
+                const nationality = document.getElementById('nationality').value.trim();
+                const why = document.getElementById('why').value.trim();
 
-            // Validate form data
-            if (name && division && nationality && why && accountEmail) {
+                if (!name || !division || !nationality || !why) {
+                    isValid = false;
+                } else {
+                    formData = { name, division, nationality, why };
+                }
+            }
+
+            if (currentStage === 7) {
+                // Final stage requires accountEmail
+                const accountEmail = document.getElementById('accountEmail').value.trim();
+                if (!accountEmail) {
+                    isValid = false;
+                } else {
+                    formData.accountEmail = accountEmail;
+                }
+            }
+
+            // Additional validation can be added here for other stages
+
+            if (isValid) {
                 // Store data in localStorage or proceed as needed
-                localStorage.setItem('name', name);
-                localStorage.setItem('division', division);
-                localStorage.setItem('nationality', nationality);
-                localStorage.setItem('why', why); // Store the WHY value
-                localStorage.setItem('accountEmail', accountEmail);
+                for (const key in formData) {
+                    localStorage.setItem(key, formData[key]);
+                }
 
                 if (currentStage === 7) {
                     // Proceed to final submission or next steps
@@ -313,8 +540,8 @@
                     // You can redirect the user or perform other actions here
                     window.location.href = 'onboarding/application-review.html';
                 } else {
-                    // Do nothing or provide feedback if needed
-                    alert('Please complete all stages before submitting.');
+                    // Navigate to the next stage if not on the final stage
+                    document.getElementById('nextButton').click();
                 }
             } else {
                 alert('Please fill in all required fields.');
@@ -331,186 +558,20 @@
             // Remove the 'clickable' class from the illustrationImage
             document.getElementById('illustrationImage').classList.remove('clickable');
 
-            if (currentStage === 1) {
-                currentStage = 2;
-                updateSubProgress(2);
+            if (currentStage < 7) {
+                currentStage++;
+                goToStage(currentStage);
+            }
+        });
 
-                // Change image source and text content
-                document.getElementById('illustrationImage').src = "../assets/why.jpg";
-                document.getElementById('illustrationImage').alt = "Eye";
-                document.querySelector('h2').textContent = "2. Finding Your Why";
-
-                // Hide the initial form fields
-                document.getElementById('personalDetails').style.display = 'none';
-
-                // Show the "Your WHY:" field
-                document.getElementById('whyField').style.display = 'block';
-
-                // Update the text content for the "Why" section
-                document.getElementById('content').innerHTML = `<p>He who has a <em>why</em> can bear almost any <em>how.</em></p>`;
-            } else if (currentStage === 2) {
-                currentStage = 3;
-                updateSubProgress(3);
-
-                // Hide the "Why" field
-                document.getElementById('whyField').style.display = 'none';
-
-                // Change image source and text content for stage 3
-                document.getElementById('illustrationImage').src = "../assets/cr7.jpg";
-                document.getElementById('illustrationImage').alt = "Cristiano Ronaldo";
-                document.querySelector('h2').textContent = "3. The Price of Glory";
-
-                // Update the text content for stage 3 with formatting
-                document.getElementById('content').innerHTML = `
-                                                                                                                                                                                                                                                                                                            <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
-                                                                                                                                                                                                                                                                                                            <p>
-                                                                                                                                                                                                                                                                                                                Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
-                                                                                                                                                                                                                                                                                                            </p>
-                                                                                                                                                                                                                                                                                                            <p>
-                                                                                                                                                                                                                                                                                                                So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
-                                                                                                                                                                                                                                                                                                            </p>
-                                                                                                                                                                                                                                                                                                            <p>
-                                                                                                                                                                                                                                                                                                                <em>It's now your turn to make that decision.</em>
-                                                                                                                                                                                                                                                                                                            </p>
-                                                                                                                                                                                                                                                                                                        `;
-
-                // Add your specified text to the empty block (the div that held the input fields)
-                document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                                                                                                                                                                            <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
-                                                                                                                                                                                                                                                                                                            <p><em>Just remember, we’re not gonna beat Death by hiding in the shadows!</em></p>
-                                                                                                                                                                                                                                                                                                        `;
-                document.getElementById('personalDetails').style.display = '';
-            } else if (currentStage === 3) {
-                currentStage = 4;
-                updateSubProgress(4);
-
-                // Add the 'clickable' class to the illustrationImage
-                document.getElementById('illustrationImage').classList.add('clickable');
-
-                document.querySelector('h2').textContent = "4. Almost There";
-                document.getElementById('illustrationImage').src = "../assets/headshot.jpg";
-                document.getElementById('illustrationImage').alt = "Headshot";
-                document.getElementById('content').innerHTML = `<p>Next, provide your profile picture. Smiling is optional!</p>`;
-                document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                                                                                                                                                            <p><strong>Upload a clear headshot:</strong></p>
-                                                                                                                                                                                                                                                                                            <ol style="padding-left: 20px; line-height: 1.6;">
-                                                                                                                                                                                                                                                                                                <li>It must be you.</li>
-                                                                                                                                                                                                                                                                                                <li>Face the camera directly.</li>
-                                                                                                                                                                                                                                                                                                <li>Include head and shoulders.</li>
-                                                                                                                                                                                                                                                                                            </ol>
-                                                                                                                                                                                                                                                                                            <div style="text-align: center; margin-top: 1rem;">
-                                                                                                                                                                                                                                                                                                <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                                                                                                                                                                                                                                                                                                <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
-                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                        `;
-
-                // Check if there is a stored profile picture and set it
-                const storedProfilePic = localStorage.getItem('profilePic');
-                if (storedProfilePic) {
-                    document.getElementById('illustrationImage').src = storedProfilePic;
-                }
-
-                // Call the function to attach event listeners
-                attachUploadEventListeners();
-            } else if (currentStage === 4) {
-                // Increment to the new stage without updating the sub-progress bar
-                currentStage = 5;
-
-                // Change image to proof.jpg and make it non-clickable
-                document.getElementById('illustrationImage').src = "../assets/proof.jpg";
-                document.getElementById('illustrationImage').alt = "Proof Image";
-                document.getElementById('illustrationImage').classList.remove('clickable');
-
-                // Write "Don't Trust Verify" under the image
-                document.getElementById('content').innerHTML = "<p style='text-align: center; font-weight: bold;'>Don't Trust Verify</p>";
-
-                // Under that, explain the proof upload instructions
-                document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                                                                                <p>
-                                                                                                                                                                                                                    Upload proof of your biomarkers: photo or screenshot. This image will be <strong>public</strong>, so you're encouraged to censor any non-relevant information. Make sure to upload an image file (like JPG or PNG) and not a PDF.
-                                                                                                                                                                                                                </p>
-                                                                                                                                                                                                                <div style="text-align: center; margin-top: 1rem;">
-                                                                                                                                                                                                                    <input type="file" id="proofPicInput" accept="image/*" style="display: none;">
-                                                                                                                                                                                                                    <button type="button" id="uploadProofButton" class="option-button">Upload Proof</button>
-                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                            `;
-
-                // Attach event listener to the Upload Proof button
-                document.getElementById('uploadProofButton').addEventListener('click', function () {
-                    document.getElementById('proofPicInput').click();
-                });
-
-                // Handle the image upload (without cropping)
-                document.getElementById('proofPicInput').addEventListener('change', function (event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            // Overwrite the proof image data
-                            localStorage.setItem('proofPic', e.target.result);
-
-                            // Display the uploaded proof image in the proofImageContainer
-                            document.getElementById('proofImageContainer').innerHTML = `
-                                                                                                                                                                    <p><strong>Proof image uploaded successfully.</strong></p>
-                                                                                                                                                                    <img src="${e.target.result}" alt="Proof Image" style="max-width: 100%; border: 2px solid #333; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);">
-                                                                                                                                                                `;
-
-                            // Reset the file input's value to allow re-uploading the same file if needed
-                            document.getElementById('proofPicInput').value = "";
-                        };
-                        reader.readAsDataURL(file); // Read the new file to overwrite the previous one
-                    }
-                });
-
-            } else if (currentStage === 5) {
-                // Increment to the new stage without updating the sub-progress bar
-                currentStage = 6;
-
-                document.getElementById('illustrationImage').src = "../assets/finish.jpg";
-                document.getElementById('illustrationImage').alt = "Finish Line";
-                document.getElementById('content').innerHTML = "<p style='text-align: center; font-weight: bold;'>Final Details</p>";
-
-                // Update the personalDetails with new input fields
-                document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                            <!-- Link to Personal Page (Optional) -->
-                                                                                                                                                            <label for="personalLink">Link (Optional):</label>
-                                                                                                                                                            <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
-                                                                                                                                                            <p style="margin-top: 0.5rem; color: #555;">
-                                                                                                                                                                Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
-                                                                                                                                                            </p>
-
-                                                                                                                                                            <!-- Media Contact (Required) -->
-                                                                                                                                                            <label for="mediaContact">Media Contact:</label>
-                                                                                                                                                            <input type="email" id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@youremail.com">
-
-                                                                                                                                                            <p style="margin-top: 0.5rem; color: #555;">
-                                                                                                                                                                Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open.
-                                                                                                                                                            </p>
-                                                                                                                                                        `;
-
-            } else if (currentStage === 6) {
-                // Increment to the new stage
-                currentStage = 7;
-                updateSubProgress(5); // Increment the sub progress bar to stage 7
-
-                // Update the heading
-                document.querySelector('h2').textContent = "5. Application";
-
-                // Update the illustration image and content
-                document.getElementById('illustrationImage').src = "../assets/account-creation.jpg";
-                document.getElementById('illustrationImage').alt = "Application";
-                document.getElementById('content').innerHTML = "<p>Congrats! All that's left to do is to pride your contact email.</p>";
-
-                // Update the personalDetails with only Email
-                document.getElementById('personalDetails').innerHTML = `
-                                                                                                <!-- Email Field -->
-                                                                                                <label for="accountEmail">Email:</label>
-                                                                                                <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="yourname@example.com">
-                                                                                            `;
-
-                // Change button text to 'Submit' and set type to 'submit' for final submission
-                this.textContent = 'Apply';
-                this.setAttribute('type', 'submit');
+        // "Go Back" Button Click Event Handler
+        document.getElementById('backButton').addEventListener('click', function () {
+            if (currentStage > 1) {
+                currentStage--;
+                goToStage(currentStage);
+            } else {
+                // If on the first stage, go back to the previous page
+                window.history.back();
             }
         });
 
@@ -588,17 +649,17 @@
                                 // Remove the cropper instance and restore the content
                                 cropper.destroy();
                                 document.getElementById('personalDetails').innerHTML = `
-                                                                                <p><strong>Upload a clear headshot:</strong></p>
-                                                                                <ol style="padding-left: 20px; line-height: 1.6;">
-                                                                                    <li>It must be you.</li>
-                                                                                    <li>Face the camera directly.</li>
-                                                                                    <li>Include head and shoulders.</li>
-                                                                                </ol>
-                                                                                <div style="text-align: center; margin-top: 1rem;">
-                                                                                    <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                                                                                    <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
-                                                                                </div>
-                                                                            `;
+                                                            <p><strong>Upload a clear headshot:</strong></p>
+                                                            <ol style="padding-left: 20px; line-height: 1.6;">
+                                                                <li>It must be you.</li>
+                                                                <li>Face the camera directly.</li>
+                                                                <li>Include head and shoulders.</li>
+                                                            </ol>
+                                                            <div style="text-align: center; margin-top: 1rem;">
+                                                                <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+                                                                <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
+                                                            </div>
+                                                        `;
                                 // Re-attach event listeners to the new elements
                                 attachUploadEventListeners();
                             });
