@@ -326,12 +326,12 @@
 
             // Get age from Date of Birth
             var dobValue = document.getElementById('dob').value;
+            var chronologicalAge = NaN;
             if (dobValue) {
-                var age = calculateAgeFromDOB(dobValue);
-            } else {
-                var age = NaN;
+                chronologicalAge = calculateAgeFromDOB(dobValue);
             }
-            testValuesRaw[0] = age;
+
+            testValuesRaw[0] = chronologicalAge;
             testUnitsId[0] = 'years';
             testUnits[0] = 1;
 
@@ -395,10 +395,12 @@
                 }
             } else {
                 continueButton.style.display = "block"; // Show button if calculation is successful
-                var chronologicalAge = testValuesRaw[0];
-                resultField.innerHTML = `<p class="result"><strong>Result:</strong> ${phenoAge.toFixed(2)} years (age acceleration ${(phenoAge - chronologicalAge).toFixed(2)} years)</p>`;
-                resultField.innerHTML += `<p>This means your risk of death from age-related causes in the coming year is approximately ${(riskOfDeath * 100).toFixed(2)}%, or around 1 in ${parseFloat((1 / riskOfDeath).toPrecision(2))}.</p>`;
-                resultField.innerHTML += "<p>If you'd be participating in Longevity World Cup, then you'd be placed 3. out of 124.</p>";
+                resultField.innerHTML = `
+                                  <p class="result">
+                                    Chronologically, you are ${chronologicalAge.toFixed(2)} years old. Biologically, you are <strong>${phenoAge.toFixed(2)} years old.</strong>
+                                    Age ${phenoAge < chronologicalAge ? "reduction" : "acceleration"}: <strong>${(phenoAge < chronologicalAge ? "-" : "")}${Math.abs(chronologicalAge - phenoAge).toFixed(2)} years</strong>
+                                  </p>`;
+
             }
         }
 
