@@ -301,24 +301,63 @@
         }
 
         function calculateAgeFromDOB(dob) {
+            // Helper function to determine if a year is a leap year
+            function isLeapYear(year) {
+                return ((year % 4 === 0) && (year % 100 !== 0)) || (year % 400 === 0);
+            }
+
+            // Parse the date of birth
             var birthDate = new Date(dob);
+            var originalMonth = birthDate.getMonth(); // 0-indexed (0 = January)
+            var originalDay = birthDate.getDate();
+
+            // Determine if the birthday is on February 29
+            var isFeb29 = (originalMonth === 1 && originalDay === 29); // February is month 1
+
             var today = new Date();
+            var currentYear = today.getFullYear();
 
-            var years = today.getFullYear() - birthDate.getFullYear();
-            var months = today.getMonth() - birthDate.getMonth();
-            var days = today.getDate() - birthDate.getDate();
+            // Adjust this year's birthday for February 29
+            var thisYearsBirthday;
+            if (isFeb29) {
+                if (isLeapYear(currentYear)) {
+                    thisYearsBirthday = new Date(currentYear, 1, 29); // Feb 29
+                } else {
+                    thisYearsBirthday = new Date(currentYear, 2, 1); // March 1
+                }
+            } else {
+                thisYearsBirthday = new Date(currentYear, originalMonth, originalDay);
+            }
 
-            // Adjust if the current month/day is before the birth month/day
-            if (months < 0 || (months === 0 && days < 0)) {
+            // Calculate the initial difference in years
+            var years = currentYear - birthDate.getFullYear();
+
+            // If today's date is before this year's birthday, subtract one year
+            if (today < thisYearsBirthday) {
                 years--;
+            }
+
+            // Calculate the difference in months and days
+            var months = today.getMonth() - originalMonth;
+            var days = today.getDate() - originalDay;
+
+            // Adjust for February 29 birthdays treated as March 1 in non-leap years
+            if (isFeb29 && !isLeapYear(currentYear)) {
+                if (today.getMonth() === 2 && today.getDate() === 1) {
+                    days = 0; // Treat March 1 as the birthday
+                }
+            }
+
+            // Adjust months and years if necessary
+            if (months < 0 || (months === 0 && days < 0)) {
                 months += (months < 0) ? 12 : 0;
             }
 
-            // If days are negative, adjust months and days
+            // Adjust days and months if days are negative
             if (days < 0) {
                 // Get the number of days in the previous month
-                var previousMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-                var daysInPreviousMonth = previousMonth.getDate();
+                var previousMonthDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                var daysInPreviousMonth = previousMonthDate.getDate();
 
                 days += daysInPreviousMonth;
                 months--;
@@ -330,10 +369,10 @@
                 }
             }
 
-            // Calculate age in years with decimal
+            // Calculate age in years with 2 decimal precision
             var age = years + (months / 12) + (days / 365.25);
 
-            return parseFloat(age.toFixed(10)); // Precision up to 10 decimal places
+            return parseFloat(age.toFixed(2)); // Precision up to 2 decimal places
         }
 
         function calculateResult() {
@@ -421,10 +460,10 @@
             } else {
                 continueButton.style.display = "block"; // Show button if calculation is successful
                 resultField.innerHTML = `
-                                                              <p class="result">
-                                                                Chronologically, you are ${chronologicalAge.toFixed(2)} years old. Biologically, you are <strong>${phenoAge.toFixed(2)} years old.</strong>
-                                                                Age ${phenoAge < chronologicalAge ? "reduction" : "acceleration"}: <strong>${(phenoAge < chronologicalAge ? "-" : "")}${Math.abs(chronologicalAge - phenoAge).toFixed(2)} years</strong>
-                                                              </p>`;
+                                                                  <p class="result">
+                                                                    Chronologically, you are ${chronologicalAge.toFixed(2)} years old. Biologically, you are <strong>${phenoAge.toFixed(2)} years old.</strong>
+                                                                    Age ${phenoAge < chronologicalAge ? "reduction" : "acceleration"}: <strong>${(phenoAge < chronologicalAge ? "-" : "")}${Math.abs(chronologicalAge - phenoAge).toFixed(2)} years</strong>
+                                                                  </p>`;
 
             }
         }
