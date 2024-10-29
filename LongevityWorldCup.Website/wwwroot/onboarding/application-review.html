@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <!--HEAD-->
     <style>
@@ -51,43 +51,21 @@
                 background-color: #455A64;
             }
     </style>
-
-    <script>
-        // JavaScript for changing the image source based on URL parameters
-        document.addEventListener("DOMContentLoaded", function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const holding = urlParams.get('holding');
-            const img = document.getElementById('lab-image');
-
-            if (img) { // Ensure img element exists
-                if (holding === 'beer') {
-                    img.src = '../assets/beer.jpg';
-                } else if (holding === 'beef') {
-                    img.src = '../assets/beef.jpg';
-                } else if (holding === 'veggies') {
-                    img.src = '../assets/veggies.jpg';
-                } else {
-                    img.src = '../assets/lab.jpg'; // Default image if no match
-                }
-            }
-        });
-    </script>
 </head>
 <body>
     <!--HEADER-->
     <main>
-        <!--MAIN-PROGRESS-BAR-->
-        <h2>Reviewing Your Application🎉</h2>
+        <h2>Application Review🎉</h2>
         <!-- Create distinct URLs or manually defined versions for each scenario -->
         <div style="text-align: center;">
-            <img src="../assets/lab.jpg"
-                 alt="Lab"
-                 style="max-width: 90%; height: auto;"
-                 id="lab-image">
+            <img src="../assets/bean-waiting.png"
+                 alt="Waiting"
+                 class="illustration">
         </div>
-        <p>We're reviewing your application. This may take a day or two.</p>
+        <p>
+            We're reviewing your application, which may take a day or two. Once it's ready, we'll contact you at the email address you provided.
+        </p>
         <div class="options-container">
-            <button class="option-button already-have" onclick="window.location.href='onboarding/pheno-age.html'">Got My Results</button>
             <button class="option-button back-button" onclick="window.location.href='/'">Go Back to Homepage</button>
         </div>
     </main>
