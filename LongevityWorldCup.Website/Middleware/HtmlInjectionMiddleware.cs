@@ -7,7 +7,7 @@
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.Value;
-            if (path == "/" || path?.EndsWith(".html") == true)
+            if (path == "/" || path?.EndsWith(".html") is true)
             {
                 string filePath;
 
