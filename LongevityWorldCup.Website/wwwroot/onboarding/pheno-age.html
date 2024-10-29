@@ -303,12 +303,37 @@
         function calculateAgeFromDOB(dob) {
             var birthDate = new Date(dob);
             var today = new Date();
-            var age = today.getFullYear() - birthDate.getFullYear();
-            var m = today.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
+
+            var years = today.getFullYear() - birthDate.getFullYear();
+            var months = today.getMonth() - birthDate.getMonth();
+            var days = today.getDate() - birthDate.getDate();
+
+            // Adjust if the current month/day is before the birth month/day
+            if (months < 0 || (months === 0 && days < 0)) {
+                years--;
+                months += (months < 0) ? 12 : 0;
             }
-            return age;
+
+            // If days are negative, adjust months and days
+            if (days < 0) {
+                // Get the number of days in the previous month
+                var previousMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                var daysInPreviousMonth = previousMonth.getDate();
+
+                days += daysInPreviousMonth;
+                months--;
+
+                // Prevent double decrementing of years
+                if (months < 0) {
+                    months += 12;
+                    years--;
+                }
+            }
+
+            // Calculate age in years with decimal
+            var age = years + (months / 12) + (days / 365.25);
+
+            return parseFloat(age.toFixed(10)); // Precision up to 10 decimal places
         }
 
         function calculateResult() {
@@ -396,10 +421,10 @@
             } else {
                 continueButton.style.display = "block"; // Show button if calculation is successful
                 resultField.innerHTML = `
-                                  <p class="result">
-                                    Chronologically, you are ${chronologicalAge.toFixed(2)} years old. Biologically, you are <strong>${phenoAge.toFixed(2)} years old.</strong>
-                                    Age ${phenoAge < chronologicalAge ? "reduction" : "acceleration"}: <strong>${(phenoAge < chronologicalAge ? "-" : "")}${Math.abs(chronologicalAge - phenoAge).toFixed(2)} years</strong>
-                                  </p>`;
+                                                              <p class="result">
+                                                                Chronologically, you are ${chronologicalAge.toFixed(2)} years old. Biologically, you are <strong>${phenoAge.toFixed(2)} years old.</strong>
+                                                                Age ${phenoAge < chronologicalAge ? "reduction" : "acceleration"}: <strong>${(phenoAge < chronologicalAge ? "-" : "")}${Math.abs(chronologicalAge - phenoAge).toFixed(2)} years</strong>
+                                                              </p>`;
 
             }
         }
