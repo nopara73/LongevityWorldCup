@@ -474,8 +474,8 @@
         fetch('/api/data/athletes')
             .then(response => response.json())
             .then(athletes => {
-                // Iterate through each athlete
-                athletes.forEach(athlete => {
+                // Array to store athletes with their lowest PhenoAge and age reduction
+                const athleteResults = athletes.map(athlete => {
                     // Calculate the chronological age from the athlete's date_of_birth
                     const dob = `${athlete.date_of_birth.year}-${String(athlete.date_of_birth.month).padStart(2, '0')}-${String(athlete.date_of_birth.day).padStart(2, '0')}`;
                     const chronologicalAge = calculateAgeFromDOB(dob);
@@ -484,7 +484,7 @@
                     let lowestPhenoAge = Infinity;
 
                     // Iterate through all biomarker sets for each athlete
-                    athlete.biomarkers.forEach((biomarkerSet, index) => {
+                    athlete.biomarkers.forEach(biomarkerSet => {
                         // Prepare the biomarker values in the order expected for PhenoAge calculation
                         const biomarkerValues = [chronologicalAge];
 
@@ -511,11 +511,28 @@
                         }
                     });
 
-                    // Log the lowest PhenoAge found for this athlete
+                    // Calculate the age reduction
+                    const ageReduction = lowestPhenoAge - chronologicalAge;
+
+                    return {
+                        name: athlete.name,
+                        chronologicalAge: chronologicalAge,
+                        lowestPhenoAge: lowestPhenoAge,
+                        ageReduction: ageReduction
+                    };
+                });
+
+                // Sort the athletes by age reduction in ascending order
+                athleteResults.sort((a, b) => a.ageReduction - b.ageReduction);
+
+                // Assign ranks to each athlete based on the sorted order
+                athleteResults.forEach((athlete, index) => {
+                    athlete.rank = index + 1;
+                    console.log(`Rank: ${athlete.rank}`);
                     console.log(`Athlete: ${athlete.name}`);
-                    console.log(`Chronological Age: ${chronologicalAge.toFixed(2)}`);
-                    console.log(`Lowest PhenoAge: ${lowestPhenoAge.toFixed(2)}`);
-                    console.log(`Age Reduction: ${(lowestPhenoAge - chronologicalAge).toFixed(2)}`);
+                    console.log(`Chronological Age: ${athlete.chronologicalAge.toFixed(2)}`);
+                    console.log(`Lowest PhenoAge: ${athlete.lowestPhenoAge.toFixed(2)}`);
+                    console.log(`Age Reduction: ${athlete.ageReduction.toFixed(2)}`);
                 });
             })
             .catch(error => {
