@@ -716,7 +716,7 @@
             </table>
         </div>
         <div style="text-align: center; margin-top: 20px;">
-            <button onclick="window.location.href='https://longevityworldcup.com/full-rankings'" class="rankings-btn">
+            <button onclick="window.location.href='/leaderboard/leaderboard.html'" class="rankings-btn">
                 VIEW FULL RANKINGS
             </button>
         </div>
@@ -849,10 +849,10 @@
 
                 // Populate the modal
                 athleteDetails.innerHTML = `
-                                                                                                        <strong>Sponsor:</strong> ${sponsor}<br>
-                                                                                                        <strong>Age Reduction:</strong> ${ageReduction}<br>
-                                                                                                        <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-                                                                                                    `;
+                                                                                                            <strong>Sponsor:</strong> ${sponsor}<br>
+                                                                                                            <strong>Age Reduction:</strong> ${ageReduction}<br>
+                                                                                                            <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+                                                                                                        `;
 
                 // Display the modal
                 modal.style.display = "block";
