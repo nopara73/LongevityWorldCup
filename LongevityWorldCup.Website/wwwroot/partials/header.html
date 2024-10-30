@@ -177,6 +177,46 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         border-radius: 8px;
     }
+
+    /* Button Styles */
+    .options-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 2rem;
+    }
+
+    .option-button {
+        padding: 1rem 2rem;
+        margin: 0.5rem 0;
+        font-size: 1.2rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        width: 80%;
+        max-width: 400px;
+        height: 60px; /* Fixed height for all buttons */
+        display: flex;
+        justify-content: center;
+        align-items: center; /* Vertically center the text */
+    }
+
+        .option-button:hover {
+            background-color: var(--secondary-color, #2980b9); /* Default hover color */
+            transform: scale(1.03);
+        }
+
+    /* Adjust the back button styling */
+    .back-button {
+        background-color: #607D8B;
+    }
+
+        .back-button:hover {
+            background-color: #455A64;
+        }
 </style>
 
 <header>
