@@ -8,47 +8,12 @@
             display: none;
         }
 
-        /* Button Styles */
-        .options-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 2rem;
+        .option-button.already-have {
+            background-color: #4CAF50; /* Green */
         }
 
-        .option-button {
-            padding: 1rem 2rem;
-            margin: 0.5rem 0;
-            font-size: 1.2rem;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            width: 80%;
-            max-width: 400px;
-            height: 60px; /* Fixed height for all buttons */
-            display: flex;
-            justify-content: center;
-            align-items: center; /* Vertically center the text */
-        }
-
-            .option-button.already-have {
-                background-color: #4CAF50; /* Green */
-            }
-
-                .option-button.already-have:hover {
-                    background-color: #388E3C; /* Darker Green */
-                }
-
-        /* Adjust the back button styling */
-        .back-button {
-            background-color: #607D8B;
-        }
-
-            .back-button:hover {
-                background-color: #455A64;
+            .option-button.already-have:hover {
+                background-color: #388E3C; /* Darker Green */
             }
     </style>
 </head>
