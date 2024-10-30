@@ -454,12 +454,69 @@
     </div>
 </div>
 
+<script src="/js/pheno-age.js"></script> <!-- Link to your external script -->
 <script>
+    // Define the biomarkers array (ensure this is available before calculations)
+    const biomarkers = [
+        { id: 'age', name: 'Age', coeff: 0.0804 },
+        { id: 'albumin', name: 'Albumin', coeff: -0.0336 },
+        { id: 'creatinine', name: 'Creatinine', coeff: 0.0095 },
+        { id: 'glucose', name: 'Glucose', coeff: 0.1953 },
+        { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 },
+        { id: 'wbc', name: 'White blood cell count', coeff: 0.0554 },
+        { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012 },
+        { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 },
+        { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306 },
+        { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 }
+    ];
+
     document.addEventListener('DOMContentLoaded', function () {
         fetch('/api/data/athletes')
             .then(response => response.json())
             .then(athletes => {
-                console.log(athletes); // Handle the fetched athletes here
+                // Iterate through each athlete
+                athletes.forEach(athlete => {
+                    // Calculate the chronological age from the athlete's date_of_birth
+                    const dob = `${athlete.date_of_birth.year}-${String(athlete.date_of_birth.month).padStart(2, '0')}-${String(athlete.date_of_birth.day).padStart(2, '0')}`;
+                    const chronologicalAge = calculateAgeFromDOB(dob);
+
+                    // Initialize a variable to keep track of the lowest PhenoAge for this athlete
+                    let lowestPhenoAge = Infinity;
+
+                    // Iterate through all biomarker sets for each athlete
+                    athlete.biomarkers.forEach((biomarkerSet, index) => {
+                        // Prepare the biomarker values in the order expected for PhenoAge calculation
+                        const biomarkerValues = [chronologicalAge];
+
+                        // Add the values of each required biomarker (in the same order as in 'biomarkers' array)
+                        biomarkerValues.push(
+                            biomarkerSet.alb_gL,      // Albumin
+                            biomarkerSet.creat_umolL, // Creatinine
+                            biomarkerSet.glu_mmolL,   // Glucose
+                            biomarkerSet.crp_mgL,     // C-reactive Protein
+                            biomarkerSet.wbc_1000cellsuL, // White Blood Cell Count
+                            biomarkerSet.lym_pc,      // Lymphocytes
+                            biomarkerSet.mcv_fL,      // Mean Corpuscular Volume
+                            biomarkerSet.rdw_pc,      // Red Cell Distribution Width
+                            biomarkerSet.alp_UL       // Alkaline Phosphatase
+                        );
+
+                        // Calculate the PhenoAge for the current biomarker set
+                        const coefficients = biomarkers.map(marker => marker.coeff);
+                        const phenoAge = calculatePhenoAge(biomarkerValues, coefficients);
+
+                        // Update the lowest PhenoAge if the current one is lower
+                        if (phenoAge < lowestPhenoAge) {
+                            lowestPhenoAge = phenoAge;
+                        }
+                    });
+
+                    // Log the lowest PhenoAge found for this athlete
+                    console.log(`Athlete: ${athlete.name}`);
+                    console.log(`Chronological Age: ${chronologicalAge.toFixed(2)}`);
+                    console.log(`Lowest PhenoAge: ${lowestPhenoAge.toFixed(2)}`);
+                    console.log(`Age Reduction: ${(lowestPhenoAge - chronologicalAge).toFixed(2)}`);
+                });
             })
             .catch(error => {
                 console.error('Error fetching athletes:', error);
@@ -475,7 +532,8 @@
         portrait.addEventListener('click', function () {
             const enlargedImg = document.createElement('div');
             enlargedImg.classList.add('enlarged-portrait');
-            enlargedImg.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
+            enlargedImg.innerHTML = `
+<img src="${this.src}" alt="${this.alt}">`;
             document.body.appendChild(enlargedImg);
 
             // Disable scrolling when the image is enlarged
@@ -507,9 +565,11 @@
 
             // Populate the modal
             athleteDetails.innerHTML = `
-                                                                                                                            <strong>Sponsor:</strong> ${sponsor}<br>
-                                                                                                                            <strong>Age Reduction:</strong> ${ageReduction}<br>
-                                                                                                                            <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+<strong>Sponsor:</strong> ${sponsor}
+<br>
+<strong>Age Reduction:</strong> ${ageReduction}
+<br>
+<strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
                                                                                                                         `;
 
             // Display the modal
