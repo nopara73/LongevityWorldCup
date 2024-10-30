@@ -207,8 +207,164 @@
             max-height: 90%;
             object-fit: contain;
         }
+
+    /* Podium styling */
+    .podium {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        margin-bottom: 2rem;
+    }
+
+    .podium-item {
+        position: relative;
+        text-align: center;
+        padding: 1rem;
+        background-color: var(--card-bg);
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin: 0 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start; /* Adjusted for top alignment */
+        width: 200px;
+        min-height: 230px; /* Set a minimum height, no fixed height */
+    }
+
+    .podium-portrait {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--secondary-color);
+        margin: 1rem 0;
+        cursor: pointer; /* Add this to indicate it's clickable */
+    }
+
+    .podium-item:hover {
+        transform: scale(1.02);
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .podium-item.first {
+        order: 2;
+        height: 320px;
+    }
+
+    .podium-item.second {
+        order: 1;
+        height: 300px;
+    }
+
+    .podium-item.third {
+        order: 3;
+        height: 280px;
+    }
+
+    .podium-item-lower {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        padding: 10px 0;
+        border-radius: 0 0 15px 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        clip-path: polygon(0 30%, 100% 0, 100% 100%, 0% 100%);
+        transition: clip-path 0.3s ease-in-out;
+    }
+
+        .podium-item-lower:hover {
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+        }
+
+    .podium-item.first .podium-item-lower {
+        background-color: #FFF9C4; /* Light gold */
+    }
+
+    .podium-item.second .podium-item-lower {
+        background-color: #E0E0E0; /* Light silver */
+    }
+
+    .podium-item.third .podium-item-lower {
+        background-color: #D7CCC8; /* Light bronze */
+    }
+
+    .prize-money {
+        font-weight: bold;
+        font-size: 2rem;
+        color: #4caf50;
+        margin-top: 2px;
+    }
+
+    .btc-amount {
+        margin-top: 1rem;
+        font-weight: normal;
+        font-size: 0.8rem;
+        color: #333;
+    }
+
+    .podium-rank {
+        position: absolute;
+        top: -6px; /* Adjust this for proper vertical alignment */
+        left: 10%;
+        transform: translateX(-50%);
+        background-color: white;
+        padding: 2px; /* Add some padding for a cleaner look */
+        border-radius: 50%;
+        width: 60px; /* Increased size for larger medals, slightly smaller than before */
+        height: 60px; /* Match width to keep the circle */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2rem; /* Adjust font size to fit the new medal size */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add some shadow for a 3D effect */
+    }
+
+    .podium-portrait {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--secondary-color);
+        margin: 1rem 0;
+    }
 </style>
 
+<div class="podium">
+    <div class="podium-item second">
+        <div class="podium-rank">🥈</div>
+        <img src="https://randomuser.me/api/portraits/men/92.jpg" alt="Nikolai Volkov portrait" class="podium-portrait">
+        <div><span class="athlete-name" style="cursor: pointer;">Nikolai Volkov</span></div>
+        <div><span class="age-reduction">16 years</span> reduced</div>
+        <div class="podium-item-lower">
+            <div class="btc-amount">(0.00072578 BTC)</div>
+            <div class="prize-money">$20.16</div>
+        </div>
+    </div>
+    <div class="podium-item first">
+        <div class="podium-rank">🥇</div>
+        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
+        <div><span class="athlete-name" style="cursor: pointer;">Amelia Zhao</span></div>
+        <div><span class="age-reduction">17 years</span> reduced</div>
+        <div class="podium-item-lower">
+            <div class="btc-amount">(0.00360248 BTC)</div>
+            <div class="prize-money">$100.80</div>
+        </div>
+    </div>
+    <div class="podium-item third">
+        <div class="podium-rank">🥉</div>
+        <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
+        <div><span class="athlete-name" style="cursor: pointer;">Isabella Rodriguez</span></div>
+        <div><span class="age-reduction">15 years</span> reduced</div>
+        <div class="podium-item-lower">
+            <div class="btc-amount">(0.00014401 BTC)</div>
+            <div class="prize-money">$4.03</div>
+        </div>
+    </div>
+</div>
 <div class="leaderboard">
     <table>
         <thead>
