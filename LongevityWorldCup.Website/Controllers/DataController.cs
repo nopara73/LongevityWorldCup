@@ -18,5 +18,13 @@ namespace LongevityWorldCup.Website.Controllers
         {
             return Ok(Divisions.Division);
         }
+
+        [HttpGet("athletes")]
+        public IActionResult GetAthletes()
+        {
+            var jsonFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Athletes.json");
+            var jsonData = System.IO.File.ReadAllText(jsonFilePath);
+            return Ok(jsonData);
+        }
     }
 }
