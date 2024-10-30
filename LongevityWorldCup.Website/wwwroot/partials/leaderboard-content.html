@@ -455,6 +455,17 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/data/athletes')
+            .then(response => response.json())
+            .then(athletes => {
+                console.log(athletes); // Handle the fetched athletes here
+            })
+            .catch(error => {
+                console.error('Error fetching athletes:', error);
+            });
+    });
+
     const modal = document.getElementById("detailsModal");
     const closeBtn = document.getElementsByClassName("close")[0];
     const athleteDetails = document.getElementById("athleteDetails");
