@@ -229,6 +229,7 @@
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
+    <script src="pheno-age.js"></script> <!-- Link to your external script -->
     <script>
         updateMainProgress(2);
 
@@ -239,142 +240,49 @@
 
         var text_placeholder = 'Enter a number';
 
-        var tests = [
-            { id: 'age', name: 'Age', units: ['years'], conversions: [1], coeff: 0.0804 },
-            { id: 'albumin', name: 'Albumin', units: ['g/L', 'g/dL', 'g%', 'µmol/L'], conversions: [1, 0.1, 0.1, 15.0466], coeff: -0.0336 },
-            { id: 'creatinine', name: 'Creatinine', units: ['µmol/L', 'mg/dL'], conversions: [1, 88.42], coeff: 0.0095 },
-            { id: 'glucose', name: 'Glucose', units: ['mmol/L', 'mg/dL'], conversions: [1, 0.0555], coeff: 0.1953 },
-            { id: 'crp', name: 'C-reactive protein', units: ['mg/dL', 'mg/L', 'nmol/L'], conversions: [1, 10, 95.2381], coeff: 0.0954 },
-            { id: 'wbc', name: 'White blood cell count', units: ['1000 cells/µL', '10⁹ cells/L'], conversions: [1, 1], coeff: 0.0554 },
-            { id: 'lymphocyte', name: 'Lymphocytes', units: ['%', '1000 cells/µL', '10⁹ cells/L'], conversions: [1, 1, 1], coeff: -0.012 },
-            { id: 'mcv', name: 'Mean corpuscular volume', units: ['fL'], conversions: [1], coeff: 0.0268 },
-            { id: 'rcdw', name: 'Red cell distribution width', units: ['%'], conversions: [1], coeff: 0.3306 },
-            { id: 'ap', name: 'Alkaline phosphatase', units: ['U/L'], conversions: [1], coeff: 0.0019 }
+        // Biomarker test details and coefficients
+        const biomarkers = [
+            { id: 'age', name: 'Age', coeff: 0.0804 },
+            { id: 'albumin', name: 'Albumin', coeff: -0.0336 },
+            { id: 'creatinine', name: 'Creatinine', coeff: 0.0095 },
+            { id: 'glucose', name: 'Glucose', coeff: 0.1953 },
+            { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 },
+            { id: 'wbc', name: 'White blood cell count', coeff: 0.0554 },
+            { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012 },
+            { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 },
+            { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306 },
+            { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 }
         ];
 
-        function parseInput(value) {
-            if (value == '') {
-                return NaN;
-            } else {
-                return Number(value);
-            }
-        }
-
-        function calculateAgeFromDOB(dob) {
-            // Helper to check leap year
-            function isLeapYear(year) {
-                return ((year % 4 === 0) && (year % 100 !== 0)) || (year % 400 === 0);
-            }
-
-            const birthDate = new Date(dob);
-            const today = new Date();
-
-            if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
-            if (birthDate > today) throw new Error("DOB is in the future.");
-
-            // Total days lived
-            const msPerDay = 1000 * 60 * 60 * 24;
-            const utc1 = Date.UTC(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
-            const utc2 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-            const totalDays = Math.floor((utc2 - utc1) / msPerDay);
-
-            // Age in years
-            const preciseAge = totalDays / 365.2425;
-
-            return parseFloat(preciseAge.toFixed(2));
-        }
+        // Event listener for form submission
+        document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent form submission
+            calculateResult(); // Calculate the result
+        });
 
         function calculateResult() {
-            console.log('### Calculating! ###');
-            var resultField = document.getElementById('phenoAgeResult');
-            var continueButton = document.getElementById('continueButton');
-            var errorText = '';
-            var isCalculationSuccessful = true;
-
-            // Initialize arrays for values, units, and prefactors
-            var testValuesRaw = [];
-            var testValues = [];
-            var testUnitsId = [];
-            var testUnits = [];
+            const coefficients = biomarkers.map(marker => marker.coeff);
+            const markerValues = [];
 
             // Get age from Date of Birth
-            var dobValue = document.getElementById('dob').value;
-            var chronologicalAge = NaN;
-            if (dobValue) {
-                chronologicalAge = calculateAgeFromDOB(dobValue);
+            const dobValue = document.getElementById('dob').value;
+            const chronologicalAge = dobValue ? calculateAgeFromDOB(dobValue) : NaN;
+
+            // Add age as the first marker value
+            markerValues.push(chronologicalAge);
+
+            // Get biomarker values
+            for (let i = 1; i < biomarkers.length; i++) {
+                const valueElement = document.getElementById(biomarkers[i].id);
+                const value = parseInput(valueElement.value);
+                markerValues.push(value);
             }
 
-            testValuesRaw[0] = chronologicalAge;
-            testUnitsId[0] = 'years';
-            testUnits[0] = 1;
+            // Calculate PhenoAge using the helper function
+            const phenoAge = calculatePhenoAge(markerValues, coefficients);
 
-            if (isNaN(testValuesRaw[0])) {
-                errorText += 'Invalid Date of Birth';
-            }
-
-            // Loop through field names to populate values and units arrays
-            for (var i = 1; i < tests.length; i++) {
-                var valueElement = document.getElementById(tests[i].id);
-                var unitsElement = document.getElementById(tests[i].id + 'Unit');
-                testValuesRaw[i] = parseInput(valueElement.value);
-                testUnitsId[i] = unitsElement.options[unitsElement.selectedIndex].text;
-                testUnits[i] = parseInput(unitsElement.value);
-
-                if (isNaN(testValuesRaw[i]) && valueElement.value != '') {
-                    document.getElementById(tests[i].id).classList.add('errorNaN');
-                    if (errorText == '') {
-                        errorText += 'Invalid value for ' + tests[i].name;
-                    } else {
-                        errorText += ', ' + tests[i].name;
-                    }
-                } else {
-                    document.getElementById(tests[i].id).classList.remove('errorNaN');
-                }
-            }
-
-            var rollingTotal = 0;
-            // Loop through values and calculate total
-            for (var i = 0; i < tests.length; i++) {
-                // CRP is used as a log in the calculation
-                if (tests[i].id == 'crp') {
-                    testValues[i] = Math.log(testValuesRaw[i] * testUnits[i]);
-                    // If lymphocyte count rather than percentage, divide by the total white blood cell count
-                } else if (tests[i].id == 'lymphocyte' && testUnitsId[i] != '%') {
-                    // Find the index for WBC to use its value
-                    var wbcIndex = tests.findIndex(test => test.id === 'wbc');
-                    var wbcValue = testValuesRaw[wbcIndex] * testUnits[wbcIndex];
-                    testValues[i] = (testValuesRaw[i] * testUnits[i] / wbcValue) * 100;
-                } else {
-                    testValues[i] = testValuesRaw[i] * testUnits[i];
-                }
-                rollingTotal += testValues[i] * tests[i].coeff;
-            }
-
-            var tmonths = 120; // ie 10 years
-            var b0 = -19.9067;
-            var gamma = 0.0076927;
-            rollingTotal = rollingTotal + b0;
-            var mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
-            var riskOfDeath = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * 12) - 1) / gamma);
-            var phenoAge = 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
-
-            // Display the result
-            if (isNaN(phenoAge) || !isCalculationSuccessful) {
-                continueButton.style.display = "none"; // Hide button if the calculation fails
-                if (errorText != '') {
-                    resultField.innerHTML = 'Error: ' + errorText;
-                } else {
-                    resultField.innerHTML = '<p>Please enter all values above to calculate your biological age.</p>';
-                }
-            } else {
-                continueButton.style.display = "block"; // Show button if calculation is successful
-                resultField.innerHTML = `
-                                                                              <p class="result">
-                                                                                Chronologically, you are ${chronologicalAge.toFixed(2)} years old. Biologically, you are <strong>${phenoAge.toFixed(2)} years old.</strong>
-                                                                                Age ${phenoAge < chronologicalAge ? "reduction" : "acceleration"}: <strong>${(phenoAge < chronologicalAge ? "-" : "")}${Math.abs(chronologicalAge - phenoAge).toFixed(2)} years</strong>
-                                                                              </p>`;
-
-            }
+            // Display the result (you can add conditions for error checking)
+            document.getElementById('phenoAgeResult').innerText = `Your PhenoAge is ${phenoAge.toFixed(2)} years.`;
         }
 
         document.addEventListener('DOMContentLoaded', function () {
