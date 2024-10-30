@@ -31,6 +31,7 @@
                     var footer = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "footer.html"));
                     var progressBar = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "main-progress-bar.html"));
                     var subProgressBar = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "sub-progress-bar.html"));
+                    var leaderboardContent = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "leaderboard-content.html"));
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
@@ -38,7 +39,8 @@
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
-                        .Replace("<!--SUB-PROGRESS-BAR-->", subProgressBar);
+                        .Replace("<!--SUB-PROGRESS-BAR-->", subProgressBar)
+                        .Replace("<!--LEADERBOARD-CONTENT-->", leaderboardContent);
 
                     // Optionally remove the play button on certain pages
                     if (path.Contains("join-game"))
