@@ -473,14 +473,6 @@
                     console.log(`Age Reduction: ${athlete.ageReduction.toFixed(2)}`);
                 });
 
-                // Sort the athletes by age reduction in ascending order
-                athleteResults.sort((a, b) => a.ageReduction - b.ageReduction);
-
-                // Assign ranks to each athlete based on the sorted order
-                athleteResults.forEach((athlete, index) => {
-                    athlete.rank = index + 1;
-                });
-
                 // Determine how many athletes to display based on maxAthletes and includePodium
                 let athletesToDisplay = athleteResults;
                 const podiumCount = includePodium ? 3 : 0;
