@@ -912,26 +912,73 @@
     function performFilter() {
         const query = document.getElementById('athleteSearch').value.toLowerCase();
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
+        const podiumItems = document.querySelectorAll('.podium-item');
 
         tableRows.forEach(row => {
-            const athleteName = row.querySelector('.athlete-name').textContent.toLowerCase();
+            const athleteNameElement = row.querySelector('.athlete-name');
+            const athleteName = athleteNameElement.textContent.toLowerCase();
+
             if (athleteName.includes(query)) {
                 row.classList.remove('hidden');
+                // Highlight the matching text
+                const originalName = athleteNameElement.textContent;
+                const highlightedName = originalName.replace(new RegExp(`(${escapeRegExp(query)})`, 'gi'), '<span class="highlight">$1</span>');
+                athleteNameElement.innerHTML = highlightedName;
             } else {
                 row.classList.add('hidden');
+                // Remove any existing highlights
+                athleteNameElement.innerHTML = athleteNameElement.textContent;
             }
         });
 
-        // Similarly, filter podium items if needed
-        const podiumItems = document.querySelectorAll('.podium-item');
         podiumItems.forEach(item => {
-            const athleteName = item.querySelector('.athlete-name').textContent.toLowerCase();
+            const athleteNameElement = item.querySelector('.athlete-name');
+            const athleteName = athleteNameElement.textContent.toLowerCase();
+
             if (athleteName.includes(query)) {
                 item.classList.remove('hidden');
+                // Highlight the matching text
+                const originalName = athleteNameElement.textContent;
+                const highlightedName = originalName.replace(new RegExp(`(${escapeRegExp(query)})`, 'gi'), '<span class="highlight">$1</span>');
+                athleteNameElement.innerHTML = highlightedName;
             } else {
                 item.classList.add('hidden');
+                // Remove any existing highlights
+                athleteNameElement.innerHTML = athleteNameElement.textContent;
             }
         });
+
+        // Optionally, display a "No results found" message
+        displayNoResults(tableRows, podiumItems, query);
+    }
+
+    // Utility function to escape special characters in the search query
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Function to display "No results found" message
+    function displayNoResults(tableRows, podiumItems, query) {
+        // Remove existing no-results message if any
+        const existingMessage = document.querySelector('.no-results');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        // Check if any rows or podium items are visible
+        const anyVisible = Array.from(tableRows).some(row => !row.classList.contains('hidden')) ||
+            Array.from(podiumItems).some(item => !item.classList.contains('hidden'));
+
+        if (!anyVisible && query.trim() !== '') {
+            const leaderboard = document.querySelector('.leaderboard');
+            const noResults = document.createElement('div');
+            noResults.classList.add('no-results');
+            noResults.textContent = 'No results found.';
+            noResults.style.textAlign = 'center';
+            noResults.style.padding = '1rem';
+            noResults.style.fontSize = '1.2rem';
+            leaderboard.appendChild(noResults);
+        }
     }
 
     let isInitialClick = true; // Track if it’s the first click after focusing
