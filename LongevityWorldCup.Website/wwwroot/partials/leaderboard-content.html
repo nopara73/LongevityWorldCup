@@ -674,16 +674,14 @@
 
     function renderMediaContact(contact) {
         const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
-        return `
-    ${isEmail
-                ? `<a href="mailto:${contact}" class="media-contact">
+        return `${isEmail
+            ? `<a href="mailto:${contact}" class="media-contact">
             ${getIcon(contact)}
            </a>`
-                : `<a href="${contact}" target="_blank" class="media-contact">
+            : `<a href="${contact}" target="_blank" class="media-contact">
             ${getIcon(contact)}
            </a>`
-            }
-    `;
+            }`;
     }
 
     const modal = document.getElementById("detailsModal");
