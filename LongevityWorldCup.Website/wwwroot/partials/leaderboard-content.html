@@ -526,7 +526,12 @@
         <td data-label="Athlete"> <span class="athlete-name"> ${athlete.name}</span> </td>
         <td data-label="Sponsor"> </td>
         <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(2)} years</td>
-        <td data-label="Media Contact"> <a href="mailto:${athlete.mediaContact || '#'}" class="media-contact"> ${athlete.mediaContact || 'N/A'}</a> </td>
+        <td data-label="Media Contact">
+            ${athlete.mediaContact.includes('@')
+                            ? `<a href="mailto:${athlete.mediaContact}" class="media-contact"> ${athlete.mediaContact}</a>`
+                            : `<a href="${athlete.mediaContact}" target="_blank" class="media-contact">Link</a>`
+                        }
+        </td>
     `;
 
                     tableBody.appendChild(row);
