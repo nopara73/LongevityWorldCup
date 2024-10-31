@@ -903,7 +903,14 @@
 
         searchInput.value = '';
         clearIcon.classList.remove('visible');
-        debounceFilterAthletes(); // Trigger the filter function if needed
+        removeAllHighlights();
+        performFilter();
+    }
+
+    function removeAllHighlights() {
+        document.querySelectorAll('.athlete-name').forEach(element => {
+            removeHighlight(element);
+        });
     }
 
     function debounce(func, delay) {
