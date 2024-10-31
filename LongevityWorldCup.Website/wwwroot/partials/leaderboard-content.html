@@ -484,6 +484,11 @@
         /* Ensure podium items don't conflict with search bar */
         flex: 1;
     }
+
+    .no-results {
+        color: var(--primary-color);
+        font-weight: bold;
+    }
 </style>
 
 <div class="podium">
@@ -492,7 +497,7 @@
 
 <div class="search-wrapper">
     <div class="search-container">
-        <input type="text" id="athleteSearch" placeholder="Search Athlete..." oninput="debounceFilterAthletes()">
+        <input type="text" id="athleteSearch" placeholder="Search Athlete..." aria-label="Search Athletes" oninput="debounceFilterAthletes()">
         <span class="search-icon"><i class="fa fa-search"></i></span>
         <span class="clear-icon" onclick="clearSearch()" tabindex="0" onkeypress="if(event.key === 'Enter') clearSearch()">
             <i class="fa fa-times"></i>
