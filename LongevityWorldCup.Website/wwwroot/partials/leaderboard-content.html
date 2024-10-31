@@ -392,7 +392,7 @@
         3: { btc: "0.00014401 BTC", amount: "$4.03" }
     };
 
-    function LoadLeaderboard() {
+    function LoadLeaderboard(includePodium = true) {
         fetch('/api/data/athletes')
             .then(response => response.json())
             .then(athletes => {
@@ -468,39 +468,40 @@
                     athlete.rank = index + 1;
                 });
 
-                // Get the top three athletes
-                const topThree = athleteResults.slice(0, 3);
+                if (includePodium) {
+                    // Get the top three athletes
+                    const topThree = athleteResults.slice(0, 3);
 
-                // Select the podium container
-                const podium = document.querySelector('.podium');
+                    // Select the podium container
+                    const podium = document.querySelector('.podium');
 
-                // Loop through the top three athletes and create podium items
-                topThree.forEach(athlete => {
-                    let rankClass, rankEmoji;
+                    // Loop through the top three athletes and create podium items
+                    topThree.forEach(athlete => {
+                        let rankClass, rankEmoji;
 
-                    switch (athlete.rank) {
-                        case 1:
-                            rankClass = 'first';
-                            rankEmoji = '🥇';
-                            break;
-                        case 2:
-                            rankClass = 'second';
-                            rankEmoji = '🥈';
-                            break;
-                        case 3:
-                            rankClass = 'third';
-                            rankEmoji = '🥉';
-                            break;
-                        default:
-                            return; // Only handle top three
-                    }
+                        switch (athlete.rank) {
+                            case 1:
+                                rankClass = 'first';
+                                rankEmoji = '🥇';
+                                break;
+                            case 2:
+                                rankClass = 'second';
+                                rankEmoji = '🥈';
+                                break;
+                            case 3:
+                                rankClass = 'third';
+                                rankEmoji = '🥉';
+                                break;
+                            default:
+                                return; // Only handle top three
+                        }
 
-                    // Create the podium-item div
-                    const podiumItem = document.createElement('div');
-                    podiumItem.classList.add('podium-item', rankClass);
+                        // Create the podium-item div
+                        const podiumItem = document.createElement('div');
+                        podiumItem.classList.add('podium-item', rankClass);
 
-                    // Populate the inner HTML of podiumItem
-                    podiumItem.innerHTML = `
+                        // Populate the inner HTML of podiumItem
+                        podiumItem.innerHTML = `
         <div class="podium-rank">${rankEmoji}</div>
         <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait">
         <div><span class="athlete-name" style="cursor: pointer;">${athlete.name}</span></div>
@@ -511,13 +512,20 @@
         </div>
     `;
 
-                    // Append the podiumItem to the podium container
-                    podium.appendChild(podiumItem);
-                });
+                        // Append the podiumItem to the podium container
+                        podium.appendChild(podiumItem);
+                    });
+                } else {
+                    // Hide the podium container if not included
+                    const podium = document.querySelector('.podium');
+                    if (podium) {
+                        podium.style.display = 'none';
+                    }
+                }
 
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
-                const remainingAthletes = athleteResults.slice(3); // Athletes ranked 4 and below
+                const remainingAthletes = includePodium ? athleteResults.slice(3) : athleteResults;
 
                 remainingAthletes.forEach(athlete => {
                     const row = document.createElement('tr');
