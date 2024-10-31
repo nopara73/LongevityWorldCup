@@ -347,62 +347,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td data-label="Rank"> <span class="rank"> 4</span> </td>
-                <td data-label="Portrait"> <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jamal Okonkwo portrait" class="portrait" /> </td>
-                <td data-label="Athlete"> <span class="athlete-name"> Jamal Okonkwo</span> </td>
-                <td data-label="Sponsor"> </td>
-                <td data-label="Age Reduction" class="age-reduction"> -14 years</td>
-                <td data-label="Media Contact"> <a href="mailto:press@epigeneticelites.com" class="media-contact"> press@epigeneticelites.com</a> </td>
-            </tr>
-            <tr>
-                <td data-label="Rank"> <span class="rank"> 5</span> </td>
-                <td data-label="Portrait"> <img src="https://randomuser.me/api/portraits/women/45.jpg" alt="Sophia Nakamura portrait" class="portrait" /> </td>
-                <td data-label="Athlete"> <span class="athlete-name"> Sophia Nakamura</span> </td>
-                <td data-label="Sponsor"> </td>
-                <td data-label="Age Reduction" class="age-reduction"> -13 years</td>
-                <td data-label="Media Contact"> <a href="mailto:media@senolytics.jp" class="media-contact"> media@senolytics.jp</a> </td>
-            </tr>
-            <tr>
-                <td data-label="Rank"> <span class="rank"> 6</span> </td>
-                <td data-label="Portrait"> <img src="https://randomuser.me/api/portraits/men/44.jpg" alt="Liam O'Connor portrait" class="portrait" /> </td>
-                <td data-label="Athlete"> <span class="athlete-name"> Liam O'Connor</span></td>
-                <td data-label="Sponsor"> </td>
-                <td data-label="Age Reduction" class="age-reduction"> -12 years</td>
-                <td data-label="Media Contact"> <a href="mailto:press@geneticrevivers.com" class="media-contact"> press@geneticrevivers.com</a> </td>
-            </tr>
-            <tr>
-                <td data-label="Rank"> <span class="rank"> 7</span> </td>
-                <td data-label="Portrait"> <img src="https://randomuser.me/api/portraits/women/78.jpg" alt="Emma Johansson portrait" class="portrait" /> </td>
-                <td data-label="Athlete"> <span class="athlete-name"> Emma Johansson</span> </td>
-                <td data-label="Sponsor"> </td>
-                <td data-label="Age Reduction" class="age-reduction"> -11 years</td>
-                <td data-label="Media Contact"> <a href="mailto:media@longevitylabs.com" class="media-contact"> media@longevitylabs.com</a> </td>
-            </tr>
-            <tr>
-                <td data-label="Rank"> <span class="rank"> 8</span> </td>
-                <td data-label="Portrait"> <img src="https://randomuser.me/api/portraits/men/67.jpg" alt="Chen Wei portrait" class="portrait" /> </td>
-                <td data-label="Athlete"> <span class="athlete-name"> Chen Wei</span> </td>
-                <td data-label="Sponsor"> </td>
-                <td data-label="Age Reduction" class="age-reduction"> -10 years</td>
-                <td data-label="Media Contact"> <a href="mailto:press@ageevolution.com" class="media-contact"> press@ageevolution.com</a> </td>
-            </tr>
-            <tr>
-                <td data-label="Rank"> <span class="rank"> 9</span> </td>
-                <td data-label="Portrait"> <img src="https://randomuser.me/api/portraits/women/34.jpg" alt="Maria Gonzalez portrait" class="portrait" /> </td>
-                <td data-label="Athlete"> <span class="athlete-name"> Maria Gonzalez</span> </td>
-                <td data-label="Sponsor"> </td>
-                <td data-label="Age Reduction" class="age-reduction"> -9 years</td>
-                <td data-label="Media Contact"> <a href="mailto:press@biohackinnovators.com" class="media-contact"> press@biohackinnovators.com</a> </td>
-            </tr>
-            <tr>
-                <td data-label="Rank"> <span class="rank"> 10</span> </td>
-                <td data-label="Portrait"> <img src="https://randomuser.me/api/portraits/men/85.jpg" alt="Ethan Park portrait" class="portrait" /> </td>
-                <td data-label="Athlete"> <span class="athlete-name"> Ethan Park</span> </td>
-                <td data-label="Sponsor"> </td>
-                <td data-label="Age Reduction" class="age-reduction"> -8 years</td>
-                <td data-label="Media Contact"> <a href="mailto:press@regenesisbiotech.com" class="media-contact"> press@regenesisbiotech.com</a> </td>
-            </tr>
+            <!-- Remove all existing <tr>...</tr> here -->
         </tbody>
     </table>
 </div>
@@ -484,6 +429,7 @@
 
                     return {
                         name: athlete.name,
+                        mediaContact: athlete.media_contact,
                         chronologicalAge: chronologicalAge,
                         lowestPhenoAge: lowestPhenoAge,
                         ageReduction: ageReduction,
@@ -558,6 +504,25 @@
 
                     // Append the podiumItem to the podium container
                     podium.appendChild(podiumItem);
+                });
+
+                // Populate the table with athletes ranked >3
+                const tableBody = document.querySelector('.leaderboard table tbody');
+                const remainingAthletes = athleteResults.slice(3); // Athletes ranked 4 and below
+
+                remainingAthletes.forEach(athlete => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+        <td data-label="Rank"> <span class="rank"> ${athlete.rank}</span> </td>
+        <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" /> </td>
+        <td data-label="Athlete"> <span class="athlete-name"> ${athlete.name}</span> </td>
+        <td data-label="Sponsor"> </td>
+        <td data-label="Age Reduction" class="age-reduction"> ${athlete.ageReduction.toFixed(2)} years</td>
+        <td data-label="Media Contact"> <a href="mailto:${athlete.mediaContact || '#'}" class="media-contact"> ${athlete.mediaContact || 'N/A'}</a> </td>
+    `;
+
+                    tableBody.appendChild(row);
                 });
 
                 document.querySelectorAll('.portrait, .podium-portrait').forEach(portrait => {
