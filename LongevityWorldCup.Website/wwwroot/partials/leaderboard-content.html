@@ -687,7 +687,7 @@
                         // Populate the inner HTML of podiumItem
                         podiumItem.innerHTML = `
                 <div class="podium-rank">${rankEmoji}</div>
-                <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait">
+                <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
                 <div>
                     <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
                     ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
@@ -724,7 +724,7 @@
 
                     row.innerHTML = `
             <td data-label="Rank"> <span class="rank"> ${athlete.rank}</span> </td>
-            <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" /> </td>
+            <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy" /> </td>
             <td data-label="Athlete">
                 <span class="athlete-name">${athlete.name}</span>
                 ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
@@ -743,7 +743,7 @@
                         const enlargedImg = document.createElement('div');
                         enlargedImg.classList.add('enlarged-portrait');
                         enlargedImg.innerHTML = `
-<img src="${this.src}" alt="${this.alt}">`;
+<img src="${this.src}" alt="${this.alt}" loading="lazy">`;
                         document.body.appendChild(enlargedImg);
 
                         // Disable scrolling when the image is enlarged
