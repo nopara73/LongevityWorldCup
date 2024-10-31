@@ -352,10 +352,18 @@
         }
 
     /* 2. Search Container */
+    /* Flex container to align search and table */
+    .search-wrapper {
+        display: flex;
+        justify-content: flex-end; /* Aligns search to the right */
+        margin-bottom: 1rem; /* Space between search and table */
+    }
+
     .search-container {
         position: relative;
         max-width: 250px; /* Adjust as needed */
         width: 100%;
+        margin-right: 2rem; /* Optional for spacing from right edge */
     }
 
     /* 3. Search Input */
@@ -482,12 +490,14 @@
     <!-- Podium items will be dynamically inserted here -->
 </div>
 
-<div class="search-container">
-    <input type="text" id="athleteSearch" placeholder="Search Athlete..." oninput="debounceFilterAthletes()">
-    <span class="search-icon"><i class="fa fa-search"></i></span>
-    <span class="clear-icon" onclick="clearSearch()" tabindex="0" onkeypress="if(event.key === 'Enter') clearSearch()">
-        <i class="fa fa-times"></i>
-    </span>
+<div class="search-wrapper">
+    <div class="search-container">
+        <input type="text" id="athleteSearch" placeholder="Search Athlete..." oninput="debounceFilterAthletes()">
+        <span class="search-icon"><i class="fa fa-search"></i></span>
+        <span class="clear-icon" onclick="clearSearch()" tabindex="0" onkeypress="if(event.key === 'Enter') clearSearch()">
+            <i class="fa fa-times"></i>
+        </span>
+    </div>
 </div>
 
 <div class="leaderboard">
@@ -664,22 +674,22 @@
 
                         // Populate the inner HTML of podiumItem
                         podiumItem.innerHTML = `
-            <div class="podium-rank">${rankEmoji}</div>
-            <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait">
-            <div>
-                <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
-                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
-                <i class="fa fa-link"></i>
-                </a>` : ''}
-                ${renderMediaContact(athlete.mediaContact, true)}
-            </div>
+                <div class="podium-rank">${rankEmoji}</div>
+                <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait">
+                <div>
+                    <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
+                    ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
+                    <i class="fa fa-link"></i>
+                    </a>` : ''}
+                    ${renderMediaContact(athlete.mediaContact, true)}
+                </div>
 
-            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
-            <div class="podium-item-lower">
-                <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
-                <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
-            </div>
-        `;
+                <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
+                <div class="podium-item-lower">
+                    <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
+                    <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
+                </div>
+            `;
 
                         // Append the podiumItem to the podium container
                         podium.appendChild(podiumItem);
@@ -701,17 +711,17 @@
                     const row = document.createElement('tr');
 
                     row.innerHTML = `
-        <td data-label="Rank"> <span class="rank"> ${athlete.rank}</span> </td>
-        <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" /> </td>
-        <td data-label="Athlete">
-            <span class="athlete-name">${athlete.name}</span>
-            ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
-            <i class="fa fa-link"></i>
-            </a>` : ''}
-        </td>
-        <td data-label="Sponsor"> </td>
-        <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
-        <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false)}</td>`;
+            <td data-label="Rank"> <span class="rank"> ${athlete.rank}</span> </td>
+            <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" /> </td>
+            <td data-label="Athlete">
+                <span class="athlete-name">${athlete.name}</span>
+                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
+                <i class="fa fa-link"></i>
+                </a>` : ''}
+            </td>
+            <td data-label="Sponsor"> </td>
+            <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
+            <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false)}</td>`;
 
                     tableBody.appendChild(row);
                 });
@@ -758,7 +768,7 @@
 <strong>Age Reduction:</strong> ${ageReduction}
 <br>
 <strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-                                                                                                                        `;
+                                                                                                                            `;
 
                         // Display the modal
                         modal.style.display = "block";
@@ -810,20 +820,20 @@
         if (isPodium) {
             return `${isEmail
                 ? `<a href="mailto:${contact}" class="personal-link-icon" style="margin-left: 0.2rem;">
-                ${getIcon(contact)}
-               </a>`
+                    ${getIcon(contact)}
+                   </a>`
                 : `<a href="${contact}" target="_blank" class="personal-link-icon" style="margin-left: 0.2rem;">
-                ${getIcon(contact)}
-               </a>`
+                    ${getIcon(contact)}
+                   </a>`
                 }`;
         }
         else return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact">
-            ${getIcon(contact)}
-           </a>`
+                ${getIcon(contact)}
+               </a>`
             : `<a href="${contact}" target="_blank" class="media-contact">
-            ${getIcon(contact)}
-           </a>`
+                ${getIcon(contact)}
+               </a>`
             }`;
     }
 
