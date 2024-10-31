@@ -323,6 +323,18 @@
         font-size: 2rem; /* Adjust font size to fit the new medal size */
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add some shadow for a 3D effect */
     }
+
+    .personal-link-icon {
+        color: var(--primary-color);
+        margin-left: 0.5rem;
+        font-size: 1rem;
+        text-decoration: none;
+        transition: color 0.2s ease-in-out;
+    }
+
+        .personal-link-icon:hover {
+            color: var(--secondary-color);
+        }
 </style>
 
 <div class="podium">
@@ -442,6 +454,7 @@
                         chronologicalAge: chronologicalAge,
                         lowestPhenoAge: lowestPhenoAge,
                         ageReduction: ageReduction,
+                        personalLink: athlete.personal_link, // Reference directly from athlete
                         profilePic: athlete['profile-pic'] // Assuming 'profile-pic' is the correct key
                     };
 
@@ -519,7 +532,13 @@
                         podiumItem.innerHTML = `
             <div class="podium-rank">${rankEmoji}</div>
             <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait">
-            <div><span class="athlete-name" style="cursor: pointer;">${athlete.name}</span></div>
+            <div>
+                <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
+                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
+                <i class="fa fa-link"></i>
+                </a>` : ''}
+            </div>
+
             <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(2))} years</span> reduced</div>
             <div class="podium-item-lower">
                 <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
@@ -549,7 +568,12 @@
                     row.innerHTML = `
         <td data-label="Rank"> <span class="rank"> ${athlete.rank}</span> </td>
         <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" /> </td>
-        <td data-label="Athlete"> <span class="athlete-name"> ${athlete.name}</span> </td>
+        <td data-label="Athlete">
+            <span class="athlete-name">${athlete.name}</span>
+            ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
+            <i class="fa fa-link"></i>
+            </a>` : ''}
+        </td>
         <td data-label="Sponsor"> </td>
         <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(2)} years</td>
         <td data-label="Media Contact">
