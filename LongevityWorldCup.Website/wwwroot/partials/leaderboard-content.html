@@ -933,4 +933,21 @@
             }
         });
     }
+
+    let isInitialClick = true; // Track if it’s the first click after focusing
+
+    const searchInput = document.getElementById('athleteSearch');
+
+    // Select all text on the first focus
+    searchInput.addEventListener('focus', () => {
+        isInitialClick = true;
+    });
+
+    // Select all text on the first click, then just place the cursor where clicked on the second click
+    searchInput.addEventListener('click', (event) => {
+        if (isInitialClick) {
+            searchInput.select(); // Select all text
+            isInitialClick = false;
+        }
+    });
 </script>
