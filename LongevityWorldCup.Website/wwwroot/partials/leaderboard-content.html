@@ -573,17 +573,15 @@
         <td data-label="Sponsor"> </td>
         <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
         <td data-label="Media Contact">
-    ${athlete.mediaContact.includes('@')
+            ${/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(athlete.mediaContact)
                             ? `<a href="mailto:${athlete.mediaContact}" class="media-contact">
-            ${getIcon(athlete.mediaContact)}
-           </a>`
+                    ${getIcon(athlete.mediaContact)}
+                   </a>`
                             : `<a href="${athlete.mediaContact}" target="_blank" class="media-contact">
-            ${getIcon(athlete.mediaContact)}
-           </a>`
+                    ${getIcon(athlete.mediaContact)}
+                   </a>`
                         }
-</td>
-
-    `;
+        </td>`;
 
                     tableBody.appendChild(row);
                 });
