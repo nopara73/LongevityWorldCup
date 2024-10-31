@@ -894,17 +894,6 @@
         debounceFilterAthletes(); // Trigger the filter function if needed
     }
 
-    // Optional: Hide clear icon when clicking outside the search container
-    document.addEventListener('click', (event) => {
-        const searchContainer = document.querySelector('.search-container');
-        const clearIcon = document.querySelector('.clear-icon');
-
-        // Check if the click is outside the search container and not on the clear icon
-        if (!searchContainer.contains(event.target) && event.target !== clearIcon && !clearIcon.contains(event.target)) {
-            clearIcon.classList.remove('visible');
-        }
-    });
-
     function debounce(func, delay) {
         let debounceTimer;
         return function () {
