@@ -239,7 +239,6 @@
         object-fit: cover;
         border: 3px solid var(--secondary-color);
         margin: 1rem 0;
-        cursor: pointer; /* Add this to indicate it's clickable */
     }
 
     .podium-item:hover {
@@ -322,49 +321,12 @@
         font-size: 2rem; /* Adjust font size to fit the new medal size */
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add some shadow for a 3D effect */
     }
-
-    .podium-portrait {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid var(--secondary-color);
-        margin: 1rem 0;
-    }
 </style>
 
 <div class="podium">
-    <div class="podium-item second">
-        <div class="podium-rank">🥈</div>
-        <img src="https://randomuser.me/api/portraits/men/92.jpg" alt="Nikolai Volkov portrait" class="podium-portrait">
-        <div><span class="athlete-name" style="cursor: pointer;">Nikolai Volkov</span></div>
-        <div><span class="age-reduction">16 years</span> reduced</div>
-        <div class="podium-item-lower">
-            <div class="btc-amount">(0.00072578 BTC)</div>
-            <div class="prize-money">$20.16</div>
-        </div>
-    </div>
-    <div class="podium-item first">
-        <div class="podium-rank">🥇</div>
-        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Amelia Zhao portrait" class="podium-portrait">
-        <div><span class="athlete-name" style="cursor: pointer;">Amelia Zhao</span></div>
-        <div><span class="age-reduction">17 years</span> reduced</div>
-        <div class="podium-item-lower">
-            <div class="btc-amount">(0.00360248 BTC)</div>
-            <div class="prize-money">$100.80</div>
-        </div>
-    </div>
-    <div class="podium-item third">
-        <div class="podium-rank">🥉</div>
-        <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Isabella Rodriguez portrait" class="podium-portrait">
-        <div><span class="athlete-name" style="cursor: pointer;">Isabella Rodriguez</span></div>
-        <div><span class="age-reduction">15 years</span> reduced</div>
-        <div class="podium-item-lower">
-            <div class="btc-amount">(0.00014401 BTC)</div>
-            <div class="prize-money">$4.03</div>
-        </div>
-    </div>
+    <!-- Podium items will be dynamically inserted here -->
 </div>
+
 <div class="leaderboard">
     <table>
         <thead>
@@ -470,6 +432,12 @@
         { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 }
     ];
 
+    const prizeMoney = {
+        1: { btc: "0.00360248 BTC", amount: "$100.80" },
+        2: { btc: "0.00072578 BTC", amount: "$20.16" },
+        3: { btc: "0.00014401 BTC", amount: "$4.03" }
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
         fetch('/api/data/athletes')
             .then(response => response.json())
@@ -518,8 +486,10 @@
                         name: athlete.name,
                         chronologicalAge: chronologicalAge,
                         lowestPhenoAge: lowestPhenoAge,
-                        ageReduction: ageReduction
+                        ageReduction: ageReduction,
+                        profilePic: athlete['profile-pic'] // Assuming 'profile-pic' is the correct key
                     };
+
                 });
 
                 // Sort the athletes by age reduction in ascending order
@@ -534,6 +504,144 @@
                     console.log(`Lowest PhenoAge: ${athlete.lowestPhenoAge.toFixed(2)}`);
                     console.log(`Age Reduction: ${athlete.ageReduction.toFixed(2)}`);
                 });
+
+                // Sort the athletes by age reduction in ascending order
+                athleteResults.sort((a, b) => a.ageReduction - b.ageReduction);
+
+                // Assign ranks to each athlete based on the sorted order
+                athleteResults.forEach((athlete, index) => {
+                    athlete.rank = index + 1;
+                });
+
+                // Get the top three athletes
+                const topThree = athleteResults.slice(0, 3);
+
+                // Select the podium container
+                const podium = document.querySelector('.podium');
+
+                // Loop through the top three athletes and create podium items
+                topThree.forEach(athlete => {
+                    let rankClass, rankEmoji;
+
+                    switch (athlete.rank) {
+                        case 1:
+                            rankClass = 'first';
+                            rankEmoji = '🥇';
+                            break;
+                        case 2:
+                            rankClass = 'second';
+                            rankEmoji = '🥈';
+                            break;
+                        case 3:
+                            rankClass = 'third';
+                            rankEmoji = '🥉';
+                            break;
+                        default:
+                            return; // Only handle top three
+                    }
+
+                    // Create the podium-item div
+                    const podiumItem = document.createElement('div');
+                    podiumItem.classList.add('podium-item', rankClass);
+
+                    // Populate the inner HTML of podiumItem
+                    podiumItem.innerHTML = `
+        <div class="podium-rank">${rankEmoji}</div>
+        <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait">
+        <div><span class="athlete-name" style="cursor: pointer;">${athlete.name}</span></div>
+        <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(2))} years</span> reduced</div>
+        <div class="podium-item-lower">
+            <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
+            <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
+        </div>
+    `;
+
+                    // Append the podiumItem to the podium container
+                    podium.appendChild(podiumItem);
+                });
+
+                document.querySelectorAll('.portrait, .podium-portrait').forEach(portrait => {
+                    portrait.addEventListener('click', function () {
+                        const enlargedImg = document.createElement('div');
+                        enlargedImg.classList.add('enlarged-portrait');
+                        enlargedImg.innerHTML = `
+<img src="${this.src}" alt="${this.alt}">`;
+                        document.body.appendChild(enlargedImg);
+
+                        // Disable scrolling when the image is enlarged
+                        document.body.classList.add('no-scroll');
+
+                        enlargedImg.onclick = function () {
+                            document.body.removeChild(this);
+
+                            // Re-enable scrolling when the image is closed
+                            document.body.classList.remove('no-scroll');
+                        };
+                    });
+                });
+
+                // Select both table and podium athlete names
+                document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
+                    athleteNameElement.addEventListener('click', function () {
+                        // Check if it's a table row or podium item
+                        const athleteRow = this.closest('tr') || this.closest('.podium-item');
+                        if (!athleteRow) {
+                            console.error('Athlete row not found');
+                            return;
+                        }
+                        const athleteNameText = this.textContent;
+                        const sponsorElement = athleteRow.querySelector('td:nth-child(4) a'); // Table sponsor
+                        const sponsor = sponsorElement ? sponsorElement.textContent : 'No sponsor';
+                        const ageReductionElement = athleteRow.querySelector('.age-reduction');
+                        const ageReduction = ageReductionElement ? ageReductionElement.textContent : 'N/A';
+
+                        // Populate the modal
+                        athleteDetails.innerHTML = `
+<strong>Sponsor:</strong> ${sponsor}
+<br>
+<strong>Age Reduction:</strong> ${ageReduction}
+<br>
+<strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
+                                                                                                                        `;
+
+                        // Display the modal
+                        modal.style.display = "block";
+                        document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
+
+                        // Update or create the chart
+                        if (ageChart) {
+                            ageChart.destroy();
+                        }
+
+                        const ctx = document.getElementById('ageChart').getContext('2d');
+                        ageChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Chronological Age', 'Biological Age'],
+                                datasets: [{
+                                    label: 'Age Comparison',
+                                    data: [getRandomAge(), getRandomAge()],
+                                    backgroundColor: [
+                                        'rgba(255, 99, 132, 0.2)',
+                                        'rgba(75, 192, 192, 0.2)'
+                                    ],
+                                    borderColor: [
+                                        'rgba(255, 99, 132, 1)',
+                                        'rgba(75, 192, 192, 1)'
+                                    ],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
             })
             .catch(error => {
                 console.error('Error fetching athletes:', error);
@@ -544,89 +652,6 @@
     const closeBtn = document.getElementsByClassName("close")[0];
     const athleteDetails = document.getElementById("athleteDetails");
     let ageChart;
-
-    document.querySelectorAll('.portrait, .podium-portrait').forEach(portrait => {
-        portrait.addEventListener('click', function () {
-            const enlargedImg = document.createElement('div');
-            enlargedImg.classList.add('enlarged-portrait');
-            enlargedImg.innerHTML = `
-<img src="${this.src}" alt="${this.alt}">`;
-            document.body.appendChild(enlargedImg);
-
-            // Disable scrolling when the image is enlarged
-            document.body.classList.add('no-scroll');
-
-            enlargedImg.onclick = function () {
-                document.body.removeChild(this);
-
-                // Re-enable scrolling when the image is closed
-                document.body.classList.remove('no-scroll');
-            };
-        });
-    });
-
-    // Select both table and podium athlete names
-    document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-        athleteNameElement.addEventListener('click', function () {
-            // Check if it's a table row or podium item
-            const athleteRow = this.closest('tr') || this.closest('.podium-item');
-            if (!athleteRow) {
-                console.error('Athlete row not found');
-                return;
-            }
-            const athleteNameText = this.textContent;
-            const sponsorElement = athleteRow.querySelector('td:nth-child(4) a'); // Table sponsor
-            const sponsor = sponsorElement ? sponsorElement.textContent : 'No sponsor';
-            const ageReductionElement = athleteRow.querySelector('.age-reduction');
-            const ageReduction = ageReductionElement ? ageReductionElement.textContent : 'N/A';
-
-            // Populate the modal
-            athleteDetails.innerHTML = `
-<strong>Sponsor:</strong> ${sponsor}
-<br>
-<strong>Age Reduction:</strong> ${ageReduction}
-<br>
-<strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-                                                                                                                        `;
-
-            // Display the modal
-            modal.style.display = "block";
-            document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
-
-            // Update or create the chart
-            if (ageChart) {
-                ageChart.destroy();
-            }
-
-            const ctx = document.getElementById('ageChart').getContext('2d');
-            ageChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Chronological Age', 'Biological Age'],
-                    datasets: [{
-                        label: 'Age Comparison',
-                        data: [getRandomAge(), getRandomAge()],
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.2)',
-                            'rgba(75, 192, 192, 0.2)'
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(75, 192, 192, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        });
-    });
 
     closeBtn.onclick = function () {
         modal.style.display = "none";
