@@ -537,9 +537,7 @@
                 ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
                 <i class="fa fa-link"></i>
                 </a>` : ''}
-                <a href="#" class="personal-link-icon" style="margin-left: 0.2rem;">
-                    <i class="fa fa-envelope"></i> <!-- Placeholder for media contact icon -->
-                </a>
+                ${renderMediaContact(athlete.mediaContact, true)}
             </div>
 
             <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
@@ -579,7 +577,7 @@
         </td>
         <td data-label="Sponsor"> </td>
         <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
-        <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact)}</td>`;
+        <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false)}</td>`;
 
                     tableBody.appendChild(row);
                 });
@@ -672,9 +670,20 @@
             });
     };
 
-    function renderMediaContact(contact) {
+    function renderMediaContact(contact, isPodium) {
         const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
-        return `${isEmail
+
+        if (isPodium) {
+            return `${isEmail
+                ? `<a href="mailto:${contact}" class="personal-link-icon" style="margin-left: 0.2rem;">
+                ${getIcon(contact)}
+               </a>`
+                : `<a href="${contact}" target="_blank" class="personal-link-icon" style="margin-left: 0.2rem;">
+                ${getIcon(contact)}
+               </a>`
+                }`;
+        }
+        else return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact">
             ${getIcon(contact)}
            </a>`
