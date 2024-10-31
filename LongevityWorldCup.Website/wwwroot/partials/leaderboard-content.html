@@ -497,9 +497,10 @@
 
 <div class="search-wrapper">
     <div class="search-container">
+        <label for="athleteSearch" class="visually-hidden">Search Athletes</label>
         <input type="text" id="athleteSearch" placeholder="Search Athlete..." aria-label="Search Athletes" oninput="debounceFilterAthletes()">
         <span class="search-icon"><i class="fa fa-search"></i></span>
-        <span class="clear-icon" onclick="clearSearch()" tabindex="0" onkeypress="if(event.key === 'Enter') clearSearch()">
+        <span class="clear-icon" onclick="clearSearch()" tabindex="0" role="button" aria-label="Clear search" onkeypress="if(event.key === 'Enter') clearSearch()">
             <i class="fa fa-times"></i>
         </span>
     </div>
@@ -1000,6 +1001,14 @@
         if (isInitialClick) {
             searchInput.select(); // Select all text
             isInitialClick = false;
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        const searchInput = document.getElementById('athleteSearch');
+        if (event.key === 'Escape' && searchInput.value.trim().length > 0) {
+            clearSearch();
+            searchInput.blur(); // Optionally remove focus
         }
     });
 </script>
