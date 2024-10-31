@@ -435,6 +435,7 @@
         padding: 0;
         margin: 0;
         border: none;
+        display: none; /* Add this line to completely hide the element */
         transition: opacity 0.3s ease, transform 0.3s ease, height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
         pointer-events: none;
     }
@@ -900,11 +901,15 @@
     function clearSearch() {
         const searchInput = document.getElementById('athleteSearch');
         const clearIcon = document.querySelector('.clear-icon');
+        const podium = document.querySelector('.podium');
 
         searchInput.value = '';
         clearIcon.classList.remove('visible');
         removeAllHighlights();
         performFilter();
+
+        // Ensure the podium is visible after clearing the search
+        podium.style.display = 'flex';
     }
 
     function removeAllHighlights() {
@@ -932,6 +937,9 @@
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         const podiumItems = document.querySelectorAll('.podium-item');
 
+        let anyPodiumVisible = false;
+
+        // Filter Table Rows
         tableRows.forEach(row => {
             const athleteNameElement = row.querySelector('.athlete-name');
             const athleteName = athleteNameElement.textContent.toLowerCase();
@@ -945,12 +953,14 @@
             }
         });
 
+        // Filter Podium Items
         podiumItems.forEach(item => {
             const athleteNameElement = item.querySelector('.athlete-name');
             const athleteName = athleteNameElement.textContent.toLowerCase();
 
             if (athleteName.includes(query)) {
                 item.classList.remove('hidden');
+                anyPodiumVisible = true;
                 highlightText(athleteNameElement, query);
             } else {
                 item.classList.add('hidden');
@@ -958,6 +968,15 @@
             }
         });
 
+        // Hide or Show the Podium Container Based on Visibility of Podium Items
+        const podium = document.querySelector('.podium');
+        if (anyPodiumVisible) {
+            podium.style.display = 'flex'; // Ensure it's visible if any podium item is visible
+        } else {
+            podium.style.display = 'none'; // Hide the podium container if no items are visible
+        }
+
+        // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
     }
 
