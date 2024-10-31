@@ -73,6 +73,8 @@
         color: rgba(255, 64, 129, 0.7);
         text-decoration: none;
         transition: color 0.2s ease-in-out;
+        font-size: 1.5rem; /* Increase size here */
+        padding: 0.5rem; /* Add padding for better spacing */
     }
 
         .media-contact:hover {
@@ -368,7 +370,8 @@
     </div>
 </div>
 
-<script src="/js/pheno-age.js"></script> <!-- Link to your external script -->
+<script src="/js/pheno-age.js"></script>
+<script src="/js/misc.js"></script>
 <script>
     // Define the biomarkers array (ensure this is available before calculations)
     const biomarkers = [
@@ -527,11 +530,16 @@
         <td data-label="Sponsor"> </td>
         <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(2)} years</td>
         <td data-label="Media Contact">
-            ${athlete.mediaContact.includes('@')
-                            ? `<a href="mailto:${athlete.mediaContact}" class="media-contact"> ${athlete.mediaContact}</a>`
-                            : `<a href="${athlete.mediaContact}" target="_blank" class="media-contact">Link</a>`
+    ${athlete.mediaContact.includes('@')
+                            ? `<a href="mailto:${athlete.mediaContact}" class="media-contact">
+            ${getIcon(athlete.mediaContact)}
+           </a>`
+                            : `<a href="${athlete.mediaContact}" target="_blank" class="media-contact">
+            ${getIcon(athlete.mediaContact)}
+           </a>`
                         }
-        </td>
+</td>
+
     `;
 
                     tableBody.appendChild(row);
