@@ -525,7 +525,7 @@
         <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" /> </td>
         <td data-label="Athlete"> <span class="athlete-name"> ${athlete.name}</span> </td>
         <td data-label="Sponsor"> </td>
-        <td data-label="Age Reduction" class="age-reduction"> ${athlete.ageReduction.toFixed(2)} years</td>
+        <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(2)} years</td>
         <td data-label="Media Contact"> <a href="mailto:${athlete.mediaContact || '#'}" class="media-contact"> ${athlete.mediaContact || 'N/A'}</a> </td>
     `;
 
