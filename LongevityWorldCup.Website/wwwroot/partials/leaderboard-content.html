@@ -579,16 +579,7 @@
         </td>
         <td data-label="Sponsor"> </td>
         <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
-        <td data-label="Media Contact">
-            ${/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(athlete.mediaContact)
-                            ? `<a href="mailto:${athlete.mediaContact}" class="media-contact">
-                    ${getIcon(athlete.mediaContact)}
-                   </a>`
-                            : `<a href="${athlete.mediaContact}" target="_blank" class="media-contact">
-                    ${getIcon(athlete.mediaContact)}
-                   </a>`
-                        }
-        </td>`;
+        <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact)}</td>`;
 
                     tableBody.appendChild(row);
                 });
@@ -680,6 +671,20 @@
                 console.error('Error fetching athletes:', error);
             });
     };
+
+    function renderMediaContact(contact) {
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
+        return `
+    ${isEmail
+                ? `<a href="mailto:${contact}" class="media-contact">
+            ${getIcon(contact)}
+           </a>`
+                : `<a href="${contact}" target="_blank" class="media-contact">
+            ${getIcon(contact)}
+           </a>`
+            }
+    `;
+    }
 
     const modal = document.getElementById("detailsModal");
     const closeBtn = document.getElementsByClassName("close")[0];
