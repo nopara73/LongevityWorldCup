@@ -955,9 +955,17 @@
         displayNoResults(tableRows, podiumItems, query);
     }
 
+    function escapeHTML(string) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(string));
+        return div.innerHTML;
+    }
+
     function highlightText(element, query) {
         const originalText = element.textContent;
-        const highlightedText = originalText.replace(new RegExp(`(${escapeRegExp(query)})`, 'gi'), '<span class="highlight">$1</span>');
+        const escapedQuery = escapeHTML(query);
+        const regex = new RegExp(`(${escapeRegExp(escapedQuery)})`, 'gi');
+        const highlightedText = originalText.replace(regex, '<span class="highlight">$1</span>');
         element.innerHTML = highlightedText;
     }
 
