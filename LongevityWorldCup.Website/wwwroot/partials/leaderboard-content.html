@@ -350,10 +350,144 @@
         .personal-link-icon:hover {
             color: var(--secondary-color);
         }
+
+    /* 2. Search Container */
+    .search-container {
+        position: relative;
+        max-width: 250px; /* Adjust as needed */
+        width: 100%;
+    }
+
+    /* 3. Search Input */
+    #athleteSearch {
+        width: 100%;
+        padding: 0.5rem 2.5rem 0.5rem 1rem; /* Padding to accommodate icons */
+        border: 2px solid var(--primary-color);
+        border-radius: 25px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+        outline: none;
+        box-sizing: border-box; /* Ensure padding doesn't exceed container */
+    }
+
+        #athleteSearch:focus {
+            border-color: var(--secondary-color);
+        }
+
+    /* 4. Search Icon */
+    .search-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        pointer-events: none; /* Allows clicks to pass through to the input */
+    }
+
+    /* 5. Clear Icon */
+    .clear-icon {
+        position: absolute;
+        right: 3rem; /* Positioned to the left of the search icon */
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+        z-index: 2; /* Ensure it's above the input */
+    }
+
+        .clear-icon:hover {
+            color: var(--secondary-color);
+        }
+
+    /* Optional: Adjust z-index for icons if necessary */
+    .search-icon, .clear-icon {
+        z-index: 2;
+    }
+
+    /* 6. Visually Hidden Label for Accessibility */
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+
+    /* 7. Highlighted Text */
+    .highlight {
+        background-color: yellow;
+        color: black;
+    }
+
+    /* 8. Smooth Transitions for Filtering */
+    .leaderboard table tbody tr,
+    .podium-item {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .hidden {
+        opacity: 0;
+        transform: scale(0.95);
+        height: 0;
+        padding: 0;
+        margin: 0;
+        border: none;
+        transition: opacity 0.3s ease, transform 0.3s ease, height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+        pointer-events: none;
+    }
+
+    /* 1. Clear Icon Hover Effect */
+    .clear-icon:hover {
+        color: var(--secondary-color);
+    }
+
+    /* 2. Transition for Clear Icon */
+    .clear-icon {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+        .clear-icon.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+    /* 3. Responsive Adjustments */
+    @media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-container {
+            max-width: 100%;
+            margin-top: 1rem;
+        }
+    }
+
+    /* 4. Adjust Podium Styling if Needed */
+    .podium {
+        /* Ensure podium items don't conflict with search bar */
+        flex: 1;
+    }
 </style>
 
 <div class="podium">
     <!-- Podium items will be dynamically inserted here -->
+</div>
+
+<div class="search-container">
+    <input type="text" id="athleteSearch" placeholder="Search Athlete..." oninput="debounceFilterAthletes()">
+    <span class="search-icon"><i class="fa fa-search"></i></span>
+    <span class="clear-icon" onclick="clearSearch()" tabindex="0" onkeypress="if(event.key === 'Enter') clearSearch()">
+        <i class="fa fa-times"></i>
+    </span>
 </div>
 
 <div class="leaderboard">
@@ -723,5 +857,81 @@
 
     function getRandomAge() {
         return Math.floor(Math.random() * (80 - 40 + 1)) + 40;
+    }
+
+    function debounceFilterAthletes() {
+        toggleClearIcon();
+        debouncedFilter();
+    }
+
+    function toggleClearIcon() {
+        const searchInput = document.getElementById('athleteSearch');
+        const clearIcon = document.querySelector('.clear-icon');
+
+        if (searchInput.value.trim().length > 0) {
+            clearIcon.classList.add('visible');
+        } else {
+            clearIcon.classList.remove('visible');
+        }
+    }
+
+    function clearSearch() {
+        const searchInput = document.getElementById('athleteSearch');
+        const clearIcon = document.querySelector('.clear-icon');
+
+        searchInput.value = '';
+        clearIcon.classList.remove('visible');
+        debounceFilterAthletes(); // Trigger the filter function if needed
+    }
+
+    // Optional: Hide clear icon when clicking outside the search container
+    document.addEventListener('click', (event) => {
+        const searchContainer = document.querySelector('.search-container');
+        const clearIcon = document.querySelector('.clear-icon');
+
+        // Check if the click is outside the search container and not on the clear icon
+        if (!searchContainer.contains(event.target) && event.target !== clearIcon && !clearIcon.contains(event.target)) {
+            clearIcon.classList.remove('visible');
+        }
+    });
+
+    function debounce(func, delay) {
+        let debounceTimer;
+        return function () {
+            const context = this;
+            const args = arguments;
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    // Wrap the filter function with debounce
+    const debouncedFilter = debounce(function () {
+        performFilter();
+    }, 300); // Adjust delay as needed
+
+    function performFilter() {
+        const query = document.getElementById('athleteSearch').value.toLowerCase();
+        const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
+
+        tableRows.forEach(row => {
+            const athleteName = row.querySelector('.athlete-name').textContent.toLowerCase();
+            if (athleteName.includes(query)) {
+                row.classList.remove('hidden');
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+
+        // Similarly, filter podium items if needed
+        const podiumItems = document.querySelectorAll('.podium-item');
+        podiumItems.forEach(item => {
+            const athleteName = item.querySelector('.athlete-name').textContent.toLowerCase();
+            if (athleteName.includes(query)) {
+                item.classList.remove('hidden');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
     }
 </script>
