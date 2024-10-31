@@ -464,14 +464,7 @@
                 athleteResults.sort((a, b) => a.ageReduction - b.ageReduction);
 
                 // Assign ranks to each athlete based on the sorted order
-                athleteResults.forEach((athlete, index) => {
-                    athlete.rank = index + 1;
-                    console.log(`Rank: ${athlete.rank}`);
-                    console.log(`Athlete: ${athlete.name}`);
-                    console.log(`Chronological Age: ${athlete.chronologicalAge.toFixed(2)}`);
-                    console.log(`Lowest PhenoAge: ${athlete.lowestPhenoAge.toFixed(2)}`);
-                    console.log(`Age Reduction: ${athlete.ageReduction.toFixed(2)}`);
-                });
+                athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
 
                 // Determine how many athletes to display based on maxAthletes and includePodium
                 let athletesToDisplay = athleteResults;
@@ -531,7 +524,7 @@
                 </a>` : ''}
             </div>
 
-            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(2))} years</span> reduced</div>
+            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
             <div class="podium-item-lower">
                 <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
                 <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
@@ -567,7 +560,7 @@
             </a>` : ''}
         </td>
         <td data-label="Sponsor"> </td>
-        <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(2)} years</td>
+        <td data-label="Age Reduction" class="age-reduction"> ${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
         <td data-label="Media Contact">
     ${athlete.mediaContact.includes('@')
                             ? `<a href="mailto:${athlete.mediaContact}" class="media-contact">
