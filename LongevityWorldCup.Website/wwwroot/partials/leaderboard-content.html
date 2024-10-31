@@ -926,14 +926,10 @@
 
             if (athleteName.includes(query)) {
                 row.classList.remove('hidden');
-                // Highlight the matching text
-                const originalName = athleteNameElement.textContent;
-                const highlightedName = originalName.replace(new RegExp(`(${escapeRegExp(query)})`, 'gi'), '<span class="highlight">$1</span>');
-                athleteNameElement.innerHTML = highlightedName;
+                highlightText(athleteNameElement, query);
             } else {
                 row.classList.add('hidden');
-                // Remove any existing highlights
-                athleteNameElement.innerHTML = athleteNameElement.textContent;
+                removeHighlight(athleteNameElement);
             }
         });
 
@@ -943,19 +939,24 @@
 
             if (athleteName.includes(query)) {
                 item.classList.remove('hidden');
-                // Highlight the matching text
-                const originalName = athleteNameElement.textContent;
-                const highlightedName = originalName.replace(new RegExp(`(${escapeRegExp(query)})`, 'gi'), '<span class="highlight">$1</span>');
-                athleteNameElement.innerHTML = highlightedName;
+                highlightText(athleteNameElement, query);
             } else {
                 item.classList.add('hidden');
-                // Remove any existing highlights
-                athleteNameElement.innerHTML = athleteNameElement.textContent;
+                removeHighlight(athleteNameElement);
             }
         });
 
-        // Optionally, display a "No results found" message
         displayNoResults(tableRows, podiumItems, query);
+    }
+
+    function highlightText(element, query) {
+        const originalText = element.textContent;
+        const highlightedText = originalText.replace(new RegExp(`(${escapeRegExp(query)})`, 'gi'), '<span class="highlight">$1</span>');
+        element.innerHTML = highlightedText;
+    }
+
+    function removeHighlight(element) {
+        element.innerHTML = element.textContent;
     }
 
     // Utility function to escape special characters in the search query
