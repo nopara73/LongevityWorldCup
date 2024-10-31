@@ -428,8 +428,8 @@
 
     /* 7. Highlighted Text */
     .highlight {
-        background-color: yellow;
-        color: black;
+        background-color: #ffff00; /* Bright yellow for better visibility */
+        color: #000; /* Ensure text remains readable */
     }
 
     /* 8. Smooth Transitions for Filtering */
@@ -501,9 +501,9 @@
 <div class="search-wrapper">
     <div class="search-container">
         <label for="athleteSearch" class="visually-hidden">Search Athletes</label>
-        <input type="text" id="athleteSearch" placeholder="Search Athlete..." aria-label="Search Athletes" oninput="debounceFilterAthletes()">
+        <input type="text" id="athleteSearch" placeholder="Search Athlete..." aria-label="Search Athletes">
         <span class="search-icon"><i class="fa fa-search"></i></span>
-        <span class="clear-icon" onclick="clearSearch()" tabindex="0" role="button" aria-label="Clear search" onkeypress="if(event.key === 'Enter') clearSearch()">
+        <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
             <i class="fa fa-times"></i>
         </span>
     </div>
@@ -1014,5 +1014,11 @@
             clearSearch();
             searchInput.blur(); // Optionally remove focus
         }
+    });
+
+    document.getElementById('athleteSearch').addEventListener('input', debounceFilterAthletes);
+    document.querySelector('.clear-icon').addEventListener('click', clearSearch);
+    document.querySelector('.clear-icon').addEventListener('keypress', function (event) {
+        if (event.key === 'Enter') clearSearch();
     });
 </script>
