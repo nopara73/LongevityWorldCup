@@ -337,11 +337,15 @@
 
     .personal-link-icon {
         color: var(--primary-color);
-        margin-left: 0.5rem;
         font-size: 1rem;
         text-decoration: none;
         transition: color 0.2s ease-in-out;
+        margin-left: 0.2rem; /* Reduced margin for tighter spacing */
     }
+
+        .personal-link-icon:first-of-type {
+            margin-left: 0; /* No left margin for the first icon */
+        }
 
         .personal-link-icon:hover {
             color: var(--secondary-color);
@@ -533,6 +537,9 @@
                 ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
                 <i class="fa fa-link"></i>
                 </a>` : ''}
+                <a href="#" class="personal-link-icon" style="margin-left: 0.2rem;">
+                    <i class="fa fa-envelope"></i> <!-- Placeholder for media contact icon -->
+                </a>
             </div>
 
             <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
