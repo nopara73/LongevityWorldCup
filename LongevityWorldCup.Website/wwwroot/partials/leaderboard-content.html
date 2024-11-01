@@ -711,7 +711,7 @@
 
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
-                const remainingAthletes = includePodium ? athleteResults.slice(podiumCount, maxAthletes) : athleteResults.slice(0, maxAthletes);
+                const remainingAthletes = includePodium ? athleteResults.slice(podiumCount) : athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
                 remainingAthletes.forEach((athlete, index) => {
@@ -732,9 +732,10 @@
 
                     tableBody.appendChild(row);
 
-                    if (index >= maxAthletes) {
+                    // Hide athletes beyond the maxAthletes limit
+                    if (index >= maxAthletes - podiumCount) {
                         row.style.display = 'none';
-                        row.classList.add('extra-athlete'); // Add a class for later use
+                        row.classList.add('extra-athlete'); // Optional: add a class for future reference
                     }
                 });
 
