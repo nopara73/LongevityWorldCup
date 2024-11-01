@@ -941,8 +941,8 @@
     }
 
     function performFilter() {
-        const query = document.getElementById('athleteSearch').value.trim().toLowerCase();
-        const searchTerms = normalizeString(query).split(/\s+/).filter(term => term.length > 0);
+        const query = normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
+        const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
 
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
@@ -1166,7 +1166,15 @@
         }
     });
 
-    document.getElementById('athleteSearch').addEventListener('input', debounceFilterAthletes);
+    // Modify the input event listener
+    document.getElementById('athleteSearch').addEventListener('input', function () {
+        if (this.value.trim() === '') {
+            clearSearch(); // Run only when input is cleared
+        } else {
+            debounceFilterAthletes(); // Run debounce function when input is not empty
+        }
+    });
+
     document.querySelector('.clear-icon').addEventListener('click', clearSearch);
     document.querySelector('.clear-icon').addEventListener('keypress', function (event) {
         if (event.key === 'Enter') clearSearch();
