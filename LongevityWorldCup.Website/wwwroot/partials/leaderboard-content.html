@@ -932,8 +932,13 @@
         performFilter();
     }, 400); // Adjust delay as needed
 
+    function normalizeString(str) {
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
     function performFilter() {
-        const query = document.getElementById('athleteSearch').value.toLowerCase();
+        const query = document.getElementById('athleteSearch').value.trim();
+        const searchTerms = normalizeString(query).split(/\s+/);
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         const podiumItems = document.querySelectorAll('.podium-item');
 
@@ -943,9 +948,14 @@
         tableRows.forEach(row => {
             const athleteNameElement = row.querySelector('.athlete-name');
             if (athleteNameElement) {
-                const athleteName = athleteNameElement.textContent.toLowerCase();
+                const athleteNameNormalized = normalizeString(athleteNameElement.textContent);
+                const athleteNameWords = athleteNameNormalized.split(/\s+/);
 
-                if (athleteName.includes(query)) {
+                const matches = searchTerms.every(term =>
+                    athleteNameWords.some(word => word.includes(term))
+                );
+
+                if (matches) {
                     row.classList.remove('hidden');
                     highlightText(athleteNameElement, query);
                 } else {
@@ -959,9 +969,14 @@
         podiumItems.forEach(item => {
             const athleteNameElement = item.querySelector('.athlete-name');
             if (athleteNameElement) {
-                const athleteName = athleteNameElement.textContent.toLowerCase();
+                const athleteNameNormalized = normalizeString(athleteNameElement.textContent);
+                const athleteNameWords = athleteNameNormalized.split(/\s+/);
 
-                if (athleteName.includes(query)) {
+                const matches = searchTerms.every(term =>
+                    athleteNameWords.some(word => word.includes(term))
+                );
+
+                if (matches) {
                     item.classList.remove('hidden');
                     anyPodiumVisible = true;
                     highlightText(athleteNameElement, query);
