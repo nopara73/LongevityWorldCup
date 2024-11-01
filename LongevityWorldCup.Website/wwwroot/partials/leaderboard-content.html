@@ -1131,6 +1131,7 @@
             noResults.style.textAlign = 'center';
             noResults.style.padding = '1rem';
             noResults.style.fontSize = '1.2rem';
+            noResults.innerHTML = `No results found for "<strong>${escapeHTML(query)}</strong>".`;
             leaderboard.appendChild(noResults);
         }
     }
