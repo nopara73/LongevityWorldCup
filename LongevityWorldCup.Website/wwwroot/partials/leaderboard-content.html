@@ -938,26 +938,36 @@
 
     function performFilter() {
         const query = document.getElementById('athleteSearch').value.trim();
-        const searchTerms = normalizeString(query).split(/\s+/);
+        const searchTerms = normalizeString(query).split(/\s+/).filter(term => term.length > 0);
+        const uniqueSearchTerms = [...new Set(searchTerms)];
+
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         const podiumItems = document.querySelectorAll('.podium-item');
 
         let anyPodiumVisible = false;
 
+        // If searchTerms is empty, show all
+        const showAll = uniqueSearchTerms.length === 0;
+
         // Filter Table Rows
         tableRows.forEach(row => {
             const athleteNameElement = row.querySelector('.athlete-name');
             if (athleteNameElement) {
-                const athleteNameNormalized = normalizeString(athleteNameElement.textContent);
-                const athleteNameWords = athleteNameNormalized.split(/\s+/);
+                const athleteNameText = athleteNameElement.textContent;
+                const athleteNameNormalized = normalizeString(athleteNameText);
 
-                const matches = searchTerms.every(term =>
-                    athleteNameWords.some(word => word.includes(term))
-                );
+                let matches;
+                if (showAll) {
+                    matches = true;
+                } else {
+                    matches = uniqueSearchTerms.every(term =>
+                        athleteNameNormalized.includes(term)
+                    );
+                }
 
                 if (matches) {
                     row.classList.remove('hidden');
-                    highlightText(athleteNameElement, query);
+                    highlightText(athleteNameElement, uniqueSearchTerms);
                 } else {
                     row.classList.add('hidden');
                     removeHighlight(athleteNameElement);
@@ -969,17 +979,22 @@
         podiumItems.forEach(item => {
             const athleteNameElement = item.querySelector('.athlete-name');
             if (athleteNameElement) {
-                const athleteNameNormalized = normalizeString(athleteNameElement.textContent);
-                const athleteNameWords = athleteNameNormalized.split(/\s+/);
+                const athleteNameText = athleteNameElement.textContent;
+                const athleteNameNormalized = normalizeString(athleteNameText);
 
-                const matches = searchTerms.every(term =>
-                    athleteNameWords.some(word => word.includes(term))
-                );
+                let matches;
+                if (showAll) {
+                    matches = true;
+                } else {
+                    matches = uniqueSearchTerms.every(term =>
+                        athleteNameNormalized.includes(term)
+                    );
+                }
 
                 if (matches) {
                     item.classList.remove('hidden');
                     anyPodiumVisible = true;
-                    highlightText(athleteNameElement, query);
+                    highlightText(athleteNameElement, uniqueSearchTerms);
                 } else {
                     item.classList.add('hidden');
                     removeHighlight(athleteNameElement);
@@ -1005,13 +1020,83 @@
         return div.innerHTML;
     }
 
-    function highlightText(element, query) {
+    function highlightText(element, searchTerms) {
         const originalText = element.textContent;
-        const escapedQuery = escapeRegExp(query);
-        const regex = new RegExp(`(${escapedQuery})`, 'gi');
-        const safeText = escapeHTML(originalText);
-        const highlightedText = safeText.replace(regex, '<span class="highlight">$1</span>');
-        element.innerHTML = highlightedText;
+        const normalizedText = normalizeString(originalText);
+
+        // Build a mapping from positions in normalizedText to positions in originalText
+        const mapping = [];
+        let originalIndex = 0;
+        let normalizedIndex = 0;
+
+        while (originalIndex < originalText.length) {
+            const originalChar = originalText[originalIndex];
+            const normalizedChar = normalizeString(originalChar);
+
+            for (let i = 0; i < normalizedChar.length; i++) {
+                mapping[normalizedIndex] = originalIndex;
+                normalizedIndex++;
+            }
+
+            originalIndex++;
+        }
+
+        // Now search for matches in normalizedText
+        let matchIndices = [];
+
+        searchTerms.forEach(term => {
+            let startIndex = 0;
+            const termLength = term.length;
+
+            while (startIndex <= normalizedText.length - termLength) {
+                if (normalizedText.substr(startIndex, termLength) === term) {
+                    // Map the normalized indices back to original indices
+                    const originalStart = mapping[startIndex];
+                    const originalEnd = mapping[startIndex + termLength - 1] + 1;
+                    matchIndices.push({ start: originalStart, end: originalEnd });
+                    startIndex += termLength;
+                } else {
+                    startIndex++;
+                }
+            }
+        });
+
+        // Merge overlapping matches
+        matchIndices.sort((a, b) => a.start - b.start);
+        let mergedIndices = [];
+        matchIndices.forEach(match => {
+            if (mergedIndices.length === 0) {
+                mergedIndices.push(match);
+            } else {
+                const last = mergedIndices[mergedIndices.length - 1];
+                if (match.start <= last.end) {
+                    last.end = Math.max(last.end, match.end);
+                } else {
+                    mergedIndices.push(match);
+                }
+            }
+        });
+
+        // Build the highlighted HTML
+        let highlightedHTML = '';
+        let currentIndex = 0;
+
+        mergedIndices.forEach(match => {
+            // Append text before the match
+            highlightedHTML += escapeHTML(originalText.slice(currentIndex, match.start));
+
+            // Append the matched text with highlight
+            highlightedHTML += '<span class="highlight">' +
+                escapeHTML(originalText.slice(match.start, match.end)) +
+                '</span>';
+
+            currentIndex = match.end;
+        });
+
+        // Append any remaining text
+        highlightedHTML += escapeHTML(originalText.slice(currentIndex));
+
+        element.innerHTML = highlightedHTML;
     }
 
     function removeHighlight(element) {
