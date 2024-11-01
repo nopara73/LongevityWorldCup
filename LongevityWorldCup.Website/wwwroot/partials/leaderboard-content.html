@@ -992,9 +992,10 @@
 
     function highlightText(element, query) {
         const originalText = element.textContent;
-        const escapedQuery = escapeHTML(query);
-        const regex = new RegExp(`(${escapeRegExp(escapedQuery)})`, 'gi');
-        const highlightedText = originalText.replace(regex, '<span class="highlight">$1</span>');
+        const escapedQuery = escapeRegExp(query);
+        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        const safeText = escapeHTML(originalText);
+        const highlightedText = safeText.replace(regex, '<span class="highlight">$1</span>');
         element.innerHTML = highlightedText;
     }
 
