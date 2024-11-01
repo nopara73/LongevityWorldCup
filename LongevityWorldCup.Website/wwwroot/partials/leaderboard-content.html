@@ -510,6 +510,7 @@
         <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
             <i class="fa fa-times"></i>
         </span>
+        <div aria-live="polite" aria-atomic="true" class="sr-only" id="searchResultsInfo"></div>
     </div>
 </div>
 
@@ -928,9 +929,9 @@
     }
 
     // Wrap the filter function with debounce
-    const debouncedFilter = debounce(function () {
+    const debouncedFilter = debounce(() => {
         performFilter();
-    }, 400); // Adjust delay as needed
+    }, 400);
 
     function normalizeString(str) {
         return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -1012,6 +1013,8 @@
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
+
+        document.getElementById('searchResultsInfo').textContent = `${visibleCount} results found.`;
     }
 
     function escapeHTML(string) {
