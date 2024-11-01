@@ -942,29 +942,33 @@
         // Filter Table Rows
         tableRows.forEach(row => {
             const athleteNameElement = row.querySelector('.athlete-name');
-            const athleteName = athleteNameElement.textContent.toLowerCase();
+            if (athleteNameElement) {
+                const athleteName = athleteNameElement.textContent.toLowerCase();
 
-            if (athleteName.includes(query)) {
-                row.classList.remove('hidden');
-                highlightText(athleteNameElement, query);
-            } else {
-                row.classList.add('hidden');
-                removeHighlight(athleteNameElement);
+                if (athleteName.includes(query)) {
+                    row.classList.remove('hidden');
+                    highlightText(athleteNameElement, query);
+                } else {
+                    row.classList.add('hidden');
+                    removeHighlight(athleteNameElement);
+                }
             }
         });
 
         // Filter Podium Items
         podiumItems.forEach(item => {
             const athleteNameElement = item.querySelector('.athlete-name');
-            const athleteName = athleteNameElement.textContent.toLowerCase();
+            if (athleteNameElement) {
+                const athleteName = athleteNameElement.textContent.toLowerCase();
 
-            if (athleteName.includes(query)) {
-                item.classList.remove('hidden');
-                anyPodiumVisible = true;
-                highlightText(athleteNameElement, query);
-            } else {
-                item.classList.add('hidden');
-                removeHighlight(athleteNameElement);
+                if (athleteName.includes(query)) {
+                    item.classList.remove('hidden');
+                    anyPodiumVisible = true;
+                    highlightText(athleteNameElement, query);
+                } else {
+                    item.classList.add('hidden');
+                    removeHighlight(athleteNameElement);
+                }
             }
         });
 
