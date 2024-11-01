@@ -515,7 +515,6 @@
         <span class="clear-icon" tabindex="0" role="button" aria-label="Clear Search">
             <i class="fa fa-times"></i>
         </span>
-        <div aria-live="polite" aria-atomic="true" class="sr-only" id="searchResultsInfo"></div>
     </div>
 </div>
 
@@ -911,6 +910,10 @@
         // Ensure the podium is visible after clearing the search
         podium.style.display = 'flex';
 
+        // Hide all elements with the "extra-athlete" class
+        document.querySelectorAll('.extra-athlete').forEach(row => {
+            row.style.display = 'none';
+        });
     }
 
     function removeAllHighlights() {
@@ -1018,8 +1021,6 @@
 
             // Display "No Results Found" if Necessary
             displayNoResults(tableRows, podiumItems, query);
-
-            document.getElementById('searchResultsInfo').textContent = `${visibleCount} results found.`;
         });
     }
 
