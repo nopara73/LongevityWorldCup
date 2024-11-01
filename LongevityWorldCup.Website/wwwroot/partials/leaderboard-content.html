@@ -507,7 +507,7 @@
         <label for="athleteSearch" class="visually-hidden">Search Athletes</label>
         <input type="text" id="athleteSearch" placeholder="Search Athlete..." aria-label="Search Athletes">
         <span class="search-icon"><i class="fa fa-search"></i></span>
-        <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
+        <span class="clear-icon" tabindex="0" role="button" aria-label="Clear Search">
             <i class="fa fa-times"></i>
         </span>
         <div aria-live="polite" aria-atomic="true" class="sr-only" id="searchResultsInfo"></div>
@@ -911,11 +911,12 @@
 
         // Ensure the podium is visible after clearing the search
         podium.style.display = 'flex';
+
     }
 
     function removeAllHighlights() {
         document.querySelectorAll('.athlete-name').forEach(element => {
-            removeHighlight(element);
+            element.innerHTML = escapeHTML(element.textContent);
         });
     }
 
@@ -938,83 +939,85 @@
     }
 
     function performFilter() {
-        const query = document.getElementById('athleteSearch').value.trim();
-        const searchTerms = normalizeString(query).split(/\s+/).filter(term => term.length > 0);
-        const uniqueSearchTerms = [...new Set(searchTerms)];
+        window.requestAnimationFrame(() => {
+            const query = document.getElementById('athleteSearch').value.trim().toLowerCase();
+            const searchTerms = normalizeString(query).split(/\s+/).filter(term => term.length > 0);
+            const uniqueSearchTerms = [...new Set(searchTerms)];
 
-        const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
-        const podiumItems = document.querySelectorAll('.podium-item');
+            const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
+            const podiumItems = document.querySelectorAll('.podium-item');
 
-        let anyPodiumVisible = false;
+            let anyPodiumVisible = false;
 
-        // If searchTerms is empty, show all
-        const showAll = uniqueSearchTerms.length === 0;
+            // If searchTerms is empty, show all
+            const showAll = uniqueSearchTerms.length === 0;
 
-        // Filter Table Rows
-        tableRows.forEach(row => {
-            const athleteNameElement = row.querySelector('.athlete-name');
-            if (athleteNameElement) {
-                const athleteNameText = athleteNameElement.textContent;
-                const athleteNameNormalized = normalizeString(athleteNameText);
+            // Filter Table Rows
+            tableRows.forEach(row => {
+                const athleteNameElement = row.querySelector('.athlete-name');
+                if (athleteNameElement) {
+                    const athleteNameText = athleteNameElement.textContent;
+                    const athleteNameNormalized = normalizeString(athleteNameText);
 
-                let matches;
-                if (showAll) {
-                    matches = true;
-                } else {
-                    matches = uniqueSearchTerms.every(term =>
-                        athleteNameNormalized.includes(term)
-                    );
+                    let matches;
+                    if (showAll) {
+                        matches = true;
+                    } else {
+                        matches = uniqueSearchTerms.every(term =>
+                            athleteNameNormalized.includes(term)
+                        );
+                    }
+
+                    if (matches) {
+                        row.classList.remove('hidden');
+                        highlightText(athleteNameElement, uniqueSearchTerms);
+                    } else {
+                        row.classList.add('hidden');
+                        removeHighlight(athleteNameElement);
+                    }
                 }
+            });
 
-                if (matches) {
-                    row.classList.remove('hidden');
-                    highlightText(athleteNameElement, uniqueSearchTerms);
-                } else {
-                    row.classList.add('hidden');
-                    removeHighlight(athleteNameElement);
+            // Filter Podium Items
+            podiumItems.forEach(item => {
+                const athleteNameElement = item.querySelector('.athlete-name');
+                if (athleteNameElement) {
+                    const athleteNameText = athleteNameElement.textContent;
+                    const athleteNameNormalized = normalizeString(athleteNameText);
+
+                    let matches;
+                    if (showAll) {
+                        matches = true;
+                    } else {
+                        matches = uniqueSearchTerms.every(term =>
+                            athleteNameNormalized.includes(term)
+                        );
+                    }
+
+                    if (matches) {
+                        item.classList.remove('hidden');
+                        anyPodiumVisible = true;
+                        highlightText(athleteNameElement, uniqueSearchTerms);
+                    } else {
+                        item.classList.add('hidden');
+                        removeHighlight(athleteNameElement);
+                    }
                 }
+            });
+
+            // Hide or Show the Podium Container Based on Visibility of Podium Items
+            const podium = document.querySelector('.podium');
+            if (anyPodiumVisible) {
+                podium.style.display = 'flex'; // Ensure it's visible if any podium item is visible
+            } else {
+                podium.style.display = 'none'; // Hide the podium container if no items are visible
             }
+
+            // Display "No Results Found" if Necessary
+            displayNoResults(tableRows, podiumItems, query);
+
+            document.getElementById('searchResultsInfo').textContent = `${visibleCount} results found.`;
         });
-
-        // Filter Podium Items
-        podiumItems.forEach(item => {
-            const athleteNameElement = item.querySelector('.athlete-name');
-            if (athleteNameElement) {
-                const athleteNameText = athleteNameElement.textContent;
-                const athleteNameNormalized = normalizeString(athleteNameText);
-
-                let matches;
-                if (showAll) {
-                    matches = true;
-                } else {
-                    matches = uniqueSearchTerms.every(term =>
-                        athleteNameNormalized.includes(term)
-                    );
-                }
-
-                if (matches) {
-                    item.classList.remove('hidden');
-                    anyPodiumVisible = true;
-                    highlightText(athleteNameElement, uniqueSearchTerms);
-                } else {
-                    item.classList.add('hidden');
-                    removeHighlight(athleteNameElement);
-                }
-            }
-        });
-
-        // Hide or Show the Podium Container Based on Visibility of Podium Items
-        const podium = document.querySelector('.podium');
-        if (anyPodiumVisible) {
-            podium.style.display = 'flex'; // Ensure it's visible if any podium item is visible
-        } else {
-            podium.style.display = 'none'; // Hide the podium container if no items are visible
-        }
-
-        // Display "No Results Found" if Necessary
-        displayNoResults(tableRows, podiumItems, query);
-
-        document.getElementById('searchResultsInfo').textContent = `${visibleCount} results found.`;
     }
 
     function escapeHTML(string) {
