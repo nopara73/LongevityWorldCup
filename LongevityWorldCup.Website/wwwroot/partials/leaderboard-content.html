@@ -644,23 +644,11 @@
                 // Assign ranks to each athlete based on the sorted order
                 athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
 
-                // Determine how many athletes to display based on maxAthletes and includePodium
-                let athletesToDisplay = athleteResults;
                 const podiumCount = includePodium ? 3 : 0;
 
-                if (maxAthletes !== Infinity) {
-                    // Ensure that maxAthletes is at least the number of podium athletes
-                    if (maxAthletes < podiumCount) {
-                        console.warn(`maxAthletes (${maxAthletes}) is less than podium count (${podiumCount}). Adjusting maxAthletes to ${podiumCount}.`);
-                        maxAthletes = podiumCount;
-                    }
-                    // Slice the top maxAthletes
-                    athletesToDisplay = athleteResults.slice(0, maxAthletes);
-                }
-
                 if (includePodium) {
-                    // Get the top three athletes from athletesToDisplay
-                    const topThree = athletesToDisplay.slice(0, 3);
+                    // Get the top three athletes from athleteResults
+                    const topThree = athleteResults.slice(0, 3);
 
                     // Select the podium container and clear existing items
                     const podium = document.querySelector('.podium');
@@ -723,10 +711,10 @@
 
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
-                const remainingAthletes = includePodium ? athletesToDisplay.slice(podiumCount) : athletesToDisplay;
+                const remainingAthletes = includePodium ? athleteResults.slice(podiumCount, maxAthletes) : athleteResults.slice(0, maxAthletes);
 
                 tableBody.innerHTML = ''; // Clear existing table rows
-                remainingAthletes.forEach(athlete => {
+                remainingAthletes.forEach((athlete, index) => {
                     const row = document.createElement('tr');
 
                     row.innerHTML = `
@@ -743,6 +731,11 @@
             <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false)}</td>`;
 
                     tableBody.appendChild(row);
+
+                    if (index >= maxAthletes) {
+                        row.style.display = 'none';
+                        row.classList.add('extra-athlete'); // Add a class for later use
+                    }
                 });
 
                 document.querySelectorAll('.portrait, .podium-portrait').forEach(portrait => {
@@ -959,6 +952,8 @@
 
             // Filter Table Rows
             tableRows.forEach(row => {
+                // Remove any inline styles to reset display property
+                row.style.display = '';
                 const athleteNameElement = row.querySelector('.athlete-name');
                 if (athleteNameElement) {
                     const athleteNameText = athleteNameElement.textContent;
