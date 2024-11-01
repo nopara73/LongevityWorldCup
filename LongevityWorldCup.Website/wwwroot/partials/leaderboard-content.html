@@ -1019,7 +1019,7 @@
 
     function escapeHTML(string) {
         const div = document.createElement('div');
-        div.appendChild(document.createTextNode(string));
+        div.textContent = string;
         return div.innerHTML;
     }
 
