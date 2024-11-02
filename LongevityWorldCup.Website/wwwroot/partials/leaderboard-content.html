@@ -25,19 +25,58 @@
         flex-grow: 1; /* Allow it to stretch */
     }
 
+    /* Sidebar styles */
     .sidebar {
-        width: 250px; /* Fixed width for sidebar */
+        width: 250px; /* Expanded width */
         padding: 1rem;
         background-color: var(--card-bg);
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin-right: 1rem; /* Space between sidebar and table */
-        /* Removed height: 100%; */
+        margin-right: 1rem;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
-        /* Added align-self to stretch the sidebar */
         align-self: stretch;
+        transition: width 0.3s ease; /* Smooth transition */
+    }
+
+        .sidebar.collapsed {
+            width: 50px; /* Collapsed width */
+            padding: 0; /* Remove padding when collapsed */
+            align-items: center; /* Center items horizontally */
+        }
+
+        .sidebar .filter-section {
+            display: block; /* Ensure filters are visible when expanded */
+        }
+
+        .sidebar.collapsed .filter-section {
+            display: none; /* Hide filters when collapsed */
+        }
+
+    .sidebar-title {
+        writing-mode: vertical-rl; /* Vertical text */
+        text-orientation: mixed;
+        transform: rotate(180deg); /* Adjust text direction */
+        cursor: pointer;
+        margin: 0;
+        padding: 1rem 0;
+        text-align: center;
+        font-size: 1.2rem;
+        color: var(--primary-color);
+        border-bottom: none; /* Remove underline when collapsed */
+    }
+
+    .sidebar.collapsed .sidebar-title {
+        border-bottom: none; /* Remove border when collapsed */
+    }
+
+    .sidebar:not(.collapsed) .sidebar-title {
+        cursor: default; /* Remove pointer cursor when expanded */
+    }
+    /* Optional: Adjust content margin when sidebar is collapsed */
+    .sidebar.collapsed + .content {
+        margin-left: 50px; /* Adjust if needed */
     }
 
     table {
@@ -589,6 +628,7 @@
     /* Adjust content area */
     .content {
         flex-grow: 1;
+        transition: margin-left 0.3s ease; /* Smooth transition for content shift */
     }
 
     /* Responsive adjustments */
@@ -624,8 +664,8 @@
         </div>
 
         <div class="leaderboard">
-            <div class="sidebar">
-                <h2>Leagues</h2>
+            <div class="sidebar collapsed">
+                <h2 class="sidebar-title">League: Ultimate</h2>
                 <div class="filter-section">
                     <h3>Divisions</h3>
                     <ul>
@@ -1369,4 +1409,12 @@
             element.classList.remove('fade-in'); // Clean up fade-in class after transition
         }, 300); // Match the fade-out delay for smoothness
     }
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarTitle = document.querySelector('.sidebar-title');
+
+        sidebarTitle.addEventListener('click', function () {
+            sidebar.classList.toggle('collapsed');
+        });
+    });
 </script>
