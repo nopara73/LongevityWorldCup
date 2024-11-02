@@ -1310,19 +1310,19 @@
         }
 
         // Check if any rows or podium items are visible
-        const anyVisible = Array.from(tableRows).some(row => !row.classList.contains('hidden')) ||
+        const anyVisible = Array.from(tableRows).some(row => !row.classList.contains('hidden') && !row.classList.contains('no-results')) ||
             Array.from(podiumItems).some(item => !item.classList.contains('hidden'));
 
         if (!anyVisible && query.trim() !== '') {
-            const leaderboard = document.querySelector('.leaderboard');
-            const noResults = document.createElement('div');
+            const tableBody = document.querySelector('.leaderboard table tbody');
+            const noResults = document.createElement('tr');
             noResults.classList.add('no-results');
             noResults.textContent = 'No results found.';
             noResults.style.textAlign = 'center';
             noResults.style.padding = '1rem';
             noResults.style.fontSize = '1.2rem';
-            noResults.innerHTML = `No results found for "<strong>${escapeHTML(query)}</strong>".`;
-            leaderboard.appendChild(noResults);
+            noResults.innerHTML = `<td colspan="6">No results found for "<strong>${escapeHTML(query)}</strong>".</td>`;
+            tableBody.appendChild(noResults);
         }
     }
 
