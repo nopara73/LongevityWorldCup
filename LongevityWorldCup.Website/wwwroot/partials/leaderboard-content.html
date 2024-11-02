@@ -27,56 +27,85 @@
 
     /* Sidebar styles */
     .sidebar {
-        width: 250px; /* Expanded width */
-        padding: 1rem;
+        width: 50px; /* Collapsed width */
+        padding: 0;
         background-color: var(--card-bg);
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         margin-right: 1rem;
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
-        align-self: stretch;
-        transition: width 0.3s ease; /* Smooth transition */
+        align-items: center;
+        transition: width 0.3s ease, padding 0.3s ease;
+        overflow: hidden;
     }
 
-        .sidebar.collapsed {
-            width: 50px; /* Collapsed width */
-            padding: 0; /* Remove padding when collapsed */
-            align-items: center; /* Center items horizontally */
+        .sidebar:hover {
+            width: 250px; /* Expanded width */
+            padding: 1rem;
+            align-items: flex-start;
         }
 
         .sidebar .filter-section {
-            display: block; /* Ensure filters are visible when expanded */
+            display: none;
         }
 
-        .sidebar.collapsed .filter-section {
-            display: none; /* Hide filters when collapsed */
+        .sidebar:hover .filter-section {
+            display: block;
         }
 
+        .sidebar .sidebar-title .sidebar-icon {
+            display: inline-block;
+            font-size: 2rem;
+        }
+
+        .sidebar .sidebar-title .sidebar-title-text {
+            display: none;
+            margin-left: 0.5rem;
+        }
+
+        .sidebar:hover .sidebar-title .sidebar-title-text {
+            display: inline-block;
+        }
+
+        .sidebar:hover .sidebar-title .sidebar-icon {
+            display: none;
+        }
+
+    /* Sidebar title */
     .sidebar-title {
-        writing-mode: vertical-rl; /* Vertical text */
-        text-orientation: mixed;
-        transform: rotate(180deg); /* Adjust text direction */
-        cursor: pointer;
         margin: 0;
         padding: 1rem 0;
         text-align: center;
         font-size: 1.2rem;
         color: var(--primary-color);
-        border-bottom: none; /* Remove underline when collapsed */
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .sidebar.collapsed .sidebar-title {
-        border-bottom: none; /* Remove border when collapsed */
+    /* Adjust content area */
+    .content {
+        flex-grow: 1;
+        transition: margin-left 0.3s ease;
     }
 
-    .sidebar:not(.collapsed) .sidebar-title {
-        cursor: default; /* Remove pointer cursor when expanded */
+    .sidebar:hover ~ .content {
+        margin-left: 200px; /* Adjust this value based on your layout */
     }
-    /* Optional: Adjust content margin when sidebar is collapsed */
-    .sidebar.collapsed + .content {
-        margin-left: 50px; /* Adjust if needed */
+
+    /* Optional: Ensure sidebar and content are properly aligned */
+    .main-container {
+        display: flex;
+    }
+
+    .sidebar {
+        flex-shrink: 0; /* Prevent the sidebar from shrinking */
+    }
+
+    .content {
+        flex-grow: 1;
     }
 
     table {
@@ -568,12 +597,17 @@
     }
 
     .sidebar {
-        width: 250px;
-        padding: 1rem;
+        width: 50px; /* Collapsed width */
+        padding: 0;
         background-color: var(--card-bg);
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin-right: 0rem;
+        margin-right: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transition: width 0.3s ease, padding 0.3s ease;
+        overflow: hidden;
     }
 
         .sidebar h2 {
@@ -665,7 +699,10 @@
 
         <div class="leaderboard">
             <div class="sidebar collapsed">
-                <h2 class="sidebar-title">League: Ultimate</h2>
+                <h2 class="sidebar-title">
+                    <span class="sidebar-title-text">League: Ultimate</span>
+                    <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
+                </h2>
                 <div class="filter-section">
                     <h3>Divisions</h3>
                     <ul>
@@ -1409,12 +1446,4 @@
             element.classList.remove('fade-in'); // Clean up fade-in class after transition
         }, 300); // Match the fade-out delay for smoothness
     }
-    document.addEventListener('DOMContentLoaded', function () {
-        const sidebar = document.querySelector('.sidebar');
-        const sidebarTitle = document.querySelector('.sidebar-title');
-
-        sidebarTitle.addEventListener('click', function () {
-            sidebar.classList.toggle('collapsed');
-        });
-    });
 </script>
