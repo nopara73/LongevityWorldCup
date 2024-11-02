@@ -82,7 +82,8 @@
         color: var(--primary-color);
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: left;
+        border-bottom: 2px solid var(--primary-color);
     }
 
     .content {
@@ -92,6 +93,10 @@
 
     .sidebar:hover ~ .content {
         margin-left: 200px;
+    }
+
+    .sidebar:hover .sidebar-title {
+        width: 100%; /* Full width only when sidebar is expanded */
     }
 
     .main-container {
