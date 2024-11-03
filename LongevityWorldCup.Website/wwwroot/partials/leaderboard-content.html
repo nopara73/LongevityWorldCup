@@ -1184,11 +1184,12 @@
 
                 if (matches) {
                     item.classList.remove('hidden');
-                    anyPodiumVisible = true;
+                    item.style.display = ''; // Add this line
+                    anyPodiumVisible = true; // Add this line
                     highlightText(athleteNameElement, uniqueSearchTerms);
                 } else {
                     item.classList.add('hidden');
-                    item.style.display = 'none'; // Hide the item
+                    item.style.display = 'none';
                     removeHighlight(athleteNameElement);
                 }
             }
