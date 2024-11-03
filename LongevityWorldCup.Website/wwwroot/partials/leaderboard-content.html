@@ -687,6 +687,8 @@
 
 <script src="/js/pheno-age.js"></script>
 <script>
+    let athleteResults = [];
+
     // Define the biomarkers array (ensure this is available before calculations)
     const biomarkers = [
         { id: 'age', name: 'Age', coeff: 0.0804 },
@@ -712,7 +714,7 @@
             .then(response => response.json())
             .then(athletes => {
                 // Array to store athletes with their lowest PhenoAge and age reduction
-                const athleteResults = athletes.map(athlete => {
+                athleteResults = athletes.map(athlete => {
                     // Calculate the chronological age from the athlete's date_of_birth
                     const dob = `${athlete.date_of_birth.year}-${String(athlete.date_of_birth.month).padStart(2, '0')}-${String(athlete.date_of_birth.day).padStart(2, '0')}`;
                     const chronologicalAge = calculateAgeFromDOB(dob);
@@ -834,6 +836,11 @@
 
                         // Append the podiumItem to the podium container
                         podium.appendChild(podiumItem);
+
+                        // After appending the podium item
+                        podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
+                        podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
+
                     });
                 } else {
                     // Hide the podium container if not included
@@ -865,6 +872,10 @@
             <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false)}</td>`;
 
                     tableBody.appendChild(row);
+
+                    // After appending the row
+                    row.setAttribute('data-division', athlete.division.toLowerCase());
+                    row.setAttribute('data-generation', athlete.generation.toLowerCase());
 
                     // Hide athletes beyond the maxAthletes limit
                     if (index >= maxAthletes - podiumCount) {
@@ -955,6 +966,7 @@
                         });
                     });
                 });
+
             })
             .catch(error => {
                 console.error('Error fetching athletes:', error);
@@ -1040,7 +1052,7 @@
         searchInput.value = '';
         clearIcon.classList.remove('visible');
         removeAllHighlights();
-        performFilter();
+        performFilter(); // Reapply filters without search terms
 
         // Ensure the podium is visible after clearing the search
         podium.style.display = 'flex';
@@ -1076,6 +1088,14 @@
     }
 
     function performFilter() {
+        // Get selected divisions
+        const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+
+        // Get selected generations
+        const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+
         const query = normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
@@ -1097,10 +1117,24 @@
                 const athleteNameText = athleteNameElement.textContent;
                 const athleteNameNormalized = normalizeString(athleteNameText);
 
-                let matches;
-                if (showAll) {
-                    matches = true;
-                } else {
+                // Get division and generation from data attributes
+                const division = row.getAttribute('data-division').toLowerCase();
+                const generation = row.getAttribute('data-generation').toLowerCase();
+
+                let matches = true;
+
+                // Check if division matches
+                if (selectedDivisions.length > 0 && !selectedDivisions.includes(division)) {
+                    matches = false;
+                }
+
+                // Check if generation matches
+                if (selectedGenerations.length > 0 && !selectedGenerations.includes(generation)) {
+                    matches = false;
+                }
+
+                // Check if search terms match
+                if (matches && !showAll) {
                     matches = uniqueSearchTerms.every(term =>
                         athleteNameNormalized.includes(term)
                     );
@@ -1125,10 +1159,24 @@
                 const athleteNameText = athleteNameElement.textContent;
                 const athleteNameNormalized = normalizeString(athleteNameText);
 
-                let matches;
-                if (showAll) {
-                    matches = true;
-                } else {
+                // Get division and generation from data attributes
+                const division = item.getAttribute('data-division').toLowerCase();
+                const generation = item.getAttribute('data-generation').toLowerCase();
+
+                let matches = true;
+
+                // Check if division matches
+                if (selectedDivisions.length > 0 && !selectedDivisions.includes(division)) {
+                    matches = false;
+                }
+
+                // Check if generation matches
+                if (selectedGenerations.length > 0 && !selectedGenerations.includes(generation)) {
+                    matches = false;
+                }
+
+                // Check if search terms match
+                if (matches && !showAll) {
                     matches = uniqueSearchTerms.every(term =>
                         athleteNameNormalized.includes(term)
                     );
@@ -1140,6 +1188,7 @@
                     highlightText(athleteNameElement, uniqueSearchTerms);
                 } else {
                     item.classList.add('hidden');
+                    item.style.display = 'none'; // Hide the item
                     removeHighlight(athleteNameElement);
                 }
             }
@@ -1260,8 +1309,8 @@
         }
 
         // Check if any rows or podium items are visible
-        const anyVisible = Array.from(tableRows).some(row => !row.classList.contains('hidden') && !row.classList.contains('no-results')) ||
-            Array.from(podiumItems).some(item => !item.classList.contains('hidden'));
+        const anyVisible = Array.from(tableRows).some(row => !row.classList.contains('hidden') && !row.classList.contains('no-results') && row.style.display !== 'none') ||
+            Array.from(podiumItems).some(item => !item.classList.contains('hidden') && item.style.display !== 'none');
 
         if (!anyVisible && query.trim() !== '') {
             const tableBody = document.querySelector('.leaderboard table tbody');
@@ -1363,6 +1412,9 @@
             </label>
         `;
             filterSection.appendChild(li);
+            const input = li.querySelector('input[type="checkbox"]');
+            input.addEventListener('change', performFilter);
+
         });
     }
 
@@ -1399,6 +1451,9 @@
             </label>
         `;
             filterSection.appendChild(li);
+            const input = li.querySelector('input[type="checkbox"]');
+            input.addEventListener('change', performFilter);
+
         });
     }
 
