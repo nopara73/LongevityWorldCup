@@ -636,27 +636,9 @@
                 </h2>
                 <div class="filter-section">
                     <h3>Divisions</h3>
-                    <ul>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="division" value="men">
-                                💪 Men's
-                            </label>
-                        </li>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="division" value="women">
-                                👠 Women's
-                            </label>
-                        </li>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="division" value="open">
-                                🦾 Open
-                            </label>
-                        </li>
-                    </ul>
+                    <ul></ul> <!-- This will be populated dynamically -->
                 </div>
+
                 <div class="filter-section">
                     <h3>Generations</h3>
                     <ul>
@@ -812,11 +794,14 @@
                         chronologicalAge: chronologicalAge,
                         lowestPhenoAge: lowestPhenoAge,
                         ageReduction: ageReduction,
-                        personalLink: athlete.personal_link, // Reference directly from athlete
-                        profilePic: athlete['profile-pic'] // Assuming 'profile-pic' is the correct key
+                        personalLink: athlete.personal_link,
+                        profilePic: athlete['profile-pic'],
+                        division: athlete.division
                     };
 
                 });
+
+                generateDivisionFilters(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
                 athleteResults.sort((a, b) => a.ageReduction - b.ageReduction);
@@ -1376,5 +1361,39 @@
         setTimeout(() => {
             element.classList.remove('fade-in'); // Clean up fade-in class after transition
         }, 300); // Match the fade-out delay for smoothness
+    }
+
+    function generateDivisionFilters(athletes) {
+        const filterSection = document.querySelector('.filter-section ul');
+        filterSection.innerHTML = ''; // Clear existing filters if any
+
+        // Count occurrences of each division
+        const divisionCounts = athletes.reduce((acc, athlete) => {
+            acc[athlete.division] = (acc[athlete.division] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Define icons for each division
+        const divisionIcons = {
+            "men's": "💪",
+            "women's": "👠",
+            open: "🦾"
+        };
+
+        // Generate the filter items with icons and counts
+        Object.keys(divisionCounts).forEach(division => {
+            const count = divisionCounts[division];
+            const normalizedDivision = division.toLowerCase();
+            const icon = divisionIcons[normalizedDivision] || ""; // Default to no icon if not found
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+            <label>
+                <input type="checkbox" name="division" value="${division}">
+                ${icon} ${division.charAt(0).toUpperCase() + division.slice(1)} (${count})
+            </label>
+        `;
+            filterSection.appendChild(li);
+        });
     }
 </script>
