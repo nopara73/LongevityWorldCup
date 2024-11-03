@@ -639,46 +639,9 @@
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
 
-                <div class="filter-section">
+                <div class="filter-section" id="generation-filter-section">
                     <h3>Generations</h3>
-                    <ul>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="generation" value="silent">
-                                📻 Silent Generation
-                            </label>
-                        </li>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="generation" value="boomers">
-                                📺 Baby Boomers
-                            </label>
-                        </li>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="generation" value="genx">
-                                🖥️ Gen X
-                            </label>
-                        </li>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="generation" value="millennials">
-                                💻 Millennials
-                            </label>
-                        </li>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="generation" value="genz">
-                                📱 Gen Z
-                            </label>
-                        </li>
-                        <li>
-                            <label>
-                                <input type="checkbox" name="generation" value="genalpha">
-                                🚀 Gen Alpha
-                            </label>
-                        </li>
-                    </ul>
+                    <ul></ul> <!-- This will be populated dynamically -->
                 </div>
             </div>
             <table>
@@ -754,6 +717,10 @@
                     const dob = `${athlete.date_of_birth.year}-${String(athlete.date_of_birth.month).padStart(2, '0')}-${String(athlete.date_of_birth.day).padStart(2, '0')}`;
                     const chronologicalAge = calculateAgeFromDOB(dob);
 
+                    // Get birth year and generation
+                    const birthYear = athlete.date_of_birth.year;
+                    const generation = getGeneration(birthYear);
+
                     // Initialize a variable to keep track of the lowest PhenoAge for this athlete
                     let lowestPhenoAge = Infinity;
 
@@ -796,12 +763,14 @@
                         ageReduction: ageReduction,
                         personalLink: athlete.personal_link,
                         profilePic: athlete['profile-pic'],
-                        division: athlete.division
+                        division: athlete.division,
+                        generation: generation
                     };
 
                 });
 
                 generateDivisionFilters(athleteResults);
+                generateGenerationFilters(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
                 athleteResults.sort((a, b) => a.ageReduction - b.ageReduction);
@@ -1395,5 +1364,59 @@
         `;
             filterSection.appendChild(li);
         });
+    }
+
+    function generateGenerationFilters(athletes) {
+        const filterSection = document.querySelector('#generation-filter-section ul');
+        filterSection.innerHTML = ''; // Clear existing filters if any
+
+        // Count occurrences of each generation
+        const generationCounts = athletes.reduce((acc, athlete) => {
+            acc[athlete.generation] = (acc[athlete.generation] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Define icons for each generation
+        const generationIcons = {
+            "Silent Generation": "📻",
+            "Baby Boomers": "📺",
+            "Gen X": "🖥️",
+            "Millennials": "💻",
+            "Gen Z": "📱",
+            "Gen Alpha": "🚀"
+        };
+
+        // Generate the filter items with icons and counts
+        Object.keys(generationCounts).forEach(generation => {
+            const count = generationCounts[generation];
+            const icon = generationIcons[generation] || ""; // Default to no icon if not found
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+            <label>
+                <input type="checkbox" name="generation" value="${generation}">
+                ${icon} ${generation} (${count})
+            </label>
+        `;
+            filterSection.appendChild(li);
+        });
+    }
+
+    function getGeneration(birthYear) {
+        if (birthYear >= 1928 && birthYear <= 1945) {
+            return "Silent Generation";
+        } else if (birthYear >= 1946 && birthYear <= 1964) {
+            return "Baby Boomers";
+        } else if (birthYear >= 1965 && birthYear <= 1980) {
+            return "Gen X";
+        } else if (birthYear >= 1981 && birthYear <= 1996) {
+            return "Millennials";
+        } else if (birthYear >= 1997 && birthYear <= 2012) {
+            return "Gen Z";
+        } else if (birthYear >= 2013) {
+            return "Gen Alpha";
+        } else {
+            return "Unknown Generation";
+        }
     }
 </script>
