@@ -883,8 +883,8 @@
                     tableBody.appendChild(row);
 
                     // After appending the row
-                    row.setAttribute('data-division', athlete.division.toLowerCase());
-                    row.setAttribute('data-generation', athlete.generation.toLowerCase());
+                    row.setAttribute('data-division', athlete.division.toLowerCase().trim());
+                    row.setAttribute('data-generation', athlete.generation.trim());
 
                     // Hide athletes beyond the maxAthletes limit
                     if (index >= maxAthletes - podiumCount) {
