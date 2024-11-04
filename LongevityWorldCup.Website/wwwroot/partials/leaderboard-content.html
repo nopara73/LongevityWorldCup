@@ -1127,8 +1127,8 @@
                 const athleteNameNormalized = normalizeString(athleteNameText);
 
                 // Get division and generation from data attributes
-                const division = row.getAttribute('data-division').toLowerCase();
-                const generation = row.getAttribute('data-generation').toLowerCase();
+                const division = row.getAttribute('data-division').toLowerCase().trim();
+                const generation = row.getAttribute('data-generation').toLowerCase().trim();
 
                 // Initialize matches to true
                 let matches = true;
