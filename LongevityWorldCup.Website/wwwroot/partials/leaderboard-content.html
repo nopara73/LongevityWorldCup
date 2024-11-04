@@ -849,6 +849,7 @@
                         // After appending the podium item
                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
+                        podiumItem.setAttribute('data-athlete-name', athlete.name);
 
                     });
                 } else {
@@ -885,6 +886,7 @@
                     // After appending the row
                     row.setAttribute('data-division', athlete.division.toLowerCase().trim());
                     row.setAttribute('data-generation', athlete.generation.trim());
+                    row.setAttribute('data-athlete-name', athlete.name);
 
                     // Hide athletes beyond the maxAthletes limit
                     if (index >= maxAthletes - podiumCount) {
@@ -1109,99 +1111,63 @@
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
 
-        const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
-        const podiumItems = document.querySelectorAll('.podium-item');
-
-        let anyPodiumVisible = false;
-
-        // If searchTerms is empty, show all
         const showAll = uniqueSearchTerms.length === 0;
 
-        // Filter Table Rows
-        tableRows.forEach(row => {
-            // Remove any inline styles to reset display property
-            row.style.display = '';
-            const athleteNameElement = row.querySelector('.athlete-name');
-            if (athleteNameElement) {
-                const athleteNameText = athleteNameElement.textContent;
-                const athleteNameNormalized = normalizeString(athleteNameText);
+        let filteredAthletes = [];
 
-                // Get division and generation from data attributes
-                const division = row.getAttribute('data-division').toLowerCase().trim();
-                const generation = row.getAttribute('data-generation').toLowerCase().trim();
+        athleteResults.forEach(athlete => {
+            const athleteNameNormalized = normalizeString(athlete.name);
 
-                // Initialize matches to true
-                let matches = true;
+            let matches = true;
 
-                // Check division match
-                if (selectedDivisions.length > 0) {
-                    matches = matches && selectedDivisions.includes(division);
-                }
+            // Check division match
+            if (selectedDivisions.length > 0) {
+                matches = matches && selectedDivisions.includes(athlete.division.toLowerCase());
+            }
 
-                // Check generation match
-                if (selectedGenerations.length > 0) {
-                    matches = matches && selectedGenerations.includes(generation);
-                }
+            // Check generation match
+            if (selectedGenerations.length > 0) {
+                matches = matches && selectedGenerations.includes(athlete.generation.toLowerCase());
+            }
 
-                // Check if search terms match
-                if (matches && !showAll) {
-                    matches = uniqueSearchTerms.every(term =>
-                        athleteNameNormalized.includes(term)
-                    );
-                }
+            // Check search terms
+            if (matches && !showAll) {
+                matches = uniqueSearchTerms.every(term => athleteNameNormalized.includes(term));
+            }
 
-                if (matches) {
-                    row.classList.remove('hidden');
-                    showWithDelay(row);
-                    highlightText(athleteNameElement, uniqueSearchTerms);
-                } else {
-                    row.classList.add('hidden');
-                    hideWithDelay(row);
-                    removeHighlight(athleteNameElement);
-                }
+            if (matches) {
+                filteredAthletes.push(athlete);
             }
         });
 
-        // Filter Podium Items
+        // Now, update the DOM elements (table rows and podium items) based on filteredAthletes
+
+        // First, hide all rows
+        const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
+        tableRows.forEach(row => {
+            row.style.display = 'none';
+        });
+
+        // Hide all podium items
+        const podiumItems = document.querySelectorAll('.podium-item');
         podiumItems.forEach(item => {
-            const athleteNameElement = item.querySelector('.athlete-name');
-            if (athleteNameElement) {
-                const athleteNameText = athleteNameElement.textContent;
-                const athleteNameNormalized = normalizeString(athleteNameText);
+            item.style.display = 'none';
+        });
 
-                // Get division and generation from data attributes
-                const division = item.getAttribute('data-division').toLowerCase();
-                const generation = item.getAttribute('data-generation').toLowerCase();
+        let anyPodiumVisible = false;
 
-                let matches = true;
-
-                // Check if division matches
-                if (selectedDivisions.length > 0 && !selectedDivisions.includes(division)) {
-                    matches = false;
-                }
-
-                // Check if generation matches
-                if (selectedGenerations.length > 0 && !selectedGenerations.includes(generation)) {
-                    matches = false;
-                }
-
-                // Check if search terms match
-                if (matches && !showAll) {
-                    matches = uniqueSearchTerms.every(term =>
-                        athleteNameNormalized.includes(term)
-                    );
-                }
-
-                if (matches) {
-                    item.classList.remove('hidden');
-                    item.style.display = ''; // Add this line
-                    anyPodiumVisible = true; // Add this line
-                    highlightText(athleteNameElement, uniqueSearchTerms);
-                } else {
-                    item.classList.add('hidden');
-                    item.style.display = 'none';
-                    removeHighlight(athleteNameElement);
-                }
+        // Show the rows and podium items for the filtered athletes
+        filteredAthletes.forEach(athlete => {
+            const athleteName = athlete.name;
+            const row = document.querySelector(`.leaderboard table tbody tr[data-athlete-name="${athleteName}"]`);
+            if (row) {
+                row.style.display = '';
+                showWithDelay(row);
+            }
+            const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
+            if (item) {
+                item.style.display = '';
+                anyPodiumVisible = true;
             }
         });
 
@@ -1213,8 +1179,60 @@
             podium.style.display = 'none'; // Hide the podium container if no items are visible
         }
 
+        // Remove existing highlights
+        removeAllHighlights();
+
+        // Highlight search terms
+        document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
+            const athleteNameText = athleteNameElement.textContent;
+            const athleteNameNormalized = normalizeString(athleteNameText);
+
+            // Check if the athlete is in filteredAthletes
+            const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === athleteNameText);
+            if (athleteInFiltered) {
+                highlightText(athleteNameElement, uniqueSearchTerms);
+            }
+        });
+
+        // Update the counts in the filter sections
+        updateFilterCounts(filteredAthletes);
+
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
+    }
+
+    function updateFilterCounts(filteredAthletes) {
+        // Update division counts
+        const divisionCounts = {};
+        filteredAthletes.forEach(athlete => {
+            const division = athlete.division;
+            divisionCounts[division] = (divisionCounts[division] || 0) + 1;
+        });
+
+        document.querySelectorAll('.filter-section label[data-division]').forEach(label => {
+            const division = label.getAttribute('data-division');
+            const count = divisionCounts[division] || 0;
+            const countSpan = label.querySelector('.filter-count');
+            if (countSpan) {
+                countSpan.textContent = count;
+            }
+        });
+
+        // Update generation counts
+        const generationCounts = {};
+        filteredAthletes.forEach(athlete => {
+            const generation = athlete.generation;
+            generationCounts[generation] = (generationCounts[generation] || 0) + 1;
+        });
+
+        document.querySelectorAll('.filter-section label[data-generation]').forEach(label => {
+            const generation = label.getAttribute('data-generation');
+            const count = generationCounts[generation] || 0;
+            const countSpan = label.querySelector('.filter-count');
+            if (countSpan) {
+                countSpan.textContent = count;
+            }
+        });
     }
 
     function escapeHTML(string) {
@@ -1311,7 +1329,6 @@
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    // Function to display "No results found" message
     function displayNoResults(tableRows, podiumItems, query) {
         // Remove existing no-results message if any
         const existingMessage = document.querySelector('.no-results');
@@ -1320,17 +1337,13 @@
         }
 
         // Check if any rows or podium items are visible
-        const anyVisible = Array.from(tableRows).some(row => !row.classList.contains('hidden') && !row.classList.contains('no-results') && row.style.display !== 'none') ||
-            Array.from(podiumItems).some(item => !item.classList.contains('hidden') && item.style.display !== 'none');
+        const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none') ||
+            Array.from(podiumItems).some(item => item.style.display !== 'none');
 
         if (!anyVisible && query.trim() !== '') {
             const tableBody = document.querySelector('.leaderboard table tbody');
             const noResults = document.createElement('tr');
             noResults.classList.add('no-results');
-            noResults.textContent = 'No results found.';
-            noResults.style.textAlign = 'center';
-            noResults.style.padding = '1rem';
-            noResults.style.fontSize = '1.2rem';
             noResults.innerHTML = `<td colspan="6">No results found for "<strong>${escapeHTML(query)}</strong>".</td>`;
             tableBody.appendChild(noResults);
         }
@@ -1396,10 +1409,9 @@
         const filterSection = document.querySelector('.filter-section ul');
         filterSection.innerHTML = ''; // Clear existing filters if any
 
-        // Count occurrences of each division, normalizing the division names
+        // Count occurrences of each division
         const divisionCounts = athletes.reduce((acc, athlete) => {
-            const divisionName = athlete.division.toLowerCase().trim();
-            acc[divisionName] = (acc[divisionName] || 0) + 1;
+            acc[athlete.division] = (acc[athlete.division] || 0) + 1;
             return acc;
         }, {});
 
@@ -1413,16 +1425,16 @@
         // Generate the filter items with icons and counts
         Object.keys(divisionCounts).forEach(division => {
             const count = divisionCounts[division];
-            const icon = divisionIcons[division] || ""; // Default to no icon if not found
+            const normalizedDivision = division.toLowerCase();
+            const icon = divisionIcons[normalizedDivision] || ""; // Default to no icon if not found
 
-            const displayDivision = division.charAt(0).toUpperCase() + division.slice(1);
             const li = document.createElement('li');
             li.innerHTML = `
-            <label>
-                <input type="checkbox" name="division" value="${division}">
-                ${icon} ${displayDivision} (${count})
-            </label>
-        `;
+        <label data-division="${division}">
+            <input type="checkbox" name="division" value="${division}">
+            ${icon} ${division.charAt(0).toUpperCase() + division.slice(1)} (<span class="filter-count">${count}</span>)
+        </label>
+    `;
             filterSection.appendChild(li);
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', performFilter);
@@ -1433,10 +1445,9 @@
         const filterSection = document.querySelector('#generation-filter-section ul');
         filterSection.innerHTML = ''; // Clear existing filters if any
 
-        // Count occurrences of each generation, normalizing the generation names
+        // Count occurrences of each generation
         const generationCounts = athletes.reduce((acc, athlete) => {
-            const generationName = athlete.generation.trim();
-            acc[generationName] = (acc[generationName] || 0) + 1;
+            acc[athlete.generation] = (acc[athlete.generation] || 0) + 1;
             return acc;
         }, {});
 
@@ -1457,11 +1468,11 @@
 
             const li = document.createElement('li');
             li.innerHTML = `
-            <label>
-                <input type="checkbox" name="generation" value="${generation}">
-                ${icon} ${generation} (${count})
-            </label>
-        `;
+        <label data-generation="${generation}">
+            <input type="checkbox" name="generation" value="${generation}">
+            ${icon} ${generation} (<span class="filter-count">${count}</span>)
+        </label>
+    `;
             filterSection.appendChild(li);
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', performFilter);
