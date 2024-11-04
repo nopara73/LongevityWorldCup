@@ -1396,9 +1396,10 @@
         const filterSection = document.querySelector('.filter-section ul');
         filterSection.innerHTML = ''; // Clear existing filters if any
 
-        // Count occurrences of each division
+        // Count occurrences of each division, normalizing the division names
         const divisionCounts = athletes.reduce((acc, athlete) => {
-            acc[athlete.division] = (acc[athlete.division] || 0) + 1;
+            const divisionName = athlete.division.toLowerCase().trim();
+            acc[divisionName] = (acc[divisionName] || 0) + 1;
             return acc;
         }, {});
 
@@ -1406,26 +1407,25 @@
         const divisionIcons = {
             "men's": "💪",
             "women's": "👠",
-            open: "🦾"
+            "open": "🦾"
         };
 
         // Generate the filter items with icons and counts
         Object.keys(divisionCounts).forEach(division => {
             const count = divisionCounts[division];
-            const normalizedDivision = division.toLowerCase();
-            const icon = divisionIcons[normalizedDivision] || ""; // Default to no icon if not found
+            const icon = divisionIcons[division] || ""; // Default to no icon if not found
 
+            const displayDivision = division.charAt(0).toUpperCase() + division.slice(1);
             const li = document.createElement('li');
             li.innerHTML = `
             <label>
                 <input type="checkbox" name="division" value="${division}">
-                ${icon} ${division.charAt(0).toUpperCase() + division.slice(1)} (${count})
+                ${icon} ${displayDivision} (${count})
             </label>
         `;
             filterSection.appendChild(li);
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', performFilter);
-
         });
     }
 
@@ -1433,9 +1433,10 @@
         const filterSection = document.querySelector('#generation-filter-section ul');
         filterSection.innerHTML = ''; // Clear existing filters if any
 
-        // Count occurrences of each generation
+        // Count occurrences of each generation, normalizing the generation names
         const generationCounts = athletes.reduce((acc, athlete) => {
-            acc[athlete.generation] = (acc[athlete.generation] || 0) + 1;
+            const generationName = athlete.generation.trim();
+            acc[generationName] = (acc[generationName] || 0) + 1;
             return acc;
         }, {});
 
@@ -1464,7 +1465,6 @@
             filterSection.appendChild(li);
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', performFilter);
-
         });
     }
 
