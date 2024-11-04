@@ -1130,16 +1130,17 @@
                 const division = row.getAttribute('data-division').toLowerCase();
                 const generation = row.getAttribute('data-generation').toLowerCase();
 
+                // Initialize matches to true
                 let matches = true;
 
-                // Check if division matches
-                if (selectedDivisions.length > 0 && !selectedDivisions.includes(division)) {
-                    matches = false;
+                // Check division match
+                if (selectedDivisions.length > 0) {
+                    matches = matches && selectedDivisions.includes(division);
                 }
 
-                // Check if generation matches
-                if (selectedGenerations.length > 0 && !selectedGenerations.includes(generation)) {
-                    matches = false;
+                // Check generation match
+                if (selectedGenerations.length > 0) {
+                    matches = matches && selectedGenerations.includes(generation);
                 }
 
                 // Check if search terms match
