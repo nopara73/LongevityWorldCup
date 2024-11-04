@@ -60,6 +60,14 @@
             font-size: 2rem;
         }
 
+        .sidebar.collapsed .sidebar-icon {
+            transform: translateY(10px); /* Adjust the value to position the icon lower */
+        }
+
+        .sidebar.collapsed .sidebar-title {
+            padding-bottom: 21px; /* Adjust this value to lower the line */
+        }
+
         .sidebar .sidebar-title .sidebar-title-text {
             display: none;
             margin-left: 0.5rem;
@@ -1476,4 +1484,12 @@
             return "Unknown Generation";
         }
     }
+
+    document.querySelector('.sidebar').addEventListener('mouseenter', function () {
+        this.classList.remove('collapsed');
+    });
+
+    document.querySelector('.sidebar').addEventListener('mouseleave', function () {
+        this.classList.add('collapsed');
+    });
 </script>
