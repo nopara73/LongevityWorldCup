@@ -718,7 +718,10 @@
         3: { btc: "0.00014401 BTC", amount: "$4.03" }
     };
 
+    let maxAthletesGlobal = Infinity;
+
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+        maxAthletesGlobal = maxAthletes;
         fetch('/api/data/athletes')
             .then(response => response.json())
             .then(athletes => {
@@ -1140,7 +1143,7 @@
             }
         });
 
-        // Now, update the DOM elements (table rows and podium items) based on filteredAthletes
+        filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
 
         // First, hide all rows
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
