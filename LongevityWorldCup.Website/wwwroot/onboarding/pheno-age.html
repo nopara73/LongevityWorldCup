@@ -281,8 +281,11 @@
             // Calculate PhenoAge using the helper function
             const phenoAge = calculatePhenoAge(markerValues, coefficients);
 
-            // Display the result (you can add conditions for error checking)
+            // Display the result
             document.getElementById('phenoAgeResult').innerText = `Your PhenoAge is ${phenoAge.toFixed(2)} years.`;
+
+            // Show the Next button
+            document.getElementById('continueButton').style.display = 'block';
         }
 
         document.addEventListener('DOMContentLoaded', function () {
