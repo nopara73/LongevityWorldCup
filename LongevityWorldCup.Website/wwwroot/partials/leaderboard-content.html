@@ -1050,20 +1050,15 @@
                     portrait.addEventListener('click', function () {
                         const enlargedImg = document.createElement('div');
                         enlargedImg.classList.add('enlarged-portrait');
-                        enlargedImg.innerHTML = `
-<img src="${this.src}" alt="${this.alt}" loading="lazy">`;
+                        enlargedImg.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
                         document.body.appendChild(enlargedImg);
 
-                        // Disable scrolling when the image is enlarged
-                        document.body.classList.add('no-scroll');
-
-                        enlargedImg.onclick = function () {
-                            document.body.removeChild(this);
-
-                            // Re-enable scrolling when the image is closed
+                        enlargedImg.addEventListener('click', function () {
+                            document.body.removeChild(enlargedImg);
                             document.body.classList.remove('no-scroll');
-                        };
+                        });
                     });
+
                 });
 
                 // Select both table and podium athlete names
@@ -1329,14 +1324,22 @@
     let ageChart;
 
     closeBtn.onclick = function () {
-        modal.style.display = "none";
-        document.body.classList.remove('no-scroll'); // Re-enable scrolling when the modal closes
+        modal.classList.add('fade-out');
+        setTimeout(() => {
+            modal.style.display = "none";
+            modal.classList.remove('fade-out');
+            document.body.classList.remove('no-scroll');
+        }, 400);
     };
 
     window.onclick = function (event) {
         if (event.target === modal) {
-            modal.style.display = "none";
-            document.body.classList.remove('no-scroll'); // Re-enable scrolling when the modal closes
+            modal.classList.add('fade-out');
+            setTimeout(() => {
+                modal.style.display = "none";
+                modal.classList.remove('fade-out');
+                document.body.classList.remove('no-scroll');
+            }, 400);
         }
     };
 
