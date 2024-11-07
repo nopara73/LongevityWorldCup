@@ -242,6 +242,7 @@
         object-fit: cover;
         border: 4px solid var(--secondary-color);
         margin-bottom: 1rem;
+        cursor: pointer;
     }
 
     .athlete-info {
@@ -1046,7 +1047,7 @@
                     }
                 });
 
-                document.querySelectorAll('.portrait, .podium-portrait').forEach(portrait => {
+                document.querySelectorAll('.portrait, .podium-portrait, #modalProfilePic').forEach(portrait => {
                     portrait.addEventListener('click', function () {
                         const enlargedImg = document.createElement('div');
                         enlargedImg.classList.add('enlarged-portrait');
