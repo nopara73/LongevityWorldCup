@@ -217,14 +217,91 @@
 
     .modal-content {
         background-color: #fefefe;
-        margin: 15% auto;
+        margin: 5% auto;
         padding: 20px;
-        border: 1px solid #888;
-        width: 80%;
-        max-width: 600px;
+        border: none;
+        width: 90%;
+        max-width: 900px;
         border-radius: 15px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        max-height: 90vh;
     }
+
+    .athlete-profile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .modal-profile-pic {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid var(--secondary-color);
+        margin-bottom: 1rem;
+    }
+
+    .athlete-info {
+        text-align: left;
+        width: 100%;
+        max-width: 600px;
+        margin-bottom: 1rem;
+    }
+
+        .athlete-info p {
+            margin: 0.3rem 0;
+        }
+
+    .athlete-links {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+        .athlete-links a {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--primary-color);
+            transition: color 0.2s ease-in-out;
+        }
+
+            .athlete-links a:hover {
+                color: var(--secondary-color);
+            }
+
+    .biomarkers-section, .proofs-section {
+        margin-bottom: 2rem;
+    }
+
+    .proofs-gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .proof-item {
+        width: 150px;
+        height: 150px;
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+        .proof-item:hover {
+            transform: scale(1.05);
+        }
+
+        .proof-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
     .close {
         color: #aaa;
@@ -686,9 +763,41 @@
         <div id="detailsModal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h2 id="athleteName"></h2>
-                <p id="athleteDetails"></p>
-                <canvas id="ageChart"></canvas>
+
+                <div class="athlete-profile">
+                    <img id="modalProfilePic" src="" alt="Athlete Profile Picture" class="modal-profile-pic" />
+                    <h2 id="athleteName"></h2>
+                    <p id="athleteBio"></p>
+                    <div class="athlete-info">
+                        <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
+                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
+                        <p><strong>Date of Birth:</strong> <span id="athleteDOB"></span></p>
+                        <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
+                        <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
+                        <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
+                        <p><strong>Age Reduction:</strong> <span id="ageReduction"></span> years</p>
+                    </div>
+                    <div class="athlete-links">
+                        <a id="personalLink" href="#" target="_blank" class="personal-link-icon">
+                            <i class="fa fa-link"></i> Personal Link
+                        </a>
+                        <a id="mediaContact" href="#" target="_blank" class="media-contact">
+                            <i class="fa fa-envelope"></i> Media Contact
+                        </a>
+                    </div>
+                </div>
+
+                <div class="biomarkers-section">
+                    <h3>Biomarkers Over Time</h3>
+                    <canvas id="biomarkerChart"></canvas>
+                </div>
+
+                <div class="proofs-section">
+                    <h3>Proofs</h3>
+                    <div class="proofs-gallery" id="proofsGallery">
+                        <!-- Proof images will be inserted here -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -921,63 +1030,224 @@
                 // Select both table and podium athlete names
                 document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
                     athleteNameElement.addEventListener('click', function () {
-                        // Check if it's a table row or podium item
+                        // Determine if it's a table row or podium item
                         const athleteRow = this.closest('tr') || this.closest('.podium-item');
                         if (!athleteRow) {
                             console.error('Athlete row not found');
                             return;
                         }
-                        const athleteNameText = this.textContent;
-                        const sponsorElement = athleteRow.querySelector('td:nth-child(4) a'); // Table sponsor
-                        const sponsor = sponsorElement ? sponsorElement.textContent : 'No sponsor';
-                        const ageReductionElement = athleteRow.querySelector('.age-reduction');
-                        const ageReduction = ageReductionElement ? ageReductionElement.textContent : 'N/A';
 
-                        // Populate the modal
-                        athleteDetails.innerHTML = `
-<strong>Sponsor:</strong> ${sponsor}
-<br>
-<strong>Age Reduction:</strong> ${ageReduction}
-<br>
-<strong>Key Achievement:</strong> ${getAchievement(athleteNameText)}
-                                                                                                                            `;
+                        // Get athlete's name from data attribute
+                        const athleteNameText = athleteRow.getAttribute('data-athlete-name');
 
-                        // Display the modal
-                        modal.style.display = "block";
-                        document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
-
-                        // Update or create the chart
-                        if (ageChart) {
-                            ageChart.destroy();
+                        // Find the athlete's data from athleteResults
+                        const athleteData = athleteResults.find(athlete => athlete.name === athleteNameText);
+                        if (!athleteData) {
+                            console.error('Athlete data not found');
+                            return;
                         }
 
-                        const ctx = document.getElementById('ageChart').getContext('2d');
-                        ageChart = new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: ['Chronological Age', 'Biological Age'],
-                                datasets: [{
-                                    label: 'Age Comparison',
-                                    data: [getRandomAge(), getRandomAge()],
-                                    backgroundColor: [
-                                        'rgba(255, 99, 132, 0.2)',
-                                        'rgba(75, 192, 192, 0.2)'
-                                    ],
-                                    borderColor: [
-                                        'rgba(255, 99, 132, 1)',
-                                        'rgba(75, 192, 192, 1)'
-                                    ],
-                                    borderWidth: 1
-                                }]
-                            },
-                            options: {
-                                scales: {
-                                    y: {
-                                        beginAtZero: true
-                                    }
+                        // Fetch the full athlete JSON data
+                        fetch('/api/data/athletes')
+                            .then(response => response.json())
+                            .then(athletes => {
+                                const fullAthleteData = athletes.find(a => a.name === athleteNameText);
+                                if (!fullAthleteData) {
+                                    console.error('Full athlete data not found');
+                                    return;
                                 }
-                            }
-                        });
+
+                                // Populate the modal with athlete data
+                                document.getElementById('athleteName').textContent = fullAthleteData.name;
+                                document.getElementById('modalProfilePic').src = fullAthleteData['profile-pic'];
+                                document.getElementById('modalProfilePic').alt = `${fullAthleteData.name} Profile Picture`;
+
+                                // Biography and "why"
+                                document.getElementById('athleteBio').textContent = fullAthleteData.why;
+
+                                // Division, Flag, DOB, Generation, Ages
+                                document.getElementById('athleteDivision').textContent = athleteData.division;
+                                document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
+
+                                const dob = fullAthleteData.date_of_birth;
+                                const dobFormatted = `${dob.year}-${String(dob.month).padStart(2, '0')}-${String(dob.day).padStart(2, '0')}`;
+                                document.getElementById('athleteDOB').textContent = dobFormatted;
+
+                                document.getElementById('athleteGeneration').textContent = athleteData.generation;
+                                document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
+                                document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
+                                document.getElementById('ageReduction').textContent = athleteData.ageReduction.toFixed(1);
+
+                                // Personal Link
+                                const personalLinkElement = document.getElementById('personalLink');
+                                if (athleteData.personalLink) {
+                                    personalLinkElement.href = athleteData.personalLink;
+                                    personalLinkElement.style.display = 'flex';
+                                } else {
+                                    personalLinkElement.style.display = 'none';
+                                }
+
+                                // Media Contact
+                                const mediaContactElement = document.getElementById('mediaContact');
+                                if (fullAthleteData.media_contact) {
+                                    mediaContactElement.href = fullAthleteData.media_contact;
+                                    mediaContactElement.style.display = 'flex';
+                                } else {
+                                    mediaContactElement.style.display = 'none';
+                                }
+
+                                // Biomarkers Chart
+                                const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
+                                const biomarkerData = fullAthleteData.biomarkers.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                                const labels = biomarkerData.map(entry => entry.date);
+                                const alb_gL = biomarkerData.map(entry => entry.alb_gL);
+                                const creat_umolL = biomarkerData.map(entry => entry.creat_umolL);
+                                const glu_mmolL = biomarkerData.map(entry => entry.glu_mmolL);
+                                const crp_mgL = biomarkerData.map(entry => entry.crp_mgL);
+                                const lym_pc = biomarkerData.map(entry => entry.lym_pc);
+                                const mcv_fL = biomarkerData.map(entry => entry.mcv_fL);
+                                const rdw_pc = biomarkerData.map(entry => entry.rdw_pc);
+                                const alp_UL = biomarkerData.map(entry => entry.alp_UL);
+                                const wbc_1000cellsuL = biomarkerData.map(entry => entry.wbc_1000cellsuL);
+
+                                // Destroy existing chart if it exists
+                                if (window.biomarkerChartInstance) {
+                                    window.biomarkerChartInstance.destroy();
+                                }
+
+                                window.biomarkerChartInstance = new Chart(biomarkerChartCtx, {
+                                    type: 'line',
+                                    data: {
+                                        labels: labels,
+                                        datasets: [
+                                            {
+                                                label: 'Albumin (g/L)',
+                                                data: alb_gL,
+                                                borderColor: 'rgba(255, 99, 132, 1)',
+                                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'Creatinine (umol/L)',
+                                                data: creat_umolL,
+                                                borderColor: 'rgba(54, 162, 235, 1)',
+                                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'Glucose (mmol/L)',
+                                                data: glu_mmolL,
+                                                borderColor: 'rgba(255, 206, 86, 1)',
+                                                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'CRP (mg/L)',
+                                                data: crp_mgL,
+                                                borderColor: 'rgba(75, 192, 192, 1)',
+                                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'Lymphocytes (%)',
+                                                data: lym_pc,
+                                                borderColor: 'rgba(153, 102, 255, 1)',
+                                                backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'MCV (fL)',
+                                                data: mcv_fL,
+                                                borderColor: 'rgba(255, 159, 64, 1)',
+                                                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'RDW (%)',
+                                                data: rdw_pc,
+                                                borderColor: 'rgba(199, 199, 199, 1)',
+                                                backgroundColor: 'rgba(199, 199, 199, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'ALP (UL)',
+                                                data: alp_UL,
+                                                borderColor: 'rgba(83, 102, 255, 1)',
+                                                backgroundColor: 'rgba(83, 102, 255, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            },
+                                            {
+                                                label: 'WBC (1000 cells/uL)',
+                                                data: wbc_1000cellsuL,
+                                                borderColor: 'rgba(255, 99, 71, 1)',
+                                                backgroundColor: 'rgba(255, 99, 71, 0.2)',
+                                                fill: false,
+                                                tension: 0.1
+                                            }
+                                        ]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        interaction: {
+                                            mode: 'index',
+                                            intersect: false,
+                                        },
+                                        stacked: false,
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: 'Biomarkers Over Time'
+                                            }
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: false,
+                                                title: {
+                                                    display: true,
+                                                    text: 'Biomarker Values'
+                                                }
+                                            },
+                                            x: {
+                                                title: {
+                                                    display: true,
+                                                    text: 'Date'
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+
+                                // Proofs Gallery
+                                const proofsGallery = document.getElementById('proofsGallery');
+                                proofsGallery.innerHTML = ''; // Clear existing proofs
+
+                                fullAthleteData.proofs.forEach(proofUrl => {
+                                    const proofItem = document.createElement('div');
+                                    proofItem.classList.add('proof-item');
+                                    proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image">`;
+                                    proofItem.addEventListener('click', () => {
+                                        // Open the image in a new tab or implement a lightbox
+                                        window.open(proofUrl, '_blank');
+                                    });
+                                    proofsGallery.appendChild(proofItem);
+                                });
+
+                                // Display the modal
+                                modal.style.display = "block";
+                                document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
+                            })
+                            .catch(error => {
+                                console.error('Error fetching full athlete data:', error);
+                            });
                     });
                 });
 
