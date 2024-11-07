@@ -1053,12 +1053,15 @@
                         enlargedImg.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
                         document.body.appendChild(enlargedImg);
 
+                        // Disable scrolling when enlarged portrait is opened
+                        document.body.classList.add('no-scroll');
+
                         enlargedImg.addEventListener('click', function () {
                             document.body.removeChild(enlargedImg);
+                            // Re-enable scrolling after closing the enlarged portrait
                             document.body.classList.remove('no-scroll');
                         });
                     });
-
                 });
 
                 // Select both table and podium athlete names
