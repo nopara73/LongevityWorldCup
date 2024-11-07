@@ -694,6 +694,38 @@
             margin-bottom: 1rem;
         }
     }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in-element {
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes expandCircle {
+        from {
+            transform: scale(0.5);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    #targetShootingVisualization {
+        animation: expandCircle 1s ease-in-out;
+    }
 </style>
 
 <div class="main-container">
@@ -784,6 +816,13 @@
                         <a id="mediaContact" href="#" target="_blank" class="media-contact">
                             <i class="fa fa-envelope"></i> Media Contact
                         </a>
+                    </div>
+                </div>
+
+                <div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
+                    <h3>Age Reduction Visualization</h3>
+                    <div id="targetShootingVisualization" style="width: 150px; height: 150px; margin: 0 auto;">
+                        <!-- Visualization will be dynamically generated here -->
                     </div>
                 </div>
 
@@ -1095,6 +1134,10 @@
                                 } else {
                                     mediaContactElement.style.display = 'none';
                                 }
+
+                                const bioAge = athleteData.lowestPhenoAge;
+                                const chronoAge = athleteData.chronologicalAge;
+                                generateAgeVisualization(bioAge, chronoAge);
 
                                 // Biomarkers Chart
                                 const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
@@ -1777,4 +1820,117 @@
     document.querySelector('.sidebar').addEventListener('mouseleave', function () {
         this.classList.add('collapsed');
     });
+
+    function generateAgeVisualization(bioAge, chronoAge) {
+        const visualizationContainer = document.getElementById('targetShootingVisualization');
+
+        // Define the maximum age for scaling. Adjust if needed.
+        const maxAge = 100;
+
+        // Calculate percentages relative to maxAge
+        const bioPercentage = Math.min((bioAge / maxAge) * 100, 100);
+        const chronoPercentage = Math.min((chronoAge / maxAge) * 100, 100);
+
+        let gradient;
+
+        if (bioAge === chronoAge) {
+            // Entire circle is blue
+            gradient = `radial-gradient(circle, #3498db 100%, #3498db 100%)`;
+        } else if (bioAge < chronoAge) {
+            // Inner blue up to bioAge%, outer green up to chronoAge%, rest gray
+            gradient = `radial-gradient(circle, #3498db ${bioPercentage}%, #2ecc71 ${chronoPercentage}%, #ccc 100%)`;
+        } else { // bioAge > chronoAge
+            // Inner blue up to chronoAge%, outer red up to bioAge%, rest gray
+            gradient = `radial-gradient(circle, #3498db ${chronoPercentage}%, #e74c3c ${bioPercentage}%, #ccc 100%)`;
+        }
+
+        // Apply the gradient to the visualization container
+        visualizationContainer.style.background = gradient;
+        visualizationContainer.style.borderRadius = '50%';
+        visualizationContainer.style.position = 'relative';
+        visualizationContainer.style.border = '2px solid #ccc'; // Optional: Adds a border to the circle
+
+        // Clear any existing content
+        visualizationContainer.innerHTML = '';
+
+        // Add labels based on the scenario
+        if (bioAge === chronoAge) {
+            visualizationContainer.innerHTML = `
+            <span style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-weight: bold;">
+                ${bioAge} yrs
+            </span>
+        `;
+        } else if (bioAge < chronoAge) {
+            visualizationContainer.innerHTML = `
+            <span style="
+                position: absolute;
+                top: 40%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-weight: bold;">
+                Bio: ${bioAge} yrs
+            </span>
+            <span style="
+                position: absolute;
+                top: 60%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-weight: bold;">
+                Chrono: ${chronoAge} yrs
+            </span>
+        `;
+        } else { // bioAge > chronoAge
+            visualizationContainer.innerHTML = `
+            <span style="
+                position: absolute;
+                top: 40%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-weight: bold;">
+                Chrono: ${chronoAge} yrs
+            </span>
+            <span style="
+                position: absolute;
+                top: 60%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-weight: bold;">
+                Bio: ${bioAge} yrs
+            </span>
+        `;
+        }
+    }
+
+    function addFadeInEffectToElements() {
+        document.querySelectorAll('.podium-item, .leaderboard table tbody tr').forEach(element => {
+            element.classList.add('fade-in-element');
+        });
+    }
+
+    function applyVisualizationAnimation() {
+        const visualizationContainer = document.getElementById('targetShootingVisualization');
+        visualizationContainer.classList.remove('expandCircle'); // Reset animation
+        void visualizationContainer.offsetWidth; // Trigger reflow
+        visualizationContainer.classList.add('expandCircle');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        addFadeInEffectToElements();
+    });
+
+    // Apply animations on data reload or updates
+    function refreshVisualizations() {
+        applyVisualizationAnimation();
+        addFadeInEffectToElements();
+    }
 </script>
