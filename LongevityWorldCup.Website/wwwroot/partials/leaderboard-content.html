@@ -322,13 +322,28 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
+        background-color: rgba(0, 0, 0, 0.85); /* Darkened background */
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 1000;
         cursor: pointer;
+        opacity: 0; /* Start hidden */
+        transition: opacity 0.3s ease-in-out; /* Smooth fade-in */
     }
+
+        .enlarged-portrait.show {
+            opacity: 1; /* Fade in */
+        }
+
+        .enlarged-portrait .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+        }
 
         .enlarged-portrait img {
             max-width: 90%;
@@ -1045,18 +1060,38 @@
                     portrait.addEventListener('click', function () {
                         const enlargedImg = document.createElement('div');
                         enlargedImg.classList.add('enlarged-portrait');
-                        enlargedImg.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
+                        enlargedImg.innerHTML = `
+        <img src="${this.src}" alt="${this.alt}">
+        <span class="close-btn">&times;</span>
+    `;
                         document.body.appendChild(enlargedImg);
-
-                        // Disable scrolling when enlarged portrait is opened
                         document.body.classList.add('no-scroll');
 
-                        enlargedImg.addEventListener('click', function () {
-                            document.body.removeChild(enlargedImg);
-                            // Re-enable scrolling after closing the enlarged portrait
-                            document.body.classList.remove('no-scroll');
+                        // Trigger fade-in by adding `.show` after appending to DOM
+                        setTimeout(() => enlargedImg.classList.add('show'), 10);
+
+                        // Close button event listener
+                        enlargedImg.querySelector('.close-btn').addEventListener('click', function () {
+                            closeEnlargedView(enlargedImg);
+                        });
+
+                        // Close when clicking outside the image
+                        enlargedImg.addEventListener('click', function (e) {
+                            if (e.target === enlargedImg) {
+                                closeEnlargedView(enlargedImg);
+                            }
                         });
                     });
+
+                    // Close enlarged image function
+                    function closeEnlargedView(enlargedImg) {
+                        enlargedImg.classList.remove('show'); // Start fade-out
+                        setTimeout(() => {
+                            document.body.removeChild(enlargedImg);
+                            document.body.classList.remove('no-scroll');
+                        }, 300); // Match CSS transition duration
+                    }
+
                 });
 
                 // Select both table and podium athlete names
