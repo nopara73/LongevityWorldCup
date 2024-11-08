@@ -1100,47 +1100,10 @@
                     }
                 });
 
-                document.querySelectorAll('.portrait, .podium-portrait, #modalProfilePic').forEach(portrait => {
-                    portrait.addEventListener('click', function () {
-                        const enlargedImg = document.createElement('div');
-                        enlargedImg.classList.add('enlarged-portrait');
-                        enlargedImg.innerHTML = `
-        <img src="${this.src}" alt="${this.alt}">
-        <span class="close-btn">&times;</span>
-    `;
-                        document.body.appendChild(enlargedImg);
-                        document.body.classList.add('no-scroll');
-
-                        // Trigger fade-in by adding `.show` after appending to DOM
-                        setTimeout(() => enlargedImg.classList.add('show'), 10);
-
-                        // Prevent click on the image from closing the enlarged view
-                        enlargedImg.querySelector('img').addEventListener('click', function (e) {
-                            e.stopPropagation();
-                        });
-
-                        // Close button event listener
-                        enlargedImg.querySelector('.close-btn').addEventListener('click', function () {
-                            closeEnlargedView(enlargedImg);
-                        });
-
-                        // Close when clicking outside the image
-                        enlargedImg.addEventListener('click', function (e) {
-                            if (e.target === enlargedImg) {
-                                closeEnlargedView(enlargedImg);
-                            }
-                        });
+                document.querySelectorAll('.portrait, .podium-portrait, #modalProfilePic, .proof-item img').forEach(img => {
+                    img.addEventListener('click', function () {
+                        openEnlargedView(this);
                     });
-
-                    // Close enlarged image function
-                    function closeEnlargedView(enlargedImg) {
-                        enlargedImg.classList.remove('show');
-                        setTimeout(() => {
-                            document.body.removeChild(enlargedImg);
-                            document.body.classList.remove('no-scroll');
-                        }, 300);
-                    }
-
                 });
 
                 // Select both table and podium athlete names
@@ -1356,11 +1319,12 @@
                                     const proofItem = document.createElement('div');
                                     proofItem.classList.add('proof-item');
                                     proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image">`;
-                                    proofItem.addEventListener('click', () => {
-                                        // Open the image in a new tab or implement a lightbox
-                                        window.open(proofUrl, '_blank');
-                                    });
                                     proofsGallery.appendChild(proofItem);
+
+                                    // Add click event after appending
+                                    proofItem.querySelector('img').addEventListener('click', function () {
+                                        openEnlargedView(this);
+                                    });
                                 });
 
                                 // Display the modal
@@ -1378,6 +1342,44 @@
                 console.error('Error fetching athletes:', error);
             });
     };
+    function openEnlargedView(imgElement) {
+        const enlargedImg = document.createElement('div');
+        enlargedImg.classList.add('enlarged-portrait');
+        enlargedImg.innerHTML = `
+        <img src="${imgElement.src}" alt="${imgElement.alt}">
+        <span class="close-btn">&times;</span>
+    `;
+        document.body.appendChild(enlargedImg);
+        document.body.classList.add('no-scroll');
+
+        // Trigger fade-in animation
+        setTimeout(() => enlargedImg.classList.add('show'), 10);
+
+        // Prevent click on the image from closing the enlarged view
+        enlargedImg.querySelector('img').addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        // Close button event listener
+        enlargedImg.querySelector('.close-btn').addEventListener('click', function () {
+            closeEnlargedView(enlargedImg);
+        });
+
+        // Close when clicking outside the image
+        enlargedImg.addEventListener('click', function (e) {
+            if (e.target === enlargedImg) {
+                closeEnlargedView(enlargedImg);
+            }
+        });
+    }
+
+    function closeEnlargedView(enlargedImg) {
+        enlargedImg.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(enlargedImg);
+            document.body.classList.remove('no-scroll');
+        }, 300);
+    }
 
     function renderMediaContact(contact, isPodium) {
         const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
