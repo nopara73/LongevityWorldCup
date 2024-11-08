@@ -1454,14 +1454,18 @@
 
     window.onclick = function (event) {
         if (event.target === modal) {
-            modal.classList.add('fade-out');
-            setTimeout(() => {
-                modal.style.display = "none";
-                modal.classList.remove('fade-out');
-                document.body.classList.remove('no-scroll');
-            }, 400);
+            closeModal();
         }
     };
+
+    function closeModal() {
+        modal.classList.add('fade-out');
+        setTimeout(() => {
+            modal.style.display = "none";
+            modal.classList.remove('fade-out');
+            document.body.classList.remove('no-scroll');
+        }, 400);
+    }
 
     function getAchievement(name) {
         const achievements = {
@@ -2023,5 +2027,23 @@
     function refreshVisualizations() {
         applyVisualizationAnimation();
         addFadeInEffectToElements();
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' || event.key === 'Esc') {
+            closeOpenComponents();
+        }
+    });
+    function closeOpenComponents() {
+
+        const enlargedImg = document.querySelector('.enlarged-portrait.show');
+        if (enlargedImg) {
+            // Close the enlarged portrait if it's open
+            closeEnlargedView(enlargedImg);
+        }
+        else if (modal.style.display === "block") {
+            // Close the details modal if it's open
+            closeModal();
+        }
     }
 </script>
