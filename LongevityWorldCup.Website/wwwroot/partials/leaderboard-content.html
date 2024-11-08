@@ -763,7 +763,7 @@
         animation: expandCircle 1s ease-in-out;
     }
 
-    #mediaContact {
+    .modal-link {
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -773,11 +773,11 @@
         transition: color 0.3s ease;
     }
 
-        #mediaContact:hover {
+        .modal-link:hover {
             color: var(--secondary-color);
         }
 
-        #mediaContact i {
+        .modal-link i {
             font-size: 1.8rem;
             line-height: 1;
         }
@@ -865,10 +865,10 @@
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
                     <div class="athlete-links">
-                        <a id="personalLink" href="#" target="_blank" class="personal-link-icon">
+                        <a id="personalLink" href="#" target="_blank" class="modal-link">
                             <i class="fa fa-link"></i> Personal Link
                         </a>
-                        <a id="mediaContact" href="#" target="_blank" class="media-contact">
+                        <a id="mediaContact" href="#" target="_blank" class="modal-link">
                             <i class="fa fa-envelope"></i> Media Contact
                         </a>
                     </div>
