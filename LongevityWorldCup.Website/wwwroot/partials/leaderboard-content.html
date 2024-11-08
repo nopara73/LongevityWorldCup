@@ -1095,6 +1095,11 @@
                         // Trigger fade-in by adding `.show` after appending to DOM
                         setTimeout(() => enlargedImg.classList.add('show'), 10);
 
+                        // Prevent click on the image from closing the enlarged view
+                        enlargedImg.querySelector('img').addEventListener('click', function (e) {
+                            e.stopPropagation();
+                        });
+
                         // Close button event listener
                         enlargedImg.querySelector('.close-btn').addEventListener('click', function () {
                             closeEnlargedView(enlargedImg);
@@ -1989,9 +1994,4 @@
         applyVisualizationAnimation();
         addFadeInEffectToElements();
     }
-
-    // Prevent click on the image from closing the enlarged view
-    enlargedImg.querySelector('img').addEventListener('click', function (e) {
-        e.stopPropagation();
-    });
 </script>
