@@ -1944,8 +1944,7 @@
         var circleText = `${difference > 0 ? '+' : ''}${difference} yrs`;
 
         // Add labels based on the scenario
-        if (bioAge === chronoAge) {
-            visualizationContainer.innerHTML = `
+        visualizationContainer.innerHTML = `
             <span style="
                 position: absolute;
                 top: 50%;
@@ -1956,31 +1955,6 @@
                 ${circleText}
             </span>
         `;
-        } else if (bioAge < chronoAge) {
-            visualizationContainer.innerHTML = `
-            <span style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: white;
-                font-weight: bold;">
-                ${circleText}
-            </span>
-        `;
-        } else { // bioAge > chronoAge
-            visualizationContainer.innerHTML = `
-            <span style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: white;
-                font-weight: bold;">
-                ${circleText}
-            </span>
-        `;
-        }
     }
 
     function addFadeInEffectToElements() {
