@@ -1171,7 +1171,7 @@
                                     mediaContactElement.href = isEmail
                                         ? `mailto:${athleteData.mediaContact}`
                                         : athleteData.mediaContact;
-                                    mediaContactElement.innerHTML = `${isEmail ? '<i class="fa fa-envelope"></i>' : '<i class="fa fa-link"></i>'} Media Contact`;
+                                    mediaContactElement.innerHTML = `${getIcon(athleteData.mediaContact)} Media Contact`;
                                     mediaContactElement.style.display = 'flex';
                                 } else {
                                     mediaContactElement.style.display = 'none';
