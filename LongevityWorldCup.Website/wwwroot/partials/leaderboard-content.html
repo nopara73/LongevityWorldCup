@@ -837,6 +837,7 @@
                     <h2 id="athleteName"></h2>
                     <p id="athleteBio"></p>
                     <div class="athlete-info">
+                        <p><strong>Rank:</strong> <span id="athleteRank"></span></p>
                         <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
                         <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
@@ -1162,7 +1163,8 @@
                                 // Biography and "why"
                                 document.getElementById('athleteBio').textContent = fullAthleteData.why;
 
-                                // Division, Flag, Generation, Ages
+                                // Rank, Division, Flag, Generation, Ages
+                                document.getElementById('athleteRank').textContent = `#${athleteData.rank}`;
                                 document.getElementById('athleteDivision').textContent = athleteData.division;
                                 document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
                                 document.getElementById('athleteGeneration').textContent = athleteData.generation;
