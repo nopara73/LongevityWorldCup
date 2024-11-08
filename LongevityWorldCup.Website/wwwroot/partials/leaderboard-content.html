@@ -1272,7 +1272,19 @@
                                     }
                                 ];
 
-                                // Add standardized biomarker datasets with actual values
+                                // Define colors corresponding to each biomarker
+                                const biomarkerColors = {
+                                    'Albumin (g/L)': 'rgba(0, 128, 255, 1)',         // Blue for liver-related biomarker
+                                    'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',   // Purple for kidney function
+                                    'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',      // Orange for blood sugar level
+                                    'CRP (mg/L)': 'rgba(255, 69, 0, 1)',             // Red for inflammation
+                                    'Lymphocytes (%)': 'rgba(0, 100, 0, 1)',         // Dark green for immune health
+                                    'MCV (fL)': 'rgba(70, 130, 180, 1)',             // Steel blue for blood health
+                                    'RDW (%)': 'rgba(220, 20, 60, 1)',               // Crimson for red cell variation
+                                    'ALP (U/L)': 'rgba(218, 165, 32, 1)',            // Goldenrod for liver function
+                                    'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)'    // Forest green for white blood cells
+                                };
+
                                 for (const [key, zScores] of Object.entries(biomarkersZScores)) {
                                     const actualValues = biomarkersRaw[key]; // Original values
                                     const dataPoints = zScores.map((zScore, index) => ({
@@ -1284,7 +1296,7 @@
                                     datasets.push({
                                         label: key,
                                         data: dataPoints,
-                                        borderColor: getRandomColor(),
+                                        borderColor: biomarkerColors[key],
                                         backgroundColor: 'rgba(0, 0, 0, 0)', // Transparent background
                                         fill: false,
                                         tension: 0.1,
@@ -1366,14 +1378,6 @@
                                         }
                                     }
                                 });
-
-                                // Function to get random colors for the biomarkers
-                                function getRandomColor() {
-                                    const r = Math.floor(Math.random() * 200);
-                                    const g = Math.floor(Math.random() * 200);
-                                    const b = Math.floor(Math.random() * 200);
-                                    return `rgba(${r}, ${g}, ${b}, 1)`;
-                                }
 
                                 // Proofs Gallery
                                 const proofsGallery = document.getElementById('proofsGallery');
