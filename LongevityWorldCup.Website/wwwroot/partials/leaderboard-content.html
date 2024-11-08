@@ -1192,15 +1192,17 @@
                                 const chronologicalAges = [];
 
                                 // Biomarker arrays
-                                const alb_gL = [];
-                                const creat_umolL = [];
-                                const glu_mmolL = [];
-                                const crp_mgL = [];
-                                const lym_pc = [];
-                                const mcv_fL = [];
-                                const rdw_pc = [];
-                                const alp_UL = [];
-                                const wbc_1000cellsuL = [];
+                                const biomarkersRaw = {
+                                    'Albumin (g/L)': [],
+                                    'Creatinine (µmol/L)': [],
+                                    'Glucose (mmol/L)': [],
+                                    'CRP (mg/L)': [],
+                                    'Lymphocytes (%)': [],
+                                    'MCV (fL)': [],
+                                    'RDW (%)': [],
+                                    'ALP (U/L)': [],
+                                    'WBC (10^3 cells/µL)': []
+                                };
 
                                 // Calculate PhenoAge and collect biomarker values
                                 biomarkerData.forEach(entry => {
@@ -1208,15 +1210,15 @@
                                     const chronoAgeAtEntry = calculateAgeAtDate(dob, entryDate);
 
                                     // Collect biomarker values
-                                    alb_gL.push(entry.alb_gL);
-                                    creat_umolL.push(entry.creat_umolL);
-                                    glu_mmolL.push(entry.glu_mmolL);
-                                    crp_mgL.push(entry.crp_mgL);
-                                    lym_pc.push(entry.lym_pc);
-                                    mcv_fL.push(entry.mcv_fL);
-                                    rdw_pc.push(entry.rdw_pc);
-                                    alp_UL.push(entry.alp_UL);
-                                    wbc_1000cellsuL.push(entry.wbc_1000cellsuL);
+                                    biomarkersRaw['Albumin (g/L)'].push(entry.alb_gL);
+                                    biomarkersRaw['Creatinine (µmol/L)'].push(entry.creat_umolL);
+                                    biomarkersRaw['Glucose (mmol/L)'].push(entry.glu_mmolL);
+                                    biomarkersRaw['CRP (mg/L)'].push(entry.crp_mgL);
+                                    biomarkersRaw['Lymphocytes (%)'].push(entry.lym_pc);
+                                    biomarkersRaw['MCV (fL)'].push(entry.mcv_fL);
+                                    biomarkersRaw['RDW (%)'].push(entry.rdw_pc);
+                                    biomarkersRaw['ALP (U/L)'].push(entry.alp_UL);
+                                    biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.wbc_1000cellsuL);
 
                                     // Prepare biomarker values for PhenoAge calculation
                                     const biomarkerValues = [
@@ -1240,6 +1242,43 @@
                                     phenoAges.push(phenoAge.toFixed(1));
                                 });
 
+                                // Standardize biomarkers using z-scores
+                                const biomarkersZScores = {};
+                                for (const [key, values] of Object.entries(biomarkersRaw)) {
+                                    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+                                    const stdDev = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
+                                    biomarkersZScores[key] = values.map(val => ((val - mean) / stdDev).toFixed(2));
+                                }
+
+                                // Prepare datasets
+                                const datasets = [
+                                    // PhenoAge dataset
+                                    {
+                                        label: 'PhenoAge',
+                                        data: phenoAges,
+                                        borderColor: 'rgba(0, 0, 255, 1)',
+                                        backgroundColor: 'rgba(0, 0, 255, 0.1)',
+                                        fill: false,
+                                        tension: 0.1,
+                                        borderWidth: 3,
+                                        yAxisID: 'y1'
+                                    }
+                                ];
+
+                                // Add standardized biomarker datasets
+                                for (const [key, zScores] of Object.entries(biomarkersZScores)) {
+                                    datasets.push({
+                                        label: key,
+                                        data: zScores,
+                                        borderColor: getRandomColor(),
+                                        backgroundColor: 'rgba(0, 0, 0, 0)', // Transparent background
+                                        fill: false,
+                                        tension: 0.1,
+                                        yAxisID: 'y2',
+                                        hidden: true // Hide biomarkers by default
+                                    });
+                                }
+
                                 // Destroy existing chart if it exists
                                 if (window.biomarkerChartInstance) {
                                     window.biomarkerChartInstance.destroy();
@@ -1249,101 +1288,7 @@
                                     type: 'line',
                                     data: {
                                         labels: labels,
-                                        datasets: [
-                                            // PhenoAge dataset (most prominent)
-                                            {
-                                                label: 'PhenoAge',
-                                                data: phenoAges,
-                                                borderColor: 'rgba(0, 0, 255, 1)',
-                                                backgroundColor: 'rgba(0, 0, 255, 0.1)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                borderWidth: 3,
-                                                yAxisID: 'y1'
-                                            },
-                                            // Biomarker datasets
-                                            {
-                                                label: 'Albumin (g/L)',
-                                                data: alb_gL,
-                                                borderColor: 'rgba(255, 99, 132, 1)',
-                                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'Creatinine (umol/L)',
-                                                data: creat_umolL,
-                                                borderColor: 'rgba(54, 162, 235, 1)',
-                                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'Glucose (mmol/L)',
-                                                data: glu_mmolL,
-                                                borderColor: 'rgba(255, 206, 86, 1)',
-                                                backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'CRP (mg/L)',
-                                                data: crp_mgL,
-                                                borderColor: 'rgba(75, 192, 192, 1)',
-                                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'Lymphocytes (%)',
-                                                data: lym_pc,
-                                                borderColor: 'rgba(153, 102, 255, 1)',
-                                                backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'MCV (fL)',
-                                                data: mcv_fL,
-                                                borderColor: 'rgba(255, 159, 64, 1)',
-                                                backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'RDW (%)',
-                                                data: rdw_pc,
-                                                borderColor: 'rgba(199, 199, 199, 1)',
-                                                backgroundColor: 'rgba(199, 199, 199, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'ALP (UL)',
-                                                data: alp_UL,
-                                                borderColor: 'rgba(83, 102, 255, 1)',
-                                                backgroundColor: 'rgba(83, 102, 255, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            },
-                                            {
-                                                label: 'WBC (1000 cells/uL)',
-                                                data: wbc_1000cellsuL,
-                                                borderColor: 'rgba(255, 99, 71, 1)',
-                                                backgroundColor: 'rgba(255, 99, 71, 0.2)',
-                                                fill: false,
-                                                tension: 0.1,
-                                                yAxisID: 'y2'
-                                            }
-                                        ]
+                                        datasets: datasets
                                     },
                                     options: {
                                         responsive: true,
@@ -1365,6 +1310,9 @@
                                                 title: {
                                                     display: true,
                                                     text: 'Age (years)'
+                                                },
+                                                grid: {
+                                                    drawOnChartArea: true,
                                                 }
                                             },
                                             y2: {
@@ -1373,7 +1321,7 @@
                                                 position: 'right',
                                                 title: {
                                                     display: true,
-                                                    text: 'Biomarker Values'
+                                                    text: 'Biomarkers (Z-scores)'
                                                 },
                                                 grid: {
                                                     drawOnChartArea: false,
@@ -1388,6 +1336,14 @@
                                         }
                                     }
                                 });
+
+                                // Function to get random colors for the biomarkers
+                                function getRandomColor() {
+                                    const r = Math.floor(Math.random() * 200);
+                                    const g = Math.floor(Math.random() * 200);
+                                    const b = Math.floor(Math.random() * 200);
+                                    return `rgba(${r}, ${g}, ${b}, 1)`;
+                                }
 
                                 // Proofs Gallery
                                 const proofsGallery = document.getElementById('proofsGallery');
