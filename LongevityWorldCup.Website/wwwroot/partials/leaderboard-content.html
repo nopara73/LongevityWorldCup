@@ -1272,11 +1272,18 @@
                                     }
                                 ];
 
-                                // Add standardized biomarker datasets
+                                // Add standardized biomarker datasets with actual values
                                 for (const [key, zScores] of Object.entries(biomarkersZScores)) {
+                                    const actualValues = biomarkersRaw[key]; // Original values
+                                    const dataPoints = zScores.map((zScore, index) => ({
+                                        x: labels[index],
+                                        y: zScore,
+                                        actualValue: actualValues[index]
+                                    }));
+
                                     datasets.push({
                                         label: key,
-                                        data: zScores,
+                                        data: dataPoints,
                                         borderColor: getRandomColor(),
                                         backgroundColor: 'rgba(0, 0, 0, 0)', // Transparent background
                                         fill: false,
@@ -1307,6 +1314,22 @@
                                         plugins: {
                                             title: {
                                                 display: false
+                                            },
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: function (context) {
+                                                        const label = context.dataset.label || '';
+                                                        const yValue = context.parsed.y;
+                                                        const actualValue = context.raw.actualValue;
+                                                        const formattedActualValue = (actualValue !== undefined && !isNaN(actualValue)) ? (actualValue % 1 !== 0 ? actualValue.toFixed(2) : actualValue.toString()) : 'N/A';
+
+                                                        if (label === 'PhenoAge') {
+                                                            return `${label}: ${yValue}`;
+                                                        } else {
+                                                            return `${label}: ${formattedActualValue}`;
+                                                        }
+                                                    }
+                                                }
                                             }
                                         },
                                         scales: {
