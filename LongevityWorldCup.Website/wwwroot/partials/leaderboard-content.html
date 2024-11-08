@@ -1246,8 +1246,15 @@
                                 const biomarkersZScores = {};
                                 for (const [key, values] of Object.entries(biomarkersRaw)) {
                                     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-                                    const stdDev = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
-                                    biomarkersZScores[key] = values.map(val => ((val - mean) / stdDev).toFixed(2));
+                                    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+                                    const stdDev = Math.sqrt(variance);
+
+                                    // Handle case where stdDev is 0
+                                    if (stdDev === 0) {
+                                        biomarkersZScores[key] = values.map(val => 0); // All z-scores are zero
+                                    } else {
+                                        biomarkersZScores[key] = values.map(val => ((val - mean) / stdDev).toFixed(2));
+                                    }
                                 }
 
                                 // Prepare datasets
