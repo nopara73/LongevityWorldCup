@@ -839,7 +839,6 @@
                     <div class="athlete-info">
                         <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
                         <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
-                        <p><strong>Date of Birth:</strong> <span id="athleteDOB"></span></p>
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
                         <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
@@ -1158,14 +1157,9 @@
                                 // Biography and "why"
                                 document.getElementById('athleteBio').textContent = fullAthleteData.why;
 
-                                // Division, Flag, DOB, Generation, Ages
+                                // Division, Flag, Generation, Ages
                                 document.getElementById('athleteDivision').textContent = athleteData.division;
                                 document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
-
-                                const dob = fullAthleteData.date_of_birth;
-                                const dobFormatted = `${dob.year}-${String(dob.month).padStart(2, '0')}-${String(dob.day).padStart(2, '0')}`;
-                                document.getElementById('athleteDOB').textContent = dobFormatted;
-
                                 document.getElementById('athleteGeneration').textContent = athleteData.generation;
                                 document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
                                 document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
