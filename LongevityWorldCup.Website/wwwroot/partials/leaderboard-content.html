@@ -875,7 +875,6 @@
                 </div>
 
                 <div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
-                    <h3>Age Reduction Visualization</h3>
                     <div id="targetShootingVisualization" style="width: 150px; height: 150px; margin: 0 auto;">
                         <!-- Visualization will be dynamically generated here -->
                     </div>
@@ -1941,6 +1940,9 @@
         // Clear any existing content
         visualizationContainer.innerHTML = '';
 
+        var difference = (bioAge - chronoAge).toFixed(1);
+        var circleText = `${difference > 0 ? '+' : ''}${difference} yrs`;
+
         // Add labels based on the scenario
         if (bioAge === chronoAge) {
             visualizationContainer.innerHTML = `
@@ -1951,49 +1953,31 @@
                 transform: translate(-50%, -50%);
                 color: white;
                 font-weight: bold;">
-                ${bioAge} yrs
+                ${circleText}
             </span>
         `;
         } else if (bioAge < chronoAge) {
             visualizationContainer.innerHTML = `
             <span style="
                 position: absolute;
-                top: 40%;
+                top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
                 color: white;
                 font-weight: bold;">
-                Bio: ${bioAge} yrs
-            </span>
-            <span style="
-                position: absolute;
-                top: 60%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: white;
-                font-weight: bold;">
-                Chrono: ${chronoAge} yrs
+                ${circleText}
             </span>
         `;
         } else { // bioAge > chronoAge
             visualizationContainer.innerHTML = `
             <span style="
                 position: absolute;
-                top: 40%;
+                top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
                 color: white;
                 font-weight: bold;">
-                Chrono: ${chronoAge} yrs
-            </span>
-            <span style="
-                position: absolute;
-                top: 60%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: white;
-                font-weight: bold;">
-                Bio: ${bioAge} yrs
+                ${circleText}
             </span>
         `;
         }
