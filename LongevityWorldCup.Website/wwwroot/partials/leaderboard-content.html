@@ -762,6 +762,25 @@
     #targetShootingVisualization {
         animation: expandCircle 1s ease-in-out;
     }
+
+    #mediaContact {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.2rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+        #mediaContact:hover {
+            color: var(--secondary-color);
+        }
+
+        #mediaContact i {
+            font-size: 1.8rem;
+            line-height: 1;
+        }
 </style>
 
 <div class="main-container">
@@ -1185,8 +1204,12 @@
 
                                 // Media Contact
                                 const mediaContactElement = document.getElementById('mediaContact');
-                                if (fullAthleteData.media_contact) {
-                                    mediaContactElement.href = fullAthleteData.media_contact;
+                                if (athleteData.mediaContact) {
+                                    const isEmail = athleteData.mediaContact.includes('@');
+                                    mediaContactElement.href = isEmail
+                                        ? `mailto:${athleteData.mediaContact}`
+                                        : athleteData.mediaContact;
+                                    mediaContactElement.innerHTML = `${isEmail ? '<i class="fa fa-envelope"></i>' : '<i class="fa fa-link"></i>'} Media Contact`;
                                     mediaContactElement.style.display = 'flex';
                                 } else {
                                     mediaContactElement.style.display = 'none';
