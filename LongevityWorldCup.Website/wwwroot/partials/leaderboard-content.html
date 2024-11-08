@@ -842,7 +842,7 @@
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
                         <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
-                        <p><strong>Age Reduction:</strong> <span id="ageReduction"></span> years</p>
+                        <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
                     <div class="athlete-links">
                         <a id="personalLink" href="#" target="_blank" class="personal-link-icon">
@@ -1168,7 +1168,9 @@
                                 document.getElementById('athleteGeneration').textContent = athleteData.generation;
                                 document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
                                 document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-                                document.getElementById('ageReduction').textContent = athleteData.ageReduction.toFixed(1);
+
+                                document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
+                                document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
 
                                 // Personal Link
                                 const personalLinkElement = document.getElementById('personalLink');
