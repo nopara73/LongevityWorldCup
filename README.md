@@ -7,7 +7,7 @@ https://www.longevityworldcup.com/
 
 ## Roadmap
 - [x] Sept: Inception
-- [ ] Oct: Design
+- [x] Oct: Design
 - [ ] Nov: Code
 - [ ] Dec: Communication
 - [ ] January 1st: Launch
