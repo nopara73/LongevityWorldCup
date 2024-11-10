@@ -3,9 +3,8 @@ function parseInput(value) {
     return value === '' ? NaN : Number(value);
 }
 
-// Helper function to calculate age from date of birth
 function calculateAgeFromDOB(dob) {
-    const birthDate = new Date(dob);
+    const birthDate = typeof dob === "string" ? new Date(dob) : dob;
     const today = new Date();
 
     if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
