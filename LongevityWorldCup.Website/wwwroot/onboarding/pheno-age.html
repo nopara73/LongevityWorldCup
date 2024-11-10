@@ -340,7 +340,9 @@
 
         function fillFakeData() {
             // Set fake Date of Birth (e.g., 40 years old)
-            document.getElementById('dob').value = new Date(new Date().setFullYear(new Date().getFullYear() - 40)).toISOString().split('T')[0];
+            document.getElementById('dob-year').value = 1985;
+            document.getElementById('dob-month').value = 11;
+            document.getElementById('dob-day').value = 30;
 
             // Set fake values for all input fields
             document.getElementById('albumin').value = 45; // g/L
