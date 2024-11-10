@@ -116,13 +116,13 @@
             <!-- Date of Birth Fields -->
             <fieldset>
                 <legend>Date of Birth:</legend>
-                <label for="dob-year">Year (required):</label>
+                <label for="dob-year">Year <span style="font-weight: normal;">(required)</span></label>
                 <select id="dob-year" name="dob-year" required aria-required="true" onchange="calculateResult()">
                     <option value="" disabled selected>Select Year</option>
                     <!-- Generate year options dynamically here -->
                 </select>
 
-                <label for="dob-month">Month (optional):</label>
+                <label for="dob-month">Month <span style="font-weight: normal;">(optional)</span></label>
                 <select id="dob-month" name="dob-month" onchange="calculateResult()">
                     <option value="1">January</option>
                     <option value="2">February</option>
@@ -138,7 +138,7 @@
                     <option value="12" selected>December</option>
                 </select>
 
-                <label for="dob-day">Day (optional):</label>
+                <label for="dob-day">Day <span style="font-weight: normal;">(optional)</span></label>
                 <select id="dob-day" name="dob-day" onchange="calculateResult()">
                     <option value="" disabled selected>Select Day</option>
                 </select>
@@ -151,7 +151,7 @@
                 <legend>Biomarkers:</legend>
 
                 <!-- Albumin -->
-                <label for="albumin">Albumin:</label>
+                <label for="albumin">Albumin</label>
                 <div class="input-group">
                     <input type="number" id="albumin" name="albumin" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="albuminUnit" class="visually-hidden">Select unit for Albumin</label>
@@ -164,7 +164,7 @@
                 </div>
 
                 <!-- Creatinine -->
-                <label for="creatinine">Creatinine:</label>
+                <label for="creatinine">Creatinine</label>
                 <div class="input-group">
                     <input type="number" id="creatinine" name="creatinine" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="creatinineUnit" class="visually-hidden">Select unit for Creatinine</label>
@@ -175,7 +175,7 @@
                 </div>
 
                 <!-- Glucose -->
-                <label for="glucose">Glucose:</label>
+                <label for="glucose">Glucose</label>
                 <div class="input-group">
                     <input type="number" id="glucose" name="glucose" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="glucoseUnit" class="visually-hidden">Select unit for Glucose</label>
@@ -186,7 +186,7 @@
                 </div>
 
                 <!-- C-Reactive Protein -->
-                <label for="crp">C-Reactive Protein:</label>
+                <label for="crp">C-Reactive Protein</label>
                 <div class="input-group">
                     <input type="number" id="crp" name="crp" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
@@ -198,7 +198,7 @@
                 </div>
 
                 <!-- Lymphocyte Percentage -->
-                <label for="lymphocyte">Lymphocytes:</label>
+                <label for="lymphocyte">Lymphocytes</label>
                 <div class="input-group">
                     <input type="number" id="lymphocyte" name="lymphocyte" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
@@ -210,7 +210,7 @@
                 </div>
 
                 <!-- Mean Corpuscular Volume -->
-                <label for="mcv">Mean Corpuscular Volume:</label>
+                <label for="mcv">Mean Corpuscular Volume</label>
                 <div class="input-group">
                     <input type="number" id="mcv" name="mcv" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
@@ -220,7 +220,7 @@
                 </div>
 
                 <!-- Red Cell Distribution Width -->
-                <label for="rcdw">Red Cell Distribution Width:</label>
+                <label for="rcdw">Red Cell Distribution Width</label>
                 <div class="input-group">
                     <input type="number" id="rcdw" name="rcdw" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
@@ -230,7 +230,7 @@
                 </div>
 
                 <!-- Alkaline Phosphatase -->
-                <label for="ap">Alkaline Phosphatase:</label>
+                <label for="ap">Alkaline Phosphatase</label>
                 <div class="input-group">
                     <input type="number" id="ap" name="ap" required aria-required="true" oninput="calculateResult()">
                     <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
@@ -240,7 +240,7 @@
                 </div>
 
                 <!-- White Blood Cell Count -->
-                <label for="wbc">White Blood Cell Count:</label>
+                <label for="wbc">White Blood Cell Count</label>
                 <div class="input-group">
                     <input type="number" id="wbc" name="wbc" step="0.1" required aria-required="true" oninput="calculateResult()">
                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
