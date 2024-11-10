@@ -98,6 +98,27 @@
         .errorNaN {
             border: 2px solid red;
         }
+
+        .dob-inputs label {
+            display: block;
+            margin-top: 0.5rem;
+            font-weight: normal;
+        }
+
+        .dob-inputs input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.25rem;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .privacy-note {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -107,9 +128,20 @@
         <h2>Your Chronological vs Biological Age🧬</h2>
         <p>Calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>:</p>
         <form id="phenoAgeForm" class="bioageform">
-            <!-- Date of Birth Field -->
-            <label for="dob">Date of Birth:</label>
-            <input type="date" id="dob" name="dob" required aria-required="true" oninput="calculateResult()">
+            <!-- Date of Birth Fields -->
+            <label>Date of Birth:</label>
+            <div class="dob-inputs">
+                <label for="dob-year">Year (required):</label>
+                <input type="number" id="dob-year" name="dob-year" required aria-required="true" min="1900" max="2100" oninput="calculateResult()">
+
+                <label for="dob-month">Month (optional):</label>
+                <input type="number" id="dob-month" name="dob-month" min="1" max="12" oninput="calculateResult()">
+
+                <label for="dob-day">Day (optional):</label>
+                <input type="number" id="dob-day" name="dob-day" min="1" max="31" oninput="calculateResult()">
+
+                <p class="privacy-note">We value your privacy. You may omit the month and day for additional privacy; however, your date will be set to December 31, which may make you appear younger and could slightly disadvantage you in the competition.</p>
+            </div>
 
             <!-- Biomarker Fieldset -->
             <fieldset>
@@ -264,9 +296,17 @@
             const coefficients = biomarkers.map(marker => marker.coeff);
             const markerValues = [];
 
-            // Get age from Date of Birth
-            const dobValue = document.getElementById('dob').value;
-            const chronologicalAge = dobValue ? calculateAgeFromDOB(dobValue) : NaN;
+            // Get age from separate Date of Birth inputs
+            const yearInput = document.getElementById('dob-year').value;
+            const monthInput = document.getElementById('dob-month').value;
+            const dayInput = document.getElementById('dob-day').value;
+
+            const year = parseInt(yearInput);
+            const month = monthInput ? parseInt(monthInput) - 1 : 11; // Default to December (11)
+            const day = dayInput ? parseInt(dayInput) : 31; // Default to 31
+
+            const dobValue = new Date(year, month, day);
+            const chronologicalAge = calculateAgeFromDOB(dobValue);
 
             // Add age as the first marker value
             markerValues.push(chronologicalAge);
