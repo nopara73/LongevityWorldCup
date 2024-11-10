@@ -139,10 +139,25 @@
                     </select>
 
                     <label for="dob-month">Month (optional):</label>
-                    <input type="number" id="dob-month" name="dob-month" min="1" max="12" placeholder="MM (optional)" oninput="calculateResult()">
+                    <select id="dob-month" name="dob-month" onchange="calculateResult()">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12" selected>December</option>
+                    </select>
 
                     <label for="dob-day">Day (optional):</label>
-                    <input type="number" id="dob-day" name="dob-day" min="1" max="31" placeholder="DD (optional)" oninput="calculateResult()">
+                    <select id="dob-day" name="dob-day" onchange="calculateResult()">
+                        <option value="" disabled selected>Select Day</option>
+                    </select>
 
                     <p class="privacy-note">We respect your privacy. If you choose not to provide the month and day, they will default to December 31. Please note that this may make you appear younger, giving you a slight disadvantage in the competition.</p>
                 </div>
@@ -306,9 +321,14 @@
             const monthInput = document.getElementById('dob-month').value;
             const dayInput = document.getElementById('dob-day').value;
 
-            const year = parseInt(yearInput);
+            const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Default to December (11)
-            const day = dayInput ? parseInt(dayInput) : 31; // Default to 31
+            const day = dayInput ? parseInt(dayInput) : new Date(year, month + 1, 0).getDate(); // Default to last day of the selected month
+
+            if (!year) {
+                alert("Please select a valid year.");
+                return;
+            }
 
             const dobValue = new Date(year, month, day);
             const chronologicalAge = calculateAgeFromDOB(dobValue);
@@ -351,6 +371,8 @@
                 option.textContent = year;
                 yearSelect.appendChild(option);
             }
+
+            updateDays(); // Added line
         });
 
         function fillFakeData() {
@@ -390,6 +412,40 @@
             // Calculate result after filling fake data
             calculateResult();
         }
+
+        function updateDays() {
+            const year = parseInt(document.getElementById('dob-year').value);
+            const month = parseInt(document.getElementById('dob-month').value);
+            const daySelect = document.getElementById('dob-day');
+
+            // Clear existing options
+            daySelect.innerHTML = '<option value="" disabled selected>Select Day</option>';
+
+            if (month) {
+                const selectedYear = parseInt(document.getElementById('dob-year').value);
+                const tempYear = selectedYear ? selectedYear : 2001; // Use selected year if available, else non-leap year
+                const lastDay = new Date(tempYear, month, 0).getDate();
+                for (let day = 1; day <= lastDay; day++) {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = day;
+                    daySelect.appendChild(option);
+                }
+                daySelect.value = lastDay;
+            } else {
+                // If month is not selected, default to 31 days
+                for (let day = 1; day <= 31; day++) {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = day;
+                    daySelect.appendChild(option);
+                }
+                daySelect.value = 31;
+            }
+        }
+
+        document.getElementById('dob-year').addEventListener('change', updateDays);
+        document.getElementById('dob-month').addEventListener('change', updateDays);
     </script>
 </body>
 </html>
