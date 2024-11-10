@@ -129,19 +129,21 @@
         <p>Calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>:</p>
         <form id="phenoAgeForm" class="bioageform">
             <!-- Date of Birth Fields -->
-            <label>Date of Birth:</label>
-            <div class="dob-inputs">
-                <label for="dob-year">Year (required):</label>
-                <input type="number" id="dob-year" name="dob-year" required aria-required="true" min="1900" max="2100" oninput="calculateResult()">
+            <fieldset>
+                <legend>Date of Birth:</legend>
+                <div class="dob-inputs">
+                    <label for="dob-year">Year (required):</label>
+                    <input type="number" id="dob-year" name="dob-year" required aria-required="true" min="1900" max="2100" oninput="calculateResult()">
 
-                <label for="dob-month">Month (optional):</label>
-                <input type="number" id="dob-month" name="dob-month" min="1" max="12" oninput="calculateResult()">
+                    <label for="dob-month">Month (optional):</label>
+                    <input type="number" id="dob-month" name="dob-month" min="1" max="12" placeholder="MM (optional)" oninput="calculateResult()">
 
-                <label for="dob-day">Day (optional):</label>
-                <input type="number" id="dob-day" name="dob-day" min="1" max="31" oninput="calculateResult()">
+                    <label for="dob-day">Day (optional):</label>
+                    <input type="number" id="dob-day" name="dob-day" min="1" max="31" placeholder="DD (optional)" oninput="calculateResult()">
 
-                <p class="privacy-note">We value your privacy. You may omit the month and day for additional privacy; however, your date will be set to December 31, which may make you appear younger and could slightly disadvantage you in the competition.</p>
-            </div>
+                    <p class="privacy-note">We respect your privacy. If you choose not to provide the month and day, they will default to December 31. Please note that this may make you appear younger, giving you a slight disadvantage in the competition.</p>
+                </div>
+            </fieldset>
 
             <!-- Biomarker Fieldset -->
             <fieldset>
