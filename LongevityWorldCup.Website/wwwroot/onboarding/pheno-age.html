@@ -305,8 +305,8 @@
             const dayInput = document.getElementById('dob-day').value;
 
             const year = yearInput ? parseInt(yearInput) : null;
-            const month = monthInput ? parseInt(monthInput) - 1 : 11; // Default to December (11)
-            const day = dayInput ? parseInt(dayInput) : new Date(year, month + 1, 0).getDate(); // Default to last day of the selected month
+            const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
+            const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
             if (!year) {
                 alert("Please select a valid year.");
@@ -315,6 +315,11 @@
 
             const dobValue = new Date(year, month, day);
             const chronologicalAge = calculateAgeFromDOB(dobValue);
+
+            if (chronologicalAge < 0) {
+                alert("Date of birth cannot be in the future.");
+                return;
+            }
 
             // Add age as the first marker value
             markerValues.push(chronologicalAge);
@@ -337,14 +342,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Check if the URL has the query parameter "fake=1"
-            const urlParams = new URLSearchParams(window.location.search);
-            const isFake = urlParams.get('fake') === '1';
-
-            if (isFake) {
-                fillFakeData();
-            }
-
             const yearSelect = document.getElementById('dob-year');
             const currentYear = new Date().getFullYear();
 
@@ -356,13 +353,20 @@
             }
 
             updateDays(); // Added line
+
+            // Check if the URL has the query parameter "fake=1"
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFake = urlParams.get('fake') === '1';
+            if (isFake) {
+                fillFakeData();
+            }
         });
 
         function fillFakeData() {
-            // Set fake Date of Birth (e.g., 40 years old)
+            // Set fake Date of Birth
             document.getElementById('dob-year').value = 1985;
-            document.getElementById('dob-month').value = 11;
-            document.getElementById('dob-day').value = 30;
+            document.getElementById('dob-month').value = 10;
+            document.getElementById('dob-day').value = 15;
 
             // Set fake values for all input fields
             document.getElementById('albumin').value = 45; // g/L
@@ -405,9 +409,9 @@
             daySelect.innerHTML = '<option value="" disabled selected>Select Day</option>';
 
             if (month) {
-                const selectedYear = parseInt(document.getElementById('dob-year').value);
-                const tempYear = selectedYear ? selectedYear : 2001; // Use selected year if available, else non-leap year
-                const lastDay = new Date(tempYear, month, 0).getDate();
+                const monthIndex = month - 1; // Adjust to 0-based index
+                const tempYear = year || 2001; // Use selected year or default
+                const lastDay = new Date(tempYear, month, 0).getDate(); // month is 1-based here
                 for (let day = 1; day <= lastDay; day++) {
                     const option = document.createElement('option');
                     option.value = day;
@@ -416,7 +420,7 @@
                 }
                 daySelect.value = lastDay;
             } else {
-                // If month is not selected, default to 31 days
+                // Default to 31 days
                 for (let day = 1; day <= 31; day++) {
                     const option = document.createElement('option');
                     option.value = day;
