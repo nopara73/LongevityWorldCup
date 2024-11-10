@@ -133,7 +133,10 @@
                 <legend>Date of Birth:</legend>
                 <div class="dob-inputs">
                     <label for="dob-year">Year (required):</label>
-                    <input type="number" id="dob-year" name="dob-year" required aria-required="true" min="1900" max="2100" oninput="calculateResult()">
+                    <select id="dob-year" name="dob-year" required aria-required="true" onchange="calculateResult()">
+                        <option value="" disabled selected>Select Year</option>
+                        <!-- Generate year options dynamically here -->
+                    </select>
 
                     <label for="dob-month">Month (optional):</label>
                     <input type="number" id="dob-month" name="dob-month" min="1" max="12" placeholder="MM (optional)" oninput="calculateResult()">
@@ -337,6 +340,16 @@
 
             if (isFake) {
                 fillFakeData();
+            }
+
+            const yearSelect = document.getElementById('dob-year');
+            const currentYear = new Date().getFullYear();
+
+            for (let year = currentYear; year >= 1908; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
             }
         });
 
