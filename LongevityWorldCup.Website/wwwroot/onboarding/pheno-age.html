@@ -327,9 +327,43 @@
 
             // Get biomarker values
             for (let i = 1; i < biomarkers.length; i++) {
-                const valueElement = document.getElementById(biomarkers[i].id);
-                const value = parseInput(valueElement.value);
-                markerValues.push(value);
+                const biomarker = biomarkers[i];
+                const valueElement = document.getElementById(biomarker.id);
+                const unitElement = document.getElementById(biomarker.id + 'Unit');
+                const rawValue = parseInput(valueElement.value);
+                const unitConversion = parseFloat(unitElement.value);
+                const unitText = unitElement.options[unitElement.selectedIndex].text;
+
+                // Check for invalid input
+                if (isNaN(rawValue)) {
+                    alert(`Please enter a valid value for ${biomarker.name}.`);
+                    return;
+                }
+
+                // Apply unit conversion
+                let adjustedValue = rawValue / unitConversion;
+
+                // Special handling for CRP
+                if (biomarker.id === 'crp') {
+                    adjustedValue = Math.log(adjustedValue);
+                }
+                // Special handling for lymphocytes
+                else if (biomarker.id === 'lymphocyte' && unitText !== '%') {
+                    const wbcValueElement = document.getElementById('wbc');
+                    const wbcUnitElement = document.getElementById('wbcUnit');
+                    const wbcRawValue = parseInput(wbcValueElement.value);
+                    const wbcUnitConversion = parseFloat(wbcUnitElement.value);
+
+                    if (isNaN(wbcRawValue)) {
+                        alert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.");
+                        return;
+                    }
+
+                    const wbcAdjustedValue = wbcRawValue / wbcUnitConversion;
+                    adjustedValue = (adjustedValue / wbcAdjustedValue) * 100;
+                }
+
+                markerValues.push(adjustedValue);
             }
 
             // Calculate PhenoAge using the helper function
