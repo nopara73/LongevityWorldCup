@@ -42,7 +42,7 @@ window.PhenoAge.calculateAgeFromDOB = function (birthDate) {
 }
 
 // Helper function to calculate PhenoAge based on biomarkers
-window.PhenoAge.calculatePhenoAge = function (markerValues, coefficients, tmonths = 120) {
+window.PhenoAge.calculatePhenoAge = function (markerValues, coefficients) {
     let rollingTotal = 0;
 
     // Sum all coefficients multiplied by the respective marker values
@@ -53,6 +53,9 @@ window.PhenoAge.calculatePhenoAge = function (markerValues, coefficients, tmonth
     const b0 = -19.9067;
     const gamma = 0.0076927;
     rollingTotal += b0;
+
+    // Ten years is long enough to capture significant biological changes and mortality risk shifts while being manageable for statistical models and meaningful for human lifespan considerations.
+    let tmonths = 120;
 
     // Calculate mortality score and risk of death
     const mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
