@@ -1,4 +1,21 @@
-﻿// Helper function to parse input values
+﻿// Create a namespace
+window.PhenoAge = window.PhenoAge || {};
+
+// Attach biomarkers to the namespace
+window.PhenoAge.biomarkers = [
+    { id: 'age', name: 'Age', coeff: 0.0804 },
+    { id: 'albumin', name: 'Albumin', coeff: -0.0336 },
+    { id: 'creatinine', name: 'Creatinine', coeff: 0.0095 },
+    { id: 'glucose', name: 'Glucose', coeff: 0.1953 },
+    { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 },
+    { id: 'wbc', name: 'White blood cell count', coeff: 0.0554 },
+    { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012 },
+    { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 },
+    { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306 },
+    { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 }
+];
+
+// Helper function to parse input values
 function parseInput(value) {
     return value === '' ? NaN : Number(value);
 }
