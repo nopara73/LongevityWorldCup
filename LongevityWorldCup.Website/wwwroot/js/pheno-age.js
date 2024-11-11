@@ -20,7 +20,7 @@ function calculateAgeFromDOB(birthDate) {
     const totalDays = Math.floor((utc2 - utc1) / msPerDay);
 
     // Convert days to years
-    return parseFloat((totalDays / 365.2425).toFixed(2));
+    return Math.round((totalDays / 365.2425) * 100) / 100;
 }
 
 // Helper function to calculate PhenoAge based on biomarkers
