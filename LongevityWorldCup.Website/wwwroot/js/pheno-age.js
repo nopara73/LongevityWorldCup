@@ -4,7 +4,10 @@ function parseInput(value) {
 }
 
 function calculateAgeFromDOB(dob) {
-    const birthDate = typeof dob === "string" ? new Date(dob) : dob;
+    if (!(dob instanceof Date)) {
+        throw new Error("Invalid input: dob must be a Date object");
+    }
+
     const today = new Date();
 
     if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
@@ -36,9 +39,4 @@ function calculatePhenoAge(markerValues, coefficients, tmonths = 120) {
     // Calculate mortality score and risk of death
     const mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
     return 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
-}
-
-// Exporting the functions if using modules (optional, if needed in certain setups)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { parseInput, calculateAgeFromDOB, calculatePhenoAge };
 }
