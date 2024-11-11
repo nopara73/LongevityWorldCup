@@ -920,7 +920,7 @@
                         athlete.date_of_birth.month - 1, // Months are zero-indexed in JavaScript Date
                         athlete.date_of_birth.day
                     );
-                    const chronologicalAge = calculateAgeFromDOB(dob);
+                    const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dob);
 
                     // Get birth year and generation
                     const birthYear = athlete.date_of_birth.year;
@@ -949,7 +949,7 @@
 
                         // Calculate the PhenoAge for the current biomarker set
                         const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
-                        const phenoAge = calculatePhenoAge(biomarkerValues, coefficients);
+                        const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues, coefficients);
 
                         // Update the lowest PhenoAge if the current one is lower
                         if (phenoAge < lowestPhenoAge) {
@@ -1228,7 +1228,7 @@
                                     const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
 
                                     // Calculate PhenoAge
-                                    const phenoAge = calculatePhenoAge(biomarkerValues, coefficients);
+                                    const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues, coefficients);
                                     phenoAges.push(phenoAge.toFixed(1));
                                 });
 
