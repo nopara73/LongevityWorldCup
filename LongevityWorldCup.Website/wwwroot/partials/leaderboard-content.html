@@ -929,7 +929,11 @@
                 // Array to store athletes with their lowest PhenoAge and age reduction
                 athleteResults = athletes.map(athlete => {
                     // Calculate the chronological age from the athlete's date_of_birth
-                    const dob = `${athlete.date_of_birth.year}-${String(athlete.date_of_birth.month).padStart(2, '0')}-${String(athlete.date_of_birth.day).padStart(2, '0')}`;
+                    const dob = new Date(
+                        athlete.date_of_birth.year,
+                        athlete.date_of_birth.month - 1, // Months are zero-indexed in JavaScript Date
+                        athlete.date_of_birth.day
+                    );
                     const chronologicalAge = calculateAgeFromDOB(dob);
 
                     // Get birth year and generation
