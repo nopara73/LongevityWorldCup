@@ -314,7 +314,7 @@
                 return;
             }
 
-            const dobValue = new Date(year, month, day);
+            const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
             const chronologicalAge = calculateAgeFromDOB(dobValue);
 
             if (chronologicalAge < 0) {
