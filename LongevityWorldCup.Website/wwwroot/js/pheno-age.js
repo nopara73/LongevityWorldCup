@@ -3,8 +3,8 @@ function parseInput(value) {
     return value === '' ? NaN : Number(value);
 }
 
-function calculateAgeFromDOB(dob) {
-    if (!(dob instanceof Date)) {
+function calculateAgeFromDOB(birthDate) {
+    if (!(birthDate instanceof Date)) {
         throw new Error("Invalid input: dob must be a Date object");
     }
 
