@@ -301,7 +301,7 @@
             }
 
             const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
-            const chronologicalAge = calculateAgeFromDOB(dobValue);
+            const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dobValue);
 
             if (chronologicalAge < 0) {
                 alert("Date of birth cannot be in the future.");
@@ -316,7 +316,7 @@
                 const biomarker = window.PhenoAge.biomarkers[i];
                 const valueElement = document.getElementById(biomarker.id);
                 const unitElement = document.getElementById(biomarker.id + 'Unit');
-                const rawValue = parseInput(valueElement.value);
+                const rawValue = window.PhenoAge.parseInput(valueElement.value);
                 const unitConversion = parseFloat(unitElement.value);
                 const unitText = unitElement.options[unitElement.selectedIndex].text;
 
@@ -337,7 +337,7 @@
                 else if (biomarker.id === 'lymphocyte' && unitText !== '%') {
                     const wbcValueElement = document.getElementById('wbc');
                     const wbcUnitElement = document.getElementById('wbcUnit');
-                    const wbcRawValue = parseInput(wbcValueElement.value);
+                    const wbcRawValue = window.PhenoAge.parseInput(wbcValueElement.value);
                     const wbcUnitConversion = parseFloat(wbcUnitElement.value);
 
                     if (isNaN(wbcRawValue)) {
@@ -353,7 +353,7 @@
             }
 
             // Calculate PhenoAge using the helper function
-            const phenoAge = calculatePhenoAge(markerValues, coefficients);
+            const phenoAge = window.PhenoAge.calculatePhenoAge(markerValues, coefficients);
 
             // Display the result
             document.getElementById('phenoAgeResult').innerText = `Your PhenoAge is ${phenoAge.toFixed(2)} years.`;

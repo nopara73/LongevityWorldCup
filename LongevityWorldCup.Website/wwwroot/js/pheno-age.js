@@ -16,11 +16,11 @@ window.PhenoAge.biomarkers = [
 ];
 
 // Helper function to parse input values
-function parseInput(value) {
+window.PhenoAge.parseInput = function (value) {
     return value === '' ? NaN : Number(value);
 }
 
-function calculateAgeFromDOB(birthDate) {
+window.PhenoAge.calculateAgeFromDOB = function (birthDate) {
     if (!(birthDate instanceof Date)) {
         throw new Error("Invalid input: dob must be a Date object");
     }
@@ -42,7 +42,7 @@ function calculateAgeFromDOB(birthDate) {
 }
 
 // Helper function to calculate PhenoAge based on biomarkers
-function calculatePhenoAge(markerValues, coefficients, tmonths = 120) {
+window.PhenoAge.calculatePhenoAge = function (markerValues, coefficients, tmonths = 120) {
     let rollingTotal = 0;
 
     // Sum all coefficients multiplied by the respective marker values
