@@ -4,23 +4,17 @@ function parseInput(value) {
 }
 
 function calculateAgeFromDOB(birthDate) {
-    if (!(birthDate instanceof Date)) {
-        throw new Error("Invalid input: dob must be a Date object");
-    }
-
     const today = new Date();
-
-    if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
     if (birthDate > today) throw new Error("DOB is in the future.");
+    if (!(birthDate instanceof Date)) throw new Error("Invalid input: dob must be a Date object");
+    if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
 
-    // Calculate total days lived
-    const msPerDay = 1000 * 60 * 60 * 24;
-    const utc1 = Date.UTC(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
-    const utc2 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-    const totalDays = Math.floor((utc2 - utc1) / msPerDay);
-
-    // Convert days to years
-    return Math.round((totalDays / 365.2425) * 100) / 100;
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
 }
 
 // Helper function to calculate PhenoAge based on biomarkers
