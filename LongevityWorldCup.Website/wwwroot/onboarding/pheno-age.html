@@ -412,7 +412,7 @@
             if (month) {
                 const monthIndex = month - 1; // Adjust to 0-based index
                 const tempYear = year || 2001; // Use selected year or default
-                const lastDay = new Date(tempYear, month, 0).getDate(); // month is 1-based here
+                const lastDay = new Date(tempYear, month, 0).getDate(); // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
                 for (let day = 1; day <= lastDay; day++) {
                     const option = document.createElement('option');
                     option.value = day;
