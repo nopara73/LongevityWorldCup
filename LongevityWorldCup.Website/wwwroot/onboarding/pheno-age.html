@@ -276,20 +276,6 @@
 
         var text_placeholder = 'Enter a number';
 
-        // Biomarker test details and coefficients
-        const biomarkers = [
-            { id: 'age', name: 'Age', coeff: 0.0804 },
-            { id: 'albumin', name: 'Albumin', coeff: -0.0336 },
-            { id: 'creatinine', name: 'Creatinine', coeff: 0.0095 },
-            { id: 'glucose', name: 'Glucose', coeff: 0.1953 },
-            { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 },
-            { id: 'wbc', name: 'White blood cell count', coeff: 0.0554 },
-            { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012 },
-            { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 },
-            { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306 },
-            { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 }
-        ];
-
         // Event listener for form submission
         document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
             event.preventDefault(); // Prevent form submission
@@ -297,7 +283,7 @@
         });
 
         function calculateResult() {
-            const coefficients = biomarkers.map(marker => marker.coeff);
+            const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
             const markerValues = [];
 
             // Get age from separate Date of Birth inputs
@@ -326,8 +312,8 @@
             markerValues.push(chronologicalAge);
 
             // Get biomarker values
-            for (let i = 1; i < biomarkers.length; i++) {
-                const biomarker = biomarkers[i];
+            for (let i = 1; i < window.PhenoAge.biomarkers.length; i++) {
+                const biomarker = window.PhenoAge.biomarkers[i];
                 const valueElement = document.getElementById(biomarker.id);
                 const unitElement = document.getElementById(biomarker.id + 'Unit');
                 const rawValue = parseInput(valueElement.value);

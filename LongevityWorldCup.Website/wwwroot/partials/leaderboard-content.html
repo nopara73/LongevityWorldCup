@@ -899,20 +899,6 @@
 <script>
     let athleteResults = [];
 
-    // Define the biomarkers array (ensure this is available before calculations)
-    const biomarkers = [
-        { id: 'age', name: 'Age', coeff: 0.0804 },
-        { id: 'albumin', name: 'Albumin', coeff: -0.0336 },
-        { id: 'creatinine', name: 'Creatinine', coeff: 0.0095 },
-        { id: 'glucose', name: 'Glucose', coeff: 0.1953 },
-        { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 },
-        { id: 'wbc', name: 'White blood cell count', coeff: 0.0554 },
-        { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012 },
-        { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 },
-        { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306 },
-        { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 }
-    ];
-
     const prizeMoney = {
         1: { btc: "0.00360248 BTC", amount: "$100.80" },
         2: { btc: "0.00072578 BTC", amount: "$20.16" },
@@ -962,7 +948,7 @@
                         );
 
                         // Calculate the PhenoAge for the current biomarker set
-                        const coefficients = biomarkers.map(marker => marker.coeff);
+                        const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
                         const phenoAge = calculatePhenoAge(biomarkerValues, coefficients);
 
                         // Update the lowest PhenoAge if the current one is lower
@@ -1239,7 +1225,7 @@
                                     ];
 
                                     // Get coefficients from biomarkers array
-                                    const coefficients = biomarkers.map(marker => marker.coeff);
+                                    const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
 
                                     // Calculate PhenoAge
                                     const phenoAge = calculatePhenoAge(biomarkerValues, coefficients);
