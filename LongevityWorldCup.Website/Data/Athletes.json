@@ -261,16 +261,16 @@
     },
     "biomarkers": [
       {
-        "date": "2025-02-01",
-        "alb_gL": 41,
+        "date": "2024-11-12",
+        "alb_gL": 45,
         "creat_umolL": 80,
         "glu_mmolL": 4.5,
         "crp_mgL": 1.8,
         "lym_pc": 39,
         "mcv_fL": 85,
         "rdw_pc": 11,
-        "alp_UL": 54,
-        "wbc_1000cellsuL": 4
+        "alp_UL": 12,
+        "wbc_1000cellsuL": 6
       }
     ],
     "division": "Women's",
