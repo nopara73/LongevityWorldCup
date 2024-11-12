@@ -117,13 +117,13 @@
             <fieldset>
                 <legend>Date of Birth:</legend>
                 <label for="dob-year">Year <span style="font-weight: normal;">(required)</span></label>
-                <select id="dob-year" name="dob-year" required aria-required="true" onchange="calculateResult()">
+                <select id="dob-year" name="dob-year" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <option value="" disabled selected>Select Year</option>
                     <!-- Generate year options dynamically here -->
                 </select>
 
                 <label for="dob-month">Month <span style="font-weight: normal;">(optional)</span></label>
-                <select id="dob-month" name="dob-month" onchange="calculateResult()">
+                <select id="dob-month" name="dob-month" onchange="calculateResultIfResultAlreadyCalculated()">
                     <option value="1">January</option>
                     <option value="2">February</option>
                     <option value="3">March</option>
@@ -139,7 +139,7 @@
                 </select>
 
                 <label for="dob-day">Day <span style="font-weight: normal;">(optional)</span></label>
-                <select id="dob-day" name="dob-day" onchange="calculateResult()">
+                <select id="dob-day" name="dob-day" onchange="calculateResultIfResultAlreadyCalculated()">
                     <option value="" disabled selected>Select Day</option>
                 </select>
 
@@ -153,9 +153,9 @@
                 <!-- Albumin -->
                 <label for="albumin">Albumin</label>
                 <div class="input-group">
-                    <input type="number" id="albumin" name="albumin" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="albumin" name="albumin" step="0.1" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="albuminUnit" class="visually-hidden">Select unit for Albumin</label>
-                    <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" oninput="calculateResult()">
+                    <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">g/L</option>
                         <option value="0.1">g/dL</option>
                         <option value="0.1">g%</option>
@@ -167,9 +167,9 @@
                 <!-- Creatinine -->
                 <label for="creatinine">Creatinine</label>
                 <div class="input-group">
-                    <input type="number" id="creatinine" name="creatinine" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="creatinine" name="creatinine" step="0.1" required aria-required="true" onchange="calculatcalculateResultIfResultAlreadyCalculatedeResult()">
                     <label for="creatinineUnit" class="visually-hidden">Select unit for Creatinine</label>
-                    <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" oninput="calculateResult()">
+                    <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">µmol/L</option>
                         <option value="0.0113">mg/dL</option>
                     </select>
@@ -178,9 +178,9 @@
                 <!-- Glucose -->
                 <label for="glucose">Glucose</label>
                 <div class="input-group">
-                    <input type="number" id="glucose" name="glucose" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="glucose" name="glucose" step="0.1" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="glucoseUnit" class="visually-hidden">Select unit for Glucose</label>
-                    <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" oninput="calculateResult()">
+                    <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">mmol/L</option>
                         <option value="18.016">mg/dL</option>
                     </select>
@@ -189,9 +189,9 @@
                 <!-- C-Reactive Protein -->
                 <label for="crp">C-Reactive Protein</label>
                 <div class="input-group">
-                    <input type="number" id="crp" name="crp" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="crp" name="crp" step="0.1" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
-                    <select id="crpUnit" name="crpUnit" aria-label="CRP unit" oninput="calculateResult()">
+                    <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="10">mg/L</option>
                         <option value="1">mg/dL</option>
                         <option value="86.96">nmol/L</option>
@@ -201,9 +201,9 @@
                 <!-- Lymphocyte Percentage -->
                 <label for="lymphocyte">Lymphocytes</label>
                 <div class="input-group">
-                    <input type="number" id="lymphocyte" name="lymphocyte" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="lymphocyte" name="lymphocyte" step="0.1" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
-                    <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" oninput="calculateResult()">
+                    <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">%</option>
                         <option value="1">1000 cells/μL</option>
                         <option value="1">10⁹ cells/L</option>
@@ -213,9 +213,9 @@
                 <!-- Mean Corpuscular Volume -->
                 <label for="mcv">Mean Corpuscular Volume</label>
                 <div class="input-group">
-                    <input type="number" id="mcv" name="mcv" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="mcv" name="mcv" step="0.1" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
-                    <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" oninput="calculateResult()">
+                    <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">fL</option>
                     </select>
                 </div>
@@ -223,9 +223,9 @@
                 <!-- Red Cell Distribution Width -->
                 <label for="rcdw">Red Cell Distribution Width</label>
                 <div class="input-group">
-                    <input type="number" id="rcdw" name="rcdw" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="rcdw" name="rcdw" step="0.1" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
-                    <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" oninput="calculateResult()">
+                    <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">%</option>
                     </select>
                 </div>
@@ -233,9 +233,9 @@
                 <!-- Alkaline Phosphatase -->
                 <label for="ap">Alkaline Phosphatase</label>
                 <div class="input-group">
-                    <input type="number" id="ap" name="ap" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="ap" name="ap" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
-                    <select id="apUnit" name="apUnit" aria-label="ALP unit" oninput="calculateResult()">
+                    <select id="apUnit" name="apUnit" aria-label="ALP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">U/L</option>
                     </select>
                 </div>
@@ -243,9 +243,9 @@
                 <!-- White Blood Cell Count -->
                 <label for="wbc">White Blood Cell Count</label>
                 <div class="input-group">
-                    <input type="number" id="wbc" name="wbc" step="0.1" required aria-required="true" oninput="calculateResult()">
+                    <input type="number" id="wbc" name="wbc" step="0.1" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
-                    <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" oninput="calculateResult()">
+                    <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">1000 cells/μL</option>
                         <option value="1">10⁹ cells/L</option>
                     </select>
@@ -269,18 +269,18 @@
     <script>
         updateMainProgress(2);
 
-        document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
-            event.preventDefault(); // Prevent the form from submitting and reloading the page
-            calculateResult(); // Call the function to calculate the result
-        });
-
-        var text_placeholder = 'Enter a number';
-
         // Event listener for form submission
         document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
             event.preventDefault(); // Prevent form submission
             calculateResult(); // Calculate the result
         });
+
+        let isResultCalculated = false;
+        function calculateResultIfResultAlreadyCalculated() {
+            if (isResultCalculated) {
+                calculateResult();
+            }
+        }
 
         function calculateResult() {
             const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
@@ -360,6 +360,8 @@
 
             // Show the Next button
             document.getElementById('continueButton').style.display = 'block';
+
+            isResultCalculated = true;
         }
 
         document.addEventListener('DOMContentLoaded', function () {
