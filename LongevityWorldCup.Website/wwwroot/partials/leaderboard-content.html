@@ -935,7 +935,8 @@
                         const biomarkerValues = [chronologicalAge];
 
                         // Apply logarithmic transformation to CRP
-                        const crpTransformed = Math.log(biomarkerSet.crp_mgL);
+                        // Also divide by 10 to convert from mg/L to ug/L
+                        const crpTransformed = Math.log(biomarkerSet.crp_mgL / 10);
 
                         // Add the values of each required biomarker (in the same order as in 'biomarkers' array)
                         biomarkerValues.push(
