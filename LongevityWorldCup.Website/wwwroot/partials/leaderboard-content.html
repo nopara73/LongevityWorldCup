@@ -934,12 +934,15 @@
                         // Prepare the biomarker values in the order expected for PhenoAge calculation
                         const biomarkerValues = [chronologicalAge];
 
+                        // Apply logarithmic transformation to CRP
+                        const crpTransformed = Math.log(biomarkerSet.crp_mgL);
+
                         // Add the values of each required biomarker (in the same order as in 'biomarkers' array)
                         biomarkerValues.push(
                             biomarkerSet.alb_gL,      // Albumin
                             biomarkerSet.creat_umolL, // Creatinine
                             biomarkerSet.glu_mmolL,   // Glucose
-                            biomarkerSet.crp_mgL,     // C-reactive Protein
+                            crpTransformed,     // C-reactive Protein
                             biomarkerSet.wbc_1000cellsuL, // White Blood Cell Count
                             biomarkerSet.lym_pc,      // Lymphocytes
                             biomarkerSet.mcv_fL,      // Mean Corpuscular Volume
