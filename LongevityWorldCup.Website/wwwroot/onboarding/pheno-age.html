@@ -340,8 +340,9 @@
                 if (biomarker.id === 'crp') {
                     adjustedValue = Math.log(adjustedValue);
                 }
+
                 // Special handling for lymphocytes
-                else if (biomarker.id === 'lymphocyte' && unitText !== '%') {
+                if (biomarker.id === 'lymphocyte' && unitText !== '%') {
                     const wbcValueElement = document.getElementById('wbc');
                     const wbcUnitElement = document.getElementById('wbcUnit');
                     const wbcRawValue = window.PhenoAge.parseInput(wbcValueElement.value);
