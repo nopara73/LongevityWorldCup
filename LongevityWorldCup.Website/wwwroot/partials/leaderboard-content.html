@@ -1932,22 +1932,27 @@
             "Gen Alpha": "🚀"
         };
 
-        // Generate the filter items with icons and counts
-        Object.keys(generationCounts).forEach(generation => {
-            const count = generationCounts[generation];
-            const icon = generationIcons[generation] || ""; // Default to no icon if not found
+        // Order generations from oldest to youngest
+        const orderedGenerations = ["Silent Generation", "Baby Boomers", "Gen X", "Millennials", "Gen Z", "Gen Alpha"];
 
-            const li = document.createElement('li');
-            li.innerHTML = `
-        <label data-generation="${generation}">
-            <input type="checkbox" name="generation" value="${generation}">
-            ${icon} ${generation} (<span class="filter-count">${count}</span>)
-        </label>
-    `;
-            filterSection.appendChild(li);
-            const input = li.querySelector('input[type="checkbox"]');
-            input.addEventListener('change', performFilter);
+        orderedGenerations.forEach(generation => {
+            const count = generationCounts[generation] || 0;
+            if (count > 0) { // Only show generations with at least one athlete
+                const icon = generationIcons[generation] || ""; // Default to no icon if not found
+
+                const li = document.createElement('li');
+                li.innerHTML = `
+            <label data-generation="${generation}">
+                <input type="checkbox" name="generation" value="${generation}">
+                ${icon} ${generation} (<span class="filter-count">${count}</span>)
+            </label>
+        `;
+                filterSection.appendChild(li);
+                const input = li.querySelector('input[type="checkbox"]');
+                input.addEventListener('change', performFilter);
+            }
         });
+
     }
 
     function getGeneration(birthYear) {
