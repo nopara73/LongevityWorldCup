@@ -169,7 +169,9 @@
 
             <div class="options-container">
                 <button type="button" class="option-button calculate-button already-have" id="nextButton" aria-label="Proceed to the next stage">Next</button>
-                <button type="button" class="option-button back-button" id="backButton">Go Back</button>
+                <button type="button" class="option-button back-button" id="backButton">
+                    <i class="fas fa-arrow-left"></i>&nbsp;Go Back
+                </button>
             </div>
         </form>
     </main>
@@ -199,11 +201,11 @@
                     illustrationImage.src = "../assets/reaper.jpg";
                     illustrationImage.alt = "Grim Reaper";
                     document.getElementById('content').innerHTML = `
-                                                                                                                                                                    In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
-                                                                                                                                                                    In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable.
-                                                                                                                                                                    Death will come — but who will stand in its path?<br />
-                                                                                                                                                                    <em>Could it be you?</em>
-                                                                                                                                                                `;
+                                                                                                                                                                            In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
+                                                                                                                                                                            In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable.
+                                                                                                                                                                            Death will come — but who will stand in its path?<br />
+                                                                                                                                                                            <em>Could it be you?</em>
+                                                                                                                                                                        `;
                     document.getElementById('personalDetails').style.display = '';
                     document.getElementById('whyField').style.display = 'none';
                     document.getElementById('proofImageContainer').style.display = 'none';
@@ -229,21 +231,21 @@
                     illustrationImage.src = "../assets/cr7.jpg";
                     illustrationImage.alt = "Cristiano Ronaldo";
                     document.getElementById('content').innerHTML = `
-                                                                                                                                                                    <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
-                                                                                                                                                                    <p>
-                                                                                                                                                                        Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
-                                                                                                                                                                    </p>
-                                                                                                                                                                    <p>
-                                                                                                                                                                        So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
-                                                                                                                                                                    </p>
-                                                                                                                                                                    <p>
-                                                                                                                                                                        <em>It's now your turn to make that decision.</em>
-                                                                                                                                                                    </p>
-                                                                                                                                                                `;
+                                                                                                                                                                            <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                                                                                                                                                                            <p>
+                                                                                                                                                                                Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                                                                                                                                                                            </p>
+                                                                                                                                                                            <p>
+                                                                                                                                                                                So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
+                                                                                                                                                                            </p>
+                                                                                                                                                                            <p>
+                                                                                                                                                                                <em>It's now your turn to make that decision.</em>
+                                                                                                                                                                            </p>
+                                                                                                                                                                        `;
                     document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                                    <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
-                                                                                                                                                                    <p><em>Remember, we’re not gonna beat Death by hiding in the shadows.</em></p>
-                                                                                                                                                                `;
+                                                                                                                                                                            <p>Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.</p>
+                                                                                                                                                                            <p><em>Remember, we’re not gonna beat Death by hiding in the shadows.</em></p>
+                                                                                                                                                                        `;
                     // In the goToStage function, within case 3, replace the existing line with the following:
                     document.getElementById('whyField').style.display = 'none';
                     document.getElementById('personalDetails').style.display = '';
@@ -259,17 +261,17 @@
                     illustrationImage.alt = "Headshot";
                     document.getElementById('content').innerHTML = `<p>Next, provide your profile picture. Smiling is optional!</p>`;
                     document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                                    <p><strong>Upload a clear headshot:</strong></p>
-                                                                                                                                                                    <ol style="padding-left: 20px; line-height: 1.6;">
-                                                                                                                                                                        <li>It must be you.</li>
-                                                                                                                                                                        <li>Face the camera directly.</li>
-                                                                                                                                                                        <li>Include head and shoulders.</li>
-                                                                                                                                                                    </ol>
-                                                                                                                                                                    <div style="text-align: center; margin-top: 1rem;">
-                                                                                                                                                                        <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                                                                                                                                                                        <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
-                                                                                                                                                                    </div>
-                                                                                                                                                                `;
+                                                                                                                                                                            <p><strong>Upload a clear headshot:</strong></p>
+                                                                                                                                                                            <ol style="padding-left: 20px; line-height: 1.6;">
+                                                                                                                                                                                <li>It must be you.</li>
+                                                                                                                                                                                <li>Face the camera directly.</li>
+                                                                                                                                                                                <li>Include head and shoulders.</li>
+                                                                                                                                                                            </ol>
+                                                                                                                                                                            <div style="text-align: center; margin-top: 1rem;">
+                                                                                                                                                                                <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+                                                                                                                                                                                <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        `;
                     illustrationImage.classList.add('clickable');
                     nextButton.textContent = 'Next';
                     nextButton.setAttribute('type', 'button');
@@ -290,16 +292,16 @@
                     illustrationImage.src = "../assets/proof.jpg";
                     illustrationImage.alt = "Proof Image";
                     document.getElementById('content').innerHTML = `
-                                                                                    <p>Upload <strong>image proofs</strong> of your biomarkers.</p>
-                                                                                    <p>These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.</p>
-                                                                                `;
+                                                                                            <p>Upload <strong>image proofs</strong> of your biomarkers.</p>
+                                                                                            <p>These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.</p>
+                                                                                        `;
 
                     document.getElementById('personalDetails').innerHTML = `
-                                                                                <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
-                                                                                    <input type="file" id="proofPicInput" accept="image/*" style="display: none;" multiple>
-                                                                                    <button type="button" id="uploadProofButton" class="option-button">Upload Proof Images</button>
-                                                                                </div>
-                                                                            `;
+                                                                                        <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
+                                                                                            <input type="file" id="proofPicInput" accept="image/*" style="display: none;" multiple>
+                                                                                            <button type="button" id="uploadProofButton" class="option-button">Upload Proof Images</button>
+                                                                                        </div>
+                                                                                    `;
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.textContent = 'Next';
@@ -354,21 +356,21 @@
                     illustrationImage.alt = "Finish Line";
                     document.getElementById('content').innerHTML = "<p style='text-align: center; font-weight: bold;'>Final Details</p>";
                     document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                                    <!-- Link to Personal Page (Optional) -->
-                                                                                                                                                                    <label for="personalLink">Link (Optional):</label>
-                                                                                                                                                                    <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
-                                                                                                                                                                    <p style="margin-top: 0.5rem; color: #555;">
-                                                                                                                                                                        Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
-                                                                                                                                                                    </p>
+                                                                                                                                                                            <!-- Link to Personal Page (Optional) -->
+                                                                                                                                                                            <label for="personalLink">Link (Optional):</label>
+                                                                                                                                                                            <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
+                                                                                                                                                                            <p style="margin-top: 0.5rem; color: #555;">
+                                                                                                                                                                                Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
+                                                                                                                                                                            </p>
 
-                                                                                                                                                                    <!-- Media Contact (Required) -->
-                                                                                                                                                                    <label for="mediaContact">Media Contact:</label>
-                                                                                                                                                                    <input type="email" id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@youremail.com">
+                                                                                                                                                                            <!-- Media Contact (Required) -->
+                                                                                                                                                                            <label for="mediaContact">Media Contact:</label>
+                                                                                                                                                                            <input type="email" id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@youremail.com">
 
-                                                                                                                                                                    <p style="margin-top: 0.5rem; color: #555;">
-                                                                                                                                                                        Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open.
-                                                                                                                                                                    </p>
-                                                                                                                                                                `;
+                                                                                                                                                                            <p style="margin-top: 0.5rem; color: #555;">
+                                                                                                                                                                                Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open.
+                                                                                                                                                                            </p>
+                                                                                                                                                                        `;
 
                     document.getElementById('proofImageContainer').style.display = 'none';
                     illustrationImage.classList.remove('clickable');
@@ -382,10 +384,10 @@
                     illustrationImage.alt = "Application";
                     document.getElementById('content').innerHTML = "<p>Congrats! All that's left to do is to provide your contact email.</p>";
                     document.getElementById('personalDetails').innerHTML = `
-                                                                                                                                                                    <!-- Email Field -->
-                                                                                                                                                                    <label for="accountEmail">Email:</label>
-                                                                                                                                                                    <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="yourname@example.com">
-                                                                                                                                                                `;
+                                                                                                                                                                            <!-- Email Field -->
+                                                                                                                                                                            <label for="accountEmail">Email:</label>
+                                                                                                                                                                            <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="yourname@example.com">
+                                                                                                                                                                        `;
                     illustrationImage.classList.remove('clickable');
                     nextButton.textContent = 'Apply';
                     nextButton.setAttribute('type', 'submit');
@@ -640,17 +642,17 @@
                                 // Remove the cropper instance and restore the content
                                 cropper.destroy();
                                 document.getElementById('personalDetails').innerHTML = `
-                                        <p><strong>Upload a clear headshot:</strong></p>
-                                        <ol style="padding-left: 20px; line-height: 1.6;">
-                                            <li>It must be you.</li>
-                                            <li>Face the camera directly.</li>
-                                            <li>Include head and shoulders.</li>
-                                        </ol>
-                                        <div style="text-align: center; margin-top: 1rem;">
-                                            <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                                            <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
-                                        </div>
-                                    `;
+                                                <p><strong>Upload a clear headshot:</strong></p>
+                                                <ol style="padding-left: 20px; line-height: 1.6;">
+                                                    <li>It must be you.</li>
+                                                    <li>Face the camera directly.</li>
+                                                    <li>Include head and shoulders.</li>
+                                                </ol>
+                                                <div style="text-align: center; margin-top: 1rem;">
+                                                    <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+                                                    <button type="button" id="uploadButton" class="option-button">Upload Profile Picture</button>
+                                                </div>
+                                            `;
                                 // Re-attach event listeners to the new elements
                                 attachUploadEventListeners();
                             });
