@@ -61,6 +61,7 @@
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 width: auto;
+                min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
             }
 
         /* Responsive adjustments */
@@ -405,10 +406,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                        `;
+                                                                                                                                                                                                                                                                                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -446,6 +447,27 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            const unitSelects = document.querySelectorAll('.input-group select');
+            let maxWidth = 0;
+
+            unitSelects.forEach(select => {
+                // Temporarily add the select to the body to calculate its full width
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.visibility = 'hidden';
+                tempDiv.appendChild(select.cloneNode(true));
+                document.body.appendChild(tempDiv);
+
+                // Update maxWidth if this select's width is larger
+                maxWidth = Math.max(maxWidth, tempDiv.clientWidth + 20);
+                document.body.removeChild(tempDiv);
+            });
+
+            // Set the maxWidth as the min-width for each unit select
+            unitSelects.forEach(select => {
+                select.style.minWidth = `${maxWidth}px`;
+            });
+
             const yearSelect = document.getElementById('dob-year');
             const currentYear = new Date().getFullYear();
 
