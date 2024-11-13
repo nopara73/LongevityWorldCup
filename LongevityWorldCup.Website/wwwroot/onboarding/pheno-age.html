@@ -104,6 +104,20 @@
             color: #666;
             margin-top: 0.5rem;
         }
+
+        /* Initial state: hidden and rotated to the left */
+        #continueButton {
+            opacity: 0;
+            transform-origin: left;
+            transform: rotate(-90deg);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+            /* Final state: fully visible and upright */
+            #continueButton.show {
+                opacity: 1;
+                transform: rotate(0);
+            }
     </style>
 </head>
 <body>
@@ -260,14 +274,21 @@
             </fieldset>
 
             <!-- Calculate Button -->
-            <button type="submit" class="option-button calculate-button" aria-label="Calculate your biological age" style="margin-top: 1.5rem; max-width: 350px;">Calculate My Biological Age</button>
+            <button type="submit" class="option-button calculate-button" aria-label="Calculate your biological age" style="margin-top: 1.5rem; max-width: 350px;">
+                <i class="fas fa-heartbeat"></i>&nbsp;Calculate My Biological Age
+            </button>
         </form>
 
         <div id="phenoAgeResult" class="bioageform"></div>
 
         <div class="options-container">
-            <button id="continueButton" class="option-button already-have" onclick="window.location.href='onboarding/convergence.html'" style="display: none;">Next</button>
-            <button class="option-button back-button" onclick="window.location.href='/'">Go Back to Homepage</button>
+            <button id="continueButton" class="option-button already-have">
+                Next&nbsp;<i class="fas fa-arrow-right"></i>
+            </button>
+
+            <button class="option-button back-button" onclick="window.location.href='/'">
+                <i class="fas fa-arrow-left"></i>&nbsp;Go Back to Homepage
+            </button>
         </div>
     </main>
     <!--FOOTER-->
@@ -384,10 +405,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                `;
+                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                        `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -408,7 +429,7 @@
                             }
 
                             // Show the Next button
-                            document.getElementById('continueButton').style.display = 'block';
+                            document.getElementById('continueButton').classList.add('show');
                         }
                     }, 30);
                 }, 100);
