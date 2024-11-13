@@ -289,6 +289,7 @@
             }
         }
 
+        let isFirstTimeAnimation = true; // Flag to control the first-time animation
         function calculateResult() {
             const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
             const markerValues = [];
@@ -364,10 +365,61 @@
             const phenoAge = window.PhenoAge.calculatePhenoAge(markerValues, coefficients);
 
             // Display the result
-            document.getElementById('phenoAgeResult').innerText = `Your PhenoAge is ${phenoAge.toFixed(2)} years.`;
+            const resultElement = document.getElementById('phenoAgeResult');
 
-            // Show the Next button
-            document.getElementById('continueButton').style.display = 'block';
+            // Initial setup for styling
+            resultElement.style.maxWidth = '580px';  // Set max width to match the form
+            resultElement.style.padding = '1.5rem';
+
+            resultElement.style.backgroundColor = '#F0F4F8'; // Match the page background
+            resultElement.style.color = '#333';              // Standard dark gray
+            resultElement.style.border = '1px solid #00BCD4'; // Cyan border matching the button
+            resultElement.style.boxShadow = '0 0 10px rgba(0, 188, 212, 0.15)'; // Faint cyan shadow for emphasis
+
+            resultElement.style.borderRadius = '8px';
+            resultElement.style.fontSize = '1.5rem';
+            resultElement.style.opacity = 0;
+            resultElement.style.transition = 'opacity 1s';
+
+            // Setting up the animated counter effect
+            let displayAge = 0;
+            resultElement.innerHTML = `
+                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                `;
+
+            if (isFirstTimeAnimation) {
+                // Set the flag to false after the first run
+                isFirstTimeAnimation = false;
+
+                setTimeout(() => {
+                    resultElement.style.opacity = 1; // Fade-in effect
+                    const ageCounter = setInterval(() => {
+                        displayAge += 1;
+                        document.getElementById('animatedAge').innerText = displayAge.toFixed(0);
+                        if (displayAge >= phenoAge) {
+                            clearInterval(ageCounter);
+                            document.getElementById('animatedAge').innerText = phenoAge.toFixed(1); // Set final age value
+
+                            if (phenoAge < chronologicalAge) {
+                                // Add the celebratory emoji to the "years" line
+                                document.getElementById('yearsText').innerHTML = `years 🚀`;
+                            }
+
+                            // Show the Next button
+                            document.getElementById('continueButton').style.display = 'block';
+                        }
+                    }, 30);
+                }, 100);
+            } else {
+                setTimeout(() => {
+                    resultElement.style.opacity = 1; // Fade-in effect
+                    // Direct update without animation
+                    document.getElementById('animatedAge').innerText = phenoAge.toFixed(1);
+                    document.getElementById('yearsText').innerHTML = phenoAge < chronologicalAge ? `years 🚀` : `years`;
+                }, 100);
+            }
 
             isResultCalculated = true;
         }
@@ -426,9 +478,6 @@
 
             document.getElementById('wbc').value = 6; // 1000 cells/μL
             document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
-
-            // Calculate result after filling fake data
-            calculateResult();
         }
 
         function updateDays() {
