@@ -275,7 +275,7 @@
             </fieldset>
 
             <!-- Calculate Button -->
-            <button type="submit" class="option-button calculate-button" aria-label="Calculate your biological age" style="margin-top: 1.5rem; max-width: 350px;">
+            <button type="submit" class="option-button" aria-label="Calculate your biological age" style="margin-top: 1.5rem; max-width: 350px;">
                 <i class="fas fa-heartbeat"></i>&nbsp;Calculate My Biological Age
             </button>
         </form>
@@ -406,10 +406,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                            <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                            <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                            <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                    `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
