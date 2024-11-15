@@ -895,6 +895,7 @@
     </div>
 </div>
 
+<script src="/js/divisionIcons.js"></script>
 <script src="/js/pheno-age.js"></script>
 <script>
     let athleteResults = [];
@@ -1886,18 +1887,10 @@
             return acc;
         }, {});
 
-        // Define icons for each division
-        const divisionIcons = {
-            "men's": "💪",
-            "women's": "👠",
-            "open": "🦾"
-        };
-
         // Generate the filter items with icons and counts
         Object.keys(divisionCounts).forEach(division => {
             const count = divisionCounts[division];
-            const normalizedDivision = division.toLowerCase();
-            const icon = divisionIcons[normalizedDivision] || ""; // Default to no icon if not found
+            const icon = window.GetDivisionIcon(division); // Default to no icon if not found
 
             const li = document.createElement('li');
             li.innerHTML = `
