@@ -35,6 +35,13 @@
             margin-bottom: 0; /* Reset any margin added here */
         }
 
+        .error-message {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: block;
+        }
+
         .autocomplete-items {
             position: absolute;
             border: 1px solid #ccc;
@@ -109,6 +116,7 @@
                 <!-- Name Field -->
                 <label for="name">Name:</label>
                 <input type="text" id="name" name="name" required aria-required="true" placeholder="Real name or cyber alias — your call">
+                <span id="nameError" class="error-message"></span>
 
                 <!-- Division Field -->
                 <label for="division">Division:</label>
@@ -225,11 +233,11 @@
                     illustrationImage.src = "../assets/reaper.jpg";
                     illustrationImage.alt = "Grim Reaper";
                     document.getElementById('content').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    Death will come — but who will stand in its path?<br />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <em>Could it be you?</em>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a spirit bold enough to face the inevitable.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    Death will come — but who will stand in its path?<br />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <em>Could it be you?</em>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
                     nextButton.setAttribute('type', 'button');
@@ -245,6 +253,18 @@
 
                     nameInput.addEventListener('input', checkFormValidityStage1);
                     nationalityInput.addEventListener('input', checkFormValidityStage1);
+
+                    nameInput.addEventListener('blur', function () {
+                        const nameValue = nameInput.value.trim();
+                        const nameValid = isValidName(nameValue);
+
+                        const nameError = document.getElementById('nameError');
+                        if (!nameValid) {
+                            nameError.textContent = 'Invalid name.';
+                        } else {
+                            nameError.textContent = '';
+                        }
+                    });
 
                     // Run checkFormValidityStage1 initially
                     checkFormValidityStage1();
@@ -277,17 +297,17 @@
                     illustrationImage.src = "../assets/cr7.jpg";
                     illustrationImage.alt = "Cristiano Ronaldo";
                     document.getElementById('content').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <em>It's now your turn to make that decision.</em>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p style="text-align: center;"><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        So, does he lack privacy? <strong>No</strong>, he made a conscious decision to selectively reveal himself to the world.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <em>It's now your turn to make that decision.</em>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
@@ -334,9 +354,9 @@
                     illustrationImage.src = "../assets/proof.jpg";
                     illustrationImage.alt = "Proof Image";
                     document.getElementById('content').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>Upload <strong>image proofs</strong> of your biomarkers.</p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.</p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>Upload <strong>image proofs</strong> of your biomarkers.</p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <p>These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.</p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
                     document.getElementById('proofUploadSection').style.display = '';
 
                     illustrationImage.classList.remove('clickable');
@@ -761,11 +781,15 @@
             const nationalityInput = document.getElementById('nationality');
             const nextButton = document.getElementById('nextButton');
 
-            const nameFilled = nameInput.value.trim() !== '';
+            const nameValue = nameInput.value.trim();
+            const nameValid = isValidName(nameValue);
             const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
             const nationalityFilled = nationalityInput.value.trim() !== '';
 
-            if (nameFilled && divisionSelected && nationalityFilled) {
+            if (nameValid) {
+                nameError.textContent = '';
+            }
+            if (nameValid && divisionSelected && nationalityFilled) {
                 nextButton.disabled = false;
                 nextButton.classList.remove('disabled-button');
             } else {
@@ -773,6 +797,7 @@
                 nextButton.classList.add('disabled-button');
             }
         }
+
         function checkFormValidityStage2() {
             if (currentStage !== 2) return;
 
@@ -820,6 +845,19 @@
                 nextButton.disabled = true;
                 nextButton.classList.add('disabled-button');
             }
+        }
+
+        function isValidName(name) {
+            // Trim leading and trailing whitespace
+            name = name.trim();
+
+            // Ensure the name is at least 3 characters long
+            if (name.length < 3) return false;
+
+            // Regular expression to validate the name
+            const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'-]{2,99}$/;
+
+            return nameRegex.test(name);
         }
     </script>
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
