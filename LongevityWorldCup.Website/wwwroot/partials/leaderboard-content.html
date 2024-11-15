@@ -79,6 +79,7 @@
         color: var(--primary-color);
         padding: 15px 0;
         letter-spacing: 1px;
+        word-spacing: 10px;
         font-family: 'Orbitron', sans-serif;
         background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
         background-size: 200%;
@@ -1697,6 +1698,32 @@
 
         // Update the counts in the filter sections
         updateFilterCounts(filteredAthletes);
+
+        // Update the collapsed-title text based on selected filters
+        let leagueText = '';
+
+        // Build generation part of the league text
+        if (selectedGenerations.length === 1) {
+            leagueText += selectedGenerations[0].toUpperCase();
+        }
+
+        // Build division part of the league text
+        if (selectedDivisions.length === 1) {
+            if (leagueText.length > 0) {
+                leagueText += ' ';
+            }
+            leagueText += selectedDivisions[0].toUpperCase();
+        }
+
+        // Default text if no filters are selected
+        if (leagueText === '') {
+            leagueText = 'ULTIMATE';
+        }
+
+        leagueText += " LEAGUE";
+
+        // Update the text content of the collapsed-title element
+        document.querySelector('.collapsed-title').textContent = leagueText;
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
