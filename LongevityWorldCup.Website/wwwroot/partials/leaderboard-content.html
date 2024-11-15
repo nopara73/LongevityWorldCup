@@ -1718,22 +1718,20 @@
                 leagueText += ' ';
             }
 
-            const [first, second] = selectedDivisions;
+            // Custom sorting order for divisions
+            const order = { "men's": 1, "women's": 2, "open": 3 };
 
-            if (
-                (first === "men's" && second === "women's") ||
-                (first === "women's" && second === "men's")
-            ) {
+            // Sort divisions based on custom order
+            const [first, second] = selectedDivisions
+                .map(div => div.toLowerCase())
+                .sort((a, b) => order[a] - order[b]);
+
+            // Simplified conditions
+            if (first === "men's" && second === "women's") {
                 leagueText += 'MIXED';
-            } else if (
-                (first === "men's" && second === 'open') ||
-                (first === "open" && second === "men's")
-            ) {
+            } else if (first === "men's" && second === 'open') {
                 leagueText += "INCLUSIVE MEN'S";
-            } else if (
-                (first === "women's" && second === 'open') ||
-                (first === "open" && second === "women's")
-            ) {
+            } else if (first === "women's" && second === 'open') {
                 leagueText += "INCLUSIVE WOMEN'S";
             }
         }
@@ -1746,7 +1744,10 @@
         leagueText += " LEAGUE";
 
         // Update the text content of the collapsed-title element
-        document.querySelector('.collapsed-title').textContent = leagueText;
+        const collapsedTitle = document.querySelector('.collapsed-title');
+        if (collapsedTitle) {
+            collapsedTitle.textContent = leagueText;
+        }
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
