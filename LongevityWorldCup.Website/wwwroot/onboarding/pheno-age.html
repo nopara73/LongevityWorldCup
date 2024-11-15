@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <!--HEAD-->
+    <link rel="stylesheet" href="/css/bioageform.css">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -15,75 +16,6 @@
             .option-button.already-have:hover {
                 background-color: #388E3C; /* Darker Green */
             }
-
-        /* Add these styles inside your <style> tag */
-        .bioageform {
-            max-width: 600px;
-            margin: 2rem auto;
-            padding: 1rem;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Centers the button horizontally */
-        }
-
-            .bioageform label {
-                display: block;
-                margin-top: 1rem;
-                font-weight: bold;
-                color: #333;
-            }
-
-            .bioageform input,
-            .bioageform select {
-                width: 100%;
-                padding: 0.5rem;
-                margin-top: 0.5rem;
-                box-sizing: border-box;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-            }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            margin-top: 0.5rem;
-        }
-
-            .input-group input {
-                flex: 1;
-            }
-
-            .input-group select {
-                margin-left: 0.5rem;
-                padding: 0.5rem;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                width: auto;
-                min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
-            }
-
-        /* Responsive adjustments */
-        @media (max-width: 600px) {
-            .bioageform {
-                padding: 1rem;
-            }
-        }
-
-        /* Fieldset Styles */
-        .bioageform fieldset {
-            border: 1px solid #ccc;
-            padding: 1rem;
-            margin-top: 2rem;
-            border-radius: 8px;
-            max-width: 300px;
-        }
-
-        .bioageform legend {
-            font-weight: bold;
-            padding: 0 0.5rem;
-        }
 
         /* Visually Hidden Class for Accessibility */
         .visually-hidden {
@@ -118,6 +50,25 @@
             #continueButton.show {
                 opacity: 1;
                 transform: rotate(0);
+            }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+            .input-group input {
+                flex: 1;
+            }
+
+            .input-group select {
+                margin-left: 0.5rem;
+                padding: 0.5rem;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                width: auto;
+                min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
             }
     </style>
 </head>
@@ -408,10 +359,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                            <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                            <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                            <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                    `;
+                                                                                                                                                                                                                                                                                                                    <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                    <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                    <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                            `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
