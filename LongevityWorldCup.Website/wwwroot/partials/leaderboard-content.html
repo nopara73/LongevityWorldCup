@@ -1713,6 +1713,29 @@
                 leagueText += ' ';
             }
             leagueText += selectedDivisions[0].toUpperCase();
+        } else if (selectedDivisions.length === 2) {
+            if (leagueText.length > 0) {
+                leagueText += ' ';
+            }
+
+            const [first, second] = selectedDivisions;
+
+            if (
+                (first === "men's" && second === "women's") ||
+                (first === "women's" && second === "men's")
+            ) {
+                leagueText += 'MIXED';
+            } else if (
+                (first === "men's" && second === 'open') ||
+                (first === "open" && second === "men's")
+            ) {
+                leagueText += "INCLUSIVE MEN'S";
+            } else if (
+                (first === "women's" && second === 'open') ||
+                (first === "open" && second === "women's")
+            ) {
+                leagueText += "INCLUSIVE WOMEN'S";
+            }
         }
 
         // Default text if no filters are selected
