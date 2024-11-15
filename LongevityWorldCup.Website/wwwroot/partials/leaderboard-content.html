@@ -1705,6 +1705,26 @@
         // Build generation part of the league text
         if (selectedGenerations.length === 1) {
             leagueText += selectedGenerations[0].toUpperCase();
+        } else if (selectedGenerations.length === 2) {
+            leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
+        } else if (selectedGenerations.length === 3) {
+            leagueText +=
+                selectedGenerations[0].toUpperCase() + ', ' +
+                selectedGenerations[1].toUpperCase() + ', AND ' +
+                selectedGenerations[2].toUpperCase();
+        } else if (selectedGenerations.length === 4) {
+            leagueText +=
+                selectedGenerations[0].toUpperCase() + ', ' +
+                selectedGenerations[1].toUpperCase() + ', ' +
+                selectedGenerations[2].toUpperCase() + ', AND ' +
+                selectedGenerations[3].toUpperCase();
+        } else if (selectedGenerations.length === 5) {
+            leagueText +=
+                selectedGenerations[0].toUpperCase() + ', ' +
+                selectedGenerations[1].toUpperCase() + ', ' +
+                selectedGenerations[2].toUpperCase() + ', ' +
+                selectedGenerations[3].toUpperCase() + ', AND ' +
+                selectedGenerations[4].toUpperCase();
         }
 
         // Build division part of the league text
