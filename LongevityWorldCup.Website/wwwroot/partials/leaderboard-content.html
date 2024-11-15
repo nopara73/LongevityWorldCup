@@ -70,6 +70,42 @@
             display: inline-block;
         }
 
+    .collapsed-title {
+        display: block;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        text-align: center;
+        font-size: 1.8rem;
+        color: var(--primary-color);
+        padding: 15px 0;
+        letter-spacing: 1px;
+        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        background-size: 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: none;
+        border-radius: 5px; /* Softens edges */
+    }
+
+    .sidebar:hover .collapsed-title {
+        display: none;
+    }
+
+    @keyframes gradient-animation {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
     .sidebar-title {
         margin: 0;
         padding: 1rem 0;
@@ -799,6 +835,7 @@
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
+                <div class="collapsed-title">ULTIMATE LEAGUE</div>
                 <div class="filter-section">
                     <h3>Divisions</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
