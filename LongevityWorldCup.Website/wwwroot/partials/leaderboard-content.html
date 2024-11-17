@@ -1706,7 +1706,22 @@
         if (selectedGenerations.length === 1) {
             leagueText += selectedGenerations[0].toUpperCase();
         } else if (selectedGenerations.length === 2) {
-            leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
+            const [first, second] = selectedGenerations.map(gen => gen.toLowerCase()).sort();
+
+            // Check for specific two-generation combinations
+            if (first === "baby boomers" && second === "silent generation") {
+                leagueText += "HERITAGE";
+            } else if (first === "baby boomers" && second === "gen x") {
+                leagueText += "SENIOR";
+            } else if (first === "gen x" && second === "millennials") {
+                leagueText += "PRIME";
+            } else if (first === "gen z" && second === "millennials") {
+                leagueText += "RISING";
+            } else if (first === "gen alpha" && second === "gen z") {
+                leagueText += "NEXT-GEN";
+            } else {
+                leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
+            }
         } else if (selectedGenerations.length === 3) {
             leagueText +=
                 selectedGenerations[0].toUpperCase() + ', ' +
