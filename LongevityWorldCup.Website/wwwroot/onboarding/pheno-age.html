@@ -342,6 +342,9 @@
             // Display the result
             const resultElement = document.getElementById('phenoAgeResult');
 
+            // Scroll to the result section after displaying the result
+            resultElement.scrollIntoView({ behavior: 'smooth' });
+
             // Initial setup for styling
             resultElement.style.maxWidth = '580px';  // Set max width to match the form
             resultElement.style.padding = '1.5rem';
