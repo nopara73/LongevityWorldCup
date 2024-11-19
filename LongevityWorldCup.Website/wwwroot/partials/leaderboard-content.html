@@ -26,6 +26,24 @@
         flex-grow: 1;
     }
 
+    @keyframes sidebarExpandRetract {
+        0% {
+            width: 50px;
+        }
+
+        50% {
+            width: 80px;
+        }
+
+        100% {
+            width: 50px;
+        }
+    }
+
+    .sidebar.scroll-animate {
+        animation: sidebarExpandRetract 0.8s ease-in-out;
+    }
+
     .sidebar {
         width: 50px;
         padding: 0;
@@ -2179,4 +2197,33 @@
             closeModal();
         }
     }
+
+    let lastScrollY = window.scrollY;
+    const sidebar = document.querySelector('.sidebar');
+    let scrollAnimateTimeout;
+
+    window.addEventListener('scroll', () => {
+        // Check if the sidebar is expanded (you can use a class or attribute to determine this)
+        const isSidebarExpanded = sidebar.matches(':hover') || sidebar.offsetWidth > 50; // Adjust width check as per your sidebar width
+
+        if (!isSidebarExpanded && Math.abs(window.scrollY - lastScrollY) > 10) {
+            sidebar.classList.add('scroll-animate');
+
+            // Clear any previous timeout and set a new one
+            clearTimeout(scrollAnimateTimeout);
+            scrollAnimateTimeout = setTimeout(() => {
+                sidebar.classList.remove('scroll-animate');
+            }, 800); // Match the duration of the animation
+        }
+        lastScrollY = window.scrollY;
+    });
+
+    // Stop scroll-animate effect immediately on hover
+    sidebar.addEventListener('mouseenter', () => {
+        if (sidebar.classList.contains('scroll-animate')) {
+            sidebar.classList.remove('scroll-animate');
+        }
+        // Clear any ongoing timeout for scroll-animate
+        clearTimeout(scrollAnimateTimeout);
+    });
 </script>
