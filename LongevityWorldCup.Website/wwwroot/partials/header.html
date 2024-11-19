@@ -101,62 +101,6 @@
         }
     }
 
-    @keyframes wiggle-intense {
-        0% {
-            transform: rotate(0deg);
-        }
-
-        10% {
-            transform: rotate(3deg);
-        }
-
-        20% {
-            transform: rotate(-3deg);
-        }
-
-        30% {
-            transform: rotate(5deg);
-        }
-
-        40% {
-            transform: rotate(-5deg);
-        }
-
-        50% {
-            transform: rotate(7deg);
-        }
-
-        60% {
-            transform: rotate(-7deg);
-        }
-
-        70% {
-            transform: rotate(9deg);
-        }
-
-        80% {
-            transform: rotate(-9deg);
-        }
-
-        90% {
-            transform: rotate(11deg);
-        }
-
-        100% {
-            transform: rotate(0deg);
-        }
-    }
-
-    .join-game .sparkle {
-        display: inline-block;
-        animation: none;
-        transition: animation 0.5s ease;
-    }
-
-    .join-game:hover .sparkle {
-        animation: wiggle-intense 15s infinite ease-in-out;
-    }
-
     .header-link {
         text-decoration: none;
         color: inherit; /* Inherit the color from the parent element */
@@ -253,44 +197,5 @@
             middleSpan.style.display = '';
             endStrong.style.display = '';
         }
-    });
-
-    let intensityTimer;
-    let animationDuration = 15; // Start with 15 seconds
-    let timeoutTimer;
-
-    // Event listeners for mouse interactions
-    joinButton.addEventListener('mouseenter', function () {
-        clearInterval(intensityTimer);
-        if (!joinButton.querySelector('.sparkle')) {
-            const sparkleSpan = document.createElement('span');
-            sparkleSpan.classList.add('sparkle');
-            sparkleSpan.textContent = '✨';
-            joinButton.appendChild(sparkleSpan);
-        }
-
-        // Increase intensity over time
-        intensityTimer = setInterval(() => {
-            animationDuration = Math.max(1, animationDuration - 0.5); // Decrease duration gradually, stop at 1s
-            const sparkleElement = joinButton.querySelector('.sparkle');
-            if (sparkleElement) {
-                sparkleElement.style.animationDuration = `${animationDuration}s`;
-            }
-        }, 1000); // Decrease duration every 1 second
-
-        // Stop after 15 seconds
-        timeoutTimer = setTimeout(() => {
-            clearInterval(intensityTimer);
-        }, 15000);
-    });
-
-    joinButton.addEventListener('mouseleave', function () {
-        const sparkle = joinButton.querySelector('.sparkle');
-        if (sparkle) {
-            sparkle.remove();
-        }
-        clearInterval(intensityTimer);
-        animationDuration = 15;
-        clearTimeout(timeoutTimer);
     });
 </script>
