@@ -1023,10 +1023,13 @@
         3: { btc: "0.00014401 BTC", amount: "$4.03" }
     };
 
+    let includePodiumGlobal = true
     let maxAthletesGlobal = Infinity;
 
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+        includePodiumGlobal = includePodium;
         maxAthletesGlobal = maxAthletes;
+
         fetch('/api/data/athletes')
             .then(response => response.json())
             .then(athletes => {
@@ -1178,7 +1181,7 @@
 
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
-                const remainingAthletes = includePodium ? athleteResults.slice(podiumCount) : athleteResults;
+                const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
                 remainingAthletes.forEach((athlete, index) => {
@@ -1204,8 +1207,14 @@
                     row.setAttribute('data-generation', athlete.generation.trim());
                     row.setAttribute('data-athlete-name', athlete.name);
 
+                    // Hide the row if includePodium is true and athlete.rank <= podiumCount
+                    if (includePodium && athlete.rank <= podiumCount) {
+                        row.style.display = 'none';
+                        row.classList.add('podium-athlete'); // Optional: add a class for future reference
+                    }
+
                     // Hide athletes beyond the maxAthletes limit
-                    if (index >= maxAthletes - podiumCount) {
+                    if (index >= maxAthletes) {
                         row.style.display = 'none';
                         row.classList.add('extra-athlete'); // Optional: add a class for future reference
                     }
@@ -1661,6 +1670,13 @@
         document.querySelectorAll('.extra-athlete').forEach(row => {
             row.style.display = 'none';
         });
+
+        // Hide podium athletes' rows if includePodiumGlobal is true
+        if (includePodiumGlobal) {
+            document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
+                row.style.display = 'none';
+            });
+        }
     }
 
     function removeAllHighlights() {
@@ -1878,6 +1894,13 @@
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
+
+        // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
+        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && uniqueSearchTerms.length === 0) {
+            document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
+                row.style.display = 'none';
+            });
+        }
     }
 
     function updateFilterCounts(filteredAthletes) {
