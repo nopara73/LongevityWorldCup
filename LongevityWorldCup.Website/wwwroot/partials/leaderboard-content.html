@@ -26,23 +26,38 @@
         flex-grow: 1;
     }
 
-    @keyframes sidebarExpandRetract {
-        0% {
-            width: 50px;
-        }
-
-        50% {
-            width: 80px;
-        }
-
-        100% {
-            width: 50px;
-        }
+    .sidebar.partially-expanded {
+        width: 80px;
     }
 
-    .sidebar.scroll-animate {
-        animation: sidebarExpandRetract 0.8s ease-in-out;
+    .sidebar-toggle {
+        background-color: var(--card-bg);
+        border: 2px solid var(--primary-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        margin-right: 1rem;
     }
+
+        .sidebar-toggle:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .sidebar-toggle i {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .sidebar-toggle:hover i {
+            color: white;
+        }
 
     .sidebar {
         width: 50px;
@@ -59,7 +74,8 @@
         flex-shrink: 0;
     }
 
-        .sidebar:hover {
+        .sidebar:hover,
+        .sidebar.expanded {
             width: auto;
             padding: 1rem;
             align-items: flex-start;
@@ -69,7 +85,8 @@
             display: none;
         }
 
-        .sidebar:hover .filter-section {
+        .sidebar:hover .filter-section,
+        .sidebar.expanded .filter-section {
             display: block;
         }
 
@@ -84,7 +101,8 @@
             font-size: 2rem;
         }
 
-        .sidebar:hover .sidebar-title .sidebar-title-text {
+        .sidebar:hover .sidebar-title .sidebar-title-text,
+        .sidebar.expanded .sidebar-title .sidebar-title-text {
             display: inline-block;
         }
 
@@ -107,7 +125,8 @@
         border-radius: 5px; /* Softens edges */
     }
 
-    .sidebar:hover .collapsed-title {
+    .sidebar:hover .collapsed-title,
+    .sidebar.expanded .collapsed-title {
         display: none;
     }
 
@@ -142,7 +161,8 @@
         transition: margin-left 0.3s ease;
     }
 
-    .sidebar:hover ~ .content {
+    .sidebar:hover ~ .content,
+    .sidebar.expanded ~ .content {
         margin-left: 200px;
     }
 
@@ -564,7 +584,7 @@
         position: relative;
         max-width: 250px;
         width: 100%;
-        margin-right: 2rem;
+        margin-right: 0.5rem;
     }
 
     #athleteSearch {
@@ -846,6 +866,9 @@
                     <i class="fa fa-times"></i>
                 </span>
             </div>
+            <button class="sidebar-toggle" aria-label="Toggle Sidebar" title="Show Leagues">
+                <i class="fa fa-sliders-h"></i>
+            </button>
         </div>
 
         <div class="leaderboard">
@@ -2198,32 +2221,20 @@
         }
     }
 
-    let lastScrollY = window.scrollY;
     const sidebar = document.querySelector('.sidebar');
-    let scrollAnimateTimeout;
+    const sidebarToggle = document.querySelector('.sidebar-toggle');
 
-    window.addEventListener('scroll', () => {
-        // Check if the sidebar is expanded (you can use a class or attribute to determine this)
-        const isSidebarExpanded = sidebar.matches(':hover') || sidebar.offsetWidth > 50; // Adjust width check as per your sidebar width
-
-        if (!isSidebarExpanded && Math.abs(window.scrollY - lastScrollY) > 10) {
-            sidebar.classList.add('scroll-animate');
-
-            // Clear any previous timeout and set a new one
-            clearTimeout(scrollAnimateTimeout);
-            scrollAnimateTimeout = setTimeout(() => {
-                sidebar.classList.remove('scroll-animate');
-            }, 800); // Match the duration of the animation
-        }
-        lastScrollY = window.scrollY;
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.remove('partially-expanded');
+        sidebar.classList.toggle('expanded');
     });
 
-    // Stop scroll-animate effect immediately on hover
-    sidebar.addEventListener('mouseenter', () => {
-        if (sidebar.classList.contains('scroll-animate')) {
-            sidebar.classList.remove('scroll-animate');
-        }
-        // Clear any ongoing timeout for scroll-animate
-        clearTimeout(scrollAnimateTimeout);
+    sidebarToggle.addEventListener('mouseenter', () => {
+        if (sidebar.classList.contains('expanded')) return;
+        sidebar.classList.add('partially-expanded');
+    });
+
+    sidebarToggle.addEventListener('mouseleave', () => {
+        sidebar.classList.remove('partially-expanded');
     });
 </script>
