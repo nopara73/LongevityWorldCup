@@ -2227,6 +2227,11 @@
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.toggle('expanded');
+
+        if (sidebar.classList.contains('expanded'))
+            sidebarToggle.title = "Hide Leagues";
+        else
+            sidebarToggle.title = "Show Leagues";
     });
 
     sidebarToggle.addEventListener('mouseenter', () => {
