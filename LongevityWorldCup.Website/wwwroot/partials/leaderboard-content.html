@@ -68,7 +68,37 @@
             color: var(--card-bg);
         }
 
+    .sidebar-close {
+        display: none; /* Hidden by default */
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        cursor: pointer;
+        position: absolute;
+        top: 3px; /* Adjusted for better placement */
+        right: 3px; /* Close to the edge */
+        z-index: 10; /* Ensure it's visible above content */
+        transition: background-color 0.3s ease, color 0.3s ease;
+        width: 40px; /* Width of the button */
+        height: 40px; /* Height of the button (equal to width) */
+        border-radius: 50%; /* Makes it a perfect circle */
+    }
+
+    /* Show the close button only when the sidebar is expanded via the toggle button */
+    .sidebar.expanded .sidebar-close {
+        display: block;
+    }
+
+    /* Optional: Hover effect */
+    .sidebar-close:hover {
+        background-color: var(--primary-color); /* Add background to improve contrast */
+        color: var(--card-bg); /* Adjust text/icon color for contrast */
+        transform: scale(1.1); /* Slight scale for interactivity */
+    }
+
     .sidebar {
+        position: relative; /* To position the close button absolutely within the sidebar */
         width: 50px;
         padding: 0;
         background-color: var(--card-bg);
@@ -83,7 +113,7 @@
         flex-shrink: 0;
     }
 
-        .sidebar:hover,
+        .sidebar:hover:not(.button-collapsed),
         .sidebar.expanded {
             width: auto;
             padding: 1rem;
@@ -883,6 +913,7 @@
 
         <div class="leaderboard">
             <div class="sidebar">
+                <button class="sidebar-close" aria-label="Hide Leagues" title="Hide Leagues"><i class="fa fa-chevron-left" style="font-size: 12px;"></i></button>
                 <h2 class="sidebar-title">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
@@ -2233,10 +2264,12 @@
 
     const sidebar = document.querySelector('.sidebar');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
+    const sidebarClose = document.querySelector('.sidebar-close');
 
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.toggle('expanded');
+        sidebar.classList.remove('collapsed');
         sidebarToggle.classList.toggle('active');
 
         if (sidebar.classList.contains('expanded')) {
@@ -2256,5 +2289,18 @@
 
     sidebarToggle.addEventListener('mouseleave', () => {
         sidebar.classList.remove('partially-expanded');
+    });
+
+    sidebarClose.addEventListener('click', () => {
+        sidebar.classList.remove('expanded');
+        sidebarToggle.classList.remove('active');
+        sidebar.classList.remove('partially-expanded');
+        sidebar.classList.add('button-collapsed');
+        sidebarToggle.title = "Show Leagues";
+        sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
+
+        setTimeout(() => {
+            sidebar.classList.remove('button-collapsed');
+        }, 50);
     });
 </script>
