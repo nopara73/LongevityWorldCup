@@ -523,6 +523,11 @@
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     }
 
+    .podium-item.blurred {
+        filter: blur(5px);
+        pointer-events: none; /* Optional, prevents interaction with blurred items */
+    }
+
     .podium-item.first {
         order: 2;
         height: 320px;
@@ -1732,10 +1737,10 @@
             row.style.display = 'none';
         });
 
-        // Hide all podium items
+        // Remove 'blurred' class from all podium items
         const podiumItems = document.querySelectorAll('.podium-item');
         podiumItems.forEach(item => {
-            item.style.display = 'none';
+            item.classList.remove('blurred');
         });
 
         let anyPodiumVisible = false;
@@ -1755,14 +1760,6 @@
             }
         });
 
-        // Hide or Show the Podium Container Based on Visibility of Podium Items
-        const podium = document.querySelector('.podium');
-        if (anyPodiumVisible) {
-            podium.style.display = 'flex'; // Ensure it's visible if any podium item is visible
-        } else {
-            podium.style.display = 'none'; // Hide the podium container if no items are visible
-        }
-
         // Remove existing highlights
         removeAllHighlights();
 
@@ -1780,6 +1777,19 @@
 
         // Update the counts in the filter sections
         updateFilterCounts(filteredAthletes);
+
+        // Add or remove 'blurred' class from podium items based on filtering
+        podiumItems.forEach(item => {
+            const athleteName = item.getAttribute('data-athlete-name');
+            const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === athleteName);
+            if (athleteInFiltered) {
+                // Remove 'blurred' class
+                item.classList.remove('blurred');
+            } else {
+                // Add 'blurred' class
+                item.classList.add('blurred');
+            }
+        });
 
         // Update the collapsed-title text based on selected filters
         let leagueText = '';
