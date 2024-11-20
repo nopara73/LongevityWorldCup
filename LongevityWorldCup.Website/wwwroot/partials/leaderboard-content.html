@@ -44,9 +44,18 @@
         margin-right: 1rem;
     }
 
+        .sidebar-toggle.active {
+            background-color: var(--primary-color);
+            transform: scale(1); /* Keep the size consistent */
+        }
+
+            .sidebar-toggle.active i {
+                color: var(--card-bg);
+            }
+
         .sidebar-toggle:hover {
-            background-color: var(--secondary-color);
-            transform: scale(1.1);
+            background-color: var(--primary-color);
+            transform: scale(1.05); /* Reduced scaling for subtle effect */
         }
 
         .sidebar-toggle i {
@@ -56,7 +65,7 @@
         }
 
         .sidebar-toggle:hover i {
-            color: white;
+            color: var(--card-bg);
         }
 
     .sidebar {
@@ -130,6 +139,11 @@
         display: none;
     }
 
+    .sidebar:hover .sidebar-title,
+    .sidebar.expanded .sidebar-title {
+        width: 100%; /* Full width only when sidebar is expanded */
+    }
+
     @keyframes gradient-animation {
         0% {
             background-position: 0% 50%;
@@ -164,10 +178,6 @@
     .sidebar:hover ~ .content,
     .sidebar.expanded ~ .content {
         margin-left: 200px;
-    }
-
-    .sidebar:hover .sidebar-title {
-        width: 100%; /* Full width only when sidebar is expanded */
     }
 
     .main-container {
@@ -2227,11 +2237,16 @@
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.toggle('expanded');
+        sidebarToggle.classList.toggle('active');
 
-        if (sidebar.classList.contains('expanded'))
+        if (sidebar.classList.contains('expanded')) {
             sidebarToggle.title = "Hide Leagues";
-        else
+            sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
+        } else {
             sidebarToggle.title = "Show Leagues";
+            sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
+        }
+
     });
 
     sidebarToggle.addEventListener('mouseenter', () => {
