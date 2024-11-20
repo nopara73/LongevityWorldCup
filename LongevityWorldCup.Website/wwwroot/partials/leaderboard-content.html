@@ -2039,8 +2039,9 @@
         }
 
         // Check if any rows or podium items are visible
-        const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none') ||
-            Array.from(podiumItems).some(item => item.style.display !== 'none');
+        const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
+
+        console.log(anyVisible);
 
         if (!anyVisible && query.trim() !== '') {
             const tableBody = document.querySelector('.leaderboard table tbody');
