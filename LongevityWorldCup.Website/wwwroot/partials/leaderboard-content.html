@@ -2157,12 +2157,21 @@
 
         console.log(anyVisible);
 
-        if (!anyVisible && query.trim() !== '') {
-            const tableBody = document.querySelector('.leaderboard table tbody');
-            const noResults = document.createElement('tr');
-            noResults.classList.add('no-results');
-            noResults.innerHTML = `<td colspan="6">No results found for "<strong>${escapeHTML(query)}</strong>".</td>`;
-            tableBody.appendChild(noResults);
+        if (!anyVisible) {
+            if (query.trim() !== '') {
+                const tableBody = document.querySelector('.leaderboard table tbody');
+                const noResults = document.createElement('tr');
+                noResults.classList.add('no-results');
+                noResults.innerHTML = `<td colspan="6">No results found for "<strong>${escapeHTML(query)}</strong>".</td>`;
+                tableBody.appendChild(noResults);
+            }
+            else {
+                const tableBody = document.querySelector('.leaderboard table tbody');
+                const noResults = document.createElement('tr');
+                noResults.classList.add('no-results');
+                noResults.innerHTML = `<td colspan="6">It looks like no athletes have joined this league yet.</td>`;
+                tableBody.appendChild(noResults);
+            }
         }
     }
 
