@@ -978,10 +978,10 @@
                         </div>
                     </div>
                     <div class="athlete-info">
-                        <p><strong>Rank:</strong> <span id="athleteRank"></span></p>
+                        <p><strong>Best Rank:</strong> <span id="athleteRank"></span></p>
                         <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
-                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
+                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
@@ -1139,7 +1139,7 @@
                         );
                         athletesInCombo.sort((a, b) => a.ageReduction - b.ageReduction);
                         athletesInCombo.forEach((athlete, index) => {
-                            const key = `${division}_${generation}`;
+                            const key = `${generation}_${division}`;
                             athlete.ranks[key] = index + 1;
                         });
                     });
@@ -1293,22 +1293,57 @@
                                     return;
                                 }
 
+                                // Rank, Division, Flag, Generation, Ages
+                                // Compute the best league rank
+                                // Arrays of divisions and generations for reference
+                                const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
+                                const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
+
+                                // Compute the best league rank
+                                let bestLeagueRank = Infinity;
+                                let bestLeagueName = '';
+                                let bestLeagueType = ''; // 'division', 'generation', 'combination'
+
+                                for (const [league, rank] of Object.entries(athleteData.ranks)) {
+                                    if (rank < bestLeagueRank) {
+                                        bestLeagueRank = rank;
+                                        bestLeagueName = league;
+
+                                        // Determine league type
+                                        if (divisions.includes(league)) {
+                                            bestLeagueType = 'division';
+                                        } else if (generations.includes(league)) {
+                                            bestLeagueType = 'generation';
+                                        } else if (league.includes('_')) {
+                                            bestLeagueType = 'combination';
+                                        } else {
+                                            bestLeagueType = 'other';
+                                        }
+                                    }
+                                }
+                                let ultimateRank = athleteData.rank;
+
                                 // Populate the modal with athlete data
-                                document.getElementById('athleteName').textContent = fullAthleteData.name;
+                                document.getElementById('athleteName').textContent = `${fullAthleteData.name}${getRankText(ultimateRank)}`;
                                 document.getElementById('modalProfilePic').src = fullAthleteData['profile-pic'];
                                 document.getElementById('modalProfilePic').alt = `${fullAthleteData.name} Profile Picture`;
 
                                 // Biography and "why"
                                 document.getElementById('athleteBio').textContent = fullAthleteData.why;
 
-                                // Rank, Division, Flag, Generation, Ages
-                                document.getElementById('athleteRank').textContent = `#${athleteData.rank}`;
-                                document.getElementById('athleteDivision').textContent = athleteData.division;
+                                let rankText = `#${ultimateRank} in the Ultimate League`;
+
+                                if (bestLeagueRank !== ultimateRank) {
+                                    let leagueNameFormatted = formatLeagueName(bestLeagueName, bestLeagueType);
+                                    rankText = `#${bestLeagueRank} ${leagueNameFormatted}`;
+                                }
+
+                                document.getElementById('athleteRank').textContent = rankText;
+                                document.getElementById('athleteDivision').textContent = `${athleteData.division}${getRankText(athleteData.ranks[athleteData.division])}`;
+                                document.getElementById('athleteGeneration').textContent = `${athleteData.generation}${getRankText(athleteData.ranks[athleteData.generation])}`;
                                 document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
-                                document.getElementById('athleteGeneration').textContent = athleteData.generation;
                                 document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
                                 document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-
                                 document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
                                 document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
 
@@ -1568,6 +1603,13 @@
                 console.error('Error fetching athletes:', error);
             });
     };
+
+    function formatLeagueName(leagueName, leagueType) {
+        // Replace underscores with spaces
+        leagueName = leagueName.replace('_', ' ');
+        return `in the ${leagueName} League`;
+    }
+
     function openEnlargedView(imgElement) {
         const enlargedImg = document.createElement('div');
         enlargedImg.classList.add('enlarged-portrait');
@@ -1628,6 +1670,18 @@
                 ${getIcon(contact)}
                </a>`
             }`;
+    }
+
+    function getRankText(rank) {
+        let rankText = ` (#${rank})`;
+        if (rank === 1) {
+            rankText = "🥇"; // Gold medal for 1st place
+        } else if (rank === 2) {
+            rankText = "🥈"; // Silver medal for 2nd place
+        } else if (rank === 3) {
+            rankText = "🥉"; // Bronze medal for 3rd place
+        }
+        return rankText;
     }
 
     const modal = document.getElementById("detailsModal");
