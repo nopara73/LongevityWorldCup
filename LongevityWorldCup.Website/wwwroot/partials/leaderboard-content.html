@@ -1108,6 +1108,43 @@
                 // Assign ranks to each athlete based on the sorted order
                 athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
 
+                // Initialize a 'ranks' object for each athlete to store ranks based on different criteria
+                athleteResults.forEach(athlete => { athlete.ranks = {}; });
+
+                // Assign ranks based on divisions
+                const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
+                divisions.forEach(division => {
+                    const athletesInDivision = athleteResults.filter(athlete => athlete.division === division);
+                    athletesInDivision.sort((a, b) => a.ageReduction - b.ageReduction);
+                    athletesInDivision.forEach((athlete, index) => {
+                        athlete.ranks[division] = index + 1;
+                    });
+                });
+
+                // Assign ranks based on generations
+                const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
+                generations.forEach(generation => {
+                    const athletesInGeneration = athleteResults.filter(athlete => athlete.generation === generation);
+                    athletesInGeneration.sort((a, b) => a.ageReduction - b.ageReduction);
+                    athletesInGeneration.forEach((athlete, index) => {
+                        athlete.ranks[generation] = index + 1;
+                    });
+                });
+
+                // Assign ranks based on combinations of division and generation
+                divisions.forEach(division => {
+                    generations.forEach(generation => {
+                        const athletesInCombo = athleteResults.filter(
+                            athlete => athlete.division === division && athlete.generation === generation
+                        );
+                        athletesInCombo.sort((a, b) => a.ageReduction - b.ageReduction);
+                        athletesInCombo.forEach((athlete, index) => {
+                            const key = `${division}_${generation}`;
+                            athlete.ranks[key] = index + 1;
+                        });
+                    });
+                });
+
                 const podiumCount = includePodium ? 3 : 0;
 
                 if (includePodium) {
