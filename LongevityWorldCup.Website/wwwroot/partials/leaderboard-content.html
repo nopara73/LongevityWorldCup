@@ -1838,6 +1838,22 @@
 
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
 
+        // Determine if filters are used
+        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0;
+        const searchUsed = uniqueSearchTerms.length > 0;
+
+        // If filters are used, reassign ranks starting from 1
+        if (filtersUsed && !searchUsed) {
+            filteredAthletes.forEach((athlete, index) => {
+                athlete.filteredRank = index + 1;
+            });
+        } else {
+            // Keep original ranks
+            filteredAthletes.forEach(athlete => {
+                athlete.filteredRank = athlete.rank;
+            });
+        }
+
         // First, hide all rows
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         tableRows.forEach(row => {
@@ -1859,6 +1875,13 @@
             if (row) {
                 row.style.display = '';
                 showWithDelay(row);
+
+                // Update the rank cell
+                const rankCell = row.querySelector('td[data-label="Rank"] .rank');
+                if (rankCell) {
+                    rankCell.textContent = athlete.filteredRank;
+                }
+
             }
             const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
             if (item) {
