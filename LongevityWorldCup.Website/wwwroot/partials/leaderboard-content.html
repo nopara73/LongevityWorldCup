@@ -1535,7 +1535,15 @@
                                                         }
                                                     }
                                                 }
-                                            }
+                                            },
+                                            legend: {
+                                                onHover: function (event, legendItem) {
+                                                    event.native.target.style.cursor = 'pointer';
+                                                },
+                                                onLeave: function (event, legendItem) {
+                                                    event.native.target.style.cursor = 'default';
+                                                }
+                                            },
                                         },
                                         scales: {
                                             y1: {
