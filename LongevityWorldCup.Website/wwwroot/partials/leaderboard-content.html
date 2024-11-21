@@ -523,6 +523,11 @@
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     }
 
+    .podium-item.blurred {
+        filter: blur(5px);
+        pointer-events: none; /* Optional, prevents interaction with blurred items */
+    }
+
     .podium-item.first {
         order: 2;
         height: 320px;
@@ -973,10 +978,10 @@
                         </div>
                     </div>
                     <div class="athlete-info">
-                        <p><strong>Rank:</strong> <span id="athleteRank"></span></p>
+                        <p><strong>Best Rank:</strong> <span id="athleteRank"></span></p>
                         <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
-                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
+                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
@@ -1018,10 +1023,13 @@
         3: { btc: "0.00014401 BTC", amount: "$4.03" }
     };
 
+    let includePodiumGlobal = true
     let maxAthletesGlobal = Infinity;
 
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+        includePodiumGlobal = includePodium;
         maxAthletesGlobal = maxAthletes;
+
         fetch('/api/data/athletes')
             .then(response => response.json())
             .then(athletes => {
@@ -1100,6 +1108,43 @@
                 // Assign ranks to each athlete based on the sorted order
                 athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
 
+                // Initialize a 'ranks' object for each athlete to store ranks based on different criteria
+                athleteResults.forEach(athlete => { athlete.ranks = {}; });
+
+                // Assign ranks based on divisions
+                const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
+                divisions.forEach(division => {
+                    const athletesInDivision = athleteResults.filter(athlete => athlete.division === division);
+                    athletesInDivision.sort((a, b) => a.ageReduction - b.ageReduction);
+                    athletesInDivision.forEach((athlete, index) => {
+                        athlete.ranks[division] = index + 1;
+                    });
+                });
+
+                // Assign ranks based on generations
+                const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
+                generations.forEach(generation => {
+                    const athletesInGeneration = athleteResults.filter(athlete => athlete.generation === generation);
+                    athletesInGeneration.sort((a, b) => a.ageReduction - b.ageReduction);
+                    athletesInGeneration.forEach((athlete, index) => {
+                        athlete.ranks[generation] = index + 1;
+                    });
+                });
+
+                // Assign ranks based on combinations of division and generation
+                divisions.forEach(division => {
+                    generations.forEach(generation => {
+                        const athletesInCombo = athleteResults.filter(
+                            athlete => athlete.division === division && athlete.generation === generation
+                        );
+                        athletesInCombo.sort((a, b) => a.ageReduction - b.ageReduction);
+                        athletesInCombo.forEach((athlete, index) => {
+                            const key = `${generation}_${division}`;
+                            athlete.ranks[key] = index + 1;
+                        });
+                    });
+                });
+
                 const podiumCount = includePodium ? 3 : 0;
 
                 if (includePodium) {
@@ -1173,7 +1218,7 @@
 
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
-                const remainingAthletes = includePodium ? athleteResults.slice(podiumCount) : athleteResults;
+                const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
                 remainingAthletes.forEach((athlete, index) => {
@@ -1199,8 +1244,14 @@
                     row.setAttribute('data-generation', athlete.generation.trim());
                     row.setAttribute('data-athlete-name', athlete.name);
 
+                    // Hide the row if includePodium is true and athlete.rank <= podiumCount
+                    if (includePodium && athlete.rank <= podiumCount) {
+                        row.style.display = 'none';
+                        row.classList.add('podium-athlete'); // Optional: add a class for future reference
+                    }
+
                     // Hide athletes beyond the maxAthletes limit
-                    if (index >= maxAthletes - podiumCount) {
+                    if (index >= maxAthletes) {
                         row.style.display = 'none';
                         row.classList.add('extra-athlete'); // Optional: add a class for future reference
                     }
@@ -1242,22 +1293,57 @@
                                     return;
                                 }
 
+                                // Rank, Division, Flag, Generation, Ages
+                                // Compute the best league rank
+                                // Arrays of divisions and generations for reference
+                                const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
+                                const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
+
+                                // Compute the best league rank
+                                let bestLeagueRank = Infinity;
+                                let bestLeagueName = '';
+                                let bestLeagueType = ''; // 'division', 'generation', 'combination'
+
+                                for (const [league, rank] of Object.entries(athleteData.ranks)) {
+                                    if (rank < bestLeagueRank) {
+                                        bestLeagueRank = rank;
+                                        bestLeagueName = league;
+
+                                        // Determine league type
+                                        if (divisions.includes(league)) {
+                                            bestLeagueType = 'division';
+                                        } else if (generations.includes(league)) {
+                                            bestLeagueType = 'generation';
+                                        } else if (league.includes('_')) {
+                                            bestLeagueType = 'combination';
+                                        } else {
+                                            bestLeagueType = 'other';
+                                        }
+                                    }
+                                }
+                                let ultimateRank = athleteData.rank;
+
                                 // Populate the modal with athlete data
-                                document.getElementById('athleteName').textContent = fullAthleteData.name;
+                                document.getElementById('athleteName').textContent = `${fullAthleteData.name}${getRankText(ultimateRank)}`;
                                 document.getElementById('modalProfilePic').src = fullAthleteData['profile-pic'];
                                 document.getElementById('modalProfilePic').alt = `${fullAthleteData.name} Profile Picture`;
 
                                 // Biography and "why"
                                 document.getElementById('athleteBio').textContent = fullAthleteData.why;
 
-                                // Rank, Division, Flag, Generation, Ages
-                                document.getElementById('athleteRank').textContent = `#${athleteData.rank}`;
-                                document.getElementById('athleteDivision').textContent = athleteData.division;
+                                let rankText = `#${ultimateRank} in the Ultimate League`;
+
+                                if (bestLeagueRank !== ultimateRank) {
+                                    let leagueNameFormatted = formatLeagueName(bestLeagueName, bestLeagueType);
+                                    rankText = `#${bestLeagueRank} ${leagueNameFormatted}`;
+                                }
+
+                                document.getElementById('athleteRank').textContent = rankText;
+                                document.getElementById('athleteDivision').textContent = `${athleteData.division}${getRankText(athleteData.ranks[athleteData.division])}`;
+                                document.getElementById('athleteGeneration').textContent = `${athleteData.generation}${getRankText(athleteData.ranks[athleteData.generation])}`;
                                 document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
-                                document.getElementById('athleteGeneration').textContent = athleteData.generation;
                                 document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
                                 document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-
                                 document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
                                 document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
 
@@ -1449,7 +1535,15 @@
                                                         }
                                                     }
                                                 }
-                                            }
+                                            },
+                                            legend: {
+                                                onHover: function (event, legendItem) {
+                                                    event.native.target.style.cursor = 'pointer';
+                                                },
+                                                onLeave: function (event, legendItem) {
+                                                    event.native.target.style.cursor = 'default';
+                                                }
+                                            },
                                         },
                                         scales: {
                                             y1: {
@@ -1517,6 +1611,13 @@
                 console.error('Error fetching athletes:', error);
             });
     };
+
+    function formatLeagueName(leagueName, leagueType) {
+        // Replace underscores with spaces
+        leagueName = leagueName.replace('_', ' ');
+        return `in the ${leagueName} League`;
+    }
+
     function openEnlargedView(imgElement) {
         const enlargedImg = document.createElement('div');
         enlargedImg.classList.add('enlarged-portrait');
@@ -1577,6 +1678,18 @@
                 ${getIcon(contact)}
                </a>`
             }`;
+    }
+
+    function getRankText(rank) {
+        let rankText = ` (#${rank})`;
+        if (rank === 1) {
+            rankText = "🥇"; // Gold medal for 1st place
+        } else if (rank === 2) {
+            rankText = "🥈"; // Silver medal for 2nd place
+        } else if (rank === 3) {
+            rankText = "🥉"; // Bronze medal for 3rd place
+        }
+        return rankText;
     }
 
     const modal = document.getElementById("detailsModal");
@@ -1656,6 +1769,13 @@
         document.querySelectorAll('.extra-athlete').forEach(row => {
             row.style.display = 'none';
         });
+
+        // Hide podium athletes' rows if includePodiumGlobal is true
+        if (includePodiumGlobal) {
+            document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
+                row.style.display = 'none';
+            });
+        }
     }
 
     function removeAllHighlights() {
@@ -1726,16 +1846,32 @@
 
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
 
+        // Determine if filters are used
+        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0;
+        const searchUsed = uniqueSearchTerms.length > 0;
+
+        // If filters are used, reassign ranks starting from 1
+        if (filtersUsed && !searchUsed) {
+            filteredAthletes.forEach((athlete, index) => {
+                athlete.filteredRank = index + 1;
+            });
+        } else {
+            // Keep original ranks
+            filteredAthletes.forEach(athlete => {
+                athlete.filteredRank = athlete.rank;
+            });
+        }
+
         // First, hide all rows
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         tableRows.forEach(row => {
             row.style.display = 'none';
         });
 
-        // Hide all podium items
+        // Remove 'blurred' class from all podium items
         const podiumItems = document.querySelectorAll('.podium-item');
         podiumItems.forEach(item => {
-            item.style.display = 'none';
+            item.classList.remove('blurred');
         });
 
         let anyPodiumVisible = false;
@@ -1747,6 +1883,13 @@
             if (row) {
                 row.style.display = '';
                 showWithDelay(row);
+
+                // Update the rank cell
+                const rankCell = row.querySelector('td[data-label="Rank"] .rank');
+                if (rankCell) {
+                    rankCell.textContent = athlete.filteredRank;
+                }
+
             }
             const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
             if (item) {
@@ -1754,14 +1897,6 @@
                 anyPodiumVisible = true;
             }
         });
-
-        // Hide or Show the Podium Container Based on Visibility of Podium Items
-        const podium = document.querySelector('.podium');
-        if (anyPodiumVisible) {
-            podium.style.display = 'flex'; // Ensure it's visible if any podium item is visible
-        } else {
-            podium.style.display = 'none'; // Hide the podium container if no items are visible
-        }
 
         // Remove existing highlights
         removeAllHighlights();
@@ -1780,6 +1915,19 @@
 
         // Update the counts in the filter sections
         updateFilterCounts(filteredAthletes);
+
+        // Add or remove 'blurred' class from podium items based on filtering
+        podiumItems.forEach(item => {
+            const athleteName = item.getAttribute('data-athlete-name');
+            const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === athleteName);
+            if (athleteInFiltered) {
+                // Remove 'blurred' class
+                item.classList.remove('blurred');
+            } else {
+                // Add 'blurred' class
+                item.classList.add('blurred');
+            }
+        });
 
         // Update the collapsed-title text based on selected filters
         let leagueText = '';
@@ -1868,6 +2016,13 @@
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
+
+        // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
+        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && uniqueSearchTerms.length === 0) {
+            document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
+                row.style.display = 'none';
+            });
+        }
     }
 
     function updateFilterCounts(filteredAthletes) {
@@ -2006,15 +2161,25 @@
         }
 
         // Check if any rows or podium items are visible
-        const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none') ||
-            Array.from(podiumItems).some(item => item.style.display !== 'none');
+        const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
 
-        if (!anyVisible && query.trim() !== '') {
-            const tableBody = document.querySelector('.leaderboard table tbody');
-            const noResults = document.createElement('tr');
-            noResults.classList.add('no-results');
-            noResults.innerHTML = `<td colspan="6">No results found for "<strong>${escapeHTML(query)}</strong>".</td>`;
-            tableBody.appendChild(noResults);
+        console.log(anyVisible);
+
+        if (!anyVisible) {
+            if (query.trim() !== '') {
+                const tableBody = document.querySelector('.leaderboard table tbody');
+                const noResults = document.createElement('tr');
+                noResults.classList.add('no-results');
+                noResults.innerHTML = `<td colspan="6">No results found for "<strong>${escapeHTML(query)}</strong>".</td>`;
+                tableBody.appendChild(noResults);
+            }
+            else {
+                const tableBody = document.querySelector('.leaderboard table tbody');
+                const noResults = document.createElement('tr');
+                noResults.classList.add('no-results');
+                noResults.innerHTML = `<td colspan="6">It looks like no athletes have joined this league yet.</td>`;
+                tableBody.appendChild(noResults);
+            }
         }
     }
 
