@@ -13,17 +13,22 @@
             z-index: 1000;
             justify-content: center;
             align-items: center;
+            overflow: auto;
         }
 
         .dialog-content {
-            background: white;
-            padding: 2rem;
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: none;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             max-width: 400px;
             width: 90%;
-            animation: fadeIn 0.3s ease-out;
+            overflow-y: auto;
+            max-height: 90vh;
+            animation: fadeIn 0.5s ease-out;
         }
 
             .dialog-content h2 {
@@ -65,11 +70,6 @@
                 opacity: 1;
                 transform: scale(1);
             }
-        }
-
-        /* Prevent scrolling when dialog is open */
-        body.no-scroll {
-            overflow: hidden;
         }
 
         button:hover {
@@ -279,6 +279,11 @@
             text-align: center;
         }
 
+        .newsletter-section h3 {
+            color: var(--text-color);
+            text-align: center;
+        }
+
         .btc-status {
             font-size: 1.5rem;
             font-weight: bold;
@@ -362,19 +367,20 @@
         </div>
 
         <!-- Minimal Newsletter Subscription Section -->
-        <div class="section-container">
-            <h3>Once/Year Newsletter: Highlighting Success, Announcing the Future.</h3>
+        <div class="section-container newsletter-section">
+            <h3>Once/Year Newsletter</h3>
             <p>
-                Want to know the winners? Once a year, we deliver last year's champs and next year's top contenders. No fluff, no spam—just what matters.
+                Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
             </p>
             <form id="newsletter-form">
-                <input type="email" placeholder="Enter your email" required>
+                <input type="email" placeholder="why_am_i_doing_this@help.com" required>
                 <button type="submit">Subscribe</button>
             </form>
         </div>
-        <!-- Success dialog -->
-        <div id="successDialog" class="dialog">
+        <!-- Newsletter success dialog -->
+        <div id="newsletterModal" class="dialog">
             <div class="dialog-content">
+                <span id="closeNewsletterBtn" class="close">&times;</span>
                 <h2>Great Choice! 💡</h2>
                 <p>You’ve taken the first step to staying ahead. Once a year, we’ll deliver the insights that matter most—winners, contenders, and nothing else.</p>
                 <button id="closeDialog" class="dialog-button">Thanks!</button>
@@ -387,14 +393,44 @@
         document.addEventListener('DOMContentLoaded', function () {
             LoadLeaderboard(true, 10);
         });
+
+        const newsletterModal = document.getElementById("newsletterModal");
+        const closeNewsletterBtn = document.getElementById("closeNewsletterBtn");
+        closeNewsletterBtn.onclick = function () {
+            newsletterModal.classList.add('fade-out');
+            setTimeout(() => {
+                newsletterModal.style.display = "none";
+                newsletterModal.classList.remove('fade-out');
+                document.body.classList.remove('no-scroll');
+            }, 400);
+        };
+
+        window.addEventListener('click', function (event) {
+            if (event.target === newsletterModal) {
+                closeNewsletterModal();
+            }
+        });
+
+        function closeNewsletterModal() {
+            newsletterModal.classList.add('fade-out');
+            setTimeout(() => {
+                newsletterModal.style.display = "none";
+                newsletterModal.classList.remove('fade-out');
+                document.body.classList.remove('no-scroll');
+            }, 400);
+        }
+
+        document.getElementById('closeDialog').addEventListener('click', function () {
+            closeNewsletterModal();
+        });
         document.getElementById('newsletter-form').addEventListener('submit', function (e) {
             e.preventDefault(); // Prevent form submission
 
             const emailInput = this.querySelector('input[type="email"]').value;
 
-            if (validateEmail(emailInput)) {
+            if (validator.isEmail(emailInput)) {
                 // Show the success dialog
-                const dialog = document.getElementById('successDialog');
+                const dialog = document.getElementById('newsletterModal');
                 dialog.style.display = 'flex';
 
                 // Prevent scrolling
@@ -406,20 +442,6 @@
                 alert('Please enter a valid email address.');
             }
         });
-
-        document.getElementById('closeDialog').addEventListener('click', function () {
-            const dialog = document.getElementById('successDialog');
-            dialog.style.display = 'none';
-
-            // Restore scrolling
-            document.body.classList.remove('no-scroll');
-        });
-
-        function validateEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-
 
         const bitcoinAddress = "tbtc1q5zw0v70zszdhlm0lk7smn9xnhgdzvc88rksrml";
 

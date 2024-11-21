@@ -333,6 +333,7 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         overflow-y: auto;
         max-height: 90vh;
+        animation: fadeIn 0.5s ease-out;
     }
 
     .athlete-profile {
@@ -404,31 +405,6 @@
             height: 100%;
             object-fit: cover;
         }
-
-    .close {
-        color: rgba(0, 0, 0, 0.7);
-        font-size: 1.8rem;
-        font-weight: bold;
-        width: 40px; /* Set width */
-        height: 40px; /* Set height */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0; /* Ensure no padding distorts shape */
-        border-radius: 50%; /* Ensures circular shape */
-        cursor: pointer;
-        transition: color 0.3s ease, transform 0.2s ease;
-    }
-
-        .close:hover,
-        .close:focus {
-            color: #e74c3c; /* Brighter red for visibility on hover */
-            transform: scale(1.1); /* Subtle zoom */
-        }
-
-    .no-scroll {
-        overflow: hidden;
-    }
 
     .enlarged-portrait {
         position: fixed;
@@ -1706,11 +1682,11 @@
         }, 400);
     };
 
-    window.onclick = function (event) {
+    window.addEventListener('click', function (event) {
         if (event.target === modal) {
             closeModal();
         }
-    };
+    });
 
     function closeModal() {
         modal.classList.add('fade-out');
