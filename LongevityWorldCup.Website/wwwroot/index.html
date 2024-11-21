@@ -382,7 +382,9 @@
             <div class="dialog-content">
                 <span id="closeNewsletterBtn" class="close">&times;</span>
                 <h2>Great Choice! 💡</h2>
-                <p>You subscribed with foo@bar.com. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.</p>
+                <p id="newsletterSuccessMessage">
+                    You subscribed with foo@bar.com. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.
+                </p>
                 <button id="closeDialog" class="dialog-button">Thanks!</button>
             </div>
         </div>
@@ -429,6 +431,10 @@
             const emailInput = this.querySelector('input[type="email"]').value;
 
             if (validator.isEmail(emailInput)) {
+                // Update the message with the user's email
+                const successMessage = document.getElementById('newsletterSuccessMessage');
+                successMessage.innerHTML = `You subscribed with <strong>${emailInput}</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.`;
+
                 // Show the success dialog
                 const dialog = document.getElementById('newsletterModal');
                 dialog.style.display = 'flex';
