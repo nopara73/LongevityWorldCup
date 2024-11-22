@@ -390,7 +390,7 @@
                 Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
             </p>
             <form id="newsletter-form">
-                <input type="email" placeholder="why_am_i_doing_this@help.com" required>
+                <input type="email" id="emailInput" placeholder="why_am_i_doing_this@help.com" required>
                 <button type="submit" class="enhanced-subscribe-btn">
                     <i class="fas fa-paper-plane"></i> Subscribe
                 </button>
@@ -443,22 +443,44 @@
         document.getElementById('newsletter-form').addEventListener('submit', function (e) {
             e.preventDefault(); // Prevent form submission
 
-            const emailInput = this.querySelector('input[type="email"]').value;
+            const emailInput = this.querySelector('input[type="email"]').value.trim();
 
             if (validator.isEmail(emailInput)) {
-                // Update the message with the user's email
-                const successMessage = document.getElementById('newsletterSuccessMessage');
-                successMessage.innerHTML = `You subscribed with <strong>${emailInput}</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.`;
+                // Send POST request to the API
+                fetch('/api/home/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: emailInput })
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.text(); // Or response.json() if your API returns JSON
+                        } else if (response.status === 400) {
+                            return response.text().then(text => { throw new Error(text); });
+                        } else {
+                            throw new Error('An unexpected error occurred.');
+                        }
+                    })
+                    .then(data => {
+                        // Update the message with the user's email
+                        const successMessage = document.getElementById('newsletterSuccessMessage');
+                        successMessage.innerHTML = `You subscribed with <strong>${emailInput}</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.`;
 
-                // Show the success dialog
-                const dialog = document.getElementById('newsletterModal');
-                dialog.style.display = 'flex';
+                        // Show the success dialog
+                        const dialog = document.getElementById('newsletterModal');
+                        dialog.style.display = 'flex';
 
-                // Prevent scrolling
-                document.body.classList.add('no-scroll');
+                        // Prevent scrolling
+                        document.body.classList.add('no-scroll');
 
-                // Reset the form
-                this.reset();
+                        // Reset the form
+                        document.getElementById('newsletter-form').reset();
+                    })
+                    .catch(error => {
+                        alert(error.message);
+                    });
             } else {
                 alert('Please enter a valid email address.');
             }

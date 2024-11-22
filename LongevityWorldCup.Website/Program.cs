@@ -11,14 +11,19 @@ namespace LongevityWorldCup.Website
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
+            // Add CORS policy
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin",
+                    builder =>
+                    {
+                        builder.WithOrigins("https://longevityworldcup.com")
+                               .AllowAnyHeader()
+                               .AllowAnyMethod();
+                    });
+            });
+
             var app = builder.Build();
-
-            // Register the custom HTML injection middleware BEFORE static files
-            app.UseMiddleware<HtmlInjectionMiddleware>();
-
-            // Enable default file serving (index.html) and static file serving
-            app.UseDefaultFiles();  // <-- Add this line to serve default files like index.html
-            app.UseStaticFiles();   // <-- Make sure this comes after UseDefaultFiles()
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -28,12 +33,24 @@ namespace LongevityWorldCup.Website
             }
 
             app.UseHttpsRedirection();
+
+            // Use CORS
+            app.UseCors("AllowSpecificOrigin");
+
             app.UseRouting();
+
+            // Register the custom HTML injection middleware
+            app.UseMiddleware<HtmlInjectionMiddleware>();
+
+            // Enable default file serving (index.html) and static file serving
+            app.UseDefaultFiles();  // Serve default files like index.html
+            app.UseStaticFiles();   // Serve static files
+
             app.UseAuthorization();
 
             app.MapControllerRoute(
-             name: "default",
-             pattern: "{controller=Home}/{action=Index}/{id?}");
+                name: "default",
+                pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.Run();
         }
