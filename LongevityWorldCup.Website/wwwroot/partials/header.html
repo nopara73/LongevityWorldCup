@@ -48,13 +48,13 @@
         margin-top: 2rem;
         padding: 1rem 2rem;
         font-size: 1.5rem;
-        background-color: #4CAF50;
+        background: linear-gradient(135deg, #4CAF50, #66BB6A); /* Green gradient */
         color: white;
         border: none;
         border-radius: 150px;
         cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 0.4px 8px rgba(0, 0, 0, 0.15);
+        transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow */
         animation: glow 1s ease-in-out 3;
         position: relative;
         z-index: 1;
@@ -68,12 +68,13 @@
             left: -20px;
             right: -20px;
             background: transparent;
-            pointer-events: auto;
+            pointer-events: none;
         }
 
         .join-game:hover {
-            background-color: #45a049;
-            transform: scale(1.05);
+            background: linear-gradient(135deg, #388E3C, #4CAF50); /* Darker green gradient */
+            transform: scale(1.05); /* Slight enlarge effect */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
         }
 
         .join-game.scrolled {
@@ -82,22 +83,24 @@
             right: 20px;
             transform: translateX(0);
             z-index: 1000;
-            transition: transform 0.5s ease, background-color 0.3s ease;
             padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #4CAF50, #66BB6A); /* Match default gradient */
+            transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
         }
 
             .join-game.scrolled:hover {
-                background-color: #45a049;
+                background: linear-gradient(135deg, #388E3C, #4CAF50); /* Darker gradient on hover */
                 transform: scale(1.05);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
             }
 
     @keyframes glow {
         0%, 100% {
-            box-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff, 0 0 20px #00ffff;
+            box-shadow: 0 0 5px #00FFFF, 0 0 10px #00FFFF, 0 0 15px #00FFFF, 0 0 20px #00FFFF;
         }
 
         50% {
-            box-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff, 0 0 50px #00ffff;
+            box-shadow: 0 0 20px #00FFFF, 0 0 30px #00FFFF, 0 0 40px #00FFFF, 0 0 50px #00FFFF;
         }
     }
 
@@ -135,32 +138,37 @@
         padding: 1rem 2rem;
         margin: 0.5rem 0;
         font-size: 1.2rem;
-        background-color: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
         color: white;
         border: none;
         border-radius: 50px;
         cursor: pointer;
-        transition: background-color 0.3s ease, transform 0.2s ease;
+        transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
         width: 80%;
         max-width: 400px;
         height: 60px; /* Fixed height for all buttons */
         display: flex;
         justify-content: center;
         align-items: center; /* Vertically center the text */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
     }
 
         .option-button:hover {
-            background-color: var(--secondary-color, #2980b9); /* Default hover color */
-            transform: scale(1.03);
+            background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
+            transform: scale(1.03); /* Slight enlarge effect */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
         }
 
     /* Adjust the back button styling */
     .back-button {
-        background-color: #607D8B;
+        background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
+        transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
     }
 
         .back-button:hover {
-            background-color: #455A64;
+            background: linear-gradient(135deg, #78909C, #90A4AE); /* Brightened gradient */
+            transform: scale(1.03); /* Slight enlarge effect */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
         }
 
     .close {
