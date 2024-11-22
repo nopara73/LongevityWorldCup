@@ -17,7 +17,7 @@ namespace LongevityWorldCup.Website
                 options.AddPolicy("AllowSpecificOrigin",
                     builder =>
                     {
-                        builder.WithOrigins("https://longevityworldcup.com")
+                        builder.WithOrigins("https://www.longevityworldcup.com")
                                .AllowAnyHeader()
                                .AllowAnyMethod();
                     });
