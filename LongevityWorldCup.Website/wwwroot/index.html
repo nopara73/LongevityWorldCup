@@ -431,8 +431,17 @@
             }
         });
 
+        const newsletterModal = document.getElementById("newsletterModal");
+        // Add keydown event listener for closing the modal
+        document.addEventListener('keydown', function (event) {
+            if (newsletterModal.style.display === 'flex') {
+                if (event.key === 'Escape' || event.key === 'Enter') {
+                    closeNewsletterModal();
+                }
+            }
+        });
+
         function closeNewsletterModal() {
-            const newsletterModal = document.getElementById("newsletterModal");
             newsletterModal.classList.add('fade-out');
             setTimeout(() => {
                 newsletterModal.style.display = "none";
@@ -440,10 +449,12 @@
                 document.body.classList.remove('no-scroll');
             }, 400);
         }
+
         document.getElementById('newsletter-form').addEventListener('submit', function (e) {
             e.preventDefault(); // Prevent form submission
 
             const emailInput = this.querySelector('input[type="email"]').value.trim();
+            this.querySelector('input[type="email"]').blur(); // Remove focus from the input field
 
             if (validator.isEmail(emailInput)) {
                 // Send POST request to the API
