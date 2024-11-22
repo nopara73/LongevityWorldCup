@@ -33,14 +33,8 @@ cat /var/www/LongevityWorldCup/publish/AppData/subscriptions.txt && echo "Total 
 ### Delete/Unsubscribe
 
 ```sh
-EMAIL="foo@bar.com"
-FILE="/var/www/LongevityWorldCup/publish/AppData/subscriptions.txt"
-if grep -Fxq "$EMAIL" "$FILE"; then
-    grep -vFx "$EMAIL" "$FILE" > /tmp/subscriptions.txt && sudo mv /tmp/subscriptions.txt "$FILE"
-    echo "Email '$EMAIL' has been removed."
-else
-    echo "Email '$EMAIL' not found in subscriptions."
-fi
+EMAIL2UNSUB="foo@bar.com"
+sudo sed -i "/$EMAIL2UNSUB/d" /var/www/LongevityWorldCup/publish/AppData/subscriptions.txt
 ```
 
 ### Backup
