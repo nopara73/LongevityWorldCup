@@ -31,10 +31,22 @@
             animation: fadeIn 0.5s ease-out;
         }
 
-            .dialog-content h2 {
-                font-size: 1.8rem;
-                color: var(--primary-color);
-                margin-bottom: 1rem;
+            .dialog-content::before {
+                content: '\f058'; /* Font Awesome checkmark unicode */
+                font-family: 'Font Awesome 6 Free'; /* Ensure the correct font family */
+                font-weight: 900; /* Use solid style */
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 250px; /* Adjust size */
+                color: rgba(0, 200, 0, 0.2); /* Green color with opacity */
+                z-index: 0;
+            }
+
+            .dialog-content * {
+                position: relative;
+                z-index: 1;
             }
 
             .dialog-content p {
@@ -47,17 +59,20 @@
         .dialog-button {
             padding: 0.7rem 1.5rem;
             font-size: 1rem;
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
             color: white;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            width: 80%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
         }
 
             .dialog-button:hover {
-                background-color: var(--secondary-color);
-                transform: scale(1.05);
+                background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
+                transform: scale(1.05); /* Slight enlarge effect */
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
             }
 
         @keyframes fadeIn {
@@ -73,8 +88,8 @@
         }
 
         button:hover {
-            background-color: var(--secondary-color); /* Change background on hover */
-            transform: scale(1.05); /* Slightly enlarge the button */
+            background: linear-gradient(135deg, var(--secondary-color, #e74c3c), #ff6b5a); /* Consistent gradient on hover */
+            transform: scale(1.05); /* Slight hover enlarge effect */
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Add shadow effect */
         }
 
@@ -137,17 +152,18 @@
             .section-container button {
                 padding: 0.6rem 1.5rem;
                 font-size: 1rem;
-                background-color: var(--primary-color);
+                background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
                 color: white;
                 border: none;
                 border-radius: 25px;
                 cursor: pointer;
-                transition: background-color 0.3s ease;
+                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             }
 
-                /* Button hover effect */
                 .section-container button:hover {
-                    background-color: var(--secondary-color);
+                    background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
+                    transform: scale(1.05); /* Slight enlarge effect */
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
                 }
 
         /* BTC address text */
@@ -165,20 +181,21 @@
         .rankings-btn {
             padding: 1rem 2rem;
             font-size: 1.2rem;
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
             color: white;
             border: none;
             border-radius: 150px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
         }
 
             /* Hover effect for the VIEW FULL RANKINGS button */
             .rankings-btn:hover {
-                background-color: var(--secondary-color); /* Change to secondary color on hover */
-                transform: scale(1.05); /* Slightly enlarge the button */
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Add shadow effect */
+                background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
+                transform: scale(1.05); /* Slight enlarge effect */
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
             }
 
         /* Align form elements */
@@ -381,11 +398,10 @@
         <div id="newsletterModal" class="dialog">
             <div class="dialog-content">
                 <span id="closeNewsletterBtn" class="close">&times;</span>
-                <h2>Great Choice! 💡</h2>
                 <p id="newsletterSuccessMessage">
                     You subscribed with foo@bar.com. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.
                 </p>
-                <button id="closeDialog" class="dialog-button">Thanks!</button>
+                <button id="closeButton" class="dialog-button">🚀</button>
             </div>
         </div>
     </main>
@@ -422,7 +438,7 @@
             }, 400);
         }
 
-        document.getElementById('closeDialog').addEventListener('click', function () {
+        document.getElementById('closeButton').addEventListener('click', function () {
             closeNewsletterModal();
         });
         document.getElementById('newsletter-form').addEventListener('submit', function (e) {
