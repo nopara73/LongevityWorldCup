@@ -1010,6 +1010,10 @@
             .then(response => response.json())
             .then(athletes => {
                 // Array to store athletes with their lowest PhenoAge and age reduction
+                var viewAllAthletesBtn = document.getElementById('viewAllAthletesBtn');
+                if (viewAllAthletesBtn) {
+                    document.getElementById('viewAllAthletesBtn').textContent = `VIEW ALL ATHLETES (${athletes.length})`;
+                }
                 athleteResults = athletes.map(athlete => {
                     // Calculate the chronological age from the athlete's date_of_birth
                     const dob = new Date(
