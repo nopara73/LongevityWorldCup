@@ -268,11 +268,10 @@
         .contribute-section {
             position: relative;
             overflow: hidden;
-            color: var(--text-color); /* Use the main text color */
+            color: var(--text-color);
             padding: 2rem;
             border-radius: 15px;
             margin-top: 2rem;
-            background-color: var(--card-bg); /* Use the original background color */
         }
 
         .progress-overlay {
@@ -281,9 +280,9 @@
             left: 0;
             width: 0%; /* Will be updated via JavaScript */
             height: 100%;
-            background-color: rgba(144, 238, 144, 0.1); /* Very pale green with transparency */
+            background: linear-gradient(90deg, rgba(255, 165, 0, 0.3), rgba(255, 223, 186, 0.1)); /* Light orange gradient */
             z-index: 1;
-            transition: width 1s ease-in-out;
+            transition: width 0.5s ease-in-out; /* Smooth animation for width changes */
         }
 
         .contribute-content {
@@ -314,6 +313,12 @@
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
+            width: 80%; /* Adjust percentage as needed */
+            max-width: 500px; /* Prevent it from growing too large */
+            margin: 1rem auto; /* Center horizontally */
+            background-color: rgba(211, 211, 211, 0.15); /* Light Gray */
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
         }
 
             .btc-address a,
@@ -330,6 +335,9 @@
             margin-left: 0.5rem;
             cursor: pointer;
             transition: color 0.3s ease;
+            /* Add vertical alignment */
+            display: flex;
+            align-items: center;
         }
 
             .copy-btn:hover {
@@ -363,7 +371,8 @@
         <div class="section-container contribute-section">
             <div class="progress-overlay"></div>
             <div class="contribute-content">
-                <h3>Contribute</h3>
+                <!-- In the Contribute section -->
+                <h3><i class="fa-brands fa-btc"></i> Contribute</h3>
                 <p>
                     90% of your Bitcoin donations boost the prize pool for Longevity World Cup champions:
                 </p>
@@ -386,7 +395,7 @@
 
         <!-- Minimal Newsletter Subscription Section -->
         <div class="section-container newsletter-section">
-            <h3>Once/Year Newsletter</h3>
+            <h3><i class="fas fa-calendar-alt"></i> Once/Year Newsletter</h3>
             <p>
                 Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
             </p>
