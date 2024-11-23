@@ -377,7 +377,7 @@
                     90% of your Bitcoin donations boost the prize pool for Longevity World Cup champions:
                 </p>
                 <div class="btc-status">
-                    <span id="current-btc">0.23 BTC</span> of <span id="goal-btc">1 BTC</span> goal reached!
+                    Raised: <span id='current-btc'>0.23</span> BTC / Target: <span id='goal-btc'>1</span> BTC
                 </div>
                 <div class="btc-address">
                     <a id="btcAddressLink" href="#" target="_blank">
@@ -423,6 +423,8 @@
     <!--FOOTER-->
 
     <script>
+        window.bitcoinDonationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
+
         document.addEventListener('DOMContentLoaded', function () {
             LoadLeaderboard(true, 10);
         });
@@ -507,15 +509,13 @@
             }
         });
 
-        const bitcoinAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
-
         // Set the address and link
-        document.getElementById("btcAddressLink").textContent = bitcoinAddress;
-        document.getElementById("btcAddressLink").href = `https://mempool.space/address/${bitcoinAddress}`;
+        document.getElementById("btcAddressLink").textContent = bitcoinDonationAddress;
+        document.getElementById("btcAddressLink").href = `https://mempool.space/address/${bitcoinDonationAddress}`;
 
         // Copy function
         function copyBitcoinAddress() {
-            navigator.clipboard.writeText(bitcoinAddress).then(function () {
+            navigator.clipboard.writeText(bitcoinDonationAddress).then(function () {
                 // Hide the BTC address
                 document.getElementById('btcAddressLink').style.display = 'none';
                 // Show the 'Copied' text
@@ -546,7 +546,7 @@
         }
 
         // Fetch actual BTC data and update the progress
-        fetch(`https://blockchain.info/rawaddr/${bitcoinAddress}?cors=true`)
+        fetch(`https://api.blockcypher.com/v1/btc/main/addrs/${bitcoinDonationAddress}`)
             .then(response => response.json())
             .then(data => {
                 const totalReceivedSatoshis = data.total_received;
@@ -591,8 +591,8 @@
                     displayPrizeFundBTC = prizeFundBTC.toFixed(5);
                 }
 
-                document.getElementById('current-btc').textContent = displayPrizeFundBTC + ' BTC';
-                document.getElementById('goal-btc').textContent = goalBTC + ' BTC';
+                document.getElementById('current-btc').textContent = displayPrizeFundBTC;
+                document.getElementById('goal-btc').textContent = goalBTC;
             })
             .catch(error => {
                 console.error('Error fetching BTC data:', error);
