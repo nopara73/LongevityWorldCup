@@ -1062,6 +1062,7 @@
                     return {
                         name: athlete.name,
                         mediaContact: athlete.media_contact,
+                        dateOfBirth: dob,
                         chronologicalAge: chronologicalAge,
                         lowestPhenoAge: lowestPhenoAge,
                         ageReduction: ageReduction,
@@ -1077,7 +1078,7 @@
                 generateGenerationFilters(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
-                athleteResults.sort((a, b) => a.ageReduction - b.ageReduction);
+                athleteResults.sort(compareAthleteRank);
 
                 // Assign ranks to each athlete based on the sorted order
                 athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
@@ -1089,7 +1090,7 @@
                 const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
                 divisions.forEach(division => {
                     const athletesInDivision = athleteResults.filter(athlete => athlete.division === division);
-                    athletesInDivision.sort((a, b) => a.ageReduction - b.ageReduction);
+                    athletesInDivision.sort(compareAthleteRank);
                     athletesInDivision.forEach((athlete, index) => {
                         athlete.ranks[division] = index + 1;
                     });
@@ -1099,7 +1100,7 @@
                 const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
                 generations.forEach(generation => {
                     const athletesInGeneration = athleteResults.filter(athlete => athlete.generation === generation);
-                    athletesInGeneration.sort((a, b) => a.ageReduction - b.ageReduction);
+                    athletesInGeneration.sort(compareAthleteRank);
                     athletesInGeneration.forEach((athlete, index) => {
                         athlete.ranks[generation] = index + 1;
                     });
@@ -1111,7 +1112,7 @@
                         const athletesInCombo = athleteResults.filter(
                             athlete => athlete.division === division && athlete.generation === generation
                         );
-                        athletesInCombo.sort((a, b) => a.ageReduction - b.ageReduction);
+                        athletesInCombo.sort(compareAthleteRank);
                         athletesInCombo.forEach((athlete, index) => {
                             const key = `${generation}_${division}`;
                             athlete.ranks[key] = index + 1;
@@ -1622,6 +1623,47 @@
                 console.error('Error fetching athletes:', error);
             });
     };
+
+    /**
+     * Comparator function to rank athletes based on competition rules.
+     * The ranking is determined by:
+     * 1. Age Reduction (more negative value indicates greater reversal)
+     * 2. Chronological Age (older athletes rank higher)
+     * 3. Alphabetical Order (as a last resort, hopefully it'll never have to come down to this)
+     */
+    function compareAthleteRank(a, b) {
+        // First Criterion: Age Reduction (more negative is better)
+        // Since ageReduction = PhenoAge - ChronologicalAge,
+        // a more negative value indicates a greater reversal.
+        if (a.ageReduction < b.ageReduction) {
+            return -1; // Athlete 'a' ranks higher
+        }
+        if (a.ageReduction > b.ageReduction) {
+            return 1; // Athlete 'b' ranks higher
+        }
+
+        // Second Criterion: Date of Birth
+        // Older athletes rank higher when age reversal is equal.
+        // Credit goes to Dave Pascoe for the idea of using date of birth as a tiebreaker.
+        if (a.dateOfBirth < b.dateOfBirth) {
+            return -1; // Athlete 'a' is older; ranks higher
+        }
+        if (a.dateOfBirth > b.dateOfBirth) {
+            return 1; // Athlete 'b' is older; ranks higher
+        }
+
+        // Third Criterion: Alphabetical Order of Names
+        // As a last resort, sort alphabetically by athlete's name.
+        if (a.name < b.name) {
+            return -1; // Athlete 'a' comes first alphabetically
+        }
+        if (a.name > b.name) {
+            return 1; // Athlete 'b' comes first alphabetically
+        }
+
+        // If all criteria are equal, which is impossible, then the athlete that registered first ranks higher.
+        return 1;
+    }
 
     function formatLeagueName(leagueName, leagueType) {
         // Replace underscores with spaces
