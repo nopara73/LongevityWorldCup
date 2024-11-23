@@ -993,12 +993,6 @@
 <script>
     let athleteResults = [];
 
-    const prizeMoney = {
-        1: { btc: "0.00360248 BTC", amount: "$100.80" },
-        2: { btc: "0.00072578 BTC", amount: "$20.16" },
-        3: { btc: "0.00014401 BTC", amount: "$4.03" }
-    };
-
     let includePodiumGlobal = true
     let maxAthletesGlobal = Infinity;
 
@@ -1128,40 +1122,68 @@
                 const podiumCount = includePodium ? 3 : 0;
 
                 if (includePodium) {
-                    // Get the top three athletes from athleteResults
-                    const topThree = athleteResults.slice(0, 3);
+                    // Fetch the total prize fund from the blockchain and calculate prize money
+                    fetch(`https://api.blockcypher.com/v1/btc/main/addrs/${window.bitcoinDonationAddress}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const totalReceivedSatoshis = data.total_received;
+                            const totalReceivedBTC = totalReceivedSatoshis / 1e8;
+                            const prizeFundBTC = totalReceivedBTC * 0.9; // 90% of total received
 
-                    // Select the podium container and clear existing items
-                    const podium = document.querySelector('.podium');
-                    podium.innerHTML = ''; // Clear any existing podium items
+                            // Fetch current BTC to USD exchange rate
+                            fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+                                .then(response => response.json())
+                                .then(tickerData => {
+                                    const btcToUsdRate = tickerData.bitcoin.usd;
 
-                    // Loop through the top three athletes and create podium items
-                    topThree.forEach(athlete => {
-                        let rankClass, rankEmoji;
+                                    // Calculate prize moneys
+                                    const firstPlaceBTC = prizeFundBTC * 0.6;
+                                    const secondPlaceBTC = prizeFundBTC * 0.25;
+                                    const thirdPlaceBTC = prizeFundBTC * 0.15;
 
-                        switch (athlete.rank) {
-                            case 1:
-                                rankClass = 'first';
-                                rankEmoji = '🥇';
-                                break;
-                            case 2:
-                                rankClass = 'second';
-                                rankEmoji = '🥈';
-                                break;
-                            case 3:
-                                rankClass = 'third';
-                                rankEmoji = '🥉';
-                                break;
-                            default:
-                                return; // Only handle top three
-                        }
+                                    const firstPlaceUSD = firstPlaceBTC * btcToUsdRate;
+                                    const secondPlaceUSD = secondPlaceBTC * btcToUsdRate;
+                                    const thirdPlaceUSD = thirdPlaceBTC * btcToUsdRate;
 
-                        // Create the podium-item div
-                        const podiumItem = document.createElement('div');
-                        podiumItem.classList.add('podium-item', rankClass);
+                                    const prizeMoney = {
+                                        1: { btc: firstPlaceBTC.toFixed(8) + " BTC", amount: "$" + firstPlaceUSD.toFixed(2) },
+                                        2: { btc: secondPlaceBTC.toFixed(8) + " BTC", amount: "$" + secondPlaceUSD.toFixed(2) },
+                                        3: { btc: thirdPlaceBTC.toFixed(8) + " BTC", amount: "$" + thirdPlaceUSD.toFixed(2) }
+                                    };
+                                    // Get the top three athletes from athleteResults
+                                    const topThree = athleteResults.slice(0, 3);
 
-                        // Populate the inner HTML of podiumItem
-                        podiumItem.innerHTML = `
+                                    // Select the podium container and clear existing items
+                                    const podium = document.querySelector('.podium');
+                                    podium.innerHTML = ''; // Clear any existing podium items
+
+                                    // Loop through the top three athletes and create podium items
+                                    topThree.forEach(athlete => {
+                                        let rankClass, rankEmoji;
+
+                                        switch (athlete.rank) {
+                                            case 1:
+                                                rankClass = 'first';
+                                                rankEmoji = '🥇';
+                                                break;
+                                            case 2:
+                                                rankClass = 'second';
+                                                rankEmoji = '🥈';
+                                                break;
+                                            case 3:
+                                                rankClass = 'third';
+                                                rankEmoji = '🥉';
+                                                break;
+                                            default:
+                                                return; // Only handle top three
+                                        }
+
+                                        // Create the podium-item div
+                                        const podiumItem = document.createElement('div');
+                                        podiumItem.classList.add('podium-item', rankClass);
+
+                                        // Populate the inner HTML of podiumItem
+                                        podiumItem.innerHTML = `
                 <div class="podium-rank">${rankEmoji}</div>
                 <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
                 <div>
@@ -1179,15 +1201,24 @@
                 </div>
             `;
 
-                        // Append the podiumItem to the podium container
-                        podium.appendChild(podiumItem);
+                                        // Append the podiumItem to the podium container
+                                        podium.appendChild(podiumItem);
 
-                        // After appending the podium item
-                        podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
-                        podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
-                        podiumItem.setAttribute('data-athlete-name', athlete.name);
+                                        // After appending the podium item
+                                        podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
+                                        podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
+                                        podiumItem.setAttribute('data-athlete-name', athlete.name);
 
-                    });
+                                    });
+
+                                })
+                                .catch(error => {
+                                    console.error('Error fetching BTC exchange rate:', error);
+                                });
+                        })
+                        .catch(error => {
+                            console.error('Error fetching total prize fund:', error);
+                        });
                 } else {
                     // Hide the podium container if not included
                     const podium = document.querySelector('.podium');
