@@ -1123,11 +1123,11 @@
                 const podiumCount = includePodium ? 3 : 0;
 
                 if (includePodium) {
-                    // Fetch the total prize fund from the blockchain and calculate prize money
-                    fetch(`https://api.blockcypher.com/v1/btc/main/addrs/${window.bitcoinDonationAddress}`)
+                    // Fetch the total prize fund from the backend API and calculate prize money
+                    fetch(`/api/bitcoin/total-received?address=${window.bitcoinDonationAddress}`)
                         .then(response => response.json())
                         .then(data => {
-                            const totalReceivedSatoshis = data.total_received;
+                            const totalReceivedSatoshis = data.totalReceivedSatoshis;
                             const totalReceivedBTC = totalReceivedSatoshis / 1e8;
                             const prizeFundBTC = totalReceivedBTC * 0.9; // 90% of total received
 
