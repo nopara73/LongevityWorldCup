@@ -1275,349 +1275,10 @@
                     });
                 });
 
-                // Select both table and podium athlete names
+                // Add click event listener to all athlete-name elements
                 document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-                    athleteNameElement.addEventListener('click', function () {
-                        // Determine if it's a table row or podium item
-                        const athleteRow = this.closest('tr') || this.closest('.podium-item');
-                        if (!athleteRow) {
-                            console.error('Athlete row not found');
-                            return;
-                        }
-
-                        // Get athlete's name from data attribute
-                        const athleteNameText = athleteRow.getAttribute('data-athlete-name');
-
-                        // Find the athlete's data from athleteResults
-                        const athleteData = athleteResults.find(athlete => athlete.name === athleteNameText);
-                        if (!athleteData) {
-                            console.error('Athlete data not found');
-                            return;
-                        }
-
-                        // Fetch the full athlete JSON data
-                        fetch('/api/data/athletes')
-                            .then(response => response.json())
-                            .then(athletes => {
-                                const fullAthleteData = athletes.find(a => a.name === athleteNameText);
-                                if (!fullAthleteData) {
-                                    console.error('Full athlete data not found');
-                                    return;
-                                }
-
-                                // Rank, Division, Flag, Generation, Ages
-                                // Compute the best league rank
-                                // Arrays of divisions and generations for reference
-                                const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
-                                const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
-
-                                // Compute the best league rank
-                                let bestLeagueRank = Infinity;
-                                let bestLeagueName = '';
-                                let bestLeagueType = ''; // 'division', 'generation', 'combination'
-
-                                for (const [league, rank] of Object.entries(athleteData.ranks)) {
-                                    if (rank < bestLeagueRank) {
-                                        bestLeagueRank = rank;
-                                        bestLeagueName = league;
-
-                                        // Determine league type
-                                        if (divisions.includes(league)) {
-                                            bestLeagueType = 'division';
-                                        } else if (generations.includes(league)) {
-                                            bestLeagueType = 'generation';
-                                        } else if (league.includes('_')) {
-                                            bestLeagueType = 'combination';
-                                        } else {
-                                            bestLeagueType = 'other';
-                                        }
-                                    }
-                                }
-                                let ultimateRank = athleteData.rank;
-
-                                // Populate the modal with athlete data
-                                document.getElementById('athleteName').textContent = `${fullAthleteData.name}${getRankText(ultimateRank)}`;
-                                document.getElementById('modalProfilePic').src = fullAthleteData['profile-pic'];
-                                document.getElementById('modalProfilePic').alt = `${fullAthleteData.name} Profile Picture`;
-
-                                // Biography and "why"
-                                document.getElementById('athleteBio').textContent = fullAthleteData.why;
-
-                                let rankText = `#${ultimateRank} in the Ultimate League`;
-
-                                if (bestLeagueRank !== ultimateRank) {
-                                    let leagueNameFormatted = formatLeagueName(bestLeagueName, bestLeagueType);
-                                    rankText = `#${bestLeagueRank} ${leagueNameFormatted}`;
-                                }
-
-                                document.getElementById('athleteRank').textContent = rankText;
-                                document.getElementById('athleteDivision').textContent = `${athleteData.division}${getRankText(athleteData.ranks[athleteData.division])}`;
-                                document.getElementById('athleteGeneration').textContent = `${athleteData.generation}${getRankText(athleteData.ranks[athleteData.generation])}`;
-                                document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
-                                document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
-                                document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-                                document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
-                                document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
-
-                                // Personal Link
-                                const personalLinkElement = document.getElementById('personalLink');
-                                if (athleteData.personalLink) {
-                                    personalLinkElement.href = athleteData.personalLink;
-                                    personalLinkElement.style.display = 'flex';
-                                } else {
-                                    personalLinkElement.style.display = 'none';
-                                }
-
-                                // Media Contact
-                                const mediaContactElement = document.getElementById('mediaContact');
-                                if (athleteData.mediaContact) {
-                                    const isEmail = athleteData.mediaContact.includes('@');
-                                    mediaContactElement.href = isEmail
-                                        ? `mailto:${athleteData.mediaContact}`
-                                        : athleteData.mediaContact;
-                                    mediaContactElement.innerHTML = `${getIcon(athleteData.mediaContact)} Media Contact`;
-                                    mediaContactElement.style.display = 'flex';
-                                } else {
-                                    mediaContactElement.style.display = 'none';
-                                }
-
-                                const bioAge = athleteData.lowestPhenoAge;
-                                const chronoAge = athleteData.chronologicalAge;
-                                generateAgeVisualization(bioAge, chronoAge);
-
-                                // Biomarkers Chart
-                                const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
-                                const biomarkerData = fullAthleteData.biomarkers.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-                                // Parse athlete's date of birth
-                                const dob = new Date(fullAthleteData.date_of_birth.year, fullAthleteData.date_of_birth.month - 1, fullAthleteData.date_of_birth.day);
-
-                                const labels = biomarkerData.map(entry => entry.date);
-                                const phenoAges = [];
-                                const chronologicalAges = [];
-
-                                // Biomarker arrays
-                                const biomarkersRaw = {
-                                    'Albumin (g/L)': [],
-                                    'Creatinine (µmol/L)': [],
-                                    'Glucose (mmol/L)': [],
-                                    'CRP (mg/L)': [],
-                                    'Lymphocytes (%)': [],
-                                    'MCV (fL)': [],
-                                    'RDW (%)': [],
-                                    'ALP (U/L)': [],
-                                    'WBC (10^3 cells/µL)': []
-                                };
-
-                                // Calculate PhenoAge and collect biomarker values
-                                biomarkerData.forEach(entry => {
-                                    const entryDate = new Date(entry.date);
-                                    const chronoAgeAtEntry = calculateAgeAtDate(dob, entryDate);
-
-                                    // Collect biomarker values
-                                    biomarkersRaw['Albumin (g/L)'].push(entry.alb_gL);
-                                    biomarkersRaw['Creatinine (µmol/L)'].push(entry.creat_umolL);
-                                    biomarkersRaw['Glucose (mmol/L)'].push(entry.glu_mmolL);
-                                    biomarkersRaw['CRP (mg/L)'].push(entry.crp_mgL);
-                                    biomarkersRaw['Lymphocytes (%)'].push(entry.lym_pc);
-                                    biomarkersRaw['MCV (fL)'].push(entry.mcv_fL);
-                                    biomarkersRaw['RDW (%)'].push(entry.rdw_pc);
-                                    biomarkersRaw['ALP (U/L)'].push(entry.alp_UL);
-                                    biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.wbc_1000cellsuL);
-
-                                    // Prepare biomarker values for PhenoAge calculation
-                                    const biomarkerValues = [
-                                        chronoAgeAtEntry,
-                                        entry.alb_gL,
-                                        entry.creat_umolL,
-                                        entry.glu_mmolL,
-                                        entry.crp_mgL,
-                                        entry.wbc_1000cellsuL,
-                                        entry.lym_pc,
-                                        entry.mcv_fL,
-                                        entry.rdw_pc,
-                                        entry.alp_UL
-                                    ];
-
-                                    // Get coefficients from biomarkers array
-                                    const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
-
-                                    // Calculate PhenoAge
-                                    const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues, coefficients);
-                                    phenoAges.push(phenoAge.toFixed(1));
-                                });
-
-                                // Standardize biomarkers using z-scores
-                                const biomarkersZScores = {};
-                                for (const [key, values] of Object.entries(biomarkersRaw)) {
-                                    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-                                    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-                                    const stdDev = Math.sqrt(variance);
-
-                                    // Handle case where stdDev is 0
-                                    if (stdDev === 0) {
-                                        biomarkersZScores[key] = values.map(val => 0); // All z-scores are zero
-                                    } else {
-                                        biomarkersZScores[key] = values.map(val => ((val - mean) / stdDev).toFixed(2));
-                                    }
-                                }
-
-                                // Prepare datasets
-                                const datasets = [
-                                    // PhenoAge dataset
-                                    {
-                                        label: 'PhenoAge',
-                                        data: phenoAges,
-                                        borderColor: 'rgba(0, 0, 255, 1)',
-                                        backgroundColor: 'rgba(0, 0, 255, 0.1)',
-                                        fill: false,
-                                        tension: 0.1,
-                                        borderWidth: 3,
-                                        yAxisID: 'y1'
-                                    }
-                                ];
-
-                                // Define colors corresponding to each biomarker
-                                const biomarkerColors = {
-                                    'Albumin (g/L)': 'rgba(0, 128, 255, 1)',         // Blue for liver-related biomarker
-                                    'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',   // Purple for kidney function
-                                    'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',      // Orange for blood sugar level
-                                    'CRP (mg/L)': 'rgba(255, 69, 0, 1)',             // Red for inflammation
-                                    'Lymphocytes (%)': 'rgba(0, 100, 0, 1)',         // Dark green for immune health
-                                    'MCV (fL)': 'rgba(70, 130, 180, 1)',             // Steel blue for blood health
-                                    'RDW (%)': 'rgba(220, 20, 60, 1)',               // Crimson for red cell variation
-                                    'ALP (U/L)': 'rgba(218, 165, 32, 1)',            // Goldenrod for liver function
-                                    'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)'    // Forest green for white blood cells
-                                };
-
-                                for (const [key, zScores] of Object.entries(biomarkersZScores)) {
-                                    const actualValues = biomarkersRaw[key]; // Original values
-                                    const dataPoints = zScores.map((zScore, index) => ({
-                                        x: labels[index],
-                                        y: zScore,
-                                        actualValue: actualValues[index]
-                                    }));
-
-                                    datasets.push({
-                                        label: key,
-                                        data: dataPoints,
-                                        borderColor: biomarkerColors[key],
-                                        backgroundColor: 'rgba(0, 0, 0, 0)', // Transparent background
-                                        fill: false,
-                                        tension: 0.1,
-                                        yAxisID: 'y2',
-                                        hidden: true // Hide biomarkers by default
-                                    });
-                                }
-
-                                // Destroy existing chart if it exists
-                                if (window.biomarkerChartInstance) {
-                                    window.biomarkerChartInstance.destroy();
-                                }
-
-                                window.biomarkerChartInstance = new Chart(biomarkerChartCtx, {
-                                    type: 'line',
-                                    data: {
-                                        labels: labels,
-                                        datasets: datasets
-                                    },
-                                    options: {
-                                        responsive: true,
-                                        interaction: {
-                                            mode: 'index',
-                                            intersect: false,
-                                        },
-                                        stacked: false,
-                                        plugins: {
-                                            title: {
-                                                display: false
-                                            },
-                                            tooltip: {
-                                                callbacks: {
-                                                    label: function (context) {
-                                                        const label = context.dataset.label || '';
-                                                        const yValue = context.parsed.y;
-                                                        const actualValue = context.raw.actualValue;
-                                                        const formattedActualValue = (actualValue !== undefined && !isNaN(actualValue)) ? (actualValue % 1 !== 0 ? actualValue.toFixed(2) : actualValue.toString()) : 'N/A';
-
-                                                        if (label === 'PhenoAge') {
-                                                            return `${label}: ${yValue}`;
-                                                        } else {
-                                                            return `${label}: ${formattedActualValue}`;
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            legend: {
-                                                onHover: function (event, legendItem) {
-                                                    event.native.target.style.cursor = 'pointer';
-                                                },
-                                                onLeave: function (event, legendItem) {
-                                                    event.native.target.style.cursor = 'default';
-                                                }
-                                            },
-                                        },
-                                        scales: {
-                                            y1: {
-                                                type: 'linear',
-                                                display: true,
-                                                position: 'left',
-                                                title: {
-                                                    display: true,
-                                                    text: 'Age (years)'
-                                                },
-                                                grid: {
-                                                    drawOnChartArea: true,
-                                                }
-                                            },
-                                            y2: {
-                                                type: 'linear',
-                                                display: true,
-                                                position: 'right',
-                                                title: {
-                                                    display: true,
-                                                    text: 'Biomarkers (Z-scores)'
-                                                },
-                                                grid: {
-                                                    drawOnChartArea: false,
-                                                }
-                                            },
-                                            x: {
-                                                title: {
-                                                    display: true,
-                                                    text: 'Date'
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
-
-                                // Proofs Gallery
-                                const proofsGallery = document.getElementById('proofsGallery');
-                                proofsGallery.innerHTML = ''; // Clear existing proofs
-
-                                fullAthleteData.proofs.forEach(proofUrl => {
-                                    const proofItem = document.createElement('div');
-                                    proofItem.classList.add('proof-item');
-                                    proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image">`;
-                                    proofsGallery.appendChild(proofItem);
-
-                                    // Add click event after appending
-                                    proofItem.querySelector('img').addEventListener('click', function () {
-                                        openEnlargedView(this);
-                                    });
-                                });
-
-                                // Display the modal
-                                modal.style.display = "block";
-                                document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
-                            })
-                            .catch(error => {
-                                console.error('Error fetching full athlete data:', error);
-                            });
-                    });
+                    athleteNameElement.addEventListener('click', handleAthleteNameClick);
                 });
-
             })
             .catch(error => {
                 console.error('Error fetching athletes:', error);
@@ -2521,4 +2182,371 @@
             sidebar.classList.remove('button-collapsed');
         }, 50);
     });
+
+    function handleAthleteNameClick(event) {
+        // Determine if it's a table row or podium item
+        const athleteRow = getAthleteRow(event.target);
+        if (!athleteRow) {
+            console.error('Athlete row not found');
+            return;
+        }
+
+        // Get athlete's name from data attribute
+        const athleteNameText = athleteRow.getAttribute('data-athlete-name');
+
+        // Find the athlete's data from athleteResults
+        const athleteData = getAthleteData(athleteNameText);
+        if (!athleteData) {
+            console.error('Athlete data not found');
+            return;
+        }
+
+        // Fetch the full athlete JSON data
+        fetchFullAthleteData(athleteNameText, athleteData);
+    }
+
+    function getAthleteRow(element) {
+        return element.closest('tr') || element.closest('.podium-item');
+    }
+
+    function getAthleteData(athleteNameText) {
+        return athleteResults.find(athlete => athlete.name === athleteNameText);
+    }
+
+    function fetchFullAthleteData(athleteNameText, athleteData) {
+        fetch('/api/data/athletes')
+            .then(response => response.json())
+            .then(athletes => {
+                const fullAthleteData = athletes.find(a => a.name === athleteNameText);
+                if (!fullAthleteData) {
+                    console.error('Full athlete data not found');
+                    return;
+                }
+
+                const { ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType } = computeBestLeagueRank(athleteData);
+
+                // Populate the modal with athlete data
+                populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType);
+
+                // Generate age visualization
+                const bioAge = athleteData.lowestPhenoAge;
+                const chronoAge = athleteData.chronologicalAge;
+                generateAgeVisualization(bioAge, chronoAge);
+
+                // Generate biomarker chart
+                generateBiomarkerChart(fullAthleteData);
+
+                // Populate proofs gallery
+                populateProofsGallery(fullAthleteData);
+
+                // Display the modal
+                modal.style.display = "block";
+                document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
+            })
+            .catch(error => {
+                console.error('Error fetching full athlete data:', error);
+            });
+    }
+
+    function computeBestLeagueRank(athleteData) {
+        // Arrays of divisions and generations for reference
+        const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
+        const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
+
+        let bestLeagueRank = Infinity;
+        let bestLeagueName = '';
+        let bestLeagueType = '';
+
+        for (const [league, rank] of Object.entries(athleteData.ranks)) {
+            if (rank < bestLeagueRank) {
+                bestLeagueRank = rank;
+                bestLeagueName = league;
+
+                // Determine league type
+                if (divisions.includes(league)) {
+                    bestLeagueType = 'division';
+                } else if (generations.includes(league)) {
+                    bestLeagueType = 'generation';
+                } else if (league.includes('_')) {
+                    bestLeagueType = 'combination';
+                } else {
+                    bestLeagueType = 'other';
+                }
+            }
+        }
+        const ultimateRank = athleteData.rank;
+
+        return { ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType };
+    }
+
+    function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
+        document.getElementById('athleteName').textContent = `${fullAthleteData.name}${getRankText(ultimateRank)}`;
+        const profilePic = document.getElementById('modalProfilePic');
+        profilePic.src = fullAthleteData['profile-pic'];
+        profilePic.alt = `${fullAthleteData.name} Profile Picture`;
+
+        document.getElementById('athleteBio').textContent = fullAthleteData.why;
+
+        let rankText = `#${ultimateRank} in the Ultimate League`;
+        if (bestLeagueRank !== ultimateRank) {
+            const leagueNameFormatted = formatLeagueName(bestLeagueName, bestLeagueType);
+            rankText = `#${bestLeagueRank} ${leagueNameFormatted}`;
+        }
+        document.getElementById('athleteRank').textContent = rankText;
+        document.getElementById('athleteDivision').textContent = `${athleteData.division}${getRankText(athleteData.ranks[athleteData.division])}`;
+        document.getElementById('athleteGeneration').textContent = `${athleteData.generation}${getRankText(athleteData.ranks[athleteData.generation])}`;
+        document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
+        document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
+        document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
+        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
+        document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
+
+        // Personal Link
+        const personalLinkElement = document.getElementById('personalLink');
+        if (athleteData.personalLink) {
+            personalLinkElement.href = athleteData.personalLink;
+            personalLinkElement.style.display = 'flex';
+        } else {
+            personalLinkElement.style.display = 'none';
+        }
+
+        // Media Contact
+        const mediaContactElement = document.getElementById('mediaContact');
+        if (athleteData.mediaContact) {
+            const isEmail = athleteData.mediaContact.includes('@');
+            mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : athleteData.mediaContact;
+            mediaContactElement.innerHTML = `${getIcon(athleteData.mediaContact)} Media Contact`;
+            mediaContactElement.style.display = 'flex';
+        } else {
+            mediaContactElement.style.display = 'none';
+        }
+    }
+
+    function generateBiomarkerChart(fullAthleteData) {
+        const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
+        const biomarkerData = fullAthleteData.biomarkers.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const dob = new Date(
+            fullAthleteData.date_of_birth.year,
+            fullAthleteData.date_of_birth.month - 1,
+            fullAthleteData.date_of_birth.day
+        );
+
+        const labels = biomarkerData.map(entry => entry.date);
+        const phenoAges = [];
+        const biomarkersRaw = initializeBiomarkersRaw();
+
+        biomarkerData.forEach(entry => {
+            const entryDate = new Date(entry.date);
+            const chronoAgeAtEntry = calculateAgeAtDate(dob, entryDate);
+
+            collectBiomarkerValues(entry, biomarkersRaw);
+            const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
+            const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
+
+            const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues, coefficients);
+            phenoAges.push(phenoAge.toFixed(1));
+        });
+
+        const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
+        const datasets = prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores);
+
+        if (window.biomarkerChartInstance) {
+            window.biomarkerChartInstance.destroy();
+        }
+
+        window.biomarkerChartInstance = new Chart(biomarkerChartCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: getBiomarkerChartOptions()
+        });
+    }
+
+    function initializeBiomarkersRaw() {
+        return {
+            'Albumin (g/L)': [],
+            'Creatinine (µmol/L)': [],
+            'Glucose (mmol/L)': [],
+            'CRP (mg/L)': [],
+            'Lymphocytes (%)': [],
+            'MCV (fL)': [],
+            'RDW (%)': [],
+            'ALP (U/L)': [],
+            'WBC (10^3 cells/µL)': []
+        };
+    }
+
+    function collectBiomarkerValues(entry, biomarkersRaw) {
+        biomarkersRaw['Albumin (g/L)'].push(entry.alb_gL);
+        biomarkersRaw['Creatinine (µmol/L)'].push(entry.creat_umolL);
+        biomarkersRaw['Glucose (mmol/L)'].push(entry.glu_mmolL);
+        biomarkersRaw['CRP (mg/L)'].push(entry.crp_mgL);
+        biomarkersRaw['Lymphocytes (%)'].push(entry.lym_pc);
+        biomarkersRaw['MCV (fL)'].push(entry.mcv_fL);
+        biomarkersRaw['RDW (%)'].push(entry.rdw_pc);
+        biomarkersRaw['ALP (U/L)'].push(entry.alp_UL);
+        biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.wbc_1000cellsuL);
+    }
+
+    function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
+        return [
+            chronoAgeAtEntry,
+            entry.alb_gL,
+            entry.creat_umolL,
+            entry.glu_mmolL,
+            entry.crp_mgL,
+            entry.wbc_1000cellsuL,
+            entry.lym_pc,
+            entry.mcv_fL,
+            entry.rdw_pc,
+            entry.alp_UL
+        ];
+    }
+
+    function calculateBiomarkerZScores(biomarkersRaw) {
+        const biomarkersZScores = {};
+        for (const [key, values] of Object.entries(biomarkersRaw)) {
+            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+
+            biomarkersZScores[key] = stdDev === 0
+                ? values.map(() => 0)
+                : values.map(val => ((val - mean) / stdDev).toFixed(2));
+        }
+        return biomarkersZScores;
+    }
+
+    function prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores) {
+        const datasets = [
+            {
+                label: 'PhenoAge',
+                data: phenoAges,
+                borderColor: 'rgba(0, 0, 255, 1)',
+                backgroundColor: 'rgba(0, 0, 255, 0.1)',
+                fill: false,
+                tension: 0.1,
+                borderWidth: 3,
+                yAxisID: 'y1'
+            }
+        ];
+
+        const biomarkerColors = {
+            'Albumin (g/L)': 'rgba(0, 128, 255, 1)',
+            'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',
+            'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',
+            'CRP (mg/L)': 'rgba(255, 69, 0, 1)',
+            'Lymphocytes (%)': 'rgba(0, 100, 0, 1)',
+            'MCV (fL)': 'rgba(70, 130, 180, 1)',
+            'RDW (%)': 'rgba(220, 20, 60, 1)',
+            'ALP (U/L)': 'rgba(218, 165, 32, 1)',
+            'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)'
+        };
+
+        for (const [key, zScores] of Object.entries(biomarkersZScores)) {
+            const actualValues = biomarkersRaw[key];
+            const dataPoints = zScores.map((zScore, index) => ({
+                x: labels[index],
+                y: zScore,
+                actualValue: actualValues[index]
+            }));
+
+            datasets.push({
+                label: key,
+                data: dataPoints,
+                borderColor: biomarkerColors[key],
+                backgroundColor: 'rgba(0, 0, 0, 0)',
+                fill: false,
+                tension: 0.1,
+                yAxisID: 'y2',
+                hidden: true
+            });
+        }
+        return datasets;
+    }
+
+    function getBiomarkerChartOptions() {
+        return {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            stacked: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.dataset.label || '';
+                            const yValue = context.parsed.y;
+                            const actualValue = context.raw.actualValue;
+                            const formattedValue = actualValue !== undefined && !isNaN(actualValue)
+                                ? (actualValue % 1 !== 0 ? actualValue.toFixed(2) : actualValue.toString())
+                                : 'N/A';
+
+                            return label === 'PhenoAge' ? `${label}: ${yValue}` : `${label}: ${formattedValue}`;
+                        }
+                    }
+                },
+                legend: {
+                    onHover: function (event) {
+                        event.native.target.style.cursor = 'pointer';
+                    },
+                    onLeave: function (event) {
+                        event.native.target.style.cursor = 'default';
+                    }
+                }
+            },
+            scales: {
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Age (years)'
+                    },
+                    grid: {
+                        drawOnChartArea: true
+                    }
+                },
+                y2: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Biomarkers (Z-scores)'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        };
+    }
+
+    function populateProofsGallery(fullAthleteData) {
+        const proofsGallery = document.getElementById('proofsGallery');
+        proofsGallery.innerHTML = '';
+
+        fullAthleteData.proofs.forEach(proofUrl => {
+            const proofItem = document.createElement('div');
+            proofItem.classList.add('proof-item');
+            proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image">`;
+            proofsGallery.appendChild(proofItem);
+
+            proofItem.querySelector('img').addEventListener('click', function () {
+                openEnlargedView(this);
+            });
+        });
+    }
 </script>
