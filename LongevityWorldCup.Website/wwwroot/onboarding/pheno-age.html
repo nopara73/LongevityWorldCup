@@ -48,12 +48,14 @@
             transform-origin: left;
             transform: rotate(-90deg);
             transition: opacity 0.6s ease, transform 0.6s ease;
+            pointer-events: none; /* Prevents the button from capturing mouse events */
         }
 
             /* Final state: fully visible and upright */
             #continueButton.show {
                 opacity: 1;
                 transform: rotate(0);
+                pointer-events: auto; /* Restores mouse events when visible */
             }
 
         .input-group {
@@ -368,10 +370,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                    <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                            `;
+                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                        `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
