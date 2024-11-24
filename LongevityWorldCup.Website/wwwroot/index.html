@@ -546,10 +546,10 @@
         }
 
         // Fetch actual BTC data and update the progress
-        fetch(`https://api.blockcypher.com/v1/btc/main/addrs/${bitcoinDonationAddress}`)
+        fetch(`/api/bitcoin/total-received?address=${bitcoinDonationAddress}`)
             .then(response => response.json())
             .then(data => {
-                const totalReceivedSatoshis = data.total_received;
+                const totalReceivedSatoshis = data.totalReceivedSatoshis;
                 const totalReceivedBTC = totalReceivedSatoshis / 1e8;
                 const prizeFundBTC = totalReceivedBTC * 0.9; // 90% of total received
 

@@ -11,6 +11,9 @@ namespace LongevityWorldCup.Website
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
+            builder.Services.AddHttpClient();
+            builder.Services.AddMemoryCache();
+
             // Add CORS policy
             builder.Services.AddCors(options =>
             {
