@@ -1210,10 +1210,14 @@
                                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
                                         podiumItem.setAttribute('data-athlete-name', athlete.name);
 
-                                        // Attach click event listeners to athlete names
-                                        attachAthleteNameClickListeners();
                                     });
 
+                                    // Attach click event listeners to athlete names
+                                    attachAthleteNameClickListeners();
+
+                                    addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
+                                        openEnlargedView(this);
+                                    });
                                 })
                                 .catch(error => {
                                     console.error('Error fetching BTC exchange rate:', error);
@@ -1272,10 +1276,8 @@
 
                     // Attach click event listeners to athlete names
                     attachAthleteNameClickListeners();
-                });
 
-                document.querySelectorAll('.portrait, .podium-portrait, #modalProfilePic, .proof-item img').forEach(img => {
-                    img.addEventListener('click', function () {
+                    addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
                         openEnlargedView(this);
                     });
                 });
@@ -1284,6 +1286,19 @@
                 console.error('Error fetching athletes:', error);
             });
     };
+    function addClickListenerToImages(selector, callback) {
+        document.querySelectorAll(selector).forEach(img => {
+            if (!img.dataset.listenerAdded) {
+                img.addEventListener('click', callback);
+                img.dataset.listenerAdded = true; // Mark this element as having a listener added
+            }
+        });
+    }
+
+    // Usage
+    addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
+        openEnlargedView(this);
+    });
 
     // Function to attach click event listener to all athlete-name elements
     function attachAthleteNameClickListeners() {
@@ -2246,7 +2261,6 @@
 
                 // Populate proofs gallery
                 populateProofsGallery(fullAthleteData);
-
                 // Display the modal
                 modal.style.display = "block";
                 document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
