@@ -1210,6 +1210,8 @@
                                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
                                         podiumItem.setAttribute('data-athlete-name', athlete.name);
 
+                                        // Attach click event listeners to athlete names
+                                        attachAthleteNameClickListeners();
                                     });
 
                                 })
@@ -1267,6 +1269,9 @@
                         row.style.display = 'none';
                         row.classList.add('extra-athlete'); // Optional: add a class for future reference
                     }
+
+                    // Attach click event listeners to athlete names
+                    attachAthleteNameClickListeners();
                 });
 
                 document.querySelectorAll('.portrait, .podium-portrait, #modalProfilePic, .proof-item img').forEach(img => {
@@ -1274,16 +1279,19 @@
                         openEnlargedView(this);
                     });
                 });
-
-                // Add click event listener to all athlete-name elements
-                document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-                    athleteNameElement.addEventListener('click', handleAthleteNameClick);
-                });
             })
             .catch(error => {
                 console.error('Error fetching athletes:', error);
             });
     };
+
+    // Function to attach click event listener to all athlete-name elements
+    function attachAthleteNameClickListeners() {
+        document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
+            athleteNameElement.removeEventListener('click', handleAthleteNameClick); // Remove existing listeners to prevent duplicates
+            athleteNameElement.addEventListener('click', handleAthleteNameClick);
+        });
+    }
 
     /**
      * Comparator function to rank athletes based on competition rules.
