@@ -24,3 +24,4 @@ project.nuget.cache
 # Ignore Visual Studio user-specific files
 *.csproj.user
 AppData
+/LongevityWorldCup.Website/config.json
