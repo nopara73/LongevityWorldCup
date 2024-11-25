@@ -82,4 +82,8 @@ echo "Current number of subscriptions: $CURRENT_SUB_COUNT"
 echo "Difference in subscriptions: $DIFF"
 ```
 
+## Configure
 
+After run, config file is created:
+
+"sudo nano /var/www/LongevityWorldCup/publish/config.json"
