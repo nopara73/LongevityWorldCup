@@ -13,9 +13,8 @@ namespace LongevityWorldCup.Website.Controllers
         [HttpPost("apply")]
         public async Task<IActionResult> Apply()
         {
-            //using var reader = new StreamReader(Request.Body);
-            //string content = await reader.ReadToEndAsync();
-            string content = "ping";
+            using var reader = new StreamReader(Request.Body);
+            string content = await reader.ReadToEndAsync();
 
             // Load SMTP configuration
             Config config;
