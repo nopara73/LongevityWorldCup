@@ -913,7 +913,7 @@
             }
 
             // Regular expression to validate the flag
-            const flagRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'-]{2,99}$/;
+            const flagRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'(),.\-]{2,99}$/;
 
             if (!flagRegex.test(flag)) {
                 return { valid: false, error: 'Flag contains invalid characters.' };
