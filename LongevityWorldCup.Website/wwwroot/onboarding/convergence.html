@@ -37,7 +37,7 @@
             }
         }
 
-        #nationality {
+        #flag {
             margin-bottom: 0; /* Reset any margin added here */
         }
 
@@ -164,9 +164,9 @@
                     <!-- Options will be populated dynamically -->
                 </select>
 
-                <!-- Nationality Field with Autocomplete -->
-                <label for="nationality">Flag:</label>
-                <input type="text" id="nationality" name="nationality" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
+                <!-- Flag Field with Autocomplete -->
+                <label for="flag">Flag:</label>
+                <input type="text" id="flag" name="flag" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
             </fieldset>
             <div id="privacyDetails">
                 <p>
@@ -295,15 +295,15 @@
 
                     // Add event listeners for validation
                     const nameInput = document.getElementById('name');
-                    const nationalityInput = document.getElementById('nationality');
+                    const flagInput = document.getElementById('flag');
                     const divisionSelect = document.getElementById('division');
 
                     nameInput.addEventListener('input', checkFormValidityStage1);
-                    nationalityInput.addEventListener('input', checkFormValidityStage1);
+                    flagInput.addEventListener('input', checkFormValidityStage1);
 
                     nameInput.addEventListener('blur', validateNameInput);
                     divisionSelect.addEventListener('click', validateNameInput);
-                    nationalityInput.addEventListener('input', validateNameInput);
+                    flagInput.addEventListener('input', validateNameInput);
 
                     function validateNameInput() {
                         const nameValue = nameInput.value.trim();
@@ -495,7 +495,7 @@
         }
 
         let existingAthleteNames;
-        // Nationality Autocomplete Implementation
+        // Flag Autocomplete Implementation
         document.addEventListener('DOMContentLoaded', function () {
             // Initialize the first stage
             goToStage(currentStage);
@@ -513,9 +513,9 @@
             fetch('/api/data/flags')
                 .then(response => response.json())
                 .then(flags => {
-                    const nationalityInput = document.getElementById('nationality');
+                    const flagInput = document.getElementById('flag');
 
-                    nationalityInput.addEventListener('input', function () {
+                    flagInput.addEventListener('input', function () {
                         const inputVal = this.value.toLowerCase();
                         closeAllLists();
                         if (!inputVal) return false;
@@ -534,7 +534,7 @@
                                 listItem.innerHTML += flags[i].substr(inputVal.length);
                                 listItem.innerHTML += "<input type='hidden' value='" + flags[i] + "'>";
                                 listItem.addEventListener('click', function () {
-                                    nationalityInput.value = this.getElementsByTagName('input')[0].value;
+                                    flagInput.value = this.getElementsByTagName('input')[0].value;
                                     closeAllLists();
                                 });
                                 listContainer.appendChild(listItem);
@@ -547,7 +547,7 @@
                     function closeAllLists(elmnt) {
                         const items = document.getElementsByClassName('autocomplete-items');
                         for (let i = 0; i < items.length; i++) {
-                            if (elmnt != items[i] && elmnt != nationalityInput) {
+                            if (elmnt != items[i] && elmnt != flagInput) {
                                 items[i].parentNode.removeChild(items[i]);
                             }
                         }
@@ -780,14 +780,14 @@
 
             const nameInput = document.getElementById('name');
             const divisionSelect = document.getElementById('division');
-            const nationalityInput = document.getElementById('nationality');
+            const flagInput = document.getElementById('flag');
             const nextButton = document.getElementById('nextButton');
 
             const nameValue = nameInput.value.trim();
             const validationResult = validateName(nameValue);
             const nameValid = validationResult.valid;
             const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
-            const nationalityFilled = nationalityInput.value.trim() !== '';
+            const flagFilled = flagInput.value.trim() !== '';
 
             if (!nameValid && nameValue.length >= 3) {
                 // Display error message immediately as the user types
@@ -796,7 +796,7 @@
                 document.getElementById('nameError').textContent = '';
             }
 
-            if (nameValid && divisionSelected && nationalityFilled) {
+            if (nameValid && divisionSelected && flagFilled) {
                 nextButton.disabled = false;
                 nextButton.classList.remove('disabled-button');
             } else {
