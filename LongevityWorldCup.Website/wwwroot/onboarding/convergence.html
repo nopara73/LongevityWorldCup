@@ -512,7 +512,7 @@
 
             fetch('/api/data/flags')
                 .then(response => response.json())
-                .then(countries => {
+                .then(flags => {
                     const nationalityInput = document.getElementById('nationality');
 
                     nationalityInput.addEventListener('input', function () {
@@ -527,12 +527,12 @@
 
                         let matchCount = 0;
 
-                        for (let i = 0; i < countries.length; i++) {
-                            if (countries[i].toLowerCase().startsWith(inputVal)) {
+                        for (let i = 0; i < flags.length; i++) {
+                            if (flags[i].toLowerCase().startsWith(inputVal)) {
                                 const listItem = document.createElement('div');
-                                listItem.innerHTML = "<strong>" + countries[i].substr(0, inputVal.length) + "</strong>";
-                                listItem.innerHTML += countries[i].substr(inputVal.length);
-                                listItem.innerHTML += "<input type='hidden' value='" + countries[i] + "'>";
+                                listItem.innerHTML = "<strong>" + flags[i].substr(0, inputVal.length) + "</strong>";
+                                listItem.innerHTML += flags[i].substr(inputVal.length);
+                                listItem.innerHTML += "<input type='hidden' value='" + flags[i] + "'>";
                                 listItem.addEventListener('click', function () {
                                     nationalityInput.value = this.getElementsByTagName('input')[0].value;
                                     closeAllLists();
