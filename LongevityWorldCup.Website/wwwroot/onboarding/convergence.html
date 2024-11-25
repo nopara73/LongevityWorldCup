@@ -167,6 +167,7 @@
                 <!-- Flag Field with Autocomplete -->
                 <label for="flag">Flag:</label>
                 <input type="text" id="flag" name="flag" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
+                <span id="flagError" class="error-message"></span>
             </fieldset>
             <div id="privacyDetails">
                 <p>
@@ -301,19 +302,34 @@
                     nameInput.addEventListener('input', checkFormValidityStage1);
                     flagInput.addEventListener('input', checkFormValidityStage1);
 
-                    nameInput.addEventListener('blur', validateNameInput);
-                    divisionSelect.addEventListener('click', validateNameInput);
-                    flagInput.addEventListener('input', validateNameInput);
+                    nameInput.addEventListener('blur', validateStage1Inputs);
+                    flagInput.addEventListener('blur', validateStage1Inputs);
 
-                    function validateNameInput() {
+                    divisionSelect.addEventListener('click', validateStage1Inputs);
+                    flagInput.addEventListener('input', validateStage1Inputs);
+
+                    function validateStage1Inputs() {
                         const nameValue = nameInput.value.trim();
-                        const validationResult = validateName(nameValue);
+                        const nameValidationResult = validateName(nameValue);
 
                         const nameError = document.getElementById('nameError');
-                        if (!validationResult.valid) {
-                            nameError.textContent = validationResult.error;
+                        if (!nameValidationResult.valid) {
+                            nameError.textContent = nameValidationResult.error;
                         } else {
                             nameError.textContent = '';
+
+                            const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
+                            if (divisionSelected) {
+                                const flagValue = flagInput.value.trim();
+                                const flagValidationResult = validateFlag(flagValue);
+
+                                const flagError = document.getElementById('flagError');
+                                if (!flagValidationResult.valid) {
+                                    flagError.textContent = flagValidationResult.error;
+                                } else {
+                                    flagError.textContent = '';
+                                }
+                            }
                         }
                     }
 
@@ -779,24 +795,33 @@
             if (currentStage !== 1) return;
 
             const nameInput = document.getElementById('name');
-            const divisionSelect = document.getElementById('division');
             const flagInput = document.getElementById('flag');
+            const divisionSelect = document.getElementById('division');
             const nextButton = document.getElementById('nextButton');
 
             const nameValue = nameInput.value.trim();
-            const validationResult = validateName(nameValue);
-            const nameValid = validationResult.valid;
+            const flagValue = flagInput.value.trim();
+            const nameValidationResult = validateName(nameValue);
+            const flagValidationResult = validateFlag(flagValue);
+            const nameValid = nameValidationResult.valid;
+            const flagValid = flagValidationResult.valid;
             const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
-            const flagFilled = flagInput.value.trim() !== '';
 
             if (!nameValid && nameValue.length >= 3) {
                 // Display error message immediately as the user types
-                document.getElementById('nameError').textContent = validationResult.error;
+                document.getElementById('nameError').textContent = nameValidationResult.error;
             } else {
                 document.getElementById('nameError').textContent = '';
             }
 
-            if (nameValid && divisionSelected && flagFilled) {
+            if (!flagValid && flagValue.length >= 3) {
+                // Display error message immediately as the user types
+                document.getElementById('flagError').textContent = flagValidationResult.error;
+            } else {
+                document.getElementById('flagError').textContent = '';
+            }
+
+            if (nameValid && flagValid && divisionSelected) {
                 nextButton.disabled = false;
                 nextButton.classList.remove('disabled-button');
             } else {
@@ -873,6 +898,25 @@
 
             if (!nameRegex.test(name)) {
                 return { valid: false, error: 'Name contains invalid characters.' };
+            }
+
+            return { valid: true };
+        }
+
+        function validateFlag(flag) {
+            // Trim leading and trailing whitespace
+            flag = flag.trim();
+
+            // Ensure the flag is at least 3 characters long
+            if (flag.length < 3) {
+                return { valid: false, error: 'Flag must be at least 3 characters long.' };
+            }
+
+            // Regular expression to validate the flag
+            const flagRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'-]{2,99}$/;
+
+            if (!flagRegex.test(flag)) {
+                return { valid: false, error: 'Flag contains invalid characters.' };
             }
 
             return { valid: true };
