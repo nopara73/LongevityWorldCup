@@ -48,6 +48,18 @@
             display: block;
         }
 
+        .char-counter {
+            font-size: 0.9rem;
+            color: green;
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+        }
+
+            .char-counter.hidden {
+                display: none;
+            }
+
         .autocomplete-items {
             position: absolute;
             border: 1px solid #ccc;
@@ -224,9 +236,10 @@
             </fieldset>
 
             <!-- New WHY Field (Initially Hidden) -->
-            <div id="whyField" style="width:90%; display: none;">
+            <div id="whyField" style="width:90%; display: none; position: relative;">
                 <label for="why">What drives you forward?</label>
-                <textarea id="why" name="why" rows="5"></textarea>
+                <textarea id="why" name="why" rows="5" placeholder="Share your motivation here..."></textarea>
+                <div id="whyCharCounter" class="char-counter">0/250</div>
             </div>
 
             <!-- Proof Image Container -->
@@ -354,6 +367,7 @@
                     // Add event listener for validation
                     const whyInput = document.getElementById('why');
                     whyInput.addEventListener('input', checkFormValidityStage2);
+                    checkFormValidityStage2(); // Initialize character counter
 
                     // Run checkFormValidityStage2 initially
                     checkFormValidityStage2();
@@ -836,9 +850,33 @@
             const whyInput = document.getElementById('why');
             const nextButton = document.getElementById('nextButton');
 
-            const whyFilled = whyInput.value.trim() !== '';
+            const charCounter = document.getElementById('whyCharCounter');
+            const whyValue = whyInput.value;
+            const charCount = whyValue.length;
 
-            if (whyFilled) {
+            if (charCount == 0) {
+                charCounter.classList.add('hidden');
+            } else {
+                charCounter.classList.remove('hidden');
+            }
+
+            // Update character counter
+            charCounter.textContent = charCount + '/250';
+
+            // Color the counter based on character count
+            if (charCount < 30) {
+                charCounter.textContent = charCount + '/30';
+                charCounter.style.color = 'red';
+            } else if (charCount <= 250) {
+                charCounter.textContent = charCount + '/250';
+                charCounter.style.color = 'green';
+            } else {
+                charCounter.textContent = charCount + '/250';
+                charCounter.style.color = 'red';
+            }
+
+            // Enable or disable the Next button based on validity
+            if (charCount >= 30 && charCount <= 250) {
                 nextButton.disabled = false;
                 nextButton.classList.remove('disabled-button');
             } else {
@@ -846,6 +884,7 @@
                 nextButton.classList.add('disabled-button');
             }
         }
+
         function checkFormValidityStage6() {
             if (currentStage !== 6) return;
 
