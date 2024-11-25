@@ -19,4 +19,8 @@
     <Folder Include="wwwroot\assets\profile-pics\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.8.0" />
+  </ItemGroup>
+
 </Project>

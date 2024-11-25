@@ -1,11 +1,16 @@
 using LongevityWorldCup.Website.Middleware;
+using System.Text.Json;
 
 namespace LongevityWorldCup.Website
 {
     public class Program
     {
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true }; // Cached options
+
         public static void Main(string[] args)
         {
+            InitializeDefaultConfig(); // Ensure default config file is created
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -56,6 +61,30 @@ namespace LongevityWorldCup.Website
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.Run();
+        }
+
+        private static void InitializeDefaultConfig()
+        {
+            string configFilePath = "config.json";
+
+            // Check if the config file already exists
+            if (File.Exists(configFilePath))
+                return;
+
+            // Create default configuration
+            var defaultConfig = new
+            {
+                EmailFrom = "longevityworldcup@gmail.com",
+                EmailTo = "longevityworldcup@gmail.com",
+                SmtpServer = "smtp.gmail.com",
+                SmtpPort = 587,
+                SmtpUser = "longevityworldcup@gmail.com",
+                SmtpPassword = "your_password"
+            };
+
+            // Serialize to JSON and save to file
+            string json = JsonSerializer.Serialize(defaultConfig, JsonOptions); // Use cached options
+            File.WriteAllText(configFilePath, json);
         }
     }
 }
