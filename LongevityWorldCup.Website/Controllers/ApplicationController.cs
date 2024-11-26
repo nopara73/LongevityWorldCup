@@ -12,7 +12,10 @@ namespace LongevityWorldCup.Website.Controllers
     [Route("api/[controller]")]
     public class ApplicationController : ControllerBase
     {
-        private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new() { WriteIndented = true };
+        private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new() {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
         private static readonly JsonSerializerOptions DeserializationOptions = new() { PropertyNameCaseInsensitive = true };
 
         [HttpPost("apply")]
