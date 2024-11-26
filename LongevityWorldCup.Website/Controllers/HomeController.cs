@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
+using LongevityWorldCup.Website.Business; // Add this namespace
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -44,63 +45,12 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Too many subscription attempts. Please try again later.");
             }
 
-            string contentRootPath = _environment.ContentRootPath;
-            string dataDir = Path.Combine(contentRootPath, "AppData");
-            if (!Directory.Exists(dataDir))
+            // Call the static function
+            var error = await NewsletterService.SubscribeAsync(email, _logger, _environment);
+
+            if (error != null)
             {
-                Directory.CreateDirectory(dataDir);
-            }
-
-            string filePath = Path.Combine(dataDir, "subscriptions.txt");
-
-            int maxRetries = 3;
-            for (int i = 0; i < maxRetries; i++)
-            {
-                try
-                {
-                    using var stream = new FileStream(
-                        filePath,
-                        FileMode.OpenOrCreate,
-                        FileAccess.ReadWrite,
-                        FileShare.None,
-                        4096,
-                        true
-                    );
-                    // Lock the file
-                    // Read existing emails
-                    stream.Seek(0, SeekOrigin.Begin);
-                    var existingEmails = new List<string>();
-                    using (var reader = new StreamReader(stream, leaveOpen: true))
-                    {
-                        string? line;
-                        while ((line = await reader.ReadLineAsync()) != null)
-                        {
-                            existingEmails.Add(line.Trim());
-                        }
-                    }
-
-                    if (existingEmails.Contains(email, StringComparer.OrdinalIgnoreCase))
-                    {
-                        return BadRequest("This email is already subscribed.");
-                    }
-
-                    // Append the new email
-                    stream.Seek(0, SeekOrigin.End);
-                    using var writer = new StreamWriter(stream, leaveOpen: true);
-                    await writer.WriteLineAsync(email);
-                    break; // Success
-                }
-                catch (IOException ex)
-                {
-                    if (i == maxRetries - 1)
-                    {
-                        _logger.LogError(ex, "Error accessing subscription file.");
-                        return StatusCode(500, "An error occurred while saving your subscription. Please try again later.");
-                    }
-
-                    // Wait before retrying
-                    await Task.Delay(100);
-                }
+                return BadRequest(error);
             }
 
             return Ok("Subscription successful.");
@@ -111,7 +61,7 @@ namespace LongevityWorldCup.Website.Controllers
             var now = DateTime.UtcNow;
             if (!RequestTracker.TryGetValue(key, out var value))
             {
-                value = [now]; // Correct initialization
+                value = [now];
                 RequestTracker[key] = value;
                 return true;
             }
