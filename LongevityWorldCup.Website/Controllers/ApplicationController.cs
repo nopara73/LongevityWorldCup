@@ -12,10 +12,12 @@ namespace LongevityWorldCup.Website.Controllers
     [Route("api/[controller]")]
     public class ApplicationController : ControllerBase
     {
-        private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new() {
+        private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new()
+        {
             WriteIndented = true,
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
+
         private static readonly JsonSerializerOptions DeserializationOptions = new() { PropertyNameCaseInsensitive = true };
 
         [HttpPost("apply")]
@@ -66,9 +68,9 @@ namespace LongevityWorldCup.Website.Controllers
 
             // Create the email message
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Application Bot", config.EmailFrom));
+            message.From.Add(new MailboxAddress(applicantData.Name, config.EmailFrom));
             message.To.Add(new MailboxAddress("", config.EmailTo));
-            message.Subject = "New Application Submitted";
+            message.Subject = $"New Application for LWC2025";
 
             var builder = new BodyBuilder
             {
