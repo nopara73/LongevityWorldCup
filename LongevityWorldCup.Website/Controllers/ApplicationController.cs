@@ -100,7 +100,7 @@ namespace LongevityWorldCup.Website.Controllers
                 applicantData.Why,
                 applicantData.MediaContact,
                 applicantData.AccountEmail,
-                applicantData.PersonalLink
+                PersonalLink = string.IsNullOrWhiteSpace(applicantData.PersonalLink) ? null : applicantData.PersonalLink
             };
             string emailBody = JsonSerializer.Serialize(applicantDataWithoutImages, CachedJsonSerializerOptions);
 
