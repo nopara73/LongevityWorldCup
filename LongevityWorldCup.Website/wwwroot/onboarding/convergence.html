@@ -635,7 +635,7 @@
                     // Populate divisions into the select element
                     divisions.forEach(function (division) {
                         const option = document.createElement('option');
-                        option.value = division.toLowerCase(); // Use lowercase or any appropriate value
+                        option.value = division; // Use lowercase or any appropriate value
                         option.textContent = `${window.GetDivisionIcon(division)} ${division}`;
                         divisionSelect.appendChild(option);
                     });
