@@ -672,35 +672,45 @@
                 currentStage++;
                 goToStage(currentStage);
             } else {
-                // Collect all the data and send it to the backend via an API call
-                const applicantData = collectApplicantData();
+                // Final stage requires accountEmail
+                const accountEmail = document.getElementById('accountEmail').value.trim();
+                if (!accountEmail) {
+                    isValid = false;
+                    alert('Please enter your email.');
+                } else if (!validator.isEmail(accountEmail)) {
+                    isValid = false;
+                    alert('Please enter a valid email address.');
+                } else {
+                    // Collect all the data and send it to the backend via an API call
+                    const applicantData = collectApplicantData();
 
-                // Send the data via fetch POST request
-                fetch('/api/application/apply', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(applicantData)
-                })
-                    .then(response => {
-                        if (response.ok) {
-                            // Handle success, perhaps redirect or show a success message
-                            alert('Application submitted successfully!');
-                            // Optionally clear localStorage
-                            localStorage.removeItem('profilePic');
-                            localStorage.removeItem('proofPics');
-                            // Redirect or reset the form
-                            window.location.href = 'onboarding/application-review.html';
-                        } else {
-                            // Handle error
-                            alert('Failed to submit application. Please try again later.');
-                        }
+                    // Send the data via fetch POST request
+                    fetch('/api/application/apply', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(applicantData)
                     })
-                    .catch(error => {
-                        console.error('Error submitting application:', error);
-                        alert('An error occurred while submitting your application.');
-                    });
+                        .then(response => {
+                            if (response.ok) {
+                                // Handle success, perhaps redirect or show a success message
+                                alert('Application submitted successfully!');
+                                // Optionally clear localStorage
+                                localStorage.removeItem('profilePic');
+                                localStorage.removeItem('proofPics');
+                                // Redirect or reset the form
+                                window.location.href = 'onboarding/application-review.html';
+                            } else {
+                                // Handle error
+                                alert('Failed to submit application. Please try again later.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error submitting application:', error);
+                            alert('An error occurred while submitting your application.');
+                        });
+                }
             }
         });
 
