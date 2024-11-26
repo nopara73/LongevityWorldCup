@@ -566,7 +566,7 @@
                 .then(response => response.json())
                 .then(athletes => {
                     // Extract athlete names into a list
-                    existingAthleteNames = athletes.map(athlete => athlete.name);
+                    existingAthleteNames = athletes.map(athlete => athlete.Name);
                 })
                 .catch(error => {
                     console.error('Error fetching athlete names:', error);

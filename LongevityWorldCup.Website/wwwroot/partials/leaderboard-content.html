@@ -1009,41 +1009,40 @@
                     document.getElementById('viewAllAthletesBtn').textContent = `VIEW ALL ATHLETES (${athletes.length})`;
                 }
                 athleteResults = athletes.map(athlete => {
-                    // Calculate the chronological age from the athlete's date_of_birth
+                    // Calculate the chronological age from the athlete's DateOfBirth
                     const dob = new Date(
-                        athlete.date_of_birth.year,
-                        athlete.date_of_birth.month - 1, // Months are zero-indexed in JavaScript Date
-                        athlete.date_of_birth.day
+                        athlete.DateOfBirth.Year,
+                        athlete.DateOfBirth.Month - 1, // Months are zero-indexed in JavaScript Date
+                        athlete.DateOfBirth.Day
                     );
                     const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dob);
 
                     // Get birth year and generation
-                    const birthYear = athlete.date_of_birth.year;
+                    const birthYear = athlete.DateOfBirth.Year;
                     const generation = getGeneration(birthYear);
 
                     // Initialize a variable to keep track of the lowest PhenoAge for this athlete
                     let lowestPhenoAge = Infinity;
-
                     // Iterate through all biomarker sets for each athlete
-                    athlete.biomarkers.forEach(biomarkerSet => {
+                    athlete.Biomarkers.forEach(biomarkerSet => {
                         // Prepare the biomarker values in the order expected for PhenoAge calculation
                         const biomarkerValues = [chronologicalAge];
 
                         // Apply logarithmic transformation to CRP
                         // Also divide by 10 to convert from mg/L to ug/L
-                        const crpTransformed = Math.log(biomarkerSet.crp_mgL / 10);
+                        const crpTransformed = Math.log(biomarkerSet.CrpMgL / 10);
 
                         // Add the values of each required biomarker (in the same order as in 'biomarkers' array)
                         biomarkerValues.push(
-                            biomarkerSet.alb_gL,      // Albumin
-                            biomarkerSet.creat_umolL, // Creatinine
-                            biomarkerSet.glu_mmolL,   // Glucose
+                            biomarkerSet.AlbGL,      // Albumin
+                            biomarkerSet.CreatUmolL, // Creatinine
+                            biomarkerSet.GluMmolL,   // Glucose
                             crpTransformed,     // C-reactive Protein
-                            biomarkerSet.wbc_1000cellsuL, // White Blood Cell Count
-                            biomarkerSet.lym_pc,      // Lymphocytes
-                            biomarkerSet.mcv_fL,      // Mean Corpuscular Volume
-                            biomarkerSet.rdw_pc,      // Red Cell Distribution Width
-                            biomarkerSet.alp_UL       // Alkaline Phosphatase
+                            biomarkerSet.Wbc1000cellsuL, // White Blood Cell Count
+                            biomarkerSet.LymPc,      // Lymphocytes
+                            biomarkerSet.McvFL,      // Mean Corpuscular Volume
+                            biomarkerSet.RdwPc,      // Red Cell Distribution Width
+                            biomarkerSet.AlpUL       // Alkaline Phosphatase
                         );
 
                         // Calculate the PhenoAge for the current biomarker set
@@ -1060,15 +1059,15 @@
                     const ageReduction = lowestPhenoAge - chronologicalAge;
 
                     return {
-                        name: athlete.name,
-                        mediaContact: athlete.media_contact,
+                        name: athlete.Name,
+                        mediaContact: athlete.MediaContact,
                         dateOfBirth: dob,
                         chronologicalAge: chronologicalAge,
                         lowestPhenoAge: lowestPhenoAge,
                         ageReduction: ageReduction,
-                        personalLink: athlete.personal_link,
-                        profilePic: athlete['profile-pic'],
-                        division: athlete.division,
+                        personalLink: athlete.PersonalLink,
+                        profilePic: athlete.ProfilePic,
+                        division: athlete.Division,
                         generation: generation
                     };
 
@@ -2240,7 +2239,7 @@
         fetch('/api/data/athletes')
             .then(response => response.json())
             .then(athletes => {
-                const fullAthleteData = athletes.find(a => a.name === athleteNameText);
+                const fullAthleteData = athletes.find(a => a.Name === athleteNameText);
                 if (!fullAthleteData) {
                     console.error('Full athlete data not found');
                     return;
@@ -2302,12 +2301,12 @@
     }
 
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
-        document.getElementById('athleteName').textContent = `${fullAthleteData.name}${getRankText(ultimateRank)}`;
+        document.getElementById('athleteName').textContent = `${fullAthleteData.Name}${getRankText(ultimateRank)}`;
         const profilePic = document.getElementById('modalProfilePic');
-        profilePic.src = fullAthleteData['profile-pic'];
-        profilePic.alt = `${fullAthleteData.name} Profile Picture`;
+        profilePic.src = fullAthleteData.ProfilePic;
+        profilePic.alt = `${fullAthleteData.Name} Profile Picture`;
 
-        document.getElementById('athleteBio').textContent = fullAthleteData.why;
+        document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
         let rankText = `#${ultimateRank} in the Ultimate League`;
         if (bestLeagueRank !== ultimateRank) {
@@ -2317,7 +2316,7 @@
         document.getElementById('athleteRank').textContent = rankText;
         document.getElementById('athleteDivision').textContent = `${athleteData.division}${getRankText(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').textContent = `${athleteData.generation}${getRankText(athleteData.ranks[athleteData.generation])}`;
-        document.getElementById('athleteFlag').textContent = fullAthleteData.flag;
+        document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
         document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
@@ -2346,19 +2345,19 @@
 
     function generateBiomarkerChart(fullAthleteData) {
         const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
-        const biomarkerData = fullAthleteData.biomarkers.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const biomarkerData = fullAthleteData.Biomarkers.sort((a, b) => new Date(a.Date) - new Date(b.Date));
         const dob = new Date(
-            fullAthleteData.date_of_birth.year,
-            fullAthleteData.date_of_birth.month - 1,
-            fullAthleteData.date_of_birth.day
+            fullAthleteData.DateOfBirth.Year,
+            fullAthleteData.DateOfBirth.Month - 1,
+            fullAthleteData.DateOfBirth.Day
         );
 
-        const labels = biomarkerData.map(entry => entry.date);
+        const labels = biomarkerData.map(entry => entry.Date);
         const phenoAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
 
         biomarkerData.forEach(entry => {
-            const entryDate = new Date(entry.date);
+            const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = calculateAgeAtDate(dob, entryDate);
 
             collectBiomarkerValues(entry, biomarkersRaw);
@@ -2401,29 +2400,29 @@
     }
 
     function collectBiomarkerValues(entry, biomarkersRaw) {
-        biomarkersRaw['Albumin (g/L)'].push(entry.alb_gL);
-        biomarkersRaw['Creatinine (µmol/L)'].push(entry.creat_umolL);
-        biomarkersRaw['Glucose (mmol/L)'].push(entry.glu_mmolL);
-        biomarkersRaw['CRP (mg/L)'].push(entry.crp_mgL);
-        biomarkersRaw['Lymphocytes (%)'].push(entry.lym_pc);
-        biomarkersRaw['MCV (fL)'].push(entry.mcv_fL);
-        biomarkersRaw['RDW (%)'].push(entry.rdw_pc);
-        biomarkersRaw['ALP (U/L)'].push(entry.alp_UL);
-        biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.wbc_1000cellsuL);
+        biomarkersRaw['Albumin (g/L)'].push(entry.AlpUL);
+        biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
+        biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
+        biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
+        biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc);
+        biomarkersRaw['MCV (fL)'].push(entry.McvFL);
+        biomarkersRaw['RDW (%)'].push(entry.RdwPc);
+        biomarkersRaw['ALP (U/L)'].push(entry.AlpUL);
+        biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
     }
 
     function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
         return [
             chronoAgeAtEntry,
-            entry.alb_gL,
-            entry.creat_umolL,
-            entry.glu_mmolL,
-            entry.crp_mgL,
-            entry.wbc_1000cellsuL,
-            entry.lym_pc,
-            entry.mcv_fL,
-            entry.rdw_pc,
-            entry.alp_UL
+            entry.AlbGL,
+            entry.CreatUmolL,
+            entry.GluMmolL,
+            entry.CrpMgL,
+            entry.Wbc1000cellsuL,
+            entry.LymPc,
+            entry.McvFL,
+            entry.RdwPc,
+            entry.AlpUL
         ];
     }
 
@@ -2560,7 +2559,7 @@
         const proofsGallery = document.getElementById('proofsGallery');
         proofsGallery.innerHTML = '';
 
-        fullAthleteData.proofs.forEach(proofUrl => {
+        fullAthleteData.Proofs.forEach(proofUrl => {
             const proofItem = document.createElement('div');
             proofItem.classList.add('proof-item');
             proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image">`;
