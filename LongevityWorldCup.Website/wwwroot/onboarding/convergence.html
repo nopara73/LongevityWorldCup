@@ -264,6 +264,38 @@
         updateMainProgress(3);
         updateSubProgress(1);
 
+        function collectApplicantData() {
+            // Get the data from the form fields
+            const name = document.getElementById('name').value.trim();
+            const division = document.getElementById('division').value.trim();
+            const flag = document.getElementById('flag').value.trim();
+            const why = document.getElementById('why').value.trim();
+            const mediaContact = document.getElementById('mediaContact').value.trim();
+            const accountEmail = document.getElementById('accountEmail').value.trim();
+            const personalLink = document.getElementById('personalLink').value.trim();
+
+            // Get the profile picture from localStorage
+            const profilePic = localStorage.getItem('profilePic');
+
+            // Get the proof images from localStorage
+            const proofPics = JSON.parse(localStorage.getItem('proofPics')) || [];
+
+            // Create the applicant data object
+            const applicantData = {
+                name: name,
+                division: division,
+                flag: flag,
+                why: why,
+                mediaContact: mediaContact,
+                accountEmail: accountEmail,
+                personalLink: personalLink,
+                profilePic: profilePic, // Base64 string
+                proofPics: proofPics // Array of Base64 strings
+            };
+
+            return applicantData;
+        }
+
         // Function to update the UI based on the current stage
         function goToStage(stage) {
             // Clear visibility on all main form sections
@@ -640,18 +672,35 @@
                 currentStage++;
                 goToStage(currentStage);
             } else {
-                // Final stage requires accountEmail
-                const accountEmail = document.getElementById('accountEmail').value.trim();
-                if (!accountEmail) {
-                    isValid = false;
-                    alert('Please enter your email.');
-                } else if (!validator.isEmail(accountEmail)) {
-                    isValid = false;
-                    alert('Please enter a valid email address.');
-                } else {
-                    // This is the final stage
-                    window.location.href = 'onboarding/application-review.html';
-                }
+                // Collect all the data and send it to the backend via an API call
+                const applicantData = collectApplicantData();
+
+                // Send the data via fetch POST request
+                fetch('/api/application/apply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(applicantData)
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            // Handle success, perhaps redirect or show a success message
+                            alert('Application submitted successfully!');
+                            // Optionally clear localStorage
+                            localStorage.removeItem('profilePic');
+                            localStorage.removeItem('proofPics');
+                            // Redirect or reset the form
+                            window.location.href = 'onboarding/application-review.html';
+                        } else {
+                            // Handle error
+                            alert('Failed to submit application. Please try again later.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error submitting application:', error);
+                        alert('An error occurred while submitting your application.');
+                    });
             }
         });
 
