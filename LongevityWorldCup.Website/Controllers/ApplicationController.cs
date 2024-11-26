@@ -10,8 +10,11 @@ namespace LongevityWorldCup.Website.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ApplicationController : ControllerBase
+    public class ApplicationController(IWebHostEnvironment environment, ILogger<HomeController> logger) : ControllerBase
     {
+        private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
+        private readonly ILogger<HomeController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
         private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new()
         {
             WriteIndented = true,
@@ -101,6 +104,41 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             message.Body = builder.ToMessageBody();
+
+            try
+            {
+                if (applicantData.AccountEmail is not null)
+                {
+                    string email = applicantData.AccountEmail.Trim();
+
+                    // Call the static subscription method
+                    var error = await NewsletterService.SubscribeAsync(email, _logger, _environment);
+
+                    if (error != null)
+                    {
+                        if (error.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Explicitly ignore "already subscribed" errors
+                            _logger.LogInformation("The applicant's email {Email} is already subscribed to the newsletter.", email);
+                        }
+                        else
+                        {
+                            // Log and ignore any other errors silently
+                            _logger.LogWarning("Failed to subscribe applicant email {Email} to the newsletter. Error: {Error}", email, error);
+                        }
+                    }
+                    else
+                    {
+                        // Subscription successful
+                        _logger.LogInformation("Successfully subscribed applicant email {Email} to the newsletter.", email);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log and ignore any other errors silently
+                _logger.LogWarning(ex, "Failed to subscribe applicant email {Email} to the newsletter.", applicantData.AccountEmail);
+            }
 
             // Send the email
             try
