@@ -1,475 +1,475 @@
 [
   {
-    "name": "Nikolai Volkov",
-    "media_contact": "https://instagram.com/nikolaivolkov.media",
-    "date_of_birth": {
-      "year": 1956,
-      "month": 3,
-      "day": 5
+    "Name": "Nikolai Volkov",
+    "MediaContact": "https://instagram.com/nikolaivolkov.media",
+    "DateOfBirth": {
+      "Year": 1956,
+      "Month": 3,
+      "Day": 5
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-05-30",
-        "alb_gL": 38,
-        "creat_umolL": 92,
-        "glu_mmolL": 4.0,
-        "crp_mgL": 1.8,
-        "lym_pc": 31,
-        "mcv_fL": 90,
-        "rdw_pc": 14,
-        "alp_UL": 82,
-        "wbc_1000cellsuL": 4
+        "Date": "2025-05-30",
+        "AlbGL": 38,
+        "CreatUmolL": 92,
+        "GluMmolL": 4.0,
+        "CrpMgL": 1.8,
+        "LymPc": 31,
+        "McvFL": 90,
+        "RdwPc": 14,
+        "AlpUL": 82,
+        "Wbc1000cellsuL": 4
       }
     ],
-    "division": "Men's",
-    "flag": "France",
-    "why": "It's a challenge.",
-    "profile-pic": "assets/profile-pics/nikolai_volkov_profile.jpg",
-    "proofs": [
+    "Division": "Men's",
+    "Flag": "France",
+    "Why": "It's a challenge.",
+    "ProfilePic": "assets/profile-pics/nikolai_volkov_profile.jpg",
+    "Proofs": [
       "assets/proofs/nikolai_volkov_proof_1.jpg",
       "assets/proofs/nikolai_volkov_proof_2.jpg"
     ],
-    "personal_link": null
+    "PersonalLink": null
   },
   {
-    "name": "Amelia Zhao",
-    "media_contact": "https://twitter.com/ameliazhao_media",
-    "date_of_birth": {
-      "year": 1991,
-      "month": 1,
-      "day": 20
+    "Name": "Amelia Zhao",
+    "MediaContact": "https://twitter.com/ameliazhao_media",
+    "DateOfBirth": {
+      "Year": 1991,
+      "Month": 1,
+      "Day": 20
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-08-02",
-        "alb_gL": 38,
-        "creat_umolL": 83,
-        "glu_mmolL": 4.8,
-        "crp_mgL": 1.2,
-        "lym_pc": 27,
-        "mcv_fL": 80,
-        "rdw_pc": 15,
-        "alp_UL": 116,
-        "wbc_1000cellsuL": 10
+        "Date": "2025-08-02",
+        "AlbGL": 38,
+        "CreatUmolL": 83,
+        "GluMmolL": 4.8,
+        "CrpMgL": 1.2,
+        "LymPc": 27,
+        "McvFL": 80,
+        "RdwPc": 15,
+        "AlpUL": 116,
+        "Wbc1000cellsuL": 10
       },
       {
-        "date": "2025-03-29",
-        "alb_gL": 37,
-        "creat_umolL": 104,
-        "glu_mmolL": 5.8,
-        "crp_mgL": 1.8,
-        "lym_pc": 24,
-        "mcv_fL": 100,
-        "rdw_pc": 11,
-        "alp_UL": 115,
-        "wbc_1000cellsuL": 9
+        "Date": "2025-03-29",
+        "AlbGL": 37,
+        "CreatUmolL": 104,
+        "GluMmolL": 5.8,
+        "CrpMgL": 1.8,
+        "LymPc": 24,
+        "McvFL": 100,
+        "RdwPc": 11,
+        "AlpUL": 115,
+        "Wbc1000cellsuL": 9
       },
       {
-        "date": "2025-04-24",
-        "alb_gL": 37,
-        "creat_umolL": 82,
-        "glu_mmolL": 4.4,
-        "crp_mgL": 0.8,
-        "lym_pc": 23,
-        "mcv_fL": 82,
-        "rdw_pc": 15,
-        "alp_UL": 37,
-        "wbc_1000cellsuL": 4
+        "Date": "2025-04-24",
+        "AlbGL": 37,
+        "CreatUmolL": 82,
+        "GluMmolL": 4.4,
+        "CrpMgL": 0.8,
+        "LymPc": 23,
+        "McvFL": 82,
+        "RdwPc": 15,
+        "AlpUL": 37,
+        "Wbc1000cellsuL": 4
       }
     ],
-    "division": "Women's",
-    "flag": "Hungary",
-    "why": "The desire to live not just a long life, but a meaningful one, is what propels me forward.\nI aim to break through perceived limits, inspire others, and contribute significantly to the global understanding of aging and health.",
-    "profile-pic": "assets/profile-pics/amelia_zhao_profile.jpg",
-    "proofs": [
+    "Division": "Women's",
+    "Flag": "Hungary",
+    "Why": "The desire to live not just a long life, but a meaningful one, is what propels me forward.\nI aim to break through perceived limits, inspire others, and contribute significantly to the global understanding of aging and health.",
+    "ProfilePic": "assets/profile-pics/amelia_zhao_profile.jpg",
+    "Proofs": [
       "assets/proofs/amelia_zhao_proof_1.jpg",
       "assets/proofs/amelia_zhao_proof_2.jpg",
       "assets/proofs/amelia_zhao_proof_3.jpg"
     ],
-    "personal_link": "https://twitter.com/gowj7m78"
+    "PersonalLink": "https://twitter.com/gowj7m78"
   },
   {
-    "name": "Isabella Rodriguez",
-    "media_contact": "https://twitter.com/isabellarodriguez_media",
-    "date_of_birth": {
-      "year": 1929,
-      "month": 6,
-      "day": 12
+    "Name": "Isabella Rodriguez",
+    "MediaContact": "https://twitter.com/isabellarodriguez_media",
+    "DateOfBirth": {
+      "Year": 1929,
+      "Month": 6,
+      "Day": 12
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-10-14",
-        "alb_gL": 49,
-        "creat_umolL": 94,
-        "glu_mmolL": 5.8,
-        "crp_mgL": 1.0,
-        "lym_pc": 24,
-        "mcv_fL": 80,
-        "rdw_pc": 15,
-        "alp_UL": 100,
-        "wbc_1000cellsuL": 8
+        "Date": "2025-10-14",
+        "AlbGL": 49,
+        "CreatUmolL": 94,
+        "GluMmolL": 5.8,
+        "CrpMgL": 1.0,
+        "LymPc": 24,
+        "McvFL": 80,
+        "RdwPc": 15,
+        "AlpUL": 100,
+        "Wbc1000cellsuL": 8
       },
       {
-        "date": "2025-07-21",
-        "alb_gL": 44,
-        "creat_umolL": 96,
-        "glu_mmolL": 4.9,
-        "crp_mgL": 1.8,
-        "lym_pc": 30,
-        "mcv_fL": 80,
-        "rdw_pc": 12,
-        "alp_UL": 110,
-        "wbc_1000cellsuL": 6
+        "Date": "2025-07-21",
+        "AlbGL": 44,
+        "CreatUmolL": 96,
+        "GluMmolL": 4.9,
+        "CrpMgL": 1.8,
+        "LymPc": 30,
+        "McvFL": 80,
+        "RdwPc": 12,
+        "AlpUL": 110,
+        "Wbc1000cellsuL": 6
       }
     ],
-    "division": "Women's",
-    "flag": "Cyberspace",
-    "why": "I want to prove that age is just a number.",
-    "profile-pic": "assets/profile-pics/isabella_rodriguez_profile.jpg",
-    "proofs": [
+    "Division": "Women's",
+    "Flag": "Cyberspace",
+    "Why": "I want to prove that age is just a number.",
+    "ProfilePic": "assets/profile-pics/isabella_rodriguez_profile.jpg",
+    "Proofs": [
       "assets/proofs/isabella_rodriguez_proof_1.jpg",
       "assets/proofs/isabella_rodriguez_proof_2.jpg"
     ],
-    "personal_link": null
+    "PersonalLink": null
   },
   {
-    "name": "Jamal Okonkwo",
-    "media_contact": "https://instagram.com/jamalokonkwo.media",
-    "date_of_birth": {
-      "year": 2002,
-      "month": 9,
-      "day": 4
+    "Name": "Jamal Okonkwo",
+    "MediaContact": "https://instagram.com/jamalokonkwo.media",
+    "DateOfBirth": {
+      "Year": 2002,
+      "Month": 9,
+      "Day": 4
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-07-28",
-        "alb_gL": 39,
-        "creat_umolL": 107,
-        "glu_mmolL": 4.1,
-        "crp_mgL": 0.6,
-        "lym_pc": 33,
-        "mcv_fL": 94,
-        "rdw_pc": 14,
-        "alp_UL": 103,
-        "wbc_1000cellsuL": 9
+        "Date": "2025-07-28",
+        "AlbGL": 39,
+        "CreatUmolL": 107,
+        "GluMmolL": 4.1,
+        "CrpMgL": 0.6,
+        "LymPc": 33,
+        "McvFL": 94,
+        "RdwPc": 14,
+        "AlpUL": 103,
+        "Wbc1000cellsuL": 9
       }
     ],
-    "division": "Men's",
-    "flag": "Cyberspace",
-    "why": "I want to prove that age is just a number.",
-    "profile-pic": "assets/profile-pics/jamal_okonkwo_profile.jpg",
-    "proofs": [
+    "Division": "Men's",
+    "Flag": "Cyberspace",
+    "Why": "I want to prove that age is just a number.",
+    "ProfilePic": "assets/profile-pics/jamal_okonkwo_profile.jpg",
+    "Proofs": [
       "assets/proofs/jamal_okonkwo_proof_1.jpg"
     ],
-    "personal_link": "https://facebook.com/3tfqdctj"
+    "PersonalLink": "https://facebook.com/3tfqdctj"
   },
   {
-    "name": "Sophia Nakamura",
-    "media_contact": "https://instagram.com/sophianakamura.media",
-    "date_of_birth": {
-      "year": 1987,
-      "month": 12,
-      "day": 7
+    "Name": "Sophia Nakamura",
+    "MediaContact": "https://instagram.com/sophianakamura.media",
+    "DateOfBirth": {
+      "Year": 1987,
+      "Month": 12,
+      "Day": 7
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-10-29",
-        "alb_gL": 48,
-        "creat_umolL": 74,
-        "glu_mmolL": 4.2,
-        "crp_mgL": 1.0,
-        "lym_pc": 35,
-        "mcv_fL": 89,
-        "rdw_pc": 14,
-        "alp_UL": 117,
-        "wbc_1000cellsuL": 4
+        "Date": "2025-10-29",
+        "AlbGL": 48,
+        "CreatUmolL": 74,
+        "GluMmolL": 4.2,
+        "CrpMgL": 1.0,
+        "LymPc": 35,
+        "McvFL": 89,
+        "RdwPc": 14,
+        "AlpUL": 117,
+        "Wbc1000cellsuL": 4
       },
       {
-        "date": "2025-11-05",
-        "alb_gL": 42,
-        "creat_umolL": 85,
-        "glu_mmolL": 4.3,
-        "crp_mgL": 1.5,
-        "lym_pc": 39,
-        "mcv_fL": 97,
-        "rdw_pc": 13,
-        "alp_UL": 41,
-        "wbc_1000cellsuL": 10
+        "Date": "2025-11-05",
+        "AlbGL": 42,
+        "CreatUmolL": 85,
+        "GluMmolL": 4.3,
+        "CrpMgL": 1.5,
+        "LymPc": 39,
+        "McvFL": 97,
+        "RdwPc": 13,
+        "AlpUL": 41,
+        "Wbc1000cellsuL": 10
       }
     ],
-    "division": "Women's",
-    "flag": "Germany",
-    "why": "I believe in the power of human resilience and its potential to expand our lives.",
-    "profile-pic": "assets/profile-pics/sophia_nakamura_profile.jpg",
-    "proofs": [
+    "Division": "Women's",
+    "Flag": "Germany",
+    "Why": "I believe in the power of human resilience and its potential to expand our lives.",
+    "ProfilePic": "assets/profile-pics/sophia_nakamura_profile.jpg",
+    "Proofs": [
       "assets/proofs/sophia_nakamura_proof_1.jpg",
       "assets/proofs/sophia_nakamura_proof_2.jpg"
     ],
-    "personal_link": null
+    "PersonalLink": null
   },
   {
-    "name": "Liam O'Connor",
-    "media_contact": "media@mailfence.com",
-    "date_of_birth": {
-      "year": 1986,
-      "month": 4,
-      "day": 11
+    "Name": "Liam O'Connor",
+    "MediaContact": "media@mailfence.com",
+    "DateOfBirth": {
+      "Year": 1986,
+      "Month": 4,
+      "Day": 11
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-08-11",
-        "alb_gL": 39,
-        "creat_umolL": 98,
-        "glu_mmolL": 4.2,
-        "crp_mgL": 0.8,
-        "lym_pc": 27,
-        "mcv_fL": 83,
-        "rdw_pc": 14,
-        "alp_UL": 117,
-        "wbc_1000cellsuL": 8
+        "Date": "2025-08-11",
+        "AlbGL": 39,
+        "CreatUmolL": 98,
+        "GluMmolL": 4.2,
+        "CrpMgL": 0.8,
+        "LymPc": 27,
+        "McvFL": 83,
+        "RdwPc": 14,
+        "AlpUL": 117,
+        "Wbc1000cellsuL": 8
       },
       {
-        "date": "2025-10-15",
-        "alb_gL": 35,
-        "creat_umolL": 108,
-        "glu_mmolL": 5.6,
-        "crp_mgL": 1.6,
-        "lym_pc": 38,
-        "mcv_fL": 100,
-        "rdw_pc": 11,
-        "alp_UL": 95,
-        "wbc_1000cellsuL": 8
+        "Date": "2025-10-15",
+        "AlbGL": 35,
+        "CreatUmolL": 108,
+        "GluMmolL": 5.6,
+        "CrpMgL": 1.6,
+        "LymPc": 38,
+        "McvFL": 100,
+        "RdwPc": 11,
+        "AlpUL": 95,
+        "Wbc1000cellsuL": 8
       }
     ],
-    "division": "Men's",
-    "flag": "Germany",
-    "why": "To be the change I want to see in the world of longevity.",
-    "profile-pic": "assets/profile-pics/liam_oconnor_profile.jpg",
-    "proofs": [
+    "Division": "Men's",
+    "Flag": "Germany",
+    "Why": "To be the change I want to see in the world of longevity.",
+    "ProfilePic": "assets/profile-pics/liam_oconnor_profile.jpg",
+    "Proofs": [
       "assets/proofs/liam_oconnor_proof_1.jpg",
       "assets/proofs/liam_oconnor_proof_2.jpg"
     ],
-    "personal_link": null
+    "PersonalLink": null
   },
   {
-    "name": "Emma Johansson",
-    "media_contact": "https://twitter.com/emmajohansson_media",
-    "date_of_birth": {
-      "year": 1966,
-      "month": 7,
-      "day": 12
+    "Name": "Emma Johansson",
+    "MediaContact": "https://twitter.com/emmajohansson_media",
+    "DateOfBirth": {
+      "Year": 1966,
+      "Month": 7,
+      "Day": 12
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2024-11-12",
-        "alb_gL": 45,
-        "creat_umolL": 80,
-        "glu_mmolL": 4.5,
-        "crp_mgL": 1.8,
-        "lym_pc": 39,
-        "mcv_fL": 85,
-        "rdw_pc": 11,
-        "alp_UL": 12,
-        "wbc_1000cellsuL": 6
+        "Date": "2024-11-12",
+        "AlbGL": 45,
+        "CreatUmolL": 80,
+        "GluMmolL": 4.5,
+        "CrpMgL": 1.8,
+        "LymPc": 39,
+        "McvFL": 85,
+        "RdwPc": 11,
+        "AlpUL": 12,
+        "Wbc1000cellsuL": 6
       }
     ],
-    "division": "Women's",
-    "flag": "New Zealand",
-    "why": "I want to live every day fully and extend that opportunity as long as I can.",
-    "profile-pic": "assets/profile-pics/emma_johansson_profile.jpg",
-    "proofs": [
+    "Division": "Women's",
+    "Flag": "New Zealand",
+    "Why": "I want to live every day fully and extend that opportunity as long as I can.",
+    "ProfilePic": "assets/profile-pics/emma_johansson_profile.jpg",
+    "Proofs": [
       "assets/proofs/emma_johansson_proof_1.jpg"
     ],
-    "personal_link": "https://yourwebsite.com/kh4gj0uz"
+    "PersonalLink": "https://yourwebsite.com/kh4gj0uz"
   },
   {
-    "name": "Chen Wei",
-    "media_contact": "https://instagram.com/chenwei.media",
-    "date_of_birth": {
-      "year": 1984,
-      "month": 9,
-      "day": 24
+    "Name": "Chen Wei",
+    "MediaContact": "https://instagram.com/chenwei.media",
+    "DateOfBirth": {
+      "Year": 1984,
+      "Month": 9,
+      "Day": 24
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-12-21",
-        "alb_gL": 38,
-        "creat_umolL": 89,
-        "glu_mmolL": 6.0,
-        "crp_mgL": 1.3,
-        "lym_pc": 29,
-        "mcv_fL": 90,
-        "rdw_pc": 14,
-        "alp_UL": 83,
-        "wbc_1000cellsuL": 8
+        "Date": "2025-12-21",
+        "AlbGL": 38,
+        "CreatUmolL": 89,
+        "GluMmolL": 6.0,
+        "CrpMgL": 1.3,
+        "LymPc": 29,
+        "McvFL": 90,
+        "RdwPc": 14,
+        "AlpUL": 83,
+        "Wbc1000cellsuL": 8
       },
       {
-        "date": "2025-12-19",
-        "alb_gL": 46,
-        "creat_umolL": 86,
-        "glu_mmolL": 4.0,
-        "crp_mgL": 1.6,
-        "lym_pc": 38,
-        "mcv_fL": 93,
-        "rdw_pc": 13,
-        "alp_UL": 77,
-        "wbc_1000cellsuL": 5
+        "Date": "2025-12-19",
+        "AlbGL": 46,
+        "CreatUmolL": 86,
+        "GluMmolL": 4.0,
+        "CrpMgL": 1.6,
+        "LymPc": 38,
+        "McvFL": 93,
+        "RdwPc": 13,
+        "AlpUL": 77,
+        "Wbc1000cellsuL": 5
       },
       {
-        "date": "2025-10-04",
-        "alb_gL": 43,
-        "creat_umolL": 106,
-        "glu_mmolL": 5.8,
-        "crp_mgL": 1.0,
-        "lym_pc": 39,
-        "mcv_fL": 84,
-        "rdw_pc": 12,
-        "alp_UL": 108,
-        "wbc_1000cellsuL": 8
+        "Date": "2025-10-04",
+        "AlbGL": 43,
+        "CreatUmolL": 106,
+        "GluMmolL": 5.8,
+        "CrpMgL": 1.0,
+        "LymPc": 39,
+        "McvFL": 84,
+        "RdwPc": 12,
+        "AlpUL": 108,
+        "Wbc1000cellsuL": 8
       }
     ],
-    "division": "Open",
-    "flag": "New Zealand",
-    "why": "I am driven by the need to challenge conventional wisdom and redefine what is possible for human health and longevity.\nThis journey is about exploring the unknown and making an impact on future generations through advancements in science and wellness.",
-    "profile-pic": "assets/profile-pics/chen_wei_profile.jpg",
-    "proofs": [
+    "Division": "Open",
+    "Flag": "New Zealand",
+    "Why": "I am driven by the need to challenge conventional wisdom and redefine what is possible for human health and longevity.\nThis journey is about exploring the unknown and making an impact on future generations through advancements in science and wellness.",
+    "ProfilePic": "assets/profile-pics/chen_wei_profile.jpg",
+    "Proofs": [
       "assets/proofs/chen_wei_proof_1.jpg",
       "assets/proofs/chen_wei_proof_2.jpg",
       "assets/proofs/chen_wei_proof_3.jpg"
     ],
-    "personal_link": null
+    "PersonalLink": null
   },
   {
-    "name": "Maria Gonzalez",
-    "media_contact": "media@tutanota.com",
-    "date_of_birth": {
-      "year": 1955,
-      "month": 12,
-      "day": 18
+    "Name": "Maria Gonzalez",
+    "MediaContact": "media@tutanota.com",
+    "DateOfBirth": {
+      "Year": 1955,
+      "Month": 12,
+      "Day": 18
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-11-10",
-        "alb_gL": 48,
-        "creat_umolL": 81,
-        "glu_mmolL": 4.5,
-        "crp_mgL": 1.6,
-        "lym_pc": 24,
-        "mcv_fL": 92,
-        "rdw_pc": 13,
-        "alp_UL": 93,
-        "wbc_1000cellsuL": 4
+        "Date": "2025-11-10",
+        "AlbGL": 48,
+        "CreatUmolL": 81,
+        "GluMmolL": 4.5,
+        "CrpMgL": 1.6,
+        "LymPc": 24,
+        "McvFL": 92,
+        "RdwPc": 13,
+        "AlpUL": 93,
+        "Wbc1000cellsuL": 4
       },
       {
-        "date": "2025-08-05",
-        "alb_gL": 41,
-        "creat_umolL": 65,
-        "glu_mmolL": 4.9,
-        "crp_mgL": 1.1,
-        "lym_pc": 24,
-        "mcv_fL": 91,
-        "rdw_pc": 14,
-        "alp_UL": 103,
-        "wbc_1000cellsuL": 10
+        "Date": "2025-08-05",
+        "AlbGL": 41,
+        "CreatUmolL": 65,
+        "GluMmolL": 4.9,
+        "CrpMgL": 1.1,
+        "LymPc": 24,
+        "McvFL": 91,
+        "RdwPc": 14,
+        "AlpUL": 103,
+        "Wbc1000cellsuL": 10
       },
       {
-        "date": "2025-11-28",
-        "alb_gL": 48,
-        "creat_umolL": 70,
-        "glu_mmolL": 5.7,
-        "crp_mgL": 0.7,
-        "lym_pc": 25,
-        "mcv_fL": 85,
-        "rdw_pc": 12,
-        "alp_UL": 35,
-        "wbc_1000cellsuL": 9
+        "Date": "2025-11-28",
+        "AlbGL": 48,
+        "CreatUmolL": 70,
+        "GluMmolL": 5.7,
+        "CrpMgL": 0.7,
+        "LymPc": 25,
+        "McvFL": 85,
+        "RdwPc": 12,
+        "AlpUL": 35,
+        "Wbc1000cellsuL": 9
       }
     ],
-    "division": "Women's",
-    "flag": "China",
-    "why": "Life is short.",
-    "profile-pic": "assets/profile-pics/maria_gonzalez_profile.jpg",
-    "proofs": [
+    "Division": "Women's",
+    "Flag": "China",
+    "Why": "Life is short.",
+    "ProfilePic": "assets/profile-pics/maria_gonzalez_profile.jpg",
+    "Proofs": [
       "assets/proofs/maria_gonzalez_proof_1.jpg",
       "assets/proofs/maria_gonzalez_proof_2.jpg",
       "assets/proofs/maria_gonzalez_proof_3.jpg"
     ],
-    "personal_link": "https://linkedin.com/in/8wh83lf6"
+    "PersonalLink": "https://linkedin.com/in/8wh83lf6"
   },
   {
-    "name": "Ethan Park",
-    "media_contact": "https://instagram.com/ethanpark.media",
-    "date_of_birth": {
-      "year": 2019,
-      "month": 3,
-      "day": 27
+    "Name": "Ethan Park",
+    "MediaContact": "https://instagram.com/ethanpark.media",
+    "DateOfBirth": {
+      "Year": 2019,
+      "Month": 3,
+      "Day": 27
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-08-10",
-        "alb_gL": 42,
-        "creat_umolL": 109,
-        "glu_mmolL": 4.1,
-        "crp_mgL": 1.4,
-        "lym_pc": 36,
-        "mcv_fL": 92,
-        "rdw_pc": 14,
-        "alp_UL": 72,
-        "wbc_1000cellsuL": 8
+        "Date": "2025-08-10",
+        "AlbGL": 42,
+        "CreatUmolL": 109,
+        "GluMmolL": 4.1,
+        "CrpMgL": 1.4,
+        "LymPc": 36,
+        "McvFL": 92,
+        "RdwPc": 14,
+        "AlpUL": 72,
+        "Wbc1000cellsuL": 8
       }
     ],
-    "division": "Men's",
-    "flag": "Australia",
-    "why": "idk",
-    "profile-pic": "assets/profile-pics/ethan_park_profile.jpg",
-    "proofs": [
+    "Division": "Men's",
+    "Flag": "Australia",
+    "Why": "idk",
+    "ProfilePic": "assets/profile-pics/ethan_park_profile.jpg",
+    "Proofs": [
       "assets/proofs/ethan_park_proof_1.jpg",
       "assets/proofs/ethan_park_proof_2.jpg"
     ],
-    "personal_link": "https://instagram.com/98dkh8su"
+    "PersonalLink": "https://instagram.com/98dkh8su"
   },
   {
-    "name": "Dariusz Kowalski",
-    "media_contact": "https://facebook.com/dariuszkowalski.media",
-    "date_of_birth": {
-      "year": 1992,
-      "month": 5,
-      "day": 14
+    "Name": "Dariusz Kowalski",
+    "MediaContact": "https://facebook.com/dariuszkowalski.media",
+    "DateOfBirth": {
+      "Year": 1992,
+      "Month": 5,
+      "Day": 14
     },
-    "biomarkers": [
+    "Biomarkers": [
       {
-        "date": "2025-06-15",
-        "alb_gL": 40,
-        "creat_umolL": 90,
-        "glu_mmolL": 4.9,
-        "crp_mgL": 1.3,
-        "lym_pc": 32,
-        "mcv_fL": 88,
-        "rdw_pc": 13,
-        "alp_UL": 105,
-        "wbc_1000cellsuL": 5
+        "Date": "2025-06-15",
+        "AlbGL": 40,
+        "CreatUmolL": 90,
+        "GluMmolL": 4.9,
+        "CrpMgL": 1.3,
+        "LymPc": 32,
+        "McvFL": 88,
+        "RdwPc": 13,
+        "AlpUL": 105,
+        "Wbc1000cellsuL": 5
       },
       {
-        "date": "2025-09-22",
-        "alb_gL": 44,
-        "creat_umolL": 85,
-        "glu_mmolL": 5.1,
-        "crp_mgL": 1.0,
-        "lym_pc": 28,
-        "mcv_fL": 86,
-        "rdw_pc": 12,
-        "alp_UL": 97,
-        "wbc_1000cellsuL": 6
+        "Date": "2025-09-22",
+        "AlbGL": 44,
+        "CreatUmolL": 85,
+        "GluMmolL": 5.1,
+        "CrpMgL": 1.0,
+        "LymPc": 28,
+        "McvFL": 86,
+        "RdwPc": 12,
+        "AlpUL": 97,
+        "Wbc1000cellsuL": 6
       }
     ],
-    "division": "Men's",
-    "flag": "Poland",
-    "why": "I believe that the limits of human endurance are yet to be discovered.",
-    "profile-pic": "assets/profile-pics/dariusz_kowalski_profile.jpg",
-    "proofs": [
+    "Division": "Men's",
+    "Flag": "Poland",
+    "Why": "I believe that the limits of human endurance are yet to be discovered.",
+    "ProfilePic": "assets/profile-pics/dariusz_kowalski_profile.jpg",
+    "Proofs": [
       "assets/proofs/dariusz_kowalski_proof_1.jpg",
       "assets/proofs/dariusz_kowalski_proof_2.jpg"
     ],
-    "personal_link": null
+    "PersonalLink": null
   }
 ]
