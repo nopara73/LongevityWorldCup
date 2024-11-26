@@ -5,12 +5,13 @@ using System.IO;
 using System.Threading.Tasks;
 using LongevityWorldCup.Website.Business;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ApplicationController(IWebHostEnvironment environment, ILogger<HomeController> logger) : ControllerBase
+    public partial class ApplicationController(IWebHostEnvironment environment, ILogger<HomeController> logger) : ControllerBase
     {
         private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         private readonly ILogger<HomeController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -22,6 +23,40 @@ namespace LongevityWorldCup.Website.Controllers
         };
 
         private static readonly JsonSerializerOptions DeserializationOptions = new() { PropertyNameCaseInsensitive = true };
+
+        // Helper method to sanitize file names
+        private static string SanitizeFileName(string name)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var sanitized = new string(name.ToLower().Where(c => !invalidChars.Contains(c)).ToArray());
+            sanitized = sanitized.Replace(' ', '_');
+            return sanitized;
+        }
+
+        // Helper method to parse Base64 image strings and extract bytes, content type, and extension
+        private static (byte[]? bytes, string? contentType, string? extension) ParseBase64Image(string base64String)
+        {
+            try
+            {
+                var match = DataUriRegex().Match(base64String);
+                if (match.Success)
+                {
+                    string contentType = match.Groups["type"].Value;
+                    string base64Data = match.Groups["data"].Value;
+                    byte[] bytes = Convert.FromBase64String(base64Data);
+
+                    // Extract the extension from the content type
+                    string extension = contentType.Contains('/') ? contentType.Split('/')[1] : "bin";
+
+                    return (bytes, contentType, extension);
+                }
+            }
+            catch
+            {
+                // Ignore exceptions
+            }
+            return (null, null, null);
+        }
 
         [HttpPost("apply")]
         public async Task<IActionResult> Apply()
@@ -80,24 +115,57 @@ namespace LongevityWorldCup.Website.Controllers
                 TextBody = emailBody
             };
 
+            // In your Apply method, adjust the code for handling the profile picture
             if (!string.IsNullOrEmpty(applicantData.ProfilePic))
             {
-                var profilePicBytes = GetBytesFromBase64(applicantData.ProfilePic);
-                if (profilePicBytes != null)
+                var (profilePicBytes, contentType, extension) = ParseBase64Image(applicantData.ProfilePic);
+
+                if (profilePicBytes != null && contentType != null && extension != null)
                 {
-                    builder.Attachments.Add("ProfilePicture.png", profilePicBytes, new ContentType("image", "png"));
+                    string sanitizedFileName = $"assets/profile-pics/{SanitizeFileName(applicantData.Name ?? "noname")}_profile.{extension}";
+
+                    var contentTypeParts = contentType.Split('/');
+                    if (contentTypeParts.Length == 2)
+                    {
+                        var mediaType = contentTypeParts[0];
+                        var subType = contentTypeParts[1];
+                        var contentTypeObj = new ContentType(mediaType, subType);
+                        builder.Attachments.Add(sanitizedFileName, profilePicBytes, contentTypeObj);
+                    }
+                    else
+                    {
+                        // If content type is invalid, use application/octet-stream
+                        builder.Attachments.Add(sanitizedFileName, profilePicBytes, new ContentType("application", "octet-stream"));
+                    }
                 }
             }
 
+            // Adjust the code for handling the proof pictures
             if (applicantData.ProofPics != null)
             {
                 int proofIndex = 1;
                 foreach (var proofPicBase64 in applicantData.ProofPics)
                 {
-                    var proofPicBytes = GetBytesFromBase64(proofPicBase64);
-                    if (proofPicBytes != null)
+                    var (proofPicBytes, contentType, extension) = ParseBase64Image(proofPicBase64);
+
+                    if (proofPicBytes != null && contentType != null && extension != null)
                     {
-                        builder.Attachments.Add($"ProofImage_{proofIndex}.png", proofPicBytes, new ContentType("image", "png"));
+                        string sanitizedFileName = $"assets/proofs/{SanitizeFileName(applicantData.Name ?? "noname")}_proof_{proofIndex}.{extension}";
+
+                        var contentTypeParts = contentType.Split('/');
+                        if (contentTypeParts.Length == 2)
+                        {
+                            var mediaType = contentTypeParts[0];
+                            var subType = contentTypeParts[1];
+                            var contentTypeObj = new ContentType(mediaType, subType);
+                            builder.Attachments.Add(sanitizedFileName, proofPicBytes, contentTypeObj);
+                        }
+                        else
+                        {
+                            // If content type is invalid, use application/octet-stream
+                            builder.Attachments.Add(sanitizedFileName, proofPicBytes, new ContentType("application", "octet-stream"));
+                        }
+
                         proofIndex++;
                     }
                 }
@@ -162,18 +230,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
         }
 
-        // Helper method to convert Base64 string to byte array
-        private static byte[]? GetBytesFromBase64(string base64String)
-        {
-            try
-            {
-                var data = base64String[(base64String.IndexOf(',') + 1)..];
-                return Convert.FromBase64String(data);
-            }
-            catch
-            {
-                return null;
-            }
-        }
+        [GeneratedRegex(@"data:(?<type>.+?);base64,(?<data>.+)")]
+        protected static partial Regex DataUriRegex();
     }
 }
