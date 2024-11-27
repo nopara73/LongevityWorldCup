@@ -91,20 +91,25 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Applicant data is null.");
             }
 
+            // Get AccountEmail from the json and trim it
+            string? accountEmail = applicantData.AccountEmail?.Trim();
+
             // Prepare the email body (excluding the images)
             var applicantDataWithoutImages = new
             {
                 applicantData.Name,
+                applicantData.MediaContact,
+                applicantData.DateOfBirth,
+                applicantData.Biomarkers, // Include the biomarker data
                 applicantData.Division,
                 applicantData.Flag,
                 applicantData.Why,
-                applicantData.MediaContact,
-                applicantData.AccountEmail,
-                PersonalLink = string.IsNullOrWhiteSpace(applicantData.PersonalLink) ? null : applicantData.PersonalLink,
-                applicantData.DateOfBirth,
-                applicantData.Biomarkers // Include the biomarker data
+                PersonalLink = string.IsNullOrWhiteSpace(applicantData.PersonalLink) ? null : applicantData.PersonalLink
             };
-            string emailBody = JsonSerializer.Serialize(applicantDataWithoutImages, CachedJsonSerializerOptions);
+
+            // Include AccountEmail in the email body
+            string emailBody = $"\nAccount Email: {accountEmail}\n\n";
+            emailBody += JsonSerializer.Serialize(applicantDataWithoutImages, CachedJsonSerializerOptions);
 
             // Create the email message
             var message = new MimeMessage();
@@ -117,7 +122,7 @@ namespace LongevityWorldCup.Website.Controllers
                 TextBody = emailBody
             };
 
-            // In your Apply method, adjust the code for handling the profile picture
+            // Adjust the code for handling the profile picture
             if (!string.IsNullOrEmpty(applicantData.ProfilePic))
             {
                 var (profilePicBytes, contentType, extension) = ParseBase64Image(applicantData.ProfilePic);
@@ -175,11 +180,12 @@ namespace LongevityWorldCup.Website.Controllers
 
             message.Body = builder.ToMessageBody();
 
+            // Subscribe to newsletter using accountEmail
             try
             {
-                if (applicantData.AccountEmail is not null)
+                if (!string.IsNullOrWhiteSpace(accountEmail))
                 {
-                    string email = applicantData.AccountEmail.Trim();
+                    string email = accountEmail.Trim();
 
                     // Call the static subscription method
                     var error = await NewsletterService.SubscribeAsync(email, _logger, _environment);
@@ -207,7 +213,7 @@ namespace LongevityWorldCup.Website.Controllers
             catch (Exception ex)
             {
                 // Log and ignore any other errors silently
-                _logger.LogWarning(ex, "Failed to subscribe applicant email {Email} to the newsletter.", applicantData.AccountEmail);
+                _logger.LogWarning(ex, "Failed to subscribe applicant email {Email} to the newsletter.", accountEmail);
             }
 
             // Send the email
