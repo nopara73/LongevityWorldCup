@@ -240,7 +240,7 @@
         <div id="phenoAgeResult" class="bioageform"></div>
 
         <div class="options-container">
-            <button id="continueButton" class="option-button already-have" onclick="window.location.href='onboarding/convergence.html'">
+            <button id="continueButton" class="option-button already-have" onclick="proceedToNextPage()">
                 Next&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
 
@@ -370,10 +370,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                        `;
+                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                        `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -453,7 +453,44 @@
                 fillFakeData();
             }
         });
+        function proceedToNextPage() {
+            const yearInput = document.getElementById('dob-year').value;
+            const monthInput = document.getElementById('dob-month').value;
+            const dayInput = document.getElementById('dob-day').value;
 
+            const year = yearInput ? parseInt(yearInput) : null;
+            const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
+            const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
+
+            // Collect the biomarker data to store in localStorage
+            const biomarkerData = {
+                DateOfBirth: {
+                    Year: year,
+                    Month: month + 1, // Adjust month to 1-based index
+                    Day: day
+                },
+                Biomarkers: [
+                    {
+                        Date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+                        AlbGL: parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value),
+                        CreatUmolL: parseFloat(document.getElementById('creatinine').value) / parseFloat(document.getElementById('creatinineUnit').value),
+                        GluMmolL: parseFloat(document.getElementById('glucose').value) / parseFloat(document.getElementById('glucoseUnit').value),
+                        CrpMgL: parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value),
+                        LymPc: parseFloat(document.getElementById('lymphocyte').value),
+                        McvFL: parseFloat(document.getElementById('mcv').value),
+                        RdwPc: parseFloat(document.getElementById('rcdw').value),
+                        AlpUL: parseFloat(document.getElementById('ap').value),
+                        Wbc1000cellsuL: parseFloat(document.getElementById('wbc').value)
+                    }
+                ]
+            };
+
+            // Store the data in localStorage
+            localStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
+            const biomarkerDataFromStorage = JSON.parse(localStorage.getItem('biomarkerData'));
+
+            window.location.href = 'onboarding/convergence.html';
+        }
         function fillFakeData() {
             // Set fake Date of Birth
             document.getElementById('dob-year').value = 1966;

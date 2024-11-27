@@ -280,6 +280,13 @@
             // Get the proof images from localStorage
             const proofPics = JSON.parse(localStorage.getItem('proofPics')) || [];
 
+            // Get the biomarker data from localStorage
+            const biomarkerData = JSON.parse(localStorage.getItem('biomarkerData'));
+            if (!biomarkerData) {
+                alert('Biomarker data is missing. Please complete the biomarker form.');
+                return;
+            }
+            console.log(biomarkerData);
             // Create the applicant data object
             const applicantData = {
                 name: name,
@@ -289,6 +296,8 @@
                 mediaContact: mediaContact,
                 accountEmail: accountEmail,
                 personalLink: personalLink,
+                dateOfBirth: biomarkerData.DateOfBirth,
+                biomarkers: biomarkerData.Biomarkers,
                 profilePic: profilePic, // Base64 string
                 proofPics: proofPics // Array of Base64 strings
             };
