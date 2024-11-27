@@ -696,6 +696,7 @@
                             if (response.ok) {
                                 // Handle success, perhaps redirect or show a success message
                                 alert('Application submitted successfully!');
+                                localStorage.setItem('contactEmail', applicantData.accountEmail);
                                 // Optionally clear localStorage
                                 localStorage.removeItem('profilePic');
                                 localStorage.removeItem('proofPics');

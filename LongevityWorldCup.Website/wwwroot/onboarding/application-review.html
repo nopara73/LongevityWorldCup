@@ -32,7 +32,9 @@
                  class="illustration">
         </div>
         <p>
-            We're reviewing your application, which may take a day or two. Once it's ready, we'll contact you at the email address you provided.
+            We're reviewing your application, which may take a day or two. Once it's ready, we'll contact you at <span id="contactEmailPlaceholder" style="color: #4CAF50; font-weight: bold; text-decoration: underline;">
+                [insert contact email address here]
+            </span>.
         </p>
         <p>
             To make changes or submit new results, just reply to our email once we reach out to you or contact us at <a href="mailto:longevityworldcup@gmail.com">longevityworldcup@gmail.com</a>.
@@ -46,6 +48,17 @@
     <!--FOOTER-->
 
     <script>
+        // Retrieve the contact email from localStorage
+        const contactEmail = localStorage.getItem('contactEmail');
+        if (contactEmail) {
+            // Insert it into the placeholder
+            document.getElementById('contactEmailPlaceholder').textContent = contactEmail;
+        } else {
+            // If no email is found, use a default message
+            document.getElementById('contactEmailPlaceholder').textContent = 'the email address you provided';
+        }
+        // Optionally, remove the contactEmail from localStorage
+        localStorage.removeItem('contactEmail');
     </script>
 </body>
 </html>
