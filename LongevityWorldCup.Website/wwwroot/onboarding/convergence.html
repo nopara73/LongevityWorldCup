@@ -503,13 +503,19 @@
                     nextButton.classList.add("disabled-button");
 
                     // Attach event listener to the Upload Proof button
-                    document.getElementById('uploadProofButton').addEventListener('click', function () {
-                        document.getElementById('proofPicInput').click();
-                    });
+                    const uploadProofButton = document.getElementById('uploadProofButton');
+                    if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
+                        uploadProofButton.addEventListener('click', function () {
+                            document.getElementById('proofPicInput').click();
+                        });
+                        uploadProofButton.setAttribute('data-listener', 'true');
+                    }
 
                     // Handle the image upload (without cropping)
-                    document.getElementById('proofPicInput').addEventListener('change', function (event) {
-                        const files = event.target.files;
+                    const proofPicInput = document.getElementById('proofPicInput');
+                    if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
+                        proofPicInput.addEventListener('change', function (event) {
+                            const files = event.target.files;
                         if (files.length > 0) {
                             // Retrieve existing proof images from localStorage
                             let proofPics = JSON.parse(localStorage.getItem('proofPics')) || [];
@@ -537,7 +543,9 @@
                         }
                         // Reset the file input's value to allow re-uploading the same file if needed
                         document.getElementById('proofPicInput').value = "";
-                    });
+                        });
+                        proofPicInput.setAttribute('data-listener', 'true');
+                    }
 
                     document.getElementById('proofImageContainer').style.display = 'block';
 
