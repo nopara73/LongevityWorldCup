@@ -84,6 +84,4 @@ echo "Difference in subscriptions: $DIFF"
 
 ## Configure
 
-After run, config file is created:
-
-"sudo nano /var/www/LongevityWorldCup/publish/config.json"
+After first run, config file is created: `sudo nano /var/www/LongevityWorldCup/publish/config.json`
