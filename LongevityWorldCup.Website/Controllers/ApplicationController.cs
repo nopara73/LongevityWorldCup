@@ -125,7 +125,7 @@ namespace LongevityWorldCup.Website.Controllers
 
                 if (profilePicBytes != null && contentType != null && extension != null)
                 {
-                    string sanitizedFileName = $"/assets/profile-pics/{SanitizeFileName(applicantData.Name ?? "noname")}_profile.{extension}";
+                    string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_profile.{extension}";
 
                     var contentTypeParts = contentType.Split('/');
                     if (contentTypeParts.Length == 2)
@@ -153,7 +153,7 @@ namespace LongevityWorldCup.Website.Controllers
 
                     if (proofPicBytes != null && contentType != null && extension != null)
                     {
-                        string sanitizedFileName = $"/assets/proofs/{SanitizeFileName(applicantData.Name ?? "noname")}_proof_{proofIndex}.{extension}";
+                        string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_proof_{proofIndex}.{extension}";
 
                         var contentTypeParts = contentType.Split('/');
                         if (contentTypeParts.Length == 2)
