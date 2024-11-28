@@ -11,7 +11,7 @@
         font-family: 'Roboto', sans-serif;
         margin: 0;
         padding: 0;
-        background-color: var(--background-color);
+        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
         color: var(--text-color);
     }
 
@@ -23,10 +23,9 @@
 
     /* Header Styles */
     header {
-        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
         color: white;
         text-align: center;
-        padding: 2rem 0;
+        padding: 5rem 0;
         position: relative;
         overflow: hidden;
         display: flex;
@@ -48,14 +47,14 @@
         margin-top: 2rem;
         padding: 1rem 2rem;
         font-size: 1.5rem;
-        background: linear-gradient(135deg, #4CAF50, #66BB6A); /* Green gradient */
+        background: linear-gradient(135deg, #27eb2f, #03a5a0); /* Green gradient */
         color: white;
         border: none;
         border-radius: 150px;
         cursor: pointer;
         transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow */
-        animation: glow 1s ease-in-out 3;
+        animation: glow 1s ease-in-out infinite;
         position: relative;
         z-index: 1;
     }

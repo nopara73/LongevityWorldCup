@@ -203,6 +203,7 @@
     .content {
         flex-grow: 1;
         transition: margin-left 0.3s ease;
+        width: 100%;
     }
 
     .sidebar:hover ~ .content,
@@ -465,6 +466,7 @@
         justify-content: center;
         align-items: flex-end;
         margin-bottom: 2rem;
+        flex-wrap: wrap;
     }
 
     .podium-item {
@@ -474,7 +476,7 @@
         background-color: var(--card-bg);
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin: 0 1rem;
+        margin: 1rem;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -598,6 +600,7 @@
     .search-wrapper {
         display: flex;
         justify-content: flex-end;
+        justify-items: center;
         margin-bottom: 1rem;
     }
 
@@ -792,7 +795,6 @@
 
         .search-container {
             max-width: 100%;
-            margin-top: 1rem;
         }
 
         #athleteSearch {
@@ -813,9 +815,22 @@
         }
 
         .sidebar {
-            width: 100%;
+            width: 70px;
             margin-right: 0;
             margin-bottom: 1rem;
+        }
+        .podium-item {
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        .podium-item.first {
+            order:1;
+        }
+        .podium-item.second {
+            order:2;
+        }
+        .podium-item.third {
+            order: 3
         }
     }
 
