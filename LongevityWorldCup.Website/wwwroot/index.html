@@ -380,6 +380,7 @@
             background: #fff;
             padding: 5px 30px;
             border-radius: 12px;
+            display: inline-flex;
         }
 
         .countdown-section p {
@@ -398,6 +399,39 @@
 </head>
 <body>
     <!--HEADER-->
+    <!-- New Countdown Section -->
+    <div style="text-align: center;">
+        <h3 style="color: #fff;"><i class="fas fa-hourglass-half"></i> Competition Starts In:</h3>
+        <div id="countdown">
+            <!-- The countdown timer will be inserted here by JavaScript -->
+        </div>
+        <div>
+            <button onclick="window.location.href='/onboarding/join-game.html'" class="join-game">
+                <strong>PLAY</strong>
+                <span class="join-game-middle" style="font-size: 1rem;">THE</span>
+                <strong class="join-game-end">GAME</strong>
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        const joinButton = document.querySelector('.join-game');
+    
+        // Event listener for scrolling to adjust the button
+        window.addEventListener('scroll', function () {
+            const middleSpan = joinButton.querySelector('.join-game-middle');
+            const endStrong = joinButton.querySelector('.join-game-end');
+            if (window.scrollY > 100) {
+                joinButton.classList.add('scrolled');
+                middleSpan.style.display = 'none';
+                endStrong.style.display = 'none';
+            } else {
+                joinButton.classList.remove('scrolled');
+                middleSpan.style.display = '';
+                endStrong.style.display = '';
+            }
+        });
+    </script>
     <main>
         <!--LEADERBOARD-CONTENT-->
         <p style="text-align: center; color: #fff;">The current leaderboard is illustrative only. Real competition begins on January 21.</p>

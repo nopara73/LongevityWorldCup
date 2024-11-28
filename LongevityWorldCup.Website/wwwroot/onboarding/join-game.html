@@ -31,36 +31,49 @@
                 transform: scale(1.03);
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
             }
+
+            .section-container {
+                background-color: var(--card-bg);
+                border-radius: 15px;
+                padding: 2rem;
+                margin: 2rem auto;
+                max-width: 1250px; /* Adjusted to better match the leaderboard width */
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                text-align: center;
+            }
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main>
-        <!--MAIN-PROGRESS-BAR-->
-        <h2 style="text-align: center;">Your Journey Starts In The Lab💉</h2>
-        <div style="text-align: center;">
-            <img src="../assets/lab.jpg" class="illustration" alt="Lab" ">
-        </div>
-        <div style="width: 100%; max-width: 700px; margin:20px auto;">
-            <p>Acquire a 2025 blood test from which we can compute your biological age, called <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>. You need the following biomarkers:</p>
-            <ul>
-                <li><strong>Albumin</strong> (also known as Serum Albumin)</li>
-                <li><strong>Creatinine</strong> (sometimes called Serum Creatinine)</li>
-                <li><strong>Glucose</strong> (also referred to as Blood Sugar)</li>
-                <li><strong>C-Reactive Protein</strong> (CRP, also known as hs-CRP for high-sensitivity C-Reactive Protein)</li>
-                <li><strong>Lymphocyte Percentage</strong> (may be labeled as Lymphocyte % or Absolute Lymphocyte Count)</li>
-                <li><strong>Mean Corpuscular Volume</strong> (MCV, also called Average Red Blood Cell Size)</li>
-                <li><strong>Red Cell Distribution Width</strong> (RDW, sometimes called RDW-CV or Red Blood Cell Size Variation)</li>
-                <li><strong>Alkaline Phosphatase</strong> (ALP, also referred to as Alk Phos)</li>
-                <li><strong>White Blood Cell Count</strong> (WBC Count, also called Leukocyte Count)</li>
-            </ul>
-        </div>
+        
+        <div class="section-container">
+            <!--MAIN-PROGRESS-BAR-->
+            <h2 style="text-align: center;">Your Journey Starts In The Lab💉</h2>
+            <div style="text-align: center;">
+                <img src="../assets/lab.jpg" class="illustration" alt="Lab" ">
+            </div>
+            <div style="width: 100%; max-width: 700px; margin:20px auto;">
+                <p>Acquire a 2025 blood test from which we can compute your biological age, called <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>. You need the following biomarkers:</p>
+                <ul>
+                    <li><strong>Albumin</strong> (also known as Serum Albumin)</li>
+                    <li><strong>Creatinine</strong> (sometimes called Serum Creatinine)</li>
+                    <li><strong>Glucose</strong> (also referred to as Blood Sugar)</li>
+                    <li><strong>C-Reactive Protein</strong> (CRP, also known as hs-CRP for high-sensitivity C-Reactive Protein)</li>
+                    <li><strong>Lymphocyte Percentage</strong> (may be labeled as Lymphocyte % or Absolute Lymphocyte Count)</li>
+                    <li><strong>Mean Corpuscular Volume</strong> (MCV, also called Average Red Blood Cell Size)</li>
+                    <li><strong>Red Cell Distribution Width</strong> (RDW, sometimes called RDW-CV or Red Blood Cell Size Variation)</li>
+                    <li><strong>Alkaline Phosphatase</strong> (ALP, also referred to as Alk Phos)</li>
+                    <li><strong>White Blood Cell Count</strong> (WBC Count, also called Leukocyte Count)</li>
+                </ul>
+            </div>
 
-        <div class="options-container">
-            <button class="option-button beer" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beer'">Hold My Beer 🍺</button>
-            <button class="option-button beef" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beef'">Hold My Beef 🥩</button>
-            <button class="option-button veggies" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Hold My Veggies 🥕</button>
-            <button class="option-button already-have" onclick="window.location.href='/onboarding/pheno-age.html'">Already Have 2025 Biomarkers</button>
+            <div class="options-container">
+                <button class="option-button beer" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beer'">Hold My Beer 🍺</button>
+                <button class="option-button beef" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beef'">Hold My Beef 🥩</button>
+                <button class="option-button veggies" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Hold My Veggies 🥕</button>
+                <button class="option-button already-have" onclick="window.location.href='/onboarding/pheno-age.html'">Already Have 2025 Biomarkers</button>
+            </div>
         </div>
     </main>
     <!--FOOTER-->
