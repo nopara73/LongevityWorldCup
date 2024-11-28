@@ -10,6 +10,10 @@
             display: none;
         }
 
+        .autocomplete-container {
+            position: relative;
+        }
+
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -62,16 +66,15 @@
 
         .autocomplete-items {
             position: absolute;
+            top: 100%;
+            left: 0;
             border: 1px solid #ccc;
             border-radius: 4px;
             background-color: white;
             z-index: 9999;
-            max-height: 150px; /* Limit height if needed */
-            overflow-y: auto; /* Allow scrolling if the list is long */
-            width: 100%; /* Make sure it matches the width of the container */
-            top: 0; /* Keep this 0 because we are aligning relative to the input field */
-            left: 0;
-            margin-top: 0.5rem; /* Add a small margin to create separation */
+            max-height: 150px;
+            overflow-y: auto;
+            width: 100%;
         }
 
         /* Add a new class for the pointer cursor */
@@ -178,8 +181,10 @@
 
                 <!-- Flag Field with Autocomplete -->
                 <label for="flag">Flag</label>
-                <input type="text" id="flag" name="flag" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
-                <span id="flagError" class="error-message"></span>
+                <div class="autocomplete-container">
+                    <input type="text" id="flag" name="flag" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
+                    <span id="flagError" class="error-message"></span>
+                </div>
             </fieldset>
             <div id="privacyDetails">
                 <p>
@@ -594,7 +599,8 @@
                         const listContainer = document.createElement('div');
                         listContainer.setAttribute('id', this.id + '-autocomplete-list');
                         listContainer.setAttribute('class', 'autocomplete-items');
-                        this.parentNode.appendChild(listContainer);
+                        const container = this.closest('.autocomplete-container');
+                        container.appendChild(listContainer);
 
                         let matchCount = 0;
 
