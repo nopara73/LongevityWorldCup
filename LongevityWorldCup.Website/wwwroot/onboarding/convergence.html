@@ -282,6 +282,8 @@
     <script src="/js/divisionIcons.js"></script>
     <script>
         var currentStage = 1;
+        let profilePic = null;
+        let proofPics = [];
 
         // Update the progress bar to the appropriate stage
         // Assuming updateMainProgress and updateSubProgress are defined elsewhere
@@ -298,11 +300,7 @@
             const accountEmail = document.getElementById('accountEmail').value.trim();
             const personalLink = document.getElementById('personalLink').value.trim();
 
-            // Get the profile picture from localStorage
-            const profilePic = localStorage.getItem('profilePic');
-
-            // Get the proof images from localStorage
-            const proofPics = JSON.parse(localStorage.getItem('proofPics')) || [];
+            // Use the global variables `profilePic` and `proofPics` directly
 
             // Get the biomarker data from localStorage
             const biomarkerData = JSON.parse(localStorage.getItem('biomarkerData'));
@@ -477,10 +475,9 @@
                     nextButton.disabled = true;
                     nextButton.classList.add('disabled-button');
 
-                    // Check if there is a stored profile picture
-                    const storedProfilePic = localStorage.getItem('profilePic');
-                    if (storedProfilePic) {
-                        illustrationImage.src = storedProfilePic;
+                    // Check if there is a profile picture in the global variable
+                    if (profilePic) {
+                        illustrationImage.src = profilePic;
                         // Enable Next button if profile picture exists
                         nextButton.disabled = false;
                         nextButton.classList.remove('disabled-button');
@@ -516,33 +513,28 @@
                     if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
                         proofPicInput.addEventListener('change', function (event) {
                             const files = event.target.files;
-                        if (files.length > 0) {
-                            // Retrieve existing proof images from localStorage
-                            let proofPics = JSON.parse(localStorage.getItem('proofPics')) || [];
+                            if (files.length > 0) {
+                                // Limit the total number of images to 9
+                                if (proofPics.length + files.length > 9) {
+                                    alert('You can upload a maximum of 9 images.');
+                                    return;
+                                }
 
-                            // Limit the total number of images to 9
-                            if (proofPics.length + files.length > 9) {
-                                alert('You can upload a maximum of 9 images.');
-                                return;
+                                for (let i = 0; i < files.length; i++) {
+                                    const file = files[i];
+                                    const reader = new FileReader();
+                                    reader.onload = function (e) {
+                                        proofPics.push(e.target.result);
+                                        // Update the display
+                                        updateProofImageContainer();
+                                        // Check proof images
+                                        checkProofImages();
+                                    };
+                                    reader.readAsDataURL(file);
+                                }
                             }
-
-                            for (let i = 0; i < files.length; i++) {
-                                const file = files[i];
-                                const reader = new FileReader();
-                                reader.onload = function (e) {
-                                    proofPics.push(e.target.result);
-                                    // Store the updated proofPics array
-                                    localStorage.setItem('proofPics', JSON.stringify(proofPics));
-                                    // Update the display
-                                    updateProofImageContainer();
-                                    // Check proof images
-                                    checkProofImages();
-                                };
-                                reader.readAsDataURL(file);
-                            }
-                        }
-                        // Reset the file input's value to allow re-uploading the same file if needed
-                        document.getElementById('proofPicInput').value = "";
+                            // Reset the file input's value to allow re-uploading the same file if needed
+                            document.getElementById('proofPicInput').value = "";
                         });
                         proofPicInput.setAttribute('data-listener', 'true');
                     }
@@ -846,9 +838,9 @@
                                 // Handle success, perhaps redirect or show a success message
                                 alert('Application submitted successfully!');
                                 localStorage.setItem('contactEmail', applicantData.accountEmail);
-                                // Optionally clear localStorage
-                                localStorage.removeItem('profilePic');
-                                localStorage.removeItem('proofPics');
+                                // Clear the image variables
+                                profilePic = null;
+                                proofPics = [];
                                 // Redirect or reset the form
                                 window.location.href = '/onboarding/application-review.html';
                             } else {
@@ -950,7 +942,7 @@
                         const croppedImageDataURL = croppedCanvas.toDataURL('image/png');
                         document.getElementById('illustrationImage').src = croppedImageDataURL;
 
-                        localStorage.setItem('profilePic', croppedImageDataURL);
+                        profilePic = croppedImageDataURL;
 
                         cropper.destroy(); // Clean up the Cropper instance
                         cropper = null; // Reset the Cropper instance
@@ -973,8 +965,7 @@
         function updateProofImageContainer() {
             let container = document.getElementById('proofImageContainer');
             container.innerHTML = '';
-            // Retrieve existing proof images from localStorage
-            let proofPics = JSON.parse(localStorage.getItem('proofPics')) || [];
+            // Use the global `proofPics` variable directly
             if (proofPics.length > 0) {
                 container.innerHTML = '<p><strong>Proof uploaded successfully.</strong></p>';
                 for (let i = 0; i < proofPics.length; i++) {
@@ -991,7 +982,6 @@
                     removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: white; border: none; border-radius: 3px; cursor: pointer;';
                     removeButton.addEventListener('click', function () {
                         proofPics.splice(i, 1);
-                        localStorage.setItem('proofPics', JSON.stringify(proofPics));
                         updateProofImageContainer();
                         // Check proof images
                         checkProofImages();
@@ -1008,8 +998,6 @@
             if (currentStage !== 5) return;
 
             const nextButton = document.getElementById('nextButton');
-            let proofPics = JSON.parse(localStorage.getItem('proofPics')) || [];
-
             if (proofPics.length > 0) {
                 nextButton.disabled = false;
                 nextButton.classList.remove('disabled-button');
