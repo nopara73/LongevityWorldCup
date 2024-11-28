@@ -565,7 +565,10 @@
 
                     // Add event listener for validation
                     const mediaContactInput = document.getElementById('mediaContact');
+                    const personalLinkInput = document.getElementById('personalLink');
+
                     mediaContactInput.addEventListener('input', checkFormValidityStage6);
+                    personalLinkInput.addEventListener('input', checkFormValidityStage6);
 
                     // Run checkFormValidityStage6 initially
                     checkFormValidityStage6();
@@ -794,14 +797,24 @@
                 goToStage(currentStage);
             } else {
                 // Final stage requires accountEmail
+                let isValid = true;
                 const accountEmail = document.getElementById('accountEmail').value.trim();
+                const personalLink = document.getElementById('personalLink').value.trim();
+
                 if (!accountEmail) {
                     isValid = false;
                     alert('Please enter your email.');
                 } else if (!validator.isEmail(accountEmail)) {
                     isValid = false;
                     alert('Please enter a valid email address.');
-                } else {
+                }
+
+                if (personalLink && !validator.isURL(personalLink)) {
+                    isValid = false;
+                    alert('Please enter a valid URL for your personal link.');
+                }
+
+                if (isValid) {
                     // Collect all the data and send it to the backend via an API call
                     const applicantData = collectApplicantData();
 
@@ -1070,11 +1083,26 @@
             if (currentStage !== 6) return;
 
             const mediaContactInput = document.getElementById('mediaContact');
+            const personalLinkInput = document.getElementById('personalLink');
             const nextButton = document.getElementById('nextButton');
 
             const mediaContactFilled = mediaContactInput.value.trim() !== '';
+            const personalLinkValue = personalLinkInput.value.trim();
 
-            if (mediaContactFilled) {
+            let isValid = true;
+
+            if (!mediaContactFilled) {
+                isValid = false;
+            }
+
+            if (personalLinkValue && !validator.isURL(personalLinkValue)) {
+                isValid = false;
+                personalLinkInput.setCustomValidity('Please enter a valid URL.');
+            } else {
+                personalLinkInput.setCustomValidity('');
+            }
+
+            if (isValid) {
                 nextButton.disabled = false;
                 nextButton.classList.remove('disabled-button');
             } else {
@@ -1082,6 +1110,7 @@
                 nextButton.classList.add('disabled-button');
             }
         }
+
         function checkFormValidityStage7() {
             if (currentStage !== 7) return;
 
