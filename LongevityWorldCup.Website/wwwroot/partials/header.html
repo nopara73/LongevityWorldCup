@@ -49,12 +49,13 @@
         font-size: 1.5rem;
         background: linear-gradient(135deg, #27eb2f, #03a5a0); /* Green gradient */
         color: white;
+        text-shadow: 1px 2px 3px #333;
         border: none;
         border-radius: 150px;
         cursor: pointer;
         transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow */
-        animation: glow 1s ease-in-out infinite;
+        animation: glow 1.5s ease-in-out infinite;
         position: relative;
         z-index: 1;
     }
@@ -71,7 +72,6 @@
         }
 
         .join-game:hover {
-            background: linear-gradient(135deg, #388E3C, #4CAF50); /* Darker green gradient */
             transform: scale(1.05); /* Slight enlarge effect */
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
         }
@@ -92,15 +92,28 @@
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
             }
 
-    @keyframes glow {
-        0%, 100% {
-            box-shadow: 0 0 5px #B3E5FC, 0 0 10px #B3E5FC, 0 0 15px #CFD8DC, 0 0 20px #CFD8DC;
-        }
+            @keyframes glow {
+                0%, 100% {
+                    box-shadow: 
+                        0 0 5px #B3E5FC, 
+                        0 0 10px #B3E5FC, 
+                        0 0 15px #CFD8DC, 
+                        0 0 20px #00E5FF, 
+                        0 0 25px #18FFFF, 
+                        0 0 30px #80D8FF;
+                }
 
-        50% {
-            box-shadow: 0 0 20px #CFD8DC, 0 0 30px #B3E5FC, 0 0 40px #B3E5FC, 0 0 50px #CFD8DC;
-        }
-    }
+                50% {
+                    box-shadow: 
+                        0 0 20px #CFD8DC, 
+                        0 0 30px #B3E5FC, 
+                        0 0 40px #00E5FF, 
+                        0 0 50px #18FFFF, 
+                        0 0 60px #80D8FF, 
+                        0 0 70px #40C4FF;
+                }
+            }
+
 
     .header-link {
         text-decoration: none;
