@@ -3,7 +3,7 @@
 ## SSH
 
 ### In a Hurry
-```
+```sh
 sudo apt update && sudo apt upgrade -y && cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service && sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service && cd ..
 ```
 
@@ -84,6 +84,7 @@ echo "Difference in subscriptions: $DIFF"
 
 ## Configure
 
-After run, config file is created:
-
-"sudo nano /var/www/LongevityWorldCup/publish/config.json"
+After first run, config file is created: 
+```sh
+sudo nano /var/www/LongevityWorldCup/publish/config.json`
+```
