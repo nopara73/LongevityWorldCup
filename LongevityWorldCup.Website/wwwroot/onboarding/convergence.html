@@ -616,24 +616,34 @@
                         const container = this.closest('.autocomplete-container');
                         container.appendChild(listContainer);
 
-                        let matchCount = 0;
-
                         for (let i = 0; i < flags.length; i++) {
-                            if (flags[i].toLowerCase().startsWith(inputVal)) {
+                            const lowerCaseFlag = flags[i].toLowerCase(); // Convert country name to lowercase
+                            const lowerCaseInputVal = inputVal.toLowerCase(); // Convert input to lowercase
+
+                            // Check if the input matches the start of any word using a regex
+                            const regex = new RegExp(`\\b${lowerCaseInputVal}`);
+                            if (regex.test(lowerCaseFlag)) { // Check if the input matches the start of any word
+                                const matchIndex = lowerCaseFlag.search(regex); // Find the index of the match
                                 const listItem = document.createElement('div');
-                                listItem.innerHTML = "<strong>" + flags[i].substr(0, inputVal.length) + "</strong>";
-                                listItem.innerHTML += flags[i].substr(inputVal.length);
+
+                                // Create HTML with the bolded matching portion
+                                listItem.innerHTML =
+                                    flags[i].substr(0, matchIndex) + // Part before the match
+                                    "<strong>" + flags[i].substr(matchIndex, inputVal.length) + "</strong>" + // Matching part bolded
+                                    flags[i].substr(matchIndex + inputVal.length); // Part after the match
+
                                 listItem.innerHTML += "<input type='hidden' value='" + flags[i] + "'>";
+
                                 listItem.addEventListener('click', function () {
                                     flagInput.value = this.getElementsByTagName('input')[0].value;
                                     closeAllLists();
                                     flagInput.dispatchEvent(new Event('input'));
                                 });
+
                                 listContainer.appendChild(listItem);
-                                matchCount++;
-                                if (matchCount >= 5) break; // Limit to 5 suggestions
                             }
                         }
+
                     });
 
                     function closeAllLists(elmnt) {
