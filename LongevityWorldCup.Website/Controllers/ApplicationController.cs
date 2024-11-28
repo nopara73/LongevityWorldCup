@@ -90,22 +90,12 @@ namespace LongevityWorldCup.Website.Controllers
             // Get AccountEmail from the json and trim it
             string? accountEmail = applicantData.AccountEmail?.Trim();
 
-            // Prepare the email body (excluding the images)
-            var applicantDataWithoutImages = new
-            {
-                applicantData.Name,
-                applicantData.MediaContact,
-                applicantData.DateOfBirth,
-                applicantData.Biomarkers, // Include the biomarker data
-                applicantData.Division,
-                applicantData.Flag,
-                applicantData.Why,
-                PersonalLink = string.IsNullOrWhiteSpace(applicantData.PersonalLink) ? null : applicantData.PersonalLink
-            };
+            // Initialize variables to store image paths
+            string? profilePicPath = null;
+            List<string> proofPicPaths = [];
 
-            // Include AccountEmail in the email body
-            string emailBody = $"\nAccount Email: {accountEmail}\n\n";
-            emailBody += JsonSerializer.Serialize(applicantDataWithoutImages, CachedJsonSerializerOptions);
+            // Prepare the email body (excluding the images)
+            // Moved this block after processing images to include paths
 
             // Create the email message
             var message = new MimeMessage();
@@ -113,10 +103,7 @@ namespace LongevityWorldCup.Website.Controllers
             message.To.Add(new MailboxAddress("", config.EmailTo));
             message.Subject = $"New Application for LWC2025";
 
-            var builder = new BodyBuilder
-            {
-                TextBody = emailBody
-            };
+            var builder = new BodyBuilder();
 
             // Adjust the code for handling the profile picture
             if (!string.IsNullOrEmpty(applicantData.ProfilePic))
@@ -126,6 +113,9 @@ namespace LongevityWorldCup.Website.Controllers
                 if (profilePicBytes != null && contentType != null && extension != null)
                 {
                     string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_profile.{extension}";
+
+                    // Store the profile picture path
+                    profilePicPath = $"/assets/profile-pics/{sanitizedFileName}";
 
                     var contentTypeParts = contentType.Split('/');
                     if (contentTypeParts.Length == 2)
@@ -155,6 +145,10 @@ namespace LongevityWorldCup.Website.Controllers
                     {
                         string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_proof_{proofIndex}.{extension}";
 
+                        // Store the proof picture path
+                        string proofPicPath = $"/assets/proofs/{sanitizedFileName}";
+                        proofPicPaths.Add(proofPicPath);
+
                         var contentTypeParts = contentType.Split('/');
                         if (contentTypeParts.Length == 2)
                         {
@@ -173,6 +167,27 @@ namespace LongevityWorldCup.Website.Controllers
                     }
                 }
             }
+
+            // Prepare the email body (including the image paths)
+            var applicantDataWithoutImages = new
+            {
+                applicantData.Name,
+                applicantData.MediaContact,
+                applicantData.DateOfBirth,
+                applicantData.Biomarkers, // Include the biomarker data
+                applicantData.Division,
+                applicantData.Flag,
+                applicantData.Why,
+                ProfilePic = profilePicPath,
+                Proofs = proofPicPaths.Count > 0 ? proofPicPaths : null,
+                PersonalLink = string.IsNullOrWhiteSpace(applicantData.PersonalLink) ? null : applicantData.PersonalLink
+            };
+
+            // Include AccountEmail in the email body
+            string emailBody = $"\nAccount Email: {accountEmail}\n\n";
+            emailBody += JsonSerializer.Serialize(applicantDataWithoutImages, CachedJsonSerializerOptions);
+
+            builder.TextBody = emailBody;
 
             message.Body = builder.ToMessageBody();
 
