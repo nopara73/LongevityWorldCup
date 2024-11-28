@@ -22,8 +22,6 @@ namespace LongevityWorldCup.Website.Controllers
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        private static readonly JsonSerializerOptions DeserializationOptions = new() { PropertyNameCaseInsensitive = true };
-
         // Helper method to sanitize file names
         private static string SanitizeFileName(string name)
         {
@@ -33,9 +31,16 @@ namespace LongevityWorldCup.Website.Controllers
             return sanitized;
         }
 
+        private const int MaxBase64Length = 10 * 1024 * 1024; // 10 MB
+
         // Helper method to parse Base64 image strings and extract bytes, content type, and extension
         private static (byte[]? bytes, string? contentType, string? extension) ParseBase64Image(string base64String)
         {
+            if (string.IsNullOrWhiteSpace(base64String) || base64String.Length > MaxBase64Length)
+            {
+                return (null, null, null);
+            }
+
             try
             {
                 var match = DataUriRegex().Match(base64String);
@@ -59,20 +64,11 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("apply")]
-        public async Task<IActionResult> Apply()
+        public async Task<IActionResult> Apply([FromBody] ApplicantData applicantData)
         {
-            using var reader = new StreamReader(Request.Body);
-            string content = await reader.ReadToEndAsync();
-
-            // Deserialize the JSON content into an ApplicantData object
-            ApplicantData applicantData;
-            try
+            if (!ModelState.IsValid)
             {
-                applicantData = JsonSerializer.Deserialize<ApplicantData>(content, DeserializationOptions) ?? throw new InvalidOperationException("Deserialized applicant data is null.");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Invalid data format: {ex.Message}");
+                return BadRequest(ModelState);
             }
 
             // Load SMTP configuration
