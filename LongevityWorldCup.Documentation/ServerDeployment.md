@@ -4,7 +4,7 @@
 
 ### In a Hurry
 ```
-sudo apt update && sudo apt upgrade -y && cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service && sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service
+sudo apt update && sudo apt upgrade -y && cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service && sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service && cd ..
 ```
 
 ### Step By Step
