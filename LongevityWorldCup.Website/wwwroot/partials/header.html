@@ -194,6 +194,64 @@
     .no-scroll {
         overflow: hidden;
     }
+    /* Common container for sections */
+    .section-container {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 1250px; /* Adjusted to better match the leaderboard width */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+            /* Heading style */
+            .section-container h3 {
+                font-size: 1.5rem;
+                color: var(--text-color);
+                margin-bottom: 1rem;
+            }
+
+            /* Paragraph style */
+            .section-container p {
+                font-size: 1rem;
+                color: var(--text-color);
+                margin-bottom: 1.5rem;
+                line-height: 1.6;
+            }
+
+            /* Input field style */
+            .section-container input[type="email"] {
+                padding: 0.6rem 1rem;
+                width: 250px;
+                border-radius: 25px;
+                border: 1px solid var(--primary-color);
+                margin-right: 1rem;
+                box-sizing: border-box;
+            }
+
+            /* Button style */
+            .section-container button {
+                padding: 0.6rem 1.5rem;
+                font-size: 1rem;
+                background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
+                color: white;
+                border: none;
+                border-radius: 25px;
+                cursor: pointer;
+                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            }
+
+                .section-container button:hover {
+                    background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
+                    transform: scale(1.05); /* Slight enlarge effect */
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+                }
+            .block-small {
+                width: 100%;
+                max-width: 700px;
+                margin:20px auto;
+            }
 </style>
 
 <header>

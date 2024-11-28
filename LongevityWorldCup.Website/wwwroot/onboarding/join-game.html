@@ -31,16 +31,6 @@
                 transform: scale(1.03);
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
             }
-
-            .section-container {
-                background-color: var(--card-bg);
-                border-radius: 15px;
-                padding: 2rem;
-                margin: 2rem auto;
-                max-width: 1250px; /* Adjusted to better match the leaderboard width */
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-                text-align: center;
-            }
     </style>
 </head>
 <body>
@@ -53,9 +43,9 @@
             <div style="text-align: center;">
                 <img src="../assets/lab.jpg" class="illustration" alt="Lab" ">
             </div>
-            <div style="width: 100%; max-width: 700px; margin:20px auto;">
+            <div class="block-small">
                 <p>Acquire a 2025 blood test from which we can compute your biological age, called <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>. You need the following biomarkers:</p>
-                <ul>
+                <ul style="text-align: left;">
                     <li><strong>Albumin</strong> (also known as Serum Albumin)</li>
                     <li><strong>Creatinine</strong> (sometimes called Serum Creatinine)</li>
                     <li><strong>Glucose</strong> (also referred to as Blood Sugar)</li>
