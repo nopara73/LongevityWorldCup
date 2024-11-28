@@ -354,12 +354,57 @@
                 font-size: 1.2rem;
             }
         }
+
+        /* Countdown Section Styles */
+        .countdown-section {
+            position: relative;
+            overflow: hidden;
+            color: var(--text-color);
+            padding: 2rem;
+            border-radius: 15px;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+            .countdown-section h3 {
+                font-size: 1.5rem;
+                color: var(--text-color);
+                margin-bottom: 1rem;
+            }
+
+        #countdown {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .countdown-section p {
+            font-size: 1rem;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* Responsive adjustments for countdown */
+        @media (max-width: 768px) {
+            #countdown {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main>
         <p class="game-description">Too old for your sport? Not this one! In the Longevity World Cup, you don't age out - you age in. Reverse your age and <strong>rise on the leaderboard!</strong></p>
+        <!-- New Countdown Section -->
+        <div class="section-container countdown-section">
+            <h3><i class="fas fa-hourglass-half"></i> Competition Starts In:</h3>
+            <div id="countdown">
+                <!-- The countdown timer will be inserted here by JavaScript -->
+            </div>
+            <p>The current leaderboard is illustrative only. Real competition begins on January 21.</p>
+        </div>
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
             <button id="viewAllAthletesBtn" onclick="window.location.href='/leaderboard/leaderboard.html'" class="rankings-btn">
@@ -597,6 +642,46 @@
             .catch(error => {
                 console.error('Error fetching BTC data:', error);
             });
+
+        // Countdown Timer Script
+        (function () {
+            const now = new Date();
+            let targetDate = new Date(now.getFullYear(), 0, 21, 0, 0, 0); // January 21 of current year
+
+            // If target date is in the past, set to next year
+            if (now >= targetDate) {
+                targetDate = new Date(now.getFullYear() + 1, 0, 21, 0, 0, 0);
+            }
+
+            targetDate = targetDate.getTime();
+
+            const countdownElement = document.getElementById('countdown');
+
+            const updateCountdown = () => {
+                const now = new Date().getTime();
+                const distance = targetDate - now;
+
+                if (distance < 0) {
+                    // Countdown has finished
+                    clearInterval(countdownInterval);
+                    countdownElement.innerHTML = "The competition has started!";
+                    return;
+                }
+
+                // Time calculations for days, hours, minutes and seconds
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                // Display the result
+                countdownElement.innerHTML = days + "d " + hours + "h " + minutes + "m " + seconds + "s";
+            };
+
+            // Update the countdown every 1 second
+            updateCountdown(); // initial call
+            const countdownInterval = setInterval(updateCountdown, 1000);
+        })();
     </script>
 </body>
 </html>
