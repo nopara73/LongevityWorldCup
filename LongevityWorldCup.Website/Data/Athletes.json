@@ -24,10 +24,10 @@
     "Division": "Men's",
     "Flag": "France",
     "Why": "It's a challenge.",
-    "ProfilePic": "assets/profile-pics/nikolai_volkov_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/nikolai_volkov_profile.jpg",
     "Proofs": [
-      "assets/proofs/nikolai_volkov_proof_1.jpg",
-      "assets/proofs/nikolai_volkov_proof_2.jpg"
+      "/assets/proofs/nikolai_volkov_proof_1.jpg",
+      "/assets/proofs/nikolai_volkov_proof_2.jpg"
     ],
     "PersonalLink": null
   },
@@ -80,11 +80,11 @@
     "Division": "Women's",
     "Flag": "Hungary",
     "Why": "The desire to live not just a long life, but a meaningful one, is what propels me forward.\nI aim to break through perceived limits, inspire others, and contribute significantly to the global understanding of aging and health.",
-    "ProfilePic": "assets/profile-pics/amelia_zhao_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/amelia_zhao_profile.jpg",
     "Proofs": [
-      "assets/proofs/amelia_zhao_proof_1.jpg",
-      "assets/proofs/amelia_zhao_proof_2.jpg",
-      "assets/proofs/amelia_zhao_proof_3.jpg"
+      "/assets/proofs/amelia_zhao_proof_1.jpg",
+      "/assets/proofs/amelia_zhao_proof_2.jpg",
+      "/assets/proofs/amelia_zhao_proof_3.jpg"
     ],
     "PersonalLink": "https://twitter.com/gowj7m78"
   },
@@ -125,10 +125,10 @@
     "Division": "Women's",
     "Flag": "Cyberspace",
     "Why": "I want to prove that age is just a number.",
-    "ProfilePic": "assets/profile-pics/isabella_rodriguez_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/isabella_rodriguez_profile.jpg",
     "Proofs": [
-      "assets/proofs/isabella_rodriguez_proof_1.jpg",
-      "assets/proofs/isabella_rodriguez_proof_2.jpg"
+      "/assets/proofs/isabella_rodriguez_proof_1.jpg",
+      "/assets/proofs/isabella_rodriguez_proof_2.jpg"
     ],
     "PersonalLink": null
   },
@@ -157,9 +157,9 @@
     "Division": "Men's",
     "Flag": "Cyberspace",
     "Why": "I want to prove that age is just a number.",
-    "ProfilePic": "assets/profile-pics/jamal_okonkwo_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/jamal_okonkwo_profile.jpg",
     "Proofs": [
-      "assets/proofs/jamal_okonkwo_proof_1.jpg"
+      "/assets/proofs/jamal_okonkwo_proof_1.jpg"
     ],
     "PersonalLink": "https://facebook.com/3tfqdctj"
   },
@@ -200,10 +200,10 @@
     "Division": "Women's",
     "Flag": "Germany",
     "Why": "I believe in the power of human resilience and its potential to expand our lives.",
-    "ProfilePic": "assets/profile-pics/sophia_nakamura_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/sophia_nakamura_profile.jpg",
     "Proofs": [
-      "assets/proofs/sophia_nakamura_proof_1.jpg",
-      "assets/proofs/sophia_nakamura_proof_2.jpg"
+      "/assets/proofs/sophia_nakamura_proof_1.jpg",
+      "/assets/proofs/sophia_nakamura_proof_2.jpg"
     ],
     "PersonalLink": null
   },
@@ -244,10 +244,10 @@
     "Division": "Men's",
     "Flag": "Germany",
     "Why": "To be the change I want to see in the world of longevity.",
-    "ProfilePic": "assets/profile-pics/liam_oconnor_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/liam_oconnor_profile.jpg",
     "Proofs": [
-      "assets/proofs/liam_oconnor_proof_1.jpg",
-      "assets/proofs/liam_oconnor_proof_2.jpg"
+      "/assets/proofs/liam_oconnor_proof_1.jpg",
+      "/assets/proofs/liam_oconnor_proof_2.jpg"
     ],
     "PersonalLink": null
   },
@@ -276,9 +276,9 @@
     "Division": "Women's",
     "Flag": "New Zealand",
     "Why": "I want to live every day fully and extend that opportunity as long as I can.",
-    "ProfilePic": "assets/profile-pics/emma_johansson_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/emma_johansson_profile.jpg",
     "Proofs": [
-      "assets/proofs/emma_johansson_proof_1.jpg"
+      "/assets/proofs/emma_johansson_proof_1.jpg"
     ],
     "PersonalLink": "https://yourwebsite.com/kh4gj0uz"
   },
@@ -331,11 +331,11 @@
     "Division": "Open",
     "Flag": "New Zealand",
     "Why": "I am driven by the need to challenge conventional wisdom and redefine what is possible for human health and longevity.\nThis journey is about exploring the unknown and making an impact on future generations through advancements in science and wellness.",
-    "ProfilePic": "assets/profile-pics/chen_wei_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/chen_wei_profile.jpg",
     "Proofs": [
-      "assets/proofs/chen_wei_proof_1.jpg",
-      "assets/proofs/chen_wei_proof_2.jpg",
-      "assets/proofs/chen_wei_proof_3.jpg"
+      "/assets/proofs/chen_wei_proof_1.jpg",
+      "/assets/proofs/chen_wei_proof_2.jpg",
+      "/assets/proofs/chen_wei_proof_3.jpg"
     ],
     "PersonalLink": null
   },
@@ -388,11 +388,11 @@
     "Division": "Women's",
     "Flag": "China",
     "Why": "Life is short.",
-    "ProfilePic": "assets/profile-pics/maria_gonzalez_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/maria_gonzalez_profile.jpg",
     "Proofs": [
-      "assets/proofs/maria_gonzalez_proof_1.jpg",
-      "assets/proofs/maria_gonzalez_proof_2.jpg",
-      "assets/proofs/maria_gonzalez_proof_3.jpg"
+      "/assets/proofs/maria_gonzalez_proof_1.jpg",
+      "/assets/proofs/maria_gonzalez_proof_2.jpg",
+      "/assets/proofs/maria_gonzalez_proof_3.jpg"
     ],
     "PersonalLink": "https://linkedin.com/in/8wh83lf6"
   },
@@ -421,10 +421,10 @@
     "Division": "Men's",
     "Flag": "Australia",
     "Why": "idk",
-    "ProfilePic": "assets/profile-pics/ethan_park_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/ethan_park_profile.jpg",
     "Proofs": [
-      "assets/proofs/ethan_park_proof_1.jpg",
-      "assets/proofs/ethan_park_proof_2.jpg"
+      "/assets/proofs/ethan_park_proof_1.jpg",
+      "/assets/proofs/ethan_park_proof_2.jpg"
     ],
     "PersonalLink": "https://instagram.com/98dkh8su"
   },
@@ -465,10 +465,10 @@
     "Division": "Men's",
     "Flag": "Poland",
     "Why": "I believe that the limits of human endurance are yet to be discovered.",
-    "ProfilePic": "assets/profile-pics/dariusz_kowalski_profile.jpg",
+    "ProfilePic": "/assets/profile-pics/dariusz_kowalski_profile.jpg",
     "Proofs": [
-      "assets/proofs/dariusz_kowalski_proof_1.jpg",
-      "assets/proofs/dariusz_kowalski_proof_2.jpg"
+      "/assets/proofs/dariusz_kowalski_proof_1.jpg",
+      "/assets/proofs/dariusz_kowalski_proof_2.jpg"
     ],
     "PersonalLink": null
   }
