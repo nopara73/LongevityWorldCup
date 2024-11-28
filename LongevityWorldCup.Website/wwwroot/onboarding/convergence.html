@@ -607,6 +607,7 @@
                                 listItem.addEventListener('click', function () {
                                     flagInput.value = this.getElementsByTagName('input')[0].value;
                                     closeAllLists();
+                                    flagInput.dispatchEvent(new Event('input'));
                                 });
                                 listContainer.appendChild(listItem);
                                 matchCount++;
