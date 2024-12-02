@@ -60,7 +60,7 @@ The older you are, the higher you rank in case of a tie. If necessary, alphabeti
 You can't. 
 
 #### How does the Longevity World Cup compare to the Rejuvenationy Olympics?
-- **Focus**: LWC emphasizes **absolute age reversal**, while RO measures the **pace of aging**.  
+- **Focus**: LWC emphasizes **absolute age reversal**, while RO currently measures the **pace of aging** regardless of chronological age.  
 - **Structure**: LWC has **annual seasons** with a single-clock focus.  
 - **Prizes**: LWC offers **prize money** through Bitcoin donations.  
 - **Leagues**: LWC includes **leagues** for generational and other category-based rankings.  
