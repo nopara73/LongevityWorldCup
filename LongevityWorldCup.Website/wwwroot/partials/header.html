@@ -11,7 +11,7 @@
         font-family: 'Roboto', sans-serif;
         margin: 0;
         padding: 0;
-        background-color: var(--background-color);
+        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
         color: var(--text-color);
     }
 
@@ -23,10 +23,9 @@
 
     /* Header Styles */
     header {
-        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
         color: white;
         text-align: center;
-        padding: 2rem 0;
+        padding: 5rem 0 0;
         position: relative;
         overflow: hidden;
         display: flex;
@@ -36,7 +35,7 @@
 
     h1 {
         margin: 0;
-        font-size: 3rem;
+        font-size: 4rem;
         font-weight: 700;
         text-transform: capitalize;
         letter-spacing: 2px;
@@ -48,14 +47,15 @@
         margin-top: 2rem;
         padding: 1rem 2rem;
         font-size: 1.5rem;
-        background: linear-gradient(135deg, #4CAF50, #66BB6A); /* Green gradient */
+        background: linear-gradient(135deg, #27eb2f, #03a5a0); /* Green gradient */
         color: white;
+        text-shadow: 1px 2px 3px rgba(0,0,0,0.5);
         border: none;
         border-radius: 150px;
         cursor: pointer;
         transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow */
-        animation: glow 1s ease-in-out 3;
+        animation: glow 1.5s ease-in-out infinite;
         position: relative;
         z-index: 1;
     }
@@ -72,7 +72,6 @@
         }
 
         .join-game:hover {
-            background: linear-gradient(135deg, #388E3C, #4CAF50); /* Darker green gradient */
             transform: scale(1.05); /* Slight enlarge effect */
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
         }
@@ -84,7 +83,6 @@
             transform: translateX(0);
             z-index: 1000;
             padding: 1rem 1.5rem;
-            background: linear-gradient(135deg, #4CAF50, #66BB6A); /* Match default gradient */
             transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
         }
 
@@ -94,15 +92,28 @@
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
             }
 
-    @keyframes glow {
-        0%, 100% {
-            box-shadow: 0 0 5px #B3E5FC, 0 0 10px #B3E5FC, 0 0 15px #CFD8DC, 0 0 20px #CFD8DC;
-        }
+            @keyframes glow {
+                0%, 100% {
+                    box-shadow: 
+                        0 0 5px #B3E5FC, 
+                        0 0 10px #B3E5FC, 
+                        0 0 15px #CFD8DC, 
+                        0 0 20px #00E5FF, 
+                        0 0 25px #18FFFF, 
+                        0 0 30px #80D8FF;
+                }
 
-        50% {
-            box-shadow: 0 0 20px #CFD8DC, 0 0 30px #B3E5FC, 0 0 40px #B3E5FC, 0 0 50px #CFD8DC;
-        }
-    }
+                50% {
+                    box-shadow: 
+                        0 0 20px #CFD8DC, 
+                        0 0 30px #B3E5FC, 
+                        0 0 40px #00E5FF, 
+                        0 0 50px #18FFFF, 
+                        0 0 60px #80D8FF, 
+                        0 0 70px #40C4FF;
+                }
+            }
+
 
     .header-link {
         text-decoration: none;
@@ -195,6 +206,64 @@
     .no-scroll {
         overflow: hidden;
     }
+    /* Common container for sections */
+    .section-container {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 1250px; /* Adjusted to better match the leaderboard width */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+            /* Heading style */
+            .section-container h3 {
+                font-size: 1.5rem;
+                color: var(--text-color);
+                margin-bottom: 1rem;
+            }
+
+            /* Paragraph style */
+            .section-container p {
+                font-size: 1rem;
+                color: var(--text-color);
+                margin-bottom: 1.5rem;
+                line-height: 1.6;
+            }
+
+            /* Input field style */
+            .section-container input[type="email"] {
+                padding: 0.6rem 1rem;
+                width: 250px;
+                border-radius: 25px;
+                border: 1px solid var(--primary-color);
+                margin-right: 1rem;
+                box-sizing: border-box;
+            }
+
+            /* Button style */
+            .section-container button {
+                padding: 0.6rem 1.5rem;
+                font-size: 1rem;
+                background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
+                color: white;
+                border: none;
+                border-radius: 25px;
+                cursor: pointer;
+                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            }
+
+                .section-container button:hover {
+                    background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
+                    transform: scale(1.05); /* Slight enlarge effect */
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+                }
+            .block-small {
+                width: 100%;
+                max-width: 700px;
+                margin:20px auto;
+            }
 </style>
 
 <header>
@@ -202,28 +271,4 @@
         <h1>Longevity World Cup 2025</h1>
     </a>
     <p>Race To Longevity Escape Velocity🚀</p>
-    <button onclick="window.location.href='/onboarding/join-game.html'" class="join-game">
-        <strong>PLAY</strong>
-        <span class="join-game-middle" style="font-size: 1rem;">THE</span>
-        <strong class="join-game-end">GAME</strong>
-    </button>
 </header>
-
-<script>
-    const joinButton = document.querySelector('.join-game');
-
-    // Event listener for scrolling to adjust the button
-    window.addEventListener('scroll', function () {
-        const middleSpan = joinButton.querySelector('.join-game-middle');
-        const endStrong = joinButton.querySelector('.join-game-end');
-        if (window.scrollY > 100) {
-            joinButton.classList.add('scrolled');
-            middleSpan.style.display = 'none';
-            endStrong.style.display = 'none';
-        } else {
-            joinButton.classList.remove('scrolled');
-            middleSpan.style.display = '';
-            endStrong.style.display = '';
-        }
-    });
-</script>
