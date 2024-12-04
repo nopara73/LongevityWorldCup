@@ -1131,10 +1131,10 @@
                             const prizeFundBTC = totalReceivedBTC * 0.9; // 90% of total received
 
                             // Fetch current BTC to USD exchange rate
-                            fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+                            fetch(`/api/bitcoin/btcusd`)
                                 .then(response => response.json())
                                 .then(tickerData => {
-                                    const btcToUsdRate = tickerData.bitcoin.usd;
+                                    const btcToUsdRate = tickerData.btcToUsdRate;
 
                                     // Calculate prize moneys
                                     const firstPlaceBTC = prizeFundBTC * 0.6;
