@@ -14,24 +14,6 @@
             border-radius: 15px;
         }
 
-            /* Removed the ::before pseudo-element that added the title */
-            /*
-        .sub-progress-container::before {
-            content: "Convergence";
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            font-weight: bold;
-            color: #FF4081;
-            background: #fff;
-            padding: 5px 15px;
-            border-radius: 20px;
-        }
-        */
-
             .sub-progress-container .progress-bar {
                 background: #e0e0e0;
             }
@@ -39,7 +21,7 @@
             .sub-progress-container .progress-fill {
                 height: 100%;
                 width: 0;
-                background: #00BCD4; /* Solid color */
+                background: var(--primary-color); /* Solid color */
                 transition: width 1.5s ease-in-out;
                 position: relative;
             }
@@ -62,12 +44,12 @@
             }
 
             .sub-progress-container .stage.completed .stage-dot {
-                background: #00BCD4; /* Solid color for completed stages */
+                background: var(--primary-color); /* Solid color for completed stages */
                 color: #fff;
             }
 
             .sub-progress-container .stage.active .stage-dot {
-                background: #FF4081; /* Solid color for active stage */
+                background: var(--secondary-color);
                 color: #fff;
             }
 

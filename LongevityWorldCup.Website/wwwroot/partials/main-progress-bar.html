@@ -38,7 +38,7 @@
         .progress-fill {
             height: 100%;
             width: 0;
-            background: linear-gradient(90deg, #00BCD4, #FF4081);
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
             transition: width 1.5s ease-in-out;
             position: relative;
         }
@@ -47,7 +47,7 @@
             width: 24px;
             height: 24px;
             background: #fff;
-            border: 3px solid #00BCD4;
+            border: 3px solid var(--primary-color);
             border-radius: 50%;
             margin: 0 auto;
             transition: all 0.3s ease;
@@ -61,7 +61,7 @@
             font-family: Arial, sans-serif;
             font-weight: bold;
             font-size: 14px;
-            color: #333;
+            color: var(--text-color);
         }
 
         .stage-dot {
@@ -72,15 +72,15 @@
 
         .stage.completed .stage-dot {
             border-width: 2px;
-            border-color: #00BCD4;
-            background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, #00BCD4 100%);
+            border-color: var(--primary-color);
+            background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, var(--primary-color) 100%);
             color: #fff;
         }
 
         .stage.active .stage-dot {
             border-width: 2px;
-            border-color: #FF4081;
-            background: radial-gradient(circle, #fff 20%, #ffd1dc 50%, #FF4081 100%);
+            border-color: var(--secondary-color);
+            background: radial-gradient(circle, #fff 20%, #ffd1dc 50%, var(--secondary-color) 100%);
             color: #fff;
         }
 
@@ -98,11 +98,11 @@
         }
 
         .stage.active .stage-label {
-            color: #FF4081;
+            color: var(--secondary-color);
         }
 
         .stage.completed .stage-label {
-            color: #00BCD4;
+            color: var(--primary-color);
         }
     </style>
 </head>
