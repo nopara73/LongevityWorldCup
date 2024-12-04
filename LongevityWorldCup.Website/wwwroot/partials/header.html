@@ -3,7 +3,7 @@
         --primary-color: #00bcd4;
         --secondary-color: #ff4081;
         --background-color: #f0f4f8;
-        --text-color: #333;
+        --text-color: var(--text-color);
         --card-bg: #ffffff;
     }
 
@@ -120,7 +120,7 @@
         max-width: 400px;
         display: block;
         margin: 0 auto 1.5rem;
-        border: 4px solid #333;
+        border: 4px solid var(--text-color);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         border-radius: 8px;
     }

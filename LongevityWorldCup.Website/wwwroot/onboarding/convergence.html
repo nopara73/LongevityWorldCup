@@ -117,7 +117,7 @@
 
         #proofImageContainer img {
             max-width: 200px;
-            border: 2px solid #333;
+            border: 2px solid var(--text-color);
             border-radius: 8px;
         }
 
@@ -975,7 +975,7 @@
                     let img = document.createElement('img');
                     img.src = proofPics[i];
                     img.alt = 'Proof Image ' + (i + 1);
-                    img.style = 'max-width: 100%; border: 2px solid #333; border-radius: 8px;';
+                    img.style = 'max-width: 100%; border: 2px solid var(--text-color); border-radius: 8px;';
 
                     let removeButton = document.createElement('button');
                     removeButton.textContent = 'Remove';
