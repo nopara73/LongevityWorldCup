@@ -1,8 +1,9 @@
 ﻿<style>
     :root {
-        --primary-color: #00bcd4;
-        --secondary-color: #ff4081;
-        --background-color: #f0f4f8;
+        --primary-color: #0288d1;
+        --secondary-color: #ec407a;
+        --background-color: linear-gradient(120deg, #000000, #555555);
+        --header-to-body-bg: linear-gradient(120deg, #f9f9f9, #e6e6e6);
         --text-color: #333;
         --card-bg: #ffffff;
     }
@@ -11,7 +12,7 @@
         font-family: 'Roboto', sans-serif;
         margin: 0;
         padding: 0;
-        background: linear-gradient(to bottom right, #e0f7fa, #fce4ec);
+        background: var(--header-to-body-bg);
         color: var(--text-color);
     }
 
@@ -23,7 +24,7 @@
 
     /* Header Styles */
     header {
-        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+        background: var(--background-color);
         color: white;
         text-align: center;
         padding: 2rem 0;
@@ -32,6 +33,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.3); /* Adds depth */
     }
 
     h1 {
