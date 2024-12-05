@@ -4,7 +4,7 @@ The longevity sport industry is an emerging field where participants compete to 
 
 ## Timeline
 
-### 2022 - Zolman Leaderboards
+### 2018 - Zolman Leaderboards
 
 [Dr. Oliver Zolman](https://www.youtube.com/watch?v=iRmZoCt3BWA), a medical doctor, healthcare consultant, and founder of 20one Consulting, created the first longevity leaderboards where both people and animals competed with each other for better biological aging clocks.
 
