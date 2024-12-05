@@ -6,6 +6,8 @@
         --header-to-body-bg: linear-gradient(120deg, #f9f9f9, #e6e6e6);
         --text-color: #333;
         --card-bg: #ffffff;
+        --main-action-color: linear-gradient(135deg, #4CAF50, #66BB6A);
+        --main-action-selected-color: linear-gradient(135deg, #388E3C, #4CAF50);
     }
 
     .tagline {
@@ -72,7 +74,7 @@
         margin-top: 2rem;
         padding: 1rem 2rem;
         font-size: 1.5rem;
-        background: linear-gradient(135deg, #4CAF50, #66BB6A); /* Green gradient */
+        background: var(--main-action-color);
         color: white;
         border: none;
         border-radius: 150px;
@@ -96,7 +98,7 @@
         }
 
         .join-game:hover {
-            background: linear-gradient(135deg, #388E3C, #4CAF50); /* Darker green gradient */
+            background: var(--main-action-selected-color);
             transform: scale(1.05); /* Slight enlarge effect */
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
         }
@@ -108,12 +110,12 @@
             transform: scale(0.9); /* Slightly reduce size */
             z-index: 1000;
             padding: 0.8rem 1.5rem;
-            background: linear-gradient(135deg, #4CAF50, #66BB6A); /* Match default gradient */
+            background: var(--main-action-color);
             transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
         }
 
             .join-game.scrolled:hover {
-                background: linear-gradient(135deg, #388E3C, #4CAF50); /* Darker gradient on hover */
+                background: var(--main-action-selected-color);
                 transform: scale(1.05);
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
             }
