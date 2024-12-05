@@ -8,6 +8,28 @@
         --card-bg: #ffffff;
     }
 
+    .tagline {
+        display: block;
+        font-size: 1.2rem;
+        margin-top: 0.3rem;
+        font-weight: 400;
+        color: #cccccc; /* Soft gray for subtle contrast */
+        letter-spacing: 1px;
+        animation: fadeInSlideUp 1s ease-out;
+    }
+
+    @keyframes fadeInSlideUp {
+        0% {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
@@ -202,8 +224,8 @@
 <header>
     <a href="/" class="header-link">
         <h1>Longevity World Cup 2025</h1>
+        <span class="tagline">Race To Longevity Escape Velocity 🚀</span>
     </a>
-    <p>Race To Longevity Escape Velocity🚀</p>
     <button onclick="window.location.href='/onboarding/join-game.html'" class="join-game">
         <strong>PLAY</strong>
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
