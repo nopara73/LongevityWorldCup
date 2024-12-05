@@ -117,7 +117,7 @@
         transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
     }
 
-    .join-game.scrolled {
+    .scrolled-button {
         position: fixed;
         bottom: 20px;
         right: 20px;
@@ -128,7 +128,7 @@
         transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
     }
 
-        .join-game.scrolled:hover {
+        .scrolled-button:hover {
             background: var(--main-action-selected-color);
             transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
@@ -251,23 +251,19 @@
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
         <strong class="join-game-end">GAME</strong>
     </button>
+    <button onclick="window.location.href='/onboarding/join-game.html'" class="join-game scrolled-button" aria-label="Play the Game" style="display: none;">
+        <strong>PLAY</strong>
+    </button>
 </header>
 
 <script>
-    const joinButton = document.querySelector('.join-game');
+    const scrolledJoinButton = document.querySelector('.scrolled-button');
 
-    // Event listener for scrolling to adjust the button
     window.addEventListener('scroll', function () {
-        const middleSpan = joinButton.querySelector('.join-game-middle');
-        const endStrong = joinButton.querySelector('.join-game-end');
         if (window.scrollY > 100) {
-            joinButton.classList.add('scrolled');
-            middleSpan.style.display = 'none';
-            endStrong.style.display = 'none';
+            scrolledJoinButton.style.display = 'block';
         } else {
-            joinButton.classList.remove('scrolled');
-            middleSpan.style.display = '';
-            endStrong.style.display = '';
+            scrolledJoinButton.style.display = 'none';
         }
     });
 </script>
