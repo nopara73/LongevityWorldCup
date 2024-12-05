@@ -86,41 +86,50 @@
         z-index: 1;
     }
 
-        .join-game::before {
-            content: '';
-            position: absolute;
-            top: -20px;
-            bottom: -20px;
-            left: -20px;
-            right: -20px;
-            background: transparent;
-            pointer-events: none;
-        }
+    .join-game-middle {
+        display: inline-block;
+        line-height: 1; /* Reset line height */
+        vertical-align: middle; /* Align vertically in relation to other text */
+        font-size: 1rem; /* Adjust font size to fit within the button */
+        position: relative;
+        top: -2px; /* Fine-tune vertical alignment */
+    }
 
-        .join-game:hover {
+    .join-game::before {
+        content: '';
+        position: absolute;
+        top: -20px;
+        bottom: -20px;
+        left: -20px;
+        right: -20px;
+        background: transparent;
+        pointer-events: none;
+    }
+
+    .join-game:hover {
+        background: var(--main-action-selected-color);
+        transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
+        transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    }
+
+    .join-game.scrolled {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        transform: scale(0.9); /* Slightly reduce size */
+        z-index: 1000;
+        padding: 0.8rem 1.5rem;
+        background: var(--main-action-color);
+        transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .join-game.scrolled:hover {
             background: var(--main-action-selected-color);
             transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
             transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
         }
-
-        .join-game.scrolled {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            transform: scale(0.9); /* Slightly reduce size */
-            z-index: 1000;
-            padding: 0.8rem 1.5rem;
-            background: var(--main-action-color);
-            transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
-        }
-
-            .join-game.scrolled:hover {
-                background: var(--main-action-selected-color);
-                transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
-                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
-                transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-            }
 
     @keyframes glow {
         0%, 100% {
