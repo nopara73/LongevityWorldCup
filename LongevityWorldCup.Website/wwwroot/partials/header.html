@@ -99,8 +99,9 @@
 
         .join-game:hover {
             background: var(--main-action-selected-color);
-            transform: scale(1.05); /* Slight enlarge effect */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+            transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
         }
 
         .join-game.scrolled {
@@ -116,8 +117,9 @@
 
             .join-game.scrolled:hover {
                 background: var(--main-action-selected-color);
-                transform: scale(1.05);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
+                transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
+                transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
             }
 
     @keyframes glow {
