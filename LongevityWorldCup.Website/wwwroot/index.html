@@ -50,7 +50,7 @@
 
         .dialog-content p {
             font-size: 1rem;
-            color: var(--text-color);
+            color: var(--dark-text-color);
             margin-bottom: 1.5rem;
             line-height: 1.5;
         }
@@ -60,7 +60,7 @@
             padding: 0.7rem 1.5rem;
             font-size: 1rem;
             background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8);
-            color: white;
+            color: var(--light-text-color);
             border: none;
             border-radius: 25px;
             cursor: pointer;
@@ -107,10 +107,10 @@
 
         .game-description {
             text-align: center;
-            margin-bottom: 4rem; /* Increased space between description and podium */
+            margin: 3rem; /* Increased space between description and podium */
             font-size: 0.9rem;
             line-height: 1.6;
-            color: var(--text-color);
+            color: var(--dark-text-color);
         }
 
         /* Common container for sections */
@@ -127,14 +127,14 @@
             /* Heading style */
             .section-container h3 {
                 font-size: 1.5rem;
-                color: var(--text-color);
+                color: var(--dark-text-color);
                 margin-bottom: 1rem;
             }
 
             /* Paragraph style */
             .section-container p {
                 font-size: 1rem;
-                color: var(--text-color);
+                color: var(--dark-text-color);
                 margin-bottom: 1.5rem;
                 line-height: 1.6;
             }
@@ -154,7 +154,7 @@
                 padding: 0.6rem 1.5rem;
                 font-size: 1rem;
                 background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
-                color: white;
+                color: var(--light-text-color);
                 border: none;
                 border-radius: 25px;
                 cursor: pointer;
@@ -183,7 +183,7 @@
             padding: 1rem 2rem;
             font-size: 1.2rem;
             background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
-            color: white;
+            color: var(--light-text-color);
             border: none;
             border-radius: 150px;
             cursor: pointer;
@@ -268,19 +268,20 @@
         .contribute-section {
             position: relative;
             overflow: hidden;
-            color: var(--text-color);
+            color: var(--light-text-color); /* Use light text color */
             padding: 2rem;
             border-radius: 15px;
             margin-top: 2rem;
+            background: var(--background-color); /* Use header's background */
         }
 
         .progress-overlay {
             position: absolute;
             top: 0;
             left: 0;
-            width: 0%; /* Will be updated via JavaScript */
+            width: 0%; /* Updated dynamically */
             height: 100%;
-            background: linear-gradient(90deg, rgba(255, 165, 0, 0.3), rgba(255, 223, 186, 0.1)); /* Light orange gradient */
+            background: var(--background-color);
             z-index: 1;
             transition: width 0.5s ease-in-out; /* Smooth animation for width changes */
         }
@@ -292,14 +293,34 @@
 
         .contribute-section h3,
         .contribute-section p {
-            color: var(--text-color);
+            color: var(--light-text-color);
             text-align: center;
         }
 
-        .newsletter-section h3 {
-            color: var(--text-color);
+        .newsletter-section {
+            background: var(--background-color); /* Use header's background */
+            color: var(--light-text-color); /* Use light text color */
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem auto;
             text-align: center;
         }
+
+            .newsletter-section h3,
+            .newsletter-section p {
+                color: var(--light-text-color); /* Ensure headings and text are readable */
+            }
+
+            .newsletter-section input[type="email"] {
+                background: var(--light-text-color); /* Light background for contrast */
+                color: var(--dark-text-color); /* Dark text inside the input */
+                border: none; /* Remove borders */
+                padding: 0.6rem 1rem;
+                width: 250px;
+                border-radius: 25px;
+                margin-right: 1rem;
+                box-sizing: border-box;
+            }
 
         .btc-status {
             font-size: 1.5rem;
@@ -359,16 +380,17 @@
         .countdown-section {
             position: relative;
             overflow: hidden;
-            color: var(--text-color);
+            color: var(--light-text-color);
             padding: 2rem;
             border-radius: 15px;
             margin-top: 2rem;
             text-align: center;
+            background: var(--background-color);
         }
 
             .countdown-section h3 {
                 font-size: 1.5rem;
-                color: var(--text-color);
+                color: var(--light-text-color);
                 margin-bottom: 1rem;
             }
 
@@ -381,7 +403,7 @@
 
         .countdown-section p {
             font-size: 1rem;
-            color: var(--text-color);
+            color: var(--light-text-color);
             line-height: 1.6;
         }
 

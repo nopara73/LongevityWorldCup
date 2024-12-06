@@ -83,7 +83,7 @@
 
             .autocomplete-items .autocomplete-active {
                 background-color: #0069d9;
-                color: white;
+                color: var(--light-text-color);
             }
 
             .autocomplete-items div {
@@ -94,7 +94,7 @@
 
                 .autocomplete-items div:hover {
                     background-color: #0069d9; /* Blue hover color from the picture */
-                    color: white; /* Ensure text is visible on blue background */
+                    color: var(--light-text-color); /* Ensure text is visible on blue background */
                 }
         /* Add a new class for the pointer cursor */
         .clickable {
@@ -117,7 +117,7 @@
 
         #proofImageContainer img {
             max-width: 200px;
-            border: 2px solid var(--text-color);
+            border: 2px solid var(--dark-text-color);
             border-radius: 8px;
         }
 
@@ -126,7 +126,7 @@
             top: 5px;
             right: 5px;
             background-color: rgba(255, 0, 0, 0.7);
-            color: white;
+            color: var(--light-text-color);
             border: none;
             border-radius: 3px;
             cursor: pointer;
@@ -975,11 +975,11 @@
                     let img = document.createElement('img');
                     img.src = proofPics[i];
                     img.alt = 'Proof Image ' + (i + 1);
-                    img.style = 'max-width: 100%; border: 2px solid var(--text-color); border-radius: 8px;';
+                    img.style = 'max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px;';
 
                     let removeButton = document.createElement('button');
                     removeButton.textContent = 'Remove';
-                    removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: white; border: none; border-radius: 3px; cursor: pointer;';
+                    removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
                     removeButton.addEventListener('click', function () {
                         proofPics.splice(i, 1);
                         updateProofImageContainer();

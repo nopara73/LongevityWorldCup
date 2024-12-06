@@ -1,10 +1,11 @@
 ﻿<style>
     :root {
-        --primary-color: #0288d1;
-        --secondary-color: #ec407a;
+        --primary-color: #00bcd4;
+        --secondary-color: #ff4081;
         --background-color: linear-gradient(120deg, #000000, #555555);
         --header-to-body-bg: linear-gradient(120deg, #f9f9f9, #e6e6e6);
-        --text-color: #333;
+        --dark-text-color: #333;
+        --light-text-color: white;
         --card-bg: #ffffff;
         --main-action-color: linear-gradient(135deg, #4CAF50, #66BB6A);
         --main-action-selected-color: linear-gradient(135deg, #388E3C, #4CAF50);
@@ -37,7 +38,7 @@
         margin: 0;
         padding: 0;
         background: var(--header-to-body-bg);
-        color: var(--text-color);
+        color: var(--dark-text-color);
     }
 
     main {
@@ -49,7 +50,7 @@
     /* Header Styles */
     header {
         background: var(--background-color);
-        color: white;
+        color: var(--light-text-color);
         text-align: center;
         padding: 2rem 0;
         position: relative;
@@ -79,7 +80,7 @@
         padding: 1rem 2rem;
         font-size: 1.5rem;
         background: var(--main-action-color);
-        color: white;
+        color: var(--light-text-color);
         border: none;
         border-radius: 150px;
         cursor: pointer;
@@ -161,7 +162,7 @@
         max-width: 400px;
         display: block;
         margin: 0 auto 1.5rem;
-        border: 4px solid var(--text-color);
+        border: 4px solid var(--dark-text-color);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         border-radius: 8px;
     }
@@ -180,7 +181,7 @@
         margin: 0.5rem 0;
         font-size: 1.2rem;
         background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
-        color: white;
+        color: var(--light-text-color);
         border: none;
         border-radius: 50px;
         cursor: pointer;
@@ -258,9 +259,10 @@
 
 <script>
     const scrolledJoinButton = document.querySelector('.scrolled-button');
+    const joinGameBtn = document.querySelector('.join-game');
 
     window.addEventListener('scroll', function () {
-        if (window.scrollY > 100) {
+        if (window.scrollY > 100 && window.getComputedStyle(joinGameBtn).display !== 'none') {
             scrolledJoinButton.style.display = 'block';
         } else {
             scrolledJoinButton.style.display = 'none';
