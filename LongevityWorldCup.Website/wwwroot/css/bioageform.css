@@ -15,7 +15,7 @@
         display: block;
         margin-top: 1rem;
         font-weight: bold;
-        color: var(--text-color);
+        color: var(--dark-text-color);
     }
 
     .bioageform input,
