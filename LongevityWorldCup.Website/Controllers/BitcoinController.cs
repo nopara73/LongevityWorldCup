@@ -73,6 +73,8 @@ namespace LongevityWorldCup.Website.Controllers
         [HttpGet("total-received")]
         public async Task<IActionResult> GetTotalReceived(string address)
         {
+            var cacheExpiration = TimeSpan.FromMinutes(3);
+
             var cacheKey = $"totalReceived_{address}";
             if (_cache.TryGetValue(cacheKey, out long cachedTotalReceived))
             {
@@ -80,49 +82,55 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             var client = _httpClientFactory.CreateClient();
-            long totalReceivedSatoshis;
+
+            async Task<long?> TryFallbackAsync()
+            {
+                var fallbackResponse = await client.GetAsync($"https://blockchain.info/rawaddr/{address}");
+                if (!fallbackResponse.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+
+                var jsonString = await fallbackResponse.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(jsonString);
+                return doc.RootElement.GetProperty("total_received").GetInt64();
+            }
 
             try
             {
-                // Primary API
                 var response = await client.GetAsync($"https://api.blockcypher.com/v1/btc/main/addrs/{address}");
                 if (response.IsSuccessStatusCode)
                 {
                     var jsonString = await response.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(jsonString);
-                    totalReceivedSatoshis = doc.RootElement.GetProperty("total_received").GetInt64();
+                    var totalReceivedSatoshis = doc.RootElement.GetProperty("total_received").GetInt64();
 
-                    // Cache the result for 1 minute
-                    _cache.Set(cacheKey, totalReceivedSatoshis, TimeSpan.FromMinutes(1));
-
+                    _cache.Set(cacheKey, totalReceivedSatoshis, cacheExpiration);
                     return Ok(new { totalReceivedSatoshis });
+                }
+                else
+                {
+                    var fallbackResult = await TryFallbackAsync();
+                    if (fallbackResult == null)
+                    {
+                        return StatusCode(500, "Both primary and fallback APIs failed for total received.");
+                    }
+
+                    _cache.Set(cacheKey, fallbackResult.Value, cacheExpiration);
+                    return Ok(new { totalReceivedSatoshis = fallbackResult.Value });
                 }
             }
             catch
             {
-                // Fallback API
-                try
-                {
-                    var fallbackResponse = await client.GetAsync($"https://blockchain.info/rawaddr/{address}");
-                    if (fallbackResponse.IsSuccessStatusCode)
-                    {
-                        var jsonString = await fallbackResponse.Content.ReadAsStringAsync();
-                        using var doc = JsonDocument.Parse(jsonString);
-                        totalReceivedSatoshis = doc.RootElement.GetProperty("total_received").GetInt64();
-
-                        // Cache the result for 1 minute
-                        _cache.Set(cacheKey, totalReceivedSatoshis, TimeSpan.FromMinutes(1));
-
-                        return Ok(new { totalReceivedSatoshis });
-                    }
-                }
-                catch
+                var fallbackResult = await TryFallbackAsync();
+                if (fallbackResult == null)
                 {
                     return StatusCode(500, "Both primary and fallback APIs failed for total received.");
                 }
-            }
 
-            return StatusCode(500, "Error fetching total received for address.");
+                _cache.Set(cacheKey, fallbackResult.Value, cacheExpiration);
+                return Ok(new { totalReceivedSatoshis = fallbackResult.Value });
+            }
         }
     }
 }
