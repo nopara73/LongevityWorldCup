@@ -298,8 +298,8 @@
         }
 
         .newsletter-section {
-            background: var(--background-color); /* Use header's background */
-            color: var(--light-text-color); /* Use light text color */
+            background: var(--card-bg);
+            color: var(--dark-text-color);
             border-radius: 15px;
             padding: 2rem;
             margin: 2rem auto;
@@ -308,19 +308,24 @@
 
             .newsletter-section h3,
             .newsletter-section p {
-                color: var(--light-text-color); /* Ensure headings and text are readable */
+                color: var(--dark-text-color); /* Ensure headings and text are readable */
             }
 
             .newsletter-section input[type="email"] {
-                background: var(--light-text-color); /* Light background for contrast */
-                color: var(--dark-text-color); /* Dark text inside the input */
-                border: none; /* Remove borders */
+                color: var(--dark-text-color);
+                border: 2px solid var(--primary-color);
+                transition: border-color 0.3s ease;
+                outline: none;
                 padding: 0.6rem 1rem;
                 width: 250px;
                 border-radius: 25px;
                 margin-right: 1rem;
                 box-sizing: border-box;
             }
+
+                .newsletter-section input[type="email"]:focus {
+                    border-color: var(--secondary-color);
+                }
 
         .btc-status {
             font-size: 1.5rem;
