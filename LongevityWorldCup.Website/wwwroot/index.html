@@ -268,11 +268,11 @@
         .contribute-section {
             position: relative;
             overflow: hidden;
-            color: var(--light-text-color); /* Use light text color */
+            color: var(--dark-text-color); /* Use light text color */
             padding: 2rem;
             border-radius: 15px;
             margin-top: 2rem;
-            background: var(--background-color); /* Use header's background */
+            background: var(--card-bg);
         }
 
         .progress-overlay {
@@ -281,7 +281,7 @@
             left: 0;
             width: 0%; /* Updated dynamically */
             height: 100%;
-            background: var(--background-color);
+            background: linear-gradient(90deg, rgba(255, 165, 0, 0.3), rgba(255, 223, 186, 0.1)); /* Light orange gradient */
             z-index: 1;
             transition: width 0.5s ease-in-out; /* Smooth animation for width changes */
         }
@@ -293,7 +293,7 @@
 
         .contribute-section h3,
         .contribute-section p {
-            color: var(--light-text-color);
+            color: var(--dark-text-color);
             text-align: center;
         }
 
@@ -380,17 +380,17 @@
         .countdown-section {
             position: relative;
             overflow: hidden;
-            color: var(--light-text-color);
+            color: var(--dark-text-color);
             padding: 2rem;
             border-radius: 15px;
             margin-top: 2rem;
             text-align: center;
-            background: var(--background-color);
+            background: var(--card-bg);
         }
 
             .countdown-section h3 {
                 font-size: 1.5rem;
-                color: var(--light-text-color);
+                color: var(--dark-text-color);
                 margin-bottom: 1rem;
             }
 
@@ -403,7 +403,7 @@
 
         .countdown-section p {
             font-size: 1rem;
-            color: var(--light-text-color);
+            color: var(--dark-text-color);
             line-height: 1.6;
         }
 
