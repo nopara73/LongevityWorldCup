@@ -52,7 +52,14 @@ namespace LongevityWorldCup.Website
 
             // Enable default file serving (index.html) and static file serving
             app.UseDefaultFiles();  // Serve default files like index.html
-            app.UseStaticFiles();   // Serve static files
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                OnPrepareResponse = ctx =>
+                {
+                    ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000";
+                    ctx.Context.Response.Headers.Expires = DateTime.UtcNow.AddYears(1).ToString("R");
+                }
+            });
 
             app.UseAuthorization();
 
