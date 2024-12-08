@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <!--HEAD-->
+    <link rel="preload" href="/css/bioageform.css" as="style">
     <link rel="stylesheet" href="/css/bioageform.css">
     <style>
         /* Hide the join-game button in the header */
@@ -370,10 +371,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                    <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                                                                                            `;
+                                                                                                                                                                                                                                                                                                                                                                                                                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                                                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
