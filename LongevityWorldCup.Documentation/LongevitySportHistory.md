@@ -6,7 +6,7 @@ The longevity sport industry is an emerging field where participants compete to 
 
 ### 2018 - Zolman Leaderboards
 
-[Dr. Oliver Zolman](https://www.youtube.com/watch?v=iRmZoCt3BWA), a medical doctor, healthcare consultant, and founder of 20one Consulting, created the first longevity leaderboards where both people and animals competed with each other for better biological aging clocks.
+[Dr. Oliver Zolman](https://www.youtube.com/watch?v=iRmZoCt3BWA), a medical doctor, healthcare consultant, and founder of 20one Consulting, created the first longevity leaderboards where both people and animals competed with each other for better biological aging clocks. Participants were required to publicly share biomarker evidence, adhering to a 15-point statistical algorithm known as the Zolman Biological Age Marker (Z-BAM) criteria. These leaderboards were carefully verified by third parties to prevent data manipulation and maintain scientific credibility.
 
 ![Zolman Leaderboards](https://github.com/user-attachments/assets/1b22448f-438d-49cb-a409-0869b301c6e9)
 
