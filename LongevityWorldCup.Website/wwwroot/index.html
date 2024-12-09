@@ -436,7 +436,7 @@
         </div>
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
-            <button id="viewAllAthletesBtn" onclick="window.location.href='/leaderboard/leaderboard.html'" class="rankings-btn">
+            <button id="viewAllAthletesBtn" onclick="window.location.href='/leaderboard/leaderboard.html'" class="rankings-btn" aria-label="View all athletes on the leaderboard">
                 VIEW ALL ATHLETES
             </button>
         </div>
@@ -454,7 +454,7 @@
                     Raised: <span id='current-btc'>0.23</span> BTC / Target: <span id='goal-btc'>1</span> BTC
                 </div>
                 <div class="btc-address">
-                    <a id="btcAddressLink" href="#" target="_blank" rel="noopener">
+                    <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
                         <!-- Bitcoin address will be inserted here by JavaScript -->
                     </a>
                     <span id="copiedText" style="display: none;">
@@ -475,7 +475,7 @@
             </p>
             <form id="newsletter-form">
                 <input type="email" id="emailInput" placeholder="why_am_i_doing_this@help.com" required>
-                <button type="submit" class="enhanced-subscribe-btn">
+                <button type="submit" class="enhanced-subscribe-btn" aria-label="Subscribe to the Longevity World Cup newsletter">
                     <i class="fas fa-paper-plane"></i> Subscribe
                 </button>
             </form>
