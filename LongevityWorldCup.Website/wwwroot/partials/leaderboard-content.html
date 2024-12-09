@@ -1112,14 +1112,14 @@
                         <th>Athlete</th>
                         <th>
                             Sponsor<br />
-                            <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" style="color: #999; text-decoration: underline; cursor: pointer;"
+                            <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
                                onmouseover="this.style.color='var(--secondary-color)';"
                                onmouseout="this.style.color='#999';">
                                 <span style="font-size: 0.8rem;">(coming soon)</span>
                             </a>
                         </th>
                         <th>
-                            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
+                            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
                                onmouseover="this.style.color='var(--secondary-color)';"
                                onmouseout="this.style.color='var(--primary-color)';">
                                 Age Reduction
@@ -1157,10 +1157,10 @@
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
                     <div class="athlete-links">
-                        <a id="personalLink" href="#" target="_blank" class="modal-link">
+                        <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link">
                             <i class="fa fa-link"></i> Personal Page
                         </a>
-                        <a id="mediaContact" href="#" target="_blank" class="modal-link">
+                        <a id="mediaContact" href="#" target="_blank" rel="noopener" class="modal-link">
                             <i class="fa fa-envelope"></i> Media Contact
                         </a>
                     </div>
@@ -1382,7 +1382,7 @@
                 <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
                 <div>
                     <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
-                    ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
+                    ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon">
                     <i class="fa fa-link"></i>
                     </a>` : ''}
                     ${renderMediaContact(athlete.mediaContact, true)}
@@ -1440,7 +1440,7 @@
             <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy" /> </td>
             <td data-label="Athlete">
                 <span class="athlete-name">${athlete.name}</span>
-                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" class="personal-link-icon">
+                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon">
                 <i class="fa fa-link"></i>
                 </a>` : ''}
             </td>
@@ -1595,7 +1595,7 @@
                 ? `<a href="mailto:${contact}" class="personal-link-icon" style="margin-left: 0.2rem;">
                     ${getIcon(contact)}
                    </a>`
-                : `<a href="${contact}" target="_blank" class="personal-link-icon" style="margin-left: 0.2rem;">
+                : `<a href="${contact}" target="_blank" rel="noopener"  class="personal-link-icon" style="margin-left: 0.2rem;">
                     ${getIcon(contact)}
                    </a>`
                 }`;
@@ -1604,7 +1604,7 @@
             ? `<a href="mailto:${contact}" class="media-contact">
                 ${getIcon(contact)}
                </a>`
-            : `<a href="${contact}" target="_blank" class="media-contact">
+            : `<a href="${contact}" target="_blank" rel="noopener"  class="media-contact">
                 ${getIcon(contact)}
                </a>`
             }`;
