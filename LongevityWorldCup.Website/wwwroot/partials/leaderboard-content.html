@@ -1161,10 +1161,10 @@
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
                     <div class="athlete-links">
-                        <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link">
+                        <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
                             <i class="fa fa-link"></i> Personal Page
                         </a>
-                        <a id="mediaContact" href="#" target="_blank" rel="noopener" class="modal-link">
+                        <a id="mediaContact" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Contact the athlete">
                             <i class="fa fa-envelope"></i> Media Contact
                         </a>
                     </div>
@@ -1386,7 +1386,7 @@
                 <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
                 <div>
                     <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
-                    ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon">
+                    ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page">
                     <i class="fa fa-link"></i>
                     </a>` : ''}
                     ${renderMediaContact(athlete.mediaContact, true)}
@@ -1444,7 +1444,7 @@
             <td data-label="Portrait"> <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy" /> </td>
             <td data-label="Athlete">
                 <span class="athlete-name">${athlete.name}</span>
-                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon">
+                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page">
                 <i class="fa fa-link"></i>
                 </a>` : ''}
             </td>
@@ -1596,19 +1596,19 @@
 
         if (isPodium) {
             return `${isEmail
-                ? `<a href="mailto:${contact}" class="personal-link-icon" style="margin-left: 0.2rem;">
+                ? `<a href="mailto:${contact}" aria-label="Email ${contact} class="personal-link-icon" style="margin-left: 0.2rem;">
                     ${getIcon(contact)}
                    </a>`
-                : `<a href="${contact}" target="_blank" rel="noopener"  class="personal-link-icon" style="margin-left: 0.2rem;">
+                : `<a href="${contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;">
                     ${getIcon(contact)}
                    </a>`
                 }`;
         }
         else return `${isEmail
-            ? `<a href="mailto:${contact}" class="media-contact">
+            ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}">
                 ${getIcon(contact)}
                </a>`
-            : `<a href="${contact}" target="_blank" rel="noopener"  class="media-contact">
+            : `<a href="${contact}" target="_blank" rel="noopener" class="media-contact aria-label="Contact the athlete">
                 ${getIcon(contact)}
                </a>`
             }`;
