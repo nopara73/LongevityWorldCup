@@ -819,8 +819,6 @@
         }
     }
 
-
-
     @media (max-width: 768px) {
         .podium {
             display: grid;
@@ -884,35 +882,32 @@
         }
     }
 
-  
-
     @media (max-width: 768px) {
-    .sidebar {
-        display: none; /* Hidden by default */
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 70%; /* Adjust width to 70% */
-        max-width: 300px;
-        height: 100%;
-        background-color: var(--card-bg);
-        z-index: 999; /* Ensure it stays above other elements */
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        overflow-y: auto;
-        transform: translateX(-100%); /* Slide off-screen by default */
-        transition: transform 0.3s ease-in-out;
-    }
+        .sidebar {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 70%; /* Adjust width to 70% */
+            max-width: 300px;
+            height: 100%;
+            background-color: var(--card-bg);
+            z-index: 999; /* Ensure it stays above other elements */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            transform: translateX(-100%); /* Slide off-screen by default */
+            transition: transform 0.3s ease-in-out;
+        }
 
-    .sidebar.expanded {
-        display: block;
-        transform: translateX(0); /* Slide into view */
-    }
+            .sidebar.expanded {
+                display: block;
+                transform: translateX(0); /* Slide into view */
+            }
 
-    .content {
-        margin-left: 0; /* No margin adjustment on mobile */
+        .content {
+            margin-left: 0; /* No margin adjustment on mobile */
+        }
     }
-}
-
 
     @media (max-width: 768px) {
         .leaderboard {
@@ -991,8 +986,6 @@
                 }
     }
 
-
-
     @media (max-width: 768px) {
         .search-wrapper {
             display: flex; /* Ensure items are horizontally aligned */
@@ -1019,7 +1012,6 @@
             margin-top: 1rem; /* Increase space for all labels */
         }
     }
-
 
     @keyframes fadeIn {
         from {
@@ -1147,7 +1139,7 @@
                 <span class="close">&times;</span>
 
                 <div class="athlete-profile">
-                    <img id="modalProfilePic" src="" alt="Athlete Profile Picture" class="illustration" />
+                    <img id="modalProfilePic" src="" alt="Athlete Profile Picture" class="illustration" loading="lazy" />
                     <h2 id="athleteName"></h2>
                     <p id="athleteBio"></p>
                     <div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
@@ -1560,7 +1552,7 @@
         const enlargedImg = document.createElement('div');
         enlargedImg.classList.add('enlarged-portrait');
         enlargedImg.innerHTML = `
-        <img src="${imgElement.src}" alt="${imgElement.alt}">
+        <img src="${imgElement.src}" alt="${imgElement.alt}" loading="lazy">
         <span class="close-btn">&times;</span>
     `;
         document.body.appendChild(enlargedImg);
@@ -2507,6 +2499,7 @@
         const profilePic = document.getElementById('modalProfilePic');
         profilePic.src = fullAthleteData.ProfilePic;
         profilePic.alt = `${fullAthleteData.Name} Profile Picture`;
+        profilePic.loading = 'lazy';
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
@@ -2764,7 +2757,7 @@
         fullAthleteData.Proofs.forEach(proofUrl => {
             const proofItem = document.createElement('div');
             proofItem.classList.add('proof-item');
-            proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image">`;
+            proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image" loading="lazy">`;
             proofsGallery.appendChild(proofItem);
 
             proofItem.querySelector('img').addEventListener('click', function () {

@@ -140,7 +140,7 @@
         <h2>1. Character Creation</h2>
         <form id="descriptionForm" class="bioageform">
             <div style="text-align: center;">
-                <img src="../assets/content-images/reaper.jpg" alt="Grim Reaper" class="illustration" id="illustrationImage">
+                <img src="../assets/content-images/reaper.jpg" alt="Grim Reaper" class="illustration" id="illustrationImage" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
             <div id="shadowsText" style="display:none">
@@ -360,6 +360,7 @@
                     document.querySelector('h2').textContent = "1. Character Creation";
                     illustrationImage.src = "../assets/content-images/reaper.jpg";
                     illustrationImage.alt = "Grim Reaper";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('shadowsText').style.display = '';
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
@@ -423,6 +424,7 @@
                     document.querySelector('h2').textContent = "2. Finding Your Why";
                     illustrationImage.src = "../assets/content-images/why.jpg";
                     illustrationImage.alt = "Eye";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('whyText').style.display = '';
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
@@ -446,6 +448,7 @@
                     document.querySelector('h2').textContent = "3. The Price of Glory";
                     illustrationImage.src = "../assets/content-images/cr7.jpg";
                     illustrationImage.alt = "Cristiano Ronaldo";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
@@ -463,6 +466,7 @@
                     document.querySelector('h2').textContent = "4. Almost There";
                     illustrationImage.src = "../assets/content-images/headshot.jpg";
                     illustrationImage.alt = "Headshot";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('profilePicText').style.display = '';
                     document.getElementById('profileUploadSection').style.display = '';
 
@@ -491,6 +495,7 @@
                     document.querySelector('h2').textContent = "5. Don't Trust Verify";
                     illustrationImage.src = "../assets/content-images/proof.jpg";
                     illustrationImage.alt = "Proof Image";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
 
@@ -556,6 +561,7 @@
                     document.querySelector('h2').textContent = "6. Final Details";
                     illustrationImage.src = "../assets/content-images/finish.jpg";
                     illustrationImage.alt = "Finish Line";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
 
@@ -579,6 +585,7 @@
                     document.querySelector('h2').textContent = "5. Application";
                     illustrationImage.src = "../assets/content-images/account-creation.jpg";
                     illustrationImage.alt = "Application";
+                    illustrationImage.loading = "lazy";
                     document.getElementById('congratsText').style.display = '';
                     document.getElementById('applyDetails').style.display = '';
 
