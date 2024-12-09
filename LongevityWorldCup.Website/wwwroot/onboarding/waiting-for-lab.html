@@ -32,6 +32,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const holding = urlParams.get('holding');
             const img = document.getElementById('waiting-image');
+            img.loading = "lazy";
 
             if (img) { // Ensure img element exists
                 if (holding === 'beer') {
@@ -57,7 +58,8 @@
             <img src="../assets/content-images/lab.jpg"
                  alt="Waiting"
                  id="waiting-image"
-                 class="illustration">
+                 class="illustration"
+                 loading="lazy">
         </div>
         <p>Find the nearest lab and request a blood test that includes the following biomarkers. These will help us calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank">PhenoAge</a>:</p>
         <ul>
