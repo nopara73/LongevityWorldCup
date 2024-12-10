@@ -6,11 +6,11 @@
 https://www.longevityworldcup.com/
 
 ## Roadmap
-- [x] Sept: Inception
-- [x] Oct: Design
-- [ ] Nov: Code
-- [ ] Dec: Communication
-- [ ] January 1st: Launch
+- [x] 2024 Sept: Inception
+- [x] 2024 Oct: Design
+- [ ] 2024 Nov-Dec: Code
+- [ ] 2025 Jan - May: Beta Testing
+- [ ] 2025 May 1st: Launch
 
 ## Build From Source Code
 
