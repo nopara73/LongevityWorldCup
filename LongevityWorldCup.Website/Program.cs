@@ -1,4 +1,5 @@
 using LongevityWorldCup.Website.Middleware;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.Text.Json;
 
 namespace LongevityWorldCup.Website
@@ -12,6 +13,13 @@ namespace LongevityWorldCup.Website
             InitializeDefaultConfig(); // Ensure default config file is created
 
             var builder = WebApplication.CreateBuilder(args);
+
+            // Configure Kestrel to use settings from appsettings.json
+            builder.WebHost.ConfigureKestrel((context, options) =>
+            {
+                var kestrelConfig = context.Configuration.GetSection("Kestrel");
+                options.Configure(kestrelConfig);
+            });
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
