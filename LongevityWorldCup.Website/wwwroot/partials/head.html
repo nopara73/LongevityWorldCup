@@ -32,6 +32,7 @@
 
 <script src="/js/misc.js"></script>
 
+<!-- Structured Data -->
 <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -39,19 +40,40 @@
         "name": "Longevity World Cup",
         "description": "Too old for your sport? Not this one! In the Longevity World Cup, you don't age out - you age in. Reverse your age and rise on the leaderboard!",
         "startDate": "2025-01-21",
-        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode"
-        "eventStatus": "https://schema.org/EventScheduled"
+        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+        "eventStatus": "https://schema.org/EventScheduled",
         "location": {
             "@type": "VirtualLocation",
             "name": "Arena of Immortal Combat",
             "url": "https://longevityworldcup.com"
         },
-        "image": "https://longevityworldcup.com/assets/og-image.png"
+        "image": "https://longevityworldcup.com/assets/og-image.png",
         "organizer": {
             "@type": "Person",
             "name": "nopara73",
             "email": "longevityworldcup@gmail.com",
             "url": "https://github.com/nopara73/"
+        }
+    }
+</script>
+
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Longevity World Cup",
+        "url": "https://longevityworldcup.com",
+        "logo": "https://longevityworldcup.com/assets/logo.png",
+        "description": "Too old for your sport? Not this one! In the Longevity World Cup, you don't age out - you age in. Reverse your age and rise on the leaderboard!",
+        "sameAs": [
+            "https://www.facebook.com/longevityworldcup",
+            "https://www.twitter.com/longevityworldc"
+        ],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "Customer Support",
+            "areaServed": "Global",
+            "availableLanguage": ["English", "Hungarian"]
         }
     }
 </script>
