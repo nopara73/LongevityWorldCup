@@ -31,19 +31,26 @@
         document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             const holding = urlParams.get('holding');
-            const img = document.getElementById('waiting-image');
-            img.loading = "lazy";
 
-            if (img) { // Ensure img element exists
-                if (holding === 'beer') {
-                    img.src = '../assets/content-images/beer.jpg';
-                } else if (holding === 'beef') {
-                    img.src = '../assets/content-images/beef.jpg';
-                } else if (holding === 'veggies') {
-                    img.src = '../assets/content-images/veggies.jpg';
-                } else {
-                    img.src = '../assets/content-images/lab.jpg'; // Default image if no match
-                }
+            const waitingImage = document.getElementById('waitingImage');
+            const waitingPicture = document.getElementById('waitingPicture');
+            const webpSource = waitingPicture.querySelector('source[type="image/webp"]');
+            const jpegSource = waitingPicture.querySelector('source[type="image/jpeg"]');
+
+            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage) {
+                webpSource.srcset = `../assets/content-images/${imageName}.webp`;
+                jpegSource.srcset = `../assets/content-images/${imageName}.${format}`;
+                waitingImage.src = `../assets/content-images/${imageName}.${format}`;
+            }
+
+            if (holding === 'beer') {
+                updateIllustration('beer', 'jpg', webpSource, jpegSource, waitingImage);
+            } else if (holding === 'beef') {
+                updateIllustration('beef', 'jpg', webpSource, jpegSource, waitingImage);
+            } else if (holding === 'veggies') {
+                updateIllustration('veggies', 'jpg', webpSource, jpegSource, waitingImage);
+            } else {
+                updateIllustration('lab', 'jpg', webpSource, jpegSource, waitingImage);
             }
         });
     </script>
@@ -55,11 +62,11 @@
         <h2>Your Lab Awaits <i class="fas fa-vial"></i></h2>
         <!-- Create distinct URLs or manually defined versions for each scenario -->
         <div style="text-align: center;">
-            <img src="../assets/content-images/lab.jpg"
-                 alt="Waiting"
-                 id="waiting-image"
-                 class="illustration"
-                 loading="lazy">
+            <picture id="waitingPicture">
+                <source srcset="../assets/content-images/bean-waiting.webp" type="image/webp">
+                <source srcset="../assets/content-images/bean-waiting.png" type="image/jpeg">
+                <img id="waitingImage" src="../assets/content-images/bean-waiting.png" alt="Waiting" class="illustration" loading="lazy">
+            </picture>
         </div>
         <p>Find the nearest lab and request a blood test that includes the following biomarkers. These will help us calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener">PhenoAge</a>:</p>
         <ul>

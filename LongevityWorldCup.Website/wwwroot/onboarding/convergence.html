@@ -140,11 +140,12 @@
         <h2>1. Character Creation</h2>
         <form id="descriptionForm" class="bioageform">
             <div style="text-align: center;">
-                <img src="../assets/content-images/reaper.jpg"
-                     alt="Grim Reaper"
-                     class="illustration"
-                     id="illustrationImage"
-                     loading="lazy">
+                <picture id="illustrationPicture" style="display:''">
+                    <source srcset="../assets/content-images/reaper.webp" type="image/webp">
+                    <source srcset="../assets/content-images/reaper.jpg" type="image/jpeg">
+                    <img id="illustrationImage" src="../assets/content-images/reaper.jpg" alt="Grim Reaper" class="illustration" loading="lazy">
+                </picture>
+                <img style="display:none" id="profileImage" src="" alt="Profile Picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
             <div id="shadowsText" style="display:none">
@@ -353,6 +354,19 @@
 
             // Reset the illustrationImage to be clickable or not based on stage
             const illustrationImage = document.getElementById('illustrationImage');
+            const illustrationPicture = document.getElementById('illustrationPicture');
+            illustrationPicture.style.display = '';
+            const profileImage = document.getElementById('profileImage');
+            profileImage.style.display = 'none';
+            const webpSource = illustrationPicture.querySelector('source[type="image/webp"]');
+            const jpegSource = illustrationPicture.querySelector('source[type="image/jpeg"]');
+
+            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage) {
+                webpSource.srcset = `../assets/content-images/${imageName}.webp`;
+                jpegSource.srcset = `../assets/content-images/${imageName}.${format}`;
+                illustrationImage.src = `../assets/content-images/${imageName}.${format}`;
+            }
+
             const nextButton = document.getElementById('nextButton');
 
             // Remove 'clickable' class initially
@@ -362,7 +376,7 @@
                 case 1:
                     // Stage 1: Character Creation
                     document.querySelector('h2').textContent = "1. Character Creation";
-                    illustrationImage.src = "../assets/content-images/reaper.jpg";
+                    updateIllustration("reaper", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Grim Reaper";
                     illustrationImage.loading = "lazy";
                     document.getElementById('shadowsText').style.display = '';
@@ -426,7 +440,7 @@
                 case 2:
                     // Stage 2: Finding Your Why
                     document.querySelector('h2').textContent = "2. Finding Your Why";
-                    illustrationImage.src = "../assets/content-images/why.jpg";
+                    updateIllustration("why", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Eye";
                     illustrationImage.loading = "lazy";
                     document.getElementById('whyText').style.display = '';
@@ -450,7 +464,7 @@
                 case 3:
                     // Stage 3: The Price of Glory
                     document.querySelector('h2').textContent = "3. The Price of Glory";
-                    illustrationImage.src = "../assets/content-images/cr7.jpg";
+                    updateIllustration("cr7", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Cristiano Ronaldo";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
@@ -468,7 +482,7 @@
                 case 4:
                     // Stage 4: Almost There
                     document.querySelector('h2').textContent = "4. Almost There";
-                    illustrationImage.src = "../assets/content-images/headshot.jpg";
+                    updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Headshot";
                     illustrationImage.loading = "lazy";
                     document.getElementById('profilePicText').style.display = '';
@@ -485,7 +499,9 @@
 
                     // Check if there is a profile picture in the global variable
                     if (profilePic) {
-                        illustrationImage.src = profilePic;
+                        illustrationPicture.style.display = 'none';
+                        profileImage.style.display = '';
+                        profileImage.src = profilePic;
                         // Enable Next button if profile picture exists
                         nextButton.disabled = false;
                         nextButton.classList.remove('disabled-button');
@@ -497,7 +513,7 @@
                 case 5:
                     // Stage 5: Don't Trust Verify
                     document.querySelector('h2').textContent = "5. Don't Trust Verify";
-                    illustrationImage.src = "../assets/content-images/proof.jpg";
+                    updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Proof Image";
                     illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
@@ -563,7 +579,7 @@
                 case 6:
                     // Stage 6: Final Details
                     document.querySelector('h2').textContent = "6. Final Details";
-                    illustrationImage.src = "../assets/content-images/finish.jpg";
+                    updateIllustration("finish", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Finish Line";
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
@@ -587,7 +603,7 @@
                 case 7:
                     // Stage 7: Application
                     document.querySelector('h2').textContent = "5. Application";
-                    illustrationImage.src = "../assets/content-images/account-creation.jpg";
+                    updateIllustration("account-creation", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Application";
                     illustrationImage.loading = "lazy";
                     document.getElementById('congratsText').style.display = '';
@@ -951,7 +967,9 @@
                             height: 768,
                         });
                         const croppedImageDataURL = croppedCanvas.toDataURL('image/png');
-                        document.getElementById('illustrationImage').src = croppedImageDataURL;
+                        document.getElementById('illustrationPicture').style.display = 'none';
+                        document.getElementById('profileImage').style.display = '';
+                        document.getElementById('profileImage').src = croppedImageDataURL;
 
                         profilePic = croppedImageDataURL;
 
