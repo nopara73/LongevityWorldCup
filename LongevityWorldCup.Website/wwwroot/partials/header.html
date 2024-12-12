@@ -268,12 +268,23 @@
     .no-scroll {
         overflow: hidden;
     }
+
+    @media (max-width: 768px) {
+        header {
+            padding: 1.5rem 0;
+        }
+
+        h1 {
+            font-size: 2.5rem; /* Reduce font size */
+            padding: 0 1rem; /* Adjust padding */
+        }
+    }
 </style>
 
-<header>
+<header role="banner">
     <a href="/" class="header-link">
         <img src="/assets/favicon-128x128.png"
-             alt="Longevity World Cup Logo"
+             alt="Longevity World Cup logo, a phoenix symbolizing a new life"
              class="main-logo-image"
              loading="lazy">
         <h1>Longevity World Cup</h1>
@@ -295,12 +306,27 @@
 <script>
     const scrolledJoinButton = document.querySelector('.scrolled-button');
     const joinGameBtn = document.querySelector('.join-game');
+    let lastKnownScrollPosition = 0;
+    let ticking = false;
 
     window.addEventListener('scroll', function () {
-        if (window.scrollY > 100 && window.getComputedStyle(joinGameBtn).display !== 'none') {
+        lastKnownScrollPosition = window.scrollY;
+
+        if (!ticking) {
+            window.requestAnimationFrame(function () {
+                handleScroll(lastKnownScrollPosition);
+                ticking = false;
+            });
+
+            ticking = true;
+        }
+    });
+
+    function handleScroll(scrollPos) {
+        if (scrollPos > 100 && window.getComputedStyle(joinGameBtn).display !== 'none') {
             scrolledJoinButton.style.display = 'block';
         } else {
             scrolledJoinButton.style.display = 'none';
         }
-    });
+    }
 </script>
