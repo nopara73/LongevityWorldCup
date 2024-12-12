@@ -3,7 +3,7 @@
   "short_name": "LWC",
   "description": "The official site of the Longevity World Cup, showcasing leaderboards, events, and latest updates.",
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
