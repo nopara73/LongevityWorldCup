@@ -432,7 +432,7 @@
             <div id="countdown">
                 <!-- The countdown timer will be inserted here by JavaScript -->
             </div>
-            <p>The current leaderboard is illustrative only. Real competition begins on January 21.</p>
+            <p>The current leaderboard is illustrative only. Real competition begins on May 1, 2025.</p>
         </div>
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
@@ -675,16 +675,12 @@
         // Countdown Timer Script
         (function () {
             const now = new Date();
-            let targetDate = new Date(now.getFullYear(), 0, 21, 0, 0, 0); // January 21 of current year
-
-            // If target date is in the past, set to next year
-            if (now >= targetDate) {
-                targetDate = new Date(now.getFullYear() + 1, 0, 21, 0, 0, 0);
-            }
-
-            targetDate = targetDate.getTime();
-
+            const targetDate = new Date(2025, 4, 1, 0, 0, 0).getTime(); // May 1, 2025
             const countdownElement = document.getElementById('countdown');
+            const leaderboardButton = document.getElementById('viewAllAthletesBtn'); // Example element
+            const leaderboardContent = document.querySelector('.leaderboard-content'); // Replace with actual leaderboard container class or id
+
+            let countdownInterval; // Declare the variable outside the function
 
             const updateCountdown = () => {
                 const now = new Date().getTime();
@@ -694,22 +690,48 @@
                     // Countdown has finished
                     clearInterval(countdownInterval);
                     countdownElement.innerHTML = "The competition has started!";
+
+                    // Hide the "Competition Starts In:" header and illustrative text
+                    const countdownHeader = document.querySelector('.countdown-section h2'); // Replace with actual selector for the header
+                    const illustrativeText = document.querySelector('.countdown-section p'); // Replace with actual selector for the text
+                    if (countdownHeader) countdownHeader.style.display = 'none';
+                    if (illustrativeText) illustrativeText.style.display = 'none';
+
+                    // Show competition-related content
+                    if (leaderboardButton) leaderboardButton.style.display = 'block';
+                    if (leaderboardContent) leaderboardContent.style.display = 'block';
+
                     return;
                 }
 
-                // Time calculations for days, hours, minutes and seconds
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                // Time calculations for months, days, hours, minutes, and seconds
+                const nowDate = new Date();
+                const targetDateObj = new Date(targetDate);
+
+                const months =
+                    targetDateObj.getFullYear() * 12 +
+                    targetDateObj.getMonth() -
+                    (nowDate.getFullYear() * 12 + nowDate.getMonth());
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24)) % 30; // Approximate days excluding full months
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
+                // Build the countdown string based on non-zero values
+                let countdownText = '';
+                if (months > 0) countdownText += `${months}mo `;
+                if (days > 0 || months > 0) countdownText += `${days}d `;
+                if (hours > 0 || days > 0 || months > 0) countdownText += `${hours}h `;
+                if (minutes > 0 || hours > 0 || days > 0 || months > 0) countdownText += `${minutes}m `;
+                countdownText += `${seconds}s`; // Always show seconds
+
                 // Display the result
-                countdownElement.innerHTML = days + "d " + hours + "h " + minutes + "m " + seconds + "s";
+                countdownElement.innerHTML = countdownText.trim();
             };
 
-            // Update the countdown every 1 second
-            updateCountdown(); // initial call
-            const countdownInterval = setInterval(updateCountdown, 1000);
+            // Initial call and set interval
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000); // Assign the interval here
         })();
     </script>
 </body>
