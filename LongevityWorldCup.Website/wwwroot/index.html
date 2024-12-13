@@ -169,17 +169,6 @@
                     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
                 }
 
-        /* BTC address text */
-        .btc-address {
-            font-size: 1rem;
-            color: var(--primary-color);
-            font-weight: bold;
-            word-break: break-all;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
         /* Styling for the VIEW FULL RANKINGS button */
         .rankings-btn {
             padding: 1rem 2rem;
@@ -336,13 +325,18 @@
             margin: 2rem 0;
         }
 
+        /* BTC address text */
         .btc-address {
+            font-size: 1rem;
+            color: var(--primary-color);
+            font-weight: bold;
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-wrap: wrap;
-            width: 80%; /* Adjust percentage as needed */
-            max-width: 500px; /* Prevent it from growing too large */
+            flex-wrap: nowrap;
+            overflow: hidden; /* Ensures content doesn't overflow visually */
+            white-space: nowrap; /* Prevent wrapping */
+            max-width: 500px; /* Prevent it from stretching too large */
             margin: 1rem auto; /* Center horizontally */
             background-color: rgba(211, 211, 211, 0.15); /* Light Gray */
             padding: 0.5rem 1rem;
