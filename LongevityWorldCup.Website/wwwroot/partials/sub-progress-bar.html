@@ -1,112 +1,104 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Sub Progress Bar</title>
-    <style>
-        .sub-progress-container {
-            width: 80%;
-            max-width: 640px;
-            margin: 10px auto 40px;
-            position: relative;
-            padding: 20px 5px 10px 5px;
-            background: rgba(0, 188, 212, 0.05);
-            border-radius: 15px;
+﻿<meta charset="UTF-8">
+<title>Sub Progress Bar</title>
+<style>
+    .sub-progress-container {
+        width: 80%;
+        max-width: 640px;
+        margin: 10px auto 40px;
+        position: relative;
+        padding: 20px 5px 10px 5px;
+        background: rgba(0, 188, 212, 0.05);
+        border-radius: 15px;
+    }
+
+        .sub-progress-container .progress-bar {
+            background: #e0e0e0;
         }
 
-            .sub-progress-container .progress-bar {
-                background: #e0e0e0;
-            }
+        .sub-progress-container .progress-fill {
+            height: 100%;
+            width: 0;
+            background: var(--primary-color); /* Solid color */
+            transition: width 1.5s ease-in-out;
+            position: relative;
+        }
 
-            .sub-progress-container .progress-fill {
-                height: 100%;
-                width: 0;
-                background: var(--primary-color); /* Solid color */
-                transition: width 1.5s ease-in-out;
-                position: relative;
-            }
+        .sub-progress-container .stage-dot {
+            width: 16px;
+            height: 16px;
+            background: #e0e0e0; /* Default background */
+            border-radius: 50%;
+            margin: -3px auto 0 auto;
+            position: relative;
+            z-index: 2;
+            color: #666;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: none;
+            border: none;
+        }
 
-            .sub-progress-container .stage-dot {
-                width: 16px;
-                height: 16px;
-                background: #e0e0e0; /* Default background */
-                border-radius: 50%;
-                margin: -3px auto 0 auto;
-                position: relative;
-                z-index: 2;
-                color: #666;
-                font-size: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-shadow: none;
-                border: none;
-            }
+        .sub-progress-container .stage.completed .stage-dot {
+            background: var(--primary-color); /* Solid color for completed stages */
+            color: var(--light-text-color);
+        }
 
-            .sub-progress-container .stage.completed .stage-dot {
-                background: var(--primary-color); /* Solid color for completed stages */
-                color: var(--light-text-color);
-            }
+        .sub-progress-container .stage.active .stage-dot {
+            background: var(--secondary-color);
+            color: var(--light-text-color);
+        }
 
-            .sub-progress-container .stage.active .stage-dot {
-                background: var(--secondary-color);
-                color: var(--light-text-color);
-            }
-
-            .sub-progress-container .stages {
-                margin-top: -7px; /* Adjusted value for the sub-progress bar */
-            }
-    </style>
-</head>
-<body>
-
-    <div class="sub-progress-container">
-        <div class="progress-bar">
-            <div class="progress-fill" id="subProgressFill"></div>
+        .sub-progress-container .stages {
+            margin-top: -7px; /* Adjusted value for the sub-progress bar */
+        }
+</style>
+<div class="sub-progress-container">
+    <div class="progress-bar">
+        <div class="progress-fill" id="subProgressFill"></div>
+    </div>
+    <div class="stages">
+        <div class="stage" id="subStage1">
+            <div class="stage-dot">1</div>
         </div>
-        <div class="stages">
-            <div class="stage" id="subStage1">
-                <div class="stage-dot">1</div>
-            </div>
-            <div class="stage" id="subStage2">
-                <div class="stage-dot">2</div>
-            </div>
-            <div class="stage" id="subStage3">
-                <div class="stage-dot">3</div>
-            </div>
-            <div class="stage" id="subStage4">
-                <div class="stage-dot">4</div>
-            </div>
-            <div class="stage" id="subStage5">
-                <div class="stage-dot">5</div>
-            </div>
+        <div class="stage" id="subStage2">
+            <div class="stage-dot">2</div>
+        </div>
+        <div class="stage" id="subStage3">
+            <div class="stage-dot">3</div>
+        </div>
+        <div class="stage" id="subStage4">
+            <div class="stage-dot">4</div>
+        </div>
+        <div class="stage" id="subStage5">
+            <div class="stage-dot">5</div>
         </div>
     </div>
+</div>
 
-    <script>
-        // Function to update sub progress bar based on the current sub-stage
-        function updateSubProgress(currentSubStage) {
-            const subProgressFill = document.getElementById('subProgressFill');
-            const subStages = document.querySelectorAll('.sub-progress-container .stage');
+<script>
+    // Function to update sub progress bar based on the current sub-stage
+    function updateSubProgress(currentSubStage) {
+        const subProgressFill = document.getElementById('subProgressFill');
+        const subStages = document.querySelectorAll('.sub-progress-container .stage');
 
-            // Update sub-progress stages
-            subStages.forEach((s, index) => {
-                if (index < currentSubStage - 1) {
-                    s.className = 'stage completed';
-                } else if (index === currentSubStage - 1) {
-                    s.className = 'stage active';
-                } else {
-                    s.className = 'stage';
-                }
-            });
+        // Update sub-progress stages
+        subStages.forEach((s, index) => {
+            if (index < currentSubStage - 1) {
+                s.className = 'stage completed';
+            } else if (index === currentSubStage - 1) {
+                s.className = 'stage active';
+            } else {
+                s.className = 'stage';
+            }
+        });
 
-            // Update sub-progress bar fill
-            const subProgressPercentage = ((currentSubStage - 1) / (subStages.length - 1)) * 100;
-            subProgressFill.style.width = `${subProgressPercentage}%`;
-        }
+        // Update sub-progress bar fill
+        const subProgressPercentage = ((currentSubStage - 1) / (subStages.length - 1)) * 100;
+        subProgressFill.style.width = `${subProgressPercentage}%`;
+    }
 
-        // Example usage:
-        // updateSubProgress(3);
-    </script>
-</body>
-</html>
+    // Example usage:
+    // updateSubProgress(3);
+</script>
