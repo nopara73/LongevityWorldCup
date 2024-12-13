@@ -205,6 +205,7 @@
         flex-direction: column;
         align-items: center;
         margin-top: 2rem;
+        gap: 1rem; /* Add spacing between buttons */
         width: 100%; /* Make the container fill the form width */
     }
 
@@ -235,14 +236,27 @@
 
     /* Adjust the back button styling */
     .back-button {
-        background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
-        transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        background: #F5F5F5; /* Neutral background */
+        color: #607D8B; /* Icon and text color */
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+        width: 100px; /* Match "Next" button width */
+        height: 40px; /* Match "Next" button height */
+        font-size: 1rem; /* Adjust font size for consistency */
+        padding: 0.5rem 1.5rem;
+        border-radius: 30px; /* Keep consistent rounding */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 1rem; /* Add spacing from "Next" button */
+        margin-left: auto; /* Align to the left of the container */
     }
 
         .back-button:hover {
-            background: linear-gradient(135deg, #78909C, #90A4AE); /* Brightened gradient */
-            transform: scale(1.03); /* Slight enlarge effect */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+            background: #ECEFF1; /* Slightly darker neutral */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
+            transform: scale(1.05); /* Slight hover effect */
         }
 
     .close {
