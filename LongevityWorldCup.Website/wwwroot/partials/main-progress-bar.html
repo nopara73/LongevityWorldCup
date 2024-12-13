@@ -1,157 +1,147 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Main Progress Bar</title>
-    <style>
-        .progress-container {
-            width: calc(100% - 30px);
-            max-width: 800px;
-            margin: 40px auto;
-            position: relative;
-            padding: 20px 0;
-        }
+﻿<style>
+    .progress-container {
+        width: calc(100% - 30px);
+        max-width: 800px;
+        margin: 40px auto;
+        position: relative;
+        padding: 20px 0;
+    }
 
-        .progress-bar {
-            width: calc(100% - 15px);
-            height: 4px;
-            background: linear-gradient(90deg, #e0e0e0, #cfcfcf);
-            position: relative;
-            z-index: 1;
-            margin: 0 auto;
-        }
+    .progress-bar {
+        width: calc(100% - 15px);
+        height: 4px;
+        background: linear-gradient(90deg, #e0e0e0, #cfcfcf);
+        position: relative;
+        z-index: 1;
+        margin: 0 auto;
+    }
 
-        .stages {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            margin-top: -16px;
-        }
+    .stages {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        margin-top: -16px;
+    }
 
-        .stage {
-            position: relative;
-            text-align: center;
-            width: 30px;
-            z-index: 2;
-        }
+    .stage {
+        position: relative;
+        text-align: center;
+        width: 30px;
+        z-index: 2;
+    }
 
-        .progress-fill {
-            height: 100%;
-            width: 0;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            transition: width 1.5s ease-in-out;
-            position: relative;
-        }
+    .progress-fill {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        transition: width 1.5s ease-in-out;
+        position: relative;
+    }
 
-        .stage-dot {
-            width: 24px;
-            height: 24px;
-            background: var(--card-bg);
-            border: 3px solid var(--primary-color);
-            border-radius: 50%;
-            margin: 0 auto;
-            transition: all 0.3s ease;
-            position: relative;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: 14px;
-            color: var(--dark-text-color);
-        }
+    .stage-dot {
+        width: 24px;
+        height: 24px;
+        background: var(--card-bg);
+        border: 3px solid var(--primary-color);
+        border-radius: 50%;
+        margin: 0 auto;
+        transition: all 0.3s ease;
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        font-size: 14px;
+        color: var(--dark-text-color);
+    }
 
-        .stage-dot {
-            font-size: 16px;
-            color: var(--light-text-color);
-            text-shadow: 0 0 8px #fff, 0 0 16px #fff, 0 0 24px #fff, 0 0 32px #fff, 0 0 40px #fff;
-        }
+    .stage-dot {
+        font-size: 16px;
+        color: var(--light-text-color);
+        text-shadow: 0 0 8px #fff, 0 0 16px #fff, 0 0 24px #fff, 0 0 32px #fff, 0 0 40px #fff;
+    }
 
-        .stage.completed .stage-dot {
-            border-width: 2px;
-            border-color: var(--primary-color);
-            background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, var(--primary-color) 100%);
-            color: var(--light-text-color);
-        }
+    .stage.completed .stage-dot {
+        border-width: 2px;
+        border-color: var(--primary-color);
+        background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, var(--primary-color) 100%);
+        color: var(--light-text-color);
+    }
 
-        .stage.active .stage-dot {
-            border-width: 2px;
-            border-color: var(--secondary-color);
-            background: radial-gradient(circle, var(--light-text-color) 20%, #ffd1dc 50%, var(--secondary-color) 100%);
-            color: var(--light-text-color);
-        }
+    .stage.active .stage-dot {
+        border-width: 2px;
+        border-color: var(--secondary-color);
+        background: radial-gradient(circle, var(--light-text-color) 20%, #ffd1dc 50%, var(--secondary-color) 100%);
+        color: var(--light-text-color);
+    }
 
-        .stage-label {
-            position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            color: #666;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            font-weight: bold;
-            transition: color 0.3s ease;
-        }
+    .stage-label {
+        position: absolute;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        color: #666;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+        transition: color 0.3s ease;
+    }
 
-        .stage.active .stage-label {
-            color: var(--secondary-color);
-        }
+    .stage.active .stage-label {
+        color: var(--secondary-color);
+    }
 
-        .stage.completed .stage-label {
-            color: var(--primary-color);
-        }
-    </style>
-</head>
-<body>
-
-    <div class="progress-container">
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+    .stage.completed .stage-label {
+        color: var(--primary-color);
+    }
+</style>
+<div class="progress-container">
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="stages">
+        <div class="stage" id="stage1">
+            <div class="stage-dot">⚔️</div>
+            <div class="stage-label">Hardship</div>
         </div>
-        <div class="stages">
-            <div class="stage" id="stage1">
-                <div class="stage-dot">⚔️</div>
-                <div class="stage-label">Hardship</div>
-            </div>
-            <div class="stage" id="stage2">
-                <div class="stage-dot">💡</div>
-                <div class="stage-label">Moment of Truth</div>
-            </div>
-            <div class="stage" id="stage3">
-                <div class="stage-dot">🏆</div>
-                <div class="stage-label">Convergence</div>
-            </div>
+        <div class="stage" id="stage2">
+            <div class="stage-dot">💡</div>
+            <div class="stage-label">Moment of Truth</div>
+        </div>
+        <div class="stage" id="stage3">
+            <div class="stage-dot">🏆</div>
+            <div class="stage-label">Convergence</div>
         </div>
     </div>
+</div>
 
-    <script>
-        // Function to update main progress bar based on the current stage
-        function updateMainProgress(currentStage) {
-            const progressFill = document.getElementById('progressFill');
-            const stages = document.querySelectorAll('.progress-container .stage');
+<script>
+    // Function to update main progress bar based on the current stage
+    function updateMainProgress(currentStage) {
+        const progressFill = document.getElementById('progressFill');
+        const stages = document.querySelectorAll('.progress-container .stage');
 
-            // Update main progress stages
-            stages.forEach((s, index) => {
-                if (index < currentStage - 1) {
-                    s.className = 'stage completed';
-                } else if (index === currentStage - 1) {
-                    s.className = 'stage active';
-                } else {
-                    s.className = 'stage';
-                }
-            });
+        // Update main progress stages
+        stages.forEach((s, index) => {
+            if (index < currentStage - 1) {
+                s.className = 'stage completed';
+            } else if (index === currentStage - 1) {
+                s.className = 'stage active';
+            } else {
+                s.className = 'stage';
+            }
+        });
 
-            // Update main progress bar fill
-            const mainProgressPercentage = ((currentStage - 1) / (stages.length - 1)) * 100;
-            progressFill.style.width = `${mainProgressPercentage}%`;
-        }
+        // Update main progress bar fill
+        const mainProgressPercentage = ((currentStage - 1) / (stages.length - 1)) * 100;
+        progressFill.style.width = `${mainProgressPercentage}%`;
+    }
 
-        // Example usage:
-        // updateMainProgress(2);
-    </script>
-</body>
-</html>
+    // Example usage:
+    // updateMainProgress(2);
+</script>
