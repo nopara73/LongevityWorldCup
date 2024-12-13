@@ -578,8 +578,27 @@
         });
 
         // Set the address and link
-        document.getElementById("btcAddressLink").textContent = bitcoinDonationAddress;
+        adjustBitcoinAddressDisplay();
         document.getElementById("btcAddressLink").href = `https://mempool.space/address/${bitcoinDonationAddress}`;
+
+        function adjustBitcoinAddressDisplay() {
+            const btcAddressLink = document.getElementById("btcAddressLink");
+            const fullAddress = bitcoinDonationAddress;
+            const container = btcAddressLink.parentElement;
+
+            // Reset to full address initially
+            btcAddressLink.textContent = fullAddress;
+
+            // Measure overflow
+            if (btcAddressLink.scrollWidth > container.offsetWidth) {
+                // Truncate and add ellipsis if the address overflows
+                const truncatedAddress = `${fullAddress.slice(0, 6)}...${fullAddress.slice(-6)}`;
+                btcAddressLink.textContent = truncatedAddress;
+            }
+
+            // Always ensure the tooltip shows the full address
+            btcAddressLink.title = fullAddress;
+        }
 
         // Copy function
         function copyBitcoinAddress() {
@@ -727,6 +746,9 @@
             updateCountdown();
             countdownInterval = setInterval(updateCountdown, 1000); // Assign the interval here
         })();
+
+        window.addEventListener('DOMContentLoaded', adjustBitcoinAddressDisplay);
+        window.addEventListener('resize', adjustBitcoinAddressDisplay);
     </script>
 </body>
 </html>
