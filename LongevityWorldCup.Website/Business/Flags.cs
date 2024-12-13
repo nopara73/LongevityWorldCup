@@ -389,6 +389,7 @@
             "Vatican City",
             "Venezuela",
             "Vietnam",
+            "Vitalia",
             "Vojvodina",
             "Wake Island",
             "Wales",
