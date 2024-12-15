@@ -303,6 +303,24 @@
         updateMainProgress(3);
         updateSubProgress(1);
 
+        function updateUploadButtons() {
+            const uploadProfileButton = document.getElementById('uploadButton');
+            const uploadProofButton = document.getElementById('uploadProofButton');
+            const cropAndSaveButton = document.getElementById('cropButton'); // For the crop and save action
+            const nextButton = document.getElementById('nextButton');
+
+            // Toggle "already-have" class for "Upload Profile Picture" button
+            if (nextButton && nextButton.classList.contains('disabled-button')) {
+                uploadProfileButton.classList.add('already-have');
+                cropAndSaveButton.classList.add('already-have');
+                uploadProofButton.classList.add('already-have');
+            } else {
+                uploadProfileButton.classList.remove('already-have');
+                cropAndSaveButton.classList.remove('already-have');
+                uploadProofButton.classList.remove('already-have');
+            }
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -631,6 +649,8 @@
                 default:
                     console.error('Unknown stage:', stage);
             }
+
+            updateUploadButtons();
         }
 
         let existingAthleteNames;
@@ -941,6 +961,7 @@
                             const nextButton = document.getElementById('nextButton');
                             nextButton.disabled = true;
                             nextButton.classList.add('disabled-button');
+                            updateUploadButtons();
 
                             document.getElementById('cropperImage').src = e.target.result;
 
@@ -990,6 +1011,7 @@
                         const nextButton = document.getElementById('nextButton');
                         nextButton.disabled = false;
                         nextButton.classList.remove('disabled-button');
+                        updateUploadButtons();
 
                         attachUploadEventListeners();
                     }
@@ -1038,9 +1060,11 @@
             if (proofPics.length > 0) {
                 nextButton.disabled = false;
                 nextButton.classList.remove('disabled-button');
+                updateUploadButtons();
             } else {
                 nextButton.disabled = true;
                 nextButton.classList.add('disabled-button');
+                updateUploadButtons();
             }
         }
 
