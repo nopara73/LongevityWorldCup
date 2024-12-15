@@ -267,6 +267,19 @@
             }
         });
 
+        function updateCalculateButton() {
+            const calculateButton = document.querySelector('form button[type="submit"]');
+            const nextButton = document.getElementById('continueButton');
+
+            if (nextButton.classList.contains('show')) {
+                calculateButton.classList.remove('already-have'); // Reset style
+            } else {
+                calculateButton.classList.add('already-have'); // Apply matching style
+            }
+        }
+
+        updateCalculateButton();
+
         let isResultCalculated = false;
         function calculateResultIfResultAlreadyCalculated() {
             if (isResultCalculated) {
@@ -317,6 +330,7 @@
                 if (isNaN(rawValue)) {
                     alert(`Please enter a valid value for ${biomarker.name}.`);
                     document.getElementById('continueButton').classList.remove('show');
+                    updateCalculateButton();
                     return;
                 }
 
@@ -338,6 +352,7 @@
                     if (isNaN(wbcRawValue)) {
                         alert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.");
                         document.getElementById('continueButton').classList.remove('show');
+                        updateCalculateButton();
                         return;
                     }
 
@@ -371,10 +386,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -396,6 +411,7 @@
 
                             // Show the Next button
                             document.getElementById('continueButton').classList.add('show');
+                            updateCalculateButton();
                         }
                     }, 30);
                 }, 100);
@@ -407,6 +423,7 @@
                     document.getElementById('yearsText').innerHTML = phenoAge < chronologicalAge ? `years 🚀` : `years`;
 
                     document.getElementById('continueButton').classList.add('show');
+                    updateCalculateButton();
                 }, 100);
             }
 
