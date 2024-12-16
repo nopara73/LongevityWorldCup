@@ -856,13 +856,15 @@
 
         /* Podium Styling */
         .podium {
-            display: grid;
-            grid-template-areas:
-                "second first third";
-            grid-template-columns: 1fr 1.5fr 1fr;
-            gap: 5px;
-            align-items: flex-end;
+            display: flex;
+            flex-direction: row;
             justify-content: center;
+            align-items: flex-end;
+            gap: 1rem;
+            padding: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            width: 90%;
         }
 
         .podium-item {
@@ -873,44 +875,18 @@
             height: auto;
         }
 
+            /* Adjust heights for different placements */
             .podium-item.first {
-                grid-area: first;
-                transform: translateY(-15px);
+                order: 1;
             }
 
-            .podium-item.second,
-            .podium-item.third {
-                transform: translateY(5px);
+            .podium-item.second {
+                order: 2;
             }
 
             .podium-item.third {
-                grid-area: third;
-                left: -10%;
+                order: 3;
             }
-
-        .podium-portrait {
-            width: 50px;
-            height: 50px;
-            margin: 0 auto;
-        }
-
-        .podium-rank {
-            width: 30px;
-            height: 30px;
-            font-size: 1rem;
-            top: -5px;
-            left: 10%;
-            transform: translateX(-50%);
-        }
-
-        .btc-amount,
-        .prize-money {
-            font-size: 0.7rem;
-        }
-
-        .age-reduction {
-            font-size: 0.9rem;
-        }
 
         /* Leaderboard Styling */
         .leaderboard {
