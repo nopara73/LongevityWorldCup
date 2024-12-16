@@ -745,6 +745,7 @@
         }
 
     @media (max-width: 768px) {
+        /* Table and Responsive Layout */
         table,
         thead,
         tbody,
@@ -783,8 +784,10 @@
                 text-transform: uppercase;
                 font-size: 0.8rem;
                 color: var(--primary-color);
+                margin-top: 1rem; /* Added from the last media query */
             }
 
+        /* Header and Search */
         .header {
             flex-direction: column;
             align-items: stretch;
@@ -808,6 +811,18 @@
             right: 3rem;
         }
 
+        .search-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            align-self: center;
+            margin-top: 1rem;
+            height: 40px;
+        }
+
+        /* Main Container and Sidebar */
         .main-container {
             flex-direction: column;
         }
@@ -816,132 +831,121 @@
             width: 100%;
             margin-right: 0;
             margin-bottom: 1rem;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .podium {
-            display: grid;
-            grid-template-areas:
-                "second first third"; /* Align podium items horizontally */
-            grid-template-columns: 1fr 1.5fr 1fr; /* Larger column for first place */
-            gap: 5px; /* Spacing between items */
-            align-items: flex-end; /* Align bottom of items */
-            justify-content: center; /* Center podium within the screen */
-        }
-
-        .podium-item {
-            text-align: center;
-            padding: 10px; /* Compact padding */
-            font-size: 0.8rem; /* Smaller text for compact layout */
-        }
-
-            .podium-item.first {
-                grid-area: first;
-                transform: translateY(-15px); /* Slightly elevate first place */
-                width: 80%; /* Adjust width for consistency */
-                height: auto; /* Auto height to fit content */
-            }
-
-            .podium-item.second {
-                grid-area: second;
-                transform: translateY(5px); /* Slightly lower than first */
-                width: 80%;
-                height: auto;
-            }
-
-            .podium-item.third {
-                grid-area: third;
-                transform: translateY(5px); /* Slightly lower than first */
-                width: 80%;
-                height: auto;
-                left: -10%;
-            }
-
-        .podium-portrait {
-            width: 50px; /* Smaller portrait size */
-            height: 50px;
-            margin: 0 auto; /* Center portrait within container */
-        }
-
-        .podium-rank {
-            width: 30px; /* Smaller medal size */
-            height: 30px;
-            font-size: 1rem; /* Adjust font size */
-            top: -5px; /* Slightly closer to portrait */
-            left: 10%; /* Center medal */
-            transform: translateX(-50%);
-        }
-
-        .btc-amount, .prize-money {
-            font-size: 0.7rem; /* Compact text for BTC and prize money */
-        }
-
-        .age-reduction {
-            font-size: 0.9rem; /* Maintain readable text for age reduction */
-        }
-    }
-
-    @media (max-width: 768px) {
-        .sidebar {
             display: none; /* Hidden by default */
             position: fixed;
             top: 0;
             left: 0;
-            width: 70%; /* Adjust width to 70% */
+            width: 70%;
             max-width: 300px;
             height: 100%;
             background-color: var(--card-bg);
-            z-index: 999; /* Ensure it stays above other elements */
+            z-index: 999;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             overflow-y: auto;
-            transform: translateX(-100%); /* Slide off-screen by default */
+            transform: translateX(-100%);
             transition: transform 0.3s ease-in-out;
         }
 
             .sidebar.expanded {
                 display: block;
-                transform: translateX(0); /* Slide into view */
+                transform: translateX(0);
             }
 
         .content {
-            margin-left: 0; /* No margin adjustment on mobile */
+            margin-left: 0;
         }
-    }
 
-    @media (max-width: 768px) {
+        /* Podium Styling */
+        .podium {
+            display: grid;
+            grid-template-areas:
+                "second first third";
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 5px;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .podium-item {
+            text-align: center;
+            padding: 10px;
+            font-size: 0.8rem;
+            width: 80%;
+            height: auto;
+        }
+
+            .podium-item.first {
+                grid-area: first;
+                transform: translateY(-15px);
+            }
+
+            .podium-item.second,
+            .podium-item.third {
+                transform: translateY(5px);
+            }
+
+            .podium-item.third {
+                grid-area: third;
+                left: -10%;
+            }
+
+        .podium-portrait {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto;
+        }
+
+        .podium-rank {
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+            top: -5px;
+            left: 10%;
+            transform: translateX(-50%);
+        }
+
+        .btc-amount,
+        .prize-money {
+            font-size: 0.7rem;
+        }
+
+        .age-reduction {
+            font-size: 0.9rem;
+        }
+
+        /* Leaderboard Styling */
         .leaderboard {
-            padding: 0.5rem; /* Reduce padding for a tighter layout */
+            padding: 0.5rem;
         }
 
             .leaderboard table {
                 width: 100%;
-                table-layout: fixed; /* Ensure consistent column width */
+                table-layout: fixed;
             }
 
                 .leaderboard table tbody tr {
                     display: flex;
-                    flex-direction: column; /* Stack content vertically */
-                    align-items: flex-start; /* Align text to the left */
+                    flex-direction: column;
+                    align-items: flex-start;
                     padding: 1rem;
                     margin-bottom: 1rem;
-                    border-radius: 10px; /* Rounded edges */
-                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle card effect */
-                    background: #fff; /* Add a background to each row */
+                    border-radius: 10px;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                    background: #fff;
                 }
 
                 .leaderboard table td {
                     display: block;
-                    width: 100%; /* Make each column full-width */
-                    margin-bottom: -1rem; /* Add space between items */
-                    font-size: 0.9rem; /* Adjust font size */
+                    width: 100%;
+                    margin-bottom: -1rem;
+                    font-size: 0.9rem;
                 }
 
                     .leaderboard table td[data-label]::before {
                         content: attr(data-label);
                         font-weight: bold;
                         display: block;
-                        margin-bottom: 0.2rem; /* Add spacing between label and value */
+                        margin-bottom: 0.2rem;
                         font-size: 0.8rem;
                         color: #555;
                     }
@@ -958,7 +962,7 @@
                 font-size: 1.2rem;
                 font-weight: bold;
                 color: var(--primary-color);
-                margin-bottom: 0.5rem;
+                margin-bottom: 1rem; /* Increased space from last media query */
             }
 
             .leaderboard .athlete-name {
@@ -971,7 +975,7 @@
                 font-size: 0.9rem;
                 font-weight: bold;
                 color: var(--secondary-color);
-                margin-top: 0.5rem;
+                margin-top: 1rem; /* Increased space from last media query */
             }
 
             .leaderboard .media-contact {
@@ -980,37 +984,10 @@
             }
 
                 .leaderboard .media-contact i {
-                    font-size: 2rem; /* Adjust icon size */
+                    font-size: 2rem;
                     color: var(--secondary-color);
                     margin-top: -0.5rem;
                 }
-    }
-
-    @media (max-width: 768px) {
-        .search-wrapper {
-            display: flex; /* Ensure items are horizontally aligned */
-            align-items: center; /* Align items vertically */
-        }
-
-        .sidebar-toggle {
-            align-self: center; /* Ensure the filter button aligns vertically with the search bar */
-            margin-top: 1rem;
-            height: 40px;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .leaderboard table td[data-label]::before {
-            margin-top: 1rem; /* Add spacing above the labels */
-        }
-
-        .leaderboard .rank,
-        .leaderboard .portrait,
-        .leaderboard .athlete-name,
-        .leaderboard .age-reduction,
-        .leaderboard .media-contact {
-            margin-top: 1rem; /* Increase space for all labels */
-        }
     }
 
     @keyframes fadeIn {
