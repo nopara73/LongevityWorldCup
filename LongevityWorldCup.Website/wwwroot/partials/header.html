@@ -136,11 +136,22 @@
         content: '';
         position: absolute;
         top: -20px;
-        bottom: -20px;
-        left: -20px;
-        right: -20px;
+        bottom: -100px;
+        left: -1000px;
+        right: -1000px;
         background: transparent;
-        pointer-events: none;
+        pointer-events: all;
+    }
+
+    .scrolled-button::before {
+        content: '';
+        position: absolute;
+        top: -30px;
+        bottom: -30px;
+        left: -30px;
+        right: -30px;
+        background: transparent;
+        pointer-events: all;
     }
 
     .join-game:hover {
