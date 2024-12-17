@@ -1513,25 +1513,15 @@
     `;
         document.body.appendChild(enlargedImg);
         document.body.classList.add('no-scroll');
-        if (history.state?.modalOpen !== true) {
-            history.pushState({ modalOpen: true }, "");
-        }
+        history.pushState({ modalOpen: true }, ""); // Push state when opening modal
 
-        // Trigger fade-in animation
         setTimeout(() => enlargedImg.classList.add('show'), 10);
 
-        // Prevent click on the image from closing the enlarged view
-        enlargedImg.querySelector('img').addEventListener('click', function (e) {
-            e.stopPropagation();
-        });
-
-        // Close button event listener
-        enlargedImg.querySelector('.close-btn').addEventListener('click', function () {
+        enlargedImg.querySelector('.close-btn').addEventListener('click', () => {
             closeEnlargedView(enlargedImg);
         });
 
-        // Close when clicking outside the image
-        enlargedImg.addEventListener('click', function (e) {
+        enlargedImg.addEventListener('click', (e) => {
             if (e.target === enlargedImg) {
                 closeEnlargedView(enlargedImg);
             }
@@ -1543,9 +1533,7 @@
         setTimeout(() => {
             document.body.removeChild(enlargedImg);
             document.body.classList.remove('no-scroll');
-            if (history.state?.modalOpen) {
-                history.replaceState(null, "");
-            }
+            history.back(); // Use history back to close modal
         }, 300);
     }
 
@@ -2738,13 +2726,13 @@
         });
     }
 
-    window.addEventListener('popstate', function () {
-        const enlargedImg = document.querySelector('.enlarged-portrait.show');
-        if (enlargedImg) {
-            // Close the enlarged portrait if it's open
-            closeEnlargedView(enlargedImg);
+    // Ensure modal history cleanup
+    window.addEventListener('popstate', function (event) {
+        const openModal = document.querySelector('.enlarged-portrait.show');
+        if (openModal) {
+            // Close any open modals when navigating back
+            closeEnlargedView(openModal);
         } else if (modal.style.display === "block") {
-            // Close the modal if it's open
             closeModal();
         }
     });
