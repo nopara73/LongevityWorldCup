@@ -1513,7 +1513,7 @@
     `;
         document.body.appendChild(enlargedImg);
         document.body.classList.add('no-scroll');
-        history.pushState({ modalOpen: true }, ""); // Push state when opening modal
+        history.pushState({ modal: 'enlarged' }, "");
 
         setTimeout(() => enlargedImg.classList.add('show'), 10);
 
@@ -1533,8 +1533,8 @@
         setTimeout(() => {
             document.body.removeChild(enlargedImg);
             document.body.classList.remove('no-scroll');
-            if (modifyHistory && history.state && history.state.modalOpen) {
-                history.back(); // Remove the modal state from history
+            if (modifyHistory && history.state && history.state.modal === 'enlarged') {
+                history.back(); // Remove only the 'enlarged' modal state
             }
         }, 300);
     }
@@ -1603,7 +1603,7 @@
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             document.body.classList.remove('no-scroll');
-            if (modifyHistory && history.state?.modalOpen) {
+            if (modifyHistory && history.state && history.state.modal === 'details') {
                 history.replaceState(null, "");
             }
         }, 400);
@@ -2415,10 +2415,7 @@
                 // Display the modal
                 modal.style.display = "block";
                 document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
-                if (history.state?.modalOpen !== true) {
-                    history.pushState({ modalOpen: true }, "");
-                }
-
+                history.pushState({ modal: 'details' }, "");
             })
             .catch(error => {
                 console.error('Error fetching full athlete data:', error);
@@ -2730,15 +2727,6 @@
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
-        const openEnlargedImg = document.querySelector('.enlarged-portrait.show');
-        const openDetailsModal = modal.style.display === "block";
-
-        if (openEnlargedImg) {
-            closeEnlargedView(openEnlargedImg, false); // Do not modify history
-        }
-
-        if (openDetailsModal) {
-            closeModal(false); // Do not modify history
-        }
+        closeOpenComponents();
     });
 </script>
