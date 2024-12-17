@@ -1515,12 +1515,6 @@
         document.body.classList.add('no-scroll');
         history.pushState({ modalOpen: true }, ""); // Push state when opening modal
 
-        window.onpopstate = function (event) {
-            if (event.state && event.state.modalOpen) {
-                closeEnlargedView(enlargedImg);
-            }
-        };
-
         setTimeout(() => enlargedImg.classList.add('show'), 10);
 
         enlargedImg.querySelector('.close-btn').addEventListener('click', () => {
