@@ -1528,12 +1528,12 @@
         });
     }
 
-    function closeEnlargedView(enlargedImg) {
+    function closeEnlargedView(enlargedImg, modifyHistory = true) {
         enlargedImg.classList.remove('show');
         setTimeout(() => {
             document.body.removeChild(enlargedImg);
             document.body.classList.remove('no-scroll');
-            if (history.state && history.state.modalOpen) {
+            if (modifyHistory && history.state && history.state.modalOpen) {
                 history.back(); // Remove the modal state from history
             }
         }, 300);
@@ -1544,21 +1544,21 @@
 
         if (isPodium) {
             return `${isEmail
-                ? `<a href="mailto:${contact}" aria-label="Email ${contact} class="personal-link-icon" style="margin-left: 0.2rem;">
-                    ${getIcon(contact)}
-                   </a>`
+                ? `<a href="mailto:${contact}" aria-label="Email ${contact}" class="personal-link-icon" style="margin-left: 0.2rem;">
+                ${getIcon(contact)}
+               </a>`
                 : `<a href="${contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;">
-                    ${getIcon(contact)}
-                   </a>`
+                ${getIcon(contact)}
+               </a>`
                 }`;
         }
         else return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}">
-                ${getIcon(contact)}
-               </a>`
+            ${getIcon(contact)}
+           </a>`
             : `<a href="${contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete">
-                ${getIcon(contact)}
-               </a>`
+            ${getIcon(contact)}
+           </a>`
             }`;
     }
 
@@ -1597,13 +1597,13 @@
         }
     });
 
-    function closeModal() {
+    function closeModal(modifyHistory = true) {
         modal.classList.add('fade-out');
         setTimeout(() => {
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             document.body.classList.remove('no-scroll');
-            if (history.state?.modalOpen) {
+            if (modifyHistory && history.state?.modalOpen) {
                 history.replaceState(null, "");
             }
         }, 400);
@@ -2730,13 +2730,15 @@
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
-        if (event.state && event.state.modalOpen) {
-            const openModal = document.querySelector('.enlarged-portrait.show');
-            if (openModal) {
-                closeEnlargedView(openModal);
-            }
-        } else if (modal.style.display === "block") {
-            closeModal();
+        const openEnlargedImg = document.querySelector('.enlarged-portrait.show');
+        const openDetailsModal = modal.style.display === "block";
+
+        if (openEnlargedImg) {
+            closeEnlargedView(openEnlargedImg, false); // Do not modify history
+        }
+
+        if (openDetailsModal) {
+            closeModal(false); // Do not modify history
         }
     });
 </script>
