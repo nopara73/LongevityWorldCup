@@ -59,6 +59,18 @@
             margin-bottom: 60px; /* Leave room for play button */
         }
     }
+
+    @media (max-width: 480px) {
+        .footer-container {
+            flex-direction: column;
+            margin-bottom: 0; /* It's a column now, so play button have space */
+        }
+
+        .footer-column {
+            width: 100%;
+            margin: 0;
+        }
+    }
 </style>
 
 <footer class="footer" style="margin-top: 1.5rem;">
