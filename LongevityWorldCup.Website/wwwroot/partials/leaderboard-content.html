@@ -1515,6 +1515,12 @@
         document.body.classList.add('no-scroll');
         history.pushState({ modalOpen: true }, ""); // Push state when opening modal
 
+        window.onpopstate = function (event) {
+            if (event.state && event.state.modalOpen) {
+                closeEnlargedView(enlargedImg);
+            }
+        };
+
         setTimeout(() => enlargedImg.classList.add('show'), 10);
 
         enlargedImg.querySelector('.close-btn').addEventListener('click', () => {
@@ -1533,7 +1539,9 @@
         setTimeout(() => {
             document.body.removeChild(enlargedImg);
             document.body.classList.remove('no-scroll');
-            history.back(); // Use history back to close modal
+            if (history.state && history.state.modalOpen) {
+                history.back(); // Remove the modal state from history
+            }
         }, 300);
     }
 
@@ -2728,10 +2736,11 @@
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
-        const openModal = document.querySelector('.enlarged-portrait.show');
-        if (openModal) {
-            // Close any open modals when navigating back
-            closeEnlargedView(openModal);
+        if (event.state && event.state.modalOpen) {
+            const openModal = document.querySelector('.enlarged-portrait.show');
+            if (openModal) {
+                closeEnlargedView(openModal);
+            }
         } else if (modal.style.display === "block") {
             closeModal();
         }
