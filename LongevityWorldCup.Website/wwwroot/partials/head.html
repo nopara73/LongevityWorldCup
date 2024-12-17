@@ -30,6 +30,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/validator@13.9.0/validator.min.js" crossorigin="anonymous" defer></script>
 
+<!-- AOS CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
+<!-- AOS JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+
 <script src="/js/misc.js"></script>
 
 <!-- Structured Data -->
@@ -103,4 +108,15 @@
     gtag('js', new Date());
 
     gtag('config', 'G-PSSCLBW37H');
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        AOS.init({
+            duration: 800, // Animation duration in milliseconds
+            easing: 'ease-in-out', // Easing function
+            once: true, // Whether animation should happen only once while scrolling down
+            disable: window.matchMedia('(prefers-reduced-motion: reduce)').matches, // Respect user preference
+        });
+    });
 </script>

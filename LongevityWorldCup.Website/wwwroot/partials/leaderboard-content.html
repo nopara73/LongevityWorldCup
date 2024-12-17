@@ -1025,7 +1025,7 @@
         </div>
 
         <div class="search-wrapper">
-            <div class="search-container">
+            <div class="search-container" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">
                 <label for="athleteSearch" class="visually-hidden">Search Athletes</label>
                 <input type="text" id="athleteSearch" placeholder="Search Athlete..." aria-label="Search Athletes">
                 <span class="search-icon"><i class="fa fa-search"></i></span>
@@ -1033,7 +1033,7 @@
                     <i class="fa fa-times"></i>
                 </span>
             </div>
-            <button class="sidebar-toggle" aria-label="Toggle Sidebar" title="Show Leagues">
+            <button class="sidebar-toggle" aria-label="Toggle Sidebar" title="Show Leagues" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">
                 <i class="fa fa-sliders-h"></i>
             </button>
         </div>
@@ -1041,12 +1041,12 @@
         <div class="leaderboard">
             <div class="sidebar">
                 <button class="sidebar-close" aria-label="Hide Leagues" title="Hide Leagues"><i class="fa fa-chevron-left" style="font-size: 12px;"></i></button>
-                <h2 class="sidebar-title">
+                <h2 class="sidebar-title" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
-                <div class="collapsed-title">ULTIMATE LEAGUE</div>
-                <div class="filter-section">
+                <div class="collapsed-title" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">ULTIMATE LEAGUE</div>
+                <div class="filter-section" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">
                     <h3>Divisions</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
@@ -1358,6 +1358,9 @@
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
                                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
                                         podiumItem.setAttribute('data-athlete-name', athlete.name);
+                                        podiumItem.setAttribute('data-aos', 'fade');
+                                        podiumItem.setAttribute('data-aos-duration', '1000');
+                                        podiumItem.setAttribute('data-aos-delay', '200');
 
                                     });
 
@@ -1410,6 +1413,9 @@
                     row.setAttribute('data-division', athlete.division.toLowerCase().trim());
                     row.setAttribute('data-generation', athlete.generation.trim());
                     row.setAttribute('data-athlete-name', athlete.name);
+                    row.setAttribute('data-aos', 'fade');
+                    row.setAttribute('data-aos-duration', '1000');
+                    row.setAttribute('data-aos-delay', '200');
 
                     // Hide the row if includePodium is true and athlete.rank <= podiumCount
                     if (includePodium && athlete.rank <= podiumCount) {
