@@ -1527,12 +1527,12 @@
         setTimeout(() => enlargedImg.classList.add('show'), 10);
 
         enlargedImg.querySelector('.close-btn').addEventListener('click', () => {
-            closeEnlargedView(enlargedImg);
+            closeEnlargedView(enlargedImg, false);
         });
 
         enlargedImg.addEventListener('click', (e) => {
             if (e.target === enlargedImg) {
-                closeEnlargedView(enlargedImg);
+                closeEnlargedView(enlargedImg, false);
             }
         });
     }
@@ -1602,7 +1602,7 @@
 
     window.addEventListener('click', function (event) {
         if (event.target === modal) {
-            closeModal();
+            closeModal(false);
         }
     });
 
@@ -2308,19 +2308,19 @@
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' || event.key === 'Esc') {
-            closeOpenComponents();
+            closeOpenComponents(false);
         }
     });
-    function closeOpenComponents() {
-
+    function closeOpenComponents(modifyHistory = false) {
+        console.log('Close open components');
         const enlargedImg = document.querySelector('.enlarged-portrait.show');
         if (enlargedImg) {
             // Close the enlarged portrait if it's open
-            closeEnlargedView(enlargedImg);
+            closeEnlargedView(enlargedImg, modifyHistory);
         }
         else if (modal.style.display === "block") {
             // Close the details modal if it's open
-            closeModal();
+            closeModal(modifyHistory);
         }
     }
 
@@ -2736,6 +2736,6 @@
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
-        closeOpenComponents();
+        closeOpenComponents(true);
     });
 </script>
