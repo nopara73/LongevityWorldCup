@@ -1345,22 +1345,24 @@
 
                                         // Populate the inner HTML of podiumItem
                                         podiumItem.innerHTML = `
-                <div class="podium-rank">${rankEmoji}</div>
-                <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
-                <div>
-                    <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
-                    ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page">
-                    <i class="fa fa-link"></i>
-                    </a>` : ''}
-                    ${renderMediaContact(athlete.mediaContact, true)}
-                </div>
+                                            <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
+                                                ${rankEmoji}
+                                            </div>
+                                            <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
+                                            <div>
+                                                <span class="athlete-name" style="cursor: pointer;">${athlete.name}</span>
+                                                ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page">
+                                                <i class="fa fa-link"></i>
+                                                </a>` : ''}
+                                                ${renderMediaContact(athlete.mediaContact, true)}
+                                            </div>
 
-                <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
-                <div class="podium-item-lower">
-                    <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
-                    <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
-                </div>
-            `;
+                                            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
+                                            <div class="podium-item-lower">
+                                                <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
+                                                <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
+                                            </div>
+                                        `;
 
                                         // Append the podiumItem to the podium container
                                         podium.appendChild(podiumItem);
