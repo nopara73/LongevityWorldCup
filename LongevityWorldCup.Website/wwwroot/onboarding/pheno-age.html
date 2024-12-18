@@ -83,9 +83,9 @@
     <!--HEADER-->
     <main>
         <!--MAIN-PROGRESS-BAR-->
-        <h2 data-aos="fade" data-aos-duration="1000" data-aos-delay="200">The Blood Pact <i class="fas fa-tint"></i> <i class="fas fa-dna"></i> <i class="fas fa-scroll"></i></h2>
-        <p data-aos="fade" data-aos-duration="1000" data-aos-delay="200">Calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener">PhenoAge</a>:</p>
-        <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">
+        <h2 data-aos="fade" data-aos-duration="700" data-aos-delay="200">The Blood Pact <i class="fas fa-tint"></i> <i class="fas fa-dna"></i> <i class="fas fa-scroll"></i></h2>
+        <p data-aos="fade" data-aos-duration="700" data-aos-delay="200">Calculate your biological age, known as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener">PhenoAge</a>:</p>
+        <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
             <!-- Date of Birth Fields -->
             <fieldset>
                 <legend>Date of Birth:</legend>
@@ -238,9 +238,9 @@
             </button>
         </form>
 
-        <div id="phenoAgeResult" class="bioageform" data-aos="fade" data-aos-duration="1000" data-aos-delay="200"></div>
+        <div id="phenoAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="200"></div>
 
-        <div class="options-container" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
             <button id="continueButton" class="option-button already-have" onclick="proceedToNextPage()">
                 Next&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
@@ -386,10 +386,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
