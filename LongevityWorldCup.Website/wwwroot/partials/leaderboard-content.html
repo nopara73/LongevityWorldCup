@@ -1350,7 +1350,7 @@
                                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                                 ${rankEmoji}
                                             </div>
-                                            <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy" title="${athlete.name}">
+                                            <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
                                             <div>
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.name}">${athlete.name}</span>
                                                 ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
@@ -1410,7 +1410,7 @@
 
                     row.innerHTML = `
     <td data-label="Rank"><span class="rank">${athlete.rank}</span></td>
-    <td data-label="Portrait"><img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy" title="${athlete.name}"></td>
+    <td data-label="Portrait"><img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy"></td>
     <td data-label="Athlete">
         <span class="athlete-name" title="View stats of ${athlete.name}">${athlete.name}</span>
         ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
@@ -2474,7 +2474,6 @@
         profilePic.src = fullAthleteData.ProfilePic;
         profilePic.alt = `${fullAthleteData.Name} Profile Picture`;
         profilePic.loading = 'lazy';
-        profilePic.title = `${fullAthleteData.Name}`; // Tooltip for profile picture
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
