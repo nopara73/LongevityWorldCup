@@ -2682,6 +2682,11 @@
                     }
                 },
                 legend: {
+                    labels: {
+                        font: {
+                            size: window.innerWidth < 768 ? 10 : 12 // Adjust font size for mobile
+                        }
+                    },
                     onHover: function (event) {
                         event.native.target.style.cursor = 'pointer';
                     },
@@ -2697,7 +2702,10 @@
                     position: 'left',
                     title: {
                         display: true,
-                        text: 'Age (years)'
+                        text: 'Age (years)',
+                        font: {
+                            size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
+                        }
                     },
                     grid: {
                         drawOnChartArea: true
@@ -2709,7 +2717,10 @@
                     position: 'right',
                     title: {
                         display: true,
-                        text: 'Biomarkers (Z-scores)'
+                        text: 'Biomarkers (Z-scores)',
+                        font: {
+                            size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
+                        }
                     },
                     grid: {
                         drawOnChartArea: false
@@ -2718,7 +2729,10 @@
                 x: {
                     title: {
                         display: true,
-                        text: 'Date'
+                        text: 'Date',
+                        font: {
+                            size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
+                        }
                     }
                 }
             }
