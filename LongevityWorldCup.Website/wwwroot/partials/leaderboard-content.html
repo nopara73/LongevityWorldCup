@@ -290,10 +290,15 @@
         text-decoration: underline;
         cursor: pointer;
         transition: color 0.2s ease-in-out;
+        display: inline-block; /* Ensures padding is applied around the element */
+        padding: 0.1rem; /* Increase the clickable area */
     }
 
         .athlete-name:hover {
             color: var(--secondary-color);
+            background-color: rgba(0, 0, 0, 0.05); /* Optional: Highlight the hitbox on hover */
+            border-radius: 8px; /* Optional: Makes the hover effect look rounded */
+            font-size: 1.1em;
         }
 
     .podium .athlete-name {
