@@ -1553,7 +1553,9 @@
         enlargedImg.classList.remove('show');
         setTimeout(() => {
             document.body.removeChild(enlargedImg);
-            document.body.classList.remove('no-scroll');
+            if (modal.style.display != "block") {
+                document.body.classList.remove('no-scroll');
+            }
         }, 300);
     }
 
