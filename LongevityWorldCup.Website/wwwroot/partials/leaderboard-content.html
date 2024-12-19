@@ -389,14 +389,16 @@
 
     .proofs-gallery {
         display: flex;
+        flex-direction: column;
+        align-items: center;
         flex-wrap: wrap;
         gap: 1rem;
         justify-content: center;
     }
 
     .proof-item {
-        width: 150px;
-        height: 150px;
+        width: 100%;
+        height: auto;
         border-radius: 10px;
         overflow: hidden;
         cursor: pointer;
@@ -974,11 +976,6 @@
                     color: var(--secondary-color);
                     margin-top: -0.5rem;
                 }
-
-        .proofs-gallery {
-            flex-direction: column;
-            align-items: center;
-        }
     }
 
     @keyframes fadeIn {
