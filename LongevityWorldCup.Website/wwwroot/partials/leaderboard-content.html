@@ -2497,7 +2497,7 @@
         if (athleteData.personalLink) {
             personalLinkElement.href = athleteData.personalLink;
             personalLinkElement.style.display = 'flex';
-            personalLinkElement.title = "Click to visit the athlete’s personal page"; // Tooltip for personal link
+            personalLinkElement.title = `Visit personal page of ${athleteData.name}`;
         } else {
             personalLinkElement.style.display = 'none';
         }
@@ -2509,7 +2509,7 @@
             mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : athleteData.mediaContact;
             mediaContactElement.innerHTML = `${getIcon(athleteData.mediaContact)} Media Contact`;
             mediaContactElement.style.display = 'flex';
-            mediaContactElement.title = isEmail ? "Click to email the athlete" : "Click to contact the athlete via external link"; // Tooltip for media contact
+            mediaContactElement.title = isEmail ? `Email ${athleteData.name}` : `Contact ${athleteData.name}`;
         } else {
             mediaContactElement.style.display = 'none';
         }
