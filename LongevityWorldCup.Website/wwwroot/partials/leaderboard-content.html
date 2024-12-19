@@ -1539,24 +1539,21 @@
         setTimeout(() => enlargedImg.classList.add('show'), 10);
 
         enlargedImg.querySelector('.close-btn').addEventListener('click', () => {
-            closeEnlargedView(enlargedImg, false);
+            closeEnlargedView(enlargedImg);
         });
 
         enlargedImg.addEventListener('click', (e) => {
             if (e.target === enlargedImg) {
-                closeEnlargedView(enlargedImg, false);
+                closeEnlargedView(enlargedImg);
             }
         });
     }
 
-    function closeEnlargedView(enlargedImg, modifyHistory = true) {
+    function closeEnlargedView(enlargedImg) {
         enlargedImg.classList.remove('show');
         setTimeout(() => {
             document.body.removeChild(enlargedImg);
             document.body.classList.remove('no-scroll');
-            if (modifyHistory && history.state && history.state.modal === 'enlarged') {
-                history.back(); // Remove only the 'enlarged' modal state
-            }
         }, 300);
     }
 
@@ -1614,19 +1611,16 @@
 
     window.addEventListener('click', function (event) {
         if (event.target === modal) {
-            closeModal(false);
+            closeModal();
         }
     });
 
-    function closeModal(modifyHistory = true) {
+    function closeModal() {
         modal.classList.add('fade-out');
         setTimeout(() => {
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             document.body.classList.remove('no-scroll');
-            if (modifyHistory && history.state && history.state.modal === 'details') {
-                history.replaceState(null, "");
-            }
         }, 400);
     }
 
@@ -2320,18 +2314,18 @@
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' || event.key === 'Esc') {
-            closeOpenComponents(false);
+            closeOpenComponents();
         }
     });
-    function closeOpenComponents(modifyHistory = false) {
+    function closeOpenComponents() {
         const enlargedImg = document.querySelector('.enlarged-portrait.show');
         if (enlargedImg) {
             // Close the enlarged portrait if it's open
-            closeEnlargedView(enlargedImg, modifyHistory);
+            closeEnlargedView(enlargedImg);
         }
         else if (modal.style.display === "block") {
             // Close the details modal if it's open
-            closeModal(modifyHistory);
+            closeModal();
         }
     }
 
@@ -2747,6 +2741,6 @@
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
-        closeOpenComponents(true);
+        closeOpenComponents();
     });
 </script>
