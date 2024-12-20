@@ -223,7 +223,11 @@
         align-self: flex-start; /* Add this line */
     }
 
-    th,
+    th {
+        padding: 1rem 1rem;
+        text-align: left;
+    }
+
     td {
         padding: 0 1rem;
         text-align: left;
@@ -692,6 +696,11 @@
         color: #000;
     }
 
+    #comingSoon {
+        font-size: 0.5rem;
+        font-weight: normal;
+    }
+
     .leaderboard table tbody tr,
     .podium-item {
         transition: opacity 0.3s ease, transform 0.3s ease;
@@ -764,54 +773,6 @@
         }
 
     @media (max-width: 768px) {
-        /* Table and Responsive Layout */
-        table,
-        thead,
-        tbody,
-        th,
-        td,
-        tr {
-            display: block;
-        }
-
-            thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-
-        tr {
-            margin-bottom: 1rem;
-            border-bottom: 2px solid var(--primary-color);
-        }
-
-        td {
-            border: none;
-            position: relative;
-            padding-left: 50%;
-        }
-
-            td:before {
-                position: absolute;
-                top: 6px;
-                left: 6px;
-                width: 45%;
-                padding-right: 10px;
-                white-space: nowrap;
-                content: attr(data-label);
-                font-weight: 700;
-                text-transform: uppercase;
-                font-size: 0.8rem;
-                color: var(--primary-color);
-                margin-top: 1rem; /* Added from the last media query */
-            }
-
-        /* Header and Search */
-        .header {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
         .search-container {
             max-width: 100%;
             margin-top: 1rem;
@@ -911,81 +872,23 @@
             left: 5%;
         }
 
-        /* Leaderboard Styling */
-        .leaderboard {
-            padding: 0.5rem;
+        .leaderboard table {
+            width: 100%;
+            table-layout: fixed;
         }
 
-            .leaderboard table {
-                width: 100%;
-                table-layout: fixed;
+            .leaderboard table th {
+                font-size: 0.6rem;
             }
 
-                .leaderboard table tbody tr {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: flex-start;
-                    padding: 1rem;
-                    margin-bottom: 1rem;
-                    border-radius: 10px;
-                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-                    background: #fff;
-                }
-
-                .leaderboard table td {
-                    display: block;
-                    width: 100%;
-                    margin-bottom: -1rem;
-                    font-size: 0.9rem;
-                }
-
-                    .leaderboard table td[data-label]::before {
-                        content: attr(data-label);
-                        font-weight: bold;
-                        display: block;
-                        margin-bottom: 0.2rem;
-                        font-size: 0.8rem;
-                        color: #555;
-                    }
-
-            .leaderboard .portrait {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                object-fit: cover;
-                margin-bottom: 0.5rem;
+            .leaderboard table td {
+                font-size: 0.8rem;
             }
 
-            .leaderboard .rank {
-                font-size: 1.2rem;
-                font-weight: bold;
-                color: var(--primary-color);
-                margin-bottom: 1rem; /* Increased space from last media query */
-            }
-
-            .leaderboard .athlete-name {
-                font-size: 1rem;
-                color: var(--primary-color);
-                text-decoration: underline;
-            }
-
-            .leaderboard .age-reduction {
-                font-size: 0.9rem;
-                font-weight: bold;
-                color: var(--secondary-color);
-                margin-top: 1rem; /* Increased space from last media query */
-            }
-
-            .leaderboard .media-contact {
-                font-size: 1.2rem;
-                margin-top: 0.5rem;
-            }
-
-                .leaderboard .media-contact i {
-                    font-size: 2rem;
-                    color: var(--secondary-color);
-                    margin-top: -0.5rem;
-                }
+        .leaderboard .portrait {
+            width: 40px;
+            height: 40px;
+        }
     }
 
     @keyframes fadeIn {
@@ -1090,7 +993,9 @@
                             <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
                                onmouseover="this.style.color='var(--secondary-color)';"
                                onmouseout="this.style.color='#999';">
-                                <span style="font-size: 0.8rem;">(coming soon)</span>
+                                <span id="comingSoon">
+                                    coming soon
+                                </span>
                             </a>
                         </th>
                         <th>
