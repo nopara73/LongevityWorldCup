@@ -2769,24 +2769,4 @@
     window.addEventListener('popstate', function (event) {
         closeOpenComponents();
     });
-
-    function adjustChartHeight() {
-        const canvas = document.getElementById("biomarkerChart");
-
-        if (window.matchMedia("(orientation: landscape)").matches) {
-            // Landscape orientation
-            canvas.style.height = "200px";
-            canvas.style.width = "70%";
-        } else {
-            // Portrait orientation
-            canvas.style.height = "300px";
-            canvas.style.width = "100%";
-        }
-    }
-
-    // Initial adjustment when the page loads
-    adjustChartHeight();
-
-    // Add an event listener for screen orientation changes
-    window.addEventListener("resize", adjustChartHeight);
 </script>
