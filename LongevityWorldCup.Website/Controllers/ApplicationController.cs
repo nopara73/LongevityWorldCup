@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 using LongevityWorldCup.Website.Business;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -108,7 +111,7 @@ namespace LongevityWorldCup.Website.Controllers
             // Adjust the code for handling the profile picture
             if (!string.IsNullOrEmpty(applicantData.ProfilePic))
             {
-                var (profilePicBytes, contentType, extension) = ParseBase64Image(applicantData.ProfilePic);
+                var (profilePicBytes, contentType, extension) = OptimizeImage(ParseBase64Image(applicantData.ProfilePic));
 
                 if (profilePicBytes != null && contentType != null && extension != null)
                 {
@@ -139,7 +142,7 @@ namespace LongevityWorldCup.Website.Controllers
                 int proofIndex = 1;
                 foreach (var proofPicBase64 in applicantData.ProofPics)
                 {
-                    var (proofPicBytes, contentType, extension) = ParseBase64Image(proofPicBase64);
+                    var (proofPicBytes, contentType, extension) = OptimizeImage(ParseBase64Image(proofPicBase64));
 
                     if (proofPicBytes != null && contentType != null && extension != null)
                     {
@@ -246,6 +249,51 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 // Handle exception
                 return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // Helper method to optimize images
+        private (byte[]? optimizedBytes, string? contentType, string? extension) OptimizeImage((byte[]? bytes, string? contentType, string? extension) imageData)
+        {
+            if (imageData.bytes == null || imageData.contentType == null || imageData.extension == null)
+            {
+                return (null, null, null);
+            }
+
+            try
+            {
+                // Load the image from bytes
+                using var inputStream = new MemoryStream(imageData.bytes);
+                using var image = SixLabors.ImageSharp.Image.Load(inputStream);
+
+                // Makei it webp
+                var webpEncoder = new WebpEncoder
+                {
+                    FileFormat = WebpFileFormatType.Lossy
+                };
+                using var outputStream = new MemoryStream();
+
+                // Resize to a maximum size if needed (e.g., 1024x1024)
+                image.Mutate(x =>
+                {
+                    x.Resize(new ResizeOptions
+                    {
+                        Mode = ResizeMode.Max,
+                        Size = new SixLabors.ImageSharp.Size(1024, 1024)
+                    });
+                });
+
+                // Save the image as WebP
+                image.Save(outputStream, webpEncoder);
+
+                // Return the optimized WebP image
+                return (outputStream.ToArray(), "image/webp", "webp");
+            }
+            catch (Exception ex)
+            {
+                // If optimization fails, return the original image data
+                _logger.LogWarning("Image optimization failed. Returning original image data. Exception: {Message}", ex.Message);
+                return imageData;
             }
         }
 
