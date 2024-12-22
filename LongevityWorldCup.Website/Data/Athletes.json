@@ -471,5 +471,36 @@
       "/assets/proofs/dariusz_kowalski_proof_2.png"
     ],
     "PersonalLink": null
+  },
+  {
+    "Name": "Ajjas",
+    "MediaContact": "ajjasjay@gmail.com",
+    "DateOfBirth": {
+      "Year": 1993,
+      "Month": 12,
+      "Day": 20
+    },
+    "Biomarkers": [
+      {
+        "Date": "2024-12-21",
+        "AlbGL": 45,
+        "CreatUmolL": 80,
+        "GluMmolL": 4.5,
+        "CrpMgL": 0.18,
+        "LymPc": 39,
+        "McvFL": 85,
+        "RdwPc": 11,
+        "AlpUL": 12,
+        "Wbc1000cellsuL": 6
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Hungary",
+    "Why": "Beating Ivan Drago aka. Bryan Johnson",
+    "ProfilePic": "/assets/profile-pics/ajjas_profile.jpg",
+    "Proofs": [
+      "/assets/proofs/ajjas_proof_1.jpg"
+    ],
+    "PersonalLink": null
   }
 ]

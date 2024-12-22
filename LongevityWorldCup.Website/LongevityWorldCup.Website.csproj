@@ -17,8 +17,6 @@
     <Folder Include="Data\" />
     <Folder Include="wwwroot\assets\content-images\" />
     <Folder Include="wwwroot\assets\fonts\" />
-    <Folder Include="wwwroot\assets\proofs\" />
-    <Folder Include="wwwroot\assets\profile-pics\" />
   </ItemGroup>
 
   <ItemGroup>
