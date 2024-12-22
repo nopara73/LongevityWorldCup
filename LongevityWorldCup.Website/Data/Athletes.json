@@ -483,9 +483,9 @@
     "Biomarkers": [
       {
         "Date": "2024-12-21",
-        "AlbGL": 45,
-        "CreatUmolL": 80,
-        "GluMmolL": 4.5,
+        "AlbGL": 1,
+        "CreatUmolL": 99,
+        "GluMmolL": 7,
         "CrpMgL": 0.18,
         "LymPc": 39,
         "McvFL": 85,
