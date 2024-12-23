@@ -1,5 +1,5 @@
 # Longevity World Cup
-![Cropped_Image (1)](https://github.com/user-attachments/assets/6527a770-5be1-4f24-bbe1-f6cabb2b83f0)
+[![noqr](https://github.com/user-attachments/assets/7054d592-c478-429b-a767-d1d293a26b02)](https://www.longevityworldcup.com/)
 
 ## Website
 
