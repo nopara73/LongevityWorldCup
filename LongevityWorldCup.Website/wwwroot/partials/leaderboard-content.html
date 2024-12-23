@@ -228,10 +228,19 @@
         text-align: left;
     }
 
-        .leaderboard td:first-child,
-        .leaderboard td:nth-child(2) { /* First column (Rank) and Second column (Profile Picture) */
-            padding: 0;
+        .leaderboard td:first-child {
             text-align: center; /* Center align if necessary */
+        }
+
+        .leaderboard td:first-child,
+        .leaderboard td:nth-child(2) {
+            padding: 0;
+        }
+
+        .leaderboard td:nth-child(2) {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
     .portrait {
@@ -995,7 +1004,6 @@
                 <thead>
                     <tr>
                         <th>Rank</th>
-                        <th></th>
                         <th>Athlete</th>
                         <th>
                             Sponsor<br />
@@ -1333,17 +1341,17 @@
                     const row = document.createElement('tr');
 
                     row.innerHTML = `
-    <td data-label="Rank"><span class="rank">${athlete.rank}</span></td>
-    <td data-label="Portrait"><img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy"></td>
-    <td data-label="Athlete">
-        <span class="athlete-name" title="View stats of ${athlete.name}">${athlete.name}</span>
-        ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
-        <i class="fa fa-link"></i>
-        </a>` : ''}
-    </td>
-    <td data-label="Sponsor"></td>
-    <td data-label="Age Reduction" class="age-reduction">${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
-    <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false, athlete.name)}</td>`;
+                        <td data-label="Rank"><span class="rank">${athlete.rank}</span></td>
+                        <td data-label="Athlete">
+                            <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy">
+                            <span class="athlete-name" title="View stats of ${athlete.name}">${athlete.name}</span>
+                            ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
+                            <i class="fa fa-link"></i>
+                            </a>` : ''}
+                        </td>
+                        <td data-label="Sponsor"></td>
+                        <td data-label="Age Reduction" class="age-reduction">${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
+                        <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false, athlete.name)}</td>`;
 
                     tableBody.appendChild(row);
 
