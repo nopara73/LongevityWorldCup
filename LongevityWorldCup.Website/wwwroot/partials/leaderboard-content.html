@@ -6,7 +6,7 @@
         border-radius: 50%;
         object-fit: cover;
         border: 3px solid var(--secondary-color);
-        margin: 1rem 0;
+        margin: 0.5rem 0; /* Reduce the vertical margin of the portrait */
         cursor: pointer;
         transition: transform 0.3s ease;
     }
@@ -239,15 +239,11 @@
         text-align: left;
     }
 
-    .leaderboard td:nth-child(2) {
+    .athlete-td {
         display: flex;
         align-items: center;
         text-align: left;
         gap: 0.5rem;
-    }
-
-    .portrait {
-        margin: 0.5rem 0; /* Reduce the vertical margin of the portrait */
     }
 
     th {
@@ -300,6 +296,7 @@
     .athlete-name {
         color: var(--primary-color);
         text-decoration: underline;
+        text-align: left;
         cursor: pointer;
         transition: color 0.2s ease-in-out;
         display: inline-block; /* Ensures padding is applied around the element */
@@ -1333,17 +1330,17 @@
                     const row = document.createElement('tr');
 
                     row.innerHTML = `
-                        <td data-label="Rank"><span class="rank">${athlete.rank}</span></td>
-                        <td data-label="Athlete">
+                        <td data-label="Rank" class="rank-td"><span class="rank">${athlete.rank}</span></td>
+                        <td data-label="Athlete" class="athlete-td">
                             <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy">
                             <span class="athlete-name" title="View stats of ${athlete.name}">${athlete.name}</span>
                             ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
                             <i class="fa fa-link"></i>
                             </a>` : ''}
                         </td>
-                        <td data-label="Sponsor"></td>
-                        <td data-label="Age Reduction" class="age-reduction">${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</td>
-                        <td data-label="Media Contact">${renderMediaContact(athlete.mediaContact, false, athlete.name)}</td>`;
+                        <td data-label="Sponsor" class="sponsor-td"></td>
+                        <td data-label="Age Reduction" class="age-reduction-td"><span class="age-reduction">${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</span></td>
+                        <td data-label="Media Contact" class="media-contact-td">${renderMediaContact(athlete.mediaContact, false, athlete.name)}</td>`;
 
                     tableBody.appendChild(row);
 
