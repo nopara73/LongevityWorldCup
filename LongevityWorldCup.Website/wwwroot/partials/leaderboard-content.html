@@ -224,24 +224,27 @@
     }
 
     .leaderboard td {
-        padding: 0 1rem;
+        text-align: center;
+    }
+
+    .rank {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--primary-color);
+    }
+
+    .age-reduction {
+        font-weight: 700;
+        color: #4caf50;
         text-align: left;
     }
 
-        .leaderboard td:first-child {
-            text-align: center; /* Center align if necessary */
-        }
-
-        .leaderboard td:first-child,
-        .leaderboard td:nth-child(2) {
-            padding: 0;
-        }
-
-        .leaderboard td:nth-child(2) {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+    .leaderboard td:nth-child(2) {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        gap: 0.5rem;
+    }
 
     .portrait {
         margin: 0.5rem 0; /* Reduce the vertical margin of the portrait */
@@ -271,11 +274,6 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
-    .age-reduction {
-        font-weight: 700;
-        color: #4caf50;
-    }
-
     .media-contact {
         color: rgba(255, 64, 129, 0.7);
         text-decoration: none;
@@ -298,12 +296,6 @@
             text-align: center;
             vertical-align: middle;
         }
-
-    .rank {
-        font-weight: 700;
-        font-size: 1.2rem;
-        color: var(--primary-color);
-    }
 
     .athlete-name {
         color: var(--primary-color);
