@@ -223,17 +223,24 @@
         align-self: flex-start; /* Add this line */
     }
 
-    th {
-        padding: 1rem 1rem;
-        text-align: left;
-    }
-
-    td {
+    .leaderboard td {
         padding: 0 1rem;
         text-align: left;
     }
 
+        .leaderboard td:first-child,
+        .leaderboard td:nth-child(2) { /* First column (Rank) and Second column (Profile Picture) */
+            padding: 0;
+            text-align: center; /* Center align if necessary */
+        }
+
+    .portrait {
+        margin: 0.5rem 0; /* Reduce the vertical margin of the portrait */
+    }
+
     th {
+        padding: 1rem 1rem;
+        text-align: left;
         background-color: rgba(0, 188, 212, 0.1);
         color: var(--primary-color);
         font-weight: 700;
