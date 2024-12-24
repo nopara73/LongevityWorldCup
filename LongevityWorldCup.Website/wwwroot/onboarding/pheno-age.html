@@ -386,10 +386,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -443,7 +443,7 @@
                 apUnit: '1',              // U/L
                 wbcUnit: '1'              // 1000 cells/μL
             },
-            en_GB: {
+            GB: {
                 albuminUnit: '1',         // g/L (SI unit, common in the UK)
                 creatinineUnit: '1',      // µmol/L
                 glucoseUnit: '1',         // mmol/L
@@ -514,9 +514,11 @@
 
         // Detect and apply preferences based on language
         function applyLanguagePreferences() {
-            const language = navigator.language || 'default'; // Get browser language
-            const languageKey = language.replace('-', '_');   // Replace dash with underscore
-            const preferences = unitPreferences[languageKey] || unitPreferences.default;
+            const language = navigator.language || 'default'; // e.g., 'en-US'
+            const countryMatch = language.match(/[-_](\w{2})$/); // Extract country code)
+            const countryCode = countryMatch ? countryMatch[1].toUpperCase() : '';
+
+            const preferences = unitPreferences[countryCode] || unitPreferences.default;
 
             // Apply preferences to unit select elements
             for (const [unitId, unitValue] of Object.entries(preferences)) {
