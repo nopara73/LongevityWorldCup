@@ -386,10 +386,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -429,6 +429,43 @@
 
             isResultCalculated = true;
         }
+
+        // Mapping language or country codes to unit preferences
+        const unitPreferences = {
+            US: {
+                albuminUnit: '0.1',       // g/dL
+                creatinineUnit: '0.0113', // mg/dL
+                glucoseUnit: '18.016',    // mg/dL
+                crpUnit: '10',             // mg/L
+                lymphocyteUnit: '1',      // %
+                mcvUnit: '1',             // fL
+                rcdwUnit: '1',            // %
+                apUnit: '1',              // U/L
+                wbcUnit: '1'              // 1000 cells/μL
+            },
+            en_GB: {
+                albuminUnit: '1',         // g/L (SI unit, common in the UK)
+                creatinineUnit: '1',      // µmol/L
+                glucoseUnit: '1',         // mmol/L
+                crpUnit: '10',            // mg/L
+                lymphocyteUnit: '1',      // %
+                mcvUnit: '1',             // fL
+                rcdwUnit: '1',            // %
+                apUnit: '1',              // U/L
+                wbcUnit: '1'              // 1000 cells/μL
+            },
+            default: {
+                albuminUnit: '1',         // g/L
+                creatinineUnit: '1',      // µmol/L
+                glucoseUnit: '1',         // mmol/L
+                crpUnit: '10',            // mg/L
+                lymphocyteUnit: '1',      // %
+                mcvUnit: '1',             // fL
+                rcdwUnit: '1',            // %
+                apUnit: '1',              // U/L
+                wbcUnit: '1'              // 1000 cells/μL
+            }
+        };
 
         document.addEventListener('DOMContentLoaded', function () {
             const unitSelects = document.querySelectorAll('.input-group select');
@@ -470,7 +507,26 @@
             if (isFake) {
                 fillFakeData();
             }
+
+            // Apply preferences on page load
+            applyLanguagePreferences();
         });
+
+        // Detect and apply preferences based on language
+        function applyLanguagePreferences() {
+            const language = navigator.language || 'default'; // Get browser language
+            const languageKey = language.replace('-', '_');   // Replace dash with underscore
+            const preferences = unitPreferences[languageKey] || unitPreferences.default;
+
+            // Apply preferences to unit select elements
+            for (const [unitId, unitValue] of Object.entries(preferences)) {
+                const unitSelect = document.getElementById(unitId);
+                if (unitSelect) {
+                    unitSelect.value = unitValue;
+                }
+            }
+        }
+
         function proceedToNextPage() {
             const yearInput = document.getElementById('dob-year').value;
             const monthInput = document.getElementById('dob-month').value;
