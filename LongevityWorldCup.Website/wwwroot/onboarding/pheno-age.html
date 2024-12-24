@@ -126,7 +126,7 @@
                 <!-- Albumin -->
                 <label for="albumin">Albumin</label>
                 <div class="input-group">
-                    <input type="number" id="albumin" name="albumin" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="albuminUnit" class="visually-hidden">Select unit for Albumin</label>
                     <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">g/L</option>
@@ -141,7 +141,7 @@
                 <!-- Creatinine -->
                 <label for="creatinine">Creatinine</label>
                 <div class="input-group">
-                    <input type="number" id="creatinine" name="creatinine" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="creatinineUnit" class="visually-hidden">Select unit for Creatinine</label>
                     <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">µmol/L</option>
@@ -153,7 +153,7 @@
                 <!-- Glucose -->
                 <label for="glucose">Glucose</label>
                 <div class="input-group">
-                    <input type="number" id="glucose" name="glucose" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="glucoseUnit" class="visually-hidden">Select unit for Glucose</label>
                     <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">mmol/L</option>
@@ -165,7 +165,7 @@
                 <!-- C-Reactive Protein -->
                 <label for="crp">C-Reactive Protein</label>
                 <div class="input-group">
-                    <input type="number" id="crp" name="crp" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
                     <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="10">mg/L</option>
@@ -178,7 +178,7 @@
                 <!-- Lymphocyte Percentage -->
                 <label for="lymphocyte">Lymphocytes</label>
                 <div class="input-group">
-                    <input type="number" id="lymphocyte" name="lymphocyte" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="lymphocyte" name="lymphocyte" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
                     <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">%</option>
@@ -190,7 +190,7 @@
                 <!-- Mean Corpuscular Volume -->
                 <label for="mcv">Mean Corpuscular Volume</label>
                 <div class="input-group">
-                    <input type="number" id="mcv" name="mcv" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
                     <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">fL</option>
@@ -200,7 +200,7 @@
                 <!-- Red Cell Distribution Width -->
                 <label for="rcdw">Red Cell Distribution Width</label>
                 <div class="input-group">
-                    <input type="number" id="rcdw" name="rcdw" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="rcdw" name="rcdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
                     <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">%</option>
@@ -221,7 +221,7 @@
                 <!-- White Blood Cell Count -->
                 <label for="wbc">White Blood Cell Count</label>
                 <div class="input-group">
-                    <input type="number" id="wbc" name="wbc" step="0.1" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">1000 cells/μL</option>
@@ -386,10 +386,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
