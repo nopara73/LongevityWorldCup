@@ -252,7 +252,7 @@
     "PersonalLink": null
   },
   {
-    "Name": "Emma Johansson",
+    "Name": "Ivan Drago",
     "MediaContact": "https://twitter.com/emmajohansson_media",
     "DateOfBirth": {
       "Year": 1966,
@@ -488,7 +488,7 @@
         "GluMmolL": 1,
         "CrpMgL": 0.18,
         "LymPc": 39,
-        "McvFL": 1,
+        "McvFL": 85,
         "RdwPc": 11,
         "AlpUL": 12,
         "Wbc1000cellsuL": 6
