@@ -116,6 +116,7 @@
             duration: 800, // Animation duration in milliseconds
             easing: 'ease-in-out', // Easing function
             once: true, // Whether animation should happen only once while scrolling down
+            offset: 50, // Reduced offset to trigger animations earlier
             disable: window.matchMedia('(prefers-reduced-motion: reduce)').matches, // Respect user preference
         });
     });
