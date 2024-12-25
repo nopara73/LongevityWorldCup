@@ -239,11 +239,6 @@
         text-align: left;
     }
 
-    /* Adjust width of the Rank column */
-    .leaderboard table th:nth-child(1) {
-        width: 15px; /* Set desired width */
-    }
-
     .athlete-td {
         display: flex;
         align-items: center;
@@ -253,13 +248,23 @@
 
     th {
         padding: 1rem 1rem;
-        text-align: left;
+        text-align: center;
         background-color: rgba(0, 188, 212, 0.1);
         color: var(--primary-color);
         font-weight: 700;
         text-transform: uppercase;
         font-size: 0.9rem;
         letter-spacing: 1px;
+    }
+
+    /* Adjust Rank column */
+    .leaderboard table th:nth-child(1) {
+        width: 15px;
+    }
+
+    /* Adjust Athlete column */
+    .leaderboard table th:nth-child(2) {
+        text-align: left;
     }
 
     tr:nth-child(even) {
