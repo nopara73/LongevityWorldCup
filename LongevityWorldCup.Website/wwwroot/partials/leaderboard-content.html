@@ -2679,31 +2679,42 @@
     });
 
     function toggleSidebar() {
-        sidebar.classList.remove('partially-expanded');
-        sidebar.classList.toggle('expanded');
-        sidebar.classList.remove('collapsed');
-        sidebarToggle.classList.toggle('active');
-
         if (sidebar.classList.contains('expanded')) {
-            sidebarToggle.title = "Hide Leagues";
-            sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
-
-            // Scroll to the leaderboard table when closing the sidebar
-            document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-            });
-        } else {
-            sidebarToggle.title = "Show Leagues";
-            sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
+            closeSidebar();
         }
+        else {
+            openSidebar();
+        }
+    }
+
+    function openSidebar() {
+        sidebar.classList.remove('partially-expanded');
+        sidebar.classList.remove('collapsed');
+
+        if (!sidebar.classList.contains('expanded')) {
+            sidebar.classList.add('expanded');
+        }
+        if (!sidebarToggle.classList.contains('active')) {
+            sidebarToggle.classList.add('active')
+        }
+
+        sidebarToggle.title = "Hide Leagues";
+        sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
+
+        // Scroll to the leaderboard table
+        document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
     }
 
     function closeSidebar() {
         sidebar.classList.remove('expanded');
         sidebarToggle.classList.remove('active');
         sidebar.classList.remove('partially-expanded');
-        sidebar.classList.add('button-collapsed');
+        if (!sidebar.classList.contains('button-collapsed')) {
+            sidebar.classList.add('button-collapsed');
+        }
         sidebarToggle.title = "Show Leagues";
         sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
 
