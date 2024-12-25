@@ -1999,8 +1999,6 @@
         // Check if any rows or podium items are visible
         const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
 
-        console.log(anyVisible);
-
         if (!anyVisible) {
             if (query.trim() !== '') {
                 const tableBody = document.querySelector('.leaderboard table tbody');
@@ -2676,17 +2674,14 @@
 
     sidebarClose.addEventListener('click', () => {
         closeSidebar();
-        console.log("click close");
     });
 
     function toggleSidebar() {
         if (sidebar.classList.contains('expanded')) {
             closeSidebar();
-            console.log("close");
         }
         else {
             openSidebar();
-            console.log("open");
         }
     }
 
@@ -2696,7 +2691,6 @@
 
         if (!sidebar.classList.contains('expanded')) {
             sidebar.classList.add('expanded');
-            console.log("added expanded");
         }
         if (!sidebarToggle.classList.contains('active')) {
             sidebarToggle.classList.add('active')
@@ -2714,7 +2708,6 @@
 
     function closeSidebar() {
         sidebar.classList.remove('expanded');
-        console.log("removed expanded");
         sidebarToggle.classList.remove('active');
         sidebar.classList.remove('partially-expanded');
         if (!sidebar.classList.contains('button-collapsed')) {
@@ -2751,7 +2744,6 @@
         // Check if it's a tap (small movement)
         if (Math.abs(deltaX) < TAP_THRESHOLD && Math.abs(deltaY) < TAP_THRESHOLD) {
             return; // Do nothing, treat as a tap
-            console.log("tap");
         }
 
         // Check for swipe
@@ -2759,11 +2751,9 @@
             if (deltaX > 0) {
                 // Swiped from left to right => open sidebar
                 openSidebar();
-                console.log("swiped open");
             } else {
                 // Swiped from right to left => close sidebar
                 closeSidebar();
-                console.log("swiped close");
             }
         }
     }, false);
