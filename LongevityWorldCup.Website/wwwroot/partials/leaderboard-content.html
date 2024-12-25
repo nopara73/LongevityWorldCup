@@ -2099,7 +2099,10 @@
     `;
             filterSection.appendChild(li);
             const input = li.querySelector('input[type="checkbox"]');
-            input.addEventListener('change', performFilter);
+            input.addEventListener('change', function (event) {
+                event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
+                performFilter();
+            });
         });
     }
 
@@ -2140,7 +2143,10 @@
         `;
                 filterSection.appendChild(li);
                 const input = li.querySelector('input[type="checkbox"]');
-                input.addEventListener('change', performFilter);
+                input.addEventListener('change', function (event) {
+                    event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
+                    performFilter();
+                });
             }
         });
 
@@ -2655,7 +2661,9 @@
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
 
-    sidebarToggle.addEventListener('click', toggleSidebar);
+    sidebarToggle.addEventListener('click', () => {
+        toggleSidebar();
+    });
 
     sidebarToggle.addEventListener('mouseenter', () => {
         if (sidebar.classList.contains('expanded')) return;
@@ -2670,12 +2678,7 @@
         closeSidebar();
     });
 
-    function toggleSidebar(event) {
-        // Check if the click or tap occurred inside the sidebar
-        if (event && event.target.closest('.sidebar') && event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
-            return; // Do nothing if the click/tap is inside the sidebar
-        }
-
+    function toggleSidebar() {
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.toggle('expanded');
         sidebar.classList.remove('collapsed');
