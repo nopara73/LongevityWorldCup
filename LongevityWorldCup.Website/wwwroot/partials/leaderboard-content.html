@@ -2673,6 +2673,10 @@
     });
 
     function toggleSidebar() {
+        if (event.target.closest('.sidebar')) {
+            // Don't toggle if interacting inside the sidebar
+            return;
+        }
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.toggle('expanded');
         sidebar.classList.remove('collapsed');
