@@ -2262,48 +2262,6 @@
         }
     }
 
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const sidebarClose = document.querySelector('.sidebar-close');
-
-    sidebarToggle.addEventListener('click', () => {
-        sidebar.classList.remove('partially-expanded');
-        sidebar.classList.toggle('expanded');
-        sidebar.classList.remove('collapsed');
-        sidebarToggle.classList.toggle('active');
-
-        if (sidebar.classList.contains('expanded')) {
-            sidebarToggle.title = "Hide Leagues";
-            sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
-        } else {
-            sidebarToggle.title = "Show Leagues";
-            sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
-        }
-
-    });
-
-    sidebarToggle.addEventListener('mouseenter', () => {
-        if (sidebar.classList.contains('expanded')) return;
-        sidebar.classList.add('partially-expanded');
-    });
-
-    sidebarToggle.addEventListener('mouseleave', () => {
-        sidebar.classList.remove('partially-expanded');
-    });
-
-    sidebarClose.addEventListener('click', () => {
-        sidebar.classList.remove('expanded');
-        sidebarToggle.classList.remove('active');
-        sidebar.classList.remove('partially-expanded');
-        sidebar.classList.add('button-collapsed');
-        sidebarToggle.title = "Show Leagues";
-        sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
-
-        setTimeout(() => {
-            sidebar.classList.remove('button-collapsed');
-        }, 50);
-    });
-
     function handleAthleteNameClick(event) {
         // Determine if it's a table row or podium item
         const athleteRow = getAthleteRow(event.target);
@@ -2693,6 +2651,55 @@
         closeOpenComponents();
     });
 
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = document.querySelector('.sidebar-toggle');
+    const sidebarClose = document.querySelector('.sidebar-close');
+
+    sidebarToggle.addEventListener('click', () => {
+        toggleSidebar();
+    });
+
+    sidebarToggle.addEventListener('mouseenter', () => {
+        if (sidebar.classList.contains('expanded')) return;
+        sidebar.classList.add('partially-expanded');
+    });
+
+    sidebarToggle.addEventListener('mouseleave', () => {
+        sidebar.classList.remove('partially-expanded');
+    });
+
+    sidebarClose.addEventListener('click', () => {
+        closeSidebar();
+    });
+
+    function toggleSidebar() {
+        sidebar.classList.remove('partially-expanded');
+        sidebar.classList.toggle('expanded');
+        sidebar.classList.remove('collapsed');
+        sidebarToggle.classList.toggle('active');
+
+        if (sidebar.classList.contains('expanded')) {
+            sidebarToggle.title = "Hide Leagues";
+            sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
+        } else {
+            sidebarToggle.title = "Show Leagues";
+            sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
+        }
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('expanded');
+        sidebarToggle.classList.remove('active');
+        sidebar.classList.remove('partially-expanded');
+        sidebar.classList.add('button-collapsed');
+        sidebarToggle.title = "Show Leagues";
+        sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
+
+        setTimeout(() => {
+            sidebar.classList.remove('button-collapsed');
+        }, 50);
+    }
+
     // Sidebar swipe gesture
     let startX = 0;
     let endX = 0;
@@ -2710,10 +2717,10 @@
         // Set a minimum distance to qualify as a swipe (e.g. 50px)
         if (difference > 50) {
             // Swiped from left to right => open sidebar
-            sidebar.classList.add('expanded');
+            toggleSidebar();
         } else if (difference < -50) {
             // Swiped from right to left => close sidebar
-            sidebar.classList.remove('expanded');
+            closeSidebar();
         }
     }, false);
 </script>
