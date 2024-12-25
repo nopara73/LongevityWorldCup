@@ -2692,4 +2692,27 @@
     window.addEventListener('popstate', function (event) {
         closeOpenComponents();
     });
+
+    let startX = 0;
+    let endX = 0;
+
+    document.addEventListener('touchstart', (e) => {
+        startX = e.changedTouches[0].clientX;
+    }, false);
+
+    document.addEventListener('touchmove', (e) => {
+        endX = e.changedTouches[0].clientX;
+    }, false);
+
+    document.addEventListener('touchend', () => {
+        const difference = endX - startX;
+        // Set a minimum distance to qualify as a swipe (e.g. 50px)
+        if (difference > 50) {
+            // Swiped from left to right => open sidebar
+            sidebar.classList.add('expanded');
+        } else if (difference < -50) {
+            // Swiped from right to left => close sidebar
+            sidebar.classList.remove('expanded');
+        }
+    }, false);
 </script>
