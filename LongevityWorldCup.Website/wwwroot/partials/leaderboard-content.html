@@ -2676,14 +2676,17 @@
 
     sidebarClose.addEventListener('click', () => {
         closeSidebar();
+        console.log("click close");
     });
 
     function toggleSidebar() {
         if (sidebar.classList.contains('expanded')) {
             closeSidebar();
+            console.log("close");
         }
         else {
             openSidebar();
+            console.log("open");
         }
     }
 
@@ -2693,6 +2696,7 @@
 
         if (!sidebar.classList.contains('expanded')) {
             sidebar.classList.add('expanded');
+            console.log("added expanded");
         }
         if (!sidebarToggle.classList.contains('active')) {
             sidebarToggle.classList.add('active')
@@ -2710,6 +2714,7 @@
 
     function closeSidebar() {
         sidebar.classList.remove('expanded');
+        console.log("removed expanded");
         sidebarToggle.classList.remove('active');
         sidebar.classList.remove('partially-expanded');
         if (!sidebar.classList.contains('button-collapsed')) {
@@ -2726,24 +2731,40 @@
     // Sidebar swipe gesture
     let startX = 0;
     let endX = 0;
+    let startY = 0;
+    let endY = 0;
+    const SWIPE_THRESHOLD = 50; // Minimum distance to qualify as a swipe
+    const TAP_THRESHOLD = 10; // Allowable movement for taps
 
     document.addEventListener('touchstart', (e) => {
         startX = e.changedTouches[0].clientX;
+        startY = e.changedTouches[0].clientY;
     }, false);
 
-    document.addEventListener('touchmove', (e) => {
+    document.addEventListener('touchend', (e) => {
         endX = e.changedTouches[0].clientX;
-    }, false);
+        endY = e.changedTouches[0].clientY;
 
-    document.addEventListener('touchend', () => {
-        const difference = endX - startX;
-        // Set a minimum distance to qualify as a swipe (e.g. 50px)
-        if (difference > 50) {
-            // Swiped from left to right => open sidebar
-            openSidebar();
-        } else if (difference < -50) {
-            // Swiped from right to left => close sidebar
-            closeSidebar();
+        const deltaX = endX - startX; // Horizontal movement
+        const deltaY = endY - startY; // Vertical movement
+
+        // Check if it's a tap (small movement)
+        if (Math.abs(deltaX) < TAP_THRESHOLD && Math.abs(deltaY) < TAP_THRESHOLD) {
+            return; // Do nothing, treat as a tap
+            console.log("tap");
+        }
+
+        // Check for swipe
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
+            if (deltaX > 0) {
+                // Swiped from left to right => open sidebar
+                openSidebar();
+                console.log("swiped open");
+            } else {
+                // Swiped from right to left => close sidebar
+                closeSidebar();
+                console.log("swiped close");
+            }
         }
     }, false);
 </script>
