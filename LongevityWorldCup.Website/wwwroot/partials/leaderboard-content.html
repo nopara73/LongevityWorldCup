@@ -2655,9 +2655,7 @@
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
 
-    sidebarToggle.addEventListener('click', () => {
-        toggleSidebar();
-    });
+    sidebarToggle.addEventListener('click', toggleSidebar);
 
     sidebarToggle.addEventListener('mouseenter', () => {
         if (sidebar.classList.contains('expanded')) return;
@@ -2672,11 +2670,12 @@
         closeSidebar();
     });
 
-    function toggleSidebar() {
-        if (document.activeElement.closest('.sidebar')) {
-            // Don't toggle if interacting inside the sidebar
-            return;
+    function toggleSidebar(event) {
+        // Check if the click or tap occurred inside the sidebar
+        if (event && event.target.closest('.sidebar')) {
+            return; // Do nothing if the click/tap is inside the sidebar
         }
+
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.toggle('expanded');
         sidebar.classList.remove('collapsed');
