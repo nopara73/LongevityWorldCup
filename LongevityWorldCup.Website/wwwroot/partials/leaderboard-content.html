@@ -2672,7 +2672,7 @@
 
     function toggleSidebar(event) {
         // Check if the click or tap occurred inside the sidebar
-        if (event && event.target.closest('.sidebar')) {
+        if (event && event.target.closest('.sidebar') && event.target.tagName === 'INPUT') {
             return; // Do nothing if the click/tap is inside the sidebar
         }
 
