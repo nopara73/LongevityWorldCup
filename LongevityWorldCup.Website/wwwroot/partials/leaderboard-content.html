@@ -2685,6 +2685,12 @@
         if (sidebar.classList.contains('expanded')) {
             sidebarToggle.title = "Hide Leagues";
             sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
+
+            // Scroll to the leaderboard table when closing the sidebar
+            document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
         } else {
             sidebarToggle.title = "Show Leagues";
             sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
