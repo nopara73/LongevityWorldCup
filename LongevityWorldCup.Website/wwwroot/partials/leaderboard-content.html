@@ -2673,7 +2673,7 @@
     });
 
     function toggleSidebar() {
-        if (event.target.closest('.sidebar')) {
+        if (document.activeElement.closest('.sidebar')) {
             // Don't toggle if interacting inside the sidebar
             return;
         }
