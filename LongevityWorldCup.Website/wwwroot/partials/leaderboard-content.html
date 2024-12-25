@@ -2693,26 +2693,39 @@
         closeOpenComponents();
     });
 
-    let startX = 0;
-    let endX = 0;
+    // Sidebar swipe gesture
+    let startX = 0; // Starting X coordinate
+    let currentX = 0; // Current X coordinate during touchmove
+    const swipeThreshold = 50; // Minimum distance to consider a swipe
 
-    document.addEventListener('touchstart', (e) => {
-        startX = e.changedTouches[0].clientX;
-    }, false);
+    // Add touch event listeners to the sidebar and main container
+    const mainContainer = document.querySelector('.main-container');
 
-    document.addEventListener('touchmove', (e) => {
-        endX = e.changedTouches[0].clientX;
-    }, false);
+    mainContainer.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX; // Record the starting touch point
+    });
 
-    document.addEventListener('touchend', () => {
-        const difference = endX - startX;
-        // Set a minimum distance to qualify as a swipe (e.g. 50px)
-        if (difference > 50) {
-            // Swiped from left to right => open sidebar
+    mainContainer.addEventListener('touchmove', (e) => {
+        currentX = e.touches[0].clientX; // Update current touch point
+    });
+
+    mainContainer.addEventListener('touchend', () => {
+        const swipeDistance = currentX - startX;
+
+        if (swipeDistance > swipeThreshold) {
+            // Swipe Right - Show Sidebar
             sidebar.classList.add('expanded');
-        } else if (difference < -50) {
-            // Swiped from right to left => close sidebar
+            sidebar.classList.remove('collapsed');
+            sidebarToggle.classList.add('active');
+        } else if (swipeDistance < -swipeThreshold) {
+            // Swipe Left - Hide Sidebar
             sidebar.classList.remove('expanded');
+            sidebar.classList.add('collapsed');
+            sidebarToggle.classList.remove('active');
         }
-    }, false);
+
+        // Reset touch positions
+        startX = 0;
+        currentX = 0;
+    });
 </script>
