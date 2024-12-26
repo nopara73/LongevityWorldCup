@@ -99,6 +99,14 @@
     .stage.completed .stage-label {
         color: var(--primary-color);
     }
+
+    @media (max-width: 768px) {
+        /* Adjusting the Convergence label position for small screens */
+        #stage3 .stage-label {
+            transform: translateX(-60%);
+            padding-right: 10px; /* Optional adjustment to fine-tune */
+        }
+    }
 </style>
 <div class="progress-container">
     <div class="progress-bar" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
