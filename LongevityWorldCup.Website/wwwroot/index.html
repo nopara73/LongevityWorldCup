@@ -320,8 +320,9 @@
         .btc-status {
             font-size: 1.5rem;
             font-weight: bold;
-            text-align: center;
-            margin: 2rem 0;
+            text-align: right;
+            margin: 1rem 0;
+            display: inline-block;
         }
 
         /* BTC address text */
@@ -373,6 +374,7 @@
 
             .btc-status {
                 font-size: 1.2rem;
+                margin: 0;
             }
         }
 
@@ -452,7 +454,15 @@
                     </span>
                 </p>
                 <div class="btc-status">
-                    Raised: <span id='current-btc'>0.23</span> BTC / Target: <span id='goal-btc'>1</span> BTC
+                    <div style="display: grid; grid-template-columns: auto auto; gap: 1rem; text-align: left;">
+                        <div>Raised:</div>
+                        <div style="text-align: right;"><span id="current-btc">0.0021</span> BTC</div>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #000; margin: 0.5rem 0;">
+                    <div style="display: grid; grid-template-columns: auto auto; gap: 1rem; text-align: left;">
+                        <div>Target:</div>
+                        <div style="text-align: right;"><span id="goal-btc">0.01</span> BTC</div>
+                    </div>
                 </div>
                 <div class="btc-address">
                     <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
@@ -676,16 +686,22 @@
                 let displayPrizeFundBTC;
                 if (prizeFundBTC >= 10) {
                     displayPrizeFundBTC = prizeFundBTC.toFixed(0);
+                    goalBTC = goalBTC.toFixed(0);
                 } else if (prizeFundBTC >= 1) {
                     displayPrizeFundBTC = prizeFundBTC.toFixed(1);
+                    goalBTC = goalBTC.toFixed(1);
                 } else if (prizeFundBTC >= 0.1) {
                     displayPrizeFundBTC = prizeFundBTC.toFixed(2);
+                    goalBTC = goalBTC.toFixed(2);
                 } else if (prizeFundBTC >= 0.01) {
                     displayPrizeFundBTC = prizeFundBTC.toFixed(3);
+                    goalBTC = goalBTC.toFixed(3);
                 } else if (prizeFundBTC >= 0.001) {
                     displayPrizeFundBTC = prizeFundBTC.toFixed(4);
+                    goalBTC = goalBTC.toFixed(4);
                 } else if (prizeFundBTC >= 0.0001) {
                     displayPrizeFundBTC = prizeFundBTC.toFixed(5);
+                    goalBTC = goalBTC.toFixed(5);
                 }
 
                 document.getElementById('current-btc').textContent = displayPrizeFundBTC;
