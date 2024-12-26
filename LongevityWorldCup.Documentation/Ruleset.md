@@ -63,6 +63,7 @@ Each season is wrapped up in the middle of January. This should give your labora
 
 #### What if there's a tie?
 ![image](https://github.com/user-attachments/assets/5cbab5fd-7d07-478d-b90b-6c90f5c53f69)
+
 The older you are, the higher you rank in case of a tie. If necessary, alphabetical ordering of usernames will decide.  
 
 #### How can I cheat?
