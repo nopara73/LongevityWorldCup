@@ -144,6 +144,7 @@
             .section-container input[type="email"] {
                 padding: 0.6rem 1rem;
                 width: 250px;
+                max-width: 350px;
                 border-radius: 25px;
                 border: 1px solid var(--primary-color);
                 margin-right: 1rem;
@@ -160,6 +161,7 @@
                 border-radius: 25px;
                 cursor: pointer;
                 transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+                max-width: 350px;
             }
 
                 .section-container button:hover {
@@ -194,26 +196,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-        }
-
-        /* Adjust spacing for mobile */
-        @media (max-width: 768px) {
-            .section-container {
-                padding: 1.5rem;
-            }
-
-                .section-container input[type="email"] {
-                    width: 100%;
-                    margin: 0 0 1rem 0;
-                }
-
-            #newsletter-form {
-                flex-direction: column;
-            }
-
-            .section-container button {
-                width: 100%;
-            }
         }
 
         /* Styles for the copy button */
@@ -376,6 +358,29 @@
                 font-size: 1.2rem;
                 margin: 0;
             }
+
+            #countdown {
+                font-size: 1.5rem;
+            }
+
+            .section-container {
+                padding: 1.5rem;
+            }
+
+                .section-container input[type="email"] {
+                    width: 100%;
+                    margin: 0 0 1rem 0;
+                }
+
+                .section-container button {
+                    flex-direction: column;
+                    width: 100%;
+                }
+
+            #newsletter-form {
+                flex-direction: column;
+                width: 100%; /* Ensure the container doesn't cause layout issues */
+            }
         }
 
         /* Countdown Section Styles */
@@ -407,13 +412,6 @@
             font-size: 1rem;
             color: var(--dark-text-color);
             line-height: 1.6;
-        }
-
-        /* Responsive adjustments for countdown */
-        @media (max-width: 768px) {
-            #countdown {
-                font-size: 1.5rem;
-            }
         }
     </style>
 </head>
