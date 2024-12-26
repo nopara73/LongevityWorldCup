@@ -62,7 +62,8 @@ Yes, as long as the lab provides accurate blood biomarkers required for PhenoAge
 Each season is wrapped up in the middle of January. This should give your laboratory enough time to evaluate your test conducted on December 31.
 
 #### What if there's a tie?
-![image](https://github.com/user-attachments/assets/5cbab5fd-7d07-478d-b90b-6c90f5c53f69)
+![image](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
+
 
 The older you are, the higher you rank in case of a tie. If necessary, alphabetical ordering of usernames will decide.  
 
@@ -78,6 +79,9 @@ You can't.
 
 ### Practical Matters
 #### How much can I edit my profile picture?
+
+![image](https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab)
+
 Your profile picture must be you, facing the camera, but you can edit it freely, even as a drawing or AI-generated version.
 
 #### I am an athlete already, how can I make changes?
