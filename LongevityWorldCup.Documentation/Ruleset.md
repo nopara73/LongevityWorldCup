@@ -27,6 +27,8 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 Anyone interested in longevity and capable of submitting valid test results can participate.
 
 #### How do I register for the competition?
+![image](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
+
 Simply visit our website and follow the registration instructions.
 
 #### Can I withdraw from the competition?
