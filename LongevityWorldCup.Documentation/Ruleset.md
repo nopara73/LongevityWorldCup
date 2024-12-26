@@ -2,27 +2,25 @@
 The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.
 
 ## Schedule
-
-![image](https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582)
-
 - Every year a different competition starts where a different biological aging clock is used for the competition. We call this a **Season**. This is to keep things fresh and exciting, while also keeping up with research on biological aging measurements. In 2025, this aging clock is [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf), which can be derived from certain blood biomarkers.
 - Each season starts and ends in around the middle of January, however test results are valid only from the given calendar year: from January 1st to December 31st.
 
+![image](https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582)
+
 ## Point System
-
-![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
-
 - In LWC2025, what counts is the highest biological age reversal: the larger the difference between your biological and chronological age, the higher you rank.
 - You can submit as many tests as you want, for your ranking, always the lowest one counts. If cost is a concern, you can choose to submit just one test during the year at the best possible time, allowing you to participate without significant financial burden. However, if you're addicted to getting your blood drawn, you can theoretically also be submitting a test result every single day of the year.
 - In LWC2025 various leagues are also in effect. You might be doing average in the ultimate league and you could still be winning the league of your generation.
 
-## Prizes and Payouts
-![image](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
+![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
 
+## Prizes and Payouts
 - In LWC2025 prize money is given to the top 3 athletes in the ultimate league.
 - The prize money pool is coming from Bitcoin donations and you are encouraged to contribute.
 - 10% of the donations go toward covering organizational troubles, while 90% fund the prize money pool.
 - Payouts happen in the middle of January in Bitcoin. We'll help you set up a Bitcoin wallet if you don't already have one. We generally recommend [Green Wallet](https://blockstream.com/green/) for Mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Funfact: Wasabi Wallet was created by the same developer who created the Longevity World Cup.
+
+![image](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
 
 ## FAQ
 
