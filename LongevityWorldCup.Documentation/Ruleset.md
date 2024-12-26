@@ -6,6 +6,10 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 - Each season starts and ends in around the middle of January, however test results are valid only from the given calendar year: from January 1st to December 31st.
 
 ## Point System
+
+![image](https://github.com/user-attachments/assets/1e96c074-4409-42f8-a686-908c01473c7a)
+
+
 - In LWC2025, what counts is the highest biological age reversal: the larger the difference between your biological and chronological age, the higher you rank.
 - You can submit as many tests as you want, for your ranking, always the lowest one counts. If cost is a concern, you can choose to submit just one test during the year at the best possible time, allowing you to participate without significant financial burden. However, if you're addicted to getting your blood drawn, you can theoretically also be submitting a test result every single day of the year.
 - In LWC2025 various leagues are also in effect. You might be doing average in the ultimate league and you could still be winning the league of your generation.
