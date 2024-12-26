@@ -7,8 +7,7 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 
 ## Point System
 
-![image](https://github.com/user-attachments/assets/1e96c074-4409-42f8-a686-908c01473c7a)
-
+![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
 
 - In LWC2025, what counts is the highest biological age reversal: the larger the difference between your biological and chronological age, the higher you rank.
 - You can submit as many tests as you want, for your ranking, always the lowest one counts. If cost is a concern, you can choose to submit just one test during the year at the best possible time, allowing you to participate without significant financial burden. However, if you're addicted to getting your blood drawn, you can theoretically also be submitting a test result every single day of the year.
