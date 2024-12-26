@@ -34,6 +34,10 @@ Yes, just send us an email to `longevityworldcup@gmail.com`.
 
 ### About PhenoAge and Testing
 #### What is PhenoAge? 
+
+![image](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
+
+
 [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) is a biological age measure based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
 
 #### From which biomarkers can I calculate my PhenoAge?
