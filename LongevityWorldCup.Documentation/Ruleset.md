@@ -2,6 +2,9 @@
 The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.
 
 ## Schedule
+
+![image](https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582)
+
 - Every year a different competition starts where a different biological aging clock is used for the competition. We call this a **Season**. This is to keep things fresh and exciting, while also keeping up with research on biological aging measurements. In 2025, this aging clock is [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf), which can be derived from certain blood biomarkers.
 - Each season starts and ends in around the middle of January, however test results are valid only from the given calendar year: from January 1st to December 31st.
 
