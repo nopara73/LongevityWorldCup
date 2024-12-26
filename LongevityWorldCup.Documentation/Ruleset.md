@@ -29,19 +29,15 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 Anyone interested in longevity and capable of submitting valid test results can participate.
 
 #### How do I register for the competition?
-![image](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
-
 Simply visit our [website](https://www.longevityworldcup.com/) and follow the registration instructions.
+
+![image](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
 
 #### Can I withdraw from the competition?
 Yes, just send us an email to `longevityworldcup@gmail.com`.
 
 ### About PhenoAge and Testing
 #### What is PhenoAge? 
-
-![image](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
-
-
 [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) is a biological age measure based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
 
 #### From which biomarkers can I calculate my PhenoAge?
@@ -55,6 +51,8 @@ Yes, just send us an email to `longevityworldcup@gmail.com`.
 - Alkaline Phosphatase (ALP, Alk Phos)  
 - White Blood Cell Count (WBC Count, Leukocyte Count)  
 
+![image](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
+
 #### Why did you choose PhenoAge for 2025 World Cup?
 [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) can be acquired from traditional blood biomarkers. To kick off the very first Longevity World Cup, creating a low barrier of entry is paramount.
 
@@ -66,10 +64,9 @@ Yes, as long as the lab provides accurate blood biomarkers required for PhenoAge
 Each season is wrapped up in the middle of January. This should give your laboratory enough time to evaluate your test conducted on December 31.
 
 #### What if there's a tie?
-![image](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
-
-
 The older you are, the higher you rank in case of a tie. If necessary, alphabetical ordering of usernames will decide.  
+
+![image](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
 
 #### How can I cheat?
 You can't. 
@@ -83,10 +80,9 @@ You can't.
 
 ### Practical Matters
 #### How much can I edit my profile picture?
+Your profile picture must be you, facing the camera, but you can edit it freely, even as a drawing or AI-generated version.
 
 ![image](https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab)
-
-Your profile picture must be you, facing the camera, but you can edit it freely, even as a drawing or AI-generated version.
 
 #### I am an athlete already, how can I make changes?
 Any change requests are handled by sending us an email to `longevityworldcup@gmail.com`.
