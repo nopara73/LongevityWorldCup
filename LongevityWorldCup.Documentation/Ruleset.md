@@ -15,6 +15,8 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 - In LWC2025 various leagues are also in effect. You might be doing average in the ultimate league and you could still be winning the league of your generation.
 
 ## Prizes and Payouts
+![image](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
+
 - In LWC2025 prize money is given to the top 3 athletes in the ultimate league.
 - The prize money pool is coming from Bitcoin donations and you are encouraged to contribute.
 - 10% of the donations go toward covering organizational troubles, while 90% fund the prize money pool.
