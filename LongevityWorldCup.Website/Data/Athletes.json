@@ -502,5 +502,36 @@
       "/assets/proofs/ajjas_proof_1.jpg"
     ],
     "PersonalLink": null
+  },
+  {
+    "Name": "cybervillain",
+    "MediaContact": "Cybervillain007@proton.me",
+    "DateOfBirth": {
+      "Year": 1999,
+      "Month": 11,
+      "Day": 10
+    },
+    "Biomarkers": [
+      {
+        "Date": "2024-12-24",
+        "AlbGL": 42,
+        "CreatUmolL": 97.34513274336284,
+        "GluMmolL": 4.940053285968029,
+        "CrpMgL": 0.22999999999999998,
+        "LymPc": 31,
+        "McvFL": 87,
+        "RdwPc": 13.3,
+        "AlpUL": 109,
+        "Wbc1000cellsuL": 8.550
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Cyberspace",
+    "Why": "Difficulties come, and death is certain, but I will stay strong and hold onto faith. Every challenge strengthens me,every dark moment builds resilience.My dreams,my purpose & the love around me reminds me that light always follows the darkest night",
+    "ProfilePic": "/assets/profile-pics/cybervillain_profile.webp",
+    "Proofs": [
+      "/assets/proofs/cybervillain_proof_1.webp"
+    ],
+    "PersonalLink": null
   }
 ]
