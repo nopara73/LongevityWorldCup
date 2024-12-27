@@ -24,6 +24,14 @@
                 transform: scale(1.03); /* Slight hover enlarge effect */
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
             }
+
+        @media (max-width: 768px) {
+            /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
+            .back-button {
+                margin-right: auto !important;
+                margin-left: 0 !important; /* Resets left margin */
+            }
+        }
     </style>
 
     <script>

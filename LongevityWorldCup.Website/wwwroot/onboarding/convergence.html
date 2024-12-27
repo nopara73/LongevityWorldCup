@@ -131,6 +131,12 @@
             border-radius: 3px;
             cursor: pointer;
         }
+
+        /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
+        .back-button {
+            margin-right: auto !important;
+            margin-left: 0 !important; /* Resets left margin */
+        }
     </style>
 </head>
 <body>
