@@ -95,9 +95,17 @@
     }
 
     h2 {
-        font-size: 7vw;
+        font-size: 2.3em;
         text-align: center; /* Optional */
         word-wrap: break-word; /* Optional, ensures words don't overflow */
+    }
+
+    @media (max-width: 768px) {
+        h2 {
+            font-size: 7vw;
+            text-align: center; /* Optional */
+            word-wrap: break-word; /* Optional, ensures words don't overflow */
+        }
     }
 
     .join-game {
