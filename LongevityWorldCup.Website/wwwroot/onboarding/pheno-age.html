@@ -141,7 +141,7 @@
                         <option value="0.1">g/dL</option>
                         <option value="0.1">mg/dL</option>
                         <option value="0.1">g%</option>
-                        <!-- lbumin's molar mass can vary slightly depending on its source and exact composition, usually given as approximately 66,500 g/mol but sometimes noted as 66,430 g/mol or 66,563 g/mol in specific contexts. If we calculate using 66,430 g/mol as the molar mass, then it's: 15.0466µmol/L-->
+                        <!-- Albumin's molar mass can vary slightly depending on its source and exact composition, usually given as approximately 66,500 g/mol but sometimes noted as 66,430 g/mol or 66,563 g/mol in specific contexts. If we calculate using 66,430 g/mol as the molar mass, then it's: 15.0466µmol/L-->
                         <option value="15.0466">µmol/L</option>
                     </select>
                 </div>
@@ -295,7 +295,22 @@
             }
         }
 
+        function correctCorrectableUnits() {
+            // White Blood Cell Count (WBC)
+            const wbcValue = parseFloat(document.getElementById('wbc').value);
+            const wbcUnit = parseFloat(document.getElementById('wbcUnit').value);
+            if (wbcUnit === 1 && wbcValue > 4000) {
+                console.log("WBC is too high. Correcting the unit.");
+                document.getElementById('wbcUnit').value = 1000;
+            }
+            else if (wbcUnit === 1000 && wbcValue < 30) {
+                console.log("WBC is too low. Correcting the unit.");
+                document.getElementById('wbcUnit').value = 1;
+            }
+        }
+
         let isFirstTimeAnimation = true; // Flag to control the first-time animation
+
         function calculateResult() {
             const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
             const markerValues = [];
@@ -324,6 +339,8 @@
 
             // Add age as the first marker value
             markerValues.push(chronologicalAge);
+
+            correctCorrectableUnits();
 
             // Get biomarker values
             for (let i = 1; i < window.PhenoAge.biomarkers.length; i++) {
@@ -394,10 +411,10 @@
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
