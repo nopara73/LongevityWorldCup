@@ -78,6 +78,18 @@
                 min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
             }
 
+        #phenoAgeResult {
+            max-width: 580px; /* Set max width to match the form */
+            padding: 1.5rem;
+            color: var(--dark-text-color); /* Standard dark gray */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); /* Faint dark shadow for emphasis */
+
+            border-radius: 8px;
+            font-size: 1.5rem;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
         @media (max-width: 768px) {
             /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
             .back-button {
@@ -410,25 +422,13 @@
             // Display the result
             const resultElement = document.getElementById('phenoAgeResult');
 
-            // Initial setup for styling
-            resultElement.style.maxWidth = '580px';  // Set max width to match the form
-            resultElement.style.padding = '1.5rem';
-
-            resultElement.style.color = 'var(--dark-text-color)';              // Standard dark gray
-            resultElement.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.15)'; // Faint dark shadow for emphasis
-
-            resultElement.style.borderRadius = '8px';
-            resultElement.style.fontSize = '1.5rem';
-            resultElement.style.opacity = 0;
-            resultElement.style.transition = 'opacity 1s';
-
             // Setting up the animated counter effect
             let displayAge = 0;
             resultElement.innerHTML = `
-                                                        <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                                                        <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                                                        <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
-                                                `;
+                                                            <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                                                            <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                                                            <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                                                    `;
 
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
