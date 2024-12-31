@@ -483,15 +483,15 @@
     "Biomarkers": [
       {
         "Date": "2024-12-21",
-        "AlbGL": 1,
+        "AlbGL": 4.6,
         "CreatUmolL": 1,
         "GluMmolL": 1,
-        "CrpMgL": 0.18,
+        "CrpMgL": 0.12,
         "LymPc": 39,
         "McvFL": 85,
         "RdwPc": 11,
-        "AlpUL": 12,
-        "Wbc1000cellsuL": 6
+        "AlpUL": 61,
+        "Wbc1000cellsuL": 5.4
       }
     ],
     "Division": "Men's",
