@@ -54,7 +54,7 @@
             margin-top: -7px; /* Adjusted value for the sub-progress bar */
         }
 </style>
-<div class="sub-progress-container">
+<div id="subProgressContainerItem" class="sub-progress-container">
     <div class="progress-bar">
         <div class="progress-fill" id="subProgressFill"></div>
     </div>
@@ -97,6 +97,14 @@
         // Update sub-progress bar fill
         const subProgressPercentage = ((currentSubStage - 1) / (subStages.length - 1)) * 100;
         subProgressFill.style.width = `${subProgressPercentage}%`;
+
+        const subProgressContainerItem = document.getElementById('subProgressContainerItem');
+        if (currentSubStage == 99) {
+            subProgressContainerItem.style.display = 'none';
+        }
+        else {
+            subProgressContainerItem.style.display = 'block';
+        }
     }
 
     // Example usage:
