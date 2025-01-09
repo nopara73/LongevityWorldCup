@@ -329,7 +329,7 @@
                 console.log("Albumin is too low. Correcting the unit.");
                 document.getElementById('albuminUnit').value = 0.1;
             }
-            else if (albuminUnit != 1 && albuminValue < 60) {
+            else if (albuminUnit != 1 && albuminValue > 10 && albuminValue < 60) {
                 console.log("Albumin is too low. Correcting the unit.");
                 document.getElementById('albuminUnit').value = 1;
             }
