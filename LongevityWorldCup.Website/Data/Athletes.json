@@ -1,136 +1,35 @@
 [
   {
-    "Name": "Nikolai Volkov",
-    "MediaContact": "https://instagram.com/nikolaivolkov.media",
+    "Name": "Christine Urban",
+    "MediaContact": "Stellarmadic@gmail.com",
     "DateOfBirth": {
-      "Year": 1956,
-      "Month": 3,
-      "Day": 5
+      "Year": 1975,
+      "Month": 7,
+      "Day": 29
     },
     "Biomarkers": [
       {
-        "Date": "2025-05-30",
-        "AlbGL": 38,
-        "CreatUmolL": 92,
-        "GluMmolL": 4.0,
-        "CrpMgL": 1.8,
-        "LymPc": 31,
-        "McvFL": 90,
-        "RdwPc": 14,
-        "AlpUL": 82,
-        "Wbc1000cellsuL": 4
-      }
-    ],
-    "Division": "Men's",
-    "Flag": "France",
-    "Why": "It's a challenge.",
-    "ProfilePic": "/assets/profile-pics/nikolai_volkov_profile.jpg",
-    "Proofs": [
-      "/assets/proofs/nikolai_volkov_proof_1.png",
-      "/assets/proofs/nikolai_volkov_proof_2.png"
-    ],
-    "PersonalLink": null
-  },
-  {
-    "Name": "Amelia Zhao",
-    "MediaContact": "https://twitter.com/ameliazhao_media",
-    "DateOfBirth": {
-      "Year": 1991,
-      "Month": 1,
-      "Day": 20
-    },
-    "Biomarkers": [
-      {
-        "Date": "2025-08-02",
-        "AlbGL": 38,
-        "CreatUmolL": 83,
-        "GluMmolL": 4.8,
-        "CrpMgL": 1.2,
-        "LymPc": 27,
-        "McvFL": 80,
-        "RdwPc": 15,
-        "AlpUL": 116,
-        "Wbc1000cellsuL": 10
-      },
-      {
-        "Date": "2025-03-29",
-        "AlbGL": 37,
-        "CreatUmolL": 104,
-        "GluMmolL": 5.8,
-        "CrpMgL": 1.8,
-        "LymPc": 24,
-        "McvFL": 100,
-        "RdwPc": 11,
-        "AlpUL": 115,
-        "Wbc1000cellsuL": 9
-      },
-      {
-        "Date": "2025-04-24",
-        "AlbGL": 37,
-        "CreatUmolL": 82,
-        "GluMmolL": 4.4,
-        "CrpMgL": 0.8,
-        "LymPc": 23,
-        "McvFL": 82,
-        "RdwPc": 15,
-        "AlpUL": 37,
-        "Wbc1000cellsuL": 4
-      }
-    ],
-    "Division": "Women's",
-    "Flag": "Hungary",
-    "Why": "The desire to live not just a long life, but a meaningful one, is what propels me forward.\nI aim to break through perceived limits, inspire others, and contribute significantly to the global understanding of aging and health.",
-    "ProfilePic": "/assets/profile-pics/amelia_zhao_profile.jpg",
-    "Proofs": [
-      "/assets/proofs/amelia_zhao_proof_1.png",
-      "/assets/proofs/amelia_zhao_proof_2.png",
-      "/assets/proofs/amelia_zhao_proof_3.png"
-    ],
-    "PersonalLink": "https://twitter.com/gowj7m78"
-  },
-  {
-    "Name": "Isabella Rodriguez",
-    "MediaContact": "https://twitter.com/isabellarodriguez_media",
-    "DateOfBirth": {
-      "Year": 1929,
-      "Month": 6,
-      "Day": 12
-    },
-    "Biomarkers": [
-      {
-        "Date": "2025-10-14",
-        "AlbGL": 49,
-        "CreatUmolL": 94,
-        "GluMmolL": 5.8,
-        "CrpMgL": 1.0,
-        "LymPc": 24,
-        "McvFL": 80,
-        "RdwPc": 15,
-        "AlpUL": 100,
-        "Wbc1000cellsuL": 8
-      },
-      {
-        "Date": "2025-07-21",
+        "Date": "2025-01-08",
         "AlbGL": 44,
-        "CreatUmolL": 96,
-        "GluMmolL": 4.9,
-        "CrpMgL": 1.8,
-        "LymPc": 30,
-        "McvFL": 80,
+        "CreatUmolL": 75.2212389380531,
+        "GluMmolL": 5,
+        "CrpMgL": 9.2,
+        "LymPc": 37,
+        "McvFL": 92,
         "RdwPc": 12,
-        "AlpUL": 110,
-        "Wbc1000cellsuL": 6
+        "AlpUL": 153,
+        "Wbc1000cellsuL": 6.4
       }
     ],
     "Division": "Women's",
-    "Flag": "Cyberspace",
-    "Why": "I want to prove that age is just a number.",
-    "ProfilePic": "/assets/profile-pics/isabella_rodriguez_profile.jpg",
+    "Flag": "Prospera",
+    "Why": "Making people feel like they matter. Irradiating loneliness. Maximizing deep connections.",
+    "ProfilePic": "/assets/profile-pics/christine_urban_profile.webp",
     "Proofs": [
-      "/assets/proofs/isabella_rodriguez_proof_1.png",
-      "/assets/proofs/isabella_rodriguez_proof_2.png"
+      "/assets/proofs/christine_urban_proof_1.webp",
+      "/assets/proofs/christine_urban_proof_2.webp"
     ],
-    "PersonalLink": null
+    "PersonalLink": "https://www.stellarmadic.com"
   },
   {
     "Name": "Jamal Okonkwo",
@@ -174,9 +73,9 @@
     "Biomarkers": [
       {
         "Date": "2025-10-29",
-        "AlbGL": 48,
+        "AlbGL": 1,
         "CreatUmolL": 74,
-        "GluMmolL": 4.2,
+        "GluMmolL": 9,
         "CrpMgL": 1.0,
         "LymPc": 35,
         "McvFL": 89,
@@ -186,7 +85,7 @@
       },
       {
         "Date": "2025-11-05",
-        "AlbGL": 42,
+        "AlbGL": 1,
         "CreatUmolL": 85,
         "GluMmolL": 4.3,
         "CrpMgL": 1.5,
@@ -230,7 +129,7 @@
       },
       {
         "Date": "2025-10-15",
-        "AlbGL": 35,
+        "AlbGL": 1,
         "CreatUmolL": 108,
         "GluMmolL": 5.6,
         "CrpMgL": 1.6,
@@ -262,9 +161,9 @@
     "Biomarkers": [
       {
         "Date": "2024-11-12",
-        "AlbGL": 45,
+        "AlbGL": 1,
         "CreatUmolL": 80,
-        "GluMmolL": 4.5,
+        "GluMmolL": 6,
         "CrpMgL": 1.8,
         "LymPc": 39,
         "McvFL": 85,
@@ -293,7 +192,7 @@
     "Biomarkers": [
       {
         "Date": "2025-12-21",
-        "AlbGL": 38,
+        "AlbGL": 1,
         "CreatUmolL": 89,
         "GluMmolL": 6.0,
         "CrpMgL": 1.3,
@@ -305,7 +204,7 @@
       },
       {
         "Date": "2025-12-19",
-        "AlbGL": 46,
+        "AlbGL": 1,
         "CreatUmolL": 86,
         "GluMmolL": 4.0,
         "CrpMgL": 1.6,
@@ -317,9 +216,9 @@
       },
       {
         "Date": "2025-10-04",
-        "AlbGL": 43,
+        "AlbGL": 1,
         "CreatUmolL": 106,
-        "GluMmolL": 5.8,
+        "GluMmolL": 9,
         "CrpMgL": 1.0,
         "LymPc": 39,
         "McvFL": 84,
@@ -350,9 +249,9 @@
     "Biomarkers": [
       {
         "Date": "2025-11-10",
-        "AlbGL": 48,
+        "AlbGL": 1,
         "CreatUmolL": 81,
-        "GluMmolL": 4.5,
+        "GluMmolL": 9,
         "CrpMgL": 1.6,
         "LymPc": 24,
         "McvFL": 92,
@@ -362,7 +261,7 @@
       },
       {
         "Date": "2025-08-05",
-        "AlbGL": 41,
+        "AlbGL": 1,
         "CreatUmolL": 65,
         "GluMmolL": 4.9,
         "CrpMgL": 1.1,
@@ -374,7 +273,7 @@
       },
       {
         "Date": "2025-11-28",
-        "AlbGL": 48,
+        "AlbGL": 1,
         "CreatUmolL": 70,
         "GluMmolL": 5.7,
         "CrpMgL": 0.7,
@@ -439,9 +338,9 @@
     "Biomarkers": [
       {
         "Date": "2025-06-15",
-        "AlbGL": 40,
+        "AlbGL": 1,
         "CreatUmolL": 90,
-        "GluMmolL": 4.9,
+        "GluMmolL": 9,
         "CrpMgL": 1.3,
         "LymPc": 32,
         "McvFL": 88,
@@ -451,7 +350,7 @@
       },
       {
         "Date": "2025-09-22",
-        "AlbGL": 44,
+        "AlbGL": 1,
         "CreatUmolL": 85,
         "GluMmolL": 5.1,
         "CrpMgL": 1.0,
@@ -483,9 +382,9 @@
     "Biomarkers": [
       {
         "Date": "2024-12-21",
-        "AlbGL": 4.6,
+        "AlbGL": 1,
         "CreatUmolL": 1,
-        "GluMmolL": 1,
+        "GluMmolL": 9,
         "CrpMgL": 0.12,
         "LymPc": 39,
         "McvFL": 85,
