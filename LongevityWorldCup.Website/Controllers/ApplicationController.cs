@@ -171,6 +171,13 @@ namespace LongevityWorldCup.Website.Controllers
                 }
             }
 
+            var correctedPersonalLink = applicantData.PersonalLink?.Trim();
+            correctedPersonalLink = string.IsNullOrWhiteSpace(correctedPersonalLink)
+                    ? null
+                    : (correctedPersonalLink.StartsWith("www.")
+                        ? "https://" + correctedPersonalLink
+                        : correctedPersonalLink);
+
             // Prepare the email body (including the image paths)
             var applicantDataWithoutImages = new
             {
@@ -183,7 +190,7 @@ namespace LongevityWorldCup.Website.Controllers
                 applicantData.Why,
                 ProfilePic = profilePicPath,
                 Proofs = proofPicPaths.Count > 0 ? proofPicPaths : null,
-                PersonalLink = string.IsNullOrWhiteSpace(applicantData.PersonalLink) ? null : applicantData.PersonalLink
+                PersonalLink = correctedPersonalLink
             };
 
             // Include AccountEmail in the email body
