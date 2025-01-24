@@ -97,6 +97,101 @@
                 margin-left: 0 !important; /* Resets left margin */
             }
         }
+
+        .crp-container {
+            margin-bottom: 1rem;
+        }
+
+        .label-toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+            .label-toggle-group label {
+                font-size: 1rem;
+                color: #333;
+            }
+
+        .negative-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* This sets a small gap between the toggle and the text */
+        }
+
+        .toggle-label {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+            margin-right: 0rem;
+        }
+
+            .toggle-label input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 20px;
+        }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 14px;
+                width: 14px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: 0.4s;
+                border-radius: 50%;
+            }
+
+        .toggle-label input:checked + .slider {
+            background-color: #f4a6a6; /* Pale red */
+        }
+
+            .toggle-label input:checked + .slider:before {
+                transform: translateX(16px);
+            }
+
+        .toggle-text {
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .toggle-text {
+                font-size: 0.7rem;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+            .input-group input {
+                flex: 1;
+                margin-right: 0.5rem;
+            }
+
+            .input-group select {
+                padding: 0.5rem;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                width: auto;
+            }
     </style>
 </head>
 <body>
@@ -189,16 +284,30 @@
                 </div>
 
                 <!-- C-Reactive Protein -->
-                <label for="crp">C-Reactive Protein</label>
-                <div class="input-group">
-                    <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
-                    <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="10">mg/L</option>
-                        <option value="1">mg/dL</option>
-                        <option value="10000">mg/mL</option>
-                        <option value="86.96">nmol/L</option>
-                    </select>
+                <div class="crp-container">
+                    <!-- Label and Negative Toggle in the same line -->
+                    <div class="label-toggle-group">
+                        <label for="crp">C-Reactive Protein</label>
+                        <span title="Check this box if your result is below detectable limits, such as when marked 'negative.'" class="toggle-text">Set if negative:</span>
+                        <div title="Check this box if your result is below detectable limits, such as when marked 'negative.'" class="negative-toggle">
+                            <label for="crp-negative" class="toggle-label">
+                                <input type="checkbox" id="crp-negative" onchange="toggleCRPInput()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Input Group -->
+                    <div class="input-group">
+                        <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                        <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
+                        <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <option value="10">mg/L</option>
+                            <option value="1">mg/dL</option>
+                            <option value="10000">mg/mL</option>
+                            <option value="86.96">nmol/L</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Lymphocyte Percentage -->
@@ -755,6 +864,22 @@
 
         document.getElementById('dob-year').addEventListener('change', updateDays);
         document.getElementById('dob-month').addEventListener('change', updateDays);
+
+        function toggleCRPInput() {
+            const crpInput = document.getElementById('crp');
+            const crpUnit = document.getElementById('crpUnit');
+            const crpNegativeCheckbox = document.getElementById('crp-negative');
+
+            if (crpNegativeCheckbox.checked) {
+                crpInput.value = 1; // Set value to 1
+                crpUnit.value = 10; // Set unit to mg/L
+                crpInput.disabled = true; // Disable input field
+                crpUnit.disabled = true; // Disable unit selector
+            } else {
+                crpInput.disabled = false; // Enable input field
+                crpUnit.disabled = false; // Enable unit selector
+            }
+        }
     </script>
 </body>
 </html>
