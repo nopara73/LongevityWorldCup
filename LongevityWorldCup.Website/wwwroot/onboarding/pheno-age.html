@@ -374,9 +374,15 @@
         </form>
 
         <div id="phenoAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-            <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-            <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+            <div id="validAgeInput">
+                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
+                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
+                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+            </div>
+            <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: #8B0000; background-color: #FAD2D2; padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
+                The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
+                <i class="fas fa-ambulance"></i> <i class="fas fa-hospital"></i> <i class="fas fa-clinic-medical"></i>
+            </div>
         </div>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
@@ -540,6 +546,20 @@
 
             // Display the result
             const resultElement = document.getElementById('phenoAgeResult');
+            const ensureCorrectInputSuggestion = document.getElementById('ensureCorrectInputSuggestion');
+            const validAgeInput = document.getElementById('validAgeInput');
+
+            // Check if the result is not infinite
+            if (!isFinite(phenoAge)) {
+                resultElement.style.opacity = 1; // Fade-in effect
+                ensureCorrectInputSuggestion.style.display = 'block';
+                validAgeInput.style.display = 'none';
+                return;
+            }
+            else {
+                ensureCorrectInputSuggestion.style.display = 'none';
+                validAgeInput.style.display = 'block';
+            }
 
             // Setting up the animated counter effect
             let displayAge = 0;
