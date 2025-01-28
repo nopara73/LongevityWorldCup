@@ -345,7 +345,7 @@
                 <!-- Alkaline Phosphatase -->
                 <label for="ap">Alkaline Phosphatase</label>
                 <div class="input-group">
-                    <input type="number" id="ap" name="ap" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                    <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                     <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
                     <select id="apUnit" name="apUnit" aria-label="ALP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                         <option value="1">U/L</option>
