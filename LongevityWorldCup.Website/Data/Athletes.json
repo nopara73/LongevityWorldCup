@@ -1,5 +1,36 @@
 [
   {
+    "Name": "Cody Hergenroeder",
+    "MediaContact": "khusbear@alumni.stanford.edu",
+    "DateOfBirth": {
+      "Year": 1999,
+      "Month": 11,
+      "Day": 16
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-01-29",
+        "AlbGL": 42,
+        "CreatUmolL": 70.79646017699116,
+        "GluMmolL": 5.3841030195381885,
+        "CrpMgL": 1,
+        "LymPc": 27,
+        "McvFL": 82.4,
+        "RdwPc": 18.4,
+        "AlpUL": 253,
+        "Wbc1000cellsuL": 5.3
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Telos",
+    "Why": "Positive change for the sake of all beings",
+    "ProfilePic": "/assets/profile-pics/cody_hergenroeder_profile.webp",
+    "Proofs": [
+      "/assets/proofs/cody_hergenroeder_proof_1.webp"
+    ],
+    "PersonalLink": null
+  },
+  {
     "Name": "Alan V",
     "MediaContact": "vuongest@proton.me",
     "DateOfBirth": {
@@ -13,7 +44,7 @@
         "AlbGL": 45,
         "CreatUmolL": 73.45132743362832,
         "GluMmolL": 5.273090586145649,
-        "CrpMgL": 0.16,
+        "CrpMgL": 1.6,
         "LymPc": 48.2,
         "McvFL": 90.3,
         "RdwPc": 12.9,
@@ -82,7 +113,7 @@
         "Date": "2025-10-29",
         "AlbGL": 1,
         "CreatUmolL": 74,
-        "GluMmolL": 9,
+        "GluMmolL": 20,
         "CrpMgL": 1.0,
         "LymPc": 35,
         "McvFL": 89,
@@ -94,7 +125,7 @@
         "Date": "2025-11-05",
         "AlbGL": 1,
         "CreatUmolL": 85,
-        "GluMmolL": 4.3,
+        "GluMmolL": 20,
         "CrpMgL": 1.5,
         "LymPc": 39,
         "McvFL": 97,
@@ -126,7 +157,7 @@
         "Date": "2025-08-11",
         "AlbGL": 39,
         "CreatUmolL": 98,
-        "GluMmolL": 4.2,
+        "GluMmolL": 20,
         "CrpMgL": 0.8,
         "LymPc": 27,
         "McvFL": 83,
@@ -138,7 +169,7 @@
         "Date": "2025-10-15",
         "AlbGL": 1,
         "CreatUmolL": 108,
-        "GluMmolL": 5.6,
+        "GluMmolL": 20,
         "CrpMgL": 1.6,
         "LymPc": 38,
         "McvFL": 100,
@@ -170,7 +201,7 @@
         "Date": "2024-11-12",
         "AlbGL": 1,
         "CreatUmolL": 80,
-        "GluMmolL": 6,
+        "GluMmolL": 20,
         "CrpMgL": 1.8,
         "LymPc": 39,
         "McvFL": 85,
@@ -201,7 +232,7 @@
         "Date": "2025-12-21",
         "AlbGL": 1,
         "CreatUmolL": 89,
-        "GluMmolL": 6.0,
+        "GluMmolL": 30,
         "CrpMgL": 1.3,
         "LymPc": 29,
         "McvFL": 90,
@@ -213,7 +244,7 @@
         "Date": "2025-12-19",
         "AlbGL": 1,
         "CreatUmolL": 86,
-        "GluMmolL": 4.0,
+        "GluMmolL": 30,
         "CrpMgL": 1.6,
         "LymPc": 38,
         "McvFL": 93,
@@ -225,7 +256,7 @@
         "Date": "2025-10-04",
         "AlbGL": 1,
         "CreatUmolL": 106,
-        "GluMmolL": 9,
+        "GluMmolL": 30,
         "CrpMgL": 1.0,
         "LymPc": 39,
         "McvFL": 84,
@@ -258,7 +289,7 @@
         "Date": "2025-11-10",
         "AlbGL": 1,
         "CreatUmolL": 81,
-        "GluMmolL": 9,
+        "GluMmolL": 20,
         "CrpMgL": 1.6,
         "LymPc": 24,
         "McvFL": 92,
@@ -270,7 +301,7 @@
         "Date": "2025-08-05",
         "AlbGL": 1,
         "CreatUmolL": 65,
-        "GluMmolL": 4.9,
+        "GluMmolL": 20,
         "CrpMgL": 1.1,
         "LymPc": 24,
         "McvFL": 91,
@@ -282,7 +313,7 @@
         "Date": "2025-11-28",
         "AlbGL": 1,
         "CreatUmolL": 70,
-        "GluMmolL": 5.7,
+        "GluMmolL": 30,
         "CrpMgL": 0.7,
         "LymPc": 25,
         "McvFL": 85,
@@ -315,7 +346,7 @@
         "Date": "2025-08-10",
         "AlbGL": 42,
         "CreatUmolL": 109,
-        "GluMmolL": 4.1,
+        "GluMmolL": 20,
         "CrpMgL": 1.4,
         "LymPc": 36,
         "McvFL": 92,
@@ -335,50 +366,6 @@
     "PersonalLink": "https://instagram.com/98dkh8su"
   },
   {
-    "Name": "Dariusz Kowalski",
-    "MediaContact": "https://facebook.com/dariuszkowalski.media",
-    "DateOfBirth": {
-      "Year": 1992,
-      "Month": 5,
-      "Day": 14
-    },
-    "Biomarkers": [
-      {
-        "Date": "2025-06-15",
-        "AlbGL": 1,
-        "CreatUmolL": 90,
-        "GluMmolL": 9,
-        "CrpMgL": 1.3,
-        "LymPc": 32,
-        "McvFL": 88,
-        "RdwPc": 13,
-        "AlpUL": 105,
-        "Wbc1000cellsuL": 5
-      },
-      {
-        "Date": "2025-09-22",
-        "AlbGL": 1,
-        "CreatUmolL": 85,
-        "GluMmolL": 5.1,
-        "CrpMgL": 1.0,
-        "LymPc": 28,
-        "McvFL": 86,
-        "RdwPc": 12,
-        "AlpUL": 97,
-        "Wbc1000cellsuL": 6
-      }
-    ],
-    "Division": "Men's",
-    "Flag": "Poland",
-    "Why": "I believe that the limits of human endurance are yet to be discovered.",
-    "ProfilePic": "/assets/profile-pics/dariusz_kowalski_profile.jpg",
-    "Proofs": [
-      "/assets/proofs/dariusz_kowalski_proof_1.png",
-      "/assets/proofs/dariusz_kowalski_proof_2.png"
-    ],
-    "PersonalLink": null
-  },
-  {
     "Name": "Ajjas",
     "MediaContact": "ajjasjay@gmail.com",
     "DateOfBirth": {
@@ -389,15 +376,15 @@
     "Biomarkers": [
       {
         "Date": "2024-12-21",
-        "AlbGL": 1,
-        "CreatUmolL": 1,
-        "GluMmolL": 9,
-        "CrpMgL": 0.12,
+        "AlbGL": 45,
+        "CreatUmolL": 80,
+        "GluMmolL": 11,
+        "CrpMgL": 0.18,
         "LymPc": 39,
         "McvFL": 85,
         "RdwPc": 11,
-        "AlpUL": 61,
-        "Wbc1000cellsuL": 5.4
+        "AlpUL": 12,
+        "Wbc1000cellsuL": 6
       }
     ],
     "Division": "Men's",
