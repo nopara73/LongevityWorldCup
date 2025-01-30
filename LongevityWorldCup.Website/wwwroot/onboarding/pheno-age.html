@@ -800,7 +800,7 @@
                         AlbGL: parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value),
                         CreatUmolL: parseFloat(document.getElementById('creatinine').value) / parseFloat(document.getElementById('creatinineUnit').value),
                         GluMmolL: parseFloat(document.getElementById('glucose').value) / parseFloat(document.getElementById('glucoseUnit').value),
-                        CrpMgL: parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value),
+                        CrpMgL: (parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value)) * 10, // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
                         LymPc: parseFloat(document.getElementById('lymphocyte').value),
                         McvFL: parseFloat(document.getElementById('mcv').value),
                         RdwPc: parseFloat(document.getElementById('rcdw').value),
