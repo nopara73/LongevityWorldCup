@@ -7,6 +7,7 @@
         email: '<i class="fas fa-envelope"></i>', // Email icon
         'facebook.com': '<i class="fab fa-facebook"></i>',
         'twitter.com': '<i class="fab fa-twitter"></i>',
+        'x.com': '<i class="fab fa-twitter"></i>',
         'linkedin.com': '<i class="fab fa-linkedin"></i>',
         'instagram.com': '<i class="fab fa-instagram"></i>',
         'youtube.com': '<i class="fab fa-youtube"></i>',

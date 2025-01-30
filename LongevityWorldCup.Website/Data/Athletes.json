@@ -1,5 +1,36 @@
 [
   {
+    "Name": "Spiderius",
+    "MediaContact": "https://x.com/stancel_david",
+    "DateOfBirth": {
+      "Year": 1992,
+      "Month": 2,
+      "Day": 9
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-01-30",
+        "AlbGL": 49,
+        "CreatUmolL": 70.79646017699116,
+        "GluMmolL": 6.161190053285969,
+        "CrpMgL": 1,
+        "LymPc": 33.5,
+        "McvFL": 77.8,
+        "RdwPc": 20.3,
+        "AlpUL": 174,
+        "Wbc1000cellsuL": 5.5
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Ancap",
+    "Why": "Aspiration for constant self-improvement",
+    "ProfilePic": "/assets/profile-pics/spiderius_profile.webp",
+    "Proofs": [
+      "/assets/proofs/spiderius_proof_1.png"
+    ],
+    "PersonalLink": "https://davidstancel.com"
+  },
+  {
     "Name": "Cody Hergenroeder",
     "MediaContact": "khusbear@alumni.stanford.edu",
     "DateOfBirth": {
@@ -332,38 +363,6 @@
       "/assets/proofs/maria_gonzalez_proof_3.png"
     ],
     "PersonalLink": "https://linkedin.com/in/8wh83lf6"
-  },
-  {
-    "Name": "Ethan Park",
-    "MediaContact": "https://instagram.com/ethanpark.media",
-    "DateOfBirth": {
-      "Year": 2019,
-      "Month": 3,
-      "Day": 27
-    },
-    "Biomarkers": [
-      {
-        "Date": "2025-08-10",
-        "AlbGL": 42,
-        "CreatUmolL": 109,
-        "GluMmolL": 20,
-        "CrpMgL": 1.4,
-        "LymPc": 36,
-        "McvFL": 92,
-        "RdwPc": 14,
-        "AlpUL": 72,
-        "Wbc1000cellsuL": 8
-      }
-    ],
-    "Division": "Men's",
-    "Flag": "Australia",
-    "Why": "idk",
-    "ProfilePic": "/assets/profile-pics/ethan_park_profile.jpg",
-    "Proofs": [
-      "/assets/proofs/ethan_park_proof_1.png",
-      "/assets/proofs/ethan_park_proof_2.png"
-    ],
-    "PersonalLink": "https://instagram.com/98dkh8su"
   },
   {
     "Name": "Ajjas",
