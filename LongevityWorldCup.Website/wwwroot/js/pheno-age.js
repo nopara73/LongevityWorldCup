@@ -3,16 +3,16 @@ window.PhenoAge = window.PhenoAge || {};
 
 // Attach biomarkers to the namespace
 window.PhenoAge.biomarkers = [
-    { id: 'age', name: 'Age', coeff: 0.0804 },
-    { id: 'albumin', name: 'Albumin', coeff: -0.0336 },
-    { id: 'creatinine', name: 'Creatinine', coeff: 0.0095 },
-    { id: 'glucose', name: 'Glucose', coeff: 0.1953 },
-    { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 },
-    { id: 'wbc', name: 'White blood cell count', coeff: 0.0554 },
-    { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012 },
-    { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 },
-    { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306 },
-    { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 }
+    { id: 'age', name: 'Age', coeff: 0.0804 }, // Age has no known lower cap
+    { id: 'albumin', name: 'Albumin', coeff: -0.0336, cap: 50 },
+    { id: 'creatinine', name: 'Creatinine', coeff: 0.0095, cap: 60 },
+    { id: 'glucose', name: 'Glucose', coeff: 0.1953, cap: 4 },
+    { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 }, // CRP has no known lower cap
+    { id: 'wbc', name: 'White blood cell count', coeff: 0.0554, cap: 4.5 },
+    { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012, cap: 40 },
+    { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268, cap: 85 },
+    { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306, cap: 11.5 },
+    { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019, cap: 50 }
 ];
 
 // Helper function to parse input values
@@ -43,11 +43,30 @@ window.PhenoAge.calculateAgeFromDOB = function (birthDate) {
 
 // Helper function to calculate PhenoAge based on biomarkers
 window.PhenoAge.calculatePhenoAge = function (markerValues, coefficients) {
-    let rollingTotal = 0;
+    // Cap marker values to reference ranges
+    let cappedMarkerValues = [];
+    for (let i = 0; i < markerValues.length; i++) {
+        if (i == 0 || i == 4) {
+            // Age marker is not capped
+            // CRP is not capped
+            cappedMarkerValues.push(markerValues[i]);
+        }
+        else {
+            if (window.PhenoAge.biomarkers[i].coeff < 0) {
+                var cappedValue = Math.min(markerValues[i], window.PhenoAge.biomarkers[i].cap);
+                cappedMarkerValues.push(cappedValue);
+            }
+            else {
+                var cappedValue = Math.max(markerValues[i], window.PhenoAge.biomarkers[i].cap);
+                cappedMarkerValues.push(cappedValue);
+            }
+        }
+    }
 
     // Sum all coefficients multiplied by the respective marker values
-    for (let i = 0; i < markerValues.length; i++) {
-        rollingTotal += markerValues[i] * coefficients[i];
+    let rollingTotal = 0;
+    for (let i = 0; i < cappedMarkerValues.length; i++) {
+        rollingTotal += cappedMarkerValues[i] * coefficients[i];
     }
 
     const b0 = -19.9067;
