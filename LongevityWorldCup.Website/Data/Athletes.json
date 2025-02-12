@@ -28,7 +28,8 @@
     "Proofs": [
       "/assets/proofs/jesse_proof_1.png"
     ],
-    "PersonalLink": "https://x.com/jesse_pariselli"
+    "PersonalLink": "https://x.com/jesse_pariselli",
+    "ExclusiveLeague": "Prosperan"
   },
   {
     "Name": "Spiderius",
@@ -59,7 +60,8 @@
     "Proofs": [
       "/assets/proofs/spiderius_proof_1.png"
     ],
-    "PersonalLink": "https://davidstancel.com"
+    "PersonalLink": "https://davidstancel.com",
+    "ExclusiveLeague": "Prosperan"
   },
   {
     "Name": "Cody Hergenroeder",
@@ -90,7 +92,8 @@
     "Proofs": [
       "/assets/proofs/cody_hergenroeder_proof_1.png"
     ],
-    "PersonalLink": null
+    "PersonalLink": null,
+    "ExclusiveLeague": "Prosperan"
   },
   {
     "Name": "Alan V",
