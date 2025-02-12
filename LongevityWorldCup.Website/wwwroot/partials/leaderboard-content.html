@@ -1001,6 +1001,10 @@
                     <h3>Generations</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
+                <div class="filter-section" id="exclusive-filter-section">
+                    <h3>Exclusive</h3>
+                    <ul></ul> <!-- This will be populated dynamically -->
+                </div>
             </div>
             <table>
                 <thead>
@@ -1165,13 +1169,14 @@
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
                         division: athlete.Division,
-                        generation: generation
+                        generation: generation,
+                        exclusiveLeague: athlete.ExclusiveLeague
                     };
-
                 });
 
                 generateDivisionFilters(athleteResults);
                 generateGenerationFilters(athleteResults);
+                generateExclusiveFilters(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
                 athleteResults.sort(compareAthleteRank);
@@ -1664,6 +1669,10 @@
         const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
 
+        // Get selected exclusive leagues (e.g. "Prosperan")
+        const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+
         const query = normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
@@ -1687,6 +1696,11 @@
                 matches = matches && selectedGenerations.includes(athlete.generation.toLowerCase());
             }
 
+            // Check exclusive league match
+            if (selectedExclusiveLeagues.length > 0) {
+                matches = matches && selectedExclusiveLeagues.includes((athlete.exclusiveLeague || "").toLowerCase());
+            }
+
             // Check search terms
             if (matches && !showAll) {
                 matches = uniqueSearchTerms.every(term => athleteNameNormalized.includes(term));
@@ -1700,7 +1714,7 @@
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
 
         // Determine if filters are used
-        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0;
+        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0;
         const searchUsed = uniqueSearchTerms.length > 0;
 
         // If filters are used, reassign ranks starting from 1
@@ -1785,81 +1799,85 @@
         // Update the collapsed-title text based on selected filters
         let leagueText = '';
 
-        // Build generation part of the league text
-        if (selectedGenerations.length === 1) {
-            leagueText += selectedGenerations[0].toUpperCase();
-        } else if (selectedGenerations.length === 2) {
-            const [first, second] = selectedGenerations.map(gen => gen.toLowerCase()).sort();
+        // If an exclusive league is selected, override the league text.
+        if (selectedExclusiveLeagues.length > 0) {
+            // If multiple exclusive leagues are selected, join them with " AND "
+            leagueText = selectedExclusiveLeagues.map(league => league.toUpperCase()).join(' AND ') + ' LEAGUE';
+        } else {
+            // Build generation part of the league text
+            if (selectedGenerations.length === 1) {
+                leagueText += selectedGenerations[0].toUpperCase();
+            } else if (selectedGenerations.length === 2) {
+                const [first, second] = selectedGenerations.map(gen => gen.toLowerCase()).sort();
 
-            // Check for specific two-generation combinations
-            if (first === "baby boomers" && second === "silent generation") {
-                leagueText += "HERITAGE";
-            } else if (first === "baby boomers" && second === "gen x") {
-                leagueText += "SENIOR";
-            } else if (first === "gen x" && second === "millennials") {
-                leagueText += "PRIME";
-            } else if (first === "gen z" && second === "millennials") {
-                leagueText += "RISING";
-            } else if (first === "gen alpha" && second === "gen z") {
-                leagueText += "NEXT-GEN";
-            } else {
-                leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
+                // Check for specific two-generation combinations
+                if (first === "baby boomers" && second === "silent generation") {
+                    leagueText += "HERITAGE";
+                } else if (first === "baby boomers" && second === "gen x") {
+                    leagueText += "SENIOR";
+                } else if (first === "gen x" && second === "millennials") {
+                    leagueText += "PRIME";
+                } else if (first === "gen z" && second === "millennials") {
+                    leagueText += "RISING";
+                } else if (first === "gen alpha" && second === "gen z") {
+                    leagueText += "NEXT-GEN";
+                } else {
+                    leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
+                }
+            } else if (selectedGenerations.length === 3) {
+                leagueText +=
+                    selectedGenerations[0].toUpperCase() + ', ' +
+                    selectedGenerations[1].toUpperCase() + ', AND ' +
+                    selectedGenerations[2].toUpperCase();
+            } else if (selectedGenerations.length === 4) {
+                leagueText +=
+                    selectedGenerations[0].toUpperCase() + ', ' +
+                    selectedGenerations[1].toUpperCase() + ', ' +
+                    selectedGenerations[2].toUpperCase() + ', AND ' +
+                    selectedGenerations[3].toUpperCase();
+            } else if (selectedGenerations.length === 5) {
+                leagueText +=
+                    selectedGenerations[0].toUpperCase() + ', ' +
+                    selectedGenerations[1].toUpperCase() + ', ' +
+                    selectedGenerations[2].toUpperCase() + ', ' +
+                    selectedGenerations[3].toUpperCase() + ', AND ' +
+                    selectedGenerations[4].toUpperCase();
+
+                // Build division part of the league text
             }
-        } else if (selectedGenerations.length === 3) {
-            leagueText +=
-                selectedGenerations[0].toUpperCase() + ', ' +
-                selectedGenerations[1].toUpperCase() + ', AND ' +
-                selectedGenerations[2].toUpperCase();
-        } else if (selectedGenerations.length === 4) {
-            leagueText +=
-                selectedGenerations[0].toUpperCase() + ', ' +
-                selectedGenerations[1].toUpperCase() + ', ' +
-                selectedGenerations[2].toUpperCase() + ', AND ' +
-                selectedGenerations[3].toUpperCase();
-        } else if (selectedGenerations.length === 5) {
-            leagueText +=
-                selectedGenerations[0].toUpperCase() + ', ' +
-                selectedGenerations[1].toUpperCase() + ', ' +
-                selectedGenerations[2].toUpperCase() + ', ' +
-                selectedGenerations[3].toUpperCase() + ', AND ' +
-                selectedGenerations[4].toUpperCase();
+
+            if (selectedDivisions.length === 1) {
+                if (leagueText.length > 0) {
+                    leagueText += ' ';
+                }
+                leagueText += selectedDivisions[0].toUpperCase();
+            } else if (selectedDivisions.length === 2) {
+                if (leagueText.length > 0) {
+                    leagueText += ' ';
+                }
+
+                // Custom sorting order for divisions
+                const order = { "men's": 1, "women's": 2, "open": 3 };
+                const [first, second] = selectedDivisions
+                    .map(div => div.toLowerCase())
+                    .sort((a, b) => order[a] - order[b]);
+
+                if (first === "men's" && second === "women's") {
+                    leagueText += 'MIXED';
+                } else if (first === "men's" && second === 'open') {
+                    leagueText += "INCLUSIVE MEN'S";
+                } else if (first === "women's" && second === 'open') {
+                    leagueText += "INCLUSIVE WOMEN'S";
+                }
+            }
+
+            // Default text if no filters are selected
+            if (leagueText === '') {
+                leagueText = 'ULTIMATE';
+            }
+
+            leagueText += " LEAGUE";
         }
-
-        // Build division part of the league text
-        if (selectedDivisions.length === 1) {
-            if (leagueText.length > 0) {
-                leagueText += ' ';
-            }
-            leagueText += selectedDivisions[0].toUpperCase();
-        } else if (selectedDivisions.length === 2) {
-            if (leagueText.length > 0) {
-                leagueText += ' ';
-            }
-
-            // Custom sorting order for divisions
-            const order = { "men's": 1, "women's": 2, "open": 3 };
-
-            // Sort divisions based on custom order
-            const [first, second] = selectedDivisions
-                .map(div => div.toLowerCase())
-                .sort((a, b) => order[a] - order[b]);
-
-            // Simplified conditions
-            if (first === "men's" && second === "women's") {
-                leagueText += 'MIXED';
-            } else if (first === "men's" && second === 'open') {
-                leagueText += "INCLUSIVE MEN'S";
-            } else if (first === "women's" && second === 'open') {
-                leagueText += "INCLUSIVE WOMEN'S";
-            }
-        }
-
-        // Default text if no filters are selected
-        if (leagueText === '') {
-            leagueText = 'ULTIMATE';
-        }
-
-        leagueText += " LEAGUE";
 
         // Update the text content of the collapsed-title element
         const collapsedTitle = document.querySelector('.collapsed-title');
@@ -1871,11 +1889,12 @@
         displayNoResults(tableRows, podiumItems, query);
 
         // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
-        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && uniqueSearchTerms.length === 0) {
+        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 && uniqueSearchTerms.length === 0) {
             document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
                 row.style.display = 'none';
             });
         }
+
     }
 
     function updateFilterCounts(filteredAthletes) {
@@ -2164,7 +2183,32 @@
                 });
             }
         });
+    }
 
+    function generateExclusiveFilters(athletes) {
+        const filterSection = document.querySelector('#exclusive-filter-section ul');
+        filterSection.innerHTML = ''; // Clear existing filters if any
+
+        const prosperanCount = athletes.reduce((count, athlete) => {
+            return athlete.exclusiveLeague === "Prosperan" ? count + 1 : count;
+        }, 0);
+
+        if (prosperanCount > 0) {
+            const li = document.createElement('li');
+            li.innerHTML = `
+            <label data-exclusive-league="Prosperan">
+                <input type="checkbox" name="exclusiveLeague" value="Prosperan">
+                🏝️ Prosperan (<span class="filter-count">${prosperanCount}</span>)
+            </label>
+        `;
+            filterSection.appendChild(li);
+
+            const input = li.querySelector('input[type="checkbox"]');
+            input.addEventListener('change', function (event) {
+                event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
+                performFilter();
+            });
+        }
     }
 
     function getGeneration(birthYear) {
