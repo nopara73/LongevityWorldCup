@@ -163,8 +163,8 @@
     "PersonalLink": null
   },
   {
-    "Name": "Christine Urban",
-    "MediaContact": "Stellarmadic@gmail.com",
+    "Name": "Stellar Madic",
+    "MediaContact": "stellarmadic@gmail.com",
     "DateOfBirth": {
       "Year": 1975,
       "Month": 7,
@@ -172,30 +172,27 @@
     },
     "Biomarkers": [
       {
-        "Date": "2025-01-08",
-        "AlbGL": 44,
-        "CreatUmolL": 75.2212389380531,
-        "GluMmolL": 5,
-        "CrpMgL": 9.2,
-        "LymPc": 37,
-        "McvFL": 92,
-        "RdwPc": 12,
-        "AlpUL": 153,
-        "Wbc1000cellsuL": 6.4
+        "Date": "2025-02-19",
+        "AlbGL": 40,
+        "CreatUmolL": 88.49557522123894,
+        "GluMmolL": 4.562611012433393,
+        "CrpMgL": 1.9,
+        "LymPc": 34.8,
+        "McvFL": 89.2,
+        "RdwPc": 13,
+        "AlpUL": 84.54,
+        "Wbc1000cellsuL": 6.8
       }
     ],
     "Division": "Women's",
-    "Flag": "Prospera",
-    "Why": "Making people feel like they matter. Irradiating loneliness. Maximizing deep connections.",
-    "ProfilePic": "/assets/profile-pics/christine_urban_profile.webp",
+    "Flag": "Infinita",
+    "Why": "Solving the loneliness epidemic. Creating circular economies for the unbanked.",
+    "ProfilePic": "/assets/profile-pics/stellar_madic_profile.webp",
     "Proofs": [
-      "/assets/proofs/christine_urban_proof_1.webp",
-      "/assets/proofs/christine_urban_proof_2.webp",
-      "/assets/proofs/christine_urban_proof_3.png",
-      "/assets/proofs/christine_urban_proof_4.png",
-      "/assets/proofs/christine_urban_proof_5.png"
+      "/assets/proofs/stellar_madic_proof_1.png"
     ],
-    "PersonalLink": "https://www.stellarmadic.com"
+    "PersonalLink": "https://www.stellarmadic.com",
+    "ExclusiveLeague": "Prosperan"
   },
   {
     "Name": "Sophia Nakamura",
