@@ -1,5 +1,37 @@
 [
   {
+    "Name": "RichLee",
+    "MediaContact": "megalorich@gmail.com",
+    "DateOfBirth": {
+      "Year": 1978,
+      "Month": 8,
+      "Day": 2
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-02-19",
+        "AlbGL": 44,
+        "CreatUmolL": 97.34513274336284,
+        "GluMmolL": 5.484014209591475,
+        "CrpMgL": 2.1,
+        "LymPc": 34.9,
+        "McvFL": 97.6,
+        "RdwPc": 14.1,
+        "AlpUL": 100.75,
+        "Wbc1000cellsuL": 6
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Technonihilism",
+    "Why": "he who breaks death can break anything",
+    "ProfilePic": "/assets/profile-pics/richlee_profile.webp",
+    "Proofs": [
+      "/assets/proofs/richlee_proof_1.webp"
+    ],
+    "PersonalLink": null,
+    "ExclusiveLeague": "Prosperan"
+  },
+  {
     "Name": "Tone Vays",
     "MediaContact": "https://www.instagram.com/tonevays/",
     "DateOfBirth": {
@@ -235,50 +267,6 @@
     "Proofs": [
       "/assets/proofs/sophia_nakamura_proof_1.png",
       "/assets/proofs/sophia_nakamura_proof_2.png"
-    ],
-    "PersonalLink": null
-  },
-  {
-    "Name": "Liam O'Connor",
-    "MediaContact": "media@mailfence.com",
-    "DateOfBirth": {
-      "Year": 1986,
-      "Month": 4,
-      "Day": 11
-    },
-    "Biomarkers": [
-      {
-        "Date": "2025-08-11",
-        "AlbGL": 39,
-        "CreatUmolL": 98,
-        "GluMmolL": 20,
-        "CrpMgL": 0.8,
-        "LymPc": 27,
-        "McvFL": 83,
-        "RdwPc": 14,
-        "AlpUL": 117,
-        "Wbc1000cellsuL": 8
-      },
-      {
-        "Date": "2025-10-15",
-        "AlbGL": 1,
-        "CreatUmolL": 108,
-        "GluMmolL": 20,
-        "CrpMgL": 1.6,
-        "LymPc": 38,
-        "McvFL": 100,
-        "RdwPc": 11,
-        "AlpUL": 95,
-        "Wbc1000cellsuL": 8
-      }
-    ],
-    "Division": "Men's",
-    "Flag": "Germany",
-    "Why": "To be the change I want to see in the world of longevity.",
-    "ProfilePic": "/assets/profile-pics/liam_oconnor_profile.jpg",
-    "Proofs": [
-      "/assets/proofs/liam_oconnor_proof_1.png",
-      "/assets/proofs/liam_oconnor_proof_2.png"
     ],
     "PersonalLink": null
   },
