@@ -29,7 +29,7 @@ window.PhenoAge.calculateAgeFromDOB = function (birthDate) {
 
     const today = new Date();
 
-    if (birthDate > today) throw new Error("DOB is in the future.");
+    if (birthDate > today) throw new Error("Date of birth cannot be in the future.");
 
     // Calculate total days lived
     const msPerDay = 1000 * 60 * 60 * 24;
