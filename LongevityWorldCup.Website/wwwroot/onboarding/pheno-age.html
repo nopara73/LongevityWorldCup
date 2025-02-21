@@ -397,7 +397,7 @@
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
-    <script src="/js/pheno-age.js?v=1.1"></script> <!-- Link to your external script -->
+    <script src="/js/pheno-age.js?v=1.2"></script> <!-- Link to your external script -->
     <script>
         updateMainProgress(2);
 
@@ -483,10 +483,14 @@
             }
 
             const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
-            const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dobValue);
-
-            if (chronologicalAge < 0) {
-                customAlert("Date of birth cannot be in the future.");
+            let chronologicalAge;
+            try {
+                chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dobValue);
+                if (chronologicalAge < 0) {
+                    throw new Error("Invalid Date of Birth: You cannot be born in the future.");
+                }
+            } catch (error) {
+                customAlert(error.message);
                 return;
             }
 
