@@ -506,9 +506,10 @@
 
                 // Check for invalid input
                 if (isNaN(rawValue)) {
-                    customAlert(`Please enter a valid value for ${biomarker.name}.`);
-                    document.getElementById('continueButton').classList.remove('show');
-                    updateCalculateButton();
+                    customAlert(`Please enter a valid value for ${biomarker.name}.`).then(() => {
+                        document.getElementById('continueButton').classList.remove('show');
+                        updateCalculateButton();
+                    });
                     return;
                 }
 
@@ -528,9 +529,10 @@
                     const wbcUnitConversion = parseFloat(wbcUnitElement.value);
 
                     if (isNaN(wbcRawValue)) {
-                        customAlert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.");
-                        document.getElementById('continueButton').classList.remove('show');
-                        updateCalculateButton();
+                        customAlert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.").then(() => {
+                            document.getElementById('continueButton').classList.remove('show');
+                            updateCalculateButton();
+                        });
                         return;
                     }
 

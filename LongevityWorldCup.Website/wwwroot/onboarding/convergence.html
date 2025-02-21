@@ -349,7 +349,7 @@
                 customAlert('Biomarker data is missing. Please complete the biomarker form.');
                 return;
             }
-            console.log(biomarkerData);
+
             // Create the applicant data object
             const applicantData = {
                 name: name,
@@ -902,26 +902,29 @@
 
                             if (response.ok) {
                                 // Handle success, perhaps redirect or show a success message
-                                customAlert('Application submitted successfully!');
-                                localStorage.setItem('contactEmail', applicantData.accountEmail);
-                                // Clear the image variables
-                                profilePic = null;
-                                proofPics = [];
-                                // Redirect or reset the form
-                                window.location.href = '/onboarding/application-review.html#appReviewTitle';
+                                customAlert('Application submitted successfully!').then(() => {
+                                    localStorage.setItem('contactEmail', applicantData.accountEmail);
+                                    // Clear the image variables
+                                    profilePic = null;
+                                    proofPics = [];
+                                    // Redirect or reset the form
+                                    window.location.href = '/onboarding/application-review.html#appReviewTitle';
+                                });
                             } else {
                                 // Handle error
-                                customAlert('Failed to submit application. Please try again later.');
-                                applyButton.disabled = false;
-                                applyButton.textContent = 'Apply';
+                                customAlert('Failed to submit application. Please try again later.').then(() => {
+                                    applyButton.disabled = false;
+                                    applyButton.textContent = 'Apply';
+                                });
                             }
 
                         })
                         .catch(error => {
                             console.error('Error submitting application:', error);
-                            customAlert('An error occurred while submitting your application.');
-                            applyButton.disabled = false;
-                            applyButton.textContent = 'Apply';
+                            customAlert('An error occurred while submitting your application.').then(() => {
+                                applyButton.disabled = false;
+                                applyButton.textContent = 'Apply';
+                            });
                         });
                 }
             }

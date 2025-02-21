@@ -417,10 +417,17 @@
     }
 
     function customAlert(message) {
-        const dialog = document.getElementById('custom-alert');
-        const messageEl = document.getElementById('custom-alert-message');
-        messageEl.textContent = message;
-        dialog.showModal();
+        return new Promise(resolve => {
+            const dialog = document.getElementById('custom-alert');
+            const messageEl = document.getElementById('custom-alert-message');
+            messageEl.textContent = message;
+            dialog.showModal();
+
+            document.getElementById('custom-alert-close').onclick = () => {
+                dialog.close();
+                resolve();
+            };
+        });
     }
 
     document.getElementById('custom-alert-close').addEventListener('click', function () {
