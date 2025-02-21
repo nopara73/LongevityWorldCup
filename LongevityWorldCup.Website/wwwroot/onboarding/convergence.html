@@ -346,7 +346,7 @@
             // Get the biomarker data from localStorage
             const biomarkerData = JSON.parse(localStorage.getItem('biomarkerData'));
             if (!biomarkerData) {
-                alert('Biomarker data is missing. Please complete the biomarker form.');
+                customAlert('Biomarker data is missing. Please complete the biomarker form.');
                 return;
             }
             console.log(biomarkerData);
@@ -577,7 +577,7 @@
                             if (files.length > 0) {
                                 // Limit the total number of images to 9
                                 if (proofPics.length + files.length > 9) {
-                                    alert('You can upload a maximum of 9 images.');
+                                    customAlert('You can upload a maximum of 9 images.');
                                     return;
                                 }
 
@@ -869,15 +869,15 @@
 
                 if (!accountEmail) {
                     isValid = false;
-                    alert('Please enter your email.');
+                    customAlert('Please enter your email.');
                 } else if (!validator.isEmail(accountEmail)) {
                     isValid = false;
-                    alert('Please enter a valid email address.');
+                    customAlert('Please enter a valid email address.');
                 }
 
                 if (personalLink && !validator.isURL(personalLink)) {
                     isValid = false;
-                    alert('Please enter a valid URL for your personal link.');
+                    customAlert('Please enter a valid URL for your personal link.');
                 }
 
                 if (isValid) {
@@ -902,7 +902,7 @@
 
                             if (response.ok) {
                                 // Handle success, perhaps redirect or show a success message
-                                alert('Application submitted successfully!');
+                                customAlert('Application submitted successfully!');
                                 localStorage.setItem('contactEmail', applicantData.accountEmail);
                                 // Clear the image variables
                                 profilePic = null;
@@ -911,7 +911,7 @@
                                 window.location.href = '/onboarding/application-review.html#appReviewTitle';
                             } else {
                                 // Handle error
-                                alert('Failed to submit application. Please try again later.');
+                                customAlert('Failed to submit application. Please try again later.');
                                 applyButton.disabled = false;
                                 applyButton.textContent = 'Apply';
                             }
@@ -919,7 +919,7 @@
                         })
                         .catch(error => {
                             console.error('Error submitting application:', error);
-                            alert('An error occurred while submitting your application.');
+                            customAlert('An error occurred while submitting your application.');
                             applyButton.disabled = false;
                             applyButton.textContent = 'Apply';
                         });

@@ -478,7 +478,7 @@
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
             if (!year) {
-                alert("Please select a year.");
+                customAlert("Please select a year.");
                 return;
             }
 
@@ -486,7 +486,7 @@
             const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dobValue);
 
             if (chronologicalAge < 0) {
-                alert("Date of birth cannot be in the future.");
+                customAlert("Date of birth cannot be in the future.");
                 return;
             }
 
@@ -506,7 +506,7 @@
 
                 // Check for invalid input
                 if (isNaN(rawValue)) {
-                    alert(`Please enter a valid value for ${biomarker.name}.`);
+                    customAlert(`Please enter a valid value for ${biomarker.name}.`);
                     document.getElementById('continueButton').classList.remove('show');
                     updateCalculateButton();
                     return;
@@ -528,7 +528,7 @@
                     const wbcUnitConversion = parseFloat(wbcUnitElement.value);
 
                     if (isNaN(wbcRawValue)) {
-                        alert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.");
+                        customAlert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.");
                         document.getElementById('continueButton').classList.remove('show');
                         updateCalculateButton();
                         return;
