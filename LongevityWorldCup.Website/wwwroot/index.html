@@ -588,10 +588,10 @@
                         document.getElementById('newsletter-form').reset();
                     })
                     .catch(error => {
-                        alert(error.message);
+                        customAlert(error.message);
                     });
             } else {
-                alert('Please enter a valid email address.');
+                customAlert('Please enter a valid email address.');
             }
         });
 
@@ -646,7 +646,7 @@
                     // copiedTextElement.classList.remove('fade-in-out');
                 }, 2000); // Duration is 0.5s * 4 flashes = 2s
             }, function (err) {
-                alert('Failed to copy the address');
+                customAlert('Failed to copy the address');
             });
         }
 
