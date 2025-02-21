@@ -2358,7 +2358,7 @@
     }
 
     function fetchFullAthleteData(athleteNameText, athleteData) {
-        fetch('/api/data/athletes')
+        fetchWithTimeout('/api/data/athletes', {}, 10000) // 10-second timeout
             .then(response => response.json())
             .then(athletes => {
                 const fullAthleteData = athletes.find(a => a.Name === athleteNameText);

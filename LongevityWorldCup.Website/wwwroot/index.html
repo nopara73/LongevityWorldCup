@@ -556,13 +556,13 @@
 
             if (validator.isEmail(emailInput)) {
                 // Send POST request to the API
-                fetch('/api/home/subscribe', {
+                fetchWithTimeout('/api/home/subscribe', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ email: emailInput })
-                })
+                }, 10000) // 10-second timeout
                     .then(response => {
                         if (response.ok) {
                             return response.text(); // Or response.json() if your API returns JSON

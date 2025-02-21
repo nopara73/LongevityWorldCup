@@ -890,18 +890,15 @@
                     applyButton.textContent = 'Submitting...';
 
                     // Send the data via fetch POST request
-                    fetch('/api/application/apply', {
+                    fetchWithTimeout('/api/application/apply', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(applicantData)
-                    })
+                    }, 10000) // timeout set to 10,000 ms (10 seconds)
                         .then(response => {
-                            // Rest of your existing code...
-
                             if (response.ok) {
-                                // Handle success, perhaps redirect or show a success message
                                 customAlert('Application submitted successfully!').then(() => {
                                     localStorage.setItem('contactEmail', applicantData.accountEmail);
                                     // Clear the image variables
@@ -911,13 +908,11 @@
                                     window.location.href = '/onboarding/application-review.html#appReviewTitle';
                                 });
                             } else {
-                                // Handle error
                                 customAlert('Failed to submit application. Please try again later.').then(() => {
                                     applyButton.disabled = false;
                                     applyButton.textContent = 'Apply';
                                 });
                             }
-
                         })
                         .catch(error => {
                             console.error('Error submitting application:', error);
