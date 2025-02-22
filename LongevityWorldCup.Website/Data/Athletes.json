@@ -1,5 +1,38 @@
 [
   {
+    "Name": "ScottBrylow",
+    "MediaContact": "scottbrylow@yahoo.com",
+    "DateOfBirth": {
+      "Year": 1964,
+      "Month": 5,
+      "Day": 31
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-02-21",
+        "AlbGL": 42,
+        "CreatUmolL": 106.19469026548673,
+        "GluMmolL": 5.606127886323269,
+        "CrpMgL": 0.3,
+        "LymPc": 41.3,
+        "McvFL": 91.1,
+        "RdwPc": 12.8,
+        "AlpUL": 55,
+        "Wbc1000cellsuL": 5.8
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "GDBG",
+    "Why": "Sticking around for a good long time to see how it all turns out.",
+    "ProfilePic": "/assets/profile-pics/scottbrylow_profile.webp",
+    "Proofs": [
+      "/assets/proofs/scottbrylow_proof_1.webp",
+      "/assets/proofs/scottbrylow_proof_2.webp"
+    ],
+    "PersonalLink": null,
+    "ExclusiveLeague": "Prosperan"
+  },
+  {
     "Name": "Mind4u2cn",
     "MediaContact": "mindjsh@protonmail.com",
     "DateOfBirth": {
@@ -257,37 +290,6 @@
     ],
     "PersonalLink": "https://www.stellarmadic.com",
     "ExclusiveLeague": "Prosperan"
-  },
-  {
-    "Name": "Ivan Drago",
-    "MediaContact": "https://twitter.com/emmajohansson_media",
-    "DateOfBirth": {
-      "Year": 1966,
-      "Month": 7,
-      "Day": 12
-    },
-    "Biomarkers": [
-      {
-        "Date": "2024-11-12",
-        "AlbGL": 1,
-        "CreatUmolL": 80,
-        "GluMmolL": 20,
-        "CrpMgL": 1.8,
-        "LymPc": 39,
-        "McvFL": 85,
-        "RdwPc": 11,
-        "AlpUL": 12,
-        "Wbc1000cellsuL": 6
-      }
-    ],
-    "Division": "Women's",
-    "Flag": "New Zealand",
-    "Why": "I want to live every day fully and extend that opportunity as long as I can.",
-    "ProfilePic": "/assets/profile-pics/emma_johansson_profile.jpg",
-    "Proofs": [
-      "/assets/proofs/emma_johansson_proof_1.png"
-    ],
-    "PersonalLink": "https://yourwebsite.com/kh4gj0uz"
   },
   {
     "Name": "Ajjas",
