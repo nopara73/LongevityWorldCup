@@ -1,5 +1,37 @@
 [
   {
+    "Name": "Mind4u2cn",
+    "MediaContact": "mindjsh@protonmail.com",
+    "DateOfBirth": {
+      "Year": 1979,
+      "Month": 5,
+      "Day": 8
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-02-21",
+        "AlbGL": 42,
+        "CreatUmolL": 79.64601769911505,
+        "GluMmolL": 6.827264653641208,
+        "CrpMgL": 1,
+        "LymPc": 24.1,
+        "McvFL": 90.6,
+        "RdwPc": 14.1,
+        "AlpUL": 205.64,
+        "Wbc1000cellsuL": 5
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Cyberspace",
+    "Why": "To live a long life and explore the globe and hopefully the  stars.",
+    "ProfilePic": "/assets/profile-pics/mind4u2cn_profile.webp",
+    "Proofs": [
+      "/assets/proofs/mind4u2cn_proof_1.webp"
+    ],
+    "PersonalLink": null,
+    "ExclusiveLeague": "Prosperan"
+  },
+  {
     "Name": "RichLee",
     "MediaContact": "megalorich@gmail.com",
     "DateOfBirth": {
@@ -225,50 +257,6 @@
     ],
     "PersonalLink": "https://www.stellarmadic.com",
     "ExclusiveLeague": "Prosperan"
-  },
-  {
-    "Name": "Sophia Nakamura",
-    "MediaContact": "https://instagram.com/sophianakamura.media",
-    "DateOfBirth": {
-      "Year": 1987,
-      "Month": 12,
-      "Day": 7
-    },
-    "Biomarkers": [
-      {
-        "Date": "2025-10-29",
-        "AlbGL": 1,
-        "CreatUmolL": 74,
-        "GluMmolL": 20,
-        "CrpMgL": 1.0,
-        "LymPc": 35,
-        "McvFL": 89,
-        "RdwPc": 14,
-        "AlpUL": 117,
-        "Wbc1000cellsuL": 4
-      },
-      {
-        "Date": "2025-11-05",
-        "AlbGL": 1,
-        "CreatUmolL": 85,
-        "GluMmolL": 20,
-        "CrpMgL": 1.5,
-        "LymPc": 39,
-        "McvFL": 97,
-        "RdwPc": 13,
-        "AlpUL": 41,
-        "Wbc1000cellsuL": 10
-      }
-    ],
-    "Division": "Women's",
-    "Flag": "Germany",
-    "Why": "I believe in the power of human resilience and its potential to expand our lives.",
-    "ProfilePic": "/assets/profile-pics/sophia_nakamura_profile.jpg",
-    "Proofs": [
-      "/assets/proofs/sophia_nakamura_proof_1.png",
-      "/assets/proofs/sophia_nakamura_proof_2.png"
-    ],
-    "PersonalLink": null
   },
   {
     "Name": "Ivan Drago",
