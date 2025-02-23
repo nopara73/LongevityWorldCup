@@ -13,7 +13,7 @@
         "AlbGL": 42,
         "CreatUmolL": 106.19469026548673,
         "GluMmolL": 5.606127886323269,
-        "CrpMgL": 0.3,
+        "CrpMgL": 0.4,
         "LymPc": 41.3,
         "McvFL": 91.1,
         "RdwPc": 12.8,
@@ -27,7 +27,9 @@
     "ProfilePic": "/assets/profile-pics/scottbrylow_profile.webp",
     "Proofs": [
       "/assets/proofs/scottbrylow_proof_1.webp",
-      "/assets/proofs/scottbrylow_proof_2.webp"
+      "/assets/proofs/scottbrylow_proof_2.webp",
+      "/assets/proofs/scottbrylow_proof_3.png",
+      "/assets/proofs/scottbrylow_proof_4.png"
     ],
     "PersonalLink": null,
     "ExclusiveLeague": "Prosperan"
