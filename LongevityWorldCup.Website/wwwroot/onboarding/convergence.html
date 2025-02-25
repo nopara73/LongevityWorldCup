@@ -864,7 +864,8 @@
             } else {
                 // Final stage requires accountEmail
                 let isValid = true;
-                const accountEmail = document.getElementById('accountEmail').value.trim();
+                const accountEmailInput = document.getElementById('accountEmail');
+                const accountEmail = accountEmailInput.value.trim();
                 const personalLink = document.getElementById('personalLink').value.trim();
 
                 if (!accountEmail) {
@@ -887,6 +888,7 @@
                     // Disable the Apply button and change its text
                     const applyButton = document.getElementById('nextButton');
                     applyButton.disabled = true;
+                    accountEmailInput.setAttribute("disabled", "true");
                     applyButton.textContent = 'Submitting...';
 
                     // Send the data via fetch POST request
@@ -911,6 +913,7 @@
                                 response.text().then(badResponse => {
                                     customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                         applyButton.disabled = false;
+                                        accountEmailInput.setAttribute("disabled", "false");
                                         applyButton.textContent = 'Apply';
                                     });
                                 });
@@ -919,6 +922,7 @@
                         .catch(error => {
                             customAlert(`An error occurred while submitting your application:\n\n${error}`).then(() => {
                                 applyButton.disabled = false;
+                                accountEmailInput.setAttribute("disabled", "false");
                                 applyButton.textContent = 'Apply';
                             });
                         });
