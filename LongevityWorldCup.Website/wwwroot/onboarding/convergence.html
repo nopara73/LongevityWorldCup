@@ -908,15 +908,16 @@
                                     window.location.href = '/onboarding/application-review.html#appReviewTitle';
                                 });
                             } else {
-                                customAlert('Failed to submit application. Please try again later.').then(() => {
-                                    applyButton.disabled = false;
-                                    applyButton.textContent = 'Apply';
+                                response.text().then(badResponse => {
+                                    customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
+                                        applyButton.disabled = false;
+                                        applyButton.textContent = 'Apply';
+                                    });
                                 });
                             }
                         })
                         .catch(error => {
-                            console.error('Error submitting application:', error);
-                            customAlert('An error occurred while submitting your application.').then(() => {
+                            customAlert(`An error occurred while submitting your application:\n\n${error}`).then(() => {
                                 applyButton.disabled = false;
                                 applyButton.textContent = 'Apply';
                             });
