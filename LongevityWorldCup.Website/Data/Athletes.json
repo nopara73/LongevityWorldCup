@@ -246,6 +246,18 @@
         "RdwPc": 12.9,
         "AlpUL": 40,
         "Wbc1000cellsuL": 5.4
+      },
+      {
+        "Date": "2025-02-02",
+        "AlbGL": 48,
+        "CreatUmolL": 71.6,
+        "GluMmolL": 5.33,
+        "CrpMgL": 0.54,
+        "LymPc": 33,
+        "McvFL": 90,
+        "RdwPc": 12,
+        "AlpUL": 53,
+        "Wbc1000cellsuL": 5.9
       }
     ],
     "Division": "Men's",
@@ -257,7 +269,9 @@
       "/assets/proofs/alan_v_proof_2.webp",
       "/assets/proofs/alan_v_proof_3.webp",
       "/assets/proofs/alan_v_proof_4.webp",
-      "/assets/proofs/alan_v_proof_5.webp"
+      "/assets/proofs/alan_v_proof_5.webp",
+      "/assets/proofs/alan_v_proof_6.jpeg",
+      "/assets/proofs/alan_v_proof_7.jpeg"
     ],
     "PersonalLink": null
   },
