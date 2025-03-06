@@ -1,5 +1,106 @@
 [
   {
+    "Name": "nopara73",
+    "MediaContact": "adam.ficsor73@gmail.com",
+    "DateOfBirth": {
+      "Year": 1991,
+      "Month": 12,
+      "Day": 31
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-06",
+        "AlbGL": 40.99999999999999,
+        "CreatUmolL": 88.49557522123894,
+        "GluMmolL": 4.906749555950268,
+        "CrpMgL": 13.2,
+        "LymPc": 26.6,
+        "McvFL": 93.9,
+        "RdwPc": 13.1,
+        "AlpUL": 70.3,
+        "Wbc1000cellsuL": 8.8
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Cyberspace",
+    "Why": "I don't have anything better to do",
+    "ProfilePic": "/assets/profile-pics/nopara73_profile.webp",
+    "Proofs": [
+      "/assets/proofs/nopara73_proof_1.webp"
+    ],
+    "PersonalLink": "https://www.youtube.com/nopara73",
+    "ExclusiveLeague": "Prosperan"
+  },
+  {
+    "Name": "Max Eaimsirakul",
+    "MediaContact": "https://www.instagram.com/maxxboost/",
+    "DateOfBirth": {
+      "Year": 1978,
+      "Month": 5,
+      "Day": 8
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-06",
+        "AlbGL": 45.99999999999999,
+        "CreatUmolL": 86.72566371681417,
+        "GluMmolL": 5.439609236234459,
+        "CrpMgL": 0.41999999999999993,
+        "LymPc": 32,
+        "McvFL": 95,
+        "RdwPc": 12.6,
+        "AlpUL": 77,
+        "Wbc1000cellsuL": 4.6
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "United States",
+    "Why": "To master my biology and push the limits of human performance.",
+    "ProfilePic": "/assets/profile-pics/max_eaimsirakul_profile.webp",
+    "Proofs": [
+      "/assets/proofs/max_eaimsirakul_proof_1.webp",
+      "/assets/proofs/max_eaimsirakul_proof_2.webp",
+      "/assets/proofs/max_eaimsirakul_proof_3.webp"
+    ],
+    "PersonalLink": null
+  },
+  {
+    "Name": "Jason Sugar",
+    "MediaContact": "https://www.linkedin.com/in/jasonbsugar/",
+    "DateOfBirth": {
+      "Year": 1967,
+      "Month": 9,
+      "Day": 30
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-05",
+        "AlbGL": 42,
+        "CreatUmolL": 88.49557522123894,
+        "GluMmolL": 4.229573712255773,
+        "CrpMgL": 2.1,
+        "LymPc": 28,
+        "McvFL": 88,
+        "RdwPc": 13.1,
+        "AlpUL": 73.7,
+        "Wbc1000cellsuL": 7.1
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Honduras",
+    "Why": "All is one. All is unfolding. All is catalyst. All is.",
+    "ProfilePic": "/assets/profile-pics/jason_sugar_profile.webp",
+    "Proofs": [
+      "/assets/proofs/jason_sugar_proof_1.webp",
+      "/assets/proofs/jason_sugar_proof_2.webp",
+      "/assets/proofs/jason_sugar_proof_3.webp",
+      "/assets/proofs/jason_sugar_proof_4.webp",
+      "/assets/proofs/jason_sugar_proof_5.webp"
+    ],
+    "PersonalLink": null,
+    "ExclusiveLeague": "Prosperan"
+  },
+  {
     "Name": "ScottBrylow",
     "MediaContact": "scottbrylow@yahoo.com",
     "DateOfBirth": {
@@ -293,7 +394,7 @@
         "LymPc": 34.8,
         "McvFL": 89.2,
         "RdwPc": 13,
-        "AlpUL": 84.54,
+        "AlpUL": 110.8,
         "Wbc1000cellsuL": 6.8
       }
     ],
