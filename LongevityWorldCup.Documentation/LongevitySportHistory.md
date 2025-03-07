@@ -41,9 +41,7 @@ TruDiagnostic launched the second version of the Rejuvenation Olympics. Major ch
 
 nopara73 launched the [Longevity World Cup](https://www.longevityworldcup.com/) using [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf), a biological aging clock which can be acquired through regular blood tests. In this competition, absolute age reversal relative to chronological age is counted. This competition introduced the concept of prize money and various leagues based on gender and age groups.
 
-![Longevity World Cup](https://github.com/user-attachments/assets/fcb04a4a-2f00-4c0d-ad2c-a96deaf4ec06)
-
-*Note: The image is an illustration featuring AI-generated athletes. As of 2024, at the time of writing, the competition has not yet launched.*
+![Longevity World Cup](https://github.com/user-attachments/assets/8e238b15-294e-4d5a-a569-0a0605120bcb)
 
 ## Special Mentions
 
