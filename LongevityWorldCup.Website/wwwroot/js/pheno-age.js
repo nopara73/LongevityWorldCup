@@ -2,17 +2,18 @@
 window.PhenoAge = window.PhenoAge || {};
 
 // Attach biomarkers to the namespace
+// https://github.com/nopara73/LongevityWorldCup/issues/136
 window.PhenoAge.biomarkers = [
     { id: 'age', name: 'Age', coeff: 0.0804 }, // Age has no known lower cap
-    { id: 'albumin', name: 'Albumin', coeff: -0.0336, cap: 50 },
-    { id: 'creatinine', name: 'Creatinine', coeff: 0.0095, cap: 60 },
-    { id: 'glucose', name: 'Glucose', coeff: 0.1953, cap: 4 },
+    { id: 'albumin', name: 'Albumin', coeff: -0.0336 }, // No upper cap
+    { id: 'creatinine', name: 'Creatinine', coeff: 0.0095, cap: 44 },
+    { id: 'glucose', name: 'Glucose', coeff: 0.1953, cap: 4.44 },
     { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 }, // CRP has no known lower cap
-    { id: 'wbc', name: 'White blood cell count', coeff: 0.0554, cap: 4.5 },
-    { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012, cap: 40 },
-    { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268, cap: 85 },
-    { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306, cap: 11.5 },
-    { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019, cap: 50 }
+    { id: 'wbc', name: 'White blood cell count', coeff: 0.0554, cap: 3.5 },
+    { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012, cap: 60 },
+    { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 }, // No lower cap
+    { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306, cap: 11.4 },
+    { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 } // No lower cap
 ];
 
 // Helper function to parse input values
@@ -46,7 +47,7 @@ window.PhenoAge.calculatePhenoAge = function (markerValues, coefficients) {
     // Cap marker values to reference ranges
     let cappedMarkerValues = [];
     for (let i = 0; i < markerValues.length; i++) {
-        if (i == 0 || i == 4) {
+        if (i == 0 || i == 1 || i == 4 || i == 7 || i == 9) {
             // Age marker is not capped
             // CRP is not capped
             cappedMarkerValues.push(markerValues[i]);
