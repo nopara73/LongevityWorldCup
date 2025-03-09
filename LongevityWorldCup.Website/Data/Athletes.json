@@ -49,7 +49,7 @@
         "GluMmolL": 4.56,
         "CrpMgL": 0.3,
         "LymPc": 31.3,
-        "McvFL": 98.2,
+        "McvFL": 98,
         "RdwPc": 11.7,
         "AlpUL": 41,
         "Wbc1000cellsuL": 4.73
@@ -63,7 +63,9 @@
       "/assets/proofs/healthoptimisers_proof_1.webp",
       "/assets/proofs/healthoptimisers_proof_2.webp",
       "/assets/proofs/healthoptimisers_proof_3.webp",
-      "/assets/proofs/healthoptimisers_proof_4.webp"
+      "/assets/proofs/healthoptimisers_proof_4.webp",
+      "/assets/proofs/healthoptimisers_proof_5.jpeg",
+      "/assets/proofs/healthoptimisers_proof_6.png"
     ],
     "PersonalLink": "https://Bsupercharged.com"
   },
