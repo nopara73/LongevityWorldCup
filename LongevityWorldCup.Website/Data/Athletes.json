@@ -1,5 +1,38 @@
 [
   {
+    "Name": "Michael Lustgarten",
+    "MediaContact": "mlhnrca@gmail.com",
+    "DateOfBirth": {
+      "Year": 1973,
+      "Month": 1,
+      "Day": 27
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-09",
+        "AlbGL": 49,
+        "CreatUmolL": 63.716814159292035,
+        "GluMmolL": 4.662522202486679,
+        "CrpMgL": 0.2,
+        "LymPc": 38.8,
+        "McvFL": 92.8,
+        "RdwPc": 11.8,
+        "AlpUL": 41,
+        "Wbc1000cellsuL": 3.4
+      }
+    ],
+    "Division": "Open",
+    "Flag": "Conquer Aging or Die Trying",
+    "Why": "Health->Longevity->Immortality",
+    "ProfilePic": "/assets/profile-pics/michael_lustgarten_profile.webp",
+    "Proofs": [
+      "/assets/proofs/michael_lustgarten_proof_1.webp",
+      "/assets/proofs/michael_lustgarten_proof_2.webp",
+      "/assets/proofs/michael_lustgarten_proof_3.webp"
+    ],
+    "PersonalLink": "https://www.patreon.com/c/MichaelLustgartenPhD"
+  },
+  {
     "Name": "EatBiohackLove",
     "MediaContact": "https://www.instagram.com/eatbiohacklove/",
     "DateOfBirth": {
