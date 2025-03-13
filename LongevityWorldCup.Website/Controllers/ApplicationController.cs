@@ -280,13 +280,13 @@ namespace LongevityWorldCup.Website.Controllers
                 };
                 using var outputStream = new MemoryStream();
 
-                // Resize to a maximum size if needed (e.g., 1024x1024)
+                // Resize to a maximum size if needed (e.g., 2048x2048)
                 image.Mutate(x =>
                 {
                     x.Resize(new ResizeOptions
                     {
                         Mode = ResizeMode.Max,
-                        Size = new SixLabors.ImageSharp.Size(1024, 1024)
+                        Size = new SixLabors.ImageSharp.Size(2048, 2048)
                     });
                 });
 
