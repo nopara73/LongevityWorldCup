@@ -311,6 +311,7 @@
         transition: color 0.2s ease-in-out;
         display: inline-block; /* Ensures padding is applied around the element */
         padding: 0.5rem 0.2rem 0.5rem 0.5rem; /* Increase the clickable area */
+        white-space: pre-wrap;
     }
 
         .athlete-name:hover {
@@ -1320,6 +1321,7 @@
 
                                     // Attach click event listeners to athlete names
                                     attachAthleteNameClickListeners();
+                                    applyCamelCaseNewlines();
 
                                     addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
                                         openEnlargedView(this);
@@ -1385,6 +1387,7 @@
 
                     // Attach click event listeners to athlete names
                     attachAthleteNameClickListeners();
+                    applyCamelCaseNewlines();
 
                     addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
                         openEnlargedView(this);
@@ -2303,6 +2306,17 @@
     document.addEventListener('DOMContentLoaded', () => {
         addFadeInEffectToElements();
     });
+
+    function applyCamelCaseNewlines() {
+        if (window.innerWidth < 480) { // Only apply on mobile
+            document.querySelectorAll('.athlete-name').forEach(el => {
+                const originalText = el.textContent;
+                // Insert a <br> between a lowercase and an uppercase letter
+                const formattedText = originalText.replace(/([a-z])([A-Z])/g, '$1<br>$2');
+                el.innerHTML = formattedText;
+            });
+        }
+    }
 
     // Apply animations on data reload or updates
     function refreshVisualizations() {
