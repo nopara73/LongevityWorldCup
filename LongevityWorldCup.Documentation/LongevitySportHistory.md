@@ -35,13 +35,13 @@ TruDiagnostic launched the second version of the Rejuvenation Olympics. Major ch
 
 ![Rejuvenation Olympics 2.0](https://github.com/user-attachments/assets/06784db5-bac3-4cc4-bfc5-ef3376917c62)
 
-### 2025 - Longevity World Cup
+### 2025 January - Longevity World Cup
 
 nopara73 launched the [Longevity World Cup](https://www.longevityworldcup.com/) using [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf), a biological aging clock which can be acquired through regular blood tests. In this competition, absolute age reversal relative to chronological age is counted. This competition introduced the concept of prize money and various leagues based on gender and age groups.
 
-![Longevity World Cup](https://github.com/user-attachments/assets/8e238b15-294e-4d5a-a569-0a0605120bcb)
+![Longevity World Cup](https://github.com/user-attachments/assets/1c498779-62c2-458a-918c-37fd7aa00515)
 
-### 2025 - Dr. Oliver Zolman's Departure
+### 2025 March - Dr. Oliver Zolman's Departure
 
 In a private exchange, Dr. Zolman revealed his departure from the Rejuvenation Olympics. He attributed his choice to step away to concerns over the leaderboard's scientific integrity, stating, "Bryan and TruDiagnostic made the leaderboards unscientific and clinically meaningless."
 
