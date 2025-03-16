@@ -1749,7 +1749,7 @@
         // Show the rows and podium items for the filtered athletes
         filteredAthletes.forEach(athlete => {
             const athleteName = athlete.name;
-            const row = document.querySelector(`.leaderboard table tbody tr[data-athlete-name="${athleteName}"]`);
+            const row = document.querySelector(`.leaderboard table tbody tr[data-athlete-name="${CSS.escape(athleteName)}"]`);
             if (row) {
                 row.style.display = '';
                 showWithDelay(row);
@@ -1761,7 +1761,7 @@
                 }
 
             }
-            const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
+            const item = document.querySelector(`.podium-item[data-athlete-name="${CSS.escape(athleteName)}"]`);
             if (item) {
                 item.style.display = '';
                 anyPodiumVisible = true;
