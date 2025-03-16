@@ -1,5 +1,37 @@
 [
   {
+    "Name": "Rodrigo Quercia",
+    "MediaContact": "https://www.linkedin.com/in/rodrigoquercia/",
+    "DateOfBirth": {
+      "Year": 1990,
+      "Month": 9,
+      "Day": 30
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-15",
+        "AlbGL": 42,
+        "CreatUmolL": 97.34513274336284,
+        "GluMmolL": 4.629218472468917,
+        "CrpMgL": 1.2,
+        "LymPc": 34,
+        "McvFL": 85.9,
+        "RdwPc": 13.1,
+        "AlpUL": 51.3,
+        "Wbc1000cellsuL": 4.4
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Brazil",
+    "Why": "Ambition, intellectual curiosity, and a desire for impact.",
+    "ProfilePic": "/assets/profile-pics/rodrigo_quercia_profile.webp",
+    "Proofs": [
+      "/assets/proofs/rodrigo_quercia_proof_1.webp"
+    ],
+    "PersonalLink": "https://www.linkedin.com/in/rodrigoquercia/",
+    "ExclusiveLeague": "Prosperan"
+  },
+  {
     "Name": "Nils",
     "MediaContact": "nilsosmar@gmail.com",
     "DateOfBirth": {
