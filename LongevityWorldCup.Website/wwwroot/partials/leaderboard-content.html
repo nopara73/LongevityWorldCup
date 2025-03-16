@@ -1898,6 +1898,10 @@
             });
         }
 
+        if (typeof AOS !== 'undefined') {
+            AOS.refresh();
+            applyCamelCaseNewlines(); // Reapply the camelCase fix AFTER AOS refresh
+        }
     }
 
     function updateFilterCounts(filteredAthletes) {
