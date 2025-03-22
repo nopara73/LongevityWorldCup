@@ -1,7 +1,7 @@
 [
   {
     "Name": "Philipp Schmeing",
-    "MediaContact": "contact@philippschmeing.com",
+    "MediaContact": "https://www.instagram.com/pschmeing",
     "DateOfBirth": {
       "Year": 1990,
       "Month": 8,
@@ -17,18 +17,19 @@
         "LymPc": 38.1,
         "McvFL": 99.1,
         "RdwPc": 11.6,
-        "AlpUL": 120,
+        "AlpUL": 65,
         "Wbc1000cellsuL": 4.73
       }
     ],
     "Division": "Men's",
     "Flag": "Germany",
     "Why": "Reaching longevity escape velocity. Increasing my health span. Life to the fullest!",
-    "ProfilePic": "/assets/profile-pics/philipp_schmeing_profile.webp",
+    "ProfilePic": "/assets/profile-pics/philipp_schmeing_profile.png",
     "Proofs": [
       "/assets/proofs/philipp_schmeing_proof_1.webp",
       "/assets/proofs/philipp_schmeing_proof_2.webp",
-      "/assets/proofs/philipp_schmeing_proof_3.webp"
+      "/assets/proofs/philipp_schmeing_proof_3.webp",
+      "/assets/proofs/philipp_schmeing_proof_4.webp"
     ],
     "PersonalLink": "https://philippschmeing.com"
   },
