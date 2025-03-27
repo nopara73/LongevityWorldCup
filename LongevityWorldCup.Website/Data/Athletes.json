@@ -12,7 +12,7 @@
         "Date": "2025-03-26",
         "AlbGL": 49,
         "CreatUmolL": 132,
-        "GluMmolL": 4.496003552397869,
+        "GluMmolL": 4.5,
         "CrpMgL": 0.6,
         "LymPc": 50,
         "McvFL": 91.4,
@@ -28,7 +28,8 @@
     "Proofs": [
       "/assets/proofs/giorgio_zinetti_proof_1.webp",
       "/assets/proofs/giorgio_zinetti_proof_2.webp",
-      "/assets/proofs/giorgio_zinetti_proof_3.webp"
+      "/assets/proofs/giorgio_zinetti_proof_3.webp",
+      "/assets/proofs/giorgio_zinetti_proof_4.png"
     ],
     "PersonalLink": "https://www.gio.fyi/"
   },
