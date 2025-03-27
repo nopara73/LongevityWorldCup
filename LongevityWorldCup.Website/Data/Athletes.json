@@ -1,5 +1,70 @@
 [
   {
+    "Name": "Miguel C",
+    "MediaContact": "https://www.facebook.com/profile.php?id=100037271976357",
+    "DateOfBirth": {
+      "Year": 1995,
+      "Month": 9,
+      "Day": 28
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-26",
+        "AlbGL": 45.99999999999999,
+        "CreatUmolL": 77.87610619469027,
+        "GluMmolL": 4.8845470692717585,
+        "CrpMgL": 1.38,
+        "LymPc": 29,
+        "McvFL": 84,
+        "RdwPc": 12.8,
+        "AlpUL": 109,
+        "Wbc1000cellsuL": 6.6
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Cyberspace",
+    "Why": "Feel the city breakin' and everybody shakin'\nAnd we're stayin' alive",
+    "ProfilePic": "/assets/profile-pics/miguel_c_profile.webp",
+    "Proofs": [
+      "/assets/proofs/miguel_c_proof_1.png",
+      "/assets/proofs/miguel_c_proof_2.png"
+    ],
+    "PersonalLink": null
+  },
+  {
+    "Name": "Andreea Vuscan",
+    "MediaContact": "https://www.facebook.com/vuscan.andreea",
+    "DateOfBirth": {
+      "Year": 1985,
+      "Month": 2,
+      "Day": 8
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-26",
+        "AlbGL": 43.3,
+        "CreatUmolL": 57.522123893805315,
+        "GluMmolL": 4.496003552397869,
+        "CrpMgL": 0.35,
+        "LymPc": 29.49,
+        "McvFL": 86.6,
+        "RdwPc": 13.5,
+        "AlpUL": 40,
+        "Wbc1000cellsuL": 4.68
+      }
+    ],
+    "Division": "Women's",
+    "Flag": "DrCarmen",
+    "Why": "Recreate yourself. Stay fit and healthy.",
+    "ProfilePic": "/assets/profile-pics/andreea_vuscan_profile.webp",
+    "Proofs": [
+      "/assets/proofs/andreea_vuscan_proof_1.webp",
+      "/assets/proofs/andreea_vuscan_proof_2.webp",
+      "/assets/proofs/andreea_vuscan_proof_3.webp"
+    ],
+    "PersonalLink": "https://www.instagram.com/andreeavuscan/"
+  },
+  {
     "Name": "Marcin",
     "MediaContact": "marciok.km@gmail.com",
     "DateOfBirth": {
