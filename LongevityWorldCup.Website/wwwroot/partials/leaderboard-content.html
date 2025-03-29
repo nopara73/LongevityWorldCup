@@ -1123,39 +1123,79 @@
                     const birthYear = athlete.DateOfBirth.Year;
                     const generation = getGeneration(birthYear);
 
-                    // Initialize a variable to keep track of the lowest PhenoAge for this athlete
-                    let lowestPhenoAge = Infinity;
-                    // Iterate through all biomarker sets for each athlete
+                    // Create an object to store the best biomarker values from all sets
+                    let bestBiomarkers = {
+                        AlbGL: null,          // Albumin (higher is better)
+                        CreatUmolL: null,     // Creatinine (lower is better)
+                        GluMmolL: null,       // Glucose (lower is better)
+                        CrpMgL: null,         // CRP (lower is better)
+                        Wbc1000cellsuL: null, // White blood cell count (lower is better)
+                        LymPc: null,          // Lymphocytes (higher is better)
+                        McvFL: null,          // Mean corpuscular volume (lower is better)
+                        RdwPc: null,          // Red cell distribution width (lower is better)
+                        AlpUL: null           // Alkaline phosphatase (lower is better)
+                    };
+
+                    // Iterate through each biomarker set to update the best values
                     athlete.Biomarkers.forEach(biomarkerSet => {
-                        // Prepare the biomarker values in the order expected for PhenoAge calculation
-                        const biomarkerValues = [chronologicalAge];
-
-                        // Apply logarithmic transformation to CRP
-                        // Also divide by 10 to convert from mg/L to ug/L
-                        const crpTransformed = Math.log(biomarkerSet.CrpMgL / 10);
-
-                        // Add the values of each required biomarker (in the same order as in 'biomarkers' array)
-                        biomarkerValues.push(
-                            biomarkerSet.AlbGL,      // Albumin
-                            biomarkerSet.CreatUmolL, // Creatinine
-                            biomarkerSet.GluMmolL,   // Glucose
-                            crpTransformed,     // C-reactive Protein
-                            biomarkerSet.Wbc1000cellsuL, // White Blood Cell Count
-                            biomarkerSet.LymPc,      // Lymphocytes
-                            biomarkerSet.McvFL,      // Mean Corpuscular Volume
-                            biomarkerSet.RdwPc,      // Red Cell Distribution Width
-                            biomarkerSet.AlpUL       // Alkaline Phosphatase
-                        );
-
-                        // Calculate the PhenoAge for the current biomarker set
-                        const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
-                        const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues, coefficients);
-
-                        // Update the lowest PhenoAge if the current one is lower
-                        if (phenoAge < lowestPhenoAge) {
-                            lowestPhenoAge = phenoAge;
+                        // Albumin: negative coefficient means higher is better
+                        if (bestBiomarkers.AlbGL === null || biomarkerSet.AlbGL > bestBiomarkers.AlbGL) {
+                            bestBiomarkers.AlbGL = biomarkerSet.AlbGL;
+                        }
+                        // Creatinine: positive coefficient means lower is better
+                        if (bestBiomarkers.CreatUmolL === null || biomarkerSet.CreatUmolL < bestBiomarkers.CreatUmolL) {
+                            bestBiomarkers.CreatUmolL = biomarkerSet.CreatUmolL;
+                        }
+                        // Glucose: positive coefficient means lower is better
+                        if (bestBiomarkers.GluMmolL === null || biomarkerSet.GluMmolL < bestBiomarkers.GluMmolL) {
+                            bestBiomarkers.GluMmolL = biomarkerSet.GluMmolL;
+                        }
+                        // CRP: positive coefficient means lower is better
+                        if (bestBiomarkers.CrpMgL === null || biomarkerSet.CrpMgL < bestBiomarkers.CrpMgL) {
+                            bestBiomarkers.CrpMgL = biomarkerSet.CrpMgL;
+                        }
+                        // White blood cell count: positive coefficient means lower is better
+                        if (bestBiomarkers.Wbc1000cellsuL === null || biomarkerSet.Wbc1000cellsuL < bestBiomarkers.Wbc1000cellsuL) {
+                            bestBiomarkers.Wbc1000cellsuL = biomarkerSet.Wbc1000cellsuL;
+                        }
+                        // Lymphocytes: negative coefficient means higher is better
+                        if (bestBiomarkers.LymPc === null || biomarkerSet.LymPc > bestBiomarkers.LymPc) {
+                            bestBiomarkers.LymPc = biomarkerSet.LymPc;
+                        }
+                        // Mean corpuscular volume: positive coefficient means lower is better
+                        if (bestBiomarkers.McvFL === null || biomarkerSet.McvFL < bestBiomarkers.McvFL) {
+                            bestBiomarkers.McvFL = biomarkerSet.McvFL;
+                        }
+                        // Red cell distribution width: positive coefficient means lower is better
+                        if (bestBiomarkers.RdwPc === null || biomarkerSet.RdwPc < bestBiomarkers.RdwPc) {
+                            bestBiomarkers.RdwPc = biomarkerSet.RdwPc;
+                        }
+                        // Alkaline phosphatase: positive coefficient means lower is better
+                        if (bestBiomarkers.AlpUL === null || biomarkerSet.AlpUL < bestBiomarkers.AlpUL) {
+                            bestBiomarkers.AlpUL = biomarkerSet.AlpUL;
                         }
                     });
+
+                    // Prepare the biomarker values array in the order required for the PhenoAge calculation
+                    const bestBiomarkerValues = [
+                        chronologicalAge,
+                        bestBiomarkers.AlbGL,
+                        bestBiomarkers.CreatUmolL,
+                        bestBiomarkers.GluMmolL,
+                        Math.log(bestBiomarkers.CrpMgL / 10), // Apply log transformation to CRP (converting mg/L to µg/L)
+                        bestBiomarkers.Wbc1000cellsuL,
+                        bestBiomarkers.LymPc,
+                        bestBiomarkers.McvFL,
+                        bestBiomarkers.RdwPc,
+                        bestBiomarkers.AlpUL
+                    ];
+
+                    // Calculate the PhenoAge using the best biomarker values and their coefficients
+                    const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
+
+                    // Initialize a variable to keep track of the lowest PhenoAge for this athlete
+                    let lowestPhenoAge = Infinity;
+                    lowestPhenoAge = window.PhenoAge.calculatePhenoAge(bestBiomarkerValues, coefficients);
 
                     // Calculate the age reduction
                     const ageReduction = lowestPhenoAge - chronologicalAge;
