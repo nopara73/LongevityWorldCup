@@ -2584,15 +2584,25 @@
     }
 
     function collectBiomarkerValues(entry, biomarkersRaw) {
-        biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL);
-        biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
-        biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
-        biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
-        biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc);
-        biomarkersRaw['MCV (fL)'].push(entry.McvFL);
-        biomarkersRaw['RDW (%)'].push(entry.RdwPc);
-        biomarkersRaw['ALP (U/L)'].push(entry.AlpUL);
-        biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
+        function pushOrInherit(key, newValue) {
+            // Retrieve the last known value if available
+            const lastValue = biomarkersRaw[key].length > 0 ? biomarkersRaw[key][biomarkersRaw[key].length - 1] : undefined;
+            // Use newValue if provided; otherwise, inherit lastValue
+            const valueToUse = newValue != null ? newValue : lastValue;
+            // Update the persistent storage
+            biomarkersRaw[key].push(valueToUse);
+            // Return the value used so we can update the entry
+            return valueToUse;
+        }
+        entry.AlbGL = pushOrInherit('Albumin (g/L)', entry.AlbGL);
+        entry.CreatUmolL = pushOrInherit('Creatinine (µmol/L)', entry.CreatUmolL);
+        entry.GluMmolL = pushOrInherit('Glucose (mmol/L)', entry.GluMmolL);
+        entry.CrpMgL = pushOrInherit('CRP (mg/L)', entry.CrpMgL);
+        entry.LymPc = pushOrInherit('Lymphocytes (%)', entry.LymPc);
+        entry.McvFL = pushOrInherit('MCV (fL)', entry.McvFL);
+        entry.RdwPc = pushOrInherit('RDW (%)', entry.RdwPc);
+        entry.AlpUL = pushOrInherit('ALP (U/L)', entry.AlpUL);
+        entry.Wbc1000cellsuL = pushOrInherit('WBC (10^3 cells/µL)', entry.Wbc1000cellsuL);
     }
 
     function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
