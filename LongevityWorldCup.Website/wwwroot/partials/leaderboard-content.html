@@ -1724,6 +1724,8 @@
 
         let filteredAthletes = [];
 
+        let anyMatch = false;
+
         athleteResults.forEach(athlete => {
             const athleteNameNormalized = normalizeString(athlete.name);
 
@@ -1753,6 +1755,8 @@
                 filteredAthletes.push(athlete);
             }
         });
+
+        const unslicedFilteredAthletes = filteredAthletes;
 
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
 
@@ -1824,7 +1828,7 @@
         });
 
         // Update the counts in the filter sections
-        updateFilterCounts(filteredAthletes);
+        updateFilterCounts(unslicedFilteredAthletes);
 
         // Add or remove 'blurred' class from podium items based on filtering
         podiumItems.forEach(item => {
