@@ -1,5 +1,107 @@
 [
   {
+    "Name": "Beatriz Bevilaqua",
+    "MediaContact": "beatriz@imprensa.biz",
+    "DateOfBirth": {
+      "Year": 1988,
+      "Month": 6,
+      "Day": 30
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-29",
+        "AlbGL": 42.99999999999999,
+        "CreatUmolL": 79.64601769911505,
+        "GluMmolL": 4.718028419182949,
+        "CrpMgL": 0.68,
+        "LymPc": 44,
+        "McvFL": 91.3,
+        "RdwPc": 12.8,
+        "AlpUL": 44,
+        "Wbc1000cellsuL": 7.22
+      }
+    ],
+    "Division": "Women's",
+    "Flag": "Brasil",
+    "Why": "What drives me are life's challenges, which make me a better person with a broader repertoire.",
+    "ProfilePic": "/assets/profile-pics/beatriz_bevilaqua_profile.webp",
+    "Proofs": [
+      "/assets/proofs/beatriz_bevilaqua_proof_1.webp",
+      "/assets/proofs/beatriz_bevilaqua_proof_2.webp",
+      "/assets/proofs/beatriz_bevilaqua_proof_3.webp",
+      "/assets/proofs/beatriz_bevilaqua_proof_4.webp",
+      "/assets/proofs/beatriz_bevilaqua_proof_5.webp",
+      "/assets/proofs/beatriz_bevilaqua_proof_6.webp"
+    ],
+    "PersonalLink": "https://www.instagram.com/beatrizbevilaqua/"
+  },
+  {
+    "Name": "God Dieux",
+    "MediaContact": "https://www.facebook.com/tantragod/",
+    "DateOfBirth": {
+      "Year": 1976,
+      "Month": 6,
+      "Day": 24
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-29",
+        "AlbGL": 50,
+        "CreatUmolL": 65.48672566371681,
+        "GluMmolL": 5.772646536412079,
+        "CrpMgL": 0.6,
+        "LymPc": 34,
+        "McvFL": 91.4,
+        "RdwPc": 12,
+        "AlpUL": 110,
+        "Wbc1000cellsuL": 5.616
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Canada",
+    "Why": "Love, Health, Nature, Children, Dance, Creativity, Friends, Travel, Cooking, Juicing, Art... Meditation... truth",
+    "ProfilePic": "/assets/profile-pics/god_dieux_profile.webp",
+    "Proofs": [
+      "/assets/proofs/god_dieux_proof_1.webp",
+      "/assets/proofs/god_dieux_proof_2.webp",
+      "/assets/proofs/god_dieux_proof_3.webp"
+    ],
+    "PersonalLink": "https://www.god.me"
+  },
+  {
+    "Name": "Satya Disha Dieux",
+    "MediaContact": "https://www.facebook.com/share/1AKdw5Kgh5/?mibextid=wwXIfr",
+    "DateOfBirth": {
+      "Year": 1992,
+      "Month": 8,
+      "Day": 5
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-29",
+        "AlbGL": 47.99999999999999,
+        "CreatUmolL": 63.716814159292035,
+        "GluMmolL": 4.829040852575489,
+        "CrpMgL": 0.6,
+        "LymPc": 35,
+        "McvFL": 89.7,
+        "RdwPc": 11.9,
+        "AlpUL": 145,
+        "Wbc1000cellsuL": 5.578
+      }
+    ],
+    "Division": "Women's",
+    "Flag": "Canada",
+    "Why": "Meditation, Nature, Travel, Children, Self Exploration.",
+    "ProfilePic": "/assets/profile-pics/satya_disha_dieux_profile.webp",
+    "Proofs": [
+      "/assets/proofs/satya_disha_dieux_proof_1.webp",
+      "/assets/proofs/satya_disha_dieux_proof_2.webp",
+      "/assets/proofs/satya_disha_dieux_proof_3.webp"
+    ],
+    "PersonalLink": null
+  },
+  {
     "Name": "Miguel C",
     "MediaContact": "https://www.facebook.com/profile.php?id=100037271976357",
     "DateOfBirth": {
