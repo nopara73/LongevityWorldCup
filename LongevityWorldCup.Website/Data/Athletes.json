@@ -1,5 +1,37 @@
 [
   {
+    "Name": "Juan Robalino",
+    "MediaContact": "https://x.com/Yet_another_ODE",
+    "DateOfBirth": {
+      "Year": 1987,
+      "Month": 4,
+      "Day": 16
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-03-31",
+        "AlbGL": 52,
+        "CreatUmolL": 54.86725663716815,
+        "GluMmolL": 4.656971580817053,
+        "CrpMgL": 2.6,
+        "LymPc": 36.8,
+        "McvFL": 80.1,
+        "RdwPc": 11.7,
+        "AlpUL": 141.6,
+        "Wbc1000cellsuL": 6.91
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Ecuador",
+    "Why": "It seems it is the logical thing to do.",
+    "ProfilePic": "/assets/profile-pics/juan_robalino_profile.webp",
+    "Proofs": [
+      "/assets/proofs/juan_robalino_proof_1.webp",
+      "/assets/proofs/juan_robalino_proof_2.webp"
+    ],
+    "PersonalLink": "https://www.instagram.com/its_been_always_over/"
+  },
+  {
     "Name": "Beatriz Bevilaqua",
     "MediaContact": "beatriz@imprensa.biz",
     "DateOfBirth": {
