@@ -186,6 +186,10 @@
         "RdwPc": 11.9,
         "AlpUL": 62,
         "Wbc1000cellsuL": 4.16
+      },
+      {
+        "Date": "2025-03-31",
+        "GluMmolL": 4.83
       }
     ],
     "Division": "Men's",
@@ -200,7 +204,8 @@
       "/assets/proofs/marcin_proof_5.webp",
       "/assets/proofs/marcin_proof_6.webp",
       "/assets/proofs/marcin_proof_7.webp",
-      "/assets/proofs/marcin_proof_8.jpg"
+      "/assets/proofs/marcin_proof_8.jpg",
+      "/assets/proofs/marcin_proof_9.jpg"
     ],
     "PersonalLink": null
   },
