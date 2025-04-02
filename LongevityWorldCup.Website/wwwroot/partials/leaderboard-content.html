@@ -1333,7 +1333,7 @@
                                             <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
                                             <div>
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.name}">${athlete.name}</span>
-                                                ${athlete.personalLink ? `<a href="${athlete.personalLink && athlete.personalLink.startsWith('www.') ? 'https://' + athlete.personalLink : athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
+                                                ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
                                                 <i class="fa fa-link"></i>
                                                 </a>` : ''}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.name)}
@@ -1395,7 +1395,7 @@
                         <td data-label="Athlete" class="athlete-td">
                             <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy">
                             <span class="athlete-name" title="View stats of ${athlete.name}">${athlete.name}</span>
-                            ${athlete.personalLink ? `<a href="${athlete.personalLink}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
+                            ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
                             <i class="fa fa-link"></i>
                             </a>` : ''}
                         </td>
@@ -1563,7 +1563,7 @@
                 ? `<a href="mailto:${contact}" aria-label="Email ${contact}" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
                 ${getIcon(contact)}
                </a>`
-                : `<a href="${contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
+                : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
                 ${getIcon(contact)}
                </a>`
                 }`;
@@ -1572,7 +1572,7 @@
             ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}" title="${tooltipText}">
             ${getIcon(contact)}
            </a>`
-            : `<a href="${contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
+            : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
             ${getIcon(contact)}
            </a>`
             }`;
@@ -2511,7 +2511,7 @@
         // Personal Link
         const personalLinkElement = document.getElementById('personalLink');
         if (athleteData.personalLink) {
-            personalLinkElement.href = athleteData.personalLink.startsWith('www.') ? 'https://' + athleteData.personalLink : athleteData.personalLink;
+            personalLinkElement.href = athleteData.personalLink.startsWith('http') ? athleteData.personalLink : 'https://' + athleteData.personalLink;
             personalLinkElement.style.display = 'flex';
             personalLinkElement.title = `Visit personal page of ${athleteData.name}`;
         } else {
@@ -2522,13 +2522,14 @@
         const mediaContactElement = document.getElementById('mediaContact');
         if (athleteData.mediaContact) {
             const isEmail = athleteData.mediaContact.includes('@');
-            mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : athleteData.mediaContact;
+            mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : (athleteData.mediaContact.startsWith('http') ? athleteData.mediaContact : 'https://' + athleteData.mediaContact);
             mediaContactElement.innerHTML = `${getIcon(athleteData.mediaContact)} Media Contact`;
             mediaContactElement.style.display = 'flex';
             mediaContactElement.title = isEmail ? `Email ${athleteData.name}` : `Contact ${athleteData.name}`;
         } else {
             mediaContactElement.style.display = 'none';
         }
+
     }
 
     function generateBiomarkerChart(fullAthleteData) {
