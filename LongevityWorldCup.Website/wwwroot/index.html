@@ -348,6 +348,19 @@
                 color: var(--secondary-color);
             }
 
+        .qr-code-container {
+            text-align: center;
+            margin: 1rem auto;
+        }
+
+        .qr-code-img {
+            max-width: 200px;
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .contribute-section {
@@ -461,6 +474,9 @@
                         <div>Target:</div>
                         <div style="text-align: right;"><span id="goal-btc">0.01</span> BTC</div>
                     </div>
+                </div>
+                <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                    <img src="/assets/Donation25QR.png" alt="Donate with Bitcoin QR Code" class="qr-code-img">
                 </div>
                 <div class="btc-address">
                     <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
