@@ -817,6 +817,11 @@
             };
 
             // Store the data in localStorage
+            const chronoAge = window.PhenoAge.calculateAgeFromDOB(new Date(year, month, day));
+            const bioAge = parseFloat(document.getElementById('animatedAge').innerText);
+            const chronoBioDifference = bioAge - chronoAge;
+            localStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
+
             localStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
             const biomarkerDataFromStorage = JSON.parse(localStorage.getItem('biomarkerData'));
 

@@ -92,6 +92,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             // Get AccountEmail from the json and trim it
             string? accountEmail = applicantData.AccountEmail?.Trim();
+            string? chronoBioDifference = applicantData.ChronoBioDifference?.Trim();
 
             // Initialize variables to store image paths
             string? profilePicPath = null;
@@ -194,7 +195,8 @@ namespace LongevityWorldCup.Website.Controllers
             };
 
             // Include AccountEmail in the email body
-            string emailBody = $"\nAccount Email: {accountEmail}\n\n";
+            string emailBody = $"\nAccount Email: {accountEmail}\n";
+            emailBody += $"Age Difference: {chronoBioDifference}\n\n";
             emailBody += JsonSerializer.Serialize(applicantDataWithoutImages, CachedJsonSerializerOptions);
 
             builder.TextBody = emailBody;

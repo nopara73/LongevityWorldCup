@@ -341,8 +341,10 @@
             const accountEmail = document.getElementById('accountEmail').value.trim();
             const personalLink = document.getElementById('personalLink').value.trim();
 
-            // Use the global variables `profilePic` and `proofPics` directly
+            // Get the pheno age from localStorage
+            const chronoBioDifference = localStorage.getItem('chronoBioDifference');
 
+            // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from localStorage
             const biomarkerData = JSON.parse(localStorage.getItem('biomarkerData'));
             if (!biomarkerData) {
@@ -358,6 +360,7 @@
                 why: why,
                 mediaContact: mediaContact,
                 accountEmail: accountEmail,
+                chronoBioDifference: chronoBioDifference,
                 personalLink: personalLink,
                 dateOfBirth: biomarkerData.DateOfBirth,
                 biomarkers: biomarkerData.Biomarkers,
