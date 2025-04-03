@@ -53,6 +53,8 @@ namespace LongevityWorldCup.Website
             // Use CORS
             app.UseCors("AllowSpecificOrigin");
 
+            app.UseStatusCodePagesWithReExecute("/error/{0}");
+
             app.UseRouting();
 
             // Register the custom HTML injection middleware
