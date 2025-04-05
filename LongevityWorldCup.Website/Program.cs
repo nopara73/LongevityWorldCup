@@ -33,7 +33,10 @@ namespace LongevityWorldCup.Website
                 options.AddPolicy("AllowSpecificOrigin",
                     builder =>
                     {
-                        builder.WithOrigins("https://www.longevityworldcup.com")
+                        builder.WithOrigins(
+                            "https://www.longevityworldcup.com",
+                            "http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion",
+                            "https://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion")
                                .AllowAnyHeader()
                                .AllowAnyMethod();
                     });
