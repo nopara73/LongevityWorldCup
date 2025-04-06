@@ -2673,6 +2673,18 @@
                 actualValue: actualValues[index]
             }));
 
+            // Retrieve saved visibility state from localStorage
+            let savedState = localStorage.getItem('biomarkerVisibilityState');
+            let isHidden = true; // default value
+
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                // Use the saved state if it exists for this biomarker key
+                if (state.hasOwnProperty(key)) {
+                    isHidden = state[key];
+                }
+            }
+
             datasets.push({
                 label: key,
                 data: dataPoints,
@@ -2681,7 +2693,7 @@
                 fill: false,
                 tension: 0.1,
                 yAxisID: 'y2',
-                hidden: true
+                hidden: isHidden
             });
         }
         return datasets;
@@ -2721,6 +2733,25 @@
                     },
                     onLeave: function (event) {
                         event.native.target.style.cursor = 'default';
+                    },
+                    onClick: function (e, legendItem, legend) {
+                        // Execute the default onClick handler
+                        Chart.defaults.plugins.legend.onClick.call(this, e, legendItem, legend);
+                        // Get the chart instance and dataset metadata
+                        const ci = legend.chart;
+                        const index = legendItem.datasetIndex;
+                        const meta = ci.getDatasetMeta(index);
+
+                        // Store the biomarker's new visibility status
+                        // Retrieve the stored state; if none exists, start with an empty object
+                        let state = localStorage.getItem('biomarkerVisibilityState');
+                        state = state ? JSON.parse(state) : {};
+
+                        // Update the state with the new key-value pair
+                        state[meta.label] = meta.hidden;
+
+                        // Save it back to localStorage as a JSON string
+                        localStorage.setItem('biomarkerVisibilityState', JSON.stringify(state));
                     }
                 }
             },
@@ -2748,7 +2779,7 @@
                         display: true,
                         text: 'Biomarkers (Z-scores)',
                         font: {
-                            size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
+                            size: window.innerWidth < 768 ? 10 : 14
                         }
                     },
                     grid: {
@@ -2760,7 +2791,7 @@
                         display: true,
                         text: 'Date',
                         font: {
-                            size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
+                            size: window.innerWidth < 768 ? 10 : 14
                         }
                     }
                 }
