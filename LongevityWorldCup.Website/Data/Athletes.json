@@ -1,5 +1,36 @@
 [
   {
+    "Name": "LBron",
+    "MediaContact": "info@longevitydxtx.com",
+    "DateOfBirth": {
+      "Year": 1981,
+      "Month": 5,
+      "Day": 6
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-04-04",
+        "AlbGL": 48,
+        "CreatUmolL": 93,
+        "GluMmolL": 4.6,
+        "CrpMgL": 0.3,
+        "LymPc": 28.35,
+        "McvFL": 94,
+        "RdwPc": 13.7,
+        "AlpUL": 68,
+        "Wbc1000cellsuL": 3.88
+      }
+    ],
+    "Division": "Men's",
+    "Flag": "Canada",
+    "Why": "To enjoy time with my great grandchildren.",
+    "ProfilePic": "/assets/profile-pics/lbron_profile.webp",
+    "Proofs": [
+      "/assets/proofs/lbron_proof_1.webp"
+    ],
+    "PersonalLink": "https://www.longevitydxtx.com"
+  },
+  {
     "Name": "Max",
     "MediaContact": "biohackingmax@gmail.com",
     "DateOfBirth": {
