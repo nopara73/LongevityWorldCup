@@ -1442,6 +1442,9 @@
                     const athleteData = getAthleteData(normalizedAthlete);
                     if (athleteData) {
                         fetchFullAthleteData(normalizedAthlete, athleteData);
+                    } else {
+                        // Redirect to the .NET 404 endpoint
+                        window.location.href = '/error/404';
                     }
                 }
             })
