@@ -1040,7 +1040,7 @@
 
         <div id="detailsModal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
+                <span id="closeAthleteDetailsModal" class="close">&times;</span>
 
                 <div class="athlete-profile">
                     <img id="modalProfilePic"
@@ -1433,6 +1433,18 @@
                         openEnlargedView(this);
                     });
                 });
+
+                // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
+                const urlParams = new URLSearchParams(window.location.search);
+                const athleteParam = new URLSearchParams(window.location.search).get('athlete') || '';
+                if (athleteParam) {
+                    const normalizedAthlete = slugifyAthleteName(athleteParam, false);
+                    const athleteData = getAthleteData(normalizedAthlete);
+                    console.log(athleteData);
+                    if (athleteData) {
+                        fetchFullAthleteData(normalizedAthlete, athleteData);
+                    }
+                }
             })
             .catch(error => {
                 console.error('Error fetching athletes:', error);
@@ -1591,20 +1603,12 @@
     }
 
     const modal = document.getElementById("detailsModal");
-    const closeBtn = document.getElementsByClassName("close")[0];
+    const closeBtn = document.getElementById("closeAthleteDetailsModal");
     const athleteDetails = document.getElementById("athleteDetails");
     let ageChart;
 
     closeBtn.onclick = function () {
-        modal.classList.add('fade-out');
-        setTimeout(() => {
-            modal.style.display = "none";
-            modal.classList.remove('fade-out');
-            document.body.classList.remove('no-scroll');
-            if (history.state?.modalOpen) {
-                history.replaceState(null, "");
-            }
-        }, 400);
+        closeModal();
     };
 
     window.addEventListener('click', function (event) {
@@ -1619,6 +1623,13 @@
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             document.body.classList.remove('no-scroll');
+
+            // Clear the athlete parameter from the URL:
+            const url = new URL(window.location.href);
+            url.searchParams.delete('athlete');
+            history.replaceState({}, "", url.toString());
+
+            resetPageTitle();
         }, 400);
     }
 
@@ -2416,14 +2427,14 @@
     }
 
     function getAthleteData(athleteNameText) {
-        return athleteResults.find(athlete => athlete.name === athleteNameText);
+        return athleteResults.find(athlete => slugifyAthleteName(athlete.name) === slugifyAthleteName(athleteNameText));
     }
 
     function fetchFullAthleteData(athleteNameText, athleteData) {
         fetchWithTimeout('/api/data/athletes', {}, 10000) // 10-second timeout
             .then(response => response.json())
             .then(athletes => {
-                const fullAthleteData = athletes.find(a => a.Name === athleteNameText);
+                const fullAthleteData = athletes.find(a => slugifyAthleteName(a.Name) === slugifyAthleteName(athleteNameText));
                 if (!fullAthleteData) {
                     console.error('Full athlete data not found');
                     return;
@@ -2433,6 +2444,8 @@
 
                 // Populate the modal with athlete data
                 populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType);
+
+                updatePageTitleForAthlete(fullAthleteData.Name, ultimateRank);
 
                 // Generate age visualization
                 const bioAge = athleteData.lowestPhenoAge;
@@ -2444,10 +2457,15 @@
 
                 // Populate proofs gallery
                 populateProofsGallery(fullAthleteData);
+
+                // After populating the modal with athlete data but before showing it:
+                const url = new URL(window.location.href);
+                url.searchParams.set('athlete', slugifyAthleteName(athleteNameText, true)); // athleteNameText is the athlete’s name passed into fetchFullAthleteData
+                history.pushState({ modal: 'details', athlete: slugifyAthleteName(athleteNameText, true) }, "", url.toString());
+
                 // Display the modal
                 modal.style.display = "block";
                 document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
-                history.pushState({ modal: 'details' }, "");
             })
             .catch(error => {
                 console.error('Error fetching full athlete data:', error);
@@ -2922,4 +2940,41 @@
             }
         }
     }, false);
+
+    function slugifyAthleteName(name, encode) {
+        // Normalize the string: trim, lowercase, remove accents,
+        // replace spaces with hyphens, remove any disallowed characters,
+        // collapse multiple hyphens and trim hyphens from start/end.
+        let normalized = name
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9\-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+
+        // If encoding is desired, run encodeURIComponent.
+        // If decoding, first decode then re-normalize (or simply return the normalized value)
+        if (encode) {
+            return encodeURIComponent(normalized);
+        } else {
+            // In our case the normalized string should be safe already;
+            // calling decodeURIComponent won’t change it unless there are percent sequences.
+            return decodeURIComponent(normalized);
+        }
+    }
+
+    // Updates the document title for the selected athlete.
+    // Example: "Amelia Zhao – Longevity World Cup (#8)"
+    function updatePageTitleForAthlete(athleteName, athleteRank) {
+        document.title = `${athleteName} (#${athleteRank}) - Longevity World Cup`;
+    }
+
+    // Resets the document title to the default when no athlete is selected.
+    const originalDocumentTitle = document.title;
+    function resetPageTitle() {
+        document.title = originalDocumentTitle;
+    }
 </script>
