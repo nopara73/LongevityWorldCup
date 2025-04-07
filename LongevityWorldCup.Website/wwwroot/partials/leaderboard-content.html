@@ -1440,7 +1440,6 @@
                 if (athleteParam) {
                     const normalizedAthlete = slugifyAthleteName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
-                    console.log(athleteData);
                     if (athleteData) {
                         fetchFullAthleteData(normalizedAthlete, athleteData);
                     }
@@ -1625,9 +1624,7 @@
             document.body.classList.remove('no-scroll');
 
             // Clear the athlete parameter from the URL:
-            const url = new URL(window.location.href);
-            url.searchParams.delete('athlete');
-            history.replaceState({}, "", url.toString());
+            history.replaceState({}, "", originalAthletelessURL);
 
             resetPageTitle();
         }, 400);
@@ -2430,6 +2427,14 @@
         return athleteResults.find(athlete => slugifyAthleteName(athlete.name) === slugifyAthleteName(athleteNameText));
     }
 
+    function getAthlelessURL() {
+        const url = new URL(window.location.href.replace(/\/athlete\/[^/]+\/?$/, ''));
+        url.searchParams.delete('athlete');
+        return url;
+    }
+
+    let originalAthletelessURL = getAthlelessURL();
+
     function fetchFullAthleteData(athleteNameText, athleteData) {
         fetchWithTimeout('/api/data/athletes', {}, 10000) // 10-second timeout
             .then(response => response.json())
@@ -2459,9 +2464,9 @@
                 populateProofsGallery(fullAthleteData);
 
                 // After populating the modal with athlete data but before showing it:
-                const url = new URL(window.location.href);
-                url.searchParams.set('athlete', slugifyAthleteName(athleteNameText, true)); // athleteNameText is the athlete’s name passed into fetchFullAthleteData
-                history.pushState({ modal: 'details', athlete: slugifyAthleteName(athleteNameText, true) }, "", url.toString());
+                originalAthletelessURL = getAthlelessURL();
+                const athleteSlug = slugifyAthleteName(athleteNameText, true);
+                history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
 
                 // Display the modal
                 modal.style.display = "block";
