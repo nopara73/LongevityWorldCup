@@ -1437,6 +1437,7 @@
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
                 const urlParams = new URLSearchParams(window.location.search);
                 const athleteParam = new URLSearchParams(window.location.search).get('athlete') || '';
+                const searchParam = new URLSearchParams(window.location.search).get('search') || '';
                 if (athleteParam) {
                     const normalizedAthlete = slugifyAthleteName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
@@ -1446,6 +1447,14 @@
                         // Redirect to the .NET 404 endpoint
                         window.location.href = '/error/404';
                     }
+                } else if (searchParam) {
+                    var query = decodeURIComponent(searchParam);
+                    const searchInput = document.getElementById('athleteSearch');
+                    searchInput.value = query;
+                    debounceFilterAthletes();
+                    setTimeout(() => {
+                        searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 1000);
                 }
             })
             .catch(error => {
@@ -1688,6 +1697,9 @@
                 row.style.display = 'none';
             });
         }
+        const url = new URL(window.location.href);
+        url.searchParams.delete('search');
+        history.replaceState({}, "", url.toString());
     }
 
     function removeAllHighlights() {
@@ -1707,7 +1719,19 @@
 
     // Wrap the filter function with debounce
     const debouncedFilter = debounce(() => {
+        const query = document.getElementById('athleteSearch').value.trim();
+
         performFilter();
+
+        const url = new URL(window.location.href);
+        url.hash = ""; // <- this line removes #leaderboardTitle or any other fragment
+
+        if (query === "") {
+            url.searchParams.delete('search');
+        } else {
+            url.searchParams.set('search', encodeURIComponent(query));
+        }
+        history.replaceState({}, "", url.toString());
     }, 400);
 
     function normalizeString(str) {
@@ -2142,7 +2166,8 @@
 
     // Modify the input event listener
     document.getElementById('athleteSearch').addEventListener('input', function () {
-        if (this.value.trim() === '') {
+        const query = this.value.trim();
+        if (query === '') {
             clearSearch(); // Run only when input is cleared
         } else {
             debounceFilterAthletes(); // Run debounce function when input is not empty
