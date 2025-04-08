@@ -1437,7 +1437,6 @@
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
                 const urlParams = new URLSearchParams(window.location.search);
                 const athleteParam = new URLSearchParams(window.location.search).get('athlete') || '';
-                const searchParam = new URLSearchParams(window.location.search).get('search') || '';
                 if (athleteParam) {
                     const normalizedAthlete = slugifyAthleteName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
@@ -1447,14 +1446,40 @@
                         // Redirect to the .NET 404 endpoint
                         window.location.href = '/error/404';
                     }
-                } else if (searchParam) {
-                    var query = decodeURIComponent(searchParam);
-                    const searchInput = document.getElementById('athleteSearch');
-                    searchInput.value = query;
-                    debounceFilterAthletes();
-                    setTimeout(() => {
-                        searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 1000);
+                } else {
+                    let searchOrFilterApplied = false; // Flag to check if filter was applied
+                    const searchParam = new URLSearchParams(window.location.search).get('search') || '';
+                    if (searchParam) {
+                        var query = decodeURIComponent(searchParam);
+                        const searchInput = document.getElementById('athleteSearch');
+                        searchInput.value = query;
+                        searchOrFilterApplied = true;
+                    }
+
+                    const filtersParam = new URLSearchParams(window.location.search).get('filters');
+                    if (filtersParam) {
+                        // Double-decode the parameter in case it was double encoded (e.g. baby%2520boomers becomes "baby boomers")
+                        const decodedFilters = decodeURIComponent(decodeURIComponent(filtersParam));
+                        const filtersList = decodedFilters.split(',');
+                        filtersList.forEach(filterValue => {
+                            const normalizedFilter = filterValue.trim().toLowerCase();
+                            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                                if (checkbox.value.toLowerCase() === normalizedFilter) {
+                                    checkbox.checked = true;
+                                }
+                            });
+                        });
+                        searchOrFilterApplied = true;
+                    }
+
+                    if (searchOrFilterApplied) {
+                        debounceFilterAthletes();
+
+                        // Even here scroll to the search when filter applied because the table kinda starts there conceptually
+                        setTimeout(() => {
+                            searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 1000);
+                    }
                 }
             })
             .catch(error => {
@@ -1719,19 +1744,7 @@
 
     // Wrap the filter function with debounce
     const debouncedFilter = debounce(() => {
-        const query = document.getElementById('athleteSearch').value.trim();
-
         performFilter();
-
-        const url = new URL(window.location.href);
-        url.hash = ""; // <- this line removes #ABCD or any other fragment
-
-        if (query === "") {
-            url.searchParams.delete('search');
-        } else {
-            url.searchParams.set('search', encodeURIComponent(query));
-        }
-        history.replaceState({}, "", url.toString());
     }, 400);
 
     function normalizeString(str) {
@@ -1981,6 +1994,25 @@
             AOS.refresh();
             applyCamelCaseNewlines(); // Reapply the camelCase fix AFTER AOS refresh
         }
+
+        const url = new URL(window.location.href);
+        url.hash = ""; // <- this line removes #ABCD or any other fragment
+
+        if (query === "") {
+            url.searchParams.delete('search');
+        } else {
+            url.searchParams.set('search', encodeURIComponent(query));
+        }
+
+        const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues];
+        if (filters.length === 0) {
+            url.searchParams.delete('filters');
+        } else {
+            const encodedFilters = filters.map(f => encodeURIComponent(f)).join(',');
+            url.searchParams.set('filters', encodedFilters);
+        }
+
+        history.replaceState({}, "", url.toString());
     }
 
     function updateFilterCounts(filteredAthletes) {
