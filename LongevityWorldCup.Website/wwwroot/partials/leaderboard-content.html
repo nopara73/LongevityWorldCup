@@ -1724,7 +1724,7 @@
         performFilter();
 
         const url = new URL(window.location.href);
-        url.hash = ""; // <- this line removes #leaderboardTitle or any other fragment
+        url.hash = ""; // <- this line removes #ABCD or any other fragment
 
         if (query === "") {
             url.searchParams.delete('search');

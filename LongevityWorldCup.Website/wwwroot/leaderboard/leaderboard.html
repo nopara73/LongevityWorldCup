@@ -20,6 +20,10 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(() => {
+            const leaderboardTitle = document.getElementById('leaderboardTitle');
+            leaderboardTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
         LoadLeaderboard(false, Infinity);
     });
 </script>
