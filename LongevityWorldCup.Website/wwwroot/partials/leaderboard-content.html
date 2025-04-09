@@ -2396,6 +2396,9 @@
             if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
                 const slug = slugifyName(bestLeagueName, true);
                 rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
+            } else if (bestLeagueType === 'combination') {
+                const filters = bestLeagueName.split('_').map(f => encodeURIComponent(f)).join('%2C');
+                rankText = `#${bestLeagueRank} in the <a href="/?filters=${filters}" class="league-link">${leagueLabel} League</a>`;
             } else {
                 rankText = `#${bestLeagueRank} in the ${leagueLabel} League`;
             }
