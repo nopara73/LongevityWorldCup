@@ -1438,7 +1438,7 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const athleteParam = new URLSearchParams(window.location.search).get('athlete') || '';
                 if (athleteParam) {
-                    const normalizedAthlete = slugifyAthleteName(athleteParam, false);
+                    const normalizedAthlete = slugifyName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
                     if (athleteData) {
                         fetchFullAthleteData(normalizedAthlete, athleteData);
@@ -2005,11 +2005,21 @@
         }
 
         const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues];
-        if (filters.length === 0) {
+        if (filters.length === 1 &&
+            ([...url.searchParams].length === 0
+                || ([...url.searchParams].length === 1 && url.searchParams.has('filters')))) {
             url.searchParams.delete('filters');
+            originalLeaguelessURL = getLeaguelessURL();
+            const leagueSlug = slugifyName(filters[0], true);
+            url.pathname = `/league/${leagueSlug}`;
         } else {
-            const encodedFilters = filters.map(f => encodeURIComponent(f)).join(',');
-            url.searchParams.set('filters', encodedFilters);
+            url.pathname = originalLeaguelessURL.pathname;
+            if (filters.length === 0) {
+                url.searchParams.delete('filters');
+            } else {
+                const encodedFilters = filters.map(f => encodeURIComponent(f)).join(',');
+                url.searchParams.set('filters', encodedFilters);
+            }
         }
 
         history.replaceState({}, "", url.toString());
@@ -2484,22 +2494,28 @@
     }
 
     function getAthleteData(athleteNameText) {
-        return athleteResults.find(athlete => slugifyAthleteName(athlete.name) === slugifyAthleteName(athleteNameText));
+        return athleteResults.find(athlete => slugifyName(athlete.name) === slugifyName(athleteNameText));
     }
 
-    function getAthlelessURL() {
+    function getAthletelessURL() {
         const url = new URL(window.location.href.replace(/\/athlete\/[^/]+\/?$/, ''));
         url.searchParams.delete('athlete');
         return url;
     }
 
-    let originalAthletelessURL = getAthlelessURL();
+    function getLeaguelessURL() {
+        const url = new URL(window.location.href.replace(/\/league\/[^/]+\/?$/, ''));
+        return url;
+    }
+
+    let originalAthletelessURL = getAthletelessURL();
+    let originalLeaguelessURL = getLeaguelessURL();
 
     function fetchFullAthleteData(athleteNameText, athleteData) {
         fetchWithTimeout('/api/data/athletes', {}, 10000) // 10-second timeout
             .then(response => response.json())
             .then(athletes => {
-                const fullAthleteData = athletes.find(a => slugifyAthleteName(a.Name) === slugifyAthleteName(athleteNameText));
+                const fullAthleteData = athletes.find(a => slugifyName(a.Name) === slugifyName(athleteNameText));
                 if (!fullAthleteData) {
                     console.error('Full athlete data not found');
                     return;
@@ -2524,8 +2540,8 @@
                 populateProofsGallery(fullAthleteData);
 
                 // After populating the modal with athlete data but before showing it:
-                originalAthletelessURL = getAthlelessURL();
-                const athleteSlug = slugifyAthleteName(athleteNameText, true);
+                originalAthletelessURL = getAthletelessURL();
+                const athleteSlug = slugifyName(athleteNameText, true);
                 history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
 
                 // Display the modal
@@ -3006,7 +3022,7 @@
         }
     }, false);
 
-    function slugifyAthleteName(name, encode) {
+    function slugifyName(name, encode) {
         // Normalize the string: trim, lowercase, remove accents,
         // replace spaces with hyphens, remove any disallowed characters,
         // collapse multiple hyphens and trim hyphens from start/end.
