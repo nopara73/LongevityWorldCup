@@ -2009,7 +2009,6 @@
             ([...url.searchParams].length === 0
                 || ([...url.searchParams].length === 1 && url.searchParams.has('filters')))) {
             url.searchParams.delete('filters');
-            originalLeaguelessURL = getLeaguelessURL();
             const leagueSlug = slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
         } else {
