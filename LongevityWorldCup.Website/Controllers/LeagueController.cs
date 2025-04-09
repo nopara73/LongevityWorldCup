@@ -29,9 +29,9 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 return Redirect($"/?filters=baby%2520boomers");
             }
-            else if (normalizedLeagueName == "gen%2520x")
+            else if (normalizedLeagueName == "gen-x")
             {
-                return Redirect($"/?filters=open");
+                return Redirect($"/?filters=gen%2520x");
             }
             else if (normalizedLeagueName == "millennials")
             {

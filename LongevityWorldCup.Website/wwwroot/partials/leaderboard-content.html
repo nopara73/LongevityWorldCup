@@ -912,6 +912,16 @@
         }
     }
 
+    .league-link {
+        color: var(--primary-color);
+        text-decoration: underline;
+        transition: color 0.2s ease;
+    }
+
+        .league-link:hover {
+            color: var(--secondary-color);
+        }
+
     @keyframes fadeIn {
         from {
             opacity: 0;
@@ -2386,8 +2396,8 @@
             rankText = `#${bestLeagueRank} ${leagueNameFormatted}`;
         }
         document.getElementById('athleteRank').textContent = rankText;
-        document.getElementById('athleteDivision').textContent = `${athleteData.division}${getRankText(athleteData.ranks[athleteData.division])}`;
-        document.getElementById('athleteGeneration').textContent = `${athleteData.generation}${getRankText(athleteData.ranks[athleteData.generation])}`;
+        document.getElementById('athleteDivision').innerHTML = `<a href="/league/${slugifyName(athleteData.division, true)}" class="league-link">${athleteData.division}</a>${getRankText(athleteData.ranks[athleteData.division])}`;
+        document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${getRankText(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
