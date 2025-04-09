@@ -2390,12 +2390,18 @@
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
-        let rankText = `#${ultimateRank} in the Ultimate League`;
+        let rankText = `#${ultimateRank} in the <a href="/leaderboard/leaderboard.html" class="league-link">Ultimate League</a>`;
         if (bestLeagueRank !== ultimateRank) {
-            const leagueNameFormatted = formatLeagueName(bestLeagueName, bestLeagueType);
-            rankText = `#${bestLeagueRank} ${leagueNameFormatted}`;
+            const leagueLabel = bestLeagueName.replace('_', ' ');
+            if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
+                const slug = slugifyName(bestLeagueName, true);
+                rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
+            } else {
+                rankText = `#${bestLeagueRank} in the ${leagueLabel} League`;
+            }
         }
-        document.getElementById('athleteRank').textContent = rankText;
+
+        document.getElementById('athleteRank').innerHTML = rankText;
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${slugifyName(athleteData.division, true)}" class="league-link">${athleteData.division}</a>${getRankText(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${getRankText(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
