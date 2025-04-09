@@ -289,9 +289,3 @@ function highlightText(element, searchTerms) {
 
     element.innerHTML = highlightedHTML;
 }
-
-function formatLeagueName(leagueName, leagueType) {
-    // Replace underscores with spaces
-    leagueName = leagueName.replace('_', ' ');
-    return `in the ${leagueName} League`;
-}
