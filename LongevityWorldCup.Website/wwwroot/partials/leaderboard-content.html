@@ -1409,6 +1409,13 @@
                     oldestMapping[athlete.name] = index + 1; // 1 for oldest, 2 for second, 3 for third
                 });
 
+                // Compute the three chronologically youngest athletes
+                const youngestAthletes = athleteResults.slice().sort((a, b) => a.chronologicalAge - b.chronologicalAge);
+                const youngestMapping = {};
+                youngestAthletes.slice(0, 3).forEach((athlete, index) => {
+                    youngestMapping[athlete.name] = index + 1; // 1 for youngest, 2 for 2nd youngest, 3 for 3rd youngest
+                });
+
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
                 const remainingAthletes = athleteResults;
@@ -1442,21 +1449,44 @@
                     // Append badge if the athlete is among the three chronologically oldest
                     if (oldestMapping[athlete.name]) {
                         const order = oldestMapping[athlete.name];
-
                         let tooltipText = "";
                         let iconClass = "";
+                        const ageText = athlete.chronologicalAge.toFixed(1); // Athlete's age formatted
 
                         if (order === 1) {
-                            tooltipText = "Chronologically Oldest";
+                            tooltipText = `Chronologically Oldest (Age: ${ageText} years)`;
                             iconClass = "fa-infinity";
                         } else if (order === 2) {
-                            tooltipText = "Chronologically 2nd Oldest";
+                            tooltipText = `Chronologically 2nd Oldest (Age: ${ageText} years)`;
                             iconClass = "fa-scroll";
                         } else if (order === 3) {
-                            tooltipText = "Chronologically 3rd Oldest";
+                            tooltipText = `Chronologically 3rd Oldest (Age: ${ageText} years)`;
                             iconClass = "fa-leaf";
                         }
 
+                        badgeSection.innerHTML += `
+                        <span class="badge-class" title="${tooltipText}">
+                            <i class="fa ${iconClass}"></i>
+                        </span>`;
+                    }
+
+                    // Append badge if the athlete is among the three chronologically youngest
+                    if (youngestMapping[athlete.name]) {
+                        const order = youngestMapping[athlete.name];
+                        let tooltipText = "";
+                        let iconClass = "";
+                        const ageText = athlete.chronologicalAge.toFixed(1); // Athlete's age formatted
+
+                        if (order === 1) {
+                            tooltipText = `Chronologically Youngest (Age: ${ageText} years)`;
+                            iconClass = "fa-baby";
+                        } else if (order === 2) {
+                            tooltipText = `Chronologically 2nd Youngest (Age: ${ageText} years)`;
+                            iconClass = "fa-child";
+                        } else if (order === 3) {
+                            tooltipText = `Chronologically 3rd Youngest (Age: ${ageText} years)`;
+                            iconClass = "fa-running";
+                        }
                         badgeSection.innerHTML += `
                         <span class="badge-class" title="${tooltipText}">
                             <i class="fa ${iconClass}"></i>
