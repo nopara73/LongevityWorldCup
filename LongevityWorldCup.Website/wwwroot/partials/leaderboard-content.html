@@ -195,20 +195,6 @@
         width: 100%; /* Full width only when sidebar is expanded */
     }
 
-    @keyframes gradient-animation {
-        0% {
-            background-position: 0% 50%;
-        }
-
-        50% {
-            background-position: 100% 50%;
-        }
-
-        100% {
-            background-position: 0% 50%;
-        }
-    }
-
     .sidebar-title {
         margin: 0;
         padding: 1rem 0;
@@ -345,20 +331,6 @@
     .podium .athlete-name {
         font-size: 1.1rem;
         padding-bottom: 0.2rem; /* Looks better with decreased padding here. */
-    }
-
-    @keyframes fadeInOut {
-        0%, 100% {
-            opacity: 0;
-        }
-
-        10%, 90% {
-            opacity: 1;
-        }
-    }
-
-    .fade-in-out {
-        animation: fadeInOut 2s ease-in-out forwards;
     }
 
     .modal {
@@ -746,18 +718,6 @@
     .leaderboard table tbody tr,
     .podium-item {
         transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .hidden {
-        opacity: 0;
-        transform: scale(0.95);
-        height: 0;
-        padding: 0;
-        margin: 0;
-        border: none;
-        transition: opacity 0.3s ease, transform 0.3s ease, height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
-        pointer-events: none;
-        overflow: hidden;
     }
 
     .fade-out {
@@ -1591,14 +1551,6 @@
                 console.error('Error fetching athletes:', error);
             });
     };
-    function addClickListenerToImages(selector, callback) {
-        document.querySelectorAll(selector).forEach(img => {
-            if (!img.dataset.listenerAdded) {
-                img.addEventListener('click', callback);
-                img.dataset.listenerAdded = true; // Mark this element as having a listener added
-            }
-        });
-    }
 
     function subscribeLowerPodiumClick() {
         const targetElement = document.querySelector("#donation-section");
@@ -1719,21 +1671,6 @@
 
             resetPageTitle();
         }, 400);
-    }
-
-    function getAchievement(name) {
-        const achievements = {
-            'Amelia Zhao': 'First to achieve 50% reduction in epigenetic age markers',
-            'Nikolai Volkov': 'Pioneered the "Chronos Protocol" for time dilation',
-            'Isabella Rodriguez': 'Broke the record for telomere length restoration',
-            'Jamal Okonkwo': 'Developed the "Epigenetic Reset" meditation technique',
-            'Sophia Nakamura': 'Created the most effective senolytic compound to date'
-        };
-        return achievements[name] || 'Significant advancements in longevity science';
-    }
-
-    function getRandomAge() {
-        return Math.floor(Math.random() * (80 - 40 + 1)) + 40;
     }
 
     function debounceFilterAthletes() {
@@ -2093,10 +2030,6 @@
         });
     }
 
-    function removeHighlight(element) {
-        element.innerHTML = element.textContent;
-    }
-
     function displayNoResults(tableRows, podiumItems, query) {
         // Remove existing no-results message if any
         const existingMessage = document.querySelector('.no-results');
@@ -2322,13 +2255,6 @@
         });
     }
 
-    function applyVisualizationAnimation() {
-        const visualizationContainer = document.getElementById('targetShootingVisualization');
-        visualizationContainer.classList.remove('expandCircle'); // Reset animation
-        void visualizationContainer.offsetWidth; // Trigger reflow
-        visualizationContainer.classList.add('expandCircle');
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
         addFadeInEffectToElements();
     });
@@ -2342,12 +2268,6 @@
                 el.innerHTML = formattedText;
             });
         }
-    }
-
-    // Apply animations on data reload or updates
-    function refreshVisualizations() {
-        applyVisualizationAnimation();
-        addFadeInEffectToElements();
     }
 
     document.addEventListener('keydown', function (event) {

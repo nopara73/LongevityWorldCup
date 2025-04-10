@@ -643,9 +643,6 @@
                 const copiedTextElement = document.getElementById('copiedText');
                 copiedTextElement.style.display = 'inline';
 
-                // Optional: Add fade animation to the 'Copied' text
-                // copiedTextElement.classList.add('fade-in-out');
-
                 // Get the copy icon element
                 const copyIcon = document.querySelector('.copy-btn i');
                 // Add the flash animation class
@@ -658,8 +655,6 @@
                     copiedTextElement.style.display = 'none';
                     // Show BTC address
                     document.getElementById('btcAddressLink').style.display = 'inline';
-                    // Optional: Remove fade animation class
-                    // copiedTextElement.classList.remove('fade-in-out');
                 }, 2000); // Duration is 0.5s * 4 flashes = 2s
             }, function (err) {
                 customAlert('Failed to copy the address');

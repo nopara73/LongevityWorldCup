@@ -289,3 +289,11 @@ function highlightText(element, searchTerms) {
 
     element.innerHTML = highlightedHTML;
 }
+function addClickListenerToImages(selector, callback) {
+    document.querySelectorAll(selector).forEach(img => {
+        if (!img.dataset.listenerAdded) {
+            img.addEventListener('click', callback);
+            img.dataset.listenerAdded = true; // Mark this element as having a listener added
+        }
+    });
+}
