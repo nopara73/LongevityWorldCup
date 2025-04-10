@@ -1,5 +1,5 @@
 ﻿<style>
-    .badge-oldest {
+    .badge-class {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -16,7 +16,7 @@
         transition: transform 0.2s ease;
     }
 
-        .badge-oldest:hover {
+        .badge-class:hover {
             transform: scale(1.1);
         }
 
@@ -1445,24 +1445,20 @@
 
                         let tooltipText = "";
                         let iconClass = "";
-                        let colorClass = "";
 
                         if (order === 1) {
                             tooltipText = "Chronologically Oldest";
                             iconClass = "fa-infinity";
-                            colorClass = "badge-oldest-first";
                         } else if (order === 2) {
                             tooltipText = "Chronologically 2nd Oldest";
                             iconClass = "fa-scroll";
-                            colorClass = "badge-oldest-second";
                         } else if (order === 3) {
                             tooltipText = "Chronologically 3rd Oldest";
                             iconClass = "fa-leaf";
-                            colorClass = "badge-oldest-third";
                         }
 
                         badgeSection.innerHTML += `
-                        <span class="badge-oldest ${colorClass}" title="${tooltipText}">
+                        <span class="badge-class" title="${tooltipText}">
                             <i class="fa ${iconClass}"></i>
                         </span>`;
                     }
