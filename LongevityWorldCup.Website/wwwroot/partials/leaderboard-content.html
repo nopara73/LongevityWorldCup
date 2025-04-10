@@ -1104,6 +1104,13 @@
     </div>
 </div>
 
+<template id="enlargedPortraitTemplate">
+    <div class="enlarged-portrait">
+        <img src="" alt="" loading="lazy">
+        <span class="close-btn">&times;</span>
+    </div>
+</template>
+
 <script src="/js/divisionIcons.js?v=1.0"></script>
 <script src="/js/pheno-age.js?v=1.5"></script>
 <script>
@@ -1540,34 +1547,42 @@
     }
 
     function openEnlargedView(imgElement) {
-        const enlargedImg = document.createElement('div');
-        enlargedImg.classList.add('enlarged-portrait');
-        enlargedImg.innerHTML = `
-        <img src="${imgElement.src}" alt="${imgElement.alt}" loading="lazy">
-        <span class="close-btn">&times;</span>
-    `;
-        document.body.appendChild(enlargedImg);
+        // Retrieve and clone the template content
+        const template = document.getElementById("enlargedPortraitTemplate");
+        const clone = template.content.firstElementChild.cloneNode(true);
+
+        // Set the image source and alt attributes based on the clicked image
+        const img = clone.querySelector("img");
+        img.src = imgElement.src;
+        img.alt = imgElement.alt;
+
+        // Append the cloned element to the document (it will be added where it fits in your DOM structure)
+        document.body.appendChild(clone);
         document.body.classList.add('no-scroll');
         history.pushState({ modal: 'enlarged' }, "");
 
-        setTimeout(() => enlargedImg.classList.add('show'), 10);
+        // Trigger a transition to show the element
+        setTimeout(() => clone.classList.add('show'), 10);
 
-        enlargedImg.querySelector('.close-btn').addEventListener('click', () => {
-            closeEnlargedView(enlargedImg);
+        // Add event listener for the close button
+        clone.querySelector('.close-btn').addEventListener('click', () => {
+            closeEnlargedView(clone);
         });
 
-        enlargedImg.addEventListener('click', (e) => {
-            if (e.target === enlargedImg) {
-                closeEnlargedView(enlargedImg);
+        // Add event listener to close the view when clicking outside the image
+        clone.addEventListener('click', (e) => {
+            if (e.target === clone) {
+                closeEnlargedView(clone);
             }
         });
     }
 
-    function closeEnlargedView(enlargedImg) {
-        enlargedImg.classList.remove('show');
+    function closeEnlargedView(enlargedElem) {
+        enlargedElem.classList.remove('show');
         setTimeout(() => {
-            document.body.removeChild(enlargedImg);
-            if (modal.style.display != "block") {
+            document.body.removeChild(enlargedElem);
+            // If no modal is open, remove the no-scroll class
+            if (modal.style.display !== "block") {
                 document.body.classList.remove('no-scroll');
             }
         }, 300);
