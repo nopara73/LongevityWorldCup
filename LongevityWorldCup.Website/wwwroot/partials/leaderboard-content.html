@@ -1,4 +1,25 @@
 ﻿<style>
+    .badge-oldest {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: bold;
+        color: #fff;
+        margin-left: 0.3rem;
+        background: radial-gradient(circle at 30% 30%, #b0b0b0, #666); /* Smooth silver */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Clean drop shadow only */
+        border: 1px solid rgba(255, 255, 255, 0.15); /* Subtle border */
+        transition: transform 0.2s ease;
+    }
+
+        .badge-oldest:hover {
+            transform: scale(1.1);
+        }
+
     .portrait,
     .podium-portrait {
         width: 60px;
@@ -1421,6 +1442,13 @@
                     }
                 }
 
+                // Compute the three chronologically oldest athletes
+                const oldestAthletes = athleteResults.slice().sort((a, b) => b.chronologicalAge - a.chronologicalAge);
+                const oldestMapping = {};
+                oldestAthletes.slice(0, 3).forEach((athlete, index) => {
+                    oldestMapping[athlete.name] = index + 1; // 1 for oldest, 2 for second, 3 for third
+                });
+
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
                 const remainingAthletes = athleteResults;
@@ -1449,8 +1477,34 @@
                                 <i class="fa fa-link"></i>
                             </a>
                         `;
-                    } else {
-                        badgeSection.style.display = 'none';
+                    }
+
+                    // Append badge if the athlete is among the three chronologically oldest
+                    if (oldestMapping[athlete.name]) {
+                        const order = oldestMapping[athlete.name];
+
+                        let tooltipText = "";
+                        let iconClass = "";
+                        let colorClass = "";
+
+                        if (order === 1) {
+                            tooltipText = "Chronologically Oldest";
+                            iconClass = "fa-infinity";
+                            colorClass = "badge-oldest-first";
+                        } else if (order === 2) {
+                            tooltipText = "Chronologically 2nd Oldest";
+                            iconClass = "fa-scroll";
+                            colorClass = "badge-oldest-second";
+                        } else if (order === 3) {
+                            tooltipText = "Chronologically 3rd Oldest";
+                            iconClass = "fa-leaf";
+                            colorClass = "badge-oldest-third";
+                        }
+
+                        badgeSection.innerHTML += `
+                        <span class="badge-oldest ${colorClass}" title="${tooltipText}">
+                            <i class="fa ${iconClass}"></i>
+                        </span>`;
                     }
 
                     const ageReductionSpan = row.querySelector('.age-reduction');
