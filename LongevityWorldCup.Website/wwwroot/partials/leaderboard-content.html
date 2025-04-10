@@ -1111,6 +1111,24 @@
     </div>
 </template>
 
+<template id="leaderboardRowTemplate">
+    <tr>
+        <td data-label="Rank" class="rank-td">
+            <span class="rank"></span>
+        </td>
+        <td data-label="Athlete" class="athlete-td">
+            <img src="" alt="" class="portrait" loading="lazy">
+            <span class="athlete-name" title="View stats"></span>
+            <div class="badge-section"></div>
+        </td>
+        <td data-label="Sponsor" class="sponsor-td"></td>
+        <td data-label="Age Reduction" class="age-reduction-td">
+            <span class="age-reduction"></span>
+        </td>
+        <td data-label="Media Contact" class="media-contact-td"></td>
+    </tr>
+</template>
+
 <script src="/js/divisionIcons.js?v=1.0"></script>
 <script src="/js/pheno-age.js?v=1.5"></script>
 <script>
@@ -1409,27 +1427,38 @@
 
                 tableBody.innerHTML = ''; // Clear existing table rows
                 remainingAthletes.forEach((athlete, index) => {
-                    const row = document.createElement('tr');
+                    const template = document.getElementById('leaderboardRowTemplate');
+                    const row = template.content.firstElementChild.cloneNode(true);
 
-                    row.innerHTML = `
-                        <td data-label="Rank" class="rank-td"><span class="rank">${athlete.rank}</span></td>
-                        <td data-label="Athlete" class="athlete-td">
-                            <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy">
-                            <span class="athlete-name" title="View stats of ${athlete.name}">${athlete.name}</span>
-                            ${athlete.personalLink ? `
-                            <div class="badge-section">
-                                <a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
-                                    <i class="fa fa-link"></i>
-                                </a>
-                            </div>` : ''}
-                        </td>
-                        <td data-label="Sponsor" class="sponsor-td"></td>
-                        <td data-label="Age Reduction" class="age-reduction-td"><span class="age-reduction">${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</span></td>
-                        <td data-label="Media Contact" class="media-contact-td">${renderMediaContact(athlete.mediaContact, false, athlete.name)}</td>`;
+                    row.querySelector('.rank').textContent = athlete.rank;
+                    const athleteCell = row.querySelector('.athlete-td');
+                    const portraitImg = athleteCell.querySelector('img.portrait');
+                    portraitImg.src = athlete.profilePic;
+                    portraitImg.alt = `${athlete.name} portrait`;
+                    const athleteNameSpan = athleteCell.querySelector('.athlete-name');
+                    athleteNameSpan.textContent = athlete.name;
+                    athleteNameSpan.title = `View stats of ${athlete.name}`;
 
-                    tableBody.appendChild(row);
+                    const badgeSection = athleteCell.querySelector('.badge-section');
+                    if (athlete.personalLink) {
+                        const linkHref = athlete.personalLink.startsWith('http')
+                            ? athlete.personalLink
+                            : 'https://' + athlete.personalLink;
+                        badgeSection.innerHTML = `
+                            <a href="${linkHref}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
+                                <i class="fa fa-link"></i>
+                            </a>
+                        `;
+                    } else {
+                        badgeSection.style.display = 'none';
+                    }
 
-                    // After appending the row
+                    const ageReductionSpan = row.querySelector('.age-reduction');
+                    ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years';
+
+                    const mediaContactCell = row.querySelector('.media-contact-td');
+                    mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.name);
+
                     row.setAttribute('data-division', athlete.division.toLowerCase().trim());
                     row.setAttribute('data-generation', athlete.generation.trim());
                     row.setAttribute('data-athlete-name', athlete.name);
@@ -1437,25 +1466,23 @@
                     row.setAttribute('data-aos-duration', '700');
                     row.setAttribute('data-aos-delay', '50');
 
-                    // Hide the row if includePodium is true and athlete.rank <= podiumCount
                     if (includePodium && athlete.rank <= podiumCount) {
                         row.style.display = 'none';
-                        row.classList.add('podium-athlete'); // Optional: add a class for future reference
+                        row.classList.add('podium-athlete');
                     }
 
-                    // Hide athletes beyond the maxAthletes limit
                     if (index >= maxAthletes) {
                         row.style.display = 'none';
-                        row.classList.add('extra-athlete'); // Optional: add a class for future reference
+                        row.classList.add('extra-athlete');
                     }
 
-                    // Attach click event listeners to athlete names
                     attachAthleteNameClickListeners();
                     applyCamelCaseNewlines();
-
                     addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
                         openEnlargedView(this);
                     });
+
+                    tableBody.appendChild(row);
                 });
 
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
