@@ -898,7 +898,7 @@
             table-layout: fixed;
         }
 
-            .leaderboard table td .personal-link-icon {
+            .leaderboard table td .badge-section {
                 display: none;
             }
 
@@ -1409,9 +1409,12 @@
                         <td data-label="Athlete" class="athlete-td">
                             <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="portrait" loading="lazy">
                             <span class="athlete-name" title="View stats of ${athlete.name}">${athlete.name}</span>
-                            ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
-                            <i class="fa fa-link"></i>
-                            </a>` : ''}
+                            ${athlete.personalLink ? `
+                            <div class="badge-section">
+                                <a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
+                                    <i class="fa fa-link"></i>
+                                </a>
+                            </div>` : ''}
                         </td>
                         <td data-label="Sponsor" class="sponsor-td"></td>
                         <td data-label="Age Reduction" class="age-reduction-td"><span class="age-reduction">${(athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1)} years</span></td>
