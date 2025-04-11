@@ -302,7 +302,7 @@
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
-    <script src="/js/divisionIcons.js"></script>
+    <script src="/js/leagueIcons.js?v=1.2"></script>
     <script>
         var currentStage = 1;
         let profilePic = null;
@@ -824,7 +824,7 @@
                     divisions.forEach(function (division) {
                         const option = document.createElement('option');
                         option.value = division; // Use lowercase or any appropriate value
-                        option.textContent = `${window.GetDivisionIcon(division)} ${division}`;
+                        option.textContent = `${window.TryGetDivisionIcon(division)} ${division}`;
                         divisionSelect.appendChild(option);
                     });
 

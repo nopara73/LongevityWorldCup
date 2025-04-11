@@ -1110,7 +1110,7 @@
     </tr>
 </template>
 
-<script src="/js/divisionIcons.js?v=1.0"></script>
+<script src="/js/leagueIcons.js?v=1.2"></script>
 <script src="/js/pheno-age.js?v=1.5"></script>
 <script>
     let athleteResults = [];
@@ -2184,7 +2184,7 @@
         // Generate the filter items with icons and counts
         Object.keys(divisionCounts).forEach(division => {
             const count = divisionCounts[division];
-            const icon = window.GetDivisionIcon(division); // Default to no icon if not found
+            const icon = window.TryGetDivisionIcon(division);
 
             const li = document.createElement('li');
             li.innerHTML = `
@@ -2212,23 +2212,13 @@
             return acc;
         }, {});
 
-        // Define icons for each generation
-        const generationIcons = {
-            "Silent Generation": "📻",
-            "Baby Boomers": "📺",
-            "Gen X": "🖥️",
-            "Millennials": "💻",
-            "Gen Z": "📱",
-            "Gen Alpha": "🚀"
-        };
-
         // Order generations from oldest to youngest
         const orderedGenerations = ["Silent Generation", "Baby Boomers", "Gen X", "Millennials", "Gen Z", "Gen Alpha"];
 
         orderedGenerations.forEach(generation => {
             const count = generationCounts[generation] || 0;
             if (count > 0) { // Only show generations with at least one athlete
-                const icon = generationIcons[generation] || ""; // Default to no icon if not found
+                const icon = window.TryGetGenerationIcon(generation);
 
                 const li = document.createElement('li');
                 li.innerHTML = `
