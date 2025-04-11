@@ -1493,6 +1493,42 @@
                         </span>`;
                     }
 
+                    // Append badge if the athlete is one of the first three ever applicants
+                    const firstApplicantsMapping = {
+                        "Alan V": 1,
+                        "Cody Hergenroeder": 2,
+                        "Spiderius": 3
+                    };
+                    if (firstApplicantsMapping[athlete.name]) {
+                        const order = firstApplicantsMapping[athlete.name];
+                        let tooltipText = "";
+                        let iconClass = "";
+                        if (order === 1) {
+                            tooltipText = "Athlete Zero: 1st Athlete to Ever to Participate in the Longevity World Cup";
+                            iconClass = "fa-dove";
+                        } else if (order === 2) {
+                            tooltipText = "2nd Athlete to Ever Participate in the Longevity World Cup";
+                            iconClass = "fa-dove";
+                        } else if (order === 3) {
+                            tooltipText = "3rd Athlete to Ever Participate in the Longevity World Cup";
+                            iconClass = "fa-dove";
+                        }
+                        badgeSection.innerHTML += `
+                        <span class="badge-class" title="${tooltipText}">
+                            <i class="fa ${iconClass}"></i>
+                        </span>`;
+                    }
+
+                    if (athlete.name === "nopara73") {
+                        const tooltipText = "Organizer of the Longevity World Cup";
+                        const iconClass = "fa-house";
+
+                        badgeSection.innerHTML += `
+                        <span class="badge-class" title="${tooltipText}">
+                            <i class="fa ${iconClass}"></i>
+                        </span>`;
+                    }
+
                     const ageReductionSpan = row.querySelector('.age-reduction');
                     ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years';
 
