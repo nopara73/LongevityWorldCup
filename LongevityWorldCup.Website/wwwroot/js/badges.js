@@ -2,6 +2,9 @@
 let youngestMapping = {};
 let biologicallyYoungestMapping = {};
 let ultimateLeagueMapping = {};
+let generationMapping = {};
+let divisionMapping = {};
+let exclusiveLeagueMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -26,6 +29,53 @@ window.computeBadges = function (athleteResults) {
     const ultimateLeagueAthletes = athleteResults.slice().sort((a, b) => a.ageReduction - b.ageReduction);
     ultimateLeagueAthletes.slice(0, 3).forEach((athlete, index) => {
         ultimateLeagueMapping[athlete.name] = index + 1; // 1 for 1st, 2 for 2nd, 3 for 3rd
+    });
+
+    // Compute generation badges: top 3 athletes per generation
+    const generationGroups = {};
+    athleteResults.forEach(athlete => {
+        const gen = athlete.generation;
+        if (!generationGroups[gen]) {
+            generationGroups[gen] = [];
+        }
+        generationGroups[gen].push(athlete);
+    });
+    Object.keys(generationGroups).forEach(gen => {
+        generationGroups[gen].slice(0, 3).forEach((athlete, index) => {
+            generationMapping[athlete.name] = { rank: index + 1, generation: gen };
+        });
+    });
+
+    // Compute division badges: top 3 athletes per division
+    const divisionGroups = {};
+    athleteResults.forEach(athlete => {
+        const div = athlete.division;
+        if (!divisionGroups[div]) {
+            divisionGroups[div] = [];
+        }
+        divisionGroups[div].push(athlete);
+    });
+    Object.keys(divisionGroups).forEach(div => {
+        divisionGroups[div].slice(0, 3).forEach((athlete, index) => {
+            divisionMapping[athlete.name] = { rank: index + 1, division: div };
+        });
+    });
+
+    // Compute exclusive league badges: top 3 athletes per exclusive league
+    const exclusiveLeagueGroups = {};
+    athleteResults.forEach(athlete => {
+        const league = athlete.exclusiveLeague;
+        if (!league) return;
+
+        if (!exclusiveLeagueGroups[league]) {
+            exclusiveLeagueGroups[league] = [];
+        }
+        exclusiveLeagueGroups[league].push(athlete);
+    });
+    Object.keys(exclusiveLeagueGroups).forEach(league => {
+        exclusiveLeagueGroups[league].slice(0, 3).forEach((athlete, index) => {
+            exclusiveLeagueMapping[athlete.name] = { rank: index + 1, exclusiveLeague: league };
+        });
     });
 }
 
@@ -179,5 +229,62 @@ window.setBadges = function (athlete, athleteCell) {
         <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/leaderboard/leaderboard.html';">
             <i class="fa ${iconClass}"></i>
         </span>`;
+    }
+
+    // Append badge for generation ranking if available
+    if (generationMapping[athlete.name]) {
+        const { rank, generation } = generationMapping[athlete.name];
+        let tooltipText = `#${rank} in ${generation} League`;
+        let iconClass = "";
+        if (rank === 1) {
+            iconClass = "fa-trophy";
+        } else if (rank === 2) {
+            iconClass = "fa-medal";
+        } else if (rank === 3) {
+            iconClass = "fa-award";
+        }
+        const leagueSlug = slugifyName(generation, true); // new line
+        badgeSection.innerHTML += `
+                    <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/league/${leagueSlug}';">
+                        <i class="fa ${iconClass}"></i>
+                    </span>`;
+    }
+
+    // Append badge for division ranking if available
+    if (divisionMapping[athlete.name]) {
+        const { rank, division } = divisionMapping[athlete.name];
+        let tooltipText = `#${rank} in ${division} League`;
+        let iconClass = "";
+        if (rank === 1) {
+            iconClass = "fa-trophy";
+        } else if (rank === 2) {
+            iconClass = "fa-medal";
+        } else if (rank === 3) {
+            iconClass = "fa-award";
+        }
+        const leagueSlug = slugifyName(division, true); // new line
+        badgeSection.innerHTML += `
+                    <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/league/${leagueSlug}';">
+                        <i class="fa ${iconClass}"></i>
+                    </span>`;
+    }
+
+    // Append badge for exclusive league ranking if available
+    if (exclusiveLeagueMapping[athlete.name]) {
+        const { rank, exclusiveLeague } = exclusiveLeagueMapping[athlete.name];
+        let tooltipText = `#${rank} in ${exclusiveLeague} League`;
+        let iconClass = "";
+        if (rank === 1) {
+            iconClass = "fa-trophy";
+        } else if (rank === 2) {
+            iconClass = "fa-medal";
+        } else if (rank === 3) {
+            iconClass = "fa-award";
+        }
+        const leagueSlug = slugifyName(exclusiveLeague, true); // new line
+        badgeSection.innerHTML += `
+                    <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/league/${leagueSlug}';">
+                        <i class="fa ${iconClass}"></i>
+                    </span>`;
     }
 }
