@@ -1,6 +1,7 @@
 ﻿let oldestMapping = {};
 let youngestMapping = {};
 let biologicallyYoungestMapping = {};
+let ultimateLeagueMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -19,6 +20,12 @@ window.computeBadges = function (athleteResults) {
     const biologicallyYoungestAthletes = athleteResults.slice().sort((a, b) => a.lowestPhenoAge - b.lowestPhenoAge);
     biologicallyYoungestAthletes.slice(0, 3).forEach((athlete, index) => {
         biologicallyYoungestMapping[athlete.name] = index + 1; // 1 for youngest, 2 for 2nd youngest, 3 for 3rd youngest
+    });
+
+    // Compute the three athletes with the smallest age reduction (Ultimate League)
+    const ultimateLeagueAthletes = athleteResults.slice().sort((a, b) => a.ageReduction - b.ageReduction);
+    ultimateLeagueAthletes.slice(0, 3).forEach((athlete, index) => {
+        ultimateLeagueMapping[athlete.name] = index + 1; // 1 for 1st, 2 for 2nd, 3 for 3rd
     });
 }
 
@@ -150,5 +157,27 @@ window.setBadges = function (athlete, athleteCell) {
                         <span class="badge-class" title="${tooltipText}">
                             <i class="fa ${iconClass}"></i>
                         </span>`;
+    }
+
+    // Append badge if the athlete is among the three with the largest age reduction (Ultimate League)
+    if (ultimateLeagueMapping[athlete.name]) {
+        const order = ultimateLeagueMapping[athlete.name];
+        let tooltipText = "";
+        let iconClass = "";
+
+        if (order === 1) {
+            tooltipText = `#1 in the Ultimate League`;
+            iconClass = "fa-crown";
+        } else if (order === 2) {
+            tooltipText = `#2 in the Ultimate League`;
+            iconClass = "fa-medal";
+        } else if (order === 3) {
+            tooltipText = `#3 in the Ultimate League`;
+            iconClass = "fa-award";
+        }
+        badgeSection.innerHTML += `
+        <span class="badge-class" title="${tooltipText}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
     }
 }
