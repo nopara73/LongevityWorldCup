@@ -176,7 +176,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-award";
         }
         badgeSection.innerHTML += `
-        <span class="badge-class" title="${tooltipText}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/leaderboard/leaderboard.html';">
             <i class="fa ${iconClass}"></i>
         </span>`;
     }
