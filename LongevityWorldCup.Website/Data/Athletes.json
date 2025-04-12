@@ -1,5 +1,37 @@
 [
   {
+    "Name": "Vishal Rao",
+    "MediaContact": "https://x.com/VishalRaoOnX",
+    "DateOfBirth": {
+      "Year": 1979,
+      "Month": 10,
+      "Day": 31
+    },
+    "Biomarkers": [
+      {
+        "Date": "2025-04-11",
+        "AlbGL": 47,
+        "CreatUmolL": 106.19469026548673,
+        "GluMmolL": 4.662522202486679,
+        "CrpMgL": 0.33,
+        "LymPc": 28,
+        "McvFL": 89,
+        "RdwPc": 12.9,
+        "AlpUL": 95,
+        "Wbc1000cellsuL": 7.5
+      }
+    ],
+    "Division": "Open",
+    "Flag": "Team Chiranjeevi",
+    "Why": "I need time to do all the things I need to do.  Plus, I love the challenge of solving \"impossible\" problems.",
+    "ProfilePic": "/assets/profile-pics/vishal_rao_profile.webp",
+    "Proofs": [
+      "/assets/proofs/vishal_rao_proof_1.webp",
+      "/assets/proofs/vishal_rao_proof_2.webp"
+    ],
+    "PersonalLink": "http://vishal.in"
+  },
+  {
     "Name": "Maria Olenina",
     "MediaContact": "mmolenina@gmail.com",
     "DateOfBirth": {
