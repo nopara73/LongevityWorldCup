@@ -472,7 +472,6 @@
         let isFirstTimeAnimation = true; // Flag to control the first-time animation
 
         function calculateResult() {
-            const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
             const markerValues = [];
 
             // Get age from separate Date of Birth inputs
@@ -555,7 +554,7 @@
             }
 
             // Calculate PhenoAge using the helper function
-            const phenoAge = window.PhenoAge.calculatePhenoAge(markerValues, coefficients);
+            const phenoAge = window.PhenoAge.calculatePhenoAge(markerValues);
 
             // Display the result
             const resultElement = document.getElementById('phenoAgeResult');

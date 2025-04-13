@@ -19,17 +19,16 @@ window.PhenoAge.biomarkers = [
 // Helper function to parse input values
 window.PhenoAge.parseInput = function (value) {
     return value === '' ? NaN : Number(value);
-}
+};
 
+// Helper function to calculate age from date of birth remains unchanged
 window.PhenoAge.calculateAgeFromDOB = function (birthDate) {
     if (!(birthDate instanceof Date)) {
         throw new Error("Invalid input: dob must be a Date object");
     }
-
     if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
 
     const today = new Date();
-
     if (birthDate > today) throw new Error("Date of birth cannot be in the future.");
 
     // Calculate total days lived
@@ -40,44 +39,97 @@ window.PhenoAge.calculateAgeFromDOB = function (birthDate) {
 
     // Convert days to years with improved precision
     return Math.round((totalDays / 365.2425) * 100) / 100;
-}
+};
 
-// Helper function to calculate PhenoAge based on biomarkers
-window.PhenoAge.calculatePhenoAge = function (markerValues, coefficients) {
-    // Cap marker values to reference ranges
-    let cappedMarkerValues = [];
-    for (let i = 0; i < markerValues.length; i++) {
-        if (i == 0 || i == 1 || i == 4 || i == 7 || i == 9) {
-            // Age marker is not capped
-            // CRP is not capped
-            cappedMarkerValues.push(markerValues[i]);
-        }
-        else {
-            if (window.PhenoAge.biomarkers[i].coeff < 0) {
-                var cappedValue = Math.min(markerValues[i], window.PhenoAge.biomarkers[i].cap);
-                cappedMarkerValues.push(cappedValue);
-            }
-            else {
-                var cappedValue = Math.max(markerValues[i], window.PhenoAge.biomarkers[i].cap);
-                cappedMarkerValues.push(cappedValue);
-            }
-        }
-    }
+// Liver: Albumin (index 1) and Alkaline phosphatase (index 9)
+window.PhenoAge.calculateLiverScore = function (markerValues) {
+    const albumin = markerValues[1];
+    const ap = markerValues[9];
+    const coeffAlbumin = window.PhenoAge.biomarkers[1].coeff;
+    const coeffAP = window.PhenoAge.biomarkers[9].coeff;
+    return albumin * coeffAlbumin + ap * coeffAP;
+};
 
-    // Sum all coefficients multiplied by the respective marker values
-    let rollingTotal = 0;
-    for (let i = 0; i < cappedMarkerValues.length; i++) {
-        rollingTotal += cappedMarkerValues[i] * coefficients[i];
-    }
+// Kidney: Creatinine (index 2) with a positive coefficient so use Math.max to ensure at least the cap value.
+window.PhenoAge.calculateKidneyScore = function (markerValues) {
+    const creatinine = markerValues[2];
+    const cap = window.PhenoAge.biomarkers[2].cap;
+    const coeff = window.PhenoAge.biomarkers[2].coeff;
+    const cappedCreatinine = Math.max(creatinine, cap);
+    return cappedCreatinine * coeff;
+};
 
+// Metabolic: Glucose (index 3) with a positive coefficient so use Math.max for capping.
+window.PhenoAge.calculateMetabolicScore = function (markerValues) {
+    const glucose = markerValues[3];
+    const cap = window.PhenoAge.biomarkers[3].cap;
+    const coeff = window.PhenoAge.biomarkers[3].coeff;
+    const cappedGlucose = Math.max(glucose, cap);
+    return cappedGlucose * coeff;
+};
+
+// Inflammation: C-reactive protein (index 4) has no capping.
+window.PhenoAge.calculateInflammationScore = function (markerValues) {
+    const crp = markerValues[4];
+    const coeff = window.PhenoAge.biomarkers[4].coeff;
+    return crp * coeff;
+};
+
+// Immune: includes White blood cell count (index 5), Lymphocyte percent (index 6),
+// Mean corpuscular volume (index 7) and Red cell distribution width (index 8)
+// Note: For WBC and RCDW (positive coefficients) we use Math.max; for lymphocytes (negative coefficient) we use Math.min;
+// MCV is used directly.
+window.PhenoAge.calculateImmuneScore = function (markerValues) {
+    // White blood cell count (index 5)
+    const wbc = markerValues[5];
+    const wbcCap = window.PhenoAge.biomarkers[5].cap;
+    const wbcCoeff = window.PhenoAge.biomarkers[5].coeff;
+    const immuneWBC = Math.max(wbc, wbcCap) * wbcCoeff;
+
+    // Lymphocyte percent (index 6)
+    const lymphocyte = markerValues[6];
+    const lymphCap = window.PhenoAge.biomarkers[6].cap;
+    const lymphCoeff = window.PhenoAge.biomarkers[6].coeff;
+    const immuneLymphocyte = Math.min(lymphocyte, lymphCap) * lymphCoeff;
+
+    // Mean corpuscular volume (index 7) – no capping
+    const mcv = markerValues[7];
+    const mcvCoeff = window.PhenoAge.biomarkers[7].coeff;
+    const immuneMCV = mcv * mcvCoeff;
+
+    // Red cell distribution width (index 8)
+    const rcdw = markerValues[8];
+    const rcdwCap = window.PhenoAge.biomarkers[8].cap;
+    const rcdwCoeff = window.PhenoAge.biomarkers[8].coeff;
+    const immuneRCDW = Math.max(rcdw, rcdwCap) * rcdwCoeff;
+
+    return immuneWBC + immuneLymphocyte + immuneMCV + immuneRCDW;
+};
+
+// ----- Main PhenoAge Calculation ----- //
+
+// Note: The 'coefficients' parameter has been removed because each biomarker now
+// uses its coefficient directly from the window.PhenoAge.biomarkers array.
+window.PhenoAge.calculatePhenoAge = function (markerValues) {
+    // The first element is Age (index 0)
+    const ageScore = markerValues[0] * window.PhenoAge.biomarkers[0].coeff;
+
+    // Combine contributions from the five parts
+    const totalScore = ageScore +
+        window.PhenoAge.calculateLiverScore(markerValues) +
+        window.PhenoAge.calculateKidneyScore(markerValues) +
+        window.PhenoAge.calculateMetabolicScore(markerValues) +
+        window.PhenoAge.calculateInflammationScore(markerValues) +
+        window.PhenoAge.calculateImmuneScore(markerValues);
+
+    // Include the constant term
     const b0 = -19.9067;
     const gamma = 0.0076927;
-    rollingTotal += b0;
+    const rollingTotal = totalScore + b0;
 
-    // Ten years is long enough to capture significant biological changes and mortality risk shifts while being manageable for statistical models and meaningful for human lifespan considerations.
-    let tmonths = 120;
-
-    // Calculate mortality score and risk of death
+    // Use 120 months (10 years) as defined originally
+    const tmonths = 120;
     const mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
+
     return 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
-}
+};

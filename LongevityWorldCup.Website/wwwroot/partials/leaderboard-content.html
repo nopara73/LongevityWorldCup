@@ -1217,12 +1217,9 @@
                         bestBiomarkers.AlpUL
                     ];
 
-                    // Calculate the PhenoAge using the best biomarker values and their coefficients
-                    const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
-
                     // Initialize a variable to keep track of the lowest PhenoAge for this athlete
                     let lowestPhenoAge = Infinity;
-                    lowestPhenoAge = window.PhenoAge.calculatePhenoAge(bestBiomarkerValues, coefficients);
+                    lowestPhenoAge = window.PhenoAge.calculatePhenoAge(bestBiomarkerValues);
 
                     // Calculate the age reduction
                     const ageReduction = lowestPhenoAge - chronologicalAge;
@@ -2433,9 +2430,8 @@
 
             collectBiomarkerValues(entry, biomarkersRaw);
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
-            const coefficients = window.PhenoAge.biomarkers.map(marker => marker.coeff);
 
-            const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues, coefficients);
+            const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
             phenoAges.push(phenoAge.toFixed(1));
         });
 
