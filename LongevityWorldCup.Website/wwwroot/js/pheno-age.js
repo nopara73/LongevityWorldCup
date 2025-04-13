@@ -133,3 +133,34 @@ window.PhenoAge.calculatePhenoAge = function (markerValues) {
 
     return 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
 };
+
+// ----- Domain Contribution Functions ----- //
+
+// Since the final transformation is linear in the rolling total,
+// the multiplier (scaling factor) is 1/0.090165 (approximately 11.088).
+const scalingFactor = 1 / 0.090165;
+
+// Contribution from Liver biomarkers to PhenoAge (in years)
+window.PhenoAge.calculateLiverPhenoAgeContributor = function (markerValues) {
+    return window.PhenoAge.calculateLiverScore(markerValues) * scalingFactor;
+};
+
+// Contribution from Kidney biomarkers to PhenoAge (in years)
+window.PhenoAge.calculateKidneyPhenoAgeContributor = function (markerValues) {
+    return window.PhenoAge.calculateKidneyScore(markerValues) * scalingFactor;
+};
+
+// Contribution from Metabolic biomarkers to PhenoAge (in years)
+window.PhenoAge.calculateMetabolicPhenoAgeContributor = function (markerValues) {
+    return window.PhenoAge.calculateMetabolicScore(markerValues) * scalingFactor;
+};
+
+// Contribution from Inflammation biomarkers to PhenoAge (in years)
+window.PhenoAge.calculateInflammationPhenoAgeContributor = function (markerValues) {
+    return window.PhenoAge.calculateInflammationScore(markerValues) * scalingFactor;
+};
+
+// Contribution from Immune biomarkers to PhenoAge (in years)
+window.PhenoAge.calculateImmunePhenoAgeContributor = function (markerValues) {
+    return window.PhenoAge.calculateImmuneScore(markerValues) * scalingFactor;
+};
