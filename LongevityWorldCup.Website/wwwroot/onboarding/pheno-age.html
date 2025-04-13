@@ -397,7 +397,14 @@
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
-    <script src="/js/pheno-age.js?v=1.5"></script> <!-- Link to your external script -->
+    <script type="module">
+        ['pheno-age'].forEach(file => {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = `/js/${file}.js?v=${Date.now()}`;
+            document.head.appendChild(script);
+        });
+    </script>
     <script>
         updateMainProgress(2);
 
