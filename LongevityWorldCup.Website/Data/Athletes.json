@@ -1107,7 +1107,7 @@
     },
     "Biomarkers": [
       {
-        "Date": "2025-03-09",
+        "Date": "2025-02-04",
         "AlbGL": 49,
         "CreatUmolL": 63.716814159292035,
         "GluMmolL": 4.662522202486679,
@@ -1117,6 +1117,18 @@
         "RdwPc": 11.8,
         "AlpUL": 41,
         "Wbc1000cellsuL": 3.4
+      },
+      {
+        "Date": "2025-03-18",
+        "AlbGL": 54,
+        "CreatUmolL": 67.144,
+        "GluMmolL": 5.05,
+        "CrpMgL": 0.2,
+        "LymPc": 39.6,
+        "McvFL": 91.1,
+        "RdwPc": 11.8,
+        "AlpUL": 41,
+        "Wbc1000cellsuL": 3.2
       }
     ],
     "Division": "Open",
@@ -1126,7 +1138,11 @@
     "Proofs": [
       "/assets/proofs/michael_lustgarten_proof_1.webp",
       "/assets/proofs/michael_lustgarten_proof_2.webp",
-      "/assets/proofs/michael_lustgarten_proof_3.webp"
+      "/assets/proofs/michael_lustgarten_proof_3.webp",
+      "/assets/proofs/michael_lustgarten_proof_4.webp",
+      "/assets/proofs/michael_lustgarten_proof_5.webp",
+      "/assets/proofs/michael_lustgarten_proof_6.webp",
+      "/assets/proofs/michael_lustgarten_proof_7.webp"
     ],
     "PersonalLink": "https://www.patreon.com/c/MichaelLustgartenPhD"
   },
