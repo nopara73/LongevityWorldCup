@@ -5,6 +5,11 @@ let ultimateLeagueMapping = {};
 let generationMapping = {};
 let divisionMapping = {};
 let exclusiveLeagueMapping = {};
+let liverMapping = {};
+let kidneyMapping = {};
+let metabolicMapping = {};
+let inflammationMapping = {};
+let immuneMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -76,6 +81,51 @@ window.computeBadges = function (athleteResults) {
         exclusiveLeagueGroups[league].slice(0, 3).forEach((athlete, index) => {
             exclusiveLeagueMapping[athlete.name] = { rank: index + 1, exclusiveLeague: league };
         });
+    });
+
+    // Compute the top 3 best Liver biomarker profiles (lowest Liver contribution)
+    const liverAthletes = athleteResults.slice().sort((a, b) => {
+        return window.PhenoAge.calculateLiverPhenoAgeContributor(a.bestBiomarkerValues) -
+            window.PhenoAge.calculateLiverPhenoAgeContributor(b.bestBiomarkerValues);
+    });
+    liverAthletes.slice(0, 3).forEach((athlete, index) => {
+        liverMapping[athlete.name] = index + 1; // 1 = best, 2 = second, 3 = third
+    });
+
+    // Compute the top 3 best Kidney biomarker profiles (lowest Kidney contribution)
+    const kidneyAthletes = athleteResults.slice().sort((a, b) => {
+        return window.PhenoAge.calculateKidneyPhenoAgeContributor(a.bestBiomarkerValues) -
+            window.PhenoAge.calculateKidneyPhenoAgeContributor(b.bestBiomarkerValues);
+    });
+    kidneyAthletes.slice(0, 3).forEach((athlete, index) => {
+        kidneyMapping[athlete.name] = index + 1;
+    });
+
+    // Compute the top 3 best Metabolic biomarker profiles (lowest Metabolic contribution)
+    const metabolicAthletes = athleteResults.slice().sort((a, b) => {
+        return window.PhenoAge.calculateMetabolicPhenoAgeContributor(a.bestBiomarkerValues) -
+            window.PhenoAge.calculateMetabolicPhenoAgeContributor(b.bestBiomarkerValues);
+    });
+    metabolicAthletes.slice(0, 3).forEach((athlete, index) => {
+        metabolicMapping[athlete.name] = index + 1;
+    });
+
+    // Compute the top 3 best Inflammation biomarker profiles (lowest Inflammation contribution)
+    const inflammationAthletes = athleteResults.slice().sort((a, b) => {
+        return window.PhenoAge.calculateInflammationPhenoAgeContributor(a.bestBiomarkerValues) -
+            window.PhenoAge.calculateInflammationPhenoAgeContributor(b.bestBiomarkerValues);
+    });
+    inflammationAthletes.slice(0, 3).forEach((athlete, index) => {
+        inflammationMapping[athlete.name] = index + 1;
+    });
+
+    // Compute the top 3 best Immune biomarker profiles (lowest Immune contribution)
+    const immuneAthletes = athleteResults.slice().sort((a, b) => {
+        return window.PhenoAge.calculateImmunePhenoAgeContributor(a.bestBiomarkerValues) -
+            window.PhenoAge.calculateImmunePhenoAgeContributor(b.bestBiomarkerValues);
+    });
+    immuneAthletes.slice(0, 3).forEach((athlete, index) => {
+        immuneMapping[athlete.name] = index + 1;
     });
 }
 
@@ -286,5 +336,95 @@ window.setBadges = function (athlete, athleteCell) {
                     <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/league/${leagueSlug}';">
                         <i class="fa ${iconClass}"></i>
                     </span>`;
+    }
+
+    // Append badge for Liver Biomarker Contribution ranking if available
+    if (liverMapping[athlete.name]) {
+        const order = liverMapping[athlete.name];
+        let tooltipText = "";
+        let iconClass = "fa-droplet";
+        if (order === 1) {
+            tooltipText = `Liver King: Best Liver Profile`;
+        } else if (order === 2) {
+            tooltipText = `2nd Best Liver Profile`;
+        } else if (order === 3) {
+            tooltipText = `3rd Best Liver Profile`;
+        }
+        badgeSection.innerHTML += `
+            <span class="badge-class" title="${tooltipText}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
+    }
+
+    // Append badge for Kidney Biomarker Contribution ranking if available
+    if (kidneyMapping[athlete.name]) {
+        const order = kidneyMapping[athlete.name];
+        let tooltipText = "";
+        let iconClass = "fa-toilet";
+        if (order === 1) {
+            tooltipText = `Best Kidney Profile`;
+        } else if (order === 2) {
+            tooltipText = `2nd Best Kidney Profile`;
+        } else if (order === 3) {
+            tooltipText = `3rd Best Kidney Profile`
+        }
+        badgeSection.innerHTML += `
+            <span class="badge-class" title="${tooltipText}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
+    }
+
+    // Append badge for Metabolic Biomarker Contribution ranking if available
+    if (metabolicMapping[athlete.name]) {
+        const order = metabolicMapping[athlete.name];
+        let tooltipText = "";
+        let iconClass = "fa-fire";
+        if (order === 1) {
+            tooltipText = `Best Metabolic Profile`;
+        } else if (order === 2) {
+            tooltipText = `2nd Best Metabolic Profile`;
+        } else if (order === 3) {
+            tooltipText = `3rd Best Metabolic Profile`;
+        }
+        badgeSection.innerHTML += `
+            <span class="badge-class" title="${tooltipText}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
+    }
+
+    // Append badge for Inflammation Biomarker Contribution ranking if available
+    if (inflammationMapping[athlete.name]) {
+        const order = inflammationMapping[athlete.name];
+        let tooltipText = "";
+        let iconClass = "fa-temperature-three-quarters";
+        if (order === 1) {
+            tooltipText = `Best Inflammation Profile`;
+        } else if (order === 2) {
+            tooltipText = `2nd Best Inflammation Profile`;
+        } else if (order === 3) {
+            tooltipText = `3rd Best Inflammation Profile`;
+        }
+        badgeSection.innerHTML += `
+            <span class="badge-class" title="${tooltipText}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
+    }
+
+    // Append badge for Immune Biomarker Contribution ranking if available
+    if (immuneMapping[athlete.name]) {
+        const order = immuneMapping[athlete.name];
+        let tooltipText = "";
+        let iconClass = "fa-shield-virus";
+        if (order === 1) {
+            tooltipText = `Best Immune Profile`;
+        } else if (order === 2) {
+            tooltipText = `2nd Best Immune Profile`;
+        } else if (order === 3) {
+            tooltipText = `3rd Best Immune Profile`;
+        }
+        badgeSection.innerHTML += `
+            <span class="badge-class" title="${tooltipText}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 }
