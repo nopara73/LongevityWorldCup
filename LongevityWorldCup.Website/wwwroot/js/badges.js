@@ -356,14 +356,7 @@ window.setBadges = function (athlete, athleteCell) {
     if (exclusiveLeagueMapping[athlete.name]) {
         const { rank, exclusiveLeague } = exclusiveLeagueMapping[athlete.name];
         const tooltipText = `#${rank} in ${exclusiveLeague} League`;
-        let iconClass = "";
-        if (rank === 1) {
-            iconClass = "fa-trophy";
-        } else if (rank === 2) {
-            iconClass = "fa-medal";
-        } else if (rank === 3) {
-            iconClass = "fa-award";
-        }
+        let iconClass = "fa-umbrella-beach";
         const leagueSlug = slugifyName(exclusiveLeague, true);
         const badgeHtml = `
             <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
