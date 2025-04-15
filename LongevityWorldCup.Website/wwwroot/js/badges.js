@@ -266,6 +266,29 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
+    // Pregnancy badge (uses black)
+    const pregnancyMapping = ["Olga Vresca"];
+    if (pregnancyMapping.includes(athlete.name)) {
+        const tooltipText = "Baby on Board! Delivering in 2025";
+        const iconClass = "fa-baby-carriage"; // Alternatively, "fa-baby" can be used
+        const badgeHtml = `
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
+    // Host badge for "nopara73" (uses black)
+    if (athlete.name === "nopara73") {
+        const tooltipText = "Host: Organizer of the Longevity World Cup";
+        const iconClass = "fa-house";
+        const badgeHtml = `
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
     // Host badge for "nopara73" (uses black)
     if (athlete.name === "nopara73") {
         const tooltipText = "Host: Organizer of the Longevity World Cup";
@@ -283,13 +306,13 @@ window.setBadges = function (athlete, athleteCell) {
         let tooltipText = "";
         let iconClass = "";
         if (rank === 1) {
-            tooltipText = "#1 in the Ultimate League";
+            tooltipText = "Ultimate Lifeform: #1 in the Ultimate League";
             iconClass = "fa-crown";
         } else if (rank === 2) {
-            tooltipText = "#2 in the Ultimate League";
+            tooltipText = "Near Immortal: #2 in the Ultimate League";
             iconClass = "fa-medal";
         } else if (rank === 3) {
-            tooltipText = "#3 in the Ultimate League";
+            tooltipText = "Third and Threatening: #3 in the Ultimate League";
             iconClass = "fa-award";
         }
         // Use badgeBackgrounds[0] for rank 1 (gold), [1] for rank 2 (silver), [2] for rank 3 (bronze)
