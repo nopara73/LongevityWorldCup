@@ -1964,6 +1964,12 @@
         const collapsedTitle = document.querySelector('.collapsed-title');
         if (collapsedTitle) {
             collapsedTitle.textContent = leagueText;
+
+            // Force reflow by toggling opacity
+            collapsedTitle.style.opacity = '0';
+            requestAnimationFrame(() => {
+                collapsedTitle.style.opacity = '1';
+            });
         }
     }
 
