@@ -167,13 +167,13 @@ window.setBadges = function (athlete, athleteCell) {
         let iconClass = "";
         const ageText = athlete.chronologicalAge.toFixed(1);
         if (rank === 1) {
-            tooltipText = `Chronologically Oldest (Age: ${ageText} years)`;
+            tooltipText = `Yoda Badge: Chronologically Oldest (Age: ${ageText} years)`;
             iconClass = "fa-infinity";
         } else if (rank === 2) {
-            tooltipText = `Chronologically 2nd Oldest (Age: ${ageText} years)`;
+            tooltipText = `Master Roshi Badge: Chronologically 2nd Oldest (Age: ${ageText} years)`;
             iconClass = "fa-scroll";
         } else if (rank === 3) {
-            tooltipText = `Chronologically 3rd Oldest (Age: ${ageText} years)`;
+            tooltipText = `Miyagi Badge: Chronologically 3rd Oldest (Age: ${ageText} years)`;
             iconClass = "fa-leaf";
         }
         const badgeHtml = `
@@ -190,13 +190,13 @@ window.setBadges = function (athlete, athleteCell) {
         let iconClass = "";
         const ageText = athlete.chronologicalAge.toFixed(1);
         if (rank === 1) {
-            tooltipText = `Chronologically Youngest (Age: ${ageText} years)`;
+            tooltipText = `Son Goten Badge: Chronologically Youngest (Age: ${ageText} years)`;
             iconClass = "fa-baby";
         } else if (rank === 2) {
-            tooltipText = `Chronologically 2nd Youngest (Age: ${ageText} years)`;
+            tooltipText = `Son Gohan Badge: Chronologically 2nd Youngest (Age: ${ageText} years)`;
             iconClass = "fa-child";
         } else if (rank === 3) {
-            tooltipText = `Chronologically 3rd Youngest (Age: ${ageText} years)`;
+            tooltipText = `Son Goku Badge: Chronologically 3rd Youngest (Age: ${ageText} years)`;
             iconClass = "fa-running";
         }
         const badgeHtml = `
@@ -213,14 +213,14 @@ window.setBadges = function (athlete, athleteCell) {
         let iconClass = "";
         const ageText = athlete.lowestPhenoAge.toFixed(1);
         if (rank === 1) {
-            tooltipText = `Biologically Youngest (Pheno Age: ${ageText} years)`;
-            iconClass = "fa-baby";
+            tooltipText = `Peter Pan Badge: Biologically Youngest (Pheno Age: ${ageText} years)`;
+            iconClass = "fa-feather";
         } else if (rank === 2) {
-            tooltipText = `Biologically 2nd Youngest (Pheno Age: ${ageText} years)`;
-            iconClass = "fa-child";
+            tooltipText = `Dorian Gray Badge: Biologically 2nd Youngest (Pheno Age: ${ageText} years)`;
+            iconClass = "fa-portrait";
         } else if (rank === 3) {
-            tooltipText = `Biologically 3rd Youngest (Pheno Age: ${ageText} years)`;
-            iconClass = "fa-running";
+            tooltipText = `Benjamin Button Badge: Biologically 3rd Youngest (Pheno Age: ${ageText} years)`;
+            iconClass = "fa-hourglass-start";
         }
         const badgeHtml = `
             <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
@@ -250,10 +250,10 @@ window.setBadges = function (athlete, athleteCell) {
             tooltipText = "Athlete Zero: 1st Athlete to Join the Longevity World Cup";
             iconClass = "fa-circle-notch";
         } else if (rank === 2) {
-            tooltipText = "Athlete Alpha: 2nd Athlete to Join the Longevity World Cup";
+            tooltipText = "Athlete Beta: 2nd Athlete to Join the Longevity World Cup";
             iconClass = "fa-star";
         } else if (rank === 3) {
-            tooltipText = "Athlete Beta: 3rd Athlete to Join the Longevity World Cup";
+            tooltipText = "Athlete Gamma: 3rd Athlete to Join the Longevity World Cup";
             iconClass = "fa-bolt";
         } else {
             tooltipText = "Early Bird: Among the First 10 Athletes to Join the Longevity World Cup";
@@ -268,7 +268,7 @@ window.setBadges = function (athlete, athleteCell) {
 
     // Host badge for "nopara73" (uses black)
     if (athlete.name === "nopara73") {
-        const tooltipText = "Host of the Longevity World Cup";
+        const tooltipText = "Host: Organizer of the Longevity World Cup";
         const iconClass = "fa-house";
         const badgeHtml = `
             <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
