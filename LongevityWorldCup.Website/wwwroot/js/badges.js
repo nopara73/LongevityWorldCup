@@ -136,18 +136,25 @@ window.setBadges = function (athlete, athleteCell) {
             ? athlete.personalLink
             : 'https://' + athlete.personalLink;
         badgeSection.innerHTML = `
-                            <a href="${linkHref}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
-                                <i class="fa fa-link"></i>
-                            </a>
-                        `;
+            <a href="${linkHref}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
+                <i class="fa fa-link"></i>
+            </a>
+        `;
     }
+
+    const defaultBadgeBackground = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;"; // Dark steel sheen
+    const badgeBackgrounds = [
+        "background: linear-gradient(135deg, #ffd700, #8b8000); border: 2px solid #8a6f00;", // Rank 1: Bright gold to olive gold
+        "background: linear-gradient(135deg, #c0c0c0, #696969); border: 2px solid #6e6e6e;", // Rank 2: Classic silver to dim gray
+        "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Rank 3: Pure bronze to dark wood
+    ];
 
     // Append badge if the athlete is among the three chronologically oldest
     if (oldestMapping[athlete.name]) {
         const order = oldestMapping[athlete.name];
         let tooltipText = "";
         let iconClass = "";
-        const ageText = athlete.chronologicalAge.toFixed(1); // Athlete's age formatted
+        const ageText = athlete.chronologicalAge.toFixed(1);
 
         if (order === 1) {
             tooltipText = `Chronologically Oldest (Age: ${ageText} years)`;
@@ -161,9 +168,9 @@ window.setBadges = function (athlete, athleteCell) {
         }
 
         badgeSection.innerHTML += `
-                        <span class="badge-class" title="${tooltipText}">
-                            <i class="fa ${iconClass}"></i>
-                        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge if the athlete is among the three chronologically youngest
@@ -171,7 +178,7 @@ window.setBadges = function (athlete, athleteCell) {
         const order = youngestMapping[athlete.name];
         let tooltipText = "";
         let iconClass = "";
-        const ageText = athlete.chronologicalAge.toFixed(1); // Athlete's age formatted
+        const ageText = athlete.chronologicalAge.toFixed(1);
 
         if (order === 1) {
             tooltipText = `Chronologically Youngest (Age: ${ageText} years)`;
@@ -184,9 +191,9 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-running";
         }
         badgeSection.innerHTML += `
-                        <span class="badge-class" title="${tooltipText}">
-                            <i class="fa ${iconClass}"></i>
-                        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge if the athlete is among the three biologically youngest
@@ -194,7 +201,7 @@ window.setBadges = function (athlete, athleteCell) {
         const order = biologicallyYoungestMapping[athlete.name];
         let tooltipText = "";
         let iconClass = "";
-        const ageText = athlete.lowestPhenoAge.toFixed(1); // Athlete's age formatted
+        const ageText = athlete.lowestPhenoAge.toFixed(1);
 
         if (order === 1) {
             tooltipText = `Biologically Youngest (Pheno Age: ${ageText} years)`;
@@ -207,9 +214,9 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-running";
         }
         badgeSection.innerHTML += `
-                        <span class="badge-class" title="${tooltipText}">
-                            <i class="fa ${iconClass}"></i>
-                        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge if the athlete is one of the first three ever applicants
@@ -244,9 +251,9 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-dove";
         }
         badgeSection.innerHTML += `
-                        <span class="badge-class" title="${tooltipText}">
-                            <i class="fa ${iconClass}"></i>
-                        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     if (athlete.name === "nopara73") {
@@ -254,9 +261,9 @@ window.setBadges = function (athlete, athleteCell) {
         const iconClass = "fa-house";
 
         badgeSection.innerHTML += `
-                        <span class="badge-class" title="${tooltipText}">
-                            <i class="fa ${iconClass}"></i>
-                        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge if the athlete is among the three with the largest age reduction (Ultimate League)
@@ -276,9 +283,9 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-award";
         }
         badgeSection.innerHTML += `
-        <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/leaderboard/leaderboard.html';">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[order - 1]}" onclick="window.location.href='/leaderboard/leaderboard.html';">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge for generation ranking if available
@@ -293,11 +300,11 @@ window.setBadges = function (athlete, athleteCell) {
         } else if (rank === 3) {
             iconClass = "fa-award";
         }
-        const leagueSlug = slugifyName(generation, true); // new line
+        const leagueSlug = slugifyName(generation, true);
         badgeSection.innerHTML += `
-                    <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/league/${leagueSlug}';">
-                        <i class="fa ${iconClass}"></i>
-                    </span>`;
+            <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge for division ranking if available
@@ -312,11 +319,12 @@ window.setBadges = function (athlete, athleteCell) {
         } else if (rank === 3) {
             iconClass = "fa-award";
         }
-        const leagueSlug = slugifyName(division, true); // new line
+        const leagueSlug = slugifyName(division, true);
+        const badgeStyle = `cursor: pointer; ${badgeBackgrounds[rank - 1]}`;
         badgeSection.innerHTML += `
-                    <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/league/${leagueSlug}';">
-                        <i class="fa ${iconClass}"></i>
-                    </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${badgeStyle}" onclick="window.location.href='/league/${leagueSlug}';">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge for exclusive league ranking if available
@@ -331,11 +339,11 @@ window.setBadges = function (athlete, athleteCell) {
         } else if (rank === 3) {
             iconClass = "fa-award";
         }
-        const leagueSlug = slugifyName(exclusiveLeague, true); // new line
+        const leagueSlug = slugifyName(exclusiveLeague, true);
         badgeSection.innerHTML += `
-                    <span class="badge-class" title="${tooltipText}" style="cursor: pointer;" onclick="window.location.href='/league/${leagueSlug}';">
-                        <i class="fa ${iconClass}"></i>
-                    </span>`;
+            <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
     }
 
     // Append badge for Liver Biomarker Contribution ranking if available
@@ -351,7 +359,7 @@ window.setBadges = function (athlete, athleteCell) {
             tooltipText = `3rd Best Liver Profile`;
         }
         badgeSection.innerHTML += `
-            <span class="badge-class" title="${tooltipText}">
+            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[order - 1]}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
     }
@@ -366,10 +374,10 @@ window.setBadges = function (athlete, athleteCell) {
         } else if (order === 2) {
             tooltipText = `2nd Best Kidney Profile`;
         } else if (order === 3) {
-            tooltipText = `3rd Best Kidney Profile`
+            tooltipText = `3rd Best Kidney Profile`;
         }
         badgeSection.innerHTML += `
-            <span class="badge-class" title="${tooltipText}">
+            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[order - 1]}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
     }
@@ -387,7 +395,7 @@ window.setBadges = function (athlete, athleteCell) {
             tooltipText = `3rd Best Metabolic Profile`;
         }
         badgeSection.innerHTML += `
-            <span class="badge-class" title="${tooltipText}">
+            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[order - 1]}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
     }
@@ -405,7 +413,7 @@ window.setBadges = function (athlete, athleteCell) {
             tooltipText = `3rd Best Inflammation Profile`;
         }
         badgeSection.innerHTML += `
-            <span class="badge-class" title="${tooltipText}">
+            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[order - 1]}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
     }
@@ -423,7 +431,7 @@ window.setBadges = function (athlete, athleteCell) {
             tooltipText = `3rd Best Immune Profile`;
         }
         badgeSection.innerHTML += `
-            <span class="badge-class" title="${tooltipText}">
+            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[order - 1]}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
     }
