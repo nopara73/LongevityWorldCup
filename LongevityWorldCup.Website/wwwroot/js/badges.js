@@ -324,19 +324,12 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Generation ranking badge (colored backgrounds)
-    if (generationMapping[athlete.name]) {
-        const { rank, generation } = generationMapping[athlete.name];
-        const tooltipText = `#${rank} in ${generation} League`;
-        let iconClass = "";
-        if (rank === 1) {
-            iconClass = "fa-trophy";
-        } else if (rank === 2) {
-            iconClass = "fa-medal";
-        } else if (rank === 3) {
-            iconClass = "fa-award";
-        }
-        const leagueSlug = slugifyName(generation, true);
+    // Division ranking badge (colored backgrounds)
+    if (divisionMapping[athlete.name]) {
+        const { rank, division } = divisionMapping[athlete.name];
+        const tooltipText = `#${rank} in ${division} League`;
+        const iconClass = window.TryGetDivisionFaIcon(division);
+        const leagueSlug = slugifyName(division, true);
         const badgeHtml = `
             <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
                 <i class="fa ${iconClass}"></i>
@@ -345,19 +338,12 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Division ranking badge (colored backgrounds)
-    if (divisionMapping[athlete.name]) {
-        const { rank, division } = divisionMapping[athlete.name];
-        const tooltipText = `#${rank} in ${division} League`;
-        let iconClass = "";
-        if (rank === 1) {
-            iconClass = "fa-trophy";
-        } else if (rank === 2) {
-            iconClass = "fa-medal";
-        } else if (rank === 3) {
-            iconClass = "fa-award";
-        }
-        const leagueSlug = slugifyName(division, true);
+    // Generation ranking badge (colored backgrounds)
+    if (generationMapping[athlete.name]) {
+        const { rank, generation } = generationMapping[athlete.name];
+        const tooltipText = `#${rank} in ${generation} League`;
+        const iconClass = window.TryGetGenerationFaIcon(generation);
+        const leagueSlug = slugifyName(generation, true);
         const badgeHtml = `
             <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
                 <i class="fa ${iconClass}"></i>
