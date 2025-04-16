@@ -378,30 +378,59 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Division ranking badge (colored backgrounds)
+    // Division ranking badge (only cool name for rank 1, colored backgrounds)
     if (divisionMapping[athlete.name]) {
         const { rank, division } = divisionMapping[athlete.name];
-        const tooltipText = `#${rank} in ${division} League`;
+        let tooltipText;
+        if (rank === 1) {
+            if (division.toLowerCase() === "men's") {
+                tooltipText = "The Alpha Male: #1 in Men's League";
+            } else if (division.toLowerCase() === "women's") {
+                tooltipText = "The Empress: #1 in Women's League";
+            } else if (division.toLowerCase() === "open") {
+                tooltipText = "The Machine: #1 in Open League";
+            }
+        } else {
+            tooltipText = `#${rank} in ${division} League`;
+        }
         const iconClass = window.TryGetDivisionFaIcon(division);
         const leagueSlug = slugifyName(division, true);
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
+        <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
         const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Generation ranking badge (colored backgrounds)
+    // Generation ranking badge (only cool name for rank 1, colored backgrounds)
     if (generationMapping[athlete.name]) {
         const { rank, generation } = generationMapping[athlete.name];
-        const tooltipText = `#${rank} in ${generation} League`;
+        let tooltipText;
+        if (rank === 1) {
+            const gen = generation.toLowerCase();
+            if (gen === "silent generation") {
+                tooltipText = "The Grandmaster: #1 in Silent Generation League";
+            } else if (gen === "baby boomers") {
+                tooltipText = "The Iron Throne: #1 in Baby Boomers League";
+            } else if (gen === "gen x") {
+                tooltipText = "The Last Ronin: #1 in Gen X League";
+            } else if (gen === "millennials") {
+                tooltipText = "The Chosen One: #1 in Millennials League";
+            } else if (gen === "gen z") {
+                tooltipText = "The Meme Lord: #1 in Gen Z League";
+            } else if (gen === "gen alpha") {
+                tooltipText = "The Singularity: #1 in Gen Alpha League";
+            }
+        } else {
+            tooltipText = `#${rank} in ${generation} League`;
+        }
         const iconClass = window.TryGetGenerationFaIcon(generation);
         const leagueSlug = slugifyName(generation, true);
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
+        <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
         const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
