@@ -82,49 +82,99 @@ window.computeBadges = function (athleteResults) {
         });
     });
 
-    // Compute the top 3 best Liver biomarker profiles (lowest Liver contribution)
-    const liverAthletes = athleteResults.slice().sort((a, b) => {
-        return window.PhenoAge.calculateLiverPhenoAgeContributor(a.bestBiomarkerValues) -
-            window.PhenoAge.calculateLiverPhenoAgeContributor(b.bestBiomarkerValues);
+    // Compute the best Liver biomarker profile (lowest Liver contribution); if ties, assign badge to all
+    let bestLiverScore = Infinity;
+    athleteResults.forEach(athlete => {
+        const liverScore = window.PhenoAge.calculateLiverPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (liverScore < bestLiverScore) {
+            bestLiverScore = liverScore;
+        }
     });
-    liverAthletes.slice(0, 3).forEach((athlete, index) => {
-        liverMapping[athlete.name] = index + 1; // 1 = best, 2 = second, 3 = third
-    });
-
-    // Compute the top 3 best Kidney biomarker profiles (lowest Kidney contribution)
-    const kidneyAthletes = athleteResults.slice().sort((a, b) => {
-        return window.PhenoAge.calculateKidneyPhenoAgeContributor(a.bestBiomarkerValues) -
-            window.PhenoAge.calculateKidneyPhenoAgeContributor(b.bestBiomarkerValues);
-    });
-    kidneyAthletes.slice(0, 3).forEach((athlete, index) => {
-        kidneyMapping[athlete.name] = index + 1;
-    });
-
-    // Compute the top 3 best Metabolic biomarker profiles (lowest Metabolic contribution)
-    const metabolicAthletes = athleteResults.slice().sort((a, b) => {
-        return window.PhenoAge.calculateMetabolicPhenoAgeContributor(a.bestBiomarkerValues) -
-            window.PhenoAge.calculateMetabolicPhenoAgeContributor(b.bestBiomarkerValues);
-    });
-    metabolicAthletes.slice(0, 3).forEach((athlete, index) => {
-        metabolicMapping[athlete.name] = index + 1;
+    athleteResults.forEach(athlete => {
+        const liverScore = window.PhenoAge.calculateLiverPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (liverScore === bestLiverScore) {
+            // For liver, we use Albumin (index 1) and Alkaline phosphatase (index 9)
+            const albumin = athlete.bestBiomarkerValues[1].toFixed(1);
+            const ap = athlete.bestBiomarkerValues[9].toFixed(1);
+            const tooltipText = `Liver King: Albumin ${albumin} g/L, AP ${ap} U/L`;
+            liverMapping[athlete.name] = tooltipText;
+        }
     });
 
-    // Compute the top 3 best Inflammation biomarker profiles (lowest Inflammation contribution)
-    const inflammationAthletes = athleteResults.slice().sort((a, b) => {
-        return window.PhenoAge.calculateInflammationPhenoAgeContributor(a.bestBiomarkerValues) -
-            window.PhenoAge.calculateInflammationPhenoAgeContributor(b.bestBiomarkerValues);
+    // Compute the best Kidney biomarker profile (lowest Kidney contribution); if ties, assign badge to all
+    let bestKidneyScore = Infinity;
+    athleteResults.forEach(athlete => {
+        const kidneyScore = window.PhenoAge.calculateKidneyPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (kidneyScore < bestKidneyScore) {
+            bestKidneyScore = kidneyScore;
+        }
     });
-    inflammationAthletes.slice(0, 3).forEach((athlete, index) => {
-        inflammationMapping[athlete.name] = index + 1;
+    athleteResults.forEach(athlete => {
+        const kidneyScore = window.PhenoAge.calculateKidneyPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (kidneyScore === bestKidneyScore) {
+            // For kidney, we use Creatinine (index 2)
+            const creatinine = athlete.bestBiomarkerValues[2].toFixed(1);
+            const tooltipText = `Kidney Overlord: Creatinine ${creatinine} µmol/L`;
+            kidneyMapping[athlete.name] = tooltipText;
+        }
     });
 
-    // Compute the top 3 best Immune biomarker profiles (lowest Immune contribution)
-    const immuneAthletes = athleteResults.slice().sort((a, b) => {
-        return window.PhenoAge.calculateImmunePhenoAgeContributor(a.bestBiomarkerValues) -
-            window.PhenoAge.calculateImmunePhenoAgeContributor(b.bestBiomarkerValues);
+    // Compute the best Metabolic biomarker profile (lowest Metabolic contribution); if ties, assign badge to all
+    let bestMetabolicScore = Infinity;
+    athleteResults.forEach(athlete => {
+        const metabolicScore = window.PhenoAge.calculateMetabolicPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (metabolicScore < bestMetabolicScore) {
+            bestMetabolicScore = metabolicScore;
+        }
     });
-    immuneAthletes.slice(0, 3).forEach((athlete, index) => {
-        immuneMapping[athlete.name] = index + 1;
+    athleteResults.forEach(athlete => {
+        const metabolicScore = window.PhenoAge.calculateMetabolicPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (metabolicScore === bestMetabolicScore) {
+            // For metabolic, we use Glucose (index 3)
+            const glucose = athlete.bestBiomarkerValues[3].toFixed(1);
+            const tooltipText = `Glucose Gladiator: Top Metabolic Profile - Glucose ${glucose} mmol/L`;
+            metabolicMapping[athlete.name] = tooltipText;
+        }
+    });
+
+    // Compute the best Inflammation biomarker profile (lowest Inflammation contribution); if ties, assign badge to all
+    let bestInflammationScore = Infinity;
+    athleteResults.forEach(athlete => {
+        const inflammationScore = window.PhenoAge.calculateInflammationPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (inflammationScore < bestInflammationScore) {
+            bestInflammationScore = inflammationScore;
+        }
+    });
+    athleteResults.forEach(athlete => {
+        const inflammationScore = window.PhenoAge.calculateInflammationPhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (inflammationScore === bestInflammationScore) {
+            // For inflammation, we use C-reactive protein (CRP at index 4)
+            const crp = (Math.exp(athlete.bestBiomarkerValues[4]) * 10).toFixed(2);
+            const tooltipText = `Inflammation Whisperer: CRP ${crp} mg/L`;
+            inflammationMapping[athlete.name] = tooltipText;
+        }
+    });
+
+    // Compute the best Immune biomarker profile (lowest Immune contribution); if ties, assign badge to all
+    let bestImmuneScore = Infinity;
+    athleteResults.forEach(athlete => {
+        const immuneScore = window.PhenoAge.calculateImmunePhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (immuneScore < bestImmuneScore) {
+            bestImmuneScore = immuneScore;
+        }
+    });
+    athleteResults.forEach(athlete => {
+        const immuneScore = window.PhenoAge.calculateImmunePhenoAgeContributor(athlete.bestBiomarkerValues);
+        if (immuneScore === bestImmuneScore) {
+            // For immune, display all four markers:
+            // White blood cell count (index 5), Lymphocytes (index 6), Mean corpuscular volume (index 7) and Red cell distribution width (index 8)
+            const wbc = athlete.bestBiomarkerValues[5].toFixed(1);
+            const lymphocyte = athlete.bestBiomarkerValues[6].toFixed(1);
+            const mcv = athlete.bestBiomarkerValues[7].toFixed(1);
+            const rcdw = athlete.bestBiomarkerValues[8].toFixed(1);
+            const tooltipText = `Pathogen Punisher: Top Immune Profile - WBC ${wbc} 10³ cells/µL, Lymphocyte ${lymphocyte}%, MCV ${mcv} fL, RCDW ${rcdw}%`;
+            immuneMapping[athlete.name] = tooltipText;
+        }
     });
 }
 
@@ -167,13 +217,13 @@ window.setBadges = function (athlete, athleteCell) {
         let iconClass = "";
         const ageText = athlete.chronologicalAge.toFixed(1);
         if (rank === 1) {
-            tooltipText = `Yoda Badge: Chronologically Oldest (Age: ${ageText} years)`;
+            tooltipText = `Yoda: Chronologically Oldest (Age: ${ageText} years)`;
             iconClass = "fa-infinity";
         } else if (rank === 2) {
-            tooltipText = `Master Roshi Badge: Chronologically 2nd Oldest (Age: ${ageText} years)`;
+            tooltipText = `Master Roshi: Chronologically 2nd Oldest (Age: ${ageText} years)`;
             iconClass = "fa-scroll";
         } else if (rank === 3) {
-            tooltipText = `Miyagi Badge: Chronologically 3rd Oldest (Age: ${ageText} years)`;
+            tooltipText = `Mr. Miyagi: Chronologically 3rd Oldest (Age: ${ageText} years)`;
             iconClass = "fa-leaf";
         }
         const badgeHtml = `
@@ -190,13 +240,13 @@ window.setBadges = function (athlete, athleteCell) {
         let iconClass = "";
         const ageText = athlete.chronologicalAge.toFixed(1);
         if (rank === 1) {
-            tooltipText = `Son Goten Badge: Chronologically Youngest (Age: ${ageText} years)`;
+            tooltipText = `Son Goten: Chronologically Youngest (Age: ${ageText} years)`;
             iconClass = "fa-baby";
         } else if (rank === 2) {
-            tooltipText = `Son Gohan Badge: Chronologically 2nd Youngest (Age: ${ageText} years)`;
+            tooltipText = `Son Gohan: Chronologically 2nd Youngest (Age: ${ageText} years)`;
             iconClass = "fa-child";
         } else if (rank === 3) {
-            tooltipText = `Son Goku Badge: Chronologically 3rd Youngest (Age: ${ageText} years)`;
+            tooltipText = `Son Goku: Chronologically 3rd Youngest (Age: ${ageText} years)`;
             iconClass = "fa-running";
         }
         const badgeHtml = `
@@ -213,13 +263,13 @@ window.setBadges = function (athlete, athleteCell) {
         let iconClass = "";
         const ageText = athlete.lowestPhenoAge.toFixed(1);
         if (rank === 1) {
-            tooltipText = `Peter Pan Badge: Biologically Youngest (Pheno Age: ${ageText} years)`;
+            tooltipText = `Peter Pan: Biologically Youngest (Pheno Age: ${ageText} years)`;
             iconClass = "fa-feather";
         } else if (rank === 2) {
-            tooltipText = `Dorian Gray Badge: Biologically 2nd Youngest (Pheno Age: ${ageText} years)`;
+            tooltipText = `Dorian Gray: Biologically 2nd Youngest (Pheno Age: ${ageText} years)`;
             iconClass = "fa-portrait";
         } else if (rank === 3) {
-            tooltipText = `Benjamin Button Badge: Biologically 3rd Youngest (Pheno Age: ${ageText} years)`;
+            tooltipText = `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${ageText} years)`;
             iconClass = "fa-hourglass-start";
         }
         const badgeHtml = `
@@ -355,107 +405,62 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Liver Biomarker Contribution ranking badge (colored backgrounds)
+    // Liver Biomarker Contribution badge (colored backgrounds)
     if (liverMapping[athlete.name]) {
-        const rank = liverMapping[athlete.name];
-        let tooltipText = "";
+        const tooltipText = liverMapping[athlete.name];
         const iconClass = "fa-droplet";
-        if (rank === 1) {
-            tooltipText = `Liver King: Best Liver Profile`;
-        } else if (rank === 2) {
-            tooltipText = `2nd Best Liver Profile`;
-        } else if (rank === 3) {
-            tooltipText = `3rd Best Liver Profile`;
-        }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Kidney Biomarker Contribution ranking badge (colored backgrounds)
+    // Kidney Biomarker Contribution badge (colored backgrounds)
     if (kidneyMapping[athlete.name]) {
-        const rank = kidneyMapping[athlete.name];
-        let tooltipText = "";
+        const tooltipText = kidneyMapping[athlete.name];
         const iconClass = "fa-toilet";
-        if (rank === 1) {
-            tooltipText = `Best Kidney Profile`;
-        } else if (rank === 2) {
-            tooltipText = `2nd Best Kidney Profile`;
-        } else if (rank === 3) {
-            tooltipText = `3rd Best Kidney Profile`;
-        }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Metabolic Biomarker Contribution ranking badge (colored backgrounds)
+    // Metabolic Biomarker Contribution badge (colored backgrounds)
     if (metabolicMapping[athlete.name]) {
-        const rank = metabolicMapping[athlete.name];
-        let tooltipText = "";
+        const tooltipText = metabolicMapping[athlete.name];
         const iconClass = "fa-fire";
-        if (rank === 1) {
-            tooltipText = `Best Metabolic Profile`;
-        } else if (rank === 2) {
-            tooltipText = `2nd Best Metabolic Profile`;
-        } else if (rank === 3) {
-            tooltipText = `3rd Best Metabolic Profile`;
-        }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Inflammation Biomarker Contribution ranking badge (colored backgrounds)
+    // Inflammation Biomarker Contribution badge (colored backgrounds)
     if (inflammationMapping[athlete.name]) {
-        const rank = inflammationMapping[athlete.name];
-        let tooltipText = "";
+        const tooltipText = inflammationMapping[athlete.name];
         const iconClass = "fa-temperature-three-quarters";
-        if (rank === 1) {
-            tooltipText = `Best Inflammation Profile`;
-        } else if (rank === 2) {
-            tooltipText = `2nd Best Inflammation Profile`;
-        } else if (rank === 3) {
-            tooltipText = `3rd Best Inflammation Profile`;
-        }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Immune Biomarker Contribution ranking badge (colored backgrounds)
+    // Immune Biomarker Contribution badge (colored backgrounds)
     if (immuneMapping[athlete.name]) {
-        const rank = immuneMapping[athlete.name];
-        let tooltipText = "";
-        const iconClass = "fa-shield-virus";
-        if (rank === 1) {
-            tooltipText = `Best Immune Profile`;
-        } else if (rank === 2) {
-            tooltipText = `2nd Best Immune Profile`;
-        } else if (rank === 3) {
-            tooltipText = `3rd Best Immune Profile`;
-        }
+        const tooltipText = immuneMapping[athlete.name];
+        const iconClass = "fa-virus";
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Sort the badge elements by the color order: black (1) first, then gold (2), silver/ezust (3), and bronze/bronz (4)
+    // Sort the badge elements by the color order: black (1) first, then gold (2), silver (3), and bronze (4)
     badgeElements.sort((a, b) => a.order - b.order);
 
     // Append the sorted badges to the badge section
