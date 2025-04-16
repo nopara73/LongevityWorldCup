@@ -96,7 +96,7 @@ window.computeBadges = function (athleteResults) {
             // For liver, we use Albumin (index 1) and Alkaline phosphatase (index 9)
             const albumin = athlete.bestBiomarkerValues[1].toFixed(1);
             const ap = athlete.bestBiomarkerValues[9].toFixed(1);
-            const tooltipText = `Liver King: Albumin ${albumin} g/L, AP ${ap} U/L`;
+            const tooltipText = `Liver King: Top Liver Profile (Albumin ${albumin} g/L, AP ${ap} U/L)`;
             liverMapping[athlete.name] = tooltipText;
         }
     });
@@ -114,7 +114,7 @@ window.computeBadges = function (athleteResults) {
         if (kidneyScore === bestKidneyScore) {
             // For kidney, we use Creatinine (index 2)
             const creatinine = athlete.bestBiomarkerValues[2].toFixed(1);
-            const tooltipText = `Kidney Overlord: Creatinine ${creatinine} µmol/L`;
+            const tooltipText = `Kidney Overlord: Top Kidney Profile (Creatinine ${creatinine} µmol/L)`;
             kidneyMapping[athlete.name] = tooltipText;
         }
     });
@@ -132,7 +132,7 @@ window.computeBadges = function (athleteResults) {
         if (metabolicScore === bestMetabolicScore) {
             // For metabolic, we use Glucose (index 3)
             const glucose = athlete.bestBiomarkerValues[3].toFixed(1);
-            const tooltipText = `Glucose Gladiator: Top Metabolic Profile - Glucose ${glucose} mmol/L`;
+            const tooltipText = `Glucose Gladiator: Top Metabolic Profile (Glucose ${glucose} mmol/L)`;
             metabolicMapping[athlete.name] = tooltipText;
         }
     });
@@ -150,7 +150,7 @@ window.computeBadges = function (athleteResults) {
         if (inflammationScore === bestInflammationScore) {
             // For inflammation, we use C-reactive protein (CRP at index 4)
             const crp = (Math.exp(athlete.bestBiomarkerValues[4]) * 10).toFixed(2);
-            const tooltipText = `Inflammation Whisperer: CRP ${crp} mg/L`;
+            const tooltipText = `Inflammation Whisperer: Top Inflammation Profile (CRP ${crp} mg/L)`;
             inflammationMapping[athlete.name] = tooltipText;
         }
     });
@@ -172,7 +172,7 @@ window.computeBadges = function (athleteResults) {
             const lymphocyte = athlete.bestBiomarkerValues[6].toFixed(1);
             const mcv = athlete.bestBiomarkerValues[7].toFixed(1);
             const rcdw = athlete.bestBiomarkerValues[8].toFixed(1);
-            const tooltipText = `Pathogen Punisher: Top Immune Profile - WBC ${wbc} 10³ cells/µL, Lymphocyte ${lymphocyte}%, MCV ${mcv} fL, RCDW ${rcdw}%`;
+            const tooltipText = `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lymphocyte}%, MCV ${mcv} fL, RCDW ${rcdw}%)`;
             immuneMapping[athlete.name] = tooltipText;
         }
     });
