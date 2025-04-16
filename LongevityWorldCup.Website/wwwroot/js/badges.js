@@ -289,17 +289,6 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Host badge for "nopara73" (uses black)
-    if (athlete.name === "nopara73") {
-        const tooltipText = "Host: Organizer of the Longevity World Cup";
-        const iconClass = "fa-house";
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
     // Ultimate League ranking badge (colored backgrounds)
     if (ultimateLeagueMapping[athlete.name]) {
         const rank = ultimateLeagueMapping[athlete.name];
