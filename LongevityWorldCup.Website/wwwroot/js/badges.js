@@ -10,6 +10,8 @@ let kidneyMapping = {};
 let metabolicMapping = {};
 let inflammationMapping = {};
 let immuneMapping = {};
+let submissionMapping = {};
+let phenoAgeDiffMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -174,6 +176,34 @@ window.computeBadges = function (athleteResults) {
             const rcdw = athlete.bestBiomarkerValues[8].toFixed(1);
             const tooltipText = `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lymphocyte}%, MCV ${mcv} fL, RCDW ${rcdw}%)`;
             immuneMapping[athlete.name] = tooltipText;
+        }
+    });
+
+    // Compute the best Submission Count badge (highest number of submissions); if ties, assign badge to all
+    let bestSubmissionCount = 0;
+    athleteResults.forEach(athlete => {
+        if (athlete.submissionCount > bestSubmissionCount) {
+            bestSubmissionCount = athlete.submissionCount;
+        }
+    });
+    athleteResults.forEach(athlete => {
+        if (athlete.submissionCount === bestSubmissionCount) {
+            const tooltipText = `The Regular: Most Tests Submitted: ${athlete.submissionCount}`;
+            submissionMapping[athlete.name] = tooltipText;
+        }
+    });
+
+    // Compute the best PhenoAge Difference badge (biggest improvement = lowest phenoAgeDifference); if ties, assign badge to all
+    let bestPhenoAgeDiff = Infinity;
+    athleteResults.forEach(athlete => {
+        if (athlete.phenoAgeDifference < bestPhenoAgeDiff) {
+            bestPhenoAgeDiff = athlete.phenoAgeDifference;
+        }
+    });
+    athleteResults.forEach(athlete => {
+        if (athlete.phenoAgeDifference === bestPhenoAgeDiff) {
+            const tooltipText = `Redemption Arc: Greatest Age Reversal from Frist Submission (Baseline) (${athlete.phenoAgeDifference.toFixed(1)} years)`;
+            phenoAgeDiffMapping[athlete.name] = tooltipText;
         }
     });
 }
@@ -447,6 +477,28 @@ window.setBadges = function (athlete, athleteCell) {
             </span>`;
         const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
+    }
+
+    // Submission Count badge (using default blackish background)
+    if (submissionMapping[athlete.name]) {
+        const tooltipText = submissionMapping[athlete.name];
+        const iconClass = "fa-calendar-check";  // choose your preferred icon for submissions
+        const badgeHtml = `
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
+    // PhenoAge Difference badge (using default blackish background)
+    if (phenoAgeDiffMapping[athlete.name]) {
+        const tooltipText = phenoAgeDiffMapping[athlete.name];
+        const iconClass = "fa-clock";  // choose your preferred icon for time/difference
+        const badgeHtml = `
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
     }
 
     // Liver Biomarker Contribution badge (colored backgrounds)

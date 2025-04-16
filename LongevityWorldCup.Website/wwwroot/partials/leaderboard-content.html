@@ -1208,6 +1208,51 @@
                         }
                     });
 
+                    let phenoAgeDifference = 0;
+                    // Only proceed if there are submissions.
+                    if (athlete.Biomarkers.length > 0) {
+                        // Get the first and last biomarker submissions.
+                        const firstSubmission = athlete.Biomarkers[0];
+                        const lastSubmission = athlete.Biomarkers[athlete.Biomarkers.length - 1];
+
+                        // Prepare the biomarker values for the first submission.
+                        const firstSubmissionValues = [
+                            chronologicalAge,
+                            firstSubmission.AlbGL,
+                            firstSubmission.CreatUmolL,
+                            firstSubmission.GluMmolL,
+                            Math.log(firstSubmission.CrpMgL / 10),
+                            firstSubmission.Wbc1000cellsuL,
+                            firstSubmission.LymPc,
+                            firstSubmission.McvFL,
+                            firstSubmission.RdwPc,
+                            firstSubmission.AlpUL
+                        ];
+
+                        // Prepare the biomarker values for the last submission.
+                        const lastSubmissionValues = [
+                            chronologicalAge,
+                            lastSubmission.AlbGL,
+                            lastSubmission.CreatUmolL,
+                            lastSubmission.GluMmolL,
+                            Math.log(lastSubmission.CrpMgL / 10),
+                            lastSubmission.Wbc1000cellsuL,
+                            lastSubmission.LymPc,
+                            lastSubmission.McvFL,
+                            lastSubmission.RdwPc,
+                            lastSubmission.AlpUL
+                        ];
+
+                        // Calculate the PhenoAges for the first and last submissions.
+                        const firstPhenoAge = window.PhenoAge.calculatePhenoAge(firstSubmissionValues);
+                        const lastPhenoAge = window.PhenoAge.calculatePhenoAge(lastSubmissionValues);
+
+                        // Compute the difference between the last and first PhenoAges.
+                        phenoAgeDifference = lastPhenoAge - firstPhenoAge;
+                    }
+
+                    const submissionCount = athlete.Biomarkers.length;
+
                     // Prepare the biomarker values array in the order required for the PhenoAge calculation
                     const bestBiomarkerValues = [
                         chronologicalAge,
@@ -1241,7 +1286,9 @@
                         profilePic: athlete.ProfilePic,
                         division: athlete.Division,
                         generation: generation,
-                        exclusiveLeague: athlete.ExclusiveLeague
+                        exclusiveLeague: athlete.ExclusiveLeague,
+                        submissionCount: submissionCount,
+                        phenoAgeDifference: phenoAgeDifference
                     };
                 });
 
