@@ -201,14 +201,29 @@ window.setBadges = function (athlete, athleteCell) {
     // Define the badge backgrounds and their ordering:
     // defaultBadgeBackground is black (order = 1)
     // badgeBackgrounds[0] is gold (order = 2)
-    // badgeBackgrounds[1] is silver / ezust (order = 3)
-    // badgeBackgrounds[2] is bronze / bronz (order = 4)
+    // badgeBackgrounds[1] is silver (order = 3)
+    // badgeBackgrounds[2] is bronze (order = 4)
     const defaultBadgeBackground = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;";
     const badgeBackgrounds = [
         "background: linear-gradient(135deg, #ffd700, #8b8000); border: 2px solid #8a6f00;", // Gold
-        "background: linear-gradient(135deg, #c0c0c0, #696969); border: 2px solid #6e6e6e;", // Silver (Ezust)
-        "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Bronze (Bronz)
+        "background: linear-gradient(135deg, #c0c0c0, #696969); border: 2px solid #6e6e6e;", // Silver
+        "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Bronze
     ];
+
+    const liverBackground = "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;";
+    // Magenta → Burgundy, with deep wine border
+
+    const kidneyBackground = "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;";
+    // Teal → Deep cyan, with dark marine border
+
+    const metabolicBackground = "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;";
+    // Bright orange → burnt amber, with dark roast border
+
+    const inflammationBackground = "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;";
+    // Blood red → dark crimson, with deep crimson border
+
+    const immuneBackground = "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;";
+    // Lush green → deep forest, with pine-dark border
 
     // Chronologically Oldest badge (uses black)
     if (oldestMapping[athlete.name]) {
@@ -410,7 +425,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = liverMapping[athlete.name];
         const iconClass = "fa-droplet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="${liverBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -421,7 +436,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = kidneyMapping[athlete.name];
         const iconClass = "fa-toilet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="${kidneyBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -432,7 +447,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = metabolicMapping[athlete.name];
         const iconClass = "fa-fire";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="${metabolicBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -443,7 +458,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = inflammationMapping[athlete.name];
         const iconClass = "fa-temperature-three-quarters";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="${inflammationBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -454,7 +469,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = immuneMapping[athlete.name];
         const iconClass = "fa-virus";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="${immuneBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
