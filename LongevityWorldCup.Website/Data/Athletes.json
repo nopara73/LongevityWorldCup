@@ -882,7 +882,12 @@
         "AlbGL": 44,
         "CreatUmolL": 71.6,
         "GluMmolL": 5.33,
-        "AlpUL": 88
+        "CrpMgL": 0.68,
+        "LymPc": 28,
+        "McvFL": 94,
+        "RdwPc": 12.4,
+        "AlpUL": 88,
+        "Wbc1000cellsuL": 4.8
       }
     ],
     "Division": "Men's",
@@ -898,7 +903,8 @@
       "/assets/proofs/nils_proof_6.png",
       "/assets/proofs/nils_proof_7.png",
       "/assets/proofs/nils_proof_8.png",
-      "/assets/proofs/nils_proof_9.jpg"
+      "/assets/proofs/nils_proof_9.jpg",
+      "/assets/proofs/nils_proof_10.jpg"
     ],
     "PersonalLink": "https://nilsosmar.com/"
   },
