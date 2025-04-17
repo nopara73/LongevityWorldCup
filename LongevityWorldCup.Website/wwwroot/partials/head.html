@@ -38,7 +38,33 @@
 <!-- AOS JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
 
+<!--
+Monkey-patch DOMContentLoaded to delay all handlers until modulesReady resolves.
+Ensures imported modules (like PhenoAge) are available before any DOM logic runs.
+Must appear before any other script that attaches DOMContentLoaded listeners.
+-->
 <script>
+    ; (function () {
+        const origAdd = document.addEventListener.bind(document);
+        document.addEventListener = function (type, listener, options) {
+            if (type === 'DOMContentLoaded') {
+                // wrap every DOMContentLoaded handler to await modulesReady first
+                origAdd('DOMContentLoaded', event => {
+                    window.modulesReady
+                        .then(() => listener.call(this, event))
+                        .catch(err => {
+                            console.error('module load failed before DOMContentLoaded:', err);
+                            listener.call(this, event);
+                        });
+                }, options);
+            } else {
+                origAdd(type, listener, options);
+            }
+        };
+    })();
+</script>
+
+<script type="module">
     // build a version‑stamp once
     const __v = Date.now();
 
