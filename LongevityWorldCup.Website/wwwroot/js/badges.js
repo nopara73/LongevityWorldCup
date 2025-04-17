@@ -98,7 +98,7 @@ window.computeBadges = function (athleteResults) {
             // For liver, we use Albumin (index 1) and Alkaline phosphatase (index 9)
             const albumin = athlete.bestBiomarkerValues[1].toFixed(1);
             const ap = athlete.bestBiomarkerValues[9].toFixed(1);
-            const tooltipText = `Liver King: Top Liver Profile (Albumin ${albumin} g/L, AP ${ap} U/L)`;
+            const tooltipText = `Liver King: Top Liver Profile (Albumin ${albumin} g/L, ALP ${ap} U/L)`;
             liverMapping[athlete.name] = tooltipText;
         }
     });
@@ -254,7 +254,7 @@ window.setBadges = function (athlete, athleteCell) {
                href="${linkHref}"
                target="_blank"
                rel="noopener"
-               title="Visit personal page of ${athlete.name}"
+               title="Personal Page"
                aria-label="Visit athlete's personal page"
                style="cursor: pointer; ${personalLinkColor}">
                 <i class="fa fa-link"></i>
