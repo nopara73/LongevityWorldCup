@@ -22,9 +22,24 @@
         transition: transform 0.2s ease;
     }
 
-        .badge-class:hover {
-            transform: scale(1.2);
+    @keyframes shadowPulse {
+        0% {
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
         }
+
+        50% {
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+        }
+
+        100% {
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+        }
+    }
+
+    .badge-class:hover {
+        transform: scale(1.2);
+        animation: shadowPulse 1s ease-in-out 1 forwards;
+    }
 
     .modal-badge-strip {
         display: flex;
