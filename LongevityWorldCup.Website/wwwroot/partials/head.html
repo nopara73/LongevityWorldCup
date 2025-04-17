@@ -38,7 +38,20 @@
 <!-- AOS JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
 
-<script src="/js/misc.js?v=1.6"></script>
+<script>
+    // build a version‑stamp once
+    const __v = Date.now();
+
+    // kick off three dynamic imports (they run in module scope,
+    // so nothing leaks global except what each module explicitly
+    // assigns to window, e.g. window.PhenoAge)
+    window.modulesReady = Promise.all([
+        import(`/js/misc.js?v=${__v}`),
+        import(`/js/leagueIcons.js?v=${__v}`),
+        import(`/js/pheno-age.js?v=${__v}`),
+        import(`/js/badges.js?v=${__v}`)
+    ]);
+</script>
 
 <!-- Structured Data -->
 <script type="application/ld+json">

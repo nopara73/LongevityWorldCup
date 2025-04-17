@@ -432,7 +432,7 @@ window.setBadges = function (athlete, athleteCell) {
             tooltipText = `#${rank} in ${division} League`;
         }
         const iconClass = window.TryGetDivisionFaIcon(division);
-        const leagueSlug = slugifyName(division, true);
+        const leagueSlug = window.slugifyName(division, true);
         const badgeHtml = `
         <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
             <i class="fa ${iconClass}"></i>
@@ -464,7 +464,7 @@ window.setBadges = function (athlete, athleteCell) {
             tooltipText = `#${rank} in ${generation} League`;
         }
         const iconClass = window.TryGetGenerationFaIcon(generation);
-        const leagueSlug = slugifyName(generation, true);
+        const leagueSlug = window.slugifyName(generation, true);
         const badgeHtml = `
         <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
             <i class="fa ${iconClass}"></i>
@@ -478,7 +478,7 @@ window.setBadges = function (athlete, athleteCell) {
         const { rank, exclusiveLeague } = exclusiveLeagueMapping[athlete.name];
         const tooltipText = `#${rank} in ${exclusiveLeague} League`;
         let iconClass = "fa-umbrella-beach";
-        const leagueSlug = slugifyName(exclusiveLeague, true);
+        const leagueSlug = window.slugifyName(exclusiveLeague, true);
         const badgeHtml = `
             <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
                 <i class="fa ${iconClass}"></i>

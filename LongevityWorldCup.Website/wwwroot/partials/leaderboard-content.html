@@ -1145,15 +1145,6 @@
     </tr>
 </template>
 
-<script type="module">
-    ['leagueIcons', 'pheno-age', 'badges'].forEach(file => {
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = `/js/${file}.js?v=${Date.now()}`;
-        document.head.appendChild(script);
-    });
-</script>
-
 <script>
     let athleteResults = [];
 
@@ -1183,7 +1174,7 @@
 
                     // Get birth year and generation
                     const birthYear = athlete.DateOfBirth.Year;
-                    const generation = getGeneration(birthYear);
+                    const generation = window.getGeneration(birthYear);
 
                     // Create an object to store the best biomarker values from all sets
                     let bestBiomarkers = {
@@ -1327,7 +1318,7 @@
                 generateExclusiveFilters(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
-                athleteResults.sort(compareAthleteRank);
+                athleteResults.sort(window.compareAthleteRank);
 
                 // Assign ranks to each athlete based on the sorted order
                 athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
@@ -1339,7 +1330,7 @@
                 const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
                 divisions.forEach(division => {
                     const athletesInDivision = athleteResults.filter(athlete => athlete.division === division);
-                    athletesInDivision.sort(compareAthleteRank);
+                    athletesInDivision.sort(window.compareAthleteRank);
                     athletesInDivision.forEach((athlete, index) => {
                         athlete.ranks[division] = index + 1;
                     });
@@ -1349,7 +1340,7 @@
                 const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
                 generations.forEach(generation => {
                     const athletesInGeneration = athleteResults.filter(athlete => athlete.generation === generation);
-                    athletesInGeneration.sort(compareAthleteRank);
+                    athletesInGeneration.sort(window.compareAthleteRank);
                     athletesInGeneration.forEach((athlete, index) => {
                         athlete.ranks[generation] = index + 1;
                     });
@@ -1361,7 +1352,7 @@
                         const athletesInCombo = athleteResults.filter(
                             athlete => athlete.division === division && athlete.generation === generation
                         );
-                        athletesInCombo.sort(compareAthleteRank);
+                        athletesInCombo.sort(window.compareAthleteRank);
                         athletesInCombo.forEach((athlete, index) => {
                             const key = `${generation}_${division}`;
                             athlete.ranks[key] = index + 1;
@@ -1547,7 +1538,7 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const athleteParam = new URLSearchParams(window.location.search).get('athlete') || '';
                 if (athleteParam) {
-                    const normalizedAthlete = slugifyName(athleteParam, false);
+                    const normalizedAthlete = window.slugifyName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
                     if (athleteData) {
                         fetchFullAthleteData(normalizedAthlete, athleteData);
@@ -1671,19 +1662,19 @@
         if (isPodium) {
             return `${isEmail
                 ? `<a href="mailto:${contact}" aria-label="Email ${contact}" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
-                ${getIcon(contact)}
+                ${window.getIcon(contact)}
                </a>`
                 : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
-                ${getIcon(contact)}
+                ${window.getIcon(contact)}
                </a>`
                 }`;
         }
         return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}" title="${tooltipText}">
-            ${getIcon(contact)}
+            ${window.getIcon(contact)}
            </a>`
             : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
-            ${getIcon(contact)}
+            ${window.getIcon(contact)}
            </a>`
             }`;
     }
@@ -1740,7 +1731,7 @@
 
         searchInput.value = '';
         clearIcon.classList.remove('visible');
-        removeAllHighlights();
+        window.removeAllHighlights();
         performFilter(); // Reapply filters without search terms
 
         // Ensure the podium is visible after clearing the search
@@ -1767,6 +1758,15 @@
         performFilter();
     }, 400);
 
+    function debounce(func, delay) {
+        let debounceTimer;
+        return function (...args) {
+            const context = this;
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
     function performFilter() {
         // Get selected divisions
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
@@ -1780,7 +1780,7 @@
         const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
 
-        const query = normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
+        const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
 
@@ -1791,7 +1791,7 @@
         let anyMatch = false;
 
         athleteResults.forEach(athlete => {
-            const athleteNameNormalized = normalizeString(athlete.name);
+            const athleteNameNormalized = window.normalizeString(athlete.name);
 
             let matches = true;
 
@@ -1860,7 +1860,7 @@
             const row = document.querySelector(`.leaderboard table tbody tr[data-athlete-name="${athleteName}"]`);
             if (row) {
                 row.style.display = '';
-                showWithDelay(row);
+                window.showWithDelay(row);
 
                 // Update the rank cell
                 const rankCell = row.querySelector('td[data-label="Rank"] .rank');
@@ -1877,17 +1877,17 @@
         });
 
         // Remove existing highlights
-        removeAllHighlights();
+        window.removeAllHighlights();
 
         // Highlight search terms
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
             const athleteNameText = athleteNameElement.textContent;
-            const athleteNameNormalized = normalizeString(athleteNameText);
+            const athleteNameNormalized = window.normalizeString(athleteNameText);
 
             // Check if the athlete is in filteredAthletes
             const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === athleteNameText);
             if (athleteInFiltered) {
-                highlightText(athleteNameElement, uniqueSearchTerms);
+                window.highlightText(athleteNameElement, uniqueSearchTerms);
             }
         });
 
@@ -1938,7 +1938,7 @@
             ([...url.searchParams].length === 0
                 || ([...url.searchParams].length === 1 && url.searchParams.has('filters')))) {
             url.searchParams.delete('filters');
-            const leagueSlug = slugifyName(filters[0], true);
+            const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
         } else {
             url.pathname = originalLeaguelessURL.pathname;
@@ -2099,7 +2099,7 @@
                 const tableBody = document.querySelector('.leaderboard table tbody');
                 const noResults = document.createElement('tr');
                 noResults.classList.add('no-results');
-                noResults.innerHTML = `<td colspan="6">No results found for "<strong>${escapeHTML(query)}</strong>".</td>`;
+                noResults.innerHTML = `<td colspan="6">No results found for "<strong>${window.escapeHTML(query)}</strong>".</td>`;
                 tableBody.appendChild(noResults);
             }
             else {
@@ -2358,7 +2358,7 @@
     }
 
     function getAthleteData(athleteNameText) {
-        return athleteResults.find(athlete => slugifyName(athlete.name) === slugifyName(athleteNameText));
+        return athleteResults.find(athlete => window.slugifyName(athlete.name) === window.slugifyName(athleteNameText));
     }
 
     function getAthletelessURL() {
@@ -2379,7 +2379,7 @@
         fetchWithTimeout('/api/data/athletes', {}, 10000) // 10-second timeout
             .then(response => response.json())
             .then(athletes => {
-                const fullAthleteData = athletes.find(a => slugifyName(a.Name) === slugifyName(athleteNameText));
+                const fullAthleteData = athletes.find(a => window.slugifyName(a.Name) === window.slugifyName(athleteNameText));
                 if (!fullAthleteData) {
                     console.error('Full athlete data not found');
                     return;
@@ -2405,7 +2405,7 @@
 
                 // After populating the modal with athlete data but before showing it:
                 originalAthletelessURL = getAthletelessURL();
-                const athleteSlug = slugifyName(athleteNameText, true);
+                const athleteSlug = window.slugifyName(athleteNameText, true);
                 history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
 
                 // Display the modal
@@ -2449,7 +2449,7 @@
     }
 
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
-        document.getElementById('athleteName').textContent = `${fullAthleteData.Name}${getRankText(ultimateRank)}`;
+        document.getElementById('athleteName').textContent = `${fullAthleteData.Name}${window.getRankText(ultimateRank)}`;
         const profilePic = document.getElementById('modalProfilePic');
         profilePic.src = fullAthleteData.ProfilePic;
         profilePic.alt = `${fullAthleteData.Name} Profile Picture`;
@@ -2461,7 +2461,7 @@
         if (bestLeagueRank !== ultimateRank) {
             const leagueLabel = bestLeagueName.replace('_', ' ');
             if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
-                const slug = slugifyName(bestLeagueName, true);
+                const slug = window.slugifyName(bestLeagueName, true);
                 rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
             } else if (bestLeagueType === 'combination') {
                 const filters = bestLeagueName.split('_').map(f => encodeURIComponent(f)).join('%2C');
@@ -2472,8 +2472,8 @@
         }
 
         document.getElementById('athleteRank').innerHTML = rankText;
-        document.getElementById('athleteDivision').innerHTML = `<a href="/league/${slugifyName(athleteData.division, true)}" class="league-link">${athleteData.division}</a>${getRankText(athleteData.ranks[athleteData.division])}`;
-        document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${getRankText(athleteData.ranks[athleteData.generation])}`;
+        document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${athleteData.division}</a>${window.getRankText(athleteData.ranks[athleteData.division])}`;
+        document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${window.getRankText(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
@@ -2495,7 +2495,7 @@
         if (athleteData.mediaContact) {
             const isEmail = athleteData.mediaContact.includes('@');
             mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : (athleteData.mediaContact.startsWith('http') ? athleteData.mediaContact : 'https://' + athleteData.mediaContact);
-            mediaContactElement.innerHTML = `${getIcon(athleteData.mediaContact)} Media Contact`;
+            mediaContactElement.innerHTML = `${window.getIcon(athleteData.mediaContact)} Media Contact`;
             mediaContactElement.style.display = 'flex';
             mediaContactElement.title = isEmail ? `Email ${athleteData.name}` : `Contact ${athleteData.name}`;
         } else {
@@ -2533,7 +2533,7 @@
 
         biomarkerData.forEach(entry => {
             const entryDate = new Date(entry.Date);
-            const chronoAgeAtEntry = calculateAgeAtDate(dob, entryDate);
+            const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
             collectBiomarkerValues(entry, biomarkersRaw);
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
@@ -2917,5 +2917,14 @@
     const originalDocumentTitle = document.title;
     function resetPageTitle() {
         document.title = originalDocumentTitle;
+    }
+
+    function addClickListenerToImages(selector, callback) {
+        document.querySelectorAll(selector).forEach(img => {
+            if (!img.dataset.listenerAdded) {
+                img.addEventListener('click', callback);
+                img.dataset.listenerAdded = true; // Mark this element as having a listener added
+            }
+        });
     }
 </script>

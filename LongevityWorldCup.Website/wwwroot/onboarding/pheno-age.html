@@ -397,14 +397,6 @@
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
-    <script type="module">
-        ['pheno-age'].forEach(file => {
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = `/js/${file}.js?v=${Date.now()}`;
-            document.head.appendChild(script);
-        });
-    </script>
     <script>
         updateMainProgress(2);
 

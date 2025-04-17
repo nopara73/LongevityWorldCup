@@ -1,4 +1,4 @@
-﻿function getIcon(link) {
+﻿window.getIcon = function (link) {
     // Normalize the link to lowercase for case-insensitive matching
     const normalizedLink = link.toLowerCase().trim();
 
@@ -60,7 +60,7 @@
     return '<i class="fas fa-link"></i>';
 }
 
-function slugifyName(name, encode) {
+window.slugifyName = function (name, encode) {
     // Normalize the string: trim, lowercase, remove accents,
     // replace spaces with hyphens, remove any disallowed characters,
     // collapse multiple hyphens and trim hyphens from start/end.
@@ -84,19 +84,14 @@ function slugifyName(name, encode) {
         return decodeURIComponent(normalized);
     }
 }
-function normalizeString(str) {
+window.normalizeString = function (str) {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-function escapeHTML(string) {
+window.escapeHTML = function (string) {
     const div = document.createElement('div');
     div.textContent = string;
     return div.innerHTML;
-}
-
-// Utility function to escape special characters in the search query
-function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -106,7 +101,7 @@ function escapeRegExp(string) {
  * 2. Chronological Age (older athletes rank higher)
  * 3. Alphabetical Order (as a last resort, hopefully it'll never have to come down to this)
  */
-function compareAthleteRank(a, b) {
+window.compareAthleteRank = function (a, b) {
     // First Criterion: Age Reduction (more negative is better)
     // Since ageReduction = PhenoAge - ChronologicalAge,
     // a more negative value indicates a greater reversal.
@@ -140,7 +135,7 @@ function compareAthleteRank(a, b) {
     return 1;
 }
 
-function getGeneration(birthYear) {
+window.getGeneration = function (birthYear) {
     if (birthYear >= 1928 && birthYear <= 1945) {
         return "Silent Generation";
     } else if (birthYear >= 1946 && birthYear <= 1964) {
@@ -158,7 +153,7 @@ function getGeneration(birthYear) {
     }
 }
 
-function getRankText(rank) {
+window.getRankText = function (rank) {
     let rankText = ` (#${rank})`;
     if (rank === 1) {
         rankText = "🥇"; // Gold medal for 1st place
@@ -170,24 +165,7 @@ function getRankText(rank) {
     return rankText;
 }
 
-function debounce(func, delay) {
-    let debounceTimer;
-    return function (...args) {
-        const context = this;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), delay);
-    };
-}
-
-function hideWithDelay(element) {
-    element.classList.add('fade-out'); // Start fade-out transition
-    setTimeout(() => {
-        element.style.display = 'none'; // Apply display: none after transition
-        element.classList.remove('fade-out'); // Reset class
-    }, 300); // Delay in milliseconds
-}
-
-function showWithDelay(element) {
+window.showWithDelay = function (element) {
     element.style.display = ''; // Remove display: none to make it visible
     element.classList.add('fade-in'); // Start fade-in transition
 
@@ -195,25 +173,25 @@ function showWithDelay(element) {
         element.classList.remove('fade-in'); // Clean up fade-in class after transition
     }, 300); // Match the fade-out delay for smoothness
 }
-function calculateAgeBetweenDates(startDate, endDate) {
+window.calculateAgeBetweenDates = function (startDate, endDate) {
     const diffInMs = endDate - startDate;
     const diffInYears = diffInMs / (1000 * 60 * 60 * 24 * 365.25);
     return diffInYears;
 }
 
-function calculateAgeAtDate(dob, currentDate) {
-    return calculateAgeBetweenDates(dob, currentDate);
+window.calculateAgeAtDate = function (dob, currentDate) {
+    return window.calculateAgeBetweenDates(dob, currentDate);
 }
 
-function removeAllHighlights() {
+window.removeAllHighlights = function () {
     document.querySelectorAll('.athlete-name').forEach(element => {
-        element.innerHTML = escapeHTML(element.textContent);
+        element.innerHTML = window.escapeHTML(element.textContent);
     });
 }
 
-function highlightText(element, searchTerms) {
+window.highlightText = function (element, searchTerms) {
     const originalText = element.textContent;
-    const normalizedText = normalizeString(originalText);
+    const normalizedText = window.normalizeString(originalText);
 
     // Build a mapping from positions in normalizedText to positions in originalText
     const mapping = [];
@@ -222,7 +200,7 @@ function highlightText(element, searchTerms) {
 
     while (originalIndex < originalText.length) {
         const originalChar = originalText[originalIndex];
-        const normalizedChar = normalizeString(originalChar);
+        const normalizedChar = window.normalizeString(originalChar);
 
         for (let i = 0; i < normalizedChar.length; i++) {
             mapping[normalizedIndex] = originalIndex;
@@ -274,26 +252,18 @@ function highlightText(element, searchTerms) {
 
     mergedIndices.forEach(match => {
         // Append text before the match
-        highlightedHTML += escapeHTML(originalText.slice(currentIndex, match.start));
+        highlightedHTML += window.escapeHTML(originalText.slice(currentIndex, match.start));
 
         // Append the matched text with highlight
         highlightedHTML += '<span class="highlight">' +
-            escapeHTML(originalText.slice(match.start, match.end)) +
+            window.escapeHTML(originalText.slice(match.start, match.end)) +
             '</span>';
 
         currentIndex = match.end;
     });
 
     // Append any remaining text
-    highlightedHTML += escapeHTML(originalText.slice(currentIndex));
+    highlightedHTML += window.escapeHTML(originalText.slice(currentIndex));
 
     element.innerHTML = highlightedHTML;
-}
-function addClickListenerToImages(selector, callback) {
-    document.querySelectorAll(selector).forEach(img => {
-        if (!img.dataset.listenerAdded) {
-            img.addEventListener('click', callback);
-            img.dataset.listenerAdded = true; // Mark this element as having a listener added
-        }
-    });
 }
