@@ -211,20 +211,6 @@ window.computeBadges = function (athleteResults) {
 window.setBadges = function (athlete, athleteCell) {
     const badgeSection = athleteCell.querySelector('.badge-section');
 
-    // If a personal link exists, add its badge first
-    if (athlete.personalLink) {
-        const linkHref = athlete.personalLink.startsWith('http')
-            ? athlete.personalLink
-            : 'https://' + athlete.personalLink;
-        badgeSection.innerHTML = `
-            <a href="${linkHref}" target="_blank" rel="noopener" class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
-                <i class="fa fa-link"></i>
-            </a>
-        `;
-    } else {
-        badgeSection.innerHTML = "";
-    }
-
     // Create an array to collect computed badge elements
     let badgeElements = [];
 
@@ -240,20 +226,42 @@ window.setBadges = function (athlete, athleteCell) {
         "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Bronze
     ];
 
-    const liverBackground = "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;";
     // Magenta → Burgundy, with deep wine border
+    const liverBackground = "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;";
 
-    const kidneyBackground = "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;";
     // Teal → Deep cyan, with dark marine border
+    const kidneyBackground = "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;";
 
-    const metabolicBackground = "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;";
     // Bright orange → burnt amber, with dark roast border
+    const metabolicBackground = "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;";
 
-    const inflammationBackground = "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;";
     // Blood red → dark crimson, with deep crimson border
+    const inflammationBackground = "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;";
 
-    const immuneBackground = "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;";
     // Lush green → deep forest, with pine-dark border
+    const immuneBackground = "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;";
+
+    const personalLinkColor = "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;";
+
+    // If a personal link exists, add its badge first
+    if (athlete.personalLink) {
+        const linkHref = athlete.personalLink.startsWith('http')
+            ? athlete.personalLink
+            : 'https://' + athlete.personalLink;
+
+        const badgeHtml = `
+            <a class="badge-class"
+               href="${linkHref}"
+               target="_blank"
+               rel="noopener"
+               title="Visit personal page of ${athlete.name}"
+               aria-label="Visit athlete's personal page"
+               style="cursor: pointer; ${personalLinkColor}">
+                <i class="fa fa-link"></i>
+            </a>`;
+
+        badgeElements.push({ order: 0, html: badgeHtml });
+    }
 
     // Chronologically Oldest badge (uses black)
     if (oldestMapping[athlete.name]) {
@@ -563,4 +571,19 @@ window.setBadges = function (athlete, athleteCell) {
     badgeElements.forEach(badge => {
         badgeSection.innerHTML += badge.html;
     });
+
+    // — Apply pop animation to leaderboard badges —
+    if (badgeSection.classList.contains('badge-section')) {
+        // — Apply pop animation to leaderboard badges —
+        if (badgeSection.classList.contains('badge-section')) {
+            Array.from(badgeSection.children).forEach((badge, i) => {
+                badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
+                badge.addEventListener('animationend', function handler() {
+                    // Clear the animation so CSS hover-transform can take over
+                    badge.style.animation = '';
+                    badge.removeEventListener('animationend', handler);
+                });
+            });
+        }
+    }
 }

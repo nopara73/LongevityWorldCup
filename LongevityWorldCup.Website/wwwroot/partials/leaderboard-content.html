@@ -10,8 +10,9 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 24px;
-        height: 24px;
+        text-decoration: none;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         font-size: 0.75rem;
         font-weight: bold;
@@ -22,7 +23,23 @@
     }
 
         .badge-class:hover {
-            transform: scale(1.1);
+            transform: scale(1.2);
+        }
+
+    .modal-badge-strip {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.25rem;
+        margin: 0.5rem 0 1rem;
+    }
+
+        /* make the badges in the modal larger */
+        .modal-badge-strip .badge-class {
+            width: 48px;
+            height: 48px;
+            font-size: 1rem;
+            margin: 0.4rem;
         }
 
     .portrait,
@@ -962,6 +979,18 @@
             font-size: 1.8rem;
             line-height: 1;
         }
+
+    @keyframes pop {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
 </style>
 
 <div class="main-container">
@@ -1049,6 +1078,7 @@
                          class="illustration"
                          loading="lazy" />
                     <h2 id="athleteName"></h2>
+                    <div id="modalBadgeStrip" class="modal-badge-strip"></div>
                     <p id="athleteBio"></p>
                     <div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
                         <div id="targetShootingVisualization" style="width: 150px; height: 150px; margin: 0 auto;">
@@ -2472,6 +2502,20 @@
             mediaContactElement.style.display = 'none';
         }
 
+        // — Add badge strip into the modal —
+        const modalBadgeSection = document.getElementById('modalBadgeStrip');
+        modalBadgeSection.innerHTML = '';
+        window.setBadges(athleteData, {
+            querySelector: () => modalBadgeSection
+        });
+        Array.from(modalBadgeSection.children).forEach((badge, i) => {
+            badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
+            badge.addEventListener('animationend', function handler() {
+                // Clear the animation so CSS hover-transform can take over
+                badge.style.animation = '';
+                badge.removeEventListener('animationend', handler);
+            });
+        });
     }
 
     function generateBiomarkerChart(fullAthleteData) {
