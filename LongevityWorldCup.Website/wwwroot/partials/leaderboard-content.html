@@ -51,11 +51,56 @@
 
         /* make the badges in the modal larger */
         .modal-badge-strip .badge-class {
-            width: 48px;
-            height: 48px;
+            width: 70px;
+            height: 70px;
             font-size: 1rem;
             margin: 0.4rem;
         }
+
+        /* BADGE LABELS IN MODAL */
+        .modal-badge-strip .modal-badge-item {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0.4rem;
+        }
+
+        /* BADGE LABELS IN MODAL: full tooltip, wrapped and clamped */
+        .modal-badge-strip .modal-badge-name {
+            font-size: 0.75rem;
+            margin-top: 0.2rem;
+            color: var(--primary-color);
+            text-align: center;
+            width: 100px; /* fix width so it wraps */
+            white-space: normal; /* allow wrapping */
+            word-break: break-word; /* break long words */
+            display: -webkit-box; /* for line‑clamp */
+            -webkit-line-clamp: 3; /* show up to 3 lines */
+            -webkit-box-orient: vertical; /* required for line‑clamp */
+            overflow: hidden; /* hide anything past 3 lines */
+        }
+
+    /* only make the badge title bold */
+    .modal-badge-name .modal-badge-title {
+        display: block;
+        font-weight: bold;
+    }
+
+    .modal-badge-name .modal-badge-detail {
+        display: none;
+    }
+    /* reveal the detail line on hover (desktop) or when tapped (mobile) */
+    .modal-badge-item:hover .modal-badge-detail,
+    .modal-badge-item.expanded .modal-badge-detail {
+        display: block;
+    }
+
+    /* on hover (desktop) or when .expanded is toggled (mobile), drop the clamp */
+    .modal-badge-item:hover .modal-badge-name, .modal-badge-item.expanded .modal-badge-name {
+        -webkit-line-clamp: unset;
+        max-height: none;
+        overflow: visible;
+    }
 
     .portrait,
     .podium-portrait {
@@ -2531,6 +2576,42 @@
                 badge.removeEventListener('animationend', handler);
             });
         });
+
+        // wrap each badge in a column with its name
+        const badges = Array.from(modalBadgeSection.children);
+        modalBadgeSection.innerHTML = '';
+        badges.forEach(badge => {
+            const fullTitle = badge.getAttribute('title') || '';
+            const colonIndex = fullTitle.indexOf(':');
+            let titlePart = fullTitle;
+            let detailPart = '';
+            if (colonIndex !== -1) {
+                titlePart = fullTitle.slice(0, colonIndex);       // before the colon
+                detailPart = fullTitle.slice(colonIndex + 1).trim(); // after the colon
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('modal-badge-item');
+            wrapper.appendChild(badge);
+
+            const label = document.createElement('div');
+            label.classList.add('modal-badge-name');
+            if (detailPart) {
+                label.innerHTML =
+                    `<span class="modal-badge-title">${titlePart}</span>` +
+                    `<span class="modal-badge-detail">${detailPart}</span>`;
+            } else {
+                label.innerHTML = `<span class="modal-badge-title">${titlePart}</span>`;
+            }
+            wrapper.appendChild(label);
+
+            // enable click/tap to expand full text
+            wrapper.addEventListener('click', () => {
+                wrapper.classList.toggle('expanded');
+            });
+            modalBadgeSection.appendChild(wrapper);
+        });
+
     }
 
     function generateBiomarkerChart(fullAthleteData) {
