@@ -2573,7 +2573,9 @@
         // — Add badge strip into the modal —
         const modalBadgeSection = document.getElementById('modalBadgeStrip');
         modalBadgeSection.innerHTML = '';
-        window.setBadges(athleteData, {
+        // Clone athleteData but disable personalLink for modal badges
+        const athleteForBadges = { ...athleteData, personalLink: null };
+        window.setBadges(athleteForBadges, {
             querySelector: () => modalBadgeSection
         });
         Array.from(modalBadgeSection.children).forEach((badge, i) => {
