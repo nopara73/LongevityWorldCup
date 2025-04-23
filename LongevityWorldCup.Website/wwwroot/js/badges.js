@@ -10,7 +10,8 @@ let kidneyMapping = {};
 let metabolicMapping = {};
 let inflammationMapping = {};
 let immuneMapping = {};
-let submissionMapping = {};
+let submissionOverTwoMapping = {};
+let mostSubmissionMapping = {};
 let phenoAgeDiffMapping = {};
 
 window.computeBadges = function (athleteResults) {
@@ -187,9 +188,13 @@ window.computeBadges = function (athleteResults) {
         }
     });
     athleteResults.forEach(athlete => {
+        if (athlete.submissionCount >= 2) {
+            const tooltipText = `The Regular: Two or More Tests Submitted`;
+            submissionOverTwoMapping[athlete.name] = tooltipText;
+        }
         if (athlete.submissionCount === bestSubmissionCount) {
-            const tooltipText = `The Regular: Most Tests Submitted: ${athlete.submissionCount}`;
-            submissionMapping[athlete.name] = tooltipText;
+            const tooltipText = `The Submittinator: Most Tests Submitted: ${athlete.submissionCount}`;
+            mostSubmissionMapping[athlete.name] = tooltipText;
         }
     });
 
@@ -487,9 +492,18 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Submission Count badge (using default blackish background)
-    if (submissionMapping[athlete.name]) {
-        const tooltipText = submissionMapping[athlete.name];
+    // Submission Count badges
+    if (mostSubmissionMapping[athlete.name]) {
+        const tooltipText = mostSubmissionMapping[athlete.name];
+        const iconClass = "fa-skull-crossbones";  // choose your preferred icon for submissions
+        const badgeHtml = `
+        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <i class="fa ${iconClass}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
+    }
+    if (submissionOverTwoMapping[athlete.name]) {
+        const tooltipText = submissionOverTwoMapping[athlete.name];
         const iconClass = "fa-calendar-check";  // choose your preferred icon for submissions
         const badgeHtml = `
         <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
