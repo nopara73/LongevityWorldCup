@@ -18,6 +18,9 @@ namespace LongevityWorldCup.Website.Business
         private readonly FileSystemWatcher _proofWatcher;
         private readonly SemaphoreSlim _reloadLock = new(1, 1);
 
+        private CancellationTokenSource? _debounceCts;
+        private static readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(100);
+
         public AthleteDataService(IWebHostEnvironment env)
         {
             _env = env;
@@ -31,10 +34,11 @@ namespace LongevityWorldCup.Website.Business
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName
             };
-            _jsonWatcher.Changed += OnSourceChanged;
-            _jsonWatcher.Renamed += OnSourceChanged;
-            _jsonWatcher.Deleted += OnSourceChanged;
+            _jsonWatcher.Changed += (s, e) => DebounceReload();
+            _jsonWatcher.Renamed += (s, e) => DebounceReload();
+            _jsonWatcher.Deleted += (s, e) => DebounceReload();
             _jsonWatcher.EnableRaisingEvents = true;
+            _jsonWatcher.Error += OnWatcherError;
 
             // Watch profile-pics directory
             var profileDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets", "profile-pics");
@@ -43,11 +47,12 @@ namespace LongevityWorldCup.Website.Business
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                 Filter = "*.*"
             };
-            _profileWatcher.Changed += OnSourceChanged;
-            _profileWatcher.Created += OnSourceChanged;
-            _profileWatcher.Deleted += OnSourceChanged;
-            _profileWatcher.Renamed += OnSourceChanged;
+            _profileWatcher.Changed += (s, e) => DebounceReload();
+            _profileWatcher.Created += (s, e) => DebounceReload();
+            _profileWatcher.Deleted += (s, e) => DebounceReload();
+            _profileWatcher.Renamed += (s, e) => DebounceReload();
             _profileWatcher.EnableRaisingEvents = true;
+            _profileWatcher.Error += OnWatcherError;
 
             // Watch proofs directory
             var proofDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets", "proofs");
@@ -56,11 +61,12 @@ namespace LongevityWorldCup.Website.Business
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                 Filter = "*.*"
             };
-            _proofWatcher.Changed += OnSourceChanged;
-            _proofWatcher.Created += OnSourceChanged;
-            _proofWatcher.Deleted += OnSourceChanged;
-            _proofWatcher.Renamed += OnSourceChanged;
+            _proofWatcher.Changed += (s, e) => DebounceReload();
+            _proofWatcher.Created += (s, e) => DebounceReload();
+            _proofWatcher.Deleted += (s, e) => DebounceReload();
+            _proofWatcher.Renamed += (s, e) => DebounceReload();
             _proofWatcher.EnableRaisingEvents = true;
+            _proofWatcher.Error += OnWatcherError;
         }
 
         private async Task LoadAthletesAsync()
@@ -120,7 +126,25 @@ namespace LongevityWorldCup.Website.Business
             }
         }
 
-        private async void OnSourceChanged(object sender, FileSystemEventArgs e)
+        private void DebounceReload()
+        {
+            _debounceCts?.Cancel();
+            _debounceCts = new CancellationTokenSource();
+            var token = _debounceCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(_debounceInterval, token);
+                    if (!token.IsCancellationRequested)
+                        await OnSourceChangedAsync(this, null);
+                }
+                catch (TaskCanceledException) { }
+            }, CancellationToken.None);
+        }
+
+        private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
         {
             await _reloadLock.WaitAsync();
             try
@@ -131,6 +155,20 @@ namespace LongevityWorldCup.Website.Business
             {
                 _reloadLock.Release();
             }
+        }
+
+        /// <summary>
+        /// Fired if the FileSystemWatcher’s internal buffer overflows or another error occurs.
+        /// You can log it or recreate the watcher here.
+        /// </summary>
+        private void OnWatcherError(object sender, ErrorEventArgs e)
+        {
+            // Example: log and restart the watcher
+            var watcher = (FileSystemWatcher)sender;
+
+            // temporarily disable and re-enable to clear the buffer
+            watcher.EnableRaisingEvents = false;
+            watcher.EnableRaisingEvents = true;
         }
 
         private static int ExtractNumber(string fileNameWithoutExtension)
@@ -146,6 +184,8 @@ namespace LongevityWorldCup.Website.Business
             _jsonWatcher.Dispose();
             _profileWatcher.Dispose();
             _proofWatcher.Dispose();
+            _reloadLock.Dispose();          // ← dispose the semaphore
+            _debounceCts?.Dispose();       // ← dispose the CTS
             GC.SuppressFinalize(this);
         }
     }
