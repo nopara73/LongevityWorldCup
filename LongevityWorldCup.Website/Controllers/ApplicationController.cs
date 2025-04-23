@@ -29,7 +29,7 @@ namespace LongevityWorldCup.Website.Controllers
         private static string SanitizeFileName(string name)
         {
             var invalidChars = Path.GetInvalidFileNameChars();
-            var sanitized = new string(name.ToLower().Where(c => !invalidChars.Contains(c)).ToArray());
+            var sanitized = new string([.. name.ToLower().Where(c => !invalidChars.Contains(c))]);
             sanitized = sanitized.Replace(' ', '_');
             return sanitized;
         }
