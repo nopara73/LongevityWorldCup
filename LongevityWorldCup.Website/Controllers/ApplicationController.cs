@@ -94,10 +94,6 @@ namespace LongevityWorldCup.Website.Controllers
             string? accountEmail = applicantData.AccountEmail?.Trim();
             string? chronoBioDifference = applicantData.ChronoBioDifference?.Trim();
 
-            // Initialize variables to store image paths
-            string? profilePicPath = null;
-            List<string> proofPicPaths = [];
-
             // Prepare the email body (excluding the images)
             // Moved this block after processing images to include paths
 
@@ -117,9 +113,6 @@ namespace LongevityWorldCup.Website.Controllers
                 if (profilePicBytes != null && contentType != null && extension != null)
                 {
                     string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_profile.{extension}";
-
-                    // Store the profile picture path
-                    profilePicPath = $"/assets/profile-pics/{sanitizedFileName}";
 
                     var contentTypeParts = contentType.Split('/');
                     if (contentTypeParts.Length == 2)
@@ -148,10 +141,6 @@ namespace LongevityWorldCup.Website.Controllers
                     if (proofPicBytes != null && contentType != null && extension != null)
                     {
                         string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_proof_{proofIndex}.{extension}";
-
-                        // Store the proof picture path
-                        string proofPicPath = $"/assets/proofs/{sanitizedFileName}";
-                        proofPicPaths.Add(proofPicPath);
 
                         var contentTypeParts = contentType.Split('/');
                         if (contentTypeParts.Length == 2)
@@ -189,8 +178,6 @@ namespace LongevityWorldCup.Website.Controllers
                 applicantData.Division,
                 applicantData.Flag,
                 applicantData.Why,
-                ProfilePic = profilePicPath,
-                Proofs = proofPicPaths.Count > 0 ? proofPicPaths : null,
                 PersonalLink = correctedPersonalLink
             };
 
