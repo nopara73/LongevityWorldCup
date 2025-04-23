@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Hosting;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace LongevityWorldCup.Website.Business
 {
@@ -15,14 +16,14 @@ namespace LongevityWorldCup.Website.Business
         private readonly FileSystemWatcher _jsonWatcher;
         private readonly FileSystemWatcher _profileWatcher;
         private readonly FileSystemWatcher _proofWatcher;
-        private readonly object _reloadLock = new();
+        private readonly SemaphoreSlim _reloadLock = new(1, 1);
 
         public AthleteDataService(IWebHostEnvironment env)
         {
             _env = env;
 
             // Initial load
-            LoadAthletes();
+            LoadAthletesAsync().GetAwaiter().GetResult();
 
             // Watch Athletes.json
             var dataDir = Path.Combine(Directory.GetCurrentDirectory(), "Data");
@@ -62,7 +63,7 @@ namespace LongevityWorldCup.Website.Business
             _proofWatcher.EnableRaisingEvents = true;
         }
 
-        private void LoadAthletes()
+        private async Task LoadAthletesAsync()
         {
             var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Athletes.json");
             const int maxTries = 5;
@@ -114,16 +115,21 @@ namespace LongevityWorldCup.Website.Business
                 }
                 catch (IOException) when (attempt < maxTries)
                 {
-                    Thread.Sleep(50);
+                    await Task.Delay(50);
                 }
             }
         }
 
-        private void OnSourceChanged(object sender, FileSystemEventArgs e)
+        private async void OnSourceChanged(object sender, FileSystemEventArgs e)
         {
-            lock (_reloadLock)
+            await _reloadLock.WaitAsync();
+            try
             {
-                LoadAthletes();
+                await LoadAthletesAsync();
+            }
+            finally
+            {
+                _reloadLock.Release();
             }
         }
 
