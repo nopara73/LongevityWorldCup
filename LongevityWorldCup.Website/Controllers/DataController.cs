@@ -5,8 +5,10 @@ namespace LongevityWorldCup.Website.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class DataController : Controller
+    public class DataController(AthleteDataService svc) : Controller
     {
+        private readonly AthleteDataService _svc = svc;
+
         [HttpGet("flags")]
         public IActionResult GetFlags()
         {
@@ -20,11 +22,6 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpGet("athletes")]
-        public IActionResult GetAthletes()
-        {
-            var jsonFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Athletes.json");
-            var jsonData = System.IO.File.ReadAllText(jsonFilePath);
-            return Ok(jsonData);
-        }
+        public IActionResult GetAthletes() => Ok(_svc.Athletes);
     }
 }

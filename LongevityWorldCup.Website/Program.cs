@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Middleware;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.Text.Json;
@@ -26,6 +27,9 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
+
+            // Register the in-memory cached athlete data
+            builder.Services.AddSingleton<AthleteDataService>();
 
             // Add CORS policy
             builder.Services.AddCors(options =>
