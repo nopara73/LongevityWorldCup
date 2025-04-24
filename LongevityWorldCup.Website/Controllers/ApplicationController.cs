@@ -105,62 +105,6 @@ namespace LongevityWorldCup.Website.Controllers
 
             var builder = new BodyBuilder();
 
-            // Adjust the code for handling the profile picture
-            if (!string.IsNullOrEmpty(applicantData.ProfilePic))
-            {
-                var (profilePicBytes, contentType, extension) = OptimizeImage(ParseBase64Image(applicantData.ProfilePic));
-
-                if (profilePicBytes != null && contentType != null && extension != null)
-                {
-                    string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_profile.{extension}";
-
-                    var contentTypeParts = contentType.Split('/');
-                    if (contentTypeParts.Length == 2)
-                    {
-                        var mediaType = contentTypeParts[0];
-                        var subType = contentTypeParts[1];
-                        var contentTypeObj = new ContentType(mediaType, subType);
-                        builder.Attachments.Add(sanitizedFileName, profilePicBytes, contentTypeObj);
-                    }
-                    else
-                    {
-                        // If content type is invalid, use application/octet-stream
-                        builder.Attachments.Add(sanitizedFileName, profilePicBytes, new ContentType("application", "octet-stream"));
-                    }
-                }
-            }
-
-            // Adjust the code for handling the proof pictures
-            if (applicantData.ProofPics != null)
-            {
-                int proofIndex = 1;
-                foreach (var proofPicBase64 in applicantData.ProofPics)
-                {
-                    var (proofPicBytes, contentType, extension) = OptimizeImage(ParseBase64Image(proofPicBase64));
-
-                    if (proofPicBytes != null && contentType != null && extension != null)
-                    {
-                        string sanitizedFileName = $"{SanitizeFileName(applicantData.Name ?? "noname")}_proof_{proofIndex}.{extension}";
-
-                        var contentTypeParts = contentType.Split('/');
-                        if (contentTypeParts.Length == 2)
-                        {
-                            var mediaType = contentTypeParts[0];
-                            var subType = contentTypeParts[1];
-                            var contentTypeObj = new ContentType(mediaType, subType);
-                            builder.Attachments.Add(sanitizedFileName, proofPicBytes, contentTypeObj);
-                        }
-                        else
-                        {
-                            // If content type is invalid, use application/octet-stream
-                            builder.Attachments.Add(sanitizedFileName, proofPicBytes, new ContentType("application", "octet-stream"));
-                        }
-
-                        proofIndex++;
-                    }
-                }
-            }
-
             var correctedPersonalLink = applicantData.PersonalLink?.Trim();
             correctedPersonalLink = string.IsNullOrWhiteSpace(correctedPersonalLink)
                     ? null
@@ -168,23 +112,69 @@ namespace LongevityWorldCup.Website.Controllers
                         ? "https://" + correctedPersonalLink
                         : correctedPersonalLink);
 
-            // Prepare the email body (including the image paths)
-            var applicantDataWithoutImages = new
+            // 1) Build a temp folder with profile + proofs + athlete.json
+            var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
+            var tempRoot = Path.Combine(Path.GetTempPath(), "LWC", folderKey);
+            var athleteFolder = Path.Combine(tempRoot, folderKey);
+            Directory.CreateDirectory(athleteFolder);
+
+            // 1a) Write athlete.json
+            var athleteJson = JsonSerializer.Serialize(new
             {
                 applicantData.Name,
                 applicantData.MediaContact,
                 applicantData.DateOfBirth,
-                applicantData.Biomarkers, // Include the biomarker data
+                applicantData.Biomarkers,
                 applicantData.Division,
                 applicantData.Flag,
                 applicantData.Why,
                 PersonalLink = correctedPersonalLink
-            };
+            }, CachedJsonSerializerOptions);
+            await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson);
+
+            // 1b) Save profile picture
+            if (!string.IsNullOrEmpty(applicantData.ProfilePic))
+            {
+                var (bytes, _, ext) = OptimizeImage(ParseBase64Image(applicantData.ProfilePic));
+                if (bytes != null)
+                    await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{ext}"), bytes);
+            }
+
+            // 1c) Save each proof
+            if (applicantData.ProofPics != null)
+            {
+                int idx = 1;
+                foreach (var b64 in applicantData.ProofPics)
+                {
+                    var (bytes, _, ext) = OptimizeImage(ParseBase64Image(b64));
+                    if (bytes != null)
+                    {
+                        var proofName = $"proof_{idx}.{ext}";
+                        await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, proofName), bytes);
+                        idx++;
+                    }
+                }
+            }
+
+            // 2) Zip the folder
+            var zipPath = Path.Combine(tempRoot, $"{folderKey}.zip");
+            if (System.IO.File.Exists(zipPath))
+                System.IO.File.Delete(zipPath);
+            System.IO.Compression.ZipFile.CreateFromDirectory(
+                sourceDirectoryName: athleteFolder,
+                destinationArchiveFileName: zipPath,
+                compressionLevel: System.IO.Compression.CompressionLevel.Optimal,
+                includeBaseDirectory: false
+            );
+
+            // 3) Attach the ZIP
+            builder.Attachments.Add($"{folderKey}.zip",
+                                    await System.IO.File.ReadAllBytesAsync(zipPath),
+                                    new ContentType("application", "zip"));
 
             // Include AccountEmail in the email body
             string emailBody = $"\nAccount Email: {accountEmail}\n";
             emailBody += $"Age Difference: {chronoBioDifference}\n\n";
-            emailBody += JsonSerializer.Serialize(applicantDataWithoutImages, CachedJsonSerializerOptions);
 
             builder.TextBody = emailBody;
 
@@ -238,6 +228,12 @@ namespace LongevityWorldCup.Website.Controllers
 
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
+
+                try
+                {
+                    Directory.Delete(tempRoot, recursive: true);
+                }
+                catch { /* ignore */ }
 
                 return Ok("Email sent successfully.");
             }
