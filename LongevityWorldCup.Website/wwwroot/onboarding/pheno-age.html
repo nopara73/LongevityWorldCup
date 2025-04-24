@@ -217,7 +217,9 @@
                     <!-- Generate year options dynamically here -->
                 </select>
 
-                <label for="dob-month">Month <span style="font-weight: normal;">(optional)</span></label>
+                <label for="dob-month" id="dob-month-label">
+                    Month <span style="font-weight: normal;">(optional)</span>
+                </label>
                 <select id="dob-month" name="dob-month" onchange="calculateResultIfResultAlreadyCalculated()">
                     <option value="1">January</option>
                     <option value="2">February</option>
@@ -233,12 +235,14 @@
                     <option value="12" selected>December</option>
                 </select>
 
-                <label for="dob-day">Day <span style="font-weight: normal;">(optional)</span></label>
+                <label for="dob-day" id="dob-day-label">
+                    Day <span style="font-weight: normal;">(optional)</span>
+                </label>
                 <select id="dob-day" name="dob-day" onchange="calculateResultIfResultAlreadyCalculated()">
                     <option value="" disabled selected>Select Day</option>
                 </select>
 
-                <p class="privacy-note">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
+                <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
             </fieldset>
 
             <!-- Biomarker Fieldset -->
@@ -944,6 +948,38 @@
 
             calculateResultIfResultAlreadyCalculated();
         }
+
+        // Hide month/day & privacy note when age < 18
+        function checkMinor() {
+            const y = parseInt(document.getElementById('dob-year').value, 10);
+            if (!y) return;
+            const m = parseInt(document.getElementById('dob-month').value, 10) - 1;
+            const dVal = document.getElementById('dob-day').value;
+            const d = dVal ? parseInt(dVal, 10) : 31;
+
+            const today = new Date();
+            let age = today.getFullYear() - y;
+            const mm = today.getMonth() - m;
+            if (mm < 0 || (mm === 0 && today.getDate() < d)) age--;
+
+            const hide = age < 18;
+            if (hide) {
+                document.getElementById('dob-month').value = '12';
+                document.getElementById('dob-day').value = '31';
+            }
+            ['dob-month-label', 'dob-month', 'dob-day-label', 'dob-day', 'privacyNote']
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    el.style.display = hide ? 'none' : '';
+                });
+        }
+
+        // Re-run on any DOB change & on page load
+        ['dob-year', 'dob-month', 'dob-day']
+            .forEach(id => document.getElementById(id)
+                .addEventListener('change', checkMinor)
+            );
+        document.addEventListener('DOMContentLoaded', checkMinor);
     </script>
 </body>
 </html>
