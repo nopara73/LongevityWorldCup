@@ -13,9 +13,7 @@ namespace LongevityWorldCup.Website.Business
         public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
 
         private readonly IWebHostEnvironment _env;
-        private readonly FileSystemWatcher _jsonWatcher;
-        private readonly FileSystemWatcher _profileWatcher;
-        private readonly FileSystemWatcher _proofWatcher;
+        private readonly FileSystemWatcher _athleteWatcher;
         private readonly SemaphoreSlim _reloadLock = new(1, 1);
 
         private CancellationTokenSource? _debounceCts;
@@ -24,106 +22,75 @@ namespace LongevityWorldCup.Website.Business
         public AthleteDataService(IWebHostEnvironment env)
         {
             _env = env;
-
             // Initial load
             LoadAthletesAsync().GetAwaiter().GetResult();
 
-            // Watch Athletes.json
-            var dataDir = Path.Combine(Directory.GetCurrentDirectory(), "Data");
-            _jsonWatcher = new FileSystemWatcher(dataDir, "Athletes.json")
+            // Watch the new per-athlete folders recursively
+            var athletesDir = Path.Combine(env.WebRootPath, "athletes");
+            _athleteWatcher = new FileSystemWatcher(athletesDir)
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName
-            };
-            _jsonWatcher.Changed += (s, e) => DebounceReload();
-            _jsonWatcher.Renamed += (s, e) => DebounceReload();
-            _jsonWatcher.Deleted += (s, e) => DebounceReload();
-            _jsonWatcher.EnableRaisingEvents = true;
-            _jsonWatcher.Error += OnWatcherError;
-
-            // Watch profile-pics directory
-            var profileDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets", "profile-pics");
-            _profileWatcher = new FileSystemWatcher(profileDir)
-            {
+                IncludeSubdirectories = true,
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                 Filter = "*.*"
             };
-            _profileWatcher.Changed += (s, e) => DebounceReload();
-            _profileWatcher.Created += (s, e) => DebounceReload();
-            _profileWatcher.Deleted += (s, e) => DebounceReload();
-            _profileWatcher.Renamed += (s, e) => DebounceReload();
-            _profileWatcher.EnableRaisingEvents = true;
-            _profileWatcher.Error += OnWatcherError;
-
-            // Watch proofs directory
-            var proofDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets", "proofs");
-            _proofWatcher = new FileSystemWatcher(proofDir)
-            {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
-                Filter = "*.*"
-            };
-            _proofWatcher.Changed += (s, e) => DebounceReload();
-            _proofWatcher.Created += (s, e) => DebounceReload();
-            _proofWatcher.Deleted += (s, e) => DebounceReload();
-            _proofWatcher.Renamed += (s, e) => DebounceReload();
-            _proofWatcher.EnableRaisingEvents = true;
-            _proofWatcher.Error += OnWatcherError;
+            _athleteWatcher.Changed += (s, e) => DebounceReload();
+            _athleteWatcher.Created += (s, e) => DebounceReload();
+            _athleteWatcher.Deleted += (s, e) => DebounceReload();
+            _athleteWatcher.Renamed += (s, e) => DebounceReload();
+            _athleteWatcher.EnableRaisingEvents = true;
+            _athleteWatcher.Error += OnWatcherError;
         }
 
         private async Task LoadAthletesAsync()
         {
-            var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Athletes.json");
-            const int maxTries = 5;
+            // Build up a JsonArray by reading every athlete.json under wwwroot/athletes
+            var athletesRoot = new JsonArray();
+            var athletesDir = Path.Combine(_env.WebRootPath, "athletes");
+            var files = Directory.EnumerateFiles(athletesDir, "athlete.json", SearchOption.AllDirectories);
 
-            for (int attempt = 1; ; attempt++)
+            foreach (var file in files)
             {
-                try
+                // retry read in case the file is mid-write
+                string text = "";
+                for (int i = 0; ; i++)
                 {
-                    // Open for read with shared access so we don't crash if file is still being written
-                    using var fs = new FileStream(
-                        jsonPath,
-                        FileMode.Open,
-                        FileAccess.Read,
-                        FileShare.ReadWrite | FileShare.Delete);
-                    using var sr = new StreamReader(fs);
-                    string text = sr.ReadToEnd();
-                    var root = JsonNode.Parse(text)!.AsArray();
-
-                    foreach (JsonObject athlete in root.Cast<JsonObject>())
+                    try
                     {
-                        string name = athlete["Name"]!.GetValue<string>();
-                        string fileKey = new string(
-                            [.. name.ToLower().Where(c => !Path.GetInvalidFileNameChars().Contains(c))]
-                        ).Replace(' ', '_');
-
-                        // ProfilePic
-                        var profileDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets", "profile-pics");
-                        var profilePicPath = Directory
-                            .EnumerateFiles(profileDir, $"{fileKey}_profile.*")
-                            .OrderByDescending(File.GetLastWriteTimeUtc)
-                            .FirstOrDefault();
-                        athlete["ProfilePic"] = profilePicPath != null
-                            ? "/assets/profile-pics/" + Path.GetFileName(profilePicPath)
-                            : null;
-
-                        // Proofs
-                        var proofDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets", "proofs");
-                        var proofs = new JsonArray();
-                        var proofFiles = Directory
-                            .EnumerateFiles(proofDir, $"{fileKey}_proof_*.*")
-                            .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
-                        foreach (var file in proofFiles)
-                            proofs.Add("/assets/proofs/" + Path.GetFileName(file));
-                        athlete["Proofs"] = proofs;
+                        text = File.ReadAllText(file);
+                        break;
                     }
+                    catch (IOException) when (i < 5)
+                    {
+                        await Task.Delay(50);
+                    }
+                }
 
-                    Athletes = root;
-                    break;
-                }
-                catch (IOException) when (attempt < maxTries)
-                {
-                    await Task.Delay(50);
-                }
+                var athlete = JsonNode.Parse(text)!.AsObject();
+                var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/yan_lin"
+                var key = Path.GetFileName(folder);             // e.g. "yan_lin"
+
+                // PROFILE PIC: look for "{key}.*" in that same folder
+                var pic = Directory
+                    .EnumerateFiles(folder, $"{key}.*", SearchOption.TopDirectoryOnly)
+                    .OrderByDescending(File.GetLastWriteTimeUtc)
+                    .FirstOrDefault();
+                athlete["ProfilePic"] = pic is null
+                    ? null
+                    : $"/athletes/{key}/{Path.GetFileName(pic)}";
+
+                // PROOFS: look for proof_*.ext
+                var proofs = new JsonArray();
+                var proofFiles = Directory
+                    .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
+                    .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
+                foreach (var p in proofFiles)
+                    proofs.Add($"/athletes/{key}/{Path.GetFileName(p)}");
+                athlete["Proofs"] = proofs;
+
+                athletesRoot.Add(athlete);
             }
+
+            Athletes = athletesRoot;
         }
 
         private void DebounceReload()
@@ -181,9 +148,7 @@ namespace LongevityWorldCup.Website.Business
 
         public void Dispose()
         {
-            _jsonWatcher.Dispose();
-            _profileWatcher.Dispose();
-            _proofWatcher.Dispose();
+            _athleteWatcher.Dispose();
             _reloadLock.Dispose();          // ← dispose the semaphore
             _debounceCts?.Dispose();       // ← dispose the CTS
             GC.SuppressFinalize(this);
