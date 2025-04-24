@@ -1,0 +1,27 @@
+{
+  "Name": "Giorgio Zinetti",
+  "MediaContact": "giorgio.zinetti@gmail.com",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 4,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-26",
+      "AlbGL": 49,
+      "CreatUmolL": 132,
+      "GluMmolL": 4.5,
+      "CrpMgL": 0.6,
+      "LymPc": 50,
+      "McvFL": 91.4,
+      "RdwPc": 12.4,
+      "AlpUL": 93,
+      "Wbc1000cellsuL": 3.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Switzerland",
+  "Why": "Do more climbing, building business, sport etc..",
+  "PersonalLink": "https://www.gio.fyi/"
+}

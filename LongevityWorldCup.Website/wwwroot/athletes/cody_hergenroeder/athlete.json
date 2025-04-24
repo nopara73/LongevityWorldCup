@@ -1,0 +1,28 @@
+{
+  "Name": "Cody Hergenroeder",
+  "MediaContact": "khusbear@alumni.stanford.edu",
+  "DateOfBirth": {
+    "Year": 1999,
+    "Month": 11,
+    "Day": 16
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-01-29",
+      "AlbGL": 42,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 5.3841030195381885,
+      "CrpMgL": 1,
+      "LymPc": 38,
+      "McvFL": 87.6,
+      "RdwPc": 14.1,
+      "AlpUL": 134.09,
+      "Wbc1000cellsuL": 5.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Telos",
+  "Why": "Positive change for the sake of all beings",
+  "PersonalLink": null,
+  "ExclusiveLeague": "Prosperan"
+}

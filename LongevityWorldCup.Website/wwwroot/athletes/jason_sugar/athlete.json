@@ -1,0 +1,28 @@
+{
+  "Name": "Jason Sugar",
+  "MediaContact": "https://www.linkedin.com/in/jasonbsugar/",
+  "DateOfBirth": {
+    "Year": 1967,
+    "Month": 9,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-05",
+      "AlbGL": 42,
+      "CreatUmolL": 88.49557522123894,
+      "GluMmolL": 4.229573712255773,
+      "CrpMgL": 2.1,
+      "LymPc": 28,
+      "McvFL": 88,
+      "RdwPc": 13.1,
+      "AlpUL": 73.7,
+      "Wbc1000cellsuL": 7.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Honduras",
+  "Why": "All is one. All is unfolding. All is catalyst. All is.",
+  "PersonalLink": null,
+  "ExclusiveLeague": "Prosperan"
+}

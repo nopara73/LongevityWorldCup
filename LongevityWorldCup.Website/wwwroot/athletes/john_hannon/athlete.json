@@ -1,0 +1,27 @@
+{
+  "Name": "John Hannon",
+  "MediaContact": "https://www.instagram.com/jhannon66/",
+  "DateOfBirth": {
+    "Year": 1966,
+    "Month": 11,
+    "Day": 24
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-13",
+      "AlbGL": 45,
+      "CreatUmolL": 102.65486725663716,
+      "GluMmolL": 5.051065719360569,
+      "CrpMgL": 0.2,
+      "LymPc": 26.3,
+      "McvFL": 99,
+      "RdwPc": 11.9,
+      "AlpUL": 65,
+      "Wbc1000cellsuL": 3.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Global Country of World Peace",
+  "Why": "being competitive in triathlons",
+  "PersonalLink": null
+}

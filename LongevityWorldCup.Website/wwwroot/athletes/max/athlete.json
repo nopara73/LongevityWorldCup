@@ -1,0 +1,27 @@
+{
+  "Name": "Max",
+  "MediaContact": "biohackingmax@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-28",
+      "AlbGL": 51,
+      "CreatUmolL": 98.23008849557523,
+      "GluMmolL": 4.773534635879219,
+      "CrpMgL": 0.6,
+      "LymPc": 50.3,
+      "McvFL": 92.7,
+      "RdwPc": 12.2,
+      "AlpUL": 51,
+      "Wbc1000cellsuL": 3.96
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Conquer Aging or Die Trying",
+  "Why": "Death is the greatest tragedy ever, and we’ve just accepted it as the norm. I fight it in protest.",
+  "PersonalLink": null
+}

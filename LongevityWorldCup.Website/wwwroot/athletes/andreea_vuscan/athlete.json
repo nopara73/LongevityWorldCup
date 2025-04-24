@@ -1,0 +1,27 @@
+{
+  "Name": "Andreea Vuscan",
+  "MediaContact": "https://www.facebook.com/vuscan.andreea",
+  "DateOfBirth": {
+    "Year": 1985,
+    "Month": 2,
+    "Day": 8
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-26",
+      "AlbGL": 43.3,
+      "CreatUmolL": 57.522123893805315,
+      "GluMmolL": 4.496003552397869,
+      "CrpMgL": 0.35,
+      "LymPc": 29.49,
+      "McvFL": 86.6,
+      "RdwPc": 13.5,
+      "AlpUL": 40,
+      "Wbc1000cellsuL": 4.68
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "DrCarmen",
+  "Why": "Recreate yourself. Stay fit and healthy.",
+  "PersonalLink": "https://www.instagram.com/andreeavuscan/"
+}

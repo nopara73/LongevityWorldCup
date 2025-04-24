@@ -1,0 +1,27 @@
+{
+  "Name": "Satya Disha Dieux",
+  "MediaContact": "https://www.facebook.com/share/1AKdw5Kgh5/?mibextid=wwXIfr",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 8,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-29",
+      "AlbGL": 47.99999999999999,
+      "CreatUmolL": 63.716814159292035,
+      "GluMmolL": 4.829040852575489,
+      "CrpMgL": 0.6,
+      "LymPc": 35,
+      "McvFL": 89.7,
+      "RdwPc": 11.9,
+      "AlpUL": 145,
+      "Wbc1000cellsuL": 5.578
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Canada",
+  "Why": "Meditation, Nature, Travel, Children, Self Exploration.",
+  "PersonalLink": null
+}

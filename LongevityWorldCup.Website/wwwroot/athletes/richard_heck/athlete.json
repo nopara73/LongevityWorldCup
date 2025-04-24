@@ -1,0 +1,27 @@
+{
+  "Name": "Richard Heck",
+  "MediaContact": "richardjheck@gmail.com",
+  "DateOfBirth": {
+    "Year": 1980,
+    "Month": 8,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-14",
+      "AlbGL": 49,
+      "CreatUmolL": 101.76991150442478,
+      "GluMmolL": 5.051065719360569,
+      "CrpMgL": 0.2,
+      "LymPc": 46.7,
+      "McvFL": 90.9,
+      "RdwPc": 12.2,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 3.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Slowing aging......................",
+  "PersonalLink": "https://www.heckyeahhealth.com"
+}

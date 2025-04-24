@@ -1,0 +1,28 @@
+{
+  "Name": "Marcus",
+  "MediaContact": "marcusvanura@gmail.com",
+  "DateOfBirth": {
+    "Year": 1985,
+    "Month": 2,
+    "Day": 4
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-10",
+      "AlbGL": 40,
+      "CreatUmolL": 88.49557522123894,
+      "GluMmolL": 4.7235790408525755,
+      "CrpMgL": 3.1,
+      "LymPc": 33.7,
+      "McvFL": 89.2,
+      "RdwPc": 14.5,
+      "AlpUL": 126.4,
+      "Wbc1000cellsuL": 10
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Czech Republic",
+  "Why": "My kids and my family is the biggest motivation.",
+  "PersonalLink": "https://www.instagram.com/marek_realestateroatan/",
+  "ExclusiveLeague": "Prosperan"
+}

@@ -1,0 +1,27 @@
+{
+  "Name": "Inka Land",
+  "MediaContact": "https://www.youtube.com/@IAMINKALAND",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 7,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-07",
+      "AlbGL": 47.99999999999999,
+      "CreatUmolL": 66.3716814159292,
+      "GluMmolL": 4.9733570159857905,
+      "CrpMgL": 0.1,
+      "LymPc": 41,
+      "McvFL": 100.9,
+      "RdwPc": 11.7,
+      "AlpUL": 46.4,
+      "Wbc1000cellsuL": 3.63
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Estonia",
+  "Why": "Living long and healthy, future",
+  "PersonalLink": "https://www.inkaland.co/"
+}

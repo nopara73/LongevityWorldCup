@@ -1,0 +1,28 @@
+{
+  "Name": "Spiderius",
+  "MediaContact": "https://x.com/stancel_david",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 2,
+    "Day": 9
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-01-30",
+      "AlbGL": 49,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 6.161190053285969,
+      "CrpMgL": 1,
+      "LymPc": 34,
+      "McvFL": 85.6,
+      "RdwPc": 14.9,
+      "AlpUL": 92.22,
+      "Wbc1000cellsuL": 6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Ancap",
+  "Why": "Aspiration for constant self-improvement",
+  "PersonalLink": "https://davidstancel.com",
+  "ExclusiveLeague": "Prosperan"
+}

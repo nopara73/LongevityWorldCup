@@ -1,0 +1,40 @@
+{
+  "Name": "nopara73",
+  "MediaContact": "adam.ficsor73@gmail.com",
+  "DateOfBirth": {
+    "Year": 1991,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-06",
+      "AlbGL": 40.99999999999999,
+      "CreatUmolL": 88.49557522123894,
+      "GluMmolL": 4.906749555950268,
+      "CrpMgL": 13.2,
+      "LymPc": 26.6,
+      "McvFL": 93.9,
+      "RdwPc": 13.1,
+      "AlpUL": 70.3,
+      "Wbc1000cellsuL": 8.8
+    },
+    {
+      "Date": "2025-03-13",
+      "AlbGL": 50,
+      "CreatUmolL": 88.4,
+      "GluMmolL": 5.3,
+      "CrpMgL": 3,
+      "LymPc": 48,
+      "McvFL": 94,
+      "RdwPc": 14.3,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 5.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Cyberspace",
+  "Why": "I don't have anything better to do",
+  "PersonalLink": "https://www.youtube.com/nopara73",
+  "ExclusiveLeague": "Prosperan"
+}

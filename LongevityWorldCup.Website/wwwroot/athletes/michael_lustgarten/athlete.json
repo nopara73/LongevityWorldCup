@@ -1,0 +1,39 @@
+{
+  "Name": "Michael Lustgarten",
+  "MediaContact": "mlhnrca@gmail.com",
+  "DateOfBirth": {
+    "Year": 1973,
+    "Month": 1,
+    "Day": 27
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-04",
+      "AlbGL": 49,
+      "CreatUmolL": 63.716814159292035,
+      "GluMmolL": 4.662522202486679,
+      "CrpMgL": 0.2,
+      "LymPc": 38.8,
+      "McvFL": 92.8,
+      "RdwPc": 11.8,
+      "AlpUL": 41,
+      "Wbc1000cellsuL": 3.4
+    },
+    {
+      "Date": "2025-03-18",
+      "AlbGL": 54,
+      "CreatUmolL": 67.144,
+      "GluMmolL": 5.05,
+      "CrpMgL": 0.2,
+      "LymPc": 39.6,
+      "McvFL": 91.1,
+      "RdwPc": 11.8,
+      "AlpUL": 41,
+      "Wbc1000cellsuL": 3.2
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Conquer Aging or Die Trying",
+  "Why": "Health->Longevity->Immortality",
+  "PersonalLink": "https://www.patreon.com/c/MichaelLustgartenPhD"
+}

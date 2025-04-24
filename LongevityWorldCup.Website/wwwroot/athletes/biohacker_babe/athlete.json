@@ -1,0 +1,27 @@
+{
+  "Name": "Biohacker Babe",
+  "MediaContact": "renee@reneebelz.com",
+  "DateOfBirth": {
+    "Year": 1986,
+    "Month": 10,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-07",
+      "AlbGL": 47.99999999999999,
+      "CreatUmolL": 63.716814159292035,
+      "GluMmolL": 4.662522202486679,
+      "CrpMgL": 0.33,
+      "LymPc": 35,
+      "McvFL": 95,
+      "RdwPc": 11.3,
+      "AlpUL": 37,
+      "Wbc1000cellsuL": 7.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "Living as many healthy years with friends and family as possible. May I never know what I am preventing!",
+  "PersonalLink": null
+}

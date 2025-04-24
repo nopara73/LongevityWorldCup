@@ -1,0 +1,27 @@
+{
+  "Name": "Miguel C",
+  "MediaContact": "https://www.facebook.com/profile.php?id=100037271976357",
+  "DateOfBirth": {
+    "Year": 1995,
+    "Month": 9,
+    "Day": 28
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-26",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 77.87610619469027,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 1.38,
+      "LymPc": 29,
+      "McvFL": 84,
+      "RdwPc": 12.8,
+      "AlpUL": 109,
+      "Wbc1000cellsuL": 6.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Cyberspace",
+  "Why": "Feel the city breakin' and everybody shakin'\nAnd we're stayin' alive",
+  "PersonalLink": null
+}

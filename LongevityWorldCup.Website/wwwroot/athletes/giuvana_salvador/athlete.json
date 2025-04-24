@@ -1,0 +1,27 @@
+{
+  "Name": "Giuvana Salvador",
+  "MediaContact": "https://www.instagram.com/giuvanasalvador/",
+  "DateOfBirth": {
+    "Year": 1972,
+    "Month": 12,
+    "Day": 10
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-18",
+      "AlbGL": 47,
+      "CreatUmolL": 67.2566371681416,
+      "GluMmolL": 5.162078152753109,
+      "CrpMgL": 0.61,
+      "LymPc": 46.3,
+      "McvFL": 93.4,
+      "RdwPc": 12.4,
+      "AlpUL": 90,
+      "Wbc1000cellsuL": 4.64
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Timbó",
+  "Why": "Son annoyed her until she made the tests",
+  "PersonalLink": null
+}

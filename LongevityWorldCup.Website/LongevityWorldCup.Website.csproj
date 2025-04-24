@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\" />
     <Folder Include="wwwroot\assets\content-images\" />
     <Folder Include="wwwroot\assets\fonts\" />
+    <Folder Include="wwwroot\athletes\" />
   </ItemGroup>
 
   <ItemGroup>

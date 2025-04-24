@@ -1,0 +1,28 @@
+{
+  "Name": "Brandon",
+  "MediaContact": "https://x.com/01F1R3",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 8,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-07",
+      "AlbGL": 42.99999999999999,
+      "CreatUmolL": 97.34513274336284,
+      "GluMmolL": 4.95670515097691,
+      "CrpMgL": 2,
+      "LymPc": 32.2,
+      "McvFL": 81.9,
+      "RdwPc": 13.3,
+      "AlpUL": 55.8,
+      "Wbc1000cellsuL": 7.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Infinita",
+  "Why": "I give 100% every day. Mentally and physically.",
+  "PersonalLink": "https://www.linkedin.com/in/sbvh/",
+  "ExclusiveLeague": "Prosperan"
+}

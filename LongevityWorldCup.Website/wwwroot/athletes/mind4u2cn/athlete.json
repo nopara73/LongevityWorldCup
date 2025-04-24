@@ -1,0 +1,28 @@
+{
+  "Name": "Mind4u2cn",
+  "MediaContact": "mindjsh@protonmail.com",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 5,
+    "Day": 8
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-21",
+      "AlbGL": 42,
+      "CreatUmolL": 79.64601769911505,
+      "GluMmolL": 4.67,
+      "CrpMgL": 1,
+      "LymPc": 24.1,
+      "McvFL": 90.6,
+      "RdwPc": 14.1,
+      "AlpUL": 128.4,
+      "Wbc1000cellsuL": 5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Cyberspace",
+  "Why": "To live a long life and explore the globe and hopefully the  stars.",
+  "PersonalLink": null,
+  "ExclusiveLeague": "Prosperan"
+}

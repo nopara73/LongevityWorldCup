@@ -1,0 +1,27 @@
+{
+  "Name": "Dr Thomas Irawan",
+  "MediaContact": "dr.thomas@irawan.de",
+  "DateOfBirth": {
+    "Year": 1978,
+    "Month": 2,
+    "Day": 12
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-23",
+      "AlbGL": 48.8,
+      "CreatUmolL": 88.49557522123894,
+      "GluMmolL": 6.055728241563055,
+      "CrpMgL": 0.03,
+      "LymPc": 27,
+      "McvFL": 92,
+      "RdwPc": 12.3,
+      "AlpUL": 64,
+      "Wbc1000cellsuL": 7.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Germany",
+  "Why": "I survived cancer and make my health a priority ! I want to play soccer with my grandchildren or grand-grand children even beyond an age of 90 years :-)",
+  "PersonalLink": "https://www.linkedin.com/in/dr-thomas-c-irawan-%E4%BF%9E-%E7%A4%BD-%E8%A4%94-73a3152"
+}

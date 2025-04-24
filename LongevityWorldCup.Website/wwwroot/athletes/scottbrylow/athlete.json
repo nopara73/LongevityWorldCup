@@ -1,0 +1,28 @@
+{
+  "Name": "ScottBrylow",
+  "MediaContact": "scottbrylow@yahoo.com",
+  "DateOfBirth": {
+    "Year": 1964,
+    "Month": 5,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-21",
+      "AlbGL": 42,
+      "CreatUmolL": 106.19469026548673,
+      "GluMmolL": 5.606127886323269,
+      "CrpMgL": 0.4,
+      "LymPc": 41.3,
+      "McvFL": 91.1,
+      "RdwPc": 12.8,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 5.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "GDBG",
+  "Why": "Sticking around for a good long time to see how it all turns out.",
+  "PersonalLink": null,
+  "ExclusiveLeague": "Prosperan"
+}

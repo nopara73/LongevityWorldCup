@@ -1,0 +1,27 @@
+{
+  "Name": "Virgil Cain",
+  "MediaContact": "RGSpencer@protonmail.ch",
+  "DateOfBirth": {
+    "Year": 1953,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-05",
+      "AlbGL": 46,
+      "CreatUmolL": 72.56637168141593,
+      "GluMmolL": 4.718028419182949,
+      "CrpMgL": 0.6,
+      "LymPc": 37.5,
+      "McvFL": 95,
+      "RdwPc": 12.3,
+      "AlpUL": 82,
+      "Wbc1000cellsuL": 4.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Don't Die.  I think we're nearing escape velocity, maybe 20yrs. Hang on baby.  And to do a free form muscle up, Been working on it 8 years on and off. Getting real close.  As long as I can do muscle-ups I won't go into the machine",
+  "PersonalLink": null
+}

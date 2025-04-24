@@ -1,0 +1,27 @@
+{
+  "Name": "Andressa Lohana de Almeida",
+  "MediaContact": "Andressa.lohana80@gmail.com",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 2,
+    "Day": 18
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-08",
+      "AlbGL": 47,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 5.106571936056839,
+      "CrpMgL": 0.3,
+      "LymPc": 43.3,
+      "McvFL": 91.8,
+      "RdwPc": 12.3,
+      "AlpUL": 58,
+      "Wbc1000cellsuL": 5.75
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Brazil",
+  "Why": "I am a medical geneticist specializing in cancer and disease prevention, and I am passionate about longevity.",
+  "PersonalLink": "https://www.instagram.com/geneticista.andressa/profilecard/?igsh=bTluMW5mNnZkMHk3"
+}
