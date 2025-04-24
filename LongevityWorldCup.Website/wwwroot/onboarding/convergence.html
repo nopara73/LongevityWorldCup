@@ -900,7 +900,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(applicantData)
-                    }, 19000) // timeout set to 19,000 ms (19 seconds)
+                    }, 21000) // timeout set to 21,000 ms (21 seconds)
                         .then(response => {
                             if (response.ok) {
                                 customAlert('Application submitted successfully!').then(() => {
