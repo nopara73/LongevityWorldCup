@@ -30,7 +30,10 @@ namespace LongevityWorldCup.Website.Business
             _athleteWatcher = new FileSystemWatcher(athletesDir)
             {
                 IncludeSubdirectories = true,
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                // watch for changes to file‐names, directory‐names, and writes
+                NotifyFilter = NotifyFilters.FileName
+                 | NotifyFilters.DirectoryName
+                 | NotifyFilters.LastWrite,
                 Filter = "*.*"
             };
             _athleteWatcher.Changed += (s, e) => DebounceReload();
