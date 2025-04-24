@@ -1,0 +1,27 @@
+{
+  "Name": "Beatriz Bevilaqua",
+  "MediaContact": "beatriz@imprensa.biz",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 6,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-29",
+      "AlbGL": 42.99999999999999,
+      "CreatUmolL": 79.64601769911505,
+      "GluMmolL": 4.718028419182949,
+      "CrpMgL": 0.68,
+      "LymPc": 44,
+      "McvFL": 91.3,
+      "RdwPc": 12.8,
+      "AlpUL": 44,
+      "Wbc1000cellsuL": 7.22
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Brasil",
+  "Why": "What drives me are life's challenges, which make me a better person with a broader repertoire.",
+  "PersonalLink": "https://www.instagram.com/beatrizbevilaqua/"
+}

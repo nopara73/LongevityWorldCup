@@ -1,0 +1,39 @@
+{
+  "Name": "God Dieux",
+  "MediaContact": "https://www.facebook.com/tantragod/",
+  "DateOfBirth": {
+    "Year": 1976,
+    "Month": 6,
+    "Day": 24
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-01-14",
+      "AlbGL": 50,
+      "CreatUmolL": 66.3,
+      "GluMmolL": 5.5,
+      "CrpMgL": 0.6,
+      "LymPc": 37,
+      "McvFL": 90.27,
+      "RdwPc": 11.5,
+      "AlpUL": 88,
+      "Wbc1000cellsuL": 6.6
+    },
+    {
+      "Date": "2025-03-29",
+      "AlbGL": 50,
+      "CreatUmolL": 65.48672566371681,
+      "GluMmolL": 5.772646536412079,
+      "CrpMgL": 0.6,
+      "LymPc": 34,
+      "McvFL": 91.4,
+      "RdwPc": 12,
+      "AlpUL": 110,
+      "Wbc1000cellsuL": 5.616
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Canada",
+  "Why": "Love, Health, Nature, Children, Dance, Creativity, Friends, Travel, Cooking, Juicing, Art... Meditation... truth",
+  "PersonalLink": "https://www.god.me"
+}

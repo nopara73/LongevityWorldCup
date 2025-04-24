@@ -1,0 +1,27 @@
+{
+  "Name": "Olga Vresca",
+  "MediaContact": "https://www.instagram.com/ololelya/",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 9,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-12",
+      "AlbGL": 43.6,
+      "CreatUmolL": 53.097345132743364,
+      "GluMmolL": 4.6514209591474245,
+      "CrpMgL": 0.3,
+      "LymPc": 28.3,
+      "McvFL": 101.7,
+      "RdwPc": 11.5,
+      "AlpUL": 121.2,
+      "Wbc1000cellsuL": 9.53
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Latvia",
+  "Why": "To age as slow as my taste buds allow. That is all.",
+  "PersonalLink": "https://www.instagram.com/ololelya/"
+}

@@ -1,0 +1,28 @@
+{
+  "Name": "Stellar Madic",
+  "MediaContact": "stellarmadic@gmail.com",
+  "DateOfBirth": {
+    "Year": 1975,
+    "Month": 7,
+    "Day": 29
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-19",
+      "AlbGL": 40,
+      "CreatUmolL": 88.49557522123894,
+      "GluMmolL": 4.562611012433393,
+      "CrpMgL": 1.9,
+      "LymPc": 34.8,
+      "McvFL": 89.2,
+      "RdwPc": 13,
+      "AlpUL": 110.8,
+      "Wbc1000cellsuL": 6.8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Infinita",
+  "Why": "Solving the loneliness epidemic. Creating circular economies for the unbanked.",
+  "PersonalLink": "https://www.stellarmadic.com",
+  "ExclusiveLeague": "Prosperan"
+}

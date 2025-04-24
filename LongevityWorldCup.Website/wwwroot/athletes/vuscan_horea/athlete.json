@@ -1,0 +1,27 @@
+{
+  "Name": "Vuscan Horea",
+  "MediaContact": "Horea@DrCarmen.com",
+  "DateOfBirth": {
+    "Year": 1981,
+    "Month": 6,
+    "Day": 4
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-25",
+      "AlbGL": 47.699999999999996,
+      "CreatUmolL": 85.84070796460178,
+      "GluMmolL": 5.162078152753109,
+      "CrpMgL": 0.74,
+      "LymPc": 43.87,
+      "McvFL": 66.7,
+      "RdwPc": 14.9,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 3.99
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "DrCarmen",
+  "Why": "\"Memento mori\"? \n\"No thanks, not today!\"\n\"carpe diem\" instead?",
+  "PersonalLink": "https://www.instagram.com/vuscanh/"
+}

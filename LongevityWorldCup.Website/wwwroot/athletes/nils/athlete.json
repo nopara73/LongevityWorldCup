@@ -1,0 +1,39 @@
+{
+  "Name": "Nils",
+  "MediaContact": "nilsosmar@gmail.com",
+  "DateOfBirth": {
+    "Year": 1952,
+    "Month": 12,
+    "Day": 28
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-12",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 79.64601769911505,
+      "GluMmolL": 5.273090586145649,
+      "CrpMgL": 0.54,
+      "LymPc": 25.54,
+      "McvFL": 92,
+      "RdwPc": 12.9,
+      "AlpUL": 68,
+      "Wbc1000cellsuL": 5.13
+    },
+    {
+      "Date": "2025-04-14",
+      "AlbGL": 44,
+      "CreatUmolL": 71.6,
+      "GluMmolL": 5.33,
+      "CrpMgL": 0.68,
+      "LymPc": 28,
+      "McvFL": 94,
+      "RdwPc": 12.4,
+      "AlpUL": 88,
+      "Wbc1000cellsuL": 4.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Whatever",
+  "Why": "I've always been a little offended at the notion that we're born only to grow old and die. Growing to maturity then either freezing or greatly slowing our aging makes more sense. Our goal should be to live forever.",
+  "PersonalLink": "https://nilsosmar.com/"
+}

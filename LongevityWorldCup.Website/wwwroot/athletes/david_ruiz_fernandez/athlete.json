@@ -1,0 +1,27 @@
+{
+  "Name": "David Ruiz Fernandez",
+  "MediaContact": "d.ruizfernandez87@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 2,
+    "Day": 17
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-02",
+      "AlbGL": 43,
+      "CreatUmolL": 96,
+      "GluMmolL": 5.11,
+      "CrpMgL": 0.4,
+      "LymPc": 56,
+      "McvFL": 91.2,
+      "RdwPc": 12.1,
+      "AlpUL": 58.2,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Netherlands",
+  "Why": "The endless possibilities that lie in future.",
+  "PersonalLink": "https://www.instagram.com/ddmeridius"
+}

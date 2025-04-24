@@ -1,0 +1,27 @@
+{
+  "Name": "Ricardo di Lazzaro Filho",
+  "MediaContact": "riclazzaro@gmail.com",
+  "DateOfBirth": {
+    "Year": 1986,
+    "Month": 1,
+    "Day": 13
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-12",
+      "AlbGL": 45,
+      "CreatUmolL": 100.88495575221239,
+      "GluMmolL": 5.051065719360569,
+      "CrpMgL": 3.7,
+      "LymPc": 32.8,
+      "McvFL": 81.9,
+      "RdwPc": 12.6,
+      "AlpUL": 47,
+      "Wbc1000cellsuL": 3.52
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Brazil",
+  "Why": "Living well at least during my first century :)",
+  "PersonalLink": "https://www.instagram.com/ricardodilazzaro"
+}

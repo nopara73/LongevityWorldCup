@@ -1,0 +1,27 @@
+{
+  "Name": "Dave Pascoe",
+  "MediaContact": "https://www.instagram.com/dave.pascoe",
+  "DateOfBirth": {
+    "Year": 1962,
+    "Month": 8,
+    "Day": 21
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-22",
+      "AlbGL": 45,
+      "CreatUmolL": 82.30088495575222,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 0.2,
+      "LymPc": 34.4,
+      "McvFL": 88.5,
+      "RdwPc": 12.4,
+      "AlpUL": 40,
+      "Wbc1000cellsuL": 3.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Being the best me that I can be and trying to be just a little bit better each day. I'm really only in competition with myself, and I somehow like kicking my own ass.",
+  "PersonalLink": "https://www.davepascoe.net"
+}

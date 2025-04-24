@@ -1,0 +1,27 @@
+{
+  "Name": "Tiat Lim",
+  "MediaContact": "tiat@deaging.guru",
+  "DateOfBirth": {
+    "Year": 1972,
+    "Month": 1,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-17",
+      "AlbGL": 46,
+      "CreatUmolL": 103,
+      "GluMmolL": 4.7,
+      "CrpMgL": 0.42999999999999994,
+      "LymPc": 42.2,
+      "McvFL": 94,
+      "RdwPc": 12.4,
+      "AlpUL": 66,
+      "Wbc1000cellsuL": 4.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Singapore",
+  "Why": "Advance MANkind by Disrupting Aging (AMANDA™)",
+  "PersonalLink": "https://www.deaging.guru"
+}

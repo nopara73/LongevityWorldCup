@@ -1,0 +1,28 @@
+{
+  "Name": "RichLee",
+  "MediaContact": "megalorich@gmail.com",
+  "DateOfBirth": {
+    "Year": 1978,
+    "Month": 8,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-19",
+      "AlbGL": 44,
+      "CreatUmolL": 97.34513274336284,
+      "GluMmolL": 4.14,
+      "CrpMgL": 2.1,
+      "LymPc": 34.9,
+      "McvFL": 97.6,
+      "RdwPc": 14.1,
+      "AlpUL": 83.5,
+      "Wbc1000cellsuL": 6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Technonihilism",
+  "Why": "he who breaks death can break anything",
+  "PersonalLink": null,
+  "ExclusiveLeague": "Prosperan"
+}

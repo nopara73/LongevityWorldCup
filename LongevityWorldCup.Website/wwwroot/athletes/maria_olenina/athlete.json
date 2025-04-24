@@ -1,0 +1,27 @@
+{
+  "Name": "Maria Olenina",
+  "MediaContact": "mmolenina@gmail.com",
+  "DateOfBirth": {
+    "Year": 1989,
+    "Month": 7,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-09",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 59.2920353982301,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 0.6,
+      "LymPc": 32,
+      "McvFL": 89.9,
+      "RdwPc": 10.8,
+      "AlpUL": 58,
+      "Wbc1000cellsuL": 4.269
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Sierra Leone",
+  "Why": "My daughter drives me to make the most of every day",
+  "PersonalLink": null
+}

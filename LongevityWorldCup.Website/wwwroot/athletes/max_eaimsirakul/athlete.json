@@ -1,0 +1,27 @@
+{
+  "Name": "Max Eaimsirakul",
+  "MediaContact": "https://www.instagram.com/maxxboost/",
+  "DateOfBirth": {
+    "Year": 1978,
+    "Month": 5,
+    "Day": 8
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-06",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 86.72566371681417,
+      "GluMmolL": 5.439609236234459,
+      "CrpMgL": 0.41999999999999993,
+      "LymPc": 32,
+      "McvFL": 95,
+      "RdwPc": 12.6,
+      "AlpUL": 77,
+      "Wbc1000cellsuL": 4.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "To master my biology and push the limits of human performance.",
+  "PersonalLink": null
+}

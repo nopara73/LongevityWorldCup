@@ -1,0 +1,28 @@
+{
+  "Name": "Jesse",
+  "MediaContact": "jessejpariselli@hotmail.com",
+  "DateOfBirth": {
+    "Year": 1996,
+    "Month": 5,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-01-31",
+      "AlbGL": 40.99999999999999,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 4.65,
+      "CrpMgL": 1,
+      "LymPc": 23.5,
+      "McvFL": 91.1,
+      "RdwPc": 14.1,
+      "AlpUL": 182.2,
+      "Wbc1000cellsuL": 5.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Canada",
+  "Why": "My shoulders are small enough that I can still fit through doorways",
+  "PersonalLink": "https://x.com/jesse_pariselli",
+  "ExclusiveLeague": "Prosperan"
+}

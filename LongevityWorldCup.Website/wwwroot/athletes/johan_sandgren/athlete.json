@@ -1,0 +1,27 @@
+{
+  "Name": "Johan Sandgren",
+  "MediaContact": "Johan.sandgren@gmail.com",
+  "DateOfBirth": {
+    "Year": 1973,
+    "Month": 8,
+    "Day": 9
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-25",
+      "AlbGL": 41,
+      "CreatUmolL": 75,
+      "GluMmolL": 5.1,
+      "CrpMgL": 0.65,
+      "LymPc": 26.4,
+      "McvFL": 92,
+      "RdwPc": 13.7,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 5.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Sweden",
+  "Why": "Dont die! Young until it's over",
+  "PersonalLink": null
+}

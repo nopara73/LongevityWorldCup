@@ -1,0 +1,28 @@
+{
+  "Name": "DJStern",
+  "MediaContact": "dorian.sternvukotic@gmail.com",
+  "DateOfBirth": {
+    "Year": 1995,
+    "Month": 11,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-23",
+      "AlbGL": 42,
+      "CreatUmolL": 97.34513274336284,
+      "GluMmolL": 6.882770870337478,
+      "CrpMgL": 2,
+      "LymPc": 40.4,
+      "McvFL": 85.5,
+      "RdwPc": 13.1,
+      "AlpUL": 59.5,
+      "Wbc1000cellsuL": 5.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Liberland",
+  "Why": "The flame of consciousness is the only important thing in this cold dead universe. Lets set it on fire.",
+  "PersonalLink": "https://www.facebook.com/pigsaw.kykbuttowsky",
+  "ExclusiveLeague": "Prosperan"
+}

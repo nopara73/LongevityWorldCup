@@ -1,0 +1,27 @@
+{
+  "Name": "Philipp Schmeing",
+  "MediaContact": "https://www.instagram.com/philipp.schmeing/",
+  "DateOfBirth": {
+    "Year": 1990,
+    "Month": 8,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-18",
+      "AlbGL": 54,
+      "CreatUmolL": 44.24778761061947,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 0.27,
+      "LymPc": 38.1,
+      "McvFL": 99.1,
+      "RdwPc": 11.6,
+      "AlpUL": 65,
+      "Wbc1000cellsuL": 4.73
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Germany",
+  "Why": "Reaching longevity escape velocity. Increasing my health span. Life to the fullest!",
+  "PersonalLink": "https://philippschmeing.com"
+}

@@ -1,0 +1,31 @@
+{
+  "Name": "Marcin",
+  "MediaContact": "marciok.km@gmail.com",
+  "DateOfBirth": {
+    "Year": 1980,
+    "Month": 10,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-24",
+      "AlbGL": 46.3,
+      "CreatUmolL": 91.94,
+      "GluMmolL": 5.28,
+      "CrpMgL": 0.6,
+      "LymPc": 39.9,
+      "McvFL": 93.8,
+      "RdwPc": 11.9,
+      "AlpUL": 62,
+      "Wbc1000cellsuL": 4.16
+    },
+    {
+      "Date": "2025-03-31",
+      "GluMmolL": 4.83
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Marcio",
+  "Why": "Be the best of me. Strengh and vitality.",
+  "PersonalLink": null
+}
