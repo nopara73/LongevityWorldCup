@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--HEAD-->
+    <style>
+        /* Hide the join-game button in the header */
+        .join-game {
+            display: none;
+        }
+
+        /* Specific styles for different buttons */
+        .option-button.beer, .option-button.beef, .option-button.veggies {
+            background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+            /* Hover effects for specific buttons */
+            .option-button.beer:hover, .option-button.beef:hover, .option-button.veggies:hover {
+                background: linear-gradient(135deg, #455A64, #607D8B); /* Darker gradient */
+                transform: scale(1.03);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
+            }
+
+        .option-button.already-have {
+            background: var(--main-action-color);
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+            .option-button.already-have:hover {
+                background: var(--main-action-selected-color);
+                transform: scale(1.03);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
+            }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <h2 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Game Menu</h2>
+        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            <picture>
+                <source srcset="../assets/content-images/phoenix.webp" type="image/webp">
+                <source srcset="../assets/content-images/phoenix.jpg" type="image/jpeg">
+                <img src="../assets/content-images/lab.jpg" alt="Lab" class="illustration" loading="lazy">
+            </picture>
+        </div>
+        <p style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="350">Rise from the Ashes</p>
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+            <button class="option-button already-have" onclick="window.location.href='/onboarding/join-game.html'">New Game</button>
+            <button class="option-button beer" style="margin-bottom: 0px;" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beer'">Continue Game</button>
+        </div>
+    </main>
+    <!--FOOTER-->
+</body>
+</html>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(() => {
+            const viewTarget = document.querySelector('h2');
+            viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
+    });
+</script>

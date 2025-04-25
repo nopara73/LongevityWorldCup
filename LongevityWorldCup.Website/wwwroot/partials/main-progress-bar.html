@@ -129,6 +129,13 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(() => {
+            const viewTarget = document.getElementById('mainProgressBar');
+            viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
+    });
+
     // Function to update main progress bar based on the current stage
     function updateMainProgress(currentStage) {
         const progressFill = document.getElementById('progressFill');

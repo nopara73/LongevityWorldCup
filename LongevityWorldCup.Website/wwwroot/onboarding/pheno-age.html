@@ -394,8 +394,8 @@
                 Next&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
 
-            <button class="option-button back-button" onclick="window.location.href='/'">
-                <i class="fas fa-home"></i>&nbsp;Home
+            <button class="option-button back-button" onclick="window.location.href='/onboarding/join-game.html'">
+                <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
         </div>
     </main>
@@ -860,7 +860,7 @@
             localStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
             const biomarkerDataFromStorage = JSON.parse(localStorage.getItem('biomarkerData'));
 
-            window.location.href = '/onboarding/convergence.html#mainProgressBar';
+            window.location.href = '/onboarding/convergence.html';
         }
         function fillFakeData() {
             // Set fake Date of Birth
