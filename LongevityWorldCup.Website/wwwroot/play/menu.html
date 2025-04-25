@@ -46,8 +46,8 @@
         </div>
         <p style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="350">Rise from the Ashes</p>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button class="option-button already-have" onclick="window.location.href='/onboarding/join-game.html'">New Game</button>
-            <button class="option-button beer" style="margin-bottom: 0px;" onclick="window.location.href='/play/character-selection.html'">Continue Game</button>
+            <button id="newGameBtn" class="option-button" onclick="window.location.href='/onboarding/join-game.html'">New Game</button>
+            <button id="continueGameBtn" class="option-button" style="margin-bottom: 0px;" onclick="window.location.href='/play/character-selection.html'">Continue Game</button>
         </div>
     </main>
     <!--FOOTER-->
@@ -60,5 +60,19 @@
             const viewTarget = document.querySelector('h2');
             viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 500);
+
+        // now mark the menu based on whether they've applied:
+        const hasApp = localStorage.getItem('hasApplication') === 'true';
+        const container = document.querySelector('.options-container');
+        const newBtn = document.getElementById('newGameBtn');
+        const contBtn = document.getElementById('continueGameBtn');
+
+        if (hasApp) {
+            contBtn.classList.add('already-have');
+            container.insertBefore(contBtn, container.firstChild);
+        } else {
+            newBtn.classList.add('already-have');
+            container.insertBefore(newBtn, container.firstChild);
+        }
     });
 </script>
