@@ -40,7 +40,7 @@
         }
 
         .autocomplete-container {
-            padding: 1rem 2rem;
+            padding: 2rem 2rem;
             font-size: 1.2rem;
             width: 80%;
             max-width: 400px;
@@ -140,6 +140,10 @@
                 const viewTarget = document.querySelector('h2');
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
+
+            // Set focus to the athlete input
+            const athleteInput = document.getElementById('athlete');
+            athleteInput.focus();
 
             // — ATHLETE AUTOCOMPLETE —
             fetch('/api/data/athletes')
