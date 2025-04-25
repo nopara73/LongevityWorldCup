@@ -22,6 +22,7 @@
             }
 
         .option-button.already-have {
+            display: none;
             background: var(--main-action-color);
             transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
         }
@@ -33,6 +34,8 @@
             }
 
         .autocomplete-wrapper {
+            position: relative;
+            z-index: 1000;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -40,11 +43,11 @@
         }
 
         .autocomplete-container {
+            position: relative;
             padding: 2rem 2rem;
             font-size: 1.2rem;
             width: 80%;
             max-width: 400px;
-            height: 60px; /* Fixed height for all buttons */
             display: flex;
             justify-content: center;
             align-items: center; /* Vertically center the text */
@@ -78,6 +81,7 @@
             box-sizing: border-box; /* include any padding/borders in that width */
             top: calc(100% - 2px); /* slide up by the input’s 2px bottom border so it’s flush */
             border-radius: 0 0 30px 30px; /* match your input’s 30px pill corners */
+            width: 100%;
         }
 
             .autocomplete-items div {
@@ -106,7 +110,7 @@
 <body>
     <!--HEADER-->
     <main>
-        <h2 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Character Selection</h2>
+        <h2 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Character Selection</h2>
         <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
@@ -126,8 +130,10 @@
             </div>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button class="option-button already-have" onclick="window.location.href='/onboarding/join-game.html'">Confirm</button>
-
+            <button id="confirmBtn" class="option-button already-have"
+                    onclick="window.location.href='/onboarding/join-game.html'">
+                Confirm
+            </button>
             <button class="option-button back-button" onclick="window.location.href='/play/menu.html'">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
@@ -153,48 +159,57 @@
                     const athleteInput = document.getElementById('athlete');
                     let currentFocus = -1;
 
+                    // Inside your DOMContentLoaded listener, replace the loop in your input handler with this:
                     athleteInput.addEventListener('input', function () {
-                        const val = this.value.toLowerCase();
-                        closeAllLists(this);
-                        if (!val) return false;
+                        // split on spaces and match all terms anywhere in the name
+                        const query = this.value.trim().toLowerCase();
+                        const terms = query.split(/\s+/).filter(t => t);
 
+                        closeAllLists();
+                        if (!terms.length) return false;
+
+                        // create the dropdown container
                         const list = document.createElement('div');
                         list.setAttribute('id', this.id + '-autocomplete-list');
                         list.setAttribute('class', 'autocomplete-items');
                         this.parentNode.appendChild(list);
 
+                        // limit to at most 5 items
+                        const maxItems = 5;
+                        let count = 0;
+
                         athletes.forEach(a => {
-                            if (a.Name.toLowerCase().includes(val)) {
-                                const idx = a.Name.toLowerCase().indexOf(val);
+                            if (count >= maxItems) return;
+                            const name = a.Name.toLowerCase();
+                            // only match if every term appears somewhere
+                            if (terms.every(term => name.includes(term))) {
+                                // highlight the first search term
+                                const first = terms[0];
+                                const idx = name.indexOf(first);
                                 const item = document.createElement('div');
                                 item.innerHTML =
                                     a.Name.substr(0, idx) +
-                                    '<strong>' + a.Name.substr(idx, val.length) + '</strong>' +
-                                    a.Name.substr(idx + val.length);
-
-                                // store the athlete name and the single .webp URL
+                                    '<strong>' + a.Name.substr(idx, first.length) + '</strong>' +
+                                    a.Name.substr(idx + first.length);
                                 item.dataset.value = a.Name;
                                 item.dataset.profilePic = a.ProfilePic;
 
                                 item.addEventListener('mousedown', e => {
                                     e.preventDefault();
                                     athleteInput.value = a.Name;
-
-                                    // just take whatever URL the API gave us
-                                    const picUrl = a.ProfilePic;
-
-                                    // swap the entire <picture> to a single <img> pointing at that URL
+                                    document.getElementById('character-title').textContent = a.Name;
                                     document.querySelector('picture').innerHTML = `
-                                                <img src="${picUrl}"
-                                                     alt="${a.Name} headshot"
-                                                     class="illustration"
-                                                     loading="lazy">
-                                              `;
-
+                                                        <img src="${a.ProfilePic}"
+                                                                alt="${a.Name} headshot"
+                                                                class="illustration"
+                                                                loading="lazy">
+                                                    `;
                                     closeAllLists();
+                                    document.getElementById('confirmBtn').style.display = 'inline-block';
                                 });
 
                                 list.appendChild(item);
+                                count++;
                             }
                         });
                     });
@@ -222,16 +237,14 @@
                         if (currentFocus >= items.length) currentFocus = 0;
                         if (currentFocus < 0) currentFocus = items.length - 1;
                         items[currentFocus].classList.add('autocomplete-active');
+                        items[currentFocus].scrollIntoView({ block: 'nearest' });
                     }
                     function removeActive(items) {
                         Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
                     }
-                    function closeAllLists(elmnt) {
-                        document.querySelectorAll('.autocomplete-items').forEach(list => {
-                            if (elmnt !== list.parentNode.querySelector('input')) {
-                                list.parentNode.removeChild(list);
-                            }
-                        });
+                    function closeAllLists() {
+                        document.querySelectorAll('.autocomplete-items')
+                            .forEach(list => list.remove());
                         currentFocus = -1;
                     }
                     document.addEventListener('click', () => closeAllLists());
