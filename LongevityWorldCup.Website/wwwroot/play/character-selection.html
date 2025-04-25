@@ -151,11 +151,27 @@
             const athleteInput = document.getElementById('athlete');
             athleteInput.focus();
 
+            const confirmBtn = document.getElementById('confirmBtn');
+            confirmBtn.addEventListener('click', () => {
+                localStorage.setItem('selectedAthlete', athleteInput.value);
+            });
+
             // — ATHLETE AUTOCOMPLETE —
             fetch('/api/data/athletes')
                 .then(r => r.json())
                 .then(data => {
                     const athletes = data;
+                    function selectAthlete(a) {
+                        athleteInput.value = a.Name;
+                        document.getElementById('character-title').textContent = a.Name;
+                        document.querySelector('picture').innerHTML = `
+                                        <img src="${a.ProfilePic}"
+                                                alt="${a.Name} headshot"
+                                                class="illustration"
+                                                loading="lazy">`;
+                        confirmBtn.style.display = 'inline-block';
+                    }
+
                     const athleteInput = document.getElementById('athlete');
                     let currentFocus = -1;
 
@@ -196,16 +212,8 @@
 
                                 item.addEventListener('mousedown', e => {
                                     e.preventDefault();
-                                    athleteInput.value = a.Name;
-                                    document.getElementById('character-title').textContent = a.Name;
-                                    document.querySelector('picture').innerHTML = `
-                                                        <img src="${a.ProfilePic}"
-                                                                alt="${a.Name} headshot"
-                                                                class="illustration"
-                                                                loading="lazy">
-                                                    `;
+                                    selectAthlete(a);
                                     closeAllLists();
-                                    document.getElementById('confirmBtn').style.display = 'inline-block';
                                 });
 
                                 list.appendChild(item);
@@ -248,6 +256,14 @@
                         currentFocus = -1;
                     }
                     document.addEventListener('click', () => closeAllLists());
+
+                    const saved = localStorage.getItem('selectedAthlete');
+                    if (saved) {
+                        const match = athletes.find(a => a.Name === saved);
+                        if (match) {
+                            selectAthlete(match);
+                        }
+                    }
                 })
                 .catch(console.error);
 

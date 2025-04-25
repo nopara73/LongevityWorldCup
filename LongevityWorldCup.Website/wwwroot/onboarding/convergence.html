@@ -887,6 +887,9 @@
                     // Collect all the data and send it to the backend via an API call
                     const applicantData = collectApplicantData();
 
+                    // remember this athlete for next time
+                    localStorage.setItem('selectedAthlete', applicantData.name);
+
                     // Disable the Apply button and change its text
                     const applyButton = document.getElementById('nextButton');
                     applyButton.disabled = true;
