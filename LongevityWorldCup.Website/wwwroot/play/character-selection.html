@@ -1,0 +1,223 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--HEAD-->
+    <style>
+        /* Hide the join-game button in the header */
+        .join-game {
+            display: none;
+        }
+
+        /* Specific styles for different buttons */
+        .option-button.beer, .option-button.beef, .option-button.veggies {
+            background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+            /* Hover effects for specific buttons */
+            .option-button.beer:hover, .option-button.beef:hover, .option-button.veggies:hover {
+                background: linear-gradient(135deg, #455A64, #607D8B); /* Darker gradient */
+                transform: scale(1.03);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
+            }
+
+        .option-button.already-have {
+            background: var(--main-action-color);
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+            .option-button.already-have:hover {
+                background: var(--main-action-selected-color);
+                transform: scale(1.03);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
+            }
+
+        .autocomplete-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%; /* Make the container fill the form width */
+        }
+
+        .autocomplete-container {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            width: 80%;
+            max-width: 400px;
+            height: 60px; /* Fixed height for all buttons */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Vertically center the text */
+        }
+
+            .autocomplete-container input {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                border: 2px solid #ccc;
+                border-radius: 30px;
+                font-size: 1rem;
+                transition: border-color 0.2s;
+            }
+
+                .autocomplete-container input:focus {
+                    outline: none;
+                    border-color: #4CAF50;
+                    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+                }
+
+        .autocomplete-items {
+            position: absolute;
+            background: white; /* white panel */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* soft drop shadow */
+            border: none; /* no harsh border */
+            max-height: 150px; /* scroll if too tall */
+            overflow-y: auto;
+            z-index: 9999;
+            left: 0;
+            right: 0; /* ensures it spans exactly the container */
+            box-sizing: border-box; /* include any padding/borders in that width */
+            top: calc(100% - 2px); /* slide up by the input’s 2px bottom border so it’s flush */
+            border-radius: 0 0 30px 30px; /* match your input’s 30px pill corners */
+        }
+
+            .autocomplete-items div {
+                padding: 0.75rem 1rem; /* generous touch targets */
+                font-size: 0.95rem;
+            }
+
+                .autocomplete-items div:not(:last-child) {
+                    border-bottom: 1px solid #eee; /* light separator between items */
+                }
+
+                .autocomplete-items div:hover,
+                .autocomplete-active {
+                    background-color: #0069d9; /* your blue hover */
+                    color: #fff;
+                }
+
+        .error-message {
+            display: block;
+            color: red;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <h2 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Character Selection</h2>
+        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            <picture>
+                <source srcset="../assets/content-images/headshot.webp" type="image/webp">
+                <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
+                <img src="../assets/content-images/lab.jpg" alt="Lab" class="illustration" loading="lazy">
+            </picture>
+        </div>
+        <div class="autocomplete-wrapper" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <div class="autocomplete-container">
+                <input type="text"
+                       id="athlete"
+                       name="athlete"
+                       required
+                       autocomplete="off"
+                       placeholder="Start typing your athlete name…">
+                <span id="athleteError" class="error-message"></span>
+            </div>
+        </div>
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <button class="option-button already-have" onclick="window.location.href='/onboarding/join-game.html'">Confirm</button>
+
+            <button class="option-button back-button" onclick="window.location.href='/play/menu.html'">
+                <i class="fas fa-arrow-left"></i>&nbsp;Back
+            </button>
+        </div>
+    </main>
+    <!--FOOTER-->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                const viewTarget = document.querySelector('h2');
+                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+
+            // — ATHLETE AUTOCOMPLETE —
+            fetch('/api/data/athletes')
+                .then(r => r.json())
+                .then(data => {
+                    const athletes = data.map(a => a.Name);
+                    const athleteInput = document.getElementById('athlete');
+                    let currentFocus = -1;
+
+                    athleteInput.addEventListener('input', function () {
+                        const val = this.value.toLowerCase();
+                        closeAllLists(this);
+                        if (!val) return false;
+
+                        const list = document.createElement('div');
+                        list.setAttribute('id', this.id + '-autocomplete-list');
+                        list.setAttribute('class', 'autocomplete-items');
+                        this.parentNode.appendChild(list);
+
+                        athletes.forEach(name => {
+                            if (name.toLowerCase().includes(val)) {
+                                const item = document.createElement('div');
+                                const idx = name.toLowerCase().indexOf(val);
+                                item.innerHTML =
+                                    name.substr(0, idx) +
+                                    '<strong>' + name.substr(idx, val.length) + '</strong>' +
+                                    name.substr(idx + val.length);
+                                item.setAttribute('data-value', name);
+                                item.addEventListener('mousedown', e => {
+                                    e.preventDefault();
+                                    athleteInput.value = name;
+                                    closeAllLists();
+                                });
+                                list.appendChild(item);
+                            }
+                        });
+                    });
+
+                    athleteInput.addEventListener('keydown', function (e) {
+                        let list = document.getElementById(this.id + '-autocomplete-list');
+                        if (list) list = list.getElementsByTagName('div');
+                        if (e.keyCode === 40) {          // down
+                            currentFocus++;
+                            addActive(list);
+                        } else if (e.keyCode === 38) {   // up
+                            currentFocus--;
+                            addActive(list);
+                        } else if (e.keyCode === 13) {   // enter
+                            e.preventDefault();
+                            if (currentFocus > -1 && list) {
+                                list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
+                            }
+                        }
+                    });
+
+                    function addActive(items) {
+                        if (!items) return;
+                        removeActive(items);
+                        if (currentFocus >= items.length) currentFocus = 0;
+                        if (currentFocus < 0) currentFocus = items.length - 1;
+                        items[currentFocus].classList.add('autocomplete-active');
+                    }
+                    function removeActive(items) {
+                        Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
+                    }
+                    function closeAllLists(elmnt) {
+                        document.querySelectorAll('.autocomplete-items').forEach(list => {
+                            if (elmnt !== list.parentNode.querySelector('input')) {
+                                list.parentNode.removeChild(list);
+                            }
+                        });
+                        currentFocus = -1;
+                    }
+                    document.addEventListener('click', () => closeAllLists());
+                })
+                .catch(console.error);
+
+        });
+    </script>
+</body>
+</html>
