@@ -52,6 +52,13 @@
     <!--FOOTER-->
 
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                const viewTarget = document.querySelector('h2');
+                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+        });
+
         // Retrieve the contact email from localStorage
         const contactEmail = localStorage.getItem('contactEmail');
         if (contactEmail) {
