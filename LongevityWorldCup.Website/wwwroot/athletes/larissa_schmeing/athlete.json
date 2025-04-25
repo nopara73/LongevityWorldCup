@@ -1,0 +1,27 @@
+{
+  "Name": "Larissa Schmeing",
+  "MediaContact": "https://www.instagram.com/lari.ssa19/",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 2,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-24",
+      "AlbGL": 47,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 4.718028419182949,
+      "CrpMgL": 1.17,
+      "LymPc": 49.3,
+      "McvFL": 93.2,
+      "RdwPc": 12.9,
+      "AlpUL": 42,
+      "Wbc1000cellsuL": 4.34
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Germany",
+  "Why": "Reaching longevity escape velocity. Enjoy a healthy, happy and very long life.",
+  "PersonalLink": null
+}
