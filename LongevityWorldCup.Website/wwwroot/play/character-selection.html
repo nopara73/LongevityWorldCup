@@ -111,7 +111,7 @@
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
                 <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
-                <img src="../assets/content-images/lab.jpg" alt="Lab" class="illustration" loading="lazy">
+                <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
             </picture>
         </div>
         <div class="autocomplete-wrapper" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
@@ -149,7 +149,7 @@
             fetch('/api/data/athletes')
                 .then(r => r.json())
                 .then(data => {
-                    const athletes = data.map(a => a.Name);
+                    const athletes = data;
                     const athleteInput = document.getElementById('athlete');
                     let currentFocus = -1;
 
@@ -163,20 +163,37 @@
                         list.setAttribute('class', 'autocomplete-items');
                         this.parentNode.appendChild(list);
 
-                        athletes.forEach(name => {
-                            if (name.toLowerCase().includes(val)) {
+                        athletes.forEach(a => {
+                            if (a.Name.toLowerCase().includes(val)) {
+                                const idx = a.Name.toLowerCase().indexOf(val);
                                 const item = document.createElement('div');
-                                const idx = name.toLowerCase().indexOf(val);
                                 item.innerHTML =
-                                    name.substr(0, idx) +
-                                    '<strong>' + name.substr(idx, val.length) + '</strong>' +
-                                    name.substr(idx + val.length);
-                                item.setAttribute('data-value', name);
+                                    a.Name.substr(0, idx) +
+                                    '<strong>' + a.Name.substr(idx, val.length) + '</strong>' +
+                                    a.Name.substr(idx + val.length);
+
+                                // store the athlete name and the single .webp URL
+                                item.dataset.value = a.Name;
+                                item.dataset.profilePic = a.ProfilePic;
+
                                 item.addEventListener('mousedown', e => {
                                     e.preventDefault();
-                                    athleteInput.value = name;
+                                    athleteInput.value = a.Name;
+
+                                    // just take whatever URL the API gave us
+                                    const picUrl = a.ProfilePic;
+
+                                    // swap the entire <picture> to a single <img> pointing at that URL
+                                    document.querySelector('picture').innerHTML = `
+                                                <img src="${picUrl}"
+                                                     alt="${a.Name} headshot"
+                                                     class="illustration"
+                                                     loading="lazy">
+                                              `;
+
                                     closeAllLists();
                                 });
+
                                 list.appendChild(item);
                             }
                         });
