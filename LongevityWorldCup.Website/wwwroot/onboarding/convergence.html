@@ -340,12 +340,12 @@
             const accountEmail = document.getElementById('accountEmail').value.trim();
             const personalLink = document.getElementById('personalLink').value.trim();
 
-            // Get the pheno age from localStorage
-            const chronoBioDifference = localStorage.getItem('chronoBioDifference');
+            // Get the pheno age from sessionStorage
+            const chronoBioDifference = sessionStorage.getItem('chronoBioDifference');
 
             // Use the global variables `profilePic` and `proofPics` directly
-            // Get the biomarker data from localStorage
-            const biomarkerData = JSON.parse(localStorage.getItem('biomarkerData'));
+            // Get the biomarker data from sessionStorage
+            const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
             if (!biomarkerData) {
                 customAlert('Biomarker data is missing. Please complete the biomarker form.');
                 return;
@@ -914,7 +914,7 @@
                         .then(response => {
                             if (response.ok) {
                                 customAlert('Application submitted successfully!').then(() => {
-                                    localStorage.setItem('contactEmail', applicantData.accountEmail);
+                                    sessionStorage.setItem('contactEmail', applicantData.accountEmail);
                                     // Clear the image variables
                                     profilePic = null;
                                     proofPics = [];

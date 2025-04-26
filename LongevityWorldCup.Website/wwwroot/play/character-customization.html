@@ -131,7 +131,7 @@
     </main>
     <!--FOOTER-->
     <script>
-        const athlete = JSON.parse(localStorage.getItem('selectedAthlete'));
+        const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
 
         document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
@@ -141,10 +141,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                                                                                    class="illustration"
-                                                                                                                                                                    loading="lazy">`;
+                                                                                                                                                                <img src="${athlete.ProfilePic}"
+                                                                                                                                                                        alt="${athlete.Name} headshot"
+                                                                                                                                                                        class="illustration"
+                                                                                                                                                                        loading="lazy">`;
         });
     </script>
 </body>
