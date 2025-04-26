@@ -267,3 +267,21 @@ window.highlightText = function (element, searchTerms) {
 
     element.innerHTML = highlightedHTML;
 }
+
+window.goBackOrHome = function () {
+    try {
+        const ref = document.referrer;
+        const origin = new URL(ref).origin;
+        if (
+            ref &&
+            origin === window.location.origin &&
+            window.history.length > 1
+        ) {
+            window.history.back();
+        } else {
+            window.location.href = '/';
+        }
+    } catch (e) {
+        window.location.href = '/';
+    }
+}
