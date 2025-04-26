@@ -828,7 +828,7 @@
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
-            // Collect the biomarker data to store in localStorage
+            // Collect the biomarker data to store in sessionStorage
             const biomarkerData = {
                 DateOfBirth: {
                     Year: year,
@@ -851,14 +851,14 @@
                 ]
             };
 
-            // Store the data in localStorage
+            // Store the data in sessionStorage
             const chronoAge = window.PhenoAge.calculateAgeFromDOB(new Date(year, month, day));
             const bioAge = parseFloat(document.getElementById('animatedAge').innerText);
             const chronoBioDifference = bioAge - chronoAge;
-            localStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
+            sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
 
-            localStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
-            const biomarkerDataFromStorage = JSON.parse(localStorage.getItem('biomarkerData'));
+            sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
+            const biomarkerDataFromStorage = JSON.parse(sessionStorage.getItem('biomarkerData'));
 
             window.location.href = '/onboarding/convergence.html';
         }

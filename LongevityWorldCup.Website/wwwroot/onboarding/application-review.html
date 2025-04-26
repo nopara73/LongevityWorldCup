@@ -59,8 +59,8 @@
             }, 500);
         });
 
-        // Retrieve the contact email from localStorage
-        const contactEmail = localStorage.getItem('contactEmail');
+        // Retrieve the contact email
+        const contactEmail = sessionStorage.getItem('contactEmail');
         if (contactEmail) {
             // Insert it into the placeholder
             document.getElementById('contactEmailPlaceholder').textContent = contactEmail;
@@ -68,8 +68,6 @@
             // If no email is found, use a default message
             document.getElementById('contactEmailPlaceholder').textContent = 'the email address you provided';
         }
-        // Optionally, remove the contactEmail from localStorage
-        localStorage.removeItem('contactEmail');
 
         // mark that they’ve submitted an application
         localStorage.setItem('hasApplication', 'true');
