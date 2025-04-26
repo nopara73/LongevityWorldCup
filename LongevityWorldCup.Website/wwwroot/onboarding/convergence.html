@@ -198,7 +198,7 @@
                 <p style='text-align: center; font-weight: bold;'>Complete Your Profile</p>
             </div>
             <div id="congratsText" style="display:none">
-                <p>Congrats! All that's left to do is to provide an email where we can reach you about your application.</p>
+                <p><strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.</p>
             </div>
         </form>
 
@@ -646,6 +646,8 @@
                     break;
                 case 7:
                     // Stage 7: Application
+                    document.getElementById('illustrationPicture').style.display = 'none';
+
                     document.querySelector('h2').textContent = "Application";
                     updateIllustration("account-creation", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Application";
