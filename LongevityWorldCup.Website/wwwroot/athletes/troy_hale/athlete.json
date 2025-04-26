@@ -1,0 +1,27 @@
+{
+  "Name": "Troy Hale",
+  "MediaContact": "https://www.instagram.com/troy.hale/",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 11,
+    "Day": 26
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-25",
+      "AlbGL": 49,
+      "CreatUmolL": 108.8495575221239,
+      "GluMmolL": 5.3841030195381885,
+      "CrpMgL": 0.15,
+      "LymPc": 37,
+      "McvFL": 93,
+      "RdwPc": 12.3,
+      "AlpUL": 65,
+      "Wbc1000cellsuL": 4.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Canada",
+  "Why": "I want to feel great, live long, and be fully present for the people I love. That’s what keeps me going.",
+  "PersonalLink": "https://www.troyhale.ca"
+}
