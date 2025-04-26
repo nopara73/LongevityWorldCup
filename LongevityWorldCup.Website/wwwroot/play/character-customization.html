@@ -134,7 +134,7 @@
                     onclick="window.location.href='/onboarding/application-review.html'">
                 Confirm
             </button>
-            <button class="option-button back-button" onclick="window.location.href='/play/menu.html'">
+            <button class="option-button back-button" onclick="window.location.href='/play/character-selection.html'">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
         </div>
@@ -165,10 +165,10 @@
                         athleteInput.value = a.Name;
                         document.getElementById('character-title').textContent = a.Name;
                         document.querySelector('picture').innerHTML = `
-                                            <img src="${a.ProfilePic}"
-                                                    alt="${a.Name} headshot"
-                                                    class="illustration"
-                                                    loading="lazy">`;
+                                                <img src="${a.ProfilePic}"
+                                                        alt="${a.Name} headshot"
+                                                        class="illustration"
+                                                        loading="lazy">`;
                         confirmBtn.style.display = 'inline-block';
                     }
 
