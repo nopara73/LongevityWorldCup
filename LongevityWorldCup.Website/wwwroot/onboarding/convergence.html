@@ -372,6 +372,11 @@
 
         // Function to update the UI based on the current stage
         function goToStage(stage) {
+            // Clear out any lingering click‐handlers on the illustration
+            const oldImg = document.getElementById('illustrationImage');
+            const newImg = oldImg.cloneNode(true);
+            oldImg.parentNode.replaceChild(newImg, oldImg);
+
             // Clear visibility on all main form sections
             document.getElementById('shadowsText').style.display = 'none';
             document.getElementById('whyText').style.display = 'none';
@@ -947,6 +952,8 @@
         });
 
         function attachUploadEventListeners() {
+            if (currentStage !== 4) return;
+
             // Set up event listener for the upload button
             const uploadButton = document.getElementById('uploadButton');
             if (uploadButton && !uploadButton.hasAttribute('data-listener')) {
@@ -1031,8 +1038,6 @@
                         nextButton.disabled = false;
                         nextButton.classList.remove('disabled-button');
                         updateUploadButtons();
-
-                        attachUploadEventListeners();
                     }
                 });
 
