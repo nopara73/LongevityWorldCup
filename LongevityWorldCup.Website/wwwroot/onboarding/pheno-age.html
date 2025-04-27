@@ -402,6 +402,11 @@
     <!--FOOTER-->
     <!-- JavaScript -->
     <script>
+        // Check if the URL has the query parameter "fake=1"
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFake = urlParams.get('fake') === '1';
+        const isUpdate = urlParams.get('update') === '1';
+
         updateMainProgress(2);
 
         // Event listener for form submission
@@ -791,9 +796,6 @@
 
             updateDays(); // Added line
 
-            // Check if the URL has the query parameter "fake=1"
-            const urlParams = new URLSearchParams(window.location.search);
-            const isFake = urlParams.get('fake') === '1';
             if (isFake) {
                 fillFakeData();
             }

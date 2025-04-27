@@ -121,7 +121,7 @@
             <button class="option-button already-have" onclick="window.location.href='/onboarding/application-review.html'">
                 Edit Profile
             </button>
-            <button class="option-button already-have" onclick="window.location.href='/onboarding/pheno-age.html'">
+            <button class="option-button already-have" onclick="window.location.href='/onboarding/pheno-age.html?update=1'">
                 Submit New Results
             </button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
@@ -141,10 +141,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                        <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                alt="${athlete.Name} headshot"
-                                                                                                                                                                                class="illustration"
-                                                                                                                                                                                loading="lazy">`;
+                                                                                                                                                                            <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                    alt="${athlete.Name} headshot"
+                                                                                                                                                                                    class="illustration"
+                                                                                                                                                                                    loading="lazy">`;
         });
     </script>
 </body>
