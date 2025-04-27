@@ -813,6 +813,38 @@
                 document.getElementById('dob-day').value = athlete.DateOfBirth.Day;
                 document.getElementById('dobFieldset').style.display = 'none';
 
+                // Get the biomarker entry with the most recent Date
+                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
+                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
+                });
+
+                document.getElementById('albumin').value = latestBiomarkerSet.AlbGL;
+                document.getElementById('albuminUnit').value = 1; // g/L
+
+                document.getElementById('creatinine').value = latestBiomarkerSet.CreatUmolL;
+                document.getElementById('creatinineUnit').value = 1; // µmol/L
+
+                document.getElementById('glucose').value = latestBiomarkerSet.GluMmolL;
+                document.getElementById('glucoseUnit').value = 1; // mmol/L
+
+                document.getElementById('crp').value = latestBiomarkerSet.CrpMgL;
+                document.getElementById('crpUnit').value = 10; // mg/L
+
+                document.getElementById('lymphocyte').value = latestBiomarkerSet.LymPc;
+                document.getElementById('lymphocyteUnit').value = 1; // %
+
+                document.getElementById('mcv').value = latestBiomarkerSet.McvFL;
+                document.getElementById('mcvUnit').value = 1; // fL
+
+                document.getElementById('rcdw').value = latestBiomarkerSet.RdwPc;
+                document.getElementById('rcdwUnit').value = 1; // %
+
+                document.getElementById('ap').value = latestBiomarkerSet.AlpUL;
+                document.getElementById('apUnit').value = 1; // U/L
+
+                document.getElementById('wbc').value = latestBiomarkerSet.Wbc1000cellsuL;
+                document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
+
             }
             else {
                 updateMainProgress(2);
