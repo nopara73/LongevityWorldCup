@@ -136,6 +136,14 @@
         }, 500);
     });
 
+    // Hides the entire progress‐bar container
+    function hideMainProgress() {
+        const container = document.getElementById('mainProgressBar');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
     // Function to update main progress bar based on the current stage
     function updateMainProgress(currentStage) {
         const progressFill = document.getElementById('progressFill');
