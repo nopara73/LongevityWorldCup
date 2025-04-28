@@ -64,6 +64,33 @@ Must appear before any other script that attaches DOMContentLoaded listeners.
     })();
 </script>
 
+<!--
+Monkey-patch DOMContentLoaded to automatically refresh AOS animations
+as soon as the DOM is ready. Ensures any [data-aos] elements already
+in view will animate without manual calls.
+Must appear before any other script that initializes or relies on AOS.
+-->
+<script>
+    (function () {
+        const origAdd = document.addEventListener.bind(document);
+        document.addEventListener = function (type, listener, options) {
+            if (type === 'DOMContentLoaded') {
+                origAdd('DOMContentLoaded', event => {
+                    try {
+                        listener.call(this, event);
+                    } finally {
+                        if (window.AOS && typeof AOS.refresh === 'function') {
+                            AOS.refresh();
+                        }
+                    }
+                }, options);
+            } else {
+                origAdd(type, listener, options);
+            }
+        };
+    })();
+</script>
+
 <script type="module">
     // build a version‑stamp once
     const __v = Date.now();
