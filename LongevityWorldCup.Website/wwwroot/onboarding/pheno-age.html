@@ -178,7 +178,6 @@
         .input-group {
             display: flex;
             align-items: center;
-            margin-top: 0.5rem;
         }
 
             .input-group input {
@@ -191,6 +190,53 @@
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 width: auto;
+            }
+
+        /* Mini-card container */
+        .biomarker-card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: box-shadow 0.2s ease;
+        }
+
+            .biomarker-card.active {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+
+        /* Header bar */
+        .biomarker-card-header {
+            background: #f7f7f7;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .biomarker-card-header:hover {
+                background: #ececec;
+            }
+
+        /* Toggle icon */
+        .toggle-icon {
+            font-weight: bold;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        /* Hidden content by default */
+        .biomarker-card-content {
+            max-height: 0;
+            overflow: hidden;
+            padding: 0 1rem; /* keep horizontal padding */
+            transition: max-height 0.3s ease, /* animate height */
+            padding 0.3s ease; /* animate vertical padding */
+        }
+
+            .biomarker-card-content > .input-group:first-of-type {
+                margin-top: 0;
             }
     </style>
 </head>
@@ -250,129 +296,192 @@
                 <legend>Biomarkers:</legend>
 
                 <!-- Albumin -->
-                <label for="albumin">Albumin</label>
-                <div class="input-group">
-                    <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="albuminUnit" class="visually-hidden">Select unit for Albumin</label>
-                    <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">g/L</option>
-                        <option value="0.1">g/dL</option>
-                        <option value="0.1">g%</option>
-                        <!-- Albumin's molar mass can vary slightly depending on its source and exact composition, usually given as approximately 66,500 g/mol but sometimes noted as 66,430 g/mol or 66,563 g/mol in specific contexts. If we calculate using 66,430 g/mol as the molar mass, then it's: 15.0466µmol/L-->
-                        <option value="15.0466">µmol/L</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        Albumin
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="albuminUnit" class="visually-hidden">Select unit for Albumin</label>
+                            <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">g/L</option>
+                                <option value="0.1">g/dL</option>
+                                <option value="0.1">g%</option>
+                                <!-- Albumin's molar mass can vary slightly depending on its source and exact composition, usually given as approximately 66,500 g/mol but sometimes noted as 66,430 g/mol or 66,563 g/mol in specific contexts. If we calculate using 66,430 g/mol as the molar mass, then it's: 15.0466µmol/L -->
+                                <option value="15.0466">µmol/L</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Creatinine -->
-                <label for="creatinine">Creatinine</label>
-                <div class="input-group">
-                    <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="creatinineUnit" class="visually-hidden">Select unit for Creatinine</label>
-                    <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">µmol/L</option>
-                        <option value="0.0113">mg/dL</option>
-                        <option value="0.00113">mg/L</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        Creatinine
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="creatinineUnit" class="visually-hidden">Select unit for Creatinine</label>
+                            <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">µmol/L</option>
+                                <option value="0.0113">mg/dL</option>
+                                <option value="0.00113">mg/L</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Glucose -->
-                <label for="glucose">Glucose</label>
-                <div class="input-group">
-                    <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="glucoseUnit" class="visually-hidden">Select unit for Glucose</label>
-                    <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">mmol/L</option>
-                        <option value="18.016">mg/dL</option>
-                        <option value="0.18016">mg%</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        Glucose
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="glucoseUnit" class="visually-hidden">Select unit for Glucose</label>
+                            <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">mmol/L</option>
+                                <option value="18.016">mg/dL</option>
+                                <option value="0.18016">mg%</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- C-Reactive Protein -->
-                <div class="crp-container">
-                    <!-- Label and Negative Toggle in the same line -->
-                    <div class="label-toggle-group">
-                        <label for="crp">C-Reactive Protein</label>
-                        <span title="Check this box if your result is below detectable limits, such as when marked 'negative.'" class="toggle-text">Set if negative:</span>
-                        <div title="Check this box if your result is below detectable limits, such as when marked 'negative.'" class="negative-toggle">
-                            <label for="crp-negative" class="toggle-label">
-                                <input type="checkbox" id="crp-negative" onchange="toggleCRPInput()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        C-Reactive Protein
+                        <span class="toggle-icon">+</span>
                     </div>
+                    <div class="biomarker-card-content">
+                        <div class="crp-container">
+                            <!-- Label and Negative Toggle in the same line -->
+                            <div class="label-toggle-group">
+                                <span title="Check this box if your result is below the detection limits and this limit is unknown" class="toggle-text">Set if negative:</span>
+                                <div title="Check this box if your result is below the detection limits and this limit is unknown" class="negative-toggle">
+                                    <label for="crp-negative" class="toggle-label">
+                                        <input type="checkbox" id="crp-negative" onchange="toggleCRPInput()">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
 
-                    <!-- Input Group -->
-                    <div class="input-group">
-                        <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
-                        <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                            <option value="10">mg/L</option>
-                            <option value="1">mg/dL</option>
-                            <option value="10000">mg/mL</option>
-                            <option value="86.96">nmol/L</option>
-                        </select>
+                            <!-- Input Group -->
+                            <div class="input-group">
+                                <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
+                                <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <option value="10">mg/L</option>
+                                    <option value="1">mg/dL</option>
+                                    <option value="10000">mg/mL</option>
+                                    <option value="86.96">nmol/L</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Lymphocyte Percentage -->
-                <label for="lymphocyte">Lymphocytes</label>
-                <div class="input-group">
-                    <input type="number" id="lymphocyte" name="lymphocyte" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
-                    <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">%</option>
-                        <option value="1">1000 cells/μL</option>
-                        <option value="1">10⁹ cells/L</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        Lymphocytes
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="lymphocyte" name="lymphocyte" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
+                            <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">%</option>
+                                <option value="1">1000 cells/μL</option>
+                                <option value="1">10⁹ cells/L</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Mean Corpuscular Volume -->
-                <label for="mcv">Mean Corpuscular Volume</label>
-                <div class="input-group">
-                    <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
-                    <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">fL</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        Mean Corpuscular Volume
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
+                            <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">fL</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Red Cell Distribution Width -->
-                <label for="rcdw">Red Cell Distribution Width</label>
-                <div class="input-group">
-                    <input type="number" id="rcdw" name="rcdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
-                    <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">%</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        Red Cell Distribution Width
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="rcdw" name="rcdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
+                            <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">%</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Alkaline Phosphatase -->
-                <label for="ap">Alkaline Phosphatase</label>
-                <div class="input-group">
-                    <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
-                    <select id="apUnit" name="apUnit" aria-label="ALP unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">U/L</option>
-                        <option value="0.01667">μkat/L</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        Alkaline Phosphatase
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
+                            <select id="apUnit" name="apUnit" aria-label="AP unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">U/L</option>
+                                <option value="0.01667">μkat/L</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- White Blood Cell Count -->
-                <label for="wbc">White Blood Cell Count</label>
-                <div class="input-group">
-                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                    <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
-                    <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                        <option value="1">1000 cells/μL</option>
-                        <option value="1">10⁹ cells/L</option>
-                        <option value="1000">cells/μL</option>
-                        <option value="1000">cells/mm³</option>
-                    </select>
+                <div class="biomarker-card">
+                    <div class="biomarker-card-header">
+                        White Blood Cell Count
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="biomarker-card-content">
+                        <div class="input-group">
+                            <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                            <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
+                            <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                <option value="1">1000 cells/μL</option>
+                                <option value="1">10⁹ cells/L</option>
+                                <option value="1000">cells/μL</option>
+                                <option value="1000">cells/mm³</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </fieldset>
 
             <!-- Calculate Button -->
-            <button type="submit" class="option-button" aria-label="Calculate your biological age" style="margin-top: 1.5rem; max-width: 350px;">
+            <button type="submit" class="option-button" aria-label="Calculate your biological age" style="margin-top: 1.5rem; max-width: 350px; white-space: nowrap; ">
                 <i class="fas fa-heartbeat"></i>&nbsp;Calculate My Biological Age
             </button>
         </form>
@@ -516,6 +625,7 @@
 
                 // Check for invalid input
                 if (isNaN(rawValue)) {
+                    expandFieldCard(biomarker.id);
                     customAlert(`Please enter a valid value for ${biomarker.name}.`).then(() => {
                         document.getElementById('continueButton').classList.remove('show');
                         updateCalculateButton();
@@ -539,6 +649,8 @@
                     const wbcUnitConversion = parseFloat(wbcUnitElement.value);
 
                     if (isNaN(wbcRawValue)) {
+                        expandFieldCard('wbc');
+                        expandFieldCard('lymphocyte');
                         customAlert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.").then(() => {
                             document.getElementById('continueButton').classList.remove('show');
                             updateCalculateButton();
@@ -1032,6 +1144,107 @@
                 .addEventListener('change', checkMinor)
             );
         document.addEventListener('DOMContentLoaded', checkMinor);
+
+        // Wire up all biomarker‐card headers
+        document.querySelectorAll('.biomarker-card-header').forEach(header => {
+            header.addEventListener('click', function handler() {
+                const card = header.parentNode;
+                const content = card.querySelector('.biomarker-card-content');
+                const icon = header.querySelector('.toggle-icon');
+
+                if (!isUpdate) {
+                    if (!card.classList.contains('active')) {
+                        card.classList.add('active');
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        content.style.paddingTop = '0.75rem';
+                        content.style.paddingBottom = '0.75rem';
+                        header.style.pointerEvents = 'none';
+                        header.style.cursor = 'default';
+                        icon.style.display = 'none';
+                    }
+                    return;
+                }
+
+                // update mode: full toggle with icon swap
+                const isActive = card.classList.toggle('active');
+                icon.textContent = isActive ? '−' : '+';
+                icon.style.display = '';
+                if (isActive) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    content.style.paddingTop = '0.75rem';
+                    content.style.paddingBottom = '0.75rem';
+                } else {
+                    content.style.maxHeight = '0';
+                    content.style.paddingTop = '0';
+                    content.style.paddingBottom = '0';
+                }
+            });
+        });
+
+        /**
+         * Expands the biomarker card containing the given input field.
+         *
+         * @param {string|HTMLElement} field - The ID of the input field, or the field element itself.
+         */
+        function expandFieldCard(field) {
+            // Get the input element
+            const input = typeof field === 'string'
+                ? document.getElementById(field)
+                : field;
+            if (!input) return;
+
+            // Find its enclosing card
+            const card = input.closest('.biomarker-card');
+            if (!card) return;
+
+            // If not already expanded, open it
+            if (!card.classList.contains('active')) {
+                card.classList.add('active');
+
+                // Animate the content area open
+                const content = card.querySelector('.biomarker-card-content');
+                content.style.maxHeight = content.scrollHeight + 'px';
+                content.style.paddingTop = '0.75rem';
+                content.style.paddingBottom = '0.75rem';
+
+                // Handle the toggle icon and header behavior
+                const icon = card.querySelector('.toggle-icon');
+                const header = card.querySelector('.biomarker-card-header');
+
+                if (!isUpdate) {
+                    // In non-update mode: hide the icon and disable further clicks
+                    if (icon) icon.style.display = 'none';
+                    if (header) {
+                        header.style.pointerEvents = 'none';
+                        header.style.cursor = 'default';
+                    }
+                } else {
+                    // In update mode: show a minus icon
+                    if (icon) {
+                        icon.textContent = '−';
+                        icon.style.display = '';
+                    }
+                }
+            }
+        }
+
+        // 1. Let the browser show its validation bubbles, but expand the card first
+        const form = document.getElementById('phenoAgeForm');
+
+        form.addEventListener('invalid', e => {
+            // invalid fires during the capture phase before the bubble appears
+            expandFieldCard(e.target);
+        }, true);
+
+        // 2. On submit, defer to browser validation; only when the form is fully valid do we preventDefault and run calculateResult()
+        form.addEventListener('submit', function (e) {
+            // reportValidity() runs validation and shows bubbles; returns false if something is invalid
+            if (!this.reportValidity()) {
+                return;          // native messages shown, cards already expanded by invalid listener
+            }
+            e.preventDefault();
+            calculateResult();
+        });
     </script>
 </body>
 </html>
