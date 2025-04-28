@@ -1,0 +1,27 @@
+{
+  "Name": "Eugene",
+  "MediaContact": "https://www.instagram.com/eugenechoimd",
+  "DateOfBirth": {
+    "Year": 1978,
+    "Month": 6,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-26",
+      "AlbGL": 52,
+      "CreatUmolL": 86.72566371681417,
+      "GluMmolL": 5.661634103019539,
+      "CrpMgL": 0.2,
+      "LymPc": 36.6,
+      "McvFL": 96,
+      "RdwPc": 11.9,
+      "AlpUL": 66,
+      "Wbc1000cellsuL": 5.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "USA",
+  "Why": "My kids motivate me. they deserve a healthy dad.",
+  "PersonalLink": null
+}
