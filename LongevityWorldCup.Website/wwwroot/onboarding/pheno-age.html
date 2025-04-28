@@ -582,6 +582,16 @@
         let isFirstTimeAnimation = true; // Flag to control the first-time animation
 
         function calculateResult() {
+            // In update mode, ensure at least one new biomarker was entered
+            if (isUpdate) {
+                const biomarkerIds = ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc'];
+                const anyNew = biomarkerIds.some(id => document.getElementById(id).value !== '');
+                if (!anyNew) {
+                    customAlert('😱 No biomarker data entered! Cannot submit nothing!');
+                    return;
+                }
+            }
+
             const markerValues = [];
 
             // Get age from separate Date of Birth inputs
@@ -612,6 +622,31 @@
 
             // Add age as the first marker value
             markerValues.push(chronologicalAge);
+
+            // Fill missing biomarker fields on update
+            if (isUpdate) {
+                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
+                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
+                });
+                const biomarkerDefaults = {
+                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
+                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
+                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
+                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '10' },
+                    lymphocyte: { val: latestBiomarkerSet.LymPc, unit: '1' },
+                    mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
+                    rcdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
+                    ap: { val: latestBiomarkerSet.AlpUL, unit: '1' },
+                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' }
+                };
+                Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
+                    const input = document.getElementById(id);
+                    if (!input.value) {
+                        input.value = val;
+                        document.getElementById(id + 'Unit').value = unit;
+                    }
+                });
+            }
 
             correctCorrectableUnits();
 
@@ -924,37 +959,8 @@
                 document.getElementById('dob-day').value = athlete.DateOfBirth.Day;
                 document.getElementById('dobFieldset').style.display = 'none';
 
-                // Get the biomarker entry with the most recent Date
-                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
-                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
-                });
-
-                document.getElementById('albumin').value = latestBiomarkerSet.AlbGL;
-                document.getElementById('albuminUnit').value = 1; // g/L
-
-                document.getElementById('creatinine').value = latestBiomarkerSet.CreatUmolL;
-                document.getElementById('creatinineUnit').value = 1; // µmol/L
-
-                document.getElementById('glucose').value = latestBiomarkerSet.GluMmolL;
-                document.getElementById('glucoseUnit').value = 1; // mmol/L
-
-                document.getElementById('crp').value = latestBiomarkerSet.CrpMgL;
-                document.getElementById('crpUnit').value = 10; // mg/L
-
-                document.getElementById('lymphocyte').value = latestBiomarkerSet.LymPc;
-                document.getElementById('lymphocyteUnit').value = 1; // %
-
-                document.getElementById('mcv').value = latestBiomarkerSet.McvFL;
-                document.getElementById('mcvUnit').value = 1; // fL
-
-                document.getElementById('rcdw').value = latestBiomarkerSet.RdwPc;
-                document.getElementById('rcdwUnit').value = 1; // %
-
-                document.getElementById('ap').value = latestBiomarkerSet.AlpUL;
-                document.getElementById('apUnit').value = 1; // U/L
-
-                document.getElementById('wbc').value = latestBiomarkerSet.Wbc1000cellsuL;
-                document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
+                // Disable built-in HTML5 required checks in update mode
+                document.getElementById('phenoAgeForm').setAttribute('novalidate', '');
 
                 // Scroll the heading into view
                 document.querySelector('h2').scrollIntoView({ behavior: 'smooth', block: 'start' });
