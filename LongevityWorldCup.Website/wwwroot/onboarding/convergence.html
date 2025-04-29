@@ -188,10 +188,8 @@
             </div>
 
             <div id="proofText" style="display:none">
-                <p>Upload <strong>image proofs</strong> of your biomarkers (e.g., screenshots of PDF results or photos of physical documents).</p>
-                <span class="smaller-text">
-                    These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.
-                </span>
+                <p id="mainProofInstructions"></p>
+                <span id="subProofInstructions" class="smaller-text"></span>
             </div>
 
             <div id="finalDetailsText" style="display:none">
@@ -855,6 +853,16 @@
                 .catch(error => {
                     console.error('Error fetching divisions:', error);
                 });
+
+            const mainProofInstructions = document.getElementById('mainProofInstructions');
+            if (mainProofInstructions) {
+                mainProofInstructions.innerHTML = window.getMainProofInstructionsInnerHTML();
+            }
+
+            const subProofInstructions = document.getElementById('subProofInstructions');
+            if (subProofInstructions) {
+                subProofInstructions.innerHTML = window.getSubProofInstructionsInnerHTML();
+            }
         });
 
         // "Next" Button Click Event Handler

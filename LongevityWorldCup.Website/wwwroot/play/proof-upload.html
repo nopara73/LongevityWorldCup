@@ -24,7 +24,16 @@
     <!--HEADER-->
     <main>
         <h2 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Character Selection</h2>
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            <picture>
+                <source srcset="../assets/content-images/proof.webp" type="image/webp">
+                <source srcset="../assets/content-images/proof.jpg" type="image/jpeg">
+                <img src="../assets/content-images/proof.jpg" alt="Proof" class="illustration" loading="lazy">
+            </picture>
+        </div>
+        <p id="mainProofInstructions" data-aos="fade" data-aos-duration="700" data-aos-delay="350" style="text-align:center"></p>
+        <p id="subProofInstructions" class="smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400" style="text-align:center"></p>
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <button class="option-button already-have" onclick="window.location.href='/onboarding/pheno-age.html?update=1'">
                 Submit
             </button>
@@ -44,6 +53,16 @@
             }, 500);
 
             document.getElementById('character-title').textContent = athlete.Name;
+
+            const mainProofInstructions = document.getElementById('mainProofInstructions');
+            if (mainProofInstructions) {
+                mainProofInstructions.innerHTML = window.getMainProofInstructionsInnerHTML();
+            }
+
+            const subProofInstructions = document.getElementById('subProofInstructions');
+            if (subProofInstructions) {
+                subProofInstructions.innerHTML = window.getSubProofInstructionsInnerHTML();
+            }
         });
     </script>
 </body>
