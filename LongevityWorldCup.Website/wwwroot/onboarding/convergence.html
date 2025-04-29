@@ -311,20 +311,23 @@
         updateSubProgress(1);
 
         function updateUploadButtons() {
-            const uploadProfileButton = document.getElementById('uploadButton');
             const uploadProofButton = document.getElementById('uploadProofButton');
+            const uploadProfileButton = document.getElementById('uploadButton');
             const cropAndSaveButton = document.getElementById('cropButton'); // For the crop and save action
             const nextButton = document.getElementById('nextButton');
 
+            updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton);
+            window.updateProofUploadButtons(nextButton, uploadProofButton);
+        }
+
+        function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton) {
             // Toggle "already-have" class for "Upload Profile Picture" button
-            if (nextButton && nextButton.classList.contains('disabled-button')) {
+            if (nextButton && nextButton.disabled) {
                 uploadProfileButton.classList.add('already-have');
                 cropAndSaveButton.classList.add('already-have');
-                uploadProofButton.classList.add('already-have');
             } else {
                 uploadProfileButton.classList.remove('already-have');
                 cropAndSaveButton.classList.remove('already-have');
-                uploadProofButton.classList.remove('already-have');
             }
         }
 
@@ -410,6 +413,9 @@
 
             const nextButton = document.getElementById('nextButton');
 
+            // set attribute type to button, only last step, submission will set it to submit type
+            nextButton.setAttribute('type', 'button');
+
             // Remove 'clickable' class initially
             illustrationImage.classList.remove('clickable');
 
@@ -423,12 +429,10 @@
                     document.getElementById('shadowsText').style.display = '';
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
-                    nextButton.setAttribute('type', 'button');
                     updateSubProgress(1);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
-                    nextButton.classList.add('disabled-button');
 
                     // Add event listeners for validation
                     const nameInput = document.getElementById('name');
@@ -487,12 +491,10 @@
                     document.getElementById('whyText').style.display = '';
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
-                    nextButton.setAttribute('type', 'button');
                     updateSubProgress(2);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
-                    nextButton.classList.add('disabled-button');
 
                     // Add event listener for validation
                     const whyInput = document.getElementById('why');
@@ -512,13 +514,11 @@
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
-                    nextButton.setAttribute('type', 'button');
                     updateSubProgress(3);
                     nextButton.textContent = 'Bring it on!';
 
                     // Enable Next button
                     nextButton.disabled = false;
-                    nextButton.classList.remove('disabled-button');
                     break;
                 case 4:
                     // Stage 4: Almost There
@@ -531,12 +531,10 @@
 
                     illustrationImage.classList.add('clickable');
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
-                    nextButton.setAttribute('type', 'button');
                     updateSubProgress(4);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
-                    nextButton.classList.add('disabled-button');
 
                     // Check if there is a profile picture in the global variable
                     if (profilePic) {
@@ -545,7 +543,6 @@
                         profileImage.src = profilePic;
                         // Enable Next button if profile picture exists
                         nextButton.disabled = false;
-                        nextButton.classList.remove('disabled-button');
                     }
 
                     // Attach event listeners for upload
@@ -562,60 +559,13 @@
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
-                    nextButton.setAttribute('type', 'button');
-                    nextButton.classList.add("disabled-button");
 
-                    // Attach event listener to the Upload Proof button
                     const uploadProofButton = document.getElementById('uploadProofButton');
-                    if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
-                        uploadProofButton.addEventListener('click', function () {
-                            document.getElementById('proofPicInput').click();
-                        });
-                        uploadProofButton.setAttribute('data-listener', 'true');
-                    }
-
-                    // Handle the image upload (without cropping)
                     const proofPicInput = document.getElementById('proofPicInput');
-                    if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
-                        proofPicInput.addEventListener('change', function (event) {
-                            const files = event.target.files;
-                            if (files.length > 0) {
-                                // Limit the total number of images to 9
-                                if (proofPics.length + files.length > 9) {
-                                    customAlert('You can upload a maximum of 9 images.');
-                                    return;
-                                }
+                    const proofImageContainer = document.getElementById('proofImageContainer');
 
-                                for (let i = 0; i < files.length; i++) {
-                                    const file = files[i];
-                                    const reader = new FileReader();
-                                    reader.onload = function (e) {
-                                        proofPics.push(e.target.result);
-                                        // Update the display
-                                        updateProofImageContainer();
-                                        // Check proof images
-                                        checkProofImages();
-                                    };
-                                    reader.readAsDataURL(file);
-                                }
-                            }
-                            // Reset the file input's value to allow re-uploading the same file if needed
-                            document.getElementById('proofPicInput').value = "";
-                        });
-                        proofPicInput.setAttribute('data-listener', 'true');
-                    }
+                    window.setupProofUploadHTML(nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics);
 
-                    document.getElementById('proofImageContainer').style.display = 'block';
-
-                    // Display any existing proof images
-                    updateProofImageContainer();
-
-                    // Disable Next button initially
-                    nextButton.disabled = true;
-                    nextButton.classList.add('disabled-button');
-
-                    // Check if proof images already exist
-                    checkProofImages();
                     break;
                 case 6:
                     // Stage 6: Final Details
@@ -629,7 +579,6 @@
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
-                    nextButton.setAttribute('type', 'button');
 
                     // Add event listener for validation
                     const mediaContactInput = document.getElementById('mediaContact');
@@ -996,7 +945,6 @@
                             // Disable "Next" button while cropping
                             const nextButton = document.getElementById('nextButton');
                             nextButton.disabled = true;
-                            nextButton.classList.add('disabled-button');
                             updateUploadButtons();
 
                             document.getElementById('cropperImage').src = e.target.result;
@@ -1046,59 +994,11 @@
 
                         const nextButton = document.getElementById('nextButton');
                         nextButton.disabled = false;
-                        nextButton.classList.remove('disabled-button');
                         updateUploadButtons();
                     }
                 });
 
                 profilePicInput.setAttribute('data-listener', 'true');
-            }
-        }
-
-        function updateProofImageContainer() {
-            let container = document.getElementById('proofImageContainer');
-            container.innerHTML = '';
-            // Use the global `proofPics` variable directly
-            if (proofPics.length > 0) {
-                container.innerHTML = '<p><strong>Proof uploaded successfully.</strong></p>';
-                for (let i = 0; i < proofPics.length; i++) {
-                    let imgContainer = document.createElement('div');
-                    imgContainer.style = 'position: relative; display: inline-block; margin: 0.5rem;';
-
-                    let img = document.createElement('img');
-                    img.src = proofPics[i];
-                    img.alt = 'Proof Image ' + (i + 1);
-                    img.style = 'max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px;';
-
-                    let removeButton = document.createElement('button');
-                    removeButton.textContent = 'Remove';
-                    removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
-                    removeButton.addEventListener('click', function () {
-                        proofPics.splice(i, 1);
-                        updateProofImageContainer();
-                        // Check proof images
-                        checkProofImages();
-                    });
-
-                    imgContainer.appendChild(img);
-                    imgContainer.appendChild(removeButton);
-                    container.appendChild(imgContainer);
-                }
-            }
-        }
-
-        function checkProofImages() {
-            if (currentStage !== 5) return;
-
-            const nextButton = document.getElementById('nextButton');
-            if (proofPics.length > 0) {
-                nextButton.disabled = false;
-                nextButton.classList.remove('disabled-button');
-                updateUploadButtons();
-            } else {
-                nextButton.disabled = true;
-                nextButton.classList.add('disabled-button');
-                updateUploadButtons();
             }
         }
 
@@ -1134,10 +1034,8 @@
 
             if (nameValid && flagValid && divisionSelected) {
                 nextButton.disabled = false;
-                nextButton.classList.remove('disabled-button');
             } else {
                 nextButton.disabled = true;
-                nextButton.classList.add('disabled-button');
             }
         }
 
@@ -1175,10 +1073,8 @@
             // Enable or disable the Next button based on validity
             if (charCount >= 30 && charCount <= 250) {
                 nextButton.disabled = false;
-                nextButton.classList.remove('disabled-button');
             } else {
                 nextButton.disabled = true;
-                nextButton.classList.add('disabled-button');
             }
         }
 
@@ -1207,10 +1103,8 @@
 
             if (isValid) {
                 nextButton.disabled = false;
-                nextButton.classList.remove('disabled-button');
             } else {
                 nextButton.disabled = true;
-                nextButton.classList.add('disabled-button');
             }
         }
 
@@ -1224,10 +1118,8 @@
 
             if (emailFilled) {
                 nextButton.disabled = false;
-                nextButton.classList.remove('disabled-button');
             } else {
                 nextButton.disabled = true;
-                nextButton.classList.add('disabled-button');
             }
         }
 
