@@ -1032,6 +1032,11 @@
             const biomarkerDataFromStorage = JSON.parse(sessionStorage.getItem('biomarkerData'));
 
             window.location.href = '/onboarding/convergence.html';
+            if (isUpdate) {
+                window.location.href = '/play/proof-upload.html';
+            } else {
+                window.location.href = '/onboarding/convergence.html';
+            }
         }
         function fillFakeData() {
             // Set fake Date of Birth
