@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--HEAD-->
+    <style>
+        /* Hide the join-game button in the header */
+        .join-game {
+            display: none;
+        }
+
+        .option-button.already-have {
+            background: var(--main-action-color);
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+            .option-button.already-have:hover {
+                background: var(--main-action-selected-color);
+                transform: scale(1.03);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
+            }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <h2 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Character Selection</h2>
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <button class="option-button already-have" onclick="window.location.href='/onboarding/pheno-age.html?update=1'">
+                Submit
+            </button>
+            <button class="option-button back-button" onclick="window.goBackOrHome()">
+                <i class="fas fa-arrow-left"></i>&nbsp;Back
+            </button>
+        </div>
+    </main>
+    <!--FOOTER-->
+    <script>
+        const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                const viewTarget = document.querySelector('h2');
+                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+
+            document.getElementById('character-title').textContent = athlete.Name;
+        });
+    </script>
+</body>
+</html>
