@@ -18,6 +18,36 @@
                 transform: scale(1.03);
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
             }
+
+        #proofImageContainer {
+            width: 90%;
+            max-width: 600px;
+            margin: 1rem auto 0;
+            text-align: center;
+        }
+
+            #proofImageContainer div {
+                position: relative;
+                display: inline-block;
+                margin: 0.5rem;
+            }
+
+            #proofImageContainer img {
+                max-width: 200px;
+                border: 2px solid var(--dark-text-color);
+                border-radius: 8px;
+            }
+
+            #proofImageContainer button {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background-color: rgba(255, 0, 0, 0.7);
+                color: var(--light-text-color);
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+            }
     </style>
 </head>
 <body>
