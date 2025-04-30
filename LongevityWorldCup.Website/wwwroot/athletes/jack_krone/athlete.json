@@ -1,0 +1,28 @@
+{
+  "Name": "Jack Krone",
+  "MediaContact": "flora_trial9w@icloud.com",
+  "DateOfBirth": {
+    "Year": 1996,
+    "Month": 7,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-05",
+      "AlbGL": 47,
+      "CreatUmolL": 97.34513274336284,
+      "GluMmolL": 4.573712255772647,
+      "CrpMgL": 1.9,
+      "LymPc": 32.8,
+      "McvFL": 85.98,
+      "RdwPc": 12.1,
+      "AlpUL": 79.2,
+      "Wbc1000cellsuL": 6.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Infinita",
+  "Why": "I’m driven by the desire to optimize my health, push my limits, and live a long, purposeful life. Every day is a chance to improve and build a better future—for myself and those around me.",
+  "PersonalLink": null,
+  "ExclusiveLeague": "Prosperan"
+}
