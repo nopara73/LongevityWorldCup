@@ -140,7 +140,9 @@
                 };
 
                 const submitButton = document.getElementById('submitButton');
+                const uploadProofButton = document.getElementById('uploadProofButton');
                 submitButton.disabled = true;
+                uploadProofButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
 
                 fetchWithTimeout('/api/application/application', {
@@ -152,12 +154,15 @@
                         if (response.ok) {
                             customAlert('Results submitted successfully!').then(() => {
                                 proofPics = [];
+
+                                sessionStorage.setItem("came-from", "proof-upload");
                                 window.location.href = '/onboarding/application-review.html';
                             });
                         } else {
                             response.text().then(badResponse => {
                                 customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
                                     submitButton.disabled = false;
+                                    uploadProofButton.disabled = false;
                                     submitButton.textContent = 'Submit New Results';
                                 });
                             });
@@ -166,6 +171,7 @@
                     .catch(error => {
                         customAlert(`An error occurred:\n\n${error}`).then(() => {
                             submitButton.disabled = false;
+                            uploadProofButton.disabled = false;
                             submitButton.textContent = 'Submit New Results';
                         });
                     });
