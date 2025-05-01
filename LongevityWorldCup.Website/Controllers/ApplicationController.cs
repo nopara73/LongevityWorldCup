@@ -90,9 +90,9 @@ namespace LongevityWorldCup.Website.Controllers
             // Handle result submissions: only biomarkers and proofs provided
             var isResultSubmissionOnly =
                    !string.IsNullOrWhiteSpace(applicantData.Name)
-                && applicantData.DateOfBirth is not null
                 && applicantData.Biomarkers?.Any() is true
                 && applicantData.ProofPics?.Any() is true
+                && applicantData.DateOfBirth is null
                 && string.IsNullOrWhiteSpace(applicantData.MediaContact)
                 && string.IsNullOrWhiteSpace(applicantData.Division)
                 && string.IsNullOrWhiteSpace(applicantData.Flag)

@@ -19,6 +19,13 @@
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
             }
 
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, #cccccc, #e0e0e0); /* Subtle disabled gradient */
+            box-shadow: none; /* Remove shadows for disabled buttons */
+        }
+
         #proofImageContainer {
             width: 90%;
             max-width: 600px;
@@ -111,6 +118,58 @@
             const proofImageContainer = document.getElementById('proofImageContainer');
 
             window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics);
+
+            submitButton.addEventListener('click', function () {
+                if (!athlete || !athlete.Name) {
+                    customAlert('No athlete selected. Please return and choose your athlete.');
+                    return;
+                }
+
+                const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
+                if (!biomarkerData || !biomarkerData.Biomarkers || !biomarkerData.Biomarkers.length) {
+                    customAlert('Biomarker data is missing. Please fill out the biomarker form first.');
+                    return;
+                }
+
+                const applicantData = {
+                    name: athlete.Name,
+                    accountEmail: sessionStorage.getItem('contactEmail') || null,
+                    chronoBioDifference: sessionStorage.getItem('chronoBioDifference') || null,
+                    biomarkers: biomarkerData.Biomarkers,
+                    proofPics: proofPics
+                };
+
+                const submitButton = document.getElementById('submitButton');
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+
+                fetchWithTimeout('/api/application/application', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(applicantData)
+                }, 21000)
+                    .then(response => {
+                        if (response.ok) {
+                            customAlert('Results submitted successfully!').then(() => {
+                                proofPics = [];
+                                window.location.href = '/onboarding/application-review.html';
+                            });
+                        } else {
+                            response.text().then(badResponse => {
+                                customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
+                                    submitButton.disabled = false;
+                                    submitButton.textContent = 'Submit New Results';
+                                });
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        customAlert(`An error occurred:\n\n${error}`).then(() => {
+                            submitButton.disabled = false;
+                            submitButton.textContent = 'Submit New Results';
+                        });
+                    });
+            });
         });
     </script>
 </body>
