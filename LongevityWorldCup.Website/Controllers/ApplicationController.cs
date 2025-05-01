@@ -1,13 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MailKit.Net.Smtp;
 using MimeKit;
-using System.IO;
-using System.Threading.Tasks;
 using LongevityWorldCup.Website.Business;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 
 namespace LongevityWorldCup.Website.Controllers
@@ -66,8 +63,8 @@ namespace LongevityWorldCup.Website.Controllers
             return (null, null, null);
         }
 
-        [HttpPost("apply")]
-        public async Task<IActionResult> Apply([FromBody] ApplicantData applicantData)
+        [HttpPost("application")]
+        public async Task<IActionResult> Application([FromBody] ApplicantData applicantData)
         {
             if (!ModelState.IsValid)
             {
@@ -89,6 +86,18 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 return BadRequest("Applicant data is null.");
             }
+
+            // Handle result submissions: only biomarkers and proofs provided
+            var isResultSubmissionOnly =
+                   !string.IsNullOrWhiteSpace(applicantData.Name)
+                && applicantData.DateOfBirth is not null
+                && applicantData.Biomarkers?.Any() is true
+                && applicantData.ProofPics?.Any() is true
+                && string.IsNullOrWhiteSpace(applicantData.MediaContact)
+                && string.IsNullOrWhiteSpace(applicantData.Division)
+                && string.IsNullOrWhiteSpace(applicantData.Flag)
+                && string.IsNullOrWhiteSpace(applicantData.Why)
+                && string.IsNullOrWhiteSpace(applicantData.PersonalLink);
 
             // Get AccountEmail from the json and trim it
             string? accountEmail = applicantData.AccountEmail?.Trim();
@@ -119,17 +128,20 @@ namespace LongevityWorldCup.Website.Controllers
             Directory.CreateDirectory(athleteFolder);
 
             // 1a) Write athlete.json
-            var athleteJson = JsonSerializer.Serialize(new
-            {
-                applicantData.Name,
-                applicantData.MediaContact,
-                applicantData.DateOfBirth,
-                applicantData.Biomarkers,
-                applicantData.Division,
-                applicantData.Flag,
-                applicantData.Why,
-                PersonalLink = correctedPersonalLink
-            }, CachedJsonSerializerOptions);
+            var athleteJsonObject = isResultSubmissionOnly
+                ? new { applicantData.Name, applicantData.Biomarkers } as object
+                : new
+                {
+                    applicantData.Name,
+                    applicantData.MediaContact,
+                    applicantData.DateOfBirth,
+                    applicantData.Biomarkers,
+                    applicantData.Division,
+                    applicantData.Flag,
+                    applicantData.Why,
+                    PersonalLink = correctedPersonalLink
+                };
+            var athleteJson = JsonSerializer.Serialize(athleteJsonObject, CachedJsonSerializerOptions);
             await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson);
 
             // 1b) Save profile picture
@@ -172,10 +184,21 @@ namespace LongevityWorldCup.Website.Controllers
                                     await System.IO.File.ReadAllBytesAsync(zipPath),
                                     new ContentType("application", "zip"));
 
-            // Include AccountEmail in the email body
-            string emailBody = $"\nAccount Email: {accountEmail}\n";
-            emailBody += $"Age Difference: {chronoBioDifference}\n\n";
-
+            builder.Attachments.Add($"{folderKey}.zip",
+                        await System.IO.File.ReadAllBytesAsync(zipPath),
+                        new ContentType("application", "zip"));
+            // 3a) Prepare email body based on submission type
+            string emailBody;
+            if (isResultSubmissionOnly)
+            {
+                emailBody = $"Someone’s been bullying Father Time again...\n";
+                emailBody += $"Age Difference: {chronoBioDifference}";
+            }
+            else
+            {
+                emailBody = $"\nAccount Email: {accountEmail}\n";
+                emailBody += $"Age Difference: {chronoBioDifference}";
+            }
             builder.TextBody = emailBody;
 
             message.Body = builder.ToMessageBody();
