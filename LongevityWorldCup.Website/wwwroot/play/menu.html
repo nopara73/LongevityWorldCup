@@ -22,8 +22,8 @@
         </div>
         <p style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="350">Rise from the Ashes</p>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="newGameBtn" class="option-button" onclick="window.location.href='/onboarding/join-game.html'">New Game</button>
-            <button id="continueGameBtn" class="option-button" style="margin-bottom: 0px;" onclick="window.location.href='/play/character-selection.html'">Continue Game</button>
+            <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/onboarding/join-game.html'">New Game</button>
+            <button id="continueGameBtn" class="option-button grey" style="margin-bottom: 0px;" onclick="window.location.href='/play/character-selection.html'">Continue Game</button>
         </div>
     </main>
     <!--FOOTER-->
@@ -44,9 +44,11 @@
         const contBtn = document.getElementById('continueGameBtn');
 
         if (hasApp) {
+            contBtn.classList.remove('grey');
             contBtn.classList.add('green');
             container.insertBefore(contBtn, container.firstChild);
         } else {
+            newBtn.classList.remove('grey');
             newBtn.classList.add('green');
             container.insertBefore(newBtn, container.firstChild);
         }
