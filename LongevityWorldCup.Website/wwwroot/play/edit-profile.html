@@ -47,6 +47,23 @@
             max-height: 300px;
             object-fit: contain;
         }
+
+        /* dark backdrop & lock scroll when modal is open */
+        #modalOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9998; /* sits just under the modal’s 10000 */
+        }
+
+        .no-scroll {
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
@@ -92,10 +109,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                                                                    class="illustration"
-                                                                                                                                                    loading="lazy">`;
+                                                                                                                                                    <img src="${athlete.ProfilePic}"
+                                                                                                                                                            alt="${athlete.Name} headshot"
+                                                                                                                                                            class="illustration"
+                                                                                                                                                            loading="lazy">`;
         });
 
         function setSubmitChangeRequestButton() {
@@ -118,6 +135,9 @@
                 const cropperImage = document.getElementById('changeProfileCropperImage');
                 cropperImage.src = evt.target.result;
                 cropperModal.style.display = 'flex';
+                document.getElementById('modalOverlay').style.display = 'block';
+                document.body.classList.add('no-scroll');
+
                 // expose globally so crop/cancel buttons can access it
                 window.changeProfileCropper = new Cropper(cropperImage, {
                     aspectRatio: 1,
@@ -143,10 +163,14 @@
             athlete.ProfilePic = newSrc;
             sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             window.changeProfileCropper.destroy();
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.body.classList.remove('no-scroll');
             document.getElementById('changeProfileCropperModal').style.display = 'none';
         });
         cancelBtn.addEventListener('click', () => {
             window.changeProfileCropper.destroy();
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.body.classList.remove('no-scroll');
             document.getElementById('changeProfileCropperModal').style.display = 'none';
         });
     </script>
