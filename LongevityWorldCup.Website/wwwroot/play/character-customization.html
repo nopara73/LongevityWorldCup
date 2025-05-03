@@ -94,10 +94,10 @@
             </picture>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <button class="option-button green" onclick="window.location.href='/play/edit-profile.html'">
+            <button class="option-button grey" onclick="window.location.href='/play/edit-profile.html'">
                 Edit Profile
             </button>
-            <button class="option-button green" onclick="window.location.href='/onboarding/pheno-age.html?update=1'">
+            <button class="option-button grey" onclick="window.location.href='/onboarding/pheno-age.html?update=1'">
                 Submit New Results
             </button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
@@ -117,10 +117,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                                                                                                                    class="illustration"
-                                                                                                                                                                                                    loading="lazy">`;
+                                                                                                                                                                                                <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                        alt="${athlete.Name} headshot"
+                                                                                                                                                                                                        class="illustration"
+                                                                                                                                                                                                        loading="lazy">`;
         });
     </script>
 </body>

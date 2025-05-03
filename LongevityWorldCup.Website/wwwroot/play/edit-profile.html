@@ -61,7 +61,7 @@
             </picture>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <button id="changeProfilePicButton" class="option-button">
+            <button id="changeProfilePicButton" class="option-button grey">
                 Change Profile Picture
             </button>
             <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
@@ -93,10 +93,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                    class="illustration"
-                                                                                                    loading="lazy">`;
+                                                                                                <img src="${athlete.ProfilePic}"
+                                                                                                        alt="${athlete.Name} headshot"
+                                                                                                        class="illustration"
+                                                                                                        loading="lazy">`;
         });
 
         const changeProfileBtn = document.getElementById('changeProfilePicButton');
