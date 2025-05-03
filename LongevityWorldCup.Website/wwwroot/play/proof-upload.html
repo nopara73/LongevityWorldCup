@@ -8,17 +8,6 @@
             display: none;
         }
 
-        .option-button.already-have {
-            background: var(--main-action-color);
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-        }
-
-            .option-button.already-have:hover {
-                background: var(--main-action-selected-color);
-                transform: scale(1.03);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
-            }
-
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -73,7 +62,7 @@
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <input type="file" id="proofPicInput" accept="image/*" style="display: none;" multiple>
-            <button type="button" id="uploadProofButton" class="option-button already-have">
+            <button type="button" id="uploadProofButton" class="option-button green">
                 Upload Proof Images
             </button>
         </div>
@@ -81,7 +70,7 @@
         <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <button id="submitButton" type="submit" class="option-button already-have">
+            <button id="submitButton" type="submit" class="option-button green">
                 Submit New Results
             </button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">

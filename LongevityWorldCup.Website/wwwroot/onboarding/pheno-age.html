@@ -10,18 +10,6 @@
             display: none;
         }
 
-        .option-button.already-have {
-            background: var(--main-action-color);
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-        }
-
-            .option-button.already-have:hover {
-                background: var(--main-action-selected-color);
-                transform: scale(1.03); /* Slight enlarge effect */
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
-            }
-
         /* Visually Hidden Class for Accessibility */
         .visually-hidden {
             position: absolute !important;
@@ -500,7 +488,7 @@
         </div>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <button id="continueButton" class="option-button already-have" onclick="proceedToNextPage()">
+            <button id="continueButton" class="option-button green" onclick="proceedToNextPage()">
                 Next&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
 
@@ -534,9 +522,9 @@
             const nextButton = document.getElementById('continueButton');
 
             if (nextButton.classList.contains('show')) {
-                calculateButton.classList.remove('already-have'); // Reset style
+                calculateButton.classList.remove('green'); // Reset style
             } else {
-                calculateButton.classList.add('already-have'); // Apply matching style
+                calculateButton.classList.add('green'); // Apply matching style
             }
         }
 

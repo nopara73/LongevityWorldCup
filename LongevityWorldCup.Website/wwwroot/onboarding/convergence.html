@@ -25,18 +25,6 @@
             cursor: pointer;
         }
 
-        .option-button.already-have {
-            background: var(--main-action-color);
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-        }
-
-            .option-button.already-have:hover {
-                background: var(--main-action-selected-color);
-                transform: scale(1.03); /* Slight enlarge effect */
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
-            }
-
         /* Responsive adjustments */
         @media (max-width: 600px) {
             .option-button {
@@ -246,7 +234,7 @@
                 <div id="croppingPart" style="display:none">
                     <img id="cropperImage" src="" style="max-width: 100%; display: block; margin: 0 auto;">
                     <button type="button" id="cropButton" class="option-button" style="margin-top: 1rem; display: block; margin: 1rem auto 0;">
-                        Crop and Save
+                        Crop & Save
                     </button>
                 </div>
             </div>
@@ -291,7 +279,7 @@
             <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
 
             <div class="options-container">
-                <button type="button" class="option-button already-have" id="nextButton" aria-label="Proceed to the next stage">Next</button>
+                <button type="button" class="option-button green" id="nextButton" aria-label="Proceed to the next stage">Next</button>
                 <button type="button" class="option-button back-button" id="backButton">
                     <i class="fas fa-arrow-left"></i>&nbsp;Back
                 </button>
@@ -313,7 +301,7 @@
         function updateUploadButtons() {
             const uploadProofButton = document.getElementById('uploadProofButton');
             const uploadProfileButton = document.getElementById('uploadButton');
-            const cropAndSaveButton = document.getElementById('cropButton'); // For the crop and save action
+            const cropAndSaveButton = document.getElementById('cropButton');
             const nextButton = document.getElementById('nextButton');
 
             updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton);
@@ -321,13 +309,13 @@
         }
 
         function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton) {
-            // Toggle "already-have" class for "Upload Profile Picture" button
+            // Toggle "green" class for "Upload Profile Picture" button
             if (nextButton && nextButton.disabled) {
-                uploadProfileButton.classList.add('already-have');
-                cropAndSaveButton.classList.add('already-have');
+                uploadProfileButton.classList.add('green');
+                cropAndSaveButton.classList.add('green');
             } else {
-                uploadProfileButton.classList.remove('already-have');
-                cropAndSaveButton.classList.remove('already-have');
+                uploadProfileButton.classList.remove('green');
+                cropAndSaveButton.classList.remove('green');
             }
         }
 

@@ -98,10 +98,10 @@ function checkProofImages(nextButton, proofPics, uploadProofButton) {
 }
 
 window.updateProofUploadButtons = function (nextButton, uploadProofButton) {
-    // Toggle "already-have" class for "Upload Profile Picture" button
+    // Toggle "green" class for "Upload Profile Picture" button
     if (nextButton && nextButton.disabled) {
-        uploadProofButton.classList.add('already-have');
+        uploadProofButton.classList.add('green');
     } else {
-        uploadProofButton.classList.remove('already-have');
+        uploadProofButton.classList.remove('green');
     }
 }

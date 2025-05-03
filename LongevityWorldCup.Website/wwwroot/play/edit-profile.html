@@ -1,0 +1,150 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--HEAD-->
+    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css">
+    <style>
+        /* Hide the join-game button in the header */
+        .join-game {
+            display: none;
+        }
+
+        .error-message {
+            display: block;
+            color: red;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        /* center the cropper modal and its buttons */
+        #changeProfileCropperModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            z-index: 10000;
+            padding: 1.5rem;
+            width: 80vw;
+            max-width: 360px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+            #changeProfileCropperModal button {
+                margin-top: 0.5rem;
+                width: auto;
+            }
+
+        #changeProfileCropperImage {
+            max-width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <h2 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Character Selection</h2>
+        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            <picture>
+                <source srcset="../assets/content-images/headshot.webp" type="image/webp">
+                <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
+                <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
+            </picture>
+        </div>
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <button id="changeProfilePicButton" class="option-button">
+                Change Profile Picture
+            </button>
+            <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
+
+            <button class="option-button green">
+                Submit Change Request
+            </button>
+            <button class="option-button back-button" onclick="window.goBackOrHome()">
+                <i class="fas fa-arrow-left"></i>&nbsp;Back
+            </button>
+        </div>
+
+        <div id="changeProfileCropperModal" style="display:none">
+            <img id="changeProfileCropperImage" src="" alt="Cropper Preview">
+            <button id="changeProfileCropButton" class="option-button green">Crop & Save</button>
+            <button id="changeProfileCancelButton" class="option-button greyedout">Cancel</button>
+        </div>
+        <div id="modalOverlay"></div>
+    </main>
+    <!--FOOTER-->
+    <script>
+        const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                const viewTarget = document.querySelector('h2');
+                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+
+            document.getElementById('character-title').textContent = athlete.Name;
+            document.querySelector('picture').innerHTML = `
+                                                                                            <img src="${athlete.ProfilePic}"
+                                                                                                    alt="${athlete.Name} headshot"
+                                                                                                    class="illustration"
+                                                                                                    loading="lazy">`;
+        });
+
+        const changeProfileBtn = document.getElementById('changeProfilePicButton');
+        const changeProfileInput = document.getElementById('profilePicInputModal');
+        changeProfileBtn.addEventListener('click', () => {
+            changeProfileInput.click();
+        });
+        changeProfileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const cropperModal = document.getElementById('changeProfileCropperModal');
+                const cropperImage = document.getElementById('changeProfileCropperImage');
+                cropperImage.src = evt.target.result;
+                cropperModal.style.display = 'flex';
+                // expose globally so crop/cancel buttons can access it
+                window.changeProfileCropper = new Cropper(cropperImage, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Crop & Cancel handlers for change-profile
+        const cropBtn = document.getElementById('changeProfileCropButton');
+        const cancelBtn = document.getElementById('changeProfileCancelButton');
+        cropBtn.addEventListener('click', () => {
+            const canvas = window.changeProfileCropper.getCroppedCanvas({
+                width: 1024,
+                height: 1024,
+            });
+            const newSrc = canvas.toDataURL('image/png');
+            const imgEl = document.querySelector('.illustration');
+            imgEl.src = newSrc;
+            imgEl.alt = athlete.Name + ' headshot';
+            athlete.ProfilePic = newSrc;
+            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+            window.changeProfileCropper.destroy();
+            document.getElementById('changeProfileCropperModal').style.display = 'none';
+        });
+        cancelBtn.addEventListener('click', () => {
+            window.changeProfileCropper.destroy();
+            document.getElementById('changeProfileCropperModal').style.display = 'none';
+        });
+    </script>
+    <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
+</body>
+</html>

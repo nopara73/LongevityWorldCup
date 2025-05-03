@@ -7,30 +7,6 @@
         .join-game {
             display: none;
         }
-
-        /* Specific styles for different buttons */
-        .option-button.beer, .option-button.beef, .option-button.veggies {
-            background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-        }
-
-            /* Hover effects for specific buttons */
-            .option-button.beer:hover, .option-button.beef:hover, .option-button.veggies:hover {
-                background: linear-gradient(135deg, #455A64, #607D8B); /* Darker gradient */
-                transform: scale(1.03);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
-            }
-
-        .option-button.already-have {
-            background: var(--main-action-color);
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-        }
-
-            .option-button.already-have:hover {
-                background: var(--main-action-selected-color);
-                transform: scale(1.03);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
-            }
     </style>
 </head>
 <body>
@@ -68,10 +44,10 @@
         const contBtn = document.getElementById('continueGameBtn');
 
         if (hasApp) {
-            contBtn.classList.add('already-have');
+            contBtn.classList.add('green');
             container.insertBefore(contBtn, container.firstChild);
         } else {
-            newBtn.classList.add('already-have');
+            newBtn.classList.add('green');
             container.insertBefore(newBtn, container.firstChild);
         }
     });
