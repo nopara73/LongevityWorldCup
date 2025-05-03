@@ -261,6 +261,18 @@
                 background: var(--main-action-selected-color);
             }
 
+    button.option-button:disabled {
+        /* Visual fade */
+        opacity: 0.5;
+        /* Prevent all pointer events */
+        pointer-events: none;
+        cursor: not-allowed;
+        /* Remove depth cues */
+        box-shadow: none;
+        /* Disable text selection */
+        user-select: none;
+    }
+
     /* Adjust the back button styling */
     .back-button {
         background: #F5F5F5; /* Neutral background */
