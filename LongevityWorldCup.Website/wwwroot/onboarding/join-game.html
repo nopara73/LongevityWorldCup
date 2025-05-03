@@ -7,30 +7,6 @@
         .join-game {
             display: none;
         }
-
-        /* Specific styles for different buttons */
-        .option-button.beer, .option-button.beef, .option-button.veggies {
-            background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-        }
-
-            /* Hover effects for specific buttons */
-            .option-button.beer:hover, .option-button.beef:hover, .option-button.veggies:hover {
-                background: linear-gradient(135deg, #455A64, #607D8B); /* Darker gradient */
-                transform: scale(1.03);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
-            }
-
-        .option-button.already-have {
-            background: var(--main-action-color);
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-        }
-
-            .option-button.already-have:hover {
-                background: var(--main-action-selected-color);
-                transform: scale(1.03);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
-            }
     </style>
 </head>
 <body>
@@ -60,10 +36,10 @@
         <p data-aos="fade" data-aos-duration="700" data-aos-delay="825">You can visit any lab for these tests — just pay the lab fee, which might even be covered by your healthcare provider. There are no hidden costs to participate in the competition, on the contrary: excelling could see you earn prize money and future sponsorship opportunities!</p>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="850">
-            <button class="option-button beer" style="margin-bottom: 0px;" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beer'">Hold My Beer 🍺</button>
-            <button class="option-button beef" style="margin-bottom: 0px;" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beef'">Hold My Beef 🥩</button>
-            <button class="option-button veggies" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Hold My Veggies 🥕</button>
-            <button class="option-button already-have" onclick="window.location.href='/onboarding/pheno-age.html'">Already Have 2025 Biomarkers</button>
+            <button class="option-button grey" style="margin-bottom: 0px;" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beer'">Hold My Beer 🍺</button>
+            <button class="option-button grey" style="margin-bottom: 0px;" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beef'">Hold My Beef 🥩</button>
+            <button class="option-button grey" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Hold My Veggies 🥕</button>
+            <button class="option-button green" onclick="window.location.href='/onboarding/pheno-age.html'">Already Have 2025 Biomarkers</button>
 
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
