@@ -64,7 +64,7 @@
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <button id="submitButton" type="submit" class="option-button green">
-                Submit New Results
+                Submit New Results&nbsp;<i class="fa fa-rocket"></i>
             </button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
@@ -145,7 +145,7 @@
                                 customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
                                     submitButton.disabled = false;
                                     uploadProofButton.disabled = false;
-                                    submitButton.textContent = 'Submit New Results';
+                                    submitButton.innerHTML = 'Submit New Results&nbsp;<i class="fa fa-rocket"></i>';
                                 });
                             });
                         }
@@ -154,7 +154,7 @@
                         customAlert(`An error occurred:\n\n${error}`).then(() => {
                             submitButton.disabled = false;
                             uploadProofButton.disabled = false;
-                            submitButton.textContent = 'Submit New Results';
+                            submitButton.innerHTML = 'Submit New Results&nbsp;<i class="fa fa-rocket"></i>';
                         });
                     });
             });

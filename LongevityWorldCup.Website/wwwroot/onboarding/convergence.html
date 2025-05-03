@@ -352,6 +352,12 @@
             return applicantData;
         }
 
+        function setNextButtonToApply() {
+            const nextButton = document.getElementById('nextButton');
+            nextButton.innerHTML = 'Apply&nbsp;<i class="fa fa-rocket"></i>';
+            nextButton.setAttribute('type', 'submit');
+        }
+
         // Function to update the UI based on the current stage
         function goToStage(stage) {
             // Clear out any lingering click‐handlers on the illustration
@@ -584,8 +590,7 @@
                     document.getElementById('applyDetails').style.display = '';
 
                     illustrationImage.classList.remove('clickable');
-                    nextButton.textContent = 'Apply';
-                    nextButton.setAttribute('type', 'submit');
+                    setNextButtonToApply();
                     updateSubProgress(99);
 
                     const accountEmailInput = document.getElementById('accountEmail');
@@ -864,7 +869,7 @@
                                     customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                         applyButton.disabled = false;
                                         accountEmailInput.setAttribute("disabled", "false");
-                                        applyButton.textContent = 'Apply';
+                                        setNextButtonToApply();
                                     });
                                 });
                             }
@@ -873,7 +878,7 @@
                             customAlert(`An error occurred while submitting your application:\n\n${error}`).then(() => {
                                 applyButton.disabled = false;
                                 accountEmailInput.setAttribute("disabled", "false");
-                                applyButton.textContent = 'Apply';
+                                setNextButtonToApply();
                             });
                         });
                 }
