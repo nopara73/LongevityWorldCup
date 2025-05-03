@@ -92,7 +92,7 @@
         <div id="changeProfileCropperModal" style="display:none">
             <img id="changeProfileCropperImage" src="" alt="Cropper Preview">
             <button id="changeProfileCropButton" class="option-button green">Crop & Save</button>
-            <button id="changeProfileCancelButton" class="option-button greyedout">Cancel</button>
+            <button id="changeProfileCancelButton" class="option-button grey">Cancel</button>
         </div>
         <div id="modalOverlay"></div>
     </main>
@@ -109,10 +109,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                    <img src="${athlete.ProfilePic}"
-                                                                                                                                                            alt="${athlete.Name} headshot"
-                                                                                                                                                            class="illustration"
-                                                                                                                                                            loading="lazy">`;
+                                                                                                                                                            <img src="${athlete.ProfilePic}"
+                                                                                                                                                                    alt="${athlete.Name} headshot"
+                                                                                                                                                                    class="illustration"
+                                                                                                                                                                    loading="lazy">`;
         });
 
         function setSubmitChangeRequestButton() {
