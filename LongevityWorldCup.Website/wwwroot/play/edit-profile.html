@@ -42,6 +42,20 @@
                 width: auto;
             }
 
+            /* make the modal’s inner options fill its container */
+            #changeProfileCropperModal .options-container {
+                width: 100%;
+                max-width: none; /* override any global cap */
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem; /* adjust spacing between buttons if you like */
+            }
+
+            #changeProfileCropperModal .option-button {
+                width: 100%;
+                max-width: none; /* ensure they stretch edge-to-edge */
+            }
+
         #changeProfileCropperImage {
             max-width: 100%;
             max-height: 300px;
@@ -91,8 +105,10 @@
 
         <div id="changeProfileCropperModal" style="display:none">
             <img id="changeProfileCropperImage" src="" alt="Cropper Preview">
-            <button id="changeProfileCropButton" class="option-button green">Crop & Save</button>
-            <button id="changeProfileCancelButton" class="option-button grey">Cancel</button>
+            <div class="options-container">
+                <button id="changeProfileCropButton" class="option-button green">Crop & Save</button>
+                <button id="changeProfileCancelButton" class="option-button grey">Cancel</button>
+            </div>
         </div>
         <div id="modalOverlay"></div>
     </main>
@@ -109,10 +125,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                                                                                    class="illustration"
-                                                                                                                                                                    loading="lazy">`;
+                                                                                                                                                                    <img src="${athlete.ProfilePic}"
+                                                                                                                                                                            alt="${athlete.Name} headshot"
+                                                                                                                                                                            class="illustration"
+                                                                                                                                                                            loading="lazy">`;
         });
 
         function setSubmitChangeRequestButton() {
