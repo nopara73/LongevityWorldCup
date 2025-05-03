@@ -63,9 +63,7 @@
         <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <button id="submitButton" type="submit" class="option-button green">
-                Submit New Results&nbsp;<i class="fa fa-rocket"></i>
-            </button>
+            <button id="submitButton" type="submit" class="option-button green"></button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
@@ -75,6 +73,7 @@
     <script>
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
         let proofPics = [];
+        setSubmitButtonLabel();
 
         document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
@@ -145,7 +144,7 @@
                                 customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
                                     submitButton.disabled = false;
                                     uploadProofButton.disabled = false;
-                                    submitButton.innerHTML = 'Submit New Results&nbsp;<i class="fa fa-rocket"></i>';
+                                    setSubmitButtonLabel();
                                 });
                             });
                         }
@@ -154,11 +153,17 @@
                         customAlert(`An error occurred:\n\n${error}`).then(() => {
                             submitButton.disabled = false;
                             uploadProofButton.disabled = false;
-                            submitButton.innerHTML = 'Submit New Results&nbsp;<i class="fa fa-rocket"></i>';
+                            setSubmitButtonLabel();
                         });
                     });
             });
         });
+
+        function setSubmitButtonLabel() {
+            const submitButton = document.getElementById('submitButton');
+            submitButton.innerHTML = 'Submit New Results&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.setAttribute('type', 'submit');
+        }
     </script>
 </body>
 </html>

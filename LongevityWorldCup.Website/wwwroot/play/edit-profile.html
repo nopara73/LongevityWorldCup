@@ -66,9 +66,7 @@
             </button>
             <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
 
-            <button disabled class="option-button green">
-                Submit Change Request
-            </button>
+            <button id="submitButton" type="submit" disabled class="option-button green"></button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
@@ -84,6 +82,7 @@
     <!--FOOTER-->
     <script>
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        setSubmitChangeRequestButton();
 
         document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
@@ -93,11 +92,17 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                                    class="illustration"
-                                                                                                                    loading="lazy">`;
+                                                                                                                                            <img src="${athlete.ProfilePic}"
+                                                                                                                                                    alt="${athlete.Name} headshot"
+                                                                                                                                                    class="illustration"
+                                                                                                                                                    loading="lazy">`;
         });
+
+        function setSubmitChangeRequestButton() {
+            const submitButton = document.getElementById('submitButton');
+            submitButton.innerHTML = 'Submit Change Request&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.setAttribute('type', 'submit');
+        }
 
         const changeProfileBtn = document.getElementById('changeProfilePicButton');
         const changeProfileInput = document.getElementById('profilePicInputModal');
