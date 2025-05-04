@@ -1,0 +1,27 @@
+{
+  "Name": "Swami Jupiter",
+  "MediaContact": "https://www.facebook.com/profile.php?id=100075779083216",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 4,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-29",
+      "AlbGL": 45,
+      "CreatUmolL": 84,
+      "GluMmolL": 4.9,
+      "CrpMgL": 0.2,
+      "LymPc": 39.1,
+      "McvFL": 90,
+      "RdwPc": 12.3,
+      "AlpUL": 78,
+      "Wbc1000cellsuL": 4.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Other Antarctica Claims",
+  "Why": "Service, Meditation, Music, Art, Creativity, Boats, Oceans, Humour, Love, Dreams, Woodwork, Coconut Water, Hockey, Self Mastery, Excellence, Loving Kindness, The Buddha & Jesus, Osho, Guitar, Generosity",
+  "PersonalLink": null
+}
