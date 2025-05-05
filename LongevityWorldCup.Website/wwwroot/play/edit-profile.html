@@ -86,6 +86,9 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            width: 80%;
+            max-width: 400px;
+            margin: 0 auto;
         }
 
         /* shrink any icon-only button down to its icon */
@@ -96,6 +99,26 @@
             padding: 0;
             margin: 0;
         }
+
+        #editOptionsGroup {
+            display: flex;
+            gap: 0.5rem;
+            width: 80%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+            #editOptionsGroup > #changeProfilePicButton {
+                flex: 1;
+                width: auto;
+                max-width: none;
+            }
+
+            #editOptionsGroup > #restoreProfilePicButton {
+                flex: 0 0 60px;
+                width: 60px;
+                height: 60px;
+            }
     </style>
 </head>
 <body>
@@ -109,7 +132,7 @@
                 <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
             </picture>
         </div>
-        <div class="options-container inline-option-group" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+        <div id="editOptionsGroup" class="options-container inline-option-group" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <button id="changeProfilePicButton" class="option-button grey">
                 Change Profile Picture
             </button>
@@ -153,10 +176,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                        alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                        class="illustration"
-                                                                                                                                                                                                                                                                                                                                        loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                            class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                            loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 document.getElementById('submitButton').disabled = false;
