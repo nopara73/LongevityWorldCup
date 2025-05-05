@@ -9,6 +9,46 @@
             display: none;
         }
 
+        #divisionDisplayWrapper {
+            position: relative;
+            width: 80%;
+            max-width: 400px;
+            margin: 1rem auto;
+        }
+
+        #divisionDisplayInput {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #ccc;
+            border-radius: 30px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            background-color: #f9f9f9;
+        }
+
+            #divisionDisplayInput:focus {
+                outline: none;
+                border-color: #4CAF50;
+                box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+            }
+
+        #divisionDisplaySelect {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #ccc;
+            border-radius: 30px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            background-color: #f9f9f9;
+            appearance: none;
+        }
+
+            #divisionDisplaySelect:focus {
+                outline: none;
+                border-color: #4CAF50;
+                box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+            }
+
         .error-message {
             display: block;
             color: red;
@@ -102,9 +142,10 @@
 
         #editOptionsGroup {
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
             gap: 0.5rem;
-            width: 80%;
-            max-width: 400px;
             margin: 0 auto;
         }
 
@@ -114,7 +155,13 @@
                 max-width: none;
             }
 
-            #editOptionsGroup > #restoreProfilePicButton {
+            #editOptionsGroup > #divisionDisplaySelect {
+                flex: 1;
+                width: auto;
+                max-width: none;
+            }
+
+            #editOptionsGroup > .icon-only {
                 flex: 0 0 60px;
                 width: 60px;
                 height: 60px;
@@ -132,15 +179,22 @@
                 <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
             </picture>
         </div>
-        <div id="editOptionsGroup" class="options-container inline-option-group" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <button id="changeProfilePicButton" class="option-button grey">
-                Change Profile Picture
-            </button>
-            <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
-
-            <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore">
-                <i class="fa fa-undo"></i>
-            </button>
+        <div id="editOptionsGroup" cdata-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <div id="changeProfilePicWrapper" class="options-container inline-option-group">
+                <button id="changeProfilePicButton" class="option-button grey">
+                    Change Profile Picture
+                </button>
+                <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
+                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore">
+                    <i class="fa fa-undo"></i>
+                </button>
+            </div>
+            <div id="divisionDisplayWrapper" class="options-container inline-option-group">
+                <select id="divisionDisplaySelect"></select>
+                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore Division">
+                    <i class="fa fa-undo"></i>
+                </button>
+            </div>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="submitButton" type="submit" disabled class="option-button green"></button>
@@ -161,10 +215,12 @@
     <!--FOOTER-->
     <script>
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+
         if (!sessionStorage.getItem('initialProfilePicSrc')) sessionStorage.setItem('initialProfilePicSrc', athlete.ProfilePic);
-        console.log(sessionStorage.getItem('initialProfilePicSrc'));
-        console.log(athlete.ProfilePic);
         const originalProfilePicSrc = sessionStorage.getItem('initialProfilePicSrc');
+
+        if (!sessionStorage.getItem('initialDivision')) sessionStorage.setItem('initialDivision', athlete.Division);
+        const originalDivision = sessionStorage.getItem('initialDivision');
 
         setSubmitChangeRequestButton();
 
@@ -176,14 +232,55 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                            class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                            loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 document.getElementById('submitButton').disabled = false;
             }
+
+            // — DIVISION PREFILL & CHANGE/RESTORE LOGIC —
+            const divisionSelect = document.getElementById('divisionDisplaySelect');
+            const restoreDivisionBtn = document.getElementById('restoreDivisionBtn');
+
+            // Populate the dropdown
+            fetch('/api/data/divisions')
+                .then(r => r.json())
+                .then(divs => {
+                    divisionSelect.innerHTML = '';
+                    divs.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d;
+                        opt.textContent = `${window.TryGetDivisionIcon(d)} ${d}`;
+                        divisionSelect.appendChild(opt);
+                    });
+                    divisionSelect.value = athlete.Division;
+
+                    if (athlete.Division !== originalDivision) {
+                        restoreDivisionBtn.style.display = 'inline-flex';
+                        document.getElementById('submitButton').disabled = false;
+                    }
+                });
+
+            // When the user picks a different division…
+            divisionSelect.addEventListener('change', () => {
+                athlete.Division = divisionSelect.value;
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                restoreDivisionBtn.style.display = 'inline-flex';
+                document.getElementById('submitButton').disabled = false;
+            });
+
+            // Restore original division
+            restoreDivisionBtn.addEventListener('click', () => {
+                divisionSelect.value = originalDivision;
+                athlete.Division = originalDivision;
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                restoreDivisionBtn.style.display = 'none';
+                document.getElementById('submitButton').disabled = true;
+            });
+
         });
 
         function setSubmitChangeRequestButton() {
