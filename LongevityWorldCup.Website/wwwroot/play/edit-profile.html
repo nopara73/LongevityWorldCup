@@ -242,7 +242,7 @@
                     Change Profile Picture
                 </button>
                 <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
-                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore">
+                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore Profile Picture">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
@@ -253,7 +253,11 @@
                 </button>
             </div>
             <div id="flagDisplayWrapper" class="options-container inline-option-group">
-                <select id="flagDisplaySelect"></select>
+                <input type="text"
+                       id="flagDisplayInput"
+                       name="flagDisplay"
+                       autocomplete="off"
+                       placeholder="Type or select a flag…">
                 <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore Flag">
                     <i class="fa fa-undo"></i>
                 </button>
@@ -298,10 +302,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 document.getElementById('submitButton').disabled = false;
@@ -347,49 +351,126 @@
                 document.getElementById('submitButton').disabled = true;
             });
 
-            // —— FLAG PREFILL & CHANGE/RESTORE LOGIC ——
-            const flagSelect = document.getElementById('flagDisplaySelect');
+            // —— FLAG INPUT & AUTOCOMPLETE LOGIC ——
+            const flagInput = document.getElementById('flagDisplayInput');
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
+            const originalFlag = sessionStorage.getItem('initialFlag');
 
-            // Populate the flag dropdown
+            // Fetch and prepare flag list
+            let availableFlags = [];
             fetch('/api/data/flags')
                 .then(r => r.json())
                 .then(flags => {
-                    // If the athlete’s flag wasn’t in the fetched list, add it
-                    if (!flags.includes(athlete.Flag)) {
-                        flags.push(athlete.Flag);
-                    }
-
-                    // Sort flags alphabetically
-                    flags.sort((a, b) => a.localeCompare(b));
-
-                    // Rebuild the dropdown from the sorted array
-                    flagSelect.innerHTML = '';
-                    flags.forEach(f => {
-                        const opt = document.createElement('option');
-                        opt.value = f;
-                        opt.textContent = f;
-                        flagSelect.appendChild(opt);
-                    });
-
-                    // Select the athlete’s flag
-                    flagSelect.value = athlete.Flag;
-
+                    if (!flags.includes(athlete.Flag)) flags.push(athlete.Flag);
+                    availableFlags = flags.sort((a, b) => a.localeCompare(b));
+                    flagInput.value = athlete.Flag;
                     if (athlete.Flag !== originalFlag) {
                         restoreFlagBtn.style.display = 'inline-flex';
                         document.getElementById('submitButton').disabled = false;
                     }
                 });
 
-            flagSelect.addEventListener('change', () => {
-                athlete.Flag = flagSelect.value;
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-                restoreFlagBtn.style.display = 'inline-flex';
-                document.getElementById('submitButton').disabled = false;
+            // Autocomplete dropdown
+            flagInput.addEventListener('input', function () {
+                // Show or hide the Restore-Flag button based on whether the input matches original
+                if (flagInput.value.trim() !== originalFlag) {
+                    restoreFlagBtn.style.display = 'inline-flex';
+                    document.getElementById('submitButton').disabled = false;
+                } else {
+                    restoreFlagBtn.style.display = 'none';
+                    document.getElementById('submitButton').disabled = true;
+                }
+
+                // Show or hide the Restore-Flag button based on whether the input matches original
+                if (flagInput.value.trim() !== originalFlag) {
+                    restoreFlagBtn.style.display = 'inline-flex';
+                    document.getElementById('submitButton').disabled = false;
+                } else {
+                    restoreFlagBtn.style.display = 'none';
+                    document.getElementById('submitButton').disabled = true;
+                }
+                // Hide autocomplete if input exactly matches one of the flags
+                if (availableFlags.includes(flagInput.value.trim())) {
+                    closeFlagLists();
+                    return;
+                }
+
+                const terms = this.value.trim().toLowerCase().split(/\s+/).filter(t => t);
+                closeFlagLists();
+                if (!terms.length) return;
+                const list = document.createElement('div');
+                list.id = this.id + '-autocomplete-list';
+                list.className = 'autocomplete-items';
+                this.parentNode.appendChild(list);
+                let count = 0;
+                availableFlags.forEach(f => {
+                    if (count >= 5) return;
+                    const lower = f.toLowerCase();
+                    if (terms.every(t => lower.includes(t))) {
+                        const item = document.createElement('div');
+                        item.className = 'flag-autocomplete-item';
+                        item.textContent = f;
+                        item.dataset.value = f;
+                        item.addEventListener('mousedown', e => {
+                            e.preventDefault();
+                            selectFlag(e.target.dataset.value);
+                        });
+                        list.appendChild(item);
+                        count++;
+                    }
+                });
             });
 
+            flagInput.addEventListener('keydown', function (e) {
+                let items = document.getElementById(this.id + '-autocomplete-list');
+                if (items) items = items.getElementsByTagName('div');
+                if (e.keyCode === 40) { currentFlagFocus++; addActiveFlag(items); }
+                else if (e.keyCode === 38) { currentFlagFocus--; addActiveFlag(items); }
+                else if (e.keyCode === 13) {
+                    e.preventDefault();
+                    if (currentFlagFocus > -1 && items) {
+                        items[currentFlagFocus].dispatchEvent(new MouseEvent('mousedown'));
+                    }
+                }
+            });
+
+            function addActiveFlag(items) {
+                if (!items) return;
+                removeActiveFlag(items);
+                if (currentFlagFocus >= items.length) currentFlagFocus = 0;
+                if (currentFlagFocus < 0) currentFlagFocus = items.length - 1;
+                items[currentFlagFocus].classList.add('autocomplete-active');
+                items[currentFlagFocus].scrollIntoView({ block: 'nearest' });
+            }
+            function removeActiveFlag(items) {
+                Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
+            }
+            function closeFlagLists() {
+                document.querySelectorAll('#flagDisplayInput-autocomplete-list')
+                    .forEach(el => el.remove());
+                currentFlagFocus = -1;
+            }
+            document.addEventListener('click', closeFlagLists);
+
+            // When a flag is chosen
+            function selectFlag(value) {
+                athlete.Flag = value;
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                flagInput.value = value;
+                if (value !== originalFlag) {
+                    restoreFlagBtn.style.display = 'inline-flex';
+                    document.getElementById('submitButton').disabled = false;
+                } else {
+                    restoreFlagBtn.style.display = 'none';
+                    document.getElementById('submitButton').disabled = true;
+                }
+
+                closeFlagLists();
+            }
+
+            // Restore original flag
             restoreFlagBtn.addEventListener('click', () => {
-                flagSelect.value = originalFlag;
+                flagInput.value = originalFlag;
                 athlete.Flag = originalFlag;
                 sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 restoreFlagBtn.style.display = 'none';
