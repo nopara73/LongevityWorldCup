@@ -1,0 +1,28 @@
+{
+  "Name": "Ivan Morgunov",
+  "MediaContact": "ivan@unlimit.bio",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 6,
+    "Day": 28
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-06",
+      "AlbGL": 43,
+      "CreatUmolL": 120.7,
+      "GluMmolL": 4.9,
+      "CrpMgL": 2.96,
+      "LymPc": 39.3,
+      "McvFL": 86.9,
+      "RdwPc": 11.9,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 6.13
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Unlimited Bio",
+  "Why": "immortalityyyyyyyyyyyyyyyyyyyy",
+  "PersonalLink": "https://unlimit.bio/",
+  "ExclusiveLeague": "Prosperan"
+}
