@@ -260,13 +260,13 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
-                document.getElementById('submitButton').disabled = false;
+                updateSubmitButtonState();
             }
 
             // — DIVISION PREFILL & CHANGE/RESTORE LOGIC —
@@ -288,7 +288,7 @@
 
                     if (athlete.Division !== originalDivision) {
                         restoreDivisionBtn.style.display = 'inline-flex';
-                        document.getElementById('submitButton').disabled = false;
+                        updateSubmitButtonState();
                     }
                 });
 
@@ -299,12 +299,11 @@
                 if (divisionSelect.value === originalDivision) {
                     // back to the original → hide restore & disable submit
                     restoreDivisionBtn.style.display = 'none';
-                    document.getElementById('submitButton').disabled = true;
                 } else {
                     // actually different → show restore & enable submit
                     restoreDivisionBtn.style.display = 'inline-flex';
-                    document.getElementById('submitButton').disabled = false;
                 }
+                updateSubmitButtonState();
             });
 
             // Restore original division
@@ -313,7 +312,7 @@
                 athlete.Division = originalDivision;
                 sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 restoreDivisionBtn.style.display = 'none';
-                document.getElementById('submitButton').disabled = true;
+                updateSubmitButtonState();
             });
 
             // —— FLAG INPUT & AUTOCOMPLETE LOGIC ——
@@ -331,7 +330,7 @@
                     flagInput.value = athlete.Flag;
                     if (athlete.Flag !== originalFlag) {
                         restoreFlagBtn.style.display = 'inline-flex';
-                        document.getElementById('submitButton').disabled = false;
+                        updateSubmitButtonState();
                     }
                 });
 
@@ -340,20 +339,18 @@
                 // Show or hide the Restore-Flag button based on whether the input matches original
                 if (flagInput.value.trim() !== originalFlag) {
                     restoreFlagBtn.style.display = 'inline-flex';
-                    document.getElementById('submitButton').disabled = false;
                 } else {
                     restoreFlagBtn.style.display = 'none';
-                    document.getElementById('submitButton').disabled = true;
                 }
 
                 // Show or hide the Restore-Flag button based on whether the input matches original
                 if (flagInput.value.trim() !== originalFlag) {
                     restoreFlagBtn.style.display = 'inline-flex';
-                    document.getElementById('submitButton').disabled = false;
                 } else {
                     restoreFlagBtn.style.display = 'none';
-                    document.getElementById('submitButton').disabled = true;
                 }
+                updateSubmitButtonState();
+
                 // Hide autocomplete if input exactly matches one of the flags
                 if (availableFlags.includes(flagInput.value.trim())) {
                     closeFlagLists();
@@ -437,11 +434,10 @@
 
                 if (value !== originalFlag) {
                     restoreFlagBtn.style.display = 'inline-flex';
-                    document.getElementById('submitButton').disabled = false;
                 } else {
                     restoreFlagBtn.style.display = 'none';
-                    document.getElementById('submitButton').disabled = true;
                 }
+                updateSubmitButtonState();
 
                 closeFlagLists();
             }
@@ -459,14 +455,13 @@
 
         });
         function revertFlagToOriginal() {
-            console.log('Flag reverted to original');
             const flagInput = document.getElementById('flagDisplayInput');
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
             flagInput.value = originalFlag;
             athlete.Flag = originalFlag;
             sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             restoreFlagBtn.style.display = 'none';
-            document.getElementById('submitButton').disabled = true;
+            updateSubmitButtonState();
         }
 
         function setSubmitChangeRequestButton() {
@@ -519,7 +514,7 @@
             document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
 
             // enable the “Submit Change Request” button now that there’s a new image
-            document.getElementById('submitButton').disabled = false;
+            updateSubmitButtonState();
             window.changeProfileCropper.destroy();
             document.getElementById('modalOverlay').style.display = 'none';
             document.body.classList.remove('no-scroll');
@@ -541,7 +536,7 @@
             sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             restoreBtn.style.display = 'none';
             // go back to “nothing changed,” so disable submit again
-            document.getElementById('submitButton').disabled = true;
+            updateSubmitButtonState();
         });
 
         function validateFlagDisplay(value) {
@@ -561,6 +556,24 @@
                 return false;
             }
             return true;
+        }
+
+        const submitButton = document.getElementById('submitButton');
+
+        function updateSubmitButtonState() {
+            const submitButton = document.getElementById('submitButton');
+
+            // read straight from the UI
+            const currentPicSrc = document.querySelector('.illustration').getAttribute('src');
+            const currentDivision = document.getElementById('divisionDisplaySelect').value;
+            const currentFlag = document.getElementById('flagDisplayInput').value.trim();
+
+            const picChanged = currentPicSrc !== originalProfilePicSrc;
+            const divChanged = currentDivision !== originalDivision;
+            const flagChanged = currentFlag !== originalFlag;
+
+            // enable if any one changed:
+            submitButton.disabled = !(picChanged || divChanged || flagChanged);
         }
     </script>
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
