@@ -9,14 +9,87 @@
             display: none;
         }
 
-        #divisionDisplayWrapper {
+        .autocomplete-wrapper {
+            position: relative;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%; /* Make the container fill the form width */
+        }
+
+        .autocomplete-container {
+            position: relative;
+            padding: 2rem 2rem;
+            font-size: 1.2rem;
+            width: 80%;
+            max-width: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Vertically center the text */
+        }
+
+            .autocomplete-container input {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                border: 2px solid #ccc;
+                border-radius: 30px;
+                font-size: 1rem;
+                transition: border-color 0.2s;
+            }
+
+                .autocomplete-container input:focus {
+                    outline: none;
+                    border-color: #4CAF50;
+                    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+                }
+
+        .autocomplete-items {
+            position: absolute;
+            background: white; /* white panel */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* soft drop shadow */
+            border: none; /* no harsh border */
+            max-height: 150px; /* scroll if too tall */
+            overflow-y: auto;
+            z-index: 9999;
+            left: 0;
+            right: 0; /* ensures it spans exactly the container */
+            box-sizing: border-box; /* include any padding/borders in that width */
+            top: calc(100% - 2px); /* slide up by the input’s 2px bottom border so it’s flush */
+            border-radius: 0 0 30px 30px; /* match your input’s 30px pill corners */
+            width: 100%;
+        }
+
+            .autocomplete-items div {
+                padding: 0.75rem 1rem; /* generous touch targets */
+                font-size: 0.95rem;
+            }
+
+                .autocomplete-items div:not(:last-child) {
+                    border-bottom: 1px solid #eee; /* light separator between items */
+                }
+
+                .autocomplete-items div:hover,
+                .autocomplete-active {
+                    background-color: #0069d9; /* your blue hover */
+                    color: #fff;
+                }
+
+        .error-message {
+            display: block;
+            color: red;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        #divisionDisplayWrapper, #flagDisplayWrapper {
             position: relative;
             width: 80%;
             max-width: 400px;
-            margin: 1rem auto;
+            margin: 0.1rem auto;
         }
 
-        #divisionDisplayInput {
+        #divisionDisplayInput, #flagDisplayInput {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 2px solid #ccc;
@@ -26,13 +99,13 @@
             background-color: #f9f9f9;
         }
 
-            #divisionDisplayInput:focus {
+            #divisionDisplayInput:focus, #flagDisplayInput:focus {
                 outline: none;
                 border-color: #4CAF50;
                 box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
             }
 
-        #divisionDisplaySelect {
+        #divisionDisplaySelect, #flagDisplaySelect {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 2px solid #ccc;
@@ -43,18 +116,11 @@
             appearance: none;
         }
 
-            #divisionDisplaySelect:focus {
+            #divisionDisplaySelect:focus, #flagDisplaySelect:focus {
                 outline: none;
                 border-color: #4CAF50;
                 box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
             }
-
-        .error-message {
-            display: block;
-            color: red;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
 
         /* center the cropper modal and its buttons */
         #changeProfileCropperModal {
@@ -186,6 +252,12 @@
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
+            <div id="flagDisplayWrapper" class="options-container inline-option-group">
+                <select id="flagDisplaySelect"></select>
+                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore Flag">
+                    <i class="fa fa-undo"></i>
+                </button>
+            </div>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="submitButton" type="submit" disabled class="option-button green"></button>
@@ -213,6 +285,9 @@
         if (!sessionStorage.getItem('initialDivision')) sessionStorage.setItem('initialDivision', athlete.Division);
         const originalDivision = sessionStorage.getItem('initialDivision');
 
+        if (!sessionStorage.getItem('initialFlag')) sessionStorage.setItem('initialFlag', athlete.Flag);
+        const originalFlag = sessionStorage.getItem('initialFlag');
+
         setSubmitChangeRequestButton();
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -223,10 +298,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 document.getElementById('submitButton').disabled = false;
@@ -269,6 +344,55 @@
                 athlete.Division = originalDivision;
                 sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 restoreDivisionBtn.style.display = 'none';
+                document.getElementById('submitButton').disabled = true;
+            });
+
+            // —— FLAG PREFILL & CHANGE/RESTORE LOGIC ——
+            const flagSelect = document.getElementById('flagDisplaySelect');
+            const restoreFlagBtn = document.getElementById('restoreFlagBtn');
+
+            // Populate the flag dropdown
+            fetch('/api/data/flags')
+                .then(r => r.json())
+                .then(flags => {
+                    // If the athlete’s flag wasn’t in the fetched list, add it
+                    if (!flags.includes(athlete.Flag)) {
+                        flags.push(athlete.Flag);
+                    }
+
+                    // Sort flags alphabetically
+                    flags.sort((a, b) => a.localeCompare(b));
+
+                    // Rebuild the dropdown from the sorted array
+                    flagSelect.innerHTML = '';
+                    flags.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        opt.textContent = f;
+                        flagSelect.appendChild(opt);
+                    });
+
+                    // Select the athlete’s flag
+                    flagSelect.value = athlete.Flag;
+
+                    if (athlete.Flag !== originalFlag) {
+                        restoreFlagBtn.style.display = 'inline-flex';
+                        document.getElementById('submitButton').disabled = false;
+                    }
+                });
+
+            flagSelect.addEventListener('change', () => {
+                athlete.Flag = flagSelect.value;
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                restoreFlagBtn.style.display = 'inline-flex';
+                document.getElementById('submitButton').disabled = false;
+            });
+
+            restoreFlagBtn.addEventListener('click', () => {
+                flagSelect.value = originalFlag;
+                athlete.Flag = originalFlag;
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                restoreFlagBtn.style.display = 'none';
                 document.getElementById('submitButton').disabled = true;
             });
 
