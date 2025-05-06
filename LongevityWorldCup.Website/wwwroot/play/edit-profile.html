@@ -9,41 +9,6 @@
             display: none;
         }
 
-        .autocomplete-wrapper {
-            position: relative;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%; /* Make the container fill the form width */
-        }
-
-        .autocomplete-container {
-            position: relative;
-            padding: 2rem 2rem;
-            font-size: 1.2rem;
-            width: 80%;
-            max-width: 400px;
-            display: flex;
-            justify-content: center;
-            align-items: center; /* Vertically center the text */
-        }
-
-            .autocomplete-container input {
-                width: 100%;
-                padding: 0.75rem 1rem;
-                border: 2px solid #ccc;
-                border-radius: 30px;
-                font-size: 1rem;
-                transition: border-color 0.2s;
-            }
-
-                .autocomplete-container input:focus {
-                    outline: none;
-                    border-color: #4CAF50;
-                    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
-                }
-
         .autocomplete-items {
             position: absolute;
             background: white; /* white panel */
@@ -74,13 +39,6 @@
                     background-color: #0069d9; /* your blue hover */
                     color: #fff;
                 }
-
-        .error-message {
-            display: block;
-            color: red;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
 
         #divisionDisplayWrapper, #flagDisplayWrapper {
             position: relative;
@@ -302,10 +260,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 document.getElementById('submitButton').disabled = false;
@@ -434,6 +392,10 @@
                 }
             });
 
+            flagInput.addEventListener('blur', function () {
+                validateFlagDisplay(this.value);
+            });
+
             function addActiveFlag(items) {
                 if (!items) return;
                 removeActiveFlag(items);
@@ -457,6 +419,7 @@
                 athlete.Flag = value;
                 sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 flagInput.value = value;
+
                 if (value !== originalFlag) {
                     restoreFlagBtn.style.display = 'inline-flex';
                     document.getElementById('submitButton').disabled = false;
@@ -469,15 +432,22 @@
             }
 
             // Restore original flag
-            restoreFlagBtn.addEventListener('click', () => {
-                flagInput.value = originalFlag;
-                athlete.Flag = originalFlag;
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
-                restoreFlagBtn.style.display = 'none';
-                document.getElementById('submitButton').disabled = true;
+            document.getElementById('submitButton').addEventListener('click', function (e) {
+                if (!validateFlagDisplay(flagInput.value)) {
+                    e.preventDefault();
+                }
             });
 
         });
+        function revertFlagToOriginal() {
+            const flagInput = document.getElementById('flagDisplayInput');
+            const restoreFlagBtn = document.getElementById('restoreFlagBtn');
+            flagInput.value = originalFlag;
+            athlete.Flag = originalFlag;
+            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+            restoreFlagBtn.style.display = 'none';
+            document.getElementById('submitButton').disabled = true;
+        }
 
         function setSubmitChangeRequestButton() {
             const submitButton = document.getElementById('submitButton');
@@ -553,6 +523,25 @@
             // go back to “nothing changed,” so disable submit again
             document.getElementById('submitButton').disabled = true;
         });
+
+        function validateFlagDisplay(value) {
+            const flagDisplayError = document.getElementById('flagDisplayError');
+            const trimmed = value.trim();
+            const regex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'(),.\-]{2,99}$/;
+            if (trimmed.length < 3) {
+                customAlert('Flag must be at least 3 characters long.');
+                revertFlagToOriginal();
+
+                return false;
+            }
+            if (!regex.test(trimmed)) {
+                customAlert('Flag contains invalid characters.');
+                revertFlagToOriginal();
+
+                return false;
+            }
+            return true;
+        }
     </script>
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
 </body>
