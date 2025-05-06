@@ -261,21 +261,15 @@
     <script>
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
 
-        if (!sessionStorage.getItem('initialProfilePicSrc')) sessionStorage.setItem('initialProfilePicSrc', athlete.ProfilePic);
-        const originalProfilePicSrc = sessionStorage.getItem('initialProfilePicSrc');
+        const originalProfilePicSrc = athlete.ProfilePic;
 
-        if (!sessionStorage.getItem('initialDivision')) sessionStorage.setItem('initialDivision', athlete.Division);
-        const originalDivision = sessionStorage.getItem('initialDivision');
+        const originalDivision = athlete.Division;
 
-        if (!sessionStorage.getItem('initialFlag')) sessionStorage.setItem('initialFlag', athlete.Flag);
-        const originalFlag = sessionStorage.getItem('initialFlag');
+        const originalFlag = athlete.Flag;
 
-        if (!sessionStorage.getItem('initialPersonalLink')) sessionStorage.setItem('initialPersonalLink', athlete.PersonalLink || '');
-        const _storedPL = sessionStorage.getItem('initialPersonalLink');
-        const originalPersonalLink = (_storedPL === 'null' ? '' : _storedPL);
+        const originalPersonalLink = (athlete.PersonalLink === 'null' || athlete.PersonalLink === null) ? '' : athlete.PersonalLink;
 
-        if (!sessionStorage.getItem('initialMediaContact')) sessionStorage.setItem('initialMediaContact', athlete.MediaContact);
-        const originalMediaContact = sessionStorage.getItem('initialMediaContact');
+        const originalMediaContact = athlete.MediaContact;
 
         setSubmitChangeRequestButton();
 
@@ -287,10 +281,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -322,7 +316,6 @@
             // When the user picks a different division…
             divisionSelect.addEventListener('change', () => {
                 athlete.Division = divisionSelect.value;
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 if (divisionSelect.value === originalDivision) {
                     // back to the original → hide restore & disable submit
                     restoreDivisionBtn.style.display = 'none';
@@ -434,7 +427,6 @@
             // When a flag is chosen
             function selectFlag(value) {
                 athlete.Flag = value;
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 flagInput.value = value;
 
                 if (value !== originalFlag) {
@@ -481,7 +473,6 @@
 
             personalLinkInput.addEventListener('input', () => {
                 athlete.PersonalLink = personalLinkInput.value.trim();
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 if (personalLinkInput.value.trim() !== originalPersonalLink) {
                     restorePersonalLinkBtn.style.display = 'inline-flex';
                 } else {
@@ -491,7 +482,6 @@
             });
             mediaContactInput.addEventListener('input', () => {
                 athlete.MediaContact = mediaContactInput.value.trim();
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
                 if (mediaContactInput.value.trim() !== originalMediaContact) {
                     restoreMediaContactBtn.style.display = 'inline-flex';
                 } else {
@@ -554,7 +544,6 @@
             const imgEl = document.querySelector('.illustration');
             imgEl.src = originalProfilePicSrc;
             athlete.ProfilePic = originalProfilePicSrc;
-            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             document.getElementById('restoreProfilePicButton').style.display = 'none';
             // go back to “nothing changed,” so disable submit again
             updateSubmitButtonState();
@@ -566,7 +555,6 @@
 
             divisionSelect.value = originalDivision;
             athlete.Division = originalDivision;
-            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             restoreDivisionBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -576,7 +564,6 @@
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
             flagInput.value = originalFlag;
             athlete.Flag = originalFlag;
-            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             restoreFlagBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -586,7 +573,6 @@
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
             personalLinkInput.value = originalPersonalLink;
             athlete.PersonalLink = originalPersonalLink;
-            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             restorePersonalLinkBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -596,7 +582,6 @@
             const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
             mediaContactInput.value = originalMediaContact;
             athlete.MediaContact = originalMediaContact;
-            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             restoreMediaContactBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -647,7 +632,6 @@
             imgEl.src = newSrc;
             imgEl.alt = athlete.Name + ' headshot';
             athlete.ProfilePic = newSrc;
-            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
             document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
 
             // enable the “Submit Change Request” button now that there’s a new image
