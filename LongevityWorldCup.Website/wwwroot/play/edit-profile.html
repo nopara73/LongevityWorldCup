@@ -40,14 +40,14 @@
                     color: #fff;
                 }
 
-        #divisionDisplayWrapper, #flagDisplayWrapper {
+        #niceInputFieldDisplayWrapper {
             position: relative;
             width: 80%;
             max-width: 400px;
             margin: 0.1rem auto;
         }
 
-        #divisionDisplayInput, #flagDisplayInput {
+        #divisionDisplayInput, #flagDisplayInput, #mediaContactInput, #personalLinkInput {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 2px solid #ccc;
@@ -57,13 +57,13 @@
             background-color: #f9f9f9;
         }
 
-            #divisionDisplayInput:focus, #flagDisplayInput:focus {
+            #divisionDisplayInput:focus, #flagDisplayInput:focus, #mediaContactInput:focus, #personalLinkInput:focus {
                 outline: none;
                 border-color: #4CAF50;
                 box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
             }
 
-        #divisionDisplaySelect, #flagDisplaySelect {
+        #divisionDisplaySelect {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 2px solid #ccc;
@@ -74,7 +74,7 @@
             appearance: none;
         }
 
-            #divisionDisplaySelect:focus, #flagDisplaySelect:focus {
+            #divisionDisplaySelect:focus {
                 outline: none;
                 border-color: #4CAF50;
                 box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
@@ -204,19 +204,39 @@
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
-            <div id="divisionDisplayWrapper" class="options-container inline-option-group">
+            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
                 <select id="divisionDisplaySelect"></select>
                 <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore Division">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
-            <div id="flagDisplayWrapper" class="options-container inline-option-group">
+            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
                 <input type="text"
                        id="flagDisplayInput"
                        name="flagDisplay"
                        autocomplete="off"
                        placeholder="Type or select a flag…">
                 <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore Flag">
+                    <i class="fa fa-undo"></i>
+                </button>
+            </div>
+            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
+                <input type="text"
+                       id="personalLinkInput"
+                       name="personalLink"
+                       autocomplete="off"
+                       placeholder="Enter personal link…">
+                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore Personal Link">
+                    <i class="fa fa-undo"></i>
+                </button>
+            </div>
+            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
+                <input type="text"
+                       id="mediaContactInput"
+                       name="mediaContact"
+                       autocomplete="off"
+                       placeholder="Enter media contact…">
+                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore Media Contact">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
@@ -250,6 +270,11 @@
         if (!sessionStorage.getItem('initialFlag')) sessionStorage.setItem('initialFlag', athlete.Flag);
         const originalFlag = sessionStorage.getItem('initialFlag');
 
+        if (!sessionStorage.getItem('initialPersonalLink')) sessionStorage.setItem('initialPersonalLink', athlete.PersonalLink);
+        const originalPersonalLink = sessionStorage.getItem('initialPersonalLink');
+        if (!sessionStorage.getItem('initialMediaContact')) sessionStorage.setItem('initialMediaContact', athlete.MediaContact);
+        const originalMediaContact = sessionStorage.getItem('initialMediaContact');
+
         setSubmitChangeRequestButton();
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -260,10 +285,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -453,6 +478,59 @@
                 }
             });
 
+            const personalLinkInput = document.getElementById('personalLinkInput');
+            const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
+            personalLinkInput.value = athlete.PersonalLink;
+            if (athlete.PersonalLink !== originalPersonalLink) {
+                restorePersonalLinkBtn.style.display = 'inline-flex';
+                updateSubmitButtonState();
+            }
+
+            const mediaContactInput = document.getElementById('mediaContactInput');
+            const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
+            mediaContactInput.value = athlete.MediaContact;
+            if (athlete.MediaContact !== originalMediaContact) {
+                restoreMediaContactBtn.style.display = 'inline-flex';
+                updateSubmitButtonState();
+            }
+            restoreFlagBtn.addEventListener('click', () => {
+                revertFlagToOriginal();
+            });
+            personalLinkInput.addEventListener('input', () => {
+                athlete.PersonalLink = personalLinkInput.value.trim();
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                if (personalLinkInput.value.trim() !== originalPersonalLink) {
+                    restorePersonalLinkBtn.style.display = 'inline-flex';
+                } else {
+                    restorePersonalLinkBtn.style.display = 'none';
+                }
+                updateSubmitButtonState();
+            });
+            restorePersonalLinkBtn.addEventListener('click', () => {
+                personalLinkInput.value = originalPersonalLink;
+                athlete.PersonalLink = originalPersonalLink;
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                restorePersonalLinkBtn.style.display = 'none';
+                updateSubmitButtonState();
+            });
+            mediaContactInput.addEventListener('input', () => {
+                athlete.MediaContact = mediaContactInput.value.trim();
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                if (mediaContactInput.value.trim() !== originalMediaContact) {
+                    restoreMediaContactBtn.style.display = 'inline-flex';
+                } else {
+                    restoreMediaContactBtn.style.display = 'none';
+                }
+                updateSubmitButtonState();
+            });
+            restoreMediaContactBtn.addEventListener('click', () => {
+                mediaContactInput.value = originalMediaContact;
+                athlete.MediaContact = originalMediaContact;
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+                restoreMediaContactBtn.style.display = 'none';
+                updateSubmitButtonState();
+            });
+
         });
         function revertFlagToOriginal() {
             const flagInput = document.getElementById('flagDisplayInput');
@@ -562,18 +640,26 @@
 
         function updateSubmitButtonState() {
             const submitButton = document.getElementById('submitButton');
-
-            // read straight from the UI
             const currentPicSrc = document.querySelector('.illustration').getAttribute('src');
             const currentDivision = document.getElementById('divisionDisplaySelect').value;
             const currentFlag = document.getElementById('flagDisplayInput').value.trim();
+            const currentPersonalLink = document.getElementById('personalLinkInput').value.trim();
+            const currentMediaContact = document.getElementById('mediaContactInput').value.trim();
 
             const picChanged = currentPicSrc !== originalProfilePicSrc;
             const divChanged = currentDivision !== originalDivision;
             const flagChanged = currentFlag !== originalFlag;
+            const personalLinkChanged = currentPersonalLink !== originalPersonalLink;
+            const mediaContactChanged = currentMediaContact !== originalMediaContact;
 
-            // enable if any one changed:
-            submitButton.disabled = !(picChanged || divChanged || flagChanged);
+            const anyChanged = picChanged
+                || divChanged
+                || flagChanged
+                || personalLinkChanged
+                || mediaContactChanged;
+
+            submitButton.disabled = !anyChanged;
+
         }
     </script>
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
