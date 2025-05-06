@@ -40,7 +40,7 @@
                     color: #fff;
                 }
 
-        #niceInputFieldDisplayWrapper {
+        .niceInputFieldDisplayWrapper {
             position: relative;
             width: 80%;
             max-width: 400px;
@@ -204,13 +204,13 @@
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
-            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
+            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <select id="divisionDisplaySelect"></select>
                 <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore Division">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
-            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
+            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <input type="text"
                        id="flagDisplayInput"
                        name="flagDisplay"
@@ -220,7 +220,7 @@
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
-            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
+            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <input type="text"
                        id="personalLinkInput"
                        name="personalLink"
@@ -230,7 +230,7 @@
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
-            <div id="niceInputFieldDisplayWrapper" class="options-container inline-option-group">
+            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <input type="text"
                        id="mediaContactInput"
                        name="mediaContact"
@@ -260,16 +260,18 @@
     <!--FOOTER-->
     <script>
         const originalAthlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
-        const tempAthleteJson = sessionStorage.getItem('tempAthlete');
-        const athlete = tempAthleteJson
-            ? JSON.parse(tempAthleteJson)
-            : originalAthlete;
 
-        const originalProfilePicSrc = originalAthlete.ProfilePic;
-        const originalDivision = originalAthlete.Division;
-        const originalFlag = originalAthlete.Flag;
-        const originalPersonalLink = (originalAthlete.PersonalLink === 'null' || originalAthlete.PersonalLink === null) ? '' : originalAthlete.PersonalLink;
-        const originalMediaContact = originalAthlete.MediaContact;
+        const tempAthlete = JSON.parse(sessionStorage.getItem('tempAthlete'));
+        const athlete = tempAthlete
+            ? tempAthlete
+            : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
+
+        // now that athlete is chosen, normalize PersonalLink on each
+        [originalAthlete, athlete].forEach(a => {
+            if (a.PersonalLink === null || a.PersonalLink === 'null') {
+                a.PersonalLink = '';
+            }
+        });
 
         setSubmitChangeRequestButton();
 
@@ -281,11 +283,11 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    loading="lazy">`;
-            if (athlete.ProfilePic !== originalProfilePicSrc) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            loading="lazy">`;
+            if (athlete.ProfilePic !== originalAthlete.ProfilePic) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
@@ -307,7 +309,7 @@
                     });
                     divisionSelect.value = athlete.Division;
 
-                    if (athlete.Division !== originalDivision) {
+                    if (athlete.Division !== originalAthlete.Division) {
                         restoreDivisionBtn.style.display = 'inline-flex';
                         updateSubmitButtonState();
                     }
@@ -316,7 +318,7 @@
             // When the user picks a different division…
             divisionSelect.addEventListener('change', () => {
                 athlete.Division = divisionSelect.value;
-                if (divisionSelect.value === originalDivision) {
+                if (divisionSelect.value === originalAthlete.Division) {
                     // back to the original → hide restore & disable submit
                     restoreDivisionBtn.style.display = 'none';
                 } else {
@@ -338,7 +340,7 @@
                     if (!flags.includes(athlete.Flag)) flags.push(athlete.Flag);
                     availableFlags = flags.sort((a, b) => a.localeCompare(b));
                     flagInput.value = athlete.Flag;
-                    if (athlete.Flag !== originalFlag) {
+                    if (athlete.Flag !== originalAthlete.Flag) {
                         restoreFlagBtn.style.display = 'inline-flex';
                         updateSubmitButtonState();
                     }
@@ -348,14 +350,14 @@
             flagInput.addEventListener('input', function () {
                 athlete.Flag = this.value.trim();
                 // Show or hide the Restore-Flag button based on whether the input matches original
-                if (flagInput.value.trim() !== originalFlag) {
+                if (flagInput.value.trim() !== originalAthlete.Flag) {
                     restoreFlagBtn.style.display = 'inline-flex';
                 } else {
                     restoreFlagBtn.style.display = 'none';
                 }
 
                 // Show or hide the Restore-Flag button based on whether the input matches original
-                if (flagInput.value.trim() !== originalFlag) {
+                if (flagInput.value.trim() !== originalAthlete.Flag) {
                     restoreFlagBtn.style.display = 'inline-flex';
                 } else {
                     restoreFlagBtn.style.display = 'none';
@@ -430,7 +432,7 @@
                 athlete.Flag = value;
                 flagInput.value = value;
 
-                if (value !== originalFlag) {
+                if (value !== originalAthlete.Flag) {
                     restoreFlagBtn.style.display = 'inline-flex';
                 } else {
                     restoreFlagBtn.style.display = 'none';
@@ -460,21 +462,21 @@
 
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
             personalLinkInput.value = athlete.PersonalLink || '';
-            if (athlete.PersonalLink !== originalPersonalLink) {
+            if (athlete.PersonalLink !== originalAthlete.PersonalLink) {
                 restorePersonalLinkBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
 
             const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
             mediaContactInput.value = athlete.MediaContact;
-            if (athlete.MediaContact !== originalMediaContact) {
+            if (athlete.MediaContact !== originalAthlete.MediaContact) {
                 restoreMediaContactBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
 
             personalLinkInput.addEventListener('input', () => {
                 athlete.PersonalLink = personalLinkInput.value.trim();
-                if (personalLinkInput.value.trim() !== originalPersonalLink) {
+                if (personalLinkInput.value.trim() !== originalAthlete.PersonalLink) {
                     restorePersonalLinkBtn.style.display = 'inline-flex';
                 } else {
                     restorePersonalLinkBtn.style.display = 'none';
@@ -483,7 +485,7 @@
             });
             mediaContactInput.addEventListener('input', () => {
                 athlete.MediaContact = mediaContactInput.value.trim();
-                if (mediaContactInput.value.trim() !== originalMediaContact) {
+                if (mediaContactInput.value.trim() !== originalAthlete.MediaContact) {
                     restoreMediaContactBtn.style.display = 'inline-flex';
                 } else {
                     restoreMediaContactBtn.style.display = 'none';
@@ -543,8 +545,8 @@
 
         function restoreProfilePicToOriginal() {
             const imgEl = document.querySelector('.illustration');
-            imgEl.src = originalProfilePicSrc;
-            athlete.ProfilePic = originalProfilePicSrc;
+            imgEl.src = originalAthlete.ProfilePic;
+            athlete.ProfilePic = originalAthlete.ProfilePic;
             document.getElementById('restoreProfilePicButton').style.display = 'none';
             // go back to “nothing changed,” so disable submit again
             updateSubmitButtonState();
@@ -554,8 +556,8 @@
             const divisionSelect = document.getElementById('divisionDisplaySelect');
             const restoreDivisionBtn = document.getElementById('restoreDivisionBtn');
 
-            divisionSelect.value = originalDivision;
-            athlete.Division = originalDivision;
+            divisionSelect.value = originalAthlete.Division;
+            athlete.Division = originalAthlete.Division;
             restoreDivisionBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -563,8 +565,8 @@
         function restoreFlagToOriginal() {
             const flagInput = document.getElementById('flagDisplayInput');
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
-            flagInput.value = originalFlag;
-            athlete.Flag = originalFlag;
+            flagInput.value = originalAthlete.Flag;
+            athlete.Flag = originalAthlete.Flag;
             restoreFlagBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -572,8 +574,8 @@
         function restorePersonalLinkToOriginal() {
             const personalLinkInput = document.getElementById('personalLinkInput');
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
-            personalLinkInput.value = originalPersonalLink;
-            athlete.PersonalLink = originalPersonalLink;
+            personalLinkInput.value = originalAthlete.PersonalLink;
+            athlete.PersonalLink = originalAthlete.PersonalLink;
             restorePersonalLinkBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -581,8 +583,8 @@
         function restoreMediaContactToOriginal() {
             const mediaContactInput = document.getElementById('mediaContactInput');
             const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
-            mediaContactInput.value = originalMediaContact;
-            athlete.MediaContact = originalMediaContact;
+            mediaContactInput.value = originalAthlete.MediaContact;
+            athlete.MediaContact = originalAthlete.MediaContact;
             restoreMediaContactBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -659,11 +661,11 @@
             const currentPersonalLink = document.getElementById('personalLinkInput').value.trim();
             const currentMediaContact = document.getElementById('mediaContactInput').value.trim();
 
-            const picChanged = currentPicSrc !== originalProfilePicSrc;
-            const divChanged = currentDivision !== originalDivision;
-            const flagChanged = currentFlag !== originalFlag;
-            const personalLinkChanged = currentPersonalLink !== originalPersonalLink;
-            const mediaContactChanged = currentMediaContact !== originalMediaContact;
+            const picChanged = currentPicSrc !== originalAthlete.ProfilePic;
+            const divChanged = currentDivision !== originalAthlete.Division;
+            const flagChanged = currentFlag !== originalAthlete.Flag;
+            const personalLinkChanged = currentPersonalLink !== originalAthlete.PersonalLink;
+            const mediaContactChanged = currentMediaContact !== originalAthlete.MediaContact;
 
             const anyChanged = picChanged
                 || divChanged
