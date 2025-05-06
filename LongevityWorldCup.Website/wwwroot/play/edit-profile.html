@@ -270,8 +270,10 @@
         if (!sessionStorage.getItem('initialFlag')) sessionStorage.setItem('initialFlag', athlete.Flag);
         const originalFlag = sessionStorage.getItem('initialFlag');
 
-        if (!sessionStorage.getItem('initialPersonalLink')) sessionStorage.setItem('initialPersonalLink', athlete.PersonalLink);
-        const originalPersonalLink = sessionStorage.getItem('initialPersonalLink');
+        if (!sessionStorage.getItem('initialPersonalLink')) sessionStorage.setItem('initialPersonalLink', athlete.PersonalLink || '');
+        const _storedPL = sessionStorage.getItem('initialPersonalLink');
+        const originalPersonalLink = (_storedPL === 'null' ? '' : _storedPL);
+
         if (!sessionStorage.getItem('initialMediaContact')) sessionStorage.setItem('initialMediaContact', athlete.MediaContact);
         const originalMediaContact = sessionStorage.getItem('initialMediaContact');
 
@@ -285,10 +287,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        loading="lazy">`;
             if (athlete.ProfilePic !== originalProfilePicSrc) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -420,18 +422,6 @@
                     }
                 }
             });
-            let skipFlagValidation = false;
-            restoreFlagBtn.addEventListener('mousedown', () => {
-                skipFlagValidation = true;
-            });
-
-            flagInput.addEventListener('blur', function () {
-                if (skipFlagValidation) {
-                    skipFlagValidation = false;
-                    return;
-                }
-                validateFlagDisplay(this.value);
-            });
 
             function addActiveFlag(items) {
                 if (!items) return;
@@ -473,14 +463,21 @@
 
             // Restore original flag
             document.getElementById('submitButton').addEventListener('click', function (e) {
-                if (!validateFlagDisplay(flagInput.value)) {
-                    e.preventDefault();
-                }
+                // --- SUBMIT CLICK GUARD ---
+                document.getElementById('submitButton').addEventListener('click', function (e) {
+                    if (
+                        !validateFlagDisplay(flagInput.value) ||
+                        !validatePersonalLink(personalLinkInput.value) ||
+                        !validateMediaContact(mediaContactInput.value)
+                    ) {
+                        e.preventDefault();
+                    }
+                });
             });
 
             const personalLinkInput = document.getElementById('personalLinkInput');
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
-            personalLinkInput.value = athlete.PersonalLink;
+            personalLinkInput.value = athlete.PersonalLink || '';
             if (athlete.PersonalLink !== originalPersonalLink) {
                 restorePersonalLinkBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -531,6 +528,46 @@
                 updateSubmitButtonState();
             });
 
+            let skipFlagValidation = false;
+            restoreFlagBtn.addEventListener('mousedown', () => {
+                skipFlagValidation = true;
+            });
+
+            flagInput.addEventListener('blur', function () {
+                if (skipFlagValidation) {
+                    skipFlagValidation = false;
+                    return;
+                }
+                validateFlagDisplay(this.value);
+            });
+
+            // --- SKIP-ON-RESTORE FLAGS ---
+            let skipPersonalLinkValidation = false;
+            restorePersonalLinkBtn.addEventListener('mousedown', () => {
+                skipPersonalLinkValidation = true;
+            });
+
+            let skipMediaContactValidation = false;
+            restoreMediaContactBtn.addEventListener('mousedown', () => {
+                skipMediaContactValidation = true;
+            });
+
+            // --- BLUR HANDLERS ---
+            personalLinkInput.addEventListener('blur', function () {
+                if (skipPersonalLinkValidation) {
+                    skipPersonalLinkValidation = false;
+                    return;
+                }
+                validatePersonalLink(this.value);
+            });
+
+            mediaContactInput.addEventListener('blur', function () {
+                if (skipMediaContactValidation) {
+                    skipMediaContactValidation = false;
+                    return;
+                }
+                validateMediaContact(this.value);
+            });
         });
         function revertFlagToOriginal() {
             const flagInput = document.getElementById('flagDisplayInput');
@@ -660,6 +697,16 @@
 
             submitButton.disabled = !anyChanged;
 
+        }
+
+        function validatePersonalLink(value) {
+            // TODO: implement personal link validation
+            return true;
+        }
+
+        function validateMediaContact(value) {
+            // TODO: implement media contact validation
+            return true;
         }
     </script>
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
