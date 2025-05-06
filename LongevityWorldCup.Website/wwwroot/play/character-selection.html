@@ -133,6 +133,19 @@
             confirmBtn.addEventListener('click', () => {
                 localStorage.setItem('selectedAthleteName', currentAthlete.Name);
                 sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
+
+                const tempJson = sessionStorage.getItem('tempAthlete');
+                if (tempJson) {
+                    try {
+                        const tempAthlete = JSON.parse(tempJson);
+                        if (tempAthlete.Name !== currentAthlete.Name) {
+                            sessionStorage.removeItem('tempAthlete');
+                        }
+                    } catch (e) {
+                        // if it wasn't valid JSON, just drop it
+                        sessionStorage.removeItem('tempAthlete');
+                    }
+                }
             });
 
             // — ATHLETE AUTOCOMPLETE —
@@ -241,10 +254,10 @@
             athleteInput.value = a.Name;
             document.getElementById('character-title').textContent = a.Name;
             document.querySelector('picture').innerHTML = `
-                                                            <img src="${a.ProfilePic}"
-                                                                    alt="${a.Name} headshot"
-                                                                    class="illustration"
-                                                                    loading="lazy">`;
+                                                                <img src="${a.ProfilePic}"
+                                                                        alt="${a.Name} headshot"
+                                                                        class="illustration"
+                                                                        loading="lazy">`;
             confirmBtn.style.display = 'inline-block';
             currentAthlete = a;
         }
