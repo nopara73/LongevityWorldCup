@@ -47,7 +47,7 @@
             margin: 0.1rem auto;
         }
 
-        #divisionDisplayInput, #flagDisplayInput, #mediaContactInput, #personalLinkInput {
+        #divisionDisplayInput, #flagDisplayInput, #mediaContactInput, #personalLinkInput, #whyDisplayInput {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 2px solid #ccc;
@@ -57,7 +57,7 @@
             background-color: #f9f9f9;
         }
 
-            #divisionDisplayInput:focus, #flagDisplayInput:focus, #mediaContactInput:focus, #personalLinkInput:focus {
+            #divisionDisplayInput:focus, #flagDisplayInput:focus, #mediaContactInput:focus, #personalLinkInput:focus, #whyDisplayInput:focus {
                 outline: none;
                 border-color: #4CAF50;
                 box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
@@ -240,6 +240,16 @@
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
+            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                <textarea id="whyDisplayInput"
+                          name="whyDisplay"
+                          rows="3"
+                          placeholder="What drives you?"></textarea>
+
+                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore Your Why">
+                    <i class="fa fa-undo"></i>
+                </button>
+            </div>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="submitButton" type="submit" disabled class="option-button green"></button>
@@ -283,10 +293,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
             if (athlete.ProfilePic !== originalAthlete.ProfilePic) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -444,6 +454,14 @@
 
             const mediaContactInput = document.getElementById('mediaContactInput');
             const personalLinkInput = document.getElementById('personalLinkInput');
+            const whyDisplayInput = document.getElementById('whyDisplayInput');
+
+            const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');
+            whyDisplayInput.value = athlete.Why || '';
+            if (athlete.Why !== originalAthlete.Why) {
+                restoreWhyDisplayBtn.style.display = 'inline-flex';
+                updateSubmitButtonState();
+            }
 
             // Restore original flag
             const submitButton = document.getElementById('submitButton');
@@ -453,7 +471,8 @@
                     if (
                         !validateFlagDisplay(flagInput.value) ||
                         !validatePersonalLink(personalLinkInput.value) ||
-                        !validateMediaContact(mediaContactInput.value)
+                        !validateMediaContact(mediaContactInput.value) ||
+                        !validateWhyDisplay(whyDisplayInput.value)
                     ) {
                         e.preventDefault();
                     }
@@ -489,6 +508,15 @@
                     restoreMediaContactBtn.style.display = 'inline-flex';
                 } else {
                     restoreMediaContactBtn.style.display = 'none';
+                }
+                updateSubmitButtonState();
+            });
+            whyDisplayInput.addEventListener('input', () => {
+                athlete.Why = whyDisplayInput.value.trim();
+                if (whyDisplayInput.value.trim() !== originalAthlete.Why) {
+                    restoreWhyDisplayBtn.style.display = 'inline-flex';
+                } else {
+                    restoreWhyDisplayBtn.style.display = 'none';
                 }
                 updateSubmitButtonState();
             });
@@ -534,11 +562,22 @@
                 validateMediaContact(this.value);
             });
 
+            let skipWhyValidation = false;
+            restoreWhyDisplayBtn.addEventListener('mousedown', () => { skipWhyValidation = true; });
+            whyDisplayInput.addEventListener('blur', function () {
+                if (skipWhyValidation) {
+                    skipWhyValidation = false;
+                    return;
+                }
+                validateWhyDisplay(this.value);
+            });
+
             document.getElementById('restoreProfilePicButton')
                 .addEventListener('click', restoreProfilePicToOriginal);
             restoreDivisionBtn.addEventListener('click', restoreDivisionToOriginal);
             restoreFlagBtn.addEventListener('click', restoreFlagToOriginal);
             restorePersonalLinkBtn.addEventListener('click', restorePersonalLinkToOriginal);
+            restoreWhyDisplayBtn.addEventListener('click', restoreWhyDisplayToOriginal);
             restoreMediaContactBtn.addEventListener('click', restoreMediaContactToOriginal);
 
         });
@@ -586,6 +625,14 @@
             mediaContactInput.value = originalAthlete.MediaContact;
             athlete.MediaContact = originalAthlete.MediaContact;
             restoreMediaContactBtn.style.display = 'none';
+            updateSubmitButtonState();
+        }
+        function restoreWhyDisplayToOriginal() {
+            const whyDisplayInput = document.getElementById('whyDisplayInput');
+            const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');
+            whyDisplayInput.value = originalAthlete.Why;
+            athlete.Why = originalAthlete.Why;
+            restoreWhyDisplayBtn.style.display = 'none';
             updateSubmitButtonState();
         }
 
@@ -660,18 +707,21 @@
             const currentFlag = document.getElementById('flagDisplayInput').value.trim();
             const currentPersonalLink = document.getElementById('personalLinkInput').value.trim();
             const currentMediaContact = document.getElementById('mediaContactInput').value.trim();
+            const currentWhyDisplay = document.getElementById('whyDisplayInput').value.trim();
 
             const picChanged = currentPicSrc !== originalAthlete.ProfilePic;
             const divChanged = currentDivision !== originalAthlete.Division;
             const flagChanged = currentFlag !== originalAthlete.Flag;
             const personalLinkChanged = currentPersonalLink !== originalAthlete.PersonalLink;
             const mediaContactChanged = currentMediaContact !== originalAthlete.MediaContact;
+            const whyChanged = currentWhyDisplay !== originalAthlete.Why;
 
             const anyChanged = picChanged
                 || divChanged
                 || flagChanged
                 || personalLinkChanged
-                || mediaContactChanged;
+                || mediaContactChanged
+                || whyChanged;
 
             submitButton.disabled = !anyChanged;
 
@@ -727,6 +777,16 @@
                 return false;
             }
             return true;                                    // any non-empty string OK
+        }
+
+        function validateWhyDisplay(value) {
+            const v = value.trim();
+            if (!v) {
+                customAlert('Your why is the light. Don’t leave us in the dark.');
+                restoreWhyDisplayToOriginal();
+                return false;
+            }
+            return true;
         }
     </script>
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
