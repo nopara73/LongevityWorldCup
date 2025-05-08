@@ -92,12 +92,20 @@ namespace LongevityWorldCup.Website.Controllers
                    !string.IsNullOrWhiteSpace(applicantData.Name)
                 && applicantData.Biomarkers?.Any() is true
                 && applicantData.ProofPics?.Any() is true
+                && applicantData.ProfilePic is null
                 && applicantData.DateOfBirth is null
                 && string.IsNullOrWhiteSpace(applicantData.MediaContact)
                 && string.IsNullOrWhiteSpace(applicantData.Division)
                 && string.IsNullOrWhiteSpace(applicantData.Flag)
                 && string.IsNullOrWhiteSpace(applicantData.Why)
                 && string.IsNullOrWhiteSpace(applicantData.PersonalLink);
+
+            // Handle edit submissions: when biomarkers and proofs are NOT provided
+            var isEditSubmissionOnly =
+                   !string.IsNullOrWhiteSpace(applicantData.Name)
+                && applicantData.Biomarkers is null
+                && applicantData.ProofPics is null
+                && applicantData.DateOfBirth is null;
 
             // Get AccountEmail from the json and trim it
             string? accountEmail = applicantData.AccountEmail?.Trim();
@@ -128,9 +136,27 @@ namespace LongevityWorldCup.Website.Controllers
             Directory.CreateDirectory(athleteFolder);
 
             // 1a) Write athlete.json
-            var athleteJsonObject = isResultSubmissionOnly
-                ? new { applicantData.Name, applicantData.Biomarkers } as object
-                : new
+
+            object? athleteJsonObject;
+            if (isResultSubmissionOnly)
+            {
+                athleteJsonObject = new { applicantData.Name, applicantData.Biomarkers };
+            }
+            else if (isEditSubmissionOnly)
+            {
+                athleteJsonObject = new
+                {
+                    applicantData.Name,
+                    applicantData.MediaContact,
+                    applicantData.Division,
+                    applicantData.Flag,
+                    applicantData.Why,
+                    PersonalLink = correctedPersonalLink
+                };
+            }
+            else
+            {
+                athleteJsonObject = (new
                 {
                     applicantData.Name,
                     applicantData.MediaContact,
@@ -140,7 +166,9 @@ namespace LongevityWorldCup.Website.Controllers
                     applicantData.Flag,
                     applicantData.Why,
                     PersonalLink = correctedPersonalLink
-                };
+                });
+            }
+
             var athleteJson = JsonSerializer.Serialize(athleteJsonObject, CachedJsonSerializerOptions);
             await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson);
 
@@ -193,6 +221,10 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 emailBody = $"Someone’s been bullying Father Time again...\n";
                 emailBody += $"Age Difference: {chronoBioDifference}";
+            }
+            else if (isEditSubmissionOnly)
+            {
+                emailBody = $"Update profile request...";
             }
             else
             {
