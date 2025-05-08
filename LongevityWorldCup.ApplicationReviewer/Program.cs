@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 
@@ -89,8 +90,43 @@ internal class Program
             Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
             var fileName = Path.GetFileName(file);
 
-            if (fileName.Equals("athlete.json", StringComparison.OrdinalIgnoreCase))
+            if (fileName == "athlete.json")
+            {
+                // merge athlete.json
+                var oldJsonPath = Path.Combine(athleteFolder, "athlete.json");
+                var newJsonPath = Path.Combine(tempDir, "athlete.json");
+
+                if (File.Exists(newJsonPath) && File.Exists(oldJsonPath))
+                {
+                    // load both as JObject
+                    var oldObj = JObject.Parse(File.ReadAllText(oldJsonPath));
+                    var newObj = JObject.Parse(File.ReadAllText(newJsonPath));
+
+                    // pull out new biomarkers and remove them from the merge payload
+                    var newBiomarkers = newObj["Biomarkers"] as JArray;
+                    newObj.Remove("Biomarkers");
+
+                    // merge every other property, preserving anything not in newObj
+                    oldObj.Merge(newObj, new JsonMergeSettings
+                    {
+                        MergeArrayHandling = MergeArrayHandling.Replace,
+                        MergeNullValueHandling = MergeNullValueHandling.Merge
+                    });
+
+                    // append the new biomarkers onto the existing array
+                    if (newBiomarkers != null)
+                    {
+                        var oldArray = oldObj["Biomarkers"] as JArray ?? new JArray();
+                        foreach (var item in newBiomarkers)
+                            oldArray.Add(item);
+                        oldObj["Biomarkers"] = oldArray;
+                    }
+
+                    File.WriteAllText(oldJsonPath, oldObj.ToString());
+                }
+                // skip athlete.json, handled below
                 continue;
+            }
 
             if (Regex.IsMatch(fileName, @"^proof_\d+\..+", RegexOptions.IgnoreCase))
             {
