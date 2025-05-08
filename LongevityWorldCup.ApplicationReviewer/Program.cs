@@ -122,7 +122,7 @@ internal class Program
                         oldObj["Biomarkers"] = oldArray;
                     }
 
-                    File.WriteAllText(oldJsonPath, oldObj.ToString());
+                    File.WriteAllText(oldJsonPath, oldObj.ToString() + Environment.NewLine);
                 }
                 // skip athlete.json, handled below
                 continue;
