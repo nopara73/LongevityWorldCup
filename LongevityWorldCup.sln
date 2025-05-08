@@ -7,7 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LongevityWorldCup.Website",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0EC3114A-DDDC-44E7-B288-3946832A5B20}"
 	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -15,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LongevityWorldCup.Documenta
 	ProjectSection(SolutionItems) = preProject
 		LongevityWorldCup.Documentation\ServerDeployment.md = LongevityWorldCup.Documentation\ServerDeployment.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongevityWorldCup.ApplicationReviewer", "LongevityWorldCup.ApplicationReviewer\LongevityWorldCup.ApplicationReviewer.csproj", "{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +27,10 @@ Global
 		{F83A207D-7221-4649-A465-1A3590721ACA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F83A207D-7221-4649-A465-1A3590721ACA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F83A207D-7221-4649-A465-1A3590721ACA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
