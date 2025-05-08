@@ -293,10 +293,10 @@
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                loading="lazy">`;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        class="illustration"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        loading="lazy">`;
             if (athlete.ProfilePic !== originalAthlete.ProfilePic) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -463,20 +463,57 @@
                 updateSubmitButtonState();
             }
 
-            // Restore original flag
-            const submitButton = document.getElementById('submitButton');
-            submitButton.addEventListener('click', function (e) {
-                // --- SUBMIT CLICK GUARD ---
-                submitButton.addEventListener('click', function (e) {
-                    if (
-                        !validateFlagDisplay(flagInput.value) ||
-                        !validatePersonalLink(personalLinkInput.value) ||
-                        !validateMediaContact(mediaContactInput.value) ||
-                        !validateWhyDisplay(whyDisplayInput.value)
-                    ) {
-                        e.preventDefault();
-                    }
-                });
+            // — SUBMIT CHANGE REQUEST —
+            submitButton.addEventListener('click', function () {
+                // click-guard: validate before submitting
+                if (
+                    !validateFlagDisplay(flagInput.value) ||
+                    !validatePersonalLink(personalLinkInput.value) ||
+                    !validateMediaContact(mediaContactInput.value) ||
+                    !validateWhyDisplay(whyDisplayInput.value)
+                ) {
+                    return;
+                }
+
+                if (!athlete || !athlete.Name) {
+                    customAlert('No athlete selected. Please return and choose your athlete.');
+                    return;
+                }
+
+                const applicantData = {
+                    name: athlete.Name,
+                    profilePic: athlete.ProfilePic,
+                    division: athlete.Division,
+                    flag: athlete.Flag,
+                    personalLink: athlete.PersonalLink || null,
+                    mediaContact: athlete.MediaContact,
+                    why: athlete.Why
+                };
+
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+
+                fetchWithTimeout('/api/application/application', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(applicantData)
+                }, 21000)
+                    .then(response => {
+                        if (response.ok) {
+                            customAlert('Change request submitted!').then(() => {
+                                sessionStorage.removeItem('tempAthlete');
+                                window.location.href = '/onboarding/application-review.html';
+                            });
+                        } else {
+                            return response.text().then(txt => Promise.reject(txt));
+                        }
+                    })
+                    .catch(err => {
+                        customAlert(`Submission failed:\n\n${err}`).then(() => {
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = 'Submit Change Request <i class="fa fa-rocket"></i>';
+                        });
+                    });
             });
 
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
