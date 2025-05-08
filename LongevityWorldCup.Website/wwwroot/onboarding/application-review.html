@@ -43,6 +43,7 @@
 
     <script>
         const isNewResultsUploaded = sessionStorage.getItem("came-from") === "proof-upload";
+        const isEditRequest = sessionStorage.getItem("came-from") === "edit-profile";
         sessionStorage.removeItem("came-from");
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -54,6 +55,10 @@
             if (isNewResultsUploaded) {
                 document.getElementById("appReviewText").textContent = "Test Review";
                 document.getElementById("whatAreWeReviewing").textContent = "your new test results";
+            }
+            else if (isEditRequest) {
+                document.getElementById("appReviewText").textContent = "Edit Review";
+                document.getElementById("whatAreWeReviewing").textContent = "your edit request";
             }
         });
 
