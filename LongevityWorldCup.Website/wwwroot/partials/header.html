@@ -343,6 +343,8 @@
 
         #custom-alert::backdrop {
             background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
 
         #custom-alert p {
@@ -453,8 +455,14 @@
             messageEl.textContent = message;
             dialog.showModal();
 
+            // ← lock background scroll
+            document.body.classList.add('no-scroll');
+
             document.getElementById('custom-alert-close').onclick = () => {
                 dialog.close();
+
+                // ← restore scrolling
+                document.body.classList.remove('no-scroll');
                 resolve();
             };
         });
