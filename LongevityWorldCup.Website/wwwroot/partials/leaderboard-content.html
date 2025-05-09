@@ -1889,7 +1889,12 @@
 
         const unslicedFilteredAthletes = filteredAthletes;
 
-        filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
+        if (includePodiumGlobal) {
+            filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal - 3);
+        }
+        else {
+            filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
+        }
 
         // Determine if filters are used
         const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0;
