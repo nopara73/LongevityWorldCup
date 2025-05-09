@@ -1804,17 +1804,6 @@
         // Ensure the podium is visible after clearing the search
         podium.style.display = 'flex';
 
-        // Hide all elements with the "extra-athlete" class
-        document.querySelectorAll('.extra-athlete').forEach(row => {
-            row.style.display = 'none';
-        });
-
-        // Hide podium athletes' rows if includePodiumGlobal is true
-        if (includePodiumGlobal) {
-            document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
-                row.style.display = 'none';
-            });
-        }
         const url = new URL(window.location.href);
         url.searchParams.delete('search');
         history.replaceState({}, "", url.toString());
