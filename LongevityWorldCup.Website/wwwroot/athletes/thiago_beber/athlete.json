@@ -1,0 +1,27 @@
+{
+  "Name": "Thiago Beber",
+  "MediaContact": "https://www.instagram.com/thiagobeberr/",
+  "DateOfBirth": {
+    "Year": 1997,
+    "Month": 12,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-30",
+      "AlbGL": 44,
+      "CreatUmolL": 92.0353982300885,
+      "GluMmolL": 4.940053285968029,
+      "CrpMgL": 0.4,
+      "LymPc": 38.6,
+      "McvFL": 89.8,
+      "RdwPc": 12,
+      "AlpUL": 77,
+      "Wbc1000cellsuL": 6.14
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Timbó",
+  "Why": "Health is and end in and of itself",
+  "PersonalLink": null
+}
