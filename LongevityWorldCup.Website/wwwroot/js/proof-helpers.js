@@ -6,7 +6,7 @@ window.getSubProofInstructionsInnerHTML = function () {
     return "These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.";
 }
 
-window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics) {
+window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers) {
     nextButton.disabled = true;
 
     // Attach event listener to the Upload Proof button
@@ -51,6 +51,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
     // Display any existing proof images
     updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
+
+    generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers);
 
     // Check if proof images already exist
     checkProofImages(nextButton, proofPics, uploadProofButton);
@@ -105,3 +107,48 @@ window.updateProofUploadButtons = function (nextButton, uploadProofButton) {
         uploadProofButton.classList.remove('green');
     }
 }
+
+function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
+    if (!biomarkerChecklistContainer) return;
+
+    // Clear any existing content
+    biomarkerChecklistContainer.innerHTML = '';
+
+    // Title
+    const title = document.createElement('h4');
+    title.textContent = 'Proof Tracker';
+    title.style.marginBottom = '4px';
+    biomarkerChecklistContainer.appendChild(title);
+
+    const instructions = document.createElement('p');
+    instructions.textContent = "Check each biomarker you've already uploaded proof for:";
+    instructions.style.marginTop = '1px';
+    instructions.style.marginBottom = '4px';
+    instructions.classList.add('smaller-text');
+    biomarkerChecklistContainer.appendChild(instructions);
+
+    biomarkers.forEach(name => {
+        // wrapper div
+        const itemDiv = document.createElement('div');
+
+        // label.biomerker-item
+        const label = document.createElement('label');
+        label.className = 'biomarker-item';
+
+        // input[type=checkbox]
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'biomarker-checkbox';
+        // generate an ID like "biomarker-Albumin" or "biomarker-CReactiveProtein"
+        input.id = 'biomarker-' + name.replace(/[^a-z0-9]/gi, '');
+
+        // span with the visible name
+        const span = document.createElement('span');
+        span.textContent = name;
+
+        label.appendChild(input);
+        label.appendChild(span);
+        itemDiv.appendChild(label);
+        biomarkerChecklistContainer.appendChild(itemDiv);
+    });
+};

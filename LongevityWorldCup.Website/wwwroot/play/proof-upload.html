@@ -62,6 +62,8 @@
 
         <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
 
+        <div id="biomarker-checklist" style="width: 90%; max-width: 600px; margin: 1rem auto 0; "></div>
+
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <button id="submitButton" type="submit" class="option-button green"></button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
@@ -97,8 +99,27 @@
             const uploadProofButton = document.getElementById('uploadProofButton');
             const proofPicInput = document.getElementById('proofPicInput');
             const proofImageContainer = document.getElementById('proofImageContainer');
+            const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
-            window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics);
+            // build checklist from whatever biomarkers the user just submitted
+            const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
+            const latest = (biomarkerData.Biomarkers && biomarkerData.Biomarkers[0]) || {};
+            const propertyToLabel = {
+                AlbGL: 'Albumin',
+                CreatUmolL: 'Creatinine',
+                GluMmolL: 'Glucose',
+                CrpMgL: 'C-Reactive Protein',
+                LymPc: 'Lymphocyte Percentage',
+                McvFL: 'Mean Corpuscular Volume',
+                RdwPc: 'Red Cell Distribution Width',
+                AlpUL: 'Alkaline Phosphatase',
+                Wbc1000cellsuL: 'White Blood Cell Count'
+            };
+            const checklistItems = Object.entries(propertyToLabel)
+                .filter(([prop, label]) => latest[prop] !== undefined && !isNaN(latest[prop]))
+                .map(([prop, label]) => label);
+
+            window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems);
 
             submitButton.addEventListener('click', function () {
                 if (!athlete || !athlete.Name) {

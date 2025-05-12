@@ -393,6 +393,26 @@
             transform: translateY(-50%);
         }
     }
+
+    /* Make the label a flex-row aligned to the text baseline */
+    #biomarker-checklist .biomarker-item {
+        display: inline-flex;
+        align-items: baseline;
+        vertical-align: middle;
+        white-space: nowrap;
+        font-weight: normal;
+    }
+
+    /* Reset any browser margins and nudge the checkbox into optical center */
+    #biomarker-checklist .biomarker-checkbox {
+        margin: 0;
+        transform: translateY(1px);
+    }
+
+    /* Add a little space between checkbox and text */
+    #biomarker-checklist .biomarker-item span {
+        margin-left: 0.4em;
+    }
 </style>
 
 <header role="banner">

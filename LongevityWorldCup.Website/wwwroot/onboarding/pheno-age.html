@@ -220,8 +220,7 @@
             max-height: 0;
             overflow: hidden;
             padding: 0 1rem; /* keep horizontal padding */
-            transition: max-height 0.3s ease, /* animate height */
-            padding 0.3s ease; /* animate vertical padding */
+            transition: max-height 0.3s ease, padding 0.3s ease;
         }
 
             .biomarker-card-content > .input-group:first-of-type {
@@ -505,6 +504,39 @@
         const isFake = urlParams.get('fake') === '1';
         const isUpdate = urlParams.get('update') === '1';
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+
+        //–– keep track of which fields the user actually edits (or clears)
+        const touchedBiomarkers = new Set();
+        ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', () => {
+                    if (el.value.trim() === '') touchedBiomarkers.delete(id);
+                    else touchedBiomarkers.add(id);
+                });
+            });
+
+        //–– seed from stored data
+        const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+        if (stored?.Biomarkers?.[0]) {
+            const latest = stored.Biomarkers[0];
+            const propMap = {
+                albumin: 'AlbGL',
+                creatinine: 'CreatUmolL',
+                glucose: 'GluMmolL',
+                crp: 'CrpMgL',
+                lymphocyte: 'LymPc',
+                mcv: 'McvFL',
+                rcdw: 'RdwPc',
+                ap: 'AlpUL',
+                wbc: 'Wbc1000cellsuL'
+            };
+            Object.entries(propMap).forEach(([id, prop]) => {
+                if (latest[prop] != null && !isNaN(latest[prop])) {
+                    touchedBiomarkers.add(id);
+                }
+            });
+        }
 
         // Event listener for form submission
         document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
@@ -950,6 +982,31 @@
                 // Disable built-in HTML5 required checks in update mode
                 document.getElementById('phenoAgeForm').setAttribute('novalidate', '');
 
+                //— prefill any existing biomarkers and expand those cards —
+                const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+                if (stored?.Biomarkers?.[0]) {
+                    const latest = stored.Biomarkers[0];
+                    const defaults = {
+                        albumin: ['AlbGL', '1'],
+                        creatinine: ['CreatUmolL', '1'],
+                        glucose: ['GluMmolL', '1'],
+                        crp: ['CrpMgL', '10'],
+                        lymphocyte: ['LymPc', '1'],
+                        mcv: ['McvFL', '1'],
+                        rcdw: ['RdwPc', '1'],
+                        ap: ['AlpUL', '1'],
+                        wbc: ['Wbc1000cellsuL', '1']
+                    };
+                    Object.entries(defaults).forEach(([id, [prop, unit]]) => {
+                        if (latest[prop] != null) {
+                            document.getElementById(id).value = latest[prop];
+                            document.getElementById(id + 'Unit').value = unit;
+                            // expand that card
+                            expandFieldCard(id);
+                        }
+                    });
+                }
+
                 // Scroll the heading into view
                 document.querySelector('h2').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -987,27 +1044,50 @@
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
-            // Collect the biomarker data to store in sessionStorage
+            // Collect only biomarkers the user actually touched
+            const entry = {
+                Date: new Date().toISOString().split('T')[0] // Current date in YYYY-MM-DD format
+            };
+            // only assign if the user actually touched that field:
+            if (touchedBiomarkers.has('albumin')) {
+                entry.AlbGL = parseFloat(document.getElementById('albumin').value)
+                    / parseFloat(document.getElementById('albuminUnit').value);
+            }
+            if (touchedBiomarkers.has('creatinine')) {
+                entry.CreatUmolL = parseFloat(document.getElementById('creatinine').value)
+                    / parseFloat(document.getElementById('creatinineUnit').value);
+            }
+            if (touchedBiomarkers.has('glucose')) {
+                entry.GluMmolL = parseFloat(document.getElementById('glucose').value)
+                    / parseFloat(document.getElementById('glucoseUnit').value);
+            }
+            if (touchedBiomarkers.has('crp')) {
+                entry.CrpMgL = (parseFloat(document.getElementById('crp').value)
+                    / parseFloat(document.getElementById('crpUnit').value)) * 10; // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
+            }
+            if (touchedBiomarkers.has('lymphocyte')) {
+                entry.LymPc = parseFloat(document.getElementById('lymphocyte').value);
+            }
+            if (touchedBiomarkers.has('mcv')) {
+                entry.McvFL = parseFloat(document.getElementById('mcv').value);
+            }
+            if (touchedBiomarkers.has('rcdw')) {
+                entry.RdwPc = parseFloat(document.getElementById('rcdw').value);
+            }
+            if (touchedBiomarkers.has('ap')) {
+                entry.AlpUL = parseFloat(document.getElementById('ap').value);
+            }
+            if (touchedBiomarkers.has('wbc')) {
+                entry.Wbc1000cellsuL = parseFloat(document.getElementById('wbc').value);
+            }
+
             const biomarkerData = {
                 DateOfBirth: {
                     Year: year,
                     Month: month + 1, // Adjust month to 1-based index
                     Day: day
                 },
-                Biomarkers: [
-                    {
-                        Date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
-                        AlbGL: parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value),
-                        CreatUmolL: parseFloat(document.getElementById('creatinine').value) / parseFloat(document.getElementById('creatinineUnit').value),
-                        GluMmolL: parseFloat(document.getElementById('glucose').value) / parseFloat(document.getElementById('glucoseUnit').value),
-                        CrpMgL: (parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value)) * 10, // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
-                        LymPc: parseFloat(document.getElementById('lymphocyte').value),
-                        McvFL: parseFloat(document.getElementById('mcv').value),
-                        RdwPc: parseFloat(document.getElementById('rcdw').value),
-                        AlpUL: parseFloat(document.getElementById('ap').value),
-                        Wbc1000cellsuL: parseFloat(document.getElementById('wbc').value)
-                    }
-                ]
+                Biomarkers: [entry]
             };
 
             // Store the data in sessionStorage
@@ -1017,9 +1097,7 @@
             sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
 
             sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
-            const biomarkerDataFromStorage = JSON.parse(sessionStorage.getItem('biomarkerData'));
 
-            window.location.href = '/onboarding/convergence.html';
             if (isUpdate) {
                 window.location.href = '/play/proof-upload.html';
             } else {
