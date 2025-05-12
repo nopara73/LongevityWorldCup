@@ -1,4 +1,6 @@
-﻿namespace LongevityWorldCup.Website.Business
+﻿using System.Text.Json.Serialization;
+
+namespace LongevityWorldCup.Website.Business
 {
     public class ApplicantData
     {
@@ -28,15 +30,33 @@
 
     public class BiomarkerData
     {
-        public string? Date { get; set; } // e.g., "YYYY-MM-DD"
-        public double AlbGL { get; set; }
-        public double CreatUmolL { get; set; }
-        public double GluMmolL { get; set; }
-        public double CrpMgL { get; set; }
-        public double LymPc { get; set; }
-        public double McvFL { get; set; }
-        public double RdwPc { get; set; }
-        public double AlpUL { get; set; }
-        public double Wbc1000cellsuL { get; set; }
+        public string? Date { get; set; }  // always include the date
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? AlbGL { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? CreatUmolL { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? GluMmolL { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? CrpMgL { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? LymPc { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? McvFL { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? RdwPc { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? AlpUL { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? Wbc1000cellsuL { get; set; }
     }
 }

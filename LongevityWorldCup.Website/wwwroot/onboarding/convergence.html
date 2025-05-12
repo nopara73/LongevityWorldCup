@@ -236,6 +236,9 @@
                     <input type="file" id="proofPicInput" accept="image/*" style="display: none;" multiple>
                     <button type="button" id="uploadProofButton" class="option-button grey">Upload Proof Images</button>
                 </div>
+                <!-- Proof Image Container -->
+                <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
+                <div id="biomarker-checklist"></div>
             </div>
             <fieldset id="finalDetails">
                 <!-- Link to Personal Page (Optional) -->
@@ -267,9 +270,6 @@
                 <textarea id="why" name="why" rows="5" placeholder="Share your motivation here..."></textarea>
                 <div id="whyCharCounter" class="char-counter">0/250</div>
             </div>
-
-            <!-- Proof Image Container -->
-            <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
 
             <div class="options-container">
                 <button type="button" class="option-button green" id="nextButton" aria-label="Proceed to the next stage">Next</button>
@@ -550,8 +550,19 @@
                     const uploadProofButton = document.getElementById('uploadProofButton');
                     const proofPicInput = document.getElementById('proofPicInput');
                     const proofImageContainer = document.getElementById('proofImageContainer');
+                    const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
-                    window.setupProofUploadHTML(nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics);
+                    window.setupProofUploadHTML(nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer[
+                        'Albumin',
+                        'Creatinine',
+                        'Glucose',
+                        'C-Reactive Protein',
+                        'Lymphocyte Percentage',
+                        'Mean Corpuscular Volume',
+                        'Red Cell Distribution Width',
+                        'Alkaline Phosphatase',
+                        'White Blood Cell Count'
+                    ]);
 
                     break;
                 case 6:
