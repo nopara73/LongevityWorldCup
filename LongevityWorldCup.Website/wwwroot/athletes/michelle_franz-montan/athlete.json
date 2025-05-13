@@ -1,0 +1,27 @@
+{
+  "Name": "Michelle Franz-Montan",
+  "MediaContact": "mfranz@unicamp.br",
+  "DateOfBirth": {
+    "Year": 1982,
+    "Month": 3,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-24",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 76.99115044247787,
+      "GluMmolL": 4.607015985790409,
+      "CrpMgL": 0.16,
+      "LymPc": 36.7,
+      "McvFL": 94,
+      "RdwPc": 12.2,
+      "AlpUL": 44,
+      "Wbc1000cellsuL": 5.43
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "UNICAMP",
+  "Why": "The desire to maximize my healthspan: living longer and healthier. Eating well and exercising regularly are essential parts of this goal, allowing me to maintain energy, strength, and balance to fully enjoy life now and in the future.",
+  "PersonalLink": null
+}
