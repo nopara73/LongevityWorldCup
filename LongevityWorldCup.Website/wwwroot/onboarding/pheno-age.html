@@ -585,7 +585,7 @@
             // In update mode, ensure at least one new biomarker was entered
             if (isUpdate) {
                 if (touchedBiomarkers.size === 0) {
-                    customAlert('😱 No biomarker data entered! Cannot submit nothing!');
+                    customAlert('😱 No new biomarker data entered! Cannot submit nothing!');
                     return;
                 }
             }
@@ -1062,6 +1062,11 @@
         }
 
         function proceedToNextPage() {
+            if (isUpdate && touchedBiomarkers.size === 0) {
+                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                return;
+            }
+
             const yearInput = document.getElementById('dob-year').value;
             const monthInput = document.getElementById('dob-month').value;
             const dayInput = document.getElementById('dob-day').value;
