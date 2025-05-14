@@ -262,7 +262,7 @@
 
                 <!-- Albumin -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         Albumin
                         <span class="toggle-icon">+</span>
                     </div>
@@ -283,7 +283,7 @@
 
                 <!-- Creatinine -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         Creatinine
                         <span class="toggle-icon">+</span>
                     </div>
@@ -302,7 +302,7 @@
 
                 <!-- Glucose -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         Glucose
                         <span class="toggle-icon">+</span>
                     </div>
@@ -321,7 +321,7 @@
 
                 <!-- C-Reactive Protein -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         C-Reactive Protein
                         <span class="toggle-icon">+</span>
                     </div>
@@ -355,7 +355,7 @@
 
                 <!-- Lymphocyte Percentage -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         Lymphocytes
                         <span class="toggle-icon">+</span>
                     </div>
@@ -374,7 +374,7 @@
 
                 <!-- Mean Corpuscular Volume -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         Mean Corpuscular Volume
                         <span class="toggle-icon">+</span>
                     </div>
@@ -391,7 +391,7 @@
 
                 <!-- Red Cell Distribution Width -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         Red Cell Distribution Width
                         <span class="toggle-icon">+</span>
                     </div>
@@ -408,7 +408,7 @@
 
                 <!-- Alkaline Phosphatase -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         Alkaline Phosphatase
                         <span class="toggle-icon">+</span>
                     </div>
@@ -426,7 +426,7 @@
 
                 <!-- White Blood Cell Count -->
                 <div class="biomarker-card">
-                    <div class="biomarker-card-header">
+                    <div class="biomarker-card-header" aria-expanded="false">
                         White Blood Cell Count
                         <span class="toggle-icon">+</span>
                     </div>
@@ -464,18 +464,18 @@
         </div>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <button id="continueButton" class="option-button green" onclick="proceedToNextPage()">
+            <button type="button" id="continueButton" class="option-button green" onclick="proceedToNextPage()">
                 Next&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
 
-            <button class="option-button back-button" onclick="window.goBackOrHome()">
+            <button type="button" class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
         </div>
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
-    <script>
+    <script defer>
         // Check if the URL has the query parameter "fake=1"
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
@@ -1199,6 +1199,8 @@
                 if (!isUpdate) {
                     if (!card.classList.contains('active')) {
                         card.classList.add('active');
+                        header.setAttribute('aria-expanded', 'true');
+
                         content.style.maxHeight = content.scrollHeight + 'px';
                         content.style.paddingTop = '0.75rem';
                         content.style.paddingBottom = '0.75rem';
@@ -1211,6 +1213,8 @@
 
                 // update mode: full toggle with icon swap
                 const isActive = card.classList.toggle('active');
+                header.setAttribute('aria-expanded', isActive);
+
                 icon.textContent = isActive ? '−' : '+';
                 icon.style.display = '';
                 if (isActive) {
@@ -1243,7 +1247,10 @@
 
             // If not already expanded, open it
             if (!card.classList.contains('active')) {
+                const header = card.querySelector('.biomarker-card-header');
+
                 card.classList.add('active');
+                if (header) header.setAttribute('aria-expanded', 'true');
 
                 // Animate the content area open
                 const content = card.querySelector('.biomarker-card-content');
@@ -1253,7 +1260,6 @@
 
                 // Handle the toggle icon and header behavior
                 const icon = card.querySelector('.toggle-icon');
-                const header = card.querySelector('.biomarker-card-header');
 
                 if (!isUpdate) {
                     // In non-update mode: hide the icon and disable further clicks
