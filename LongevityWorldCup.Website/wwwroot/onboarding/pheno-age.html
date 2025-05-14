@@ -584,9 +584,7 @@
         function calculateResult() {
             // In update mode, ensure at least one new biomarker was entered
             if (isUpdate) {
-                const biomarkerIds = ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc'];
-                const anyNew = biomarkerIds.some(id => document.getElementById(id).value !== '');
-                if (!anyNew) {
+                if (touchedBiomarkers.size === 0) {
                     customAlert('😱 No biomarker data entered! Cannot submit nothing!');
                     return;
                 }
