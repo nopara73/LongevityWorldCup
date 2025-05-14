@@ -521,17 +521,6 @@
             });
         }
 
-        // Event listener for form submission
-        document.getElementById('phenoAgeForm').addEventListener('submit', function (event) {
-            event.preventDefault(); // Prevent form submission
-            calculateResult(); // Calculate the result
-            const calculateButton = document.querySelector('form button[type="submit"]');
-            if (calculateButton) {
-                // Scroll to the calculate button
-                calculateButton.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
-
         function updateCalculateButton() {
             const calculateButton = document.querySelector('form button[type="submit"]');
             const nextButton = document.getElementById('continueButton');
@@ -1289,7 +1278,7 @@
             }
         }
 
-        // 1. Let the browser show its validation bubbles, but expand the card first
+        // Let the browser show its validation bubbles, but expand the card first
         const form = document.getElementById('phenoAgeForm');
 
         form.addEventListener('invalid', e => {
@@ -1297,14 +1286,24 @@
             expandFieldCard(e.target);
         }, true);
 
-        // 2. On submit, defer to browser validation; only when the form is fully valid do we preventDefault and run calculateResult()
+        // On submit, defer to browser validation; only when the form is fully valid do we preventDefault and run calculateResult()
         form.addEventListener('submit', function (e) {
-            // reportValidity() runs validation and shows bubbles; returns false if something is invalid
-            if (!this.reportValidity()) {
-                return;          // native messages shown, cards already expanded by invalid listener
-            }
+            // prevent normal submit
             e.preventDefault();
+
+            // calculate
             calculateResult();
+
+            // let browser show validation bubbles (invalid events expand cards)
+            if (!this.reportValidity()) {
+                return;
+            }
+
+            // all valid → scroll the Calculate button into view
+            const calculateButton = this.querySelector('button[type="submit"]');
+            if (calculateButton) {
+                calculateButton.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         });
     </script>
 </body>
