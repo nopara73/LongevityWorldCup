@@ -540,15 +540,15 @@
             const albuminValue = parseFloat(document.getElementById('albumin').value);
             const albuminUnit = parseFloat(document.getElementById('albuminUnit').value);
             if (albuminUnit != 15.0466 && albuminValue > 300) {
-                console.log("Albumin is too high. Correcting the unit.");
+                console.warn("Albumin is too high. Correcting the unit.");
                 document.getElementById('albuminUnit').value = 15.0466;
             }
             else if (albuminUnit != 0.1 && albuminValue < 6) {
-                console.log("Albumin is too low. Correcting the unit.");
+                console.warn("Albumin is too low. Correcting the unit.");
                 document.getElementById('albuminUnit').value = 0.1;
             }
             else if (albuminUnit != 1 && albuminValue > 10 && albuminValue < 60) {
-                console.log("Albumin is too low. Correcting the unit.");
+                console.warn("Albumin is too low. Correcting the unit.");
                 document.getElementById('albuminUnit').value = 1;
             }
 
@@ -556,11 +556,11 @@
             const wbcValue = parseFloat(document.getElementById('wbc').value);
             const wbcUnit = parseFloat(document.getElementById('wbcUnit').value);
             if (wbcUnit === 1 && wbcValue > 4000) {
-                console.log("WBC is too high. Correcting the unit.");
+                console.warn("WBC is too high. Correcting the unit.");
                 document.getElementById('wbcUnit').value = 1000;
             }
             else if (wbcUnit === 1000 && wbcValue < 30) {
-                console.log("WBC is too low. Correcting the unit.");
+                console.warn("WBC is too low. Correcting the unit.");
                 document.getElementById('wbcUnit').value = 1;
             }
         }
