@@ -105,9 +105,9 @@
             </div>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="confirmBtn" class="option-button green"
+            <button disabled id="confirmBtn" class="option-button green"
                     onclick="window.location.href='/play/character-customization.html'">
-                Continue&nbsp;<i class="fas fa-arrow-right"></i>
+                Select&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
@@ -254,11 +254,12 @@
             athleteInput.value = a.Name;
             document.getElementById('character-title').textContent = a.Name;
             document.querySelector('picture').innerHTML = `
-                                                                <img src="${a.ProfilePic}"
-                                                                        alt="${a.Name} headshot"
-                                                                        class="illustration"
-                                                                        loading="lazy">`;
+                                                                                    <img src="${a.ProfilePic}"
+                                                                                            alt="${a.Name} headshot"
+                                                                                            class="illustration"
+                                                                                            loading="lazy">`;
             confirmBtn.style.display = 'inline-block';
+            confirmBtn.disabled = false;
             currentAthlete = a;
         }
     </script>
