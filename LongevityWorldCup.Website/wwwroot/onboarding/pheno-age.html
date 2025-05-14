@@ -962,31 +962,6 @@
                 // Disable built-in HTML5 required checks in update mode
                 document.getElementById('phenoAgeForm').setAttribute('novalidate', '');
 
-                //— prefill any existing biomarkers and expand those cards —
-                const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
-                if (stored?.Biomarkers?.[0]) {
-                    const latest = stored.Biomarkers[0];
-                    const defaults = {
-                        albumin: ['AlbGL', '1'],
-                        creatinine: ['CreatUmolL', '1'],
-                        glucose: ['GluMmolL', '1'],
-                        crp: ['CrpMgL', '10'],
-                        lymphocyte: ['LymPc', '1'],
-                        mcv: ['McvFL', '1'],
-                        rcdw: ['RdwPc', '1'],
-                        ap: ['AlpUL', '1'],
-                        wbc: ['Wbc1000cellsuL', '1']
-                    };
-                    Object.entries(defaults).forEach(([id, [prop, unit]]) => {
-                        if (latest[prop] != null) {
-                            document.getElementById(id).value = latest[prop];
-                            document.getElementById(id + 'Unit').value = unit;
-                            // expand that card
-                            expandFieldCard(id);
-                        }
-                    });
-                }
-
                 // Scroll the heading into view
                 document.querySelector('h2').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -1013,7 +988,63 @@
                     .forEach(icon => icon.style.display = 'none');
             }
 
+            updateModeFormInitializerUnique();
         });
+
+        function updateModeFormInitializerUnique() {
+            if (!isUpdate) return;
+
+            const idMapUnique = {
+                AlbGL: 'albumin',
+                CreatUmolL: 'creatinine',
+                GluMmolL: 'glucose',
+                CrpMgL: 'crp',
+                LymPc: 'lymphocyte',
+                McvFL: 'mcv',
+                RdwPc: 'rcdw',
+                AlpUL: 'ap',
+                Wbc1000cellsuL: 'wbc'
+            };
+            Object.values(idMapUnique).forEach(bioId => {
+                document.getElementById(bioId).value = '';
+            });
+
+            // collapse every card
+            document.querySelectorAll('.biomarker-card.active').forEach(card => {
+                const hdr = card.querySelector('.biomarker-card-header');
+                const icn = hdr.querySelector('.toggle-icon');
+                const cnt = card.querySelector('.biomarker-card-content');
+                card.classList.remove('active');
+                hdr.setAttribute('aria-expanded', 'false');
+                icn.style.display = '';
+                cnt.style.maxHeight = '0';
+                cnt.style.paddingTop = '0';
+                cnt.style.paddingBottom = '0';
+            });
+
+            // cos this shitty function wiped it all
+            if (isFake) {
+                fillFakeData();
+            }
+
+            // refill only saved biomarkers
+            const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+            const entry = stored?.Biomarkers?.[0];
+            if (entry) {
+                Object.keys(entry).forEach(prop => {
+                    const id = idMapUnique[prop];
+                    if (id) {
+                        document.getElementById(id).value = entry[prop];
+                        expandFieldCard(id);
+                    }
+                });
+                // hide toggle icons on expanded cards
+                document.querySelectorAll('.biomarker-card.active .toggle-icon')
+                    .forEach(i => i.style.display = 'none');
+            }
+        }
+
+        window.addEventListener('pageshow', updateModeFormInitializerUnique);
 
         // Detect and apply preferences based on language
         function applyLanguagePreferences() {
@@ -1134,6 +1165,14 @@
 
             document.getElementById('wbc').value = 6; // 1000 cells/μL
             document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
+
+            // mark all biomarkers as touched in fake mode and expand them
+            ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc']
+                .forEach(id => {
+                    touchedBiomarkers.add(id);
+                    expandFieldCard(id);
+                });
+
         }
 
         function updateDays() {
@@ -1180,6 +1219,7 @@
                 crpUnit.value = 10; // Set unit to mg/L
                 crpInput.disabled = true; // Disable input field
                 crpUnit.disabled = true; // Disable unit selector
+                touchedBiomarkers.add('crp');
             } else {
                 crpInput.disabled = false; // Enable input field
                 crpUnit.disabled = false; // Enable unit selector
@@ -1317,6 +1357,10 @@
                     if (icon) {
                         icon.textContent = '−';
                         icon.style.display = '';
+
+                        if (touchedBiomarkers.has(input.id)) {
+                            icon.style.display = 'none';
+                        }
                     }
                 }
             }
