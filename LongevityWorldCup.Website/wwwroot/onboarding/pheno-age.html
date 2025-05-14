@@ -490,6 +490,20 @@
                 el.addEventListener('input', () => {
                     if (el.value.trim() === '') touchedBiomarkers.delete(id);
                     else touchedBiomarkers.add(id);
+
+                    const card = el.closest('.biomarker-card');
+                    const headerField = card.querySelector('.biomarker-card-header');
+                    const iconField = headerField.querySelector('.toggle-icon');
+                    if (el.value.trim() !== '') {
+                        headerField.style.pointerEvents = 'none';
+                        iconField.style.display = 'none';
+
+                        expandFieldCard(card);
+                    } else if (isUpdate) {
+                        headerField.style.pointerEvents = '';
+                        iconField.style.display = '';
+                    }
+
                 });
             });
 
@@ -982,6 +996,23 @@
 
             // Apply preferences on page load
             applyLanguagePreferences();
+
+            // Initialize collapsability based on current values (handles programmatic fills)
+            ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc']
+                .forEach(fieldId => {
+                    document.getElementById(fieldId).dispatchEvent(new Event('input'));
+                });
+            // Also honor CRP-negative checkbox state
+            document.getElementById('crp-negative').dispatchEvent(new Event('change'));
+
+            if (isUpdate) {
+                // any card that's .active right now came from code, not the user —
+                // so hide its toggle-icon
+                document
+                    .querySelectorAll('.biomarker-card.active .toggle-icon')
+                    .forEach(icon => icon.style.display = 'none');
+            }
+
         });
 
         // Detect and apply preferences based on language
@@ -1155,6 +1186,19 @@
             }
 
             calculateResultIfResultAlreadyCalculated();
+
+            const card = document.getElementById('crp').closest('.biomarker-card');
+            const crpHeaderField = card.querySelector('.biomarker-card-header');
+            const crpIconField = crpHeaderField.querySelector('.toggle-icon');
+            if (crpNegativeCheckbox.checked || document.getElementById('crp').value.trim() !== '') {
+                crpHeaderField.style.pointerEvents = 'none';
+                crpIconField.style.display = 'none';
+
+                expandFieldCard(card);
+            } else if (isUpdate) {
+                crpHeaderField.style.pointerEvents = '';
+                crpIconField.style.display = '';
+            }
         }
 
         // Hide month/day & privacy note when age < 18
