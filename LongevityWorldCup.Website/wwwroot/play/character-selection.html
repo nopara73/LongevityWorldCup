@@ -131,6 +131,13 @@
 
             const confirmBtn = document.getElementById('confirmBtn');
             confirmBtn.addEventListener('click', () => {
+                // if we had a different athlete before, clear any PhenoAge data
+                const prevName = localStorage.getItem('selectedAthleteName');
+                if (!prevName || prevName !== currentAthlete.Name) {
+                    sessionStorage.removeItem('biomarkerData');
+                    sessionStorage.removeItem('chronoBioDifference');
+                }
+
                 localStorage.setItem('selectedAthleteName', currentAthlete.Name);
                 sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
 
@@ -254,10 +261,10 @@
             athleteInput.value = a.Name;
             document.getElementById('character-title').textContent = a.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                    <img src="${a.ProfilePic}"
-                                                                                            alt="${a.Name} headshot"
-                                                                                            class="illustration"
-                                                                                            loading="lazy">`;
+                                                                                                    <img src="${a.ProfilePic}"
+                                                                                                            alt="${a.Name} headshot"
+                                                                                                            class="illustration"
+                                                                                                            loading="lazy">`;
             confirmBtn.style.display = 'inline-block';
             confirmBtn.disabled = false;
             currentAthlete = a;
