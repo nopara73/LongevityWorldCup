@@ -4,14 +4,16 @@
 
 ### In a Hurry
 ```sh
-sudo apt update && sudo apt upgrade -y && cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service && sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service && cd ..
+sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service && sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/ && sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service && cd ..
 ```
 
 ### Step By Step
 ```sh
-sudo apt update && sudo apt upgrade -y
+sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
 
 cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service
+
+sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/
 
 sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service
 
