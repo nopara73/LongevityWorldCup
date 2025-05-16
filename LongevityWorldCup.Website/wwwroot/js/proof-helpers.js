@@ -43,7 +43,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     if (dataUrl) {
                         proofPics.push(dataUrl);
                         updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
-                        checkProofImages(nextButton, proofPics, nextButton, uploadProofButton);
+                        checkProofImages(nextButton, proofPics, uploadProofButton);
                     }
                 }
             }
