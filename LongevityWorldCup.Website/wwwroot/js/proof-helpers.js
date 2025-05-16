@@ -32,59 +32,64 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
     // Handle the image upload (without cropping)
     if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
         proofPicInput.addEventListener('change', async function (event) {
-            const files = event.target.files;
-            if (files.length > 0) {
-                // Limit the total number of images to 9
-                if (proofPics.length + files.length > 9) {
-                    customAlert('You can upload a maximum of 9 images.');
-                    return;
-                }
+            showLoading();
+            try {
+                const files = event.target.files;
+                if (files.length > 0) {
+                    // Limit the total number of images to 9
+                    if (proofPics.length + files.length > 9) {
+                        customAlert('You can upload a maximum of 9 images.');
+                        return;
+                    }
 
-                // helper to read a File as dataURL
-                const readDataURL = file => new Promise((res, rej) => {
-                    const r = new FileReader();
-                    r.onload = e => res(e.target.result);
-                    r.onerror = rej;
-                    r.readAsDataURL(file);
-                });
+                    // helper to read a File as dataURL
+                    const readDataURL = file => new Promise((res, rej) => {
+                        const r = new FileReader();
+                        r.onload = e => res(e.target.result);
+                        r.onerror = rej;
+                        r.readAsDataURL(file);
+                    });
 
-                // process one by one to preserve order
-                for (const file of Array.from(files)) {
-                    const raw = await readDataURL(file);
-                    if (file.type === 'application/pdf') {
-                        // read file as arrayBuffer
-                        const arrayBuffer = await file.arrayBuffer();
-                        // load PDF
-                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                        const pdfDoc = await loadingTask.promise;
-                        // render each page
-                        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                            const page = await pdfDoc.getPage(pageNum);
-                            const viewport = page.getViewport({ scale: 1 });
-                            const canvas = document.createElement('canvas');
-                            canvas.width = viewport.width;
-                            canvas.height = viewport.height;
-                            const context = canvas.getContext('2d');
-                            await page.render({ canvasContext: context, viewport }).promise;
-                            const rawPage = canvas.toDataURL();
-                            const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage);
-                            proofPics.push(optimizedPage);
+                    // process one by one to preserve order
+                    for (const file of Array.from(files)) {
+                        const raw = await readDataURL(file);
+                        if (file.type === 'application/pdf') {
+                            // read file as arrayBuffer
+                            const arrayBuffer = await file.arrayBuffer();
+                            // load PDF
+                            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                            const pdfDoc = await loadingTask.promise;
+                            // render each page
+                            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                                const page = await pdfDoc.getPage(pageNum);
+                                const viewport = page.getViewport({ scale: 1 });
+                                const canvas = document.createElement('canvas');
+                                canvas.width = viewport.width;
+                                canvas.height = viewport.height;
+                                const context = canvas.getContext('2d');
+                                await page.render({ canvasContext: context, viewport }).promise;
+                                const rawPage = canvas.toDataURL();
+                                const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage);
+                                proofPics.push(optimizedPage);
+                            }
+                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
+                            checkProofImages(nextButton, proofPics, uploadProofButton);
+                            continue;
                         }
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
-                        checkProofImages(nextButton, proofPics, uploadProofButton);
-                        continue;
-                    }
 
-                    const { dataUrl } = await window.optimizeImageClient(raw);
-                    if (dataUrl) {
-                        proofPics.push(dataUrl);
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
-                        checkProofImages(nextButton, proofPics, uploadProofButton);
+                        const { dataUrl } = await window.optimizeImageClient(raw);
+                        if (dataUrl) {
+                            proofPics.push(dataUrl);
+                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
+                            checkProofImages(nextButton, proofPics, uploadProofButton);
+                        }
                     }
                 }
+                // Reset the file input's value to allow re-uploading the same file if needed
+                proofPicInput.value = "";
+            } finally {
+                hideLoading();
             }
-            // Reset the file input's value to allow re-uploading the same file if needed
-            proofPicInput.value = "";
         });
         proofPicInput.setAttribute('data-listener', 'true');
     }
