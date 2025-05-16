@@ -970,7 +970,7 @@
                 });
 
                 // Add the crop button event listener once
-                document.getElementById('cropButton').addEventListener('click', function () {
+                document.getElementById('cropButton').addEventListener('click', async function () {
                     if (cropper) {
                         const croppedCanvas = cropper.getCroppedCanvas({
                             width: 1024,
