@@ -413,6 +413,40 @@
     #biomarker-checklist .biomarker-item span {
         margin-left: 0.4em;
     }
+
+    /* LOADING DIALOG */
+    #loading-dialog {
+        border: none;
+        border-radius: 15px;
+        padding: 2rem;
+        max-width: 200px;
+        background: var(--card-bg);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        animation: fadeInDialog 0.3s ease-out;
+    }
+
+        #loading-dialog::backdrop {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+    .loader {
+        border: 4px solid rgba(0,0,0,0.1);
+        border-left-color: var(--primary-color);
+        border-radius: 50%;
+        width: 3rem;
+        height: 3rem;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 
 <header role="banner">
@@ -439,6 +473,9 @@
     <dialog id="custom-alert">
         <p id="custom-alert-message"></p>
         <button id="custom-alert-close">OK</button>
+    </dialog>
+    <dialog id="loading-dialog">
+        <div class="loader"></div>
     </dialog>
 </header>
 
@@ -487,6 +524,17 @@
                 resolve();
             };
         });
+    }
+
+    function showLoading() {
+        const dlg = document.getElementById('loading-dialog');
+        dlg.showModal();
+        document.body.classList.add('no-scroll');
+    }
+    function hideLoading() {
+        const dlg = document.getElementById('loading-dialog');
+        dlg.close();
+        document.body.classList.remove('no-scroll');
     }
 
     document.getElementById('custom-alert-close').addEventListener('click', function () {
