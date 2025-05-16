@@ -856,6 +856,7 @@
                     applyButton.disabled = true;
                     accountEmailInput.setAttribute("disabled", "true");
                     applyButton.textContent = 'Submitting...';
+                    showLoading();
 
                     // Send the data via fetch POST request
                     fetchWithTimeout('/api/application/application', {
@@ -866,6 +867,7 @@
                         body: JSON.stringify(applicantData)
                     }, 21000) // timeout set to 21,000 ms (21 seconds)
                         .then(response => {
+                            hideLoading();
                             if (response.ok) {
                                 customAlert('Application submitted successfully!').then(() => {
                                     sessionStorage.setItem('contactEmail', applicantData.accountEmail);
@@ -886,6 +888,7 @@
                             }
                         })
                         .catch(error => {
+                            hideLoading();
                             customAlert(`An error occurred while submitting your application:\n\n${error}`).then(() => {
                                 applyButton.disabled = false;
                                 accountEmailInput.setAttribute("disabled", "false");

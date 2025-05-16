@@ -146,6 +146,7 @@
                 submitButton.disabled = true;
                 uploadProofButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
+                showLoading();
 
                 fetchWithTimeout('/api/application/application', {
                     method: 'POST',
@@ -153,6 +154,7 @@
                     body: JSON.stringify(applicantData)
                 }, 21000)
                     .then(response => {
+                        hideLoading();
                         if (response.ok) {
                             customAlert('Results submitted successfully!').then(() => {
                                 proofPics = [];
@@ -171,6 +173,7 @@
                         }
                     })
                     .catch(error => {
+                        hideLoading();
                         customAlert(`An error occurred:\n\n${error}`).then(() => {
                             submitButton.disabled = false;
                             uploadProofButton.disabled = false;
