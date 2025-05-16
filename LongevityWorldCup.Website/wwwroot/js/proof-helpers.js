@@ -19,7 +19,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
     // Handle the image upload (without cropping)
     if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
-        proofPicInput.addEventListener('change', function (event) {
+        proofPicInput.addEventListener('change', async function (event) {
             const files = event.target.files;
             if (files.length > 0) {
                 // Limit the total number of images to 9
@@ -28,19 +28,23 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     return;
                 }
 
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    const reader = new FileReader();
-                    reader.onload = async function (e) {
-                        const raw = e.target.result;
-                        const { dataUrl } = await window.optimizeImageClient(raw);
-                        if (dataUrl) {
-                            proofPics.push(dataUrl);
-                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
-                            checkProofImages(nextButton, proofPics, uploadProofButton);
-                        }
-                    };
-                    reader.readAsDataURL(file);
+                // helper to read a File as dataURL
+                const readDataURL = file => new Promise((res, rej) => {
+                    const r = new FileReader();
+                    r.onload = e => res(e.target.result);
+                    r.onerror = rej;
+                    r.readAsDataURL(file);
+                });
+
+                // process one by one to preserve order
+                for (const file of Array.from(files)) {
+                    const raw = await readDataURL(file);
+                    const { dataUrl } = await window.optimizeImageClient(raw);
+                    if (dataUrl) {
+                        proofPics.push(dataUrl);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
+                        checkProofImages(nextButton, proofPics, nextButton, uploadProofButton);
+                    }
                 }
             }
             // Reset the file input's value to allow re-uploading the same file if needed
