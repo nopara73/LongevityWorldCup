@@ -31,12 +31,14 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     const reader = new FileReader();
-                    reader.onload = function (e) {
-                        proofPics.push(e.target.result);
-                        // Update the display
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
-                        // Check proof images
-                        checkProofImages(nextButton, proofPics, uploadProofButton);
+                    reader.onload = async function (e) {
+                        const raw = e.target.result;
+                        const { dataUrl } = await window.optimizeImageClient(raw);
+                        if (dataUrl) {
+                            proofPics.push(dataUrl);
+                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
+                            checkProofImages(nextButton, proofPics, uploadProofButton);
+                        }
                     };
                     reader.readAsDataURL(file);
                 }

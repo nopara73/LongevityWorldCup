@@ -976,7 +976,9 @@
                             width: 1024,
                             height: 768,
                         });
-                        const croppedImageDataURL = croppedCanvas.toDataURL('image/png');
+                        const raw = canvas.toDataURL('image/png');
+                        const { dataUrl } = await window.optimizeImageClient(raw);
+                        const newSrc = dataUrl || raw;
                         document.getElementById('illustrationPicture').style.display = 'none';
                         document.getElementById('profileImage').style.display = '';
                         document.getElementById('profileImage').src = croppedImageDataURL;

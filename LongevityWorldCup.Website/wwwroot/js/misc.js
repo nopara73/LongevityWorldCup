@@ -285,3 +285,72 @@ window.goBackOrHome = function () {
         window.location.href = '/';
     }
 }
+
+window.optimizeImageClient = async function (dataUri) {
+    const MaxBase64Length = 50 * 1024 * 1024; // 50 MB
+    if (!dataUri || dataUri.length > MaxBase64Length) {
+        return { dataUrl: null, contentType: null, extension: null };
+    }
+
+    // Parse the data URI
+    const match = dataUri.match(/^data:(?<type>.+?);base64,(?<data>.+)$/);
+    if (!match) {
+        return { dataUrl: null, contentType: null, extension: null };
+    }
+    const contentType = match.groups.type;
+    const base64Data = match.groups.data;
+
+    // Decode Base64 to a Blob
+    const binaryString = atob(base64Data);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: contentType });
+
+    // Create ImageBitmap for resizing
+    const img = await createImageBitmap(blob);
+
+    // Determine new size
+    const maxSize = 2048;
+    let { width, height } = img;
+    if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+    }
+
+    // Draw into canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // Export as WebP Blob
+    const webpBlob = await new Promise(resolve =>
+        canvas.toBlob(resolve, 'image/webp', 0.8)
+    );
+    if (!webpBlob) {
+        // fallback to original if conversion failed
+        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
+    }
+
+    // Convert WebP Blob back to Base64 data URI
+    const arrayBuffer = await webpBlob.arrayBuffer();
+    const u8 = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < u8.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+    }
+    const webpBase64 = btoa(binary);
+    const webpDataUrl = 'data:image/webp;base64,' + webpBase64;
+
+    return {
+        dataUrl: webpDataUrl,
+        contentType: 'image/webp',
+        extension: 'webp'
+    };
+};
