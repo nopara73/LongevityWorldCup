@@ -307,6 +307,13 @@ namespace LongevityWorldCup.Website.Controllers
                 return (null, null, null);
             }
 
+            // if it’s already WebP and under 1 MB, skip all processing
+            if (imageData.extension.Equals("webp", StringComparison.OrdinalIgnoreCase)
+                && imageData.bytes.Length <= 1 * 1024 * 1024)
+            {
+                return (imageData.bytes, imageData.contentType, imageData.extension);
+            }
+
             try
             {
                 // Load the image from bytes
