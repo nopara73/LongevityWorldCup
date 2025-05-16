@@ -107,11 +107,9 @@ function checkProofImages(nextButton, proofPics, uploadProofButton) {
 
 window.updateProofUploadButtons = function (nextButton, uploadProofButton) {
     // Toggle "green" class for "Upload Profile Picture" button
-    if (nextButton && nextButton.disabled) {
-        uploadProofButton.classList.add('green');
-    } else {
-        uploadProofButton.classList.remove('green');
-    }
+    if (!nextButton || !uploadProofButton) return;
+    // second argument to toggle is a boolean: add if true, remove if false
+    uploadProofButton.classList.toggle('green', nextButton.disabled);
 }
 
 function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
