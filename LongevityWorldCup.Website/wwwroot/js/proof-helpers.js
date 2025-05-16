@@ -1,5 +1,5 @@
 ﻿window.getMainProofInstructionsInnerHTML = function () {
-    return "Upload <strong>image proofs</strong> of your biomarkers (e.g., screenshots of PDF results or photos of physical documents)";
+    return "Upload <strong>proofs</strong> of your biomarkers (e.g., screenshots of PDF results or photos of physical documents)";
 }
 
 window.getSubProofInstructionsInnerHTML = function () {
@@ -8,6 +8,18 @@ window.getSubProofInstructionsInnerHTML = function () {
 
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers) {
     nextButton.disabled = true;
+
+    // ——— Load PDF.js if not already loaded ———
+    if (!window.pdfjsLib) {
+        const pdfScript = document.createElement('script');
+        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
+        pdfScript.onload = () => {
+            // point to the worker
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
+        };
+        document.head.appendChild(pdfScript);
+    }
 
     // Attach event listener to the Upload Proof button
     if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
@@ -39,6 +51,30 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 // process one by one to preserve order
                 for (const file of Array.from(files)) {
                     const raw = await readDataURL(file);
+                    if (file.type === 'application/pdf') {
+                        // read file as arrayBuffer
+                        const arrayBuffer = await file.arrayBuffer();
+                        // load PDF
+                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                        const pdfDoc = await loadingTask.promise;
+                        // render each page
+                        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                            const page = await pdfDoc.getPage(pageNum);
+                            const viewport = page.getViewport({ scale: 1 });
+                            const canvas = document.createElement('canvas');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            const context = canvas.getContext('2d');
+                            await page.render({ canvasContext: context, viewport }).promise;
+                            const rawPage = canvas.toDataURL();
+                            const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage);
+                            proofPics.push(optimizedPage);
+                        }
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
+                        checkProofImages(nextButton, proofPics, uploadProofButton);
+                        continue;
+                    }
+
                     const { dataUrl } = await window.optimizeImageClient(raw);
                     if (dataUrl) {
                         proofPics.push(dataUrl);
