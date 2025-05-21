@@ -8,7 +8,7 @@ There seems to be demand from longevity athletes to get to know each other.
 
 ## How?
 
-- When? Every Monday 17:00 UTC
+- When? Every Monday 16:00 UTC
 - Where? https://riverside.fm/studio/lwc-game-nights?t=1960db416608f9a0b12a
 - Games are sometimes recorded and published.
 - Camera and microphone are required, otherwise it won't be fun.
