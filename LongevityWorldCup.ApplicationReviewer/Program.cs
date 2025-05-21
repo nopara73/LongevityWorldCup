@@ -1,6 +1,8 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.ApplicationReviewer;
@@ -12,10 +14,31 @@ internal class Program
         // get back up to your solution folder
         var solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
         // now point at the Website's wwwroot/athletes folder
+
+        // -- ensure the Website is up --
+        var serverUrl = "https://localhost:7080";
+        if (!IsServerRunning(serverUrl))
+        {
+            var websiteProject = Path.Combine(solutionRoot, "LongevityWorldCup.Website");
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "run"
+                     + $" --project \"{websiteProject}\""
+                     + " --launch-profile \"https\""
+                     + " --no-build"
+                     + " --no-restore",
+                UseShellExecute = false,
+                WorkingDirectory = websiteProject
+            });
+        }
+
+        // -- now proceed to unzip & open URLs as before --
         var athletesFolder = Path.Combine(solutionRoot,
-                                         "LongevityWorldCup.Website",
-                                         "wwwroot",
-                                         "athletes");
+                                 "LongevityWorldCup.Website",
+                                 "wwwroot",
+                                 "athletes");
 
         // grab only .zip files
         var zipFiles = Directory.GetFiles(athletesFolder, "*.zip");
@@ -143,5 +166,19 @@ internal class Program
 
         // clean up
         Directory.Delete(tempDir, recursive: true);
+    }
+
+    private static bool IsServerRunning(string url)
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var response = httpClient.Send(new HttpRequestMessage(HttpMethod.Head, url));
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
