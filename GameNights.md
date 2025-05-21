@@ -16,3 +16,7 @@ There seems to be demand from longevity athletes to get to know each other.
 ## What?
 
 What follows is an unorganized brainstorming of games we can play without props on video calls.
+
+- Herd Mentality https://youtu.be/4vAcBW5146o
+- Majority Stays https://youtu.be/uY0IkfyiPE8
+- Did I Lie? https://youtu.be/uY0IkfyiPE8
