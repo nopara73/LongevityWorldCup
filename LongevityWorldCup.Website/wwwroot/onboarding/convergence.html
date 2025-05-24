@@ -809,6 +809,15 @@
             if (subProofInstructions) {
                 subProofInstructions.innerHTML = window.getSubProofInstructionsInnerHTML();
             }
+
+            // catch Enter anywhere in the inputForm (but not in the textarea)
+            const inputForm = document.getElementById('inputForm');
+            inputForm.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();                     // prevent native submit/newline
+                    document.getElementById('nextButton').click();
+                }
+            });
         });
 
         // "Next" Button Click Event Handler
