@@ -7,7 +7,7 @@ namespace LongevityWorldCup.Website
 {
     public static class GmailAuth
     {
-        private static readonly string[] Scopes = { "https://mail.google.com/" };
+        private static readonly string[] Scopes = ["https://mail.google.com/"];
         private const string CredsFile = "smtp-credentials.json";
         private const string TokenStore = "smtp-token";
 
