@@ -91,5 +91,11 @@ echo "Difference in subscriptions: $DIFF"
 
 After first run, config file is created: 
 ```sh
-sudo nano /var/www/LongevityWorldCup/publish/config.json`
+sudo nano /var/www/LongevityWorldCup/publish/config.json
+```
+
+Copy google SMTP credentials next to the config file.
+
+```sh
+sudo nano /var/www/LongevityWorldCup/publish/smtp-credentials.json
 ```
