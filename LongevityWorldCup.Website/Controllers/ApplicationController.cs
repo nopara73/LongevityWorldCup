@@ -212,9 +212,6 @@ namespace LongevityWorldCup.Website.Controllers
                                     await System.IO.File.ReadAllBytesAsync(zipPath),
                                     new ContentType("application", "zip"));
 
-            builder.Attachments.Add($"{folderKey}.zip",
-                        await System.IO.File.ReadAllBytesAsync(zipPath),
-                        new ContentType("application", "zip"));
             // 3a) Prepare email body based on submission type
             string emailBody;
             if (isResultSubmissionOnly)
