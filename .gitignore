@@ -25,3 +25,5 @@ project.nuget.cache
 *.csproj.user
 AppData
 /LongevityWorldCup.Website/config.json
+/LongevityWorldCup.Website/smtp-credentials.json
+/LongevityWorldCup.Website/smtp-token.json

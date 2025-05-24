@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Webp;
+using MailKit.Security;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -275,8 +276,15 @@ namespace LongevityWorldCup.Website.Controllers
 
                 await client.ConnectAsync(config.SmtpServer, config.SmtpPort, MailKit.Security.SecureSocketOptions.StartTls);
 
-                // If the SMTP server requires authentication
-                await client.AuthenticateAsync(config.SmtpUser, config.SmtpPassword);
+                // Acquire an OAuth2 token (will open a browser once on first run)
+                var cred = GmailAuth.GetCredential();
+                var accessTok = cred.Token.AccessToken;
+
+                // use XOAUTH2 instead of plain login
+                client.AuthenticationMechanisms.Remove("LOGIN");
+                client.AuthenticationMechanisms.Remove("PLAIN");
+                var oauth2 = new SaslMechanismOAuth2(config.SmtpUser, accessTok);
+                await client.AuthenticateAsync(oauth2);
 
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
