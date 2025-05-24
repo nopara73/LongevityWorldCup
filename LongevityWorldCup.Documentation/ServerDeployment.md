@@ -101,4 +101,6 @@ Do one time login on local machine to generate the token file which you can copy
 sudo nano /var/www/LongevityWorldCup/publish/smtp-credentials.json
 sudo mkdir /var/www/LongevityWorldCup/publish/smtp-token
 sudo nano /var/www/LongevityWorldCup/publish/smtp-token/Google.Apis.Auth.OAuth2.Responses.TokenResponse-user
+sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/smtp-token
+sudo chmod 700      /var/www/LongevityWorldCup/publish/smtp-token
 ```
