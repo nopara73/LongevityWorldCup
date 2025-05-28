@@ -1,0 +1,27 @@
+{
+  "Name": "Erin Easterly",
+  "MediaContact": "purefusionyoga@gmail.com",
+  "DateOfBirth": {
+    "Year": 1975,
+    "Month": 8,
+    "Day": 7
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-27",
+      "AlbGL": 40.99999999999999,
+      "CreatUmolL": 75.2212389380531,
+      "GluMmolL": 4.273978685612789,
+      "CrpMgL": 1.4,
+      "LymPc": 29.8,
+      "McvFL": 96.6,
+      "RdwPc": 11.8,
+      "AlpUL": 35,
+      "Wbc1000cellsuL": 3.8
+    }
+  ],
+  "Division": "Open",
+  "Flag": "United States",
+  "Why": "I'm driven to share the interconnectedness of personal and planetary health via practices of yoga, meditation, circadian alignment, eating whole foods, and caring for our planet. Staying youthful is simple and deeply intrinsic to our nature.",
+  "PersonalLink": "https://www.youtube.com/@MoveAndMeditate"
+}
