@@ -1,0 +1,27 @@
+{
+  "Name": "James Tauber",
+  "MediaContact": "jtauber@jtauber.com",
+  "DateOfBirth": {
+    "Year": 1973,
+    "Month": 11,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-29",
+      "AlbGL": 50,
+      "CreatUmolL": 82.30088495575222,
+      "GluMmolL": 4.773534635879219,
+      "CrpMgL": 1.6799999999999997,
+      "LymPc": 30,
+      "McvFL": 86,
+      "RdwPc": 12.6,
+      "AlpUL": 98,
+      "Wbc1000cellsuL": 6.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Australia",
+  "Why": "Making more of a contribution in life.",
+  "PersonalLink": null
+}
