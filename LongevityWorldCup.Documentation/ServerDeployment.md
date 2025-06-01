@@ -94,13 +94,6 @@ After first run, config file is created:
 sudo nano /var/www/LongevityWorldCup/publish/config.json
 ```
 
-Copy google SMTP credentials next to the config file.  
-Do one time login on local machine to generate the token file which you can copy to server. (By submitting an application.)
-
-```sh
-sudo nano /var/www/LongevityWorldCup/publish/smtp-credentials.json
-sudo mkdir /var/www/LongevityWorldCup/publish/smtp-token
-sudo nano /var/www/LongevityWorldCup/publish/smtp-token/Google.Apis.Auth.OAuth2.Responses.TokenResponse-user
-sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/smtp-token
-sudo chmod 700      /var/www/LongevityWorldCup/publish/smtp-token
-```
+Copy google SMTP credentials into the config file:
+- Find the client ID and secret at https://console.cloud.google.com/apis/credentials
+- Generate refresh token at https://developers.google.com/oauthplayground/
