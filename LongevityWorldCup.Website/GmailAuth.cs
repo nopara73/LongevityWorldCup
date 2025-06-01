@@ -1,4 +1,6 @@
 ﻿using Google.Apis.Auth.OAuth2;
+using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Util.Store;
 using System.IO;
 using System.Threading;
@@ -8,20 +10,28 @@ namespace LongevityWorldCup.Website
     public static class GmailAuth
     {
         private static readonly string[] Scopes = ["https://mail.google.com/"];
-        private const string CredsFile = "smtp-credentials.json";
-        private const string TokenStore = "smtp-token";
 
-        public static UserCredential GetCredential()
+        public static async Task<string> GetAccessTokenAsync(Config cfg)
         {
-            using var stream = File.OpenRead(CredsFile);
-            var secrets = GoogleClientSecrets.FromStream(stream).Secrets;
-            return GoogleWebAuthorizationBroker.AuthorizeAsync(
-                secrets,
-                Scopes,
-                "user",
-                CancellationToken.None,
-                new FileDataStore(TokenStore, true)
-            ).Result;
+            var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+            {
+                ClientSecrets = new ClientSecrets
+                {
+                    ClientId = cfg.GmailClientId!,
+                    ClientSecret = cfg.GmailClientSecret!
+                },
+                Scopes = Scopes
+            });
+
+            var token = new TokenResponse { RefreshToken = cfg.GmailRefreshToken };
+            var cred = new UserCredential(flow, "user", token);
+
+            if (cred.Token.IsStale)
+            {
+                await cred.RefreshTokenAsync(CancellationToken.None);
+            }
+
+            return cred.Token.AccessToken;      // ← one ready-to-use access token
         }
     }
 }
