@@ -16,6 +16,10 @@ namespace LongevityWorldCup.Website
 
         private static readonly string ConfigFilePath = "config.json";
 
+        public string? GmailClientId { get; set; }
+        public string? GmailClientSecret { get; set; }
+        public string? GmailRefreshToken { get; set; }
+
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
         {

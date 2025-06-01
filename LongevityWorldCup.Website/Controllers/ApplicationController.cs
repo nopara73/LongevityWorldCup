@@ -276,14 +276,8 @@ namespace LongevityWorldCup.Website.Controllers
 
                 await client.ConnectAsync(config.SmtpServer, config.SmtpPort, MailKit.Security.SecureSocketOptions.StartTls);
 
-                // Acquire an OAuth2 token (will open a browser once on first run)
-                var cred = GmailAuth.GetCredential();
-
-                if (cred.Token.IsStale)
-                {
-                    await cred.RefreshTokenAsync(CancellationToken.None);
-                }
-                var accessTok = cred.Token.AccessToken;
+                // Acquire an OAuth2 token
+                var accessTok = await GmailAuth.GetAccessTokenAsync(config);
 
                 // use XOAUTH2 instead of plain login
                 client.AuthenticationMechanisms.Remove("LOGIN");
