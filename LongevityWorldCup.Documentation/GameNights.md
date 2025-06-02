@@ -1,3 +1,5 @@
+Update: there wasn't enough demand for game nights just yet. Perhaps in the future.
+
 # Longevity World Cup Game Nights
 
 We play games on video calls. Game nights are open to all obsessed longevity athletes.
