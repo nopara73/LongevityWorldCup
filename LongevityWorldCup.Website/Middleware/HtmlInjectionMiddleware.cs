@@ -43,9 +43,9 @@
                         .Replace("<!--LEADERBOARD-CONTENT-->", leaderboardContent);
 
                     // Optionally remove the play button on certain pages
-                    if (path.Contains("join-game"))
+                    if (path.Contains("join-sport"))
                     {
-                        bodyContent = bodyContent.Replace("<button class=\"join-game\">", "<!-- Removed Join Game Button -->");
+                        bodyContent = bodyContent.Replace("<button class=\"join-game\">", "<!-- Removed Join Sport Button -->");
                     }
 
                     // Write the modified content to the response
