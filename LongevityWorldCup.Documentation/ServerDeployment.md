@@ -20,7 +20,7 @@ sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj -
 sudo systemctl status longevityworldcup.service
 ```
 
-## Chek Website
+## Check Website
 https://www.longevityworldcup.com/
 
 1. Desktop, wide screen
