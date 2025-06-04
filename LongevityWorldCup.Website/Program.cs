@@ -102,8 +102,7 @@ namespace LongevityWorldCup.Website
                 EmailTo = "longevityworldcup@gmail.com",
                 SmtpServer = "smtp.gmail.com",
                 SmtpPort = 587,
-                SmtpUser = "longevityworldcup@gmail.com",
-                SmtpPassword = "your_password"
+                SmtpUser = "longevityworldcup@gmail.com"
             };
 
             // Serialize to JSON and save to file
