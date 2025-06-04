@@ -42,6 +42,9 @@ namespace LongevityWorldCup.Website.Controllers
 
                     return Ok(new { btcToUsdRate = usdRate });
                 }
+
+                // If primary API response is not successful, trigger fallback
+                throw new HttpRequestException($"Primary API returned status {response.StatusCode}");
             }
             catch
             {
