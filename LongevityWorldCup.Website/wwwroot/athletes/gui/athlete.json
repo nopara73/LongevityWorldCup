@@ -1,0 +1,27 @@
+{
+  "Name": "Gui",
+  "MediaContact": "gmotzespina@icloud.com",
+  "DateOfBirth": {
+    "Year": 1994,
+    "Month": 1,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-03-03",
+      "AlbGL": 41,
+      "CreatUmolL": 91.06194690265487,
+      "GluMmolL": 4.399422735346359,
+      "CrpMgL": 1,
+      "LymPc": 42.9,
+      "McvFL": 91,
+      "RdwPc": 12,
+      "AlpUL": 57,
+      "Wbc1000cellsuL": 3.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Global Country of World Peace",
+  "Why": "Spread health and mindset shift to people.Live this beautiful life for as long as possible.",
+  "PersonalLink": "https://www.instagram.com/gui_espina?igsh=MXV1ZmJsMTNjNG14MQ=="
+}
