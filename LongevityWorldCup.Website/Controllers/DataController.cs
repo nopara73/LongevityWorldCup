@@ -35,7 +35,8 @@ namespace LongevityWorldCup.Website.Controllers
                     continue;
 
                 var reduction = CalculateAgeReduction(athlete);
-                reductions.Add(reduction);
+                if (!double.IsNaN(reduction))
+                    reductions.Add(reduction);
             }
 
             reductions.Sort();
@@ -69,38 +70,57 @@ namespace LongevityWorldCup.Website.Controllers
             double rdw = double.NaN;
             double alp = double.NaN;
 
+            bool anyCompleteSet = false;
             foreach (var bmNode in biomarkerArray)
             {
                 var bm = bmNode!.AsObject();
-                double val;
 
-                val = bm["AlbGL"]!.GetValue<double>();
-                if (double.IsNaN(alb) || val > alb) alb = val;
+                if (
+                    bm.TryGetPropertyValue("AlbGL", out var albNode) &&
+                    bm.TryGetPropertyValue("CreatUmolL", out var creatNode) &&
+                    bm.TryGetPropertyValue("GluMmolL", out var gluNode) &&
+                    bm.TryGetPropertyValue("CrpMgL", out var crpNode) &&
+                    bm.TryGetPropertyValue("Wbc1000cellsuL", out var wbcNode) &&
+                    bm.TryGetPropertyValue("LymPc", out var lymNode) &&
+                    bm.TryGetPropertyValue("McvFL", out var mcvNode) &&
+                    bm.TryGetPropertyValue("RdwPc", out var rdwNode) &&
+                    bm.TryGetPropertyValue("AlpUL", out var alpNode))
+                {
+                    anyCompleteSet = true;
 
-                val = bm["CreatUmolL"]!.GetValue<double>();
-                if (double.IsNaN(creat) || val < creat) creat = val;
+                    double val;
 
-                val = bm["GluMmolL"]!.GetValue<double>();
-                if (double.IsNaN(glu) || val < glu) glu = val;
+                    val = albNode!.GetValue<double>();
+                    if (double.IsNaN(alb) || val > alb) alb = val;
 
-                val = bm["CrpMgL"]!.GetValue<double>();
-                if (double.IsNaN(crp) || val < crp) crp = val;
+                    val = creatNode!.GetValue<double>();
+                    if (double.IsNaN(creat) || val < creat) creat = val;
 
-                val = bm["Wbc1000cellsuL"]!.GetValue<double>();
-                if (double.IsNaN(wbc) || val < wbc) wbc = val;
+                    val = gluNode!.GetValue<double>();
+                    if (double.IsNaN(glu) || val < glu) glu = val;
 
-                val = bm["LymPc"]!.GetValue<double>();
-                if (double.IsNaN(lym) || val > lym) lym = val;
+                    val = crpNode!.GetValue<double>();
+                    if (double.IsNaN(crp) || val < crp) crp = val;
 
-                val = bm["McvFL"]!.GetValue<double>();
-                if (double.IsNaN(mcv) || val < mcv) mcv = val;
+                    val = wbcNode!.GetValue<double>();
+                    if (double.IsNaN(wbc) || val < wbc) wbc = val;
 
-                val = bm["RdwPc"]!.GetValue<double>();
-                if (double.IsNaN(rdw) || val < rdw) rdw = val;
+                    val = lymNode!.GetValue<double>();
+                    if (double.IsNaN(lym) || val > lym) lym = val;
 
-                val = bm["AlpUL"]!.GetValue<double>();
-                if (double.IsNaN(alp) || val < alp) alp = val;
+                    val = mcvNode!.GetValue<double>();
+                    if (double.IsNaN(mcv) || val < mcv) mcv = val;
+
+                    val = rdwNode!.GetValue<double>();
+                    if (double.IsNaN(rdw) || val < rdw) rdw = val;
+
+                    val = alpNode!.GetValue<double>();
+                    if (double.IsNaN(alp) || val < alp) alp = val;
+                }
             }
+
+            if (!anyCompleteSet)
+                return double.NaN;
 
             var values = new[]
             {
