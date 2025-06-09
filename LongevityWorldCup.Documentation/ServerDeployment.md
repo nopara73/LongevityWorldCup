@@ -97,3 +97,5 @@ sudo nano /var/www/LongevityWorldCup/publish/config.json
 Copy google SMTP credentials into the config file:
 - Find the client ID and secret at https://console.cloud.google.com/apis/credentials
 - Generate refresh token at https://developers.google.com/oauthplayground/
+
+Make sure to publish the app at the crazy google if new setup. Otherwise refresh token expires in 7 days: https://console.cloud.google.com/auth/audience
