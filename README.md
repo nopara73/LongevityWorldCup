@@ -10,7 +10,7 @@ https://www.longevityworldcup.com/
 - [x] 2024 Oct: Design
 - [x] 2024 Nov-Dec: Code
 - [ ] 2025 Jan - Sept: Beta Testing
-- [ ] 2025 Sept 6st: Launch
+- [ ] 2025 Sept 16st: Launch
 
 ## Build From Source Code
 
