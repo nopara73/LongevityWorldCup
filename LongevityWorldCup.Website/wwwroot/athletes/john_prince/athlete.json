@@ -1,0 +1,27 @@
+{
+  "Name": "John Prince",
+  "MediaContact": "johnalanprince@yahoo.com",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 8,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-14",
+      "AlbGL": 42,
+      "CreatUmolL": 88.4,
+      "GluMmolL": 4.38,
+      "CrpMgL": 0.34,
+      "LymPc": 26.7,
+      "McvFL": 92.6,
+      "RdwPc": 12.1,
+      "AlpUL": 53,
+      "Wbc1000cellsuL": 4.27
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Defying the norm, staying energized for my family.",
+  "PersonalLink": "https://www.hotelplanner.com"
+}
