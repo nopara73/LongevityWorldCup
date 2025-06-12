@@ -1,0 +1,27 @@
+{
+  "Name": "Samantha Lin",
+  "MediaContact": "ongjunhao1992@live.com",
+  "DateOfBirth": {
+    "Year": 1995,
+    "Month": 6,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-01-23",
+      "AlbGL": 42,
+      "CreatUmolL": 66,
+      "GluMmolL": 3.9,
+      "CrpMgL": 5.2,
+      "LymPc": 32.6,
+      "McvFL": 93,
+      "RdwPc": 11.4,
+      "AlpUL": 37,
+      "Wbc1000cellsuL": 6
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Gofit",
+  "Why": "health and anything workout / health related",
+  "PersonalLink": null
+}
