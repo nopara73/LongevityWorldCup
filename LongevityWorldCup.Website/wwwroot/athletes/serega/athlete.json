@@ -1,0 +1,27 @@
+{
+  "Name": "Serega",
+  "MediaContact": "https://www.instagram.com/serega.style/",
+  "DateOfBirth": {
+    "Year": 2000,
+    "Month": 8,
+    "Day": 17
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-13",
+      "AlbGL": 49.2,
+      "CreatUmolL": 85,
+      "GluMmolL": 4.88,
+      "CrpMgL": 0.2,
+      "LymPc": 39.4,
+      "McvFL": 90.5,
+      "RdwPc": 12.5,
+      "AlpUL": 38,
+      "Wbc1000cellsuL": 3.84
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Russia",
+  "Why": "Embracing the present while reaching for the future\uD83D\uDE0E\uD83D\uDE80",
+  "PersonalLink": "https://selemilka.t.me"
+}
