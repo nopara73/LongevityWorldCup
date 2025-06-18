@@ -1,0 +1,27 @@
+{
+  "Name": "Keith Blondin",
+  "MediaContact": "https://www.instagram.com/invertage.co/",
+  "DateOfBirth": {
+    "Year": 1965,
+    "Month": 3,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-17",
+      "AlbGL": 47.99999999999999,
+      "CreatUmolL": 97.34513274336284,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 0.2,
+      "LymPc": 43.5,
+      "McvFL": 97.3,
+      "RdwPc": 12.2,
+      "AlpUL": 66,
+      "Wbc1000cellsuL": 3.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Living the dream, nightmares are fun too.",
+  "PersonalLink": "https://www.youtube.com/@invertage"
+}
