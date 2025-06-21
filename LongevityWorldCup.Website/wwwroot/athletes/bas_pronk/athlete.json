@@ -1,0 +1,27 @@
+{
+  "Name": "Bas Pronk",
+  "MediaContact": "bas.pronk@proton.me",
+  "DateOfBirth": {
+    "Year": 1971,
+    "Month": 3,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-25",
+      "AlbGL": 44,
+      "CreatUmolL": 116.7,
+      "GluMmolL": 4.73,
+      "CrpMgL": 0.99,
+      "LymPc": 34.9,
+      "McvFL": 98.3,
+      "RdwPc": 13,
+      "AlpUL": 80,
+      "Wbc1000cellsuL": 4.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Test",
+  "Why": "Find an objective measurement to track progress or degeneration.",
+  "PersonalLink": null
+}
