@@ -31,9 +31,10 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 var obj = a!.AsObject();
                 int id = obj["Id"]!.GetValue<int>();
+                var clone = JsonNode.Parse(obj.ToJsonString())!.AsObject();
                 double crowd = await _ageSvc.GetCrowdAgeAsync(id);
-                obj["CrowdAge"] = Math.Round(crowd,1);
-                array.Add(obj);
+                clone["CrowdAge"] = Math.Round(crowd, 1);
+                array.Add(clone);
             }
             return Ok(array);
         }
