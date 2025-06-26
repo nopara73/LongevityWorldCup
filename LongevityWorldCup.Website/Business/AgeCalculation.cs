@@ -15,23 +15,28 @@ namespace LongevityWorldCup.Website.Business
 
         public static double CalculateLowestPhenoAge(JsonObject athlete)
         {
-            var biomarkers = athlete["Biomarkers"]!.AsArray();
-            if (biomarkers.Count == 0)
+            var biomarkers = athlete["Biomarkers"]?.AsArray();
+            if (biomarkers is null || biomarkers.Count == 0)
                 return 0;
             var best = new double[10];
             bool first = true;
             foreach (var b in biomarkers)
             {
-                var obj = b!.AsObject();
-                double AlbGL = obj["AlbGL"]!.GetValue<double>();
-                double Creat = obj["CreatUmolL"]!.GetValue<double>();
-                double Glu = obj["GluMmolL"]!.GetValue<double>();
-                double Crp = obj["CrpMgL"]!.GetValue<double>();
-                double Wbc = obj["Wbc1000cellsuL"]!.GetValue<double>();
-                double Lym = obj["LymPc"]!.GetValue<double>();
-                double Mcv = obj["McvFL"]!.GetValue<double>();
-                double Rdw = obj["RdwPc"]!.GetValue<double>();
-                double Alp = obj["AlpUL"]!.GetValue<double>();
+                if (b is not JsonObject obj)
+                    continue;
+
+                if (!TryGetDouble(obj, "AlbGL", out double AlbGL) ||
+                    !TryGetDouble(obj, "CreatUmolL", out double Creat) ||
+                    !TryGetDouble(obj, "GluMmolL", out double Glu) ||
+                    !TryGetDouble(obj, "CrpMgL", out double Crp) ||
+                    !TryGetDouble(obj, "Wbc1000cellsuL", out double Wbc) ||
+                    !TryGetDouble(obj, "LymPc", out double Lym) ||
+                    !TryGetDouble(obj, "McvFL", out double Mcv) ||
+                    !TryGetDouble(obj, "RdwPc", out double Rdw) ||
+                    !TryGetDouble(obj, "AlpUL", out double Alp))
+                {
+                    continue; // skip incomplete biomarker sets
+                }
 
                 if (first)
                 {
@@ -59,6 +64,8 @@ namespace LongevityWorldCup.Website.Business
                     best[9] = Math.Min(best[9], Alp);
                 }
             }
+            if (first)
+                return 0;
             best[0] = CalculateChronologicalAge(athlete);
             return CalculatePhenoAge(best);
         }
@@ -94,6 +101,17 @@ namespace LongevityWorldCup.Website.Business
             double mort = 1 - Math.Exp(-Math.Exp(xb) * 0.0076927);
             double pheno = 141.50 + Math.Log(-0.00553 * Math.Log(1 - mort)) / 0.090165;
             return Math.Round(pheno, 1);
+        }
+
+        private static bool TryGetDouble(JsonObject obj, string key, out double value)
+        {
+            value = 0;
+            if (obj[key] is JsonNode node && double.TryParse(node.ToString(), out var result))
+            {
+                value = result;
+                return true;
+            }
+            return false;
         }
     }
 }
