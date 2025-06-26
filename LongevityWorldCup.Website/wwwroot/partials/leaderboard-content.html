@@ -1144,9 +1144,13 @@
                          alt="Athlete Profile Picture"
                          class="illustration"
                          loading="lazy" />
-                    <h2 id="athleteName"></h2>
+                    <h2 id="athleteName" data-id=""></h2>
                     <div id="modalBadgeStrip" class="modal-badge-strip"></div>
                     <p id="athleteBio"></p>
+                    <div id="guessContainer">
+                        <input type="number" id="ageGuessInput" min="0" max="115" placeholder="Your guess" />
+                        <button id="submitAgeGuess">Submit</button>
+                    </div>
                     <div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
                         <div id="targetShootingVisualization" style="width: 150px; height: 150px; margin: 0 auto;">
                             <!-- Visualization will be dynamically generated here -->
@@ -1157,9 +1161,9 @@
                         <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
                         <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
-                        <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
-                        <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
-                        <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
+                        <p id="chronologicalRow"><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
+                        <p id="biologicalRow"><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
+                        <p id="reductionRow"><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
                     <div class="athlete-links">
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
@@ -2505,7 +2509,13 @@
     }
 
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
-        document.getElementById('athleteName').textContent = `${fullAthleteData.Name}${window.getRankText(ultimateRank)}`;
+        const nameEl = document.getElementById('athleteName');
+        nameEl.textContent = `${fullAthleteData.Name}${window.getRankText(ultimateRank)}`;
+        nameEl.dataset.id = fullAthleteData.Id;
+        document.getElementById('chronologicalRow').style.display = 'none';
+        document.getElementById('biologicalRow').style.display = 'none';
+        document.getElementById('reductionRow').style.display = 'none';
+        document.getElementById('guessContainer').style.display = 'block';
         const profilePic = document.getElementById('modalProfilePic');
         profilePic.src = fullAthleteData.ProfilePic;
         profilePic.alt = `${fullAthleteData.Name} Profile Picture`;
@@ -3021,4 +3031,28 @@
             }
         });
     }
+
+    document.getElementById('submitAgeGuess').addEventListener('click', async () => {
+        const guess = parseInt(document.getElementById('ageGuessInput').value, 10);
+        const athleteId = parseInt(document.getElementById('athleteName').dataset.id, 10);
+        if (isNaN(guess)) return;
+        const res = await fetch('/api/age-guess', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ athleteId, guess })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('chronologicalAge').textContent = data.chronological;
+        document.getElementById('lowestPhenoAge').textContent = data.biological;
+        document.getElementById('ageReduction').textContent = (data.biological - data.chronological).toFixed(1);
+        document.getElementById('chronologicalRow').style.display = 'block';
+        document.getElementById('biologicalRow').style.display = 'block';
+        document.getElementById('reductionRow').style.display = 'block';
+        document.getElementById('guessContainer').style.display = 'none';
+        if (data.winner) {
+            confetti({ particleCount: 100, spread: 70 });
+            setTimeout(() => {}, 3000);
+        }
+    });
 </script>

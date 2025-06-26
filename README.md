@@ -39,3 +39,8 @@ git pull
 
 ## [Deployment](LongevityWorldCup.Documentation/ServerDeployment.md)
 
+## Guess My Age
+
+Athlete ages are hidden until you play. Click **Guess my age** on any athlete card,
+enter your guess, and see how close you are compared to the crowd.
+

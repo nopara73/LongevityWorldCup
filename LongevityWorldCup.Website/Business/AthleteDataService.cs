@@ -51,6 +51,7 @@ namespace LongevityWorldCup.Website.Business
             var athletesDir = Path.Combine(_env.WebRootPath, "athletes");
             var files = Directory.EnumerateFiles(athletesDir, "athlete.json", SearchOption.AllDirectories);
 
+            int id = 1;
             foreach (var file in files)
             {
                 // retry read in case the file is mid-write
@@ -69,6 +70,10 @@ namespace LongevityWorldCup.Website.Business
                 }
 
                 var athlete = JsonNode.Parse(text)!.AsObject();
+                athlete["Id"] = id++;
+
+                athlete["ChronologicalAge"] = AgeCalculation.CalculateChronologicalAge(athlete);
+                athlete["BiologicalAge"] = AgeCalculation.CalculateLowestPhenoAge(athlete);
                 var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/yan_lin"
                 var key = Path.GetFileName(folder);             // e.g. "yan_lin"
 

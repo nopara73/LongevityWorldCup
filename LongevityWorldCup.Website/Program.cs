@@ -1,4 +1,6 @@
 using LongevityWorldCup.Website.Business;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using LongevityWorldCup.Website.Middleware;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.Text.Json;
@@ -30,6 +32,8 @@ namespace LongevityWorldCup.Website
 
             // Register the in-memory cached athlete data
             builder.Services.AddSingleton<AthleteDataService>();
+            builder.Services.AddDbContext<AgeGuessContext>(o => o.UseSqlite("Data Source=ageguesses.db"));
+            builder.Services.AddScoped<AgeGuessService>();
 
             // Add CORS policy
             builder.Services.AddCors(options =>
@@ -46,7 +50,13 @@ namespace LongevityWorldCup.Website
                     });
             });
 
-            var app = builder.Build();
+           var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AgeGuessContext>();
+                db.Database.EnsureCreated();
+            }
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
