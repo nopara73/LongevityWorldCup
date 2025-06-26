@@ -59,6 +59,8 @@ Yes, just send us an email to `longevityworldcup@gmail.com`.
 #### Can I use any laboratory for my tests in LWC2025?
 Yes, as long as the lab provides accurate blood biomarkers required for PhenoAge calculation.
 
+#### Why does my PhenoAge result differ from other calculators?
+The Longevity World Cup pheno age calculator is the best pheno age calculator on the Internet. Many online PhenoAge calculators are using an [incorrect constant in the formula,](https://github.com/ajsteele/bioage/issues/3) which originated from typo in an update by the authors of PhenoAge. Even those calculators that use the correct constant are inferior to the Longevity World Cup's algorithm, because they reward PhenoAge-optimizing hacks that reduce mortality risk in the model but increase actual mortality in reality. For example, pushing alkaline phosphatase or RDW to the extremes can lower your PhenoAge score even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make your “age” look better while your actual risk gets worse. See [PhenoAge Calculation Bug Disclosure: Missing U-Shaped Curves for Biomarkers](https://github.com/nopara73/LongevityWorldCup/issues/136).
 ### Competition Mechanics
 #### What happens if my results arrive late?
 Each season is wrapped up in the middle of January. This should give your laboratory enough time to evaluate your test conducted on December 31.
