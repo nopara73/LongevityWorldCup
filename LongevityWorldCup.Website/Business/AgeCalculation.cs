@@ -6,8 +6,15 @@ namespace LongevityWorldCup.Website.Business
     {
         public static double CalculateChronologicalAge(JsonObject athlete)
         {
-            var dob = athlete["DateOfBirth"]!.AsObject();
-            var dt = new DateTime(dob["Year"]!.GetValue<int>(), dob["Month"]!.GetValue<int>(), dob["Day"]!.GetValue<int>(), 0, 0, 0, DateTimeKind.Utc);
+            if (athlete["DateOfBirth"] is not JsonObject dob ||
+                !TryGetInt(dob, "Year", out int year) ||
+                !TryGetInt(dob, "Month", out int month) ||
+                !TryGetInt(dob, "Day", out int day))
+            {
+                return 0;
+            }
+
+            var dt = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
             var today = DateTime.UtcNow.Date;
             var days = (today - dt).TotalDays;
             return Math.Round(days / 365.2425, 1);
@@ -15,8 +22,7 @@ namespace LongevityWorldCup.Website.Business
 
         public static double CalculateLowestPhenoAge(JsonObject athlete)
         {
-            var biomarkers = athlete["Biomarkers"]?.AsArray();
-            if (biomarkers is null || biomarkers.Count == 0)
+            if (athlete["Biomarkers"] is not JsonArray biomarkers || biomarkers.Count == 0)
                 return 0;
             var best = new double[10];
             bool first = true;
@@ -107,6 +113,17 @@ namespace LongevityWorldCup.Website.Business
         {
             value = 0;
             if (obj[key] is JsonNode node && double.TryParse(node.ToString(), out var result))
+            {
+                value = result;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool TryGetInt(JsonObject obj, string key, out int value)
+        {
+            value = 0;
+            if (obj[key] is JsonNode node && int.TryParse(node.ToString(), out var result))
             {
                 value = result;
                 return true;
