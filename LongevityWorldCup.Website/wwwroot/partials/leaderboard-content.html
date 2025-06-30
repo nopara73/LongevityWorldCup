@@ -1071,7 +1071,7 @@
 
     /* ✨ card container */
     .gma-card {
-        width: min(420px,90%);
+        width: min(420px, 90%);
         margin-inline: auto;
         background: var(--card-bg);
         border-radius: 1.25rem;
@@ -1088,7 +1088,7 @@
         border-radius: 50%;
         overflow: hidden;
         background: var(--card-bg);
-        box-shadow: 0 4px 10px rgba(0,0,0,.05);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
 
         .gma-avatar img {
@@ -1110,27 +1110,24 @@
         font-weight: 700;
     }
 
-    .gma-hint {
-        margin: .5rem 0 2rem;
-        color: #6b7280;
-        font-size: .9rem
-    }
-
-    /* slider track, thumb, bubble */
+    /* slider container */
     .gma-slider-wrap {
         position: relative;
-        margin-bottom: 1.25rem;
+        padding-top: 3rem;
+        margin: 2rem 0;
     }
 
+    /* slider track */
     #gmaRange {
         width: 100%;
         height: 3rem;
         appearance: none;
-        background: linear-gradient(90deg,var(--primary-color) 0%,var(--primary-color) var(--percent,25%),#d1d5db var(--percent,25%),#d1d5db 100%);
+        background: linear-gradient( 90deg, var(--primary-color) 0%, var(--primary-color) var(--percent, 50%), #d1d5db var(--percent, 50%), #d1d5db 100% );
         border-radius: 999px;
         outline: none;
     }
 
+        /* WebKit thumb */
         #gmaRange::-webkit-slider-thumb {
             appearance: none;
             width: 64px;
@@ -1138,7 +1135,7 @@
             border-radius: 50%;
             background: var(--primary-color);
             border: 4px solid #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,.15);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             cursor: pointer;
             transition: transform .2s ease;
         }
@@ -1147,9 +1144,9 @@
             transform: scale(1.15);
         }
 
-        /* Firefox */
+        /* Firefox track and thumb */
         #gmaRange::-moz-range-track {
-            background: linear-gradient( 90deg, var(--primary-color) 0%, var(--primary-color) var(--percent,25%), #d1d5db var(--percent,25%), #d1d5db 100% );
+            background: linear-gradient( 90deg, var(--primary-color) 0%, var(--primary-color) var(--percent, 50%), #d1d5db var(--percent, 50%), #d1d5db 100% );
             height: .5rem;
             border-radius: 999px;
             border: none;
@@ -1161,38 +1158,41 @@
             border-radius: 50%;
             background: var(--primary-color);
             border: 4px solid #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,.15);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             transition: transform .2s ease;
         }
 
+    /* slider value bubble */
     #gmaBubble {
         position: absolute;
-        top: -42px;
-        left: var(--percent,25%);
+        top: 0;
+        left: var(--percent, 50%);
         transform: translateX(-50%);
-        background: var(--secondary-color);
+        opacity: 1 !important;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         color: #fff;
-        font-size: .8rem;
-        font-weight: 600;
-        padding: .3rem .65rem;
-        border-radius: .7rem;
-        line-height: 1;
-        white-space: nowrap;
+        font-size: 1.6rem;
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         pointer-events: none;
+        white-space: nowrap;
+        z-index: 10;
     }
-        /* neat arrow under the bubble */
+
         #gmaBubble::after {
             content: '';
             position: absolute;
-            bottom: -5px;
+            bottom: -6px;
             left: 50%;
             transform: translateX(-50%) rotate(45deg);
-            width: 10px;
-            height: 10px;
-            background: var(--secondary-color);
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         }
 
-    /* buttons */
+    /* action buttons */
     .gma-actions {
         display: flex;
         justify-content: center;
@@ -1200,13 +1200,13 @@
     }
 
     .gma-btn {
-        padding: .7rem 1.6rem;
+        padding: 0.7rem 1.6rem;
         font-size: .95rem;
         border: none;
         border-radius: 999px;
         cursor: pointer;
         font-weight: 600;
-        transition: background .25s cubic-bezier(.4,0,.2,1),color .25s cubic-bezier(.4,0,.2,1);
+        transition: background .25s cubic-bezier(.4,0,.2,1), color .25s cubic-bezier(.4,0,.2,1);
     }
 
     .gma-btn--primary {
@@ -1230,7 +1230,7 @@
         }
 
     /* small screens - keep it tight */
-    @media(max-width:420px) {
+    @media (max-width: 420px) {
         .gma-card {
             padding: 1.5rem 1.25rem;
         }
@@ -1240,12 +1240,12 @@
         }
     }
 
-    /* when the user has guessed, fade‑out + remove from flow */
+    /* fade-out and remove when done */
     .gma-card.gma-done {
         opacity: 0;
         height: 0;
         overflow: hidden;
-        transition: opacity 0.3s ease, height 0.3s ease;
+        transition: opacity .3s ease, height .3s ease;
         pointer-events: none;
     }
 </style>
@@ -1350,8 +1350,6 @@
 
                             <output for="gmaRange" id="gmaBubble">30</output>
                         </div>
-
-                        <p class="gma-hint">Drag the marker, then hit submit.</p>
 
                         <div class="gma-actions">
                             <button class="gma-btn gma-btn--primary">Submit</button>
