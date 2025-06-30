@@ -1110,15 +1110,20 @@
         font-weight: 700;
     }
 
-    /* slider container – full-bleed across the viewport */
+    /* make the guess‐container fill the modal’s width */
+    #guessAgeContainer {
+        width: 100%;
+        box-sizing: border-box; /* include any padding in that 100% */
+    }
+
+    /* let the slider wrap fill all of that */
     .gma-slider-wrap {
         position: relative;
-        width: 60vw; /* span the full viewport width */
-        left: 50%; /* center from the midpoint */
-        transform: translateX(-50%); /* shift back by half its own width */
-        padding-top: 3rem; /* space for the bubble */
-        margin: 2rem 0; /* vertical spacing */
-        max-width: none; /* override any parent constraints */
+        width: 90%;
+        max-width: none; /* override any upstream caps */
+        margin: 2rem auto; /* 2rem top/bottom, auto left/right to center */
+        padding-top: 3rem; /* space for bubble */
+        align-self: stretch; /* <-- this forces it to span the full parent width */
     }
 
     /* slider track */
@@ -1166,20 +1171,20 @@
             transition: transform .2s ease;
         }
 
-    /* slider value bubble */
     #gmaBubble {
         position: absolute;
-        top: 0;
+        bottom: calc(50% + 0.5rem);
         left: var(--percent, 50%);
         transform: translateX(-50%);
-        opacity: 1 !important;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        color: #fff;
-        font-size: 1.6rem;
-        font-weight: 700;
-        padding: 0.5rem 1rem;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        background: #fff;
+        color: var(--primary-color);
+        font-size: 2.8rem;
+        font-weight: 600;
+        padding: 0.8rem 1.6rem;
+        border: 2px solid var(--primary-color);
+        border-radius: 2rem;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         pointer-events: none;
         white-space: nowrap;
         z-index: 10;
@@ -1188,13 +1193,25 @@
         #gmaBubble::after {
             content: '';
             position: absolute;
-            bottom: -6px;
+            bottom: -10px;
+            width: 20px;
+            height: 20px;
             left: 50%;
             transform: translateX(-50%) rotate(45deg);
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: #fff;
+            border-left: 4px solid var(--primary-color);
+            border-bottom: 4px solid var(--primary-color);
         }
+
+    @keyframes bubblePulse {
+        0%,100% {
+            transform: translateX(-50%) scale(1);
+        }
+
+        50% {
+            transform: translateX(-50%) scale(1.05);
+        }
+    }
 
     /* action buttons */
     .gma-actions {
