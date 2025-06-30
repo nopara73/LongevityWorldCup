@@ -1058,6 +1058,76 @@
             opacity: 1;
         }
     }
+
+    /* GUESS MY AGE STYLES */
+    .guess-age-container {
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .guess-age-slider {
+        width: 80%;
+        height: 1.5rem;
+        margin: 1rem auto;
+        -webkit-appearance: none;
+        background: #ddd;
+        border-radius: 0.75rem;
+        outline: none;
+    }
+
+        .guess-age-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease;
+        }
+
+            .guess-age-slider::-webkit-slider-thumb:hover {
+                transform: scale(1.1);
+            }
+
+    .guess-age-display {
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+    }
+
+    .guess-age-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .guess-age-button {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: bold;
+        border: none;
+        border-radius: 0.5rem;
+        background: var(--primary-color);
+        color: #fff;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+        .guess-age-button:hover {
+            background: var(--secondary-color);
+        }
+
+    /* when guessing, hide all modal-content children except the athlete-profile */
+    .modal-content.guess-mode > :not(.athlete-profile) {
+        display: none;
+    }
+
+    /* during guess mode, hide everything under athlete-profile except pic, name & slider */
+    .modal-content.guess-mode .athlete-profile > *:not(#modalProfilePic):not(#athleteName):not(#guessAgeContainer) {
+        display: none;
+    }
 </style>
 
 <div class="main-container">
@@ -1145,6 +1215,28 @@
                          class="illustration"
                          loading="lazy" />
                     <h2 id="athleteName"></h2>
+
+                    <h2 id="athleteName"></h2>
+
+                    <!-- GUESS MY AGE UI -->
+                    <div id="guessAgeContainer" class="guess-age-container">
+                        <label for="ageGuessSlider" class="visually-hidden">Guess My Age Slider</label>
+                        <input type="range"
+                               id="ageGuessSlider"
+                               class="guess-age-slider"
+                               min="0"
+                               max="120"
+                               value="30" />
+                        <div id="ageGuessDisplay" class="guess-age-display">
+                            This person is <span id="ageGuessValue">30</span> years old
+                        </div>
+                        <div class="guess-age-buttons">
+                            <button id="ageGuessSubmit" class="guess-age-button">Submit</button>
+                            <button id="ageGuessSkip" class="guess-age-button">Skip</button>
+                        </div>
+                    </div>
+                    <!-- /GUESS MY AGE UI -->
+
                     <div id="modalBadgeStrip" class="modal-badge-strip"></div>
                     <p id="athleteBio"></p>
                     <div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
@@ -2467,6 +2559,8 @@
                 // Display the modal
                 modal.style.display = "block";
                 document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
+                document.querySelector('.modal-content').classList.add('guess-mode');
+
             })
             .catch(error => {
                 console.error('Error fetching full athlete data:', error);
@@ -3021,4 +3115,23 @@
             }
         });
     }
+
+    // update the displayed number as the slider moves
+    const ageGuessSlider = document.getElementById('ageGuessSlider');
+    const ageGuessValue = document.getElementById('ageGuessValue');
+    ageGuessSlider.addEventListener('input', () => {
+        ageGuessValue.textContent = ageGuessSlider.value;
+    });
+
+    // when game ends, hide guess UI and reveal the rest
+    function revealAfterGuess() {
+        // 1) Remove guess‐mode from the outer container
+        document.querySelector('.modal-content').classList.remove('guess-mode');
+
+        // 2) Hide the slider UI itself
+        document.getElementById('guessAgeContainer').style.display = 'none';
+    }
+
+    document.getElementById('ageGuessSubmit').addEventListener('click', revealAfterGuess);
+    document.getElementById('ageGuessSkip').addEventListener('click', revealAfterGuess);
 </script>
