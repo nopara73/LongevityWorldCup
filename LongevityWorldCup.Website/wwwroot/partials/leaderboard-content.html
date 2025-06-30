@@ -3209,11 +3209,15 @@
     const TAP_THRESHOLD = 10; // Allowable movement for taps
 
     document.addEventListener('touchstart', (e) => {
+        if (modal.style.display === "block") return;
+
         startX = e.changedTouches[0].clientX;
         startY = e.changedTouches[0].clientY;
     }, false);
 
     document.addEventListener('touchend', (e) => {
+        if (modal.style.display === "block") return;
+
         endX = e.changedTouches[0].clientX;
         endY = e.changedTouches[0].clientY;
 
