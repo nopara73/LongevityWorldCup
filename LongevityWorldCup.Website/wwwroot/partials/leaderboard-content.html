@@ -1309,8 +1309,9 @@
     .gma-card.gma-done {
         opacity: 0;
         height: 0;
+        padding: 0; /* collapse the padding too */
         overflow: hidden;
-        transition: opacity .3s ease, height .3s ease;
+        transition: opacity .3s ease, height .3s ease, padding .3s ease; /* animate padding away */
         pointer-events: none;
     }
 </style>
@@ -1402,7 +1403,7 @@
                     <h2 id="athleteName"></h2>
 
                     <!-- GUESS-MY-AGE  — prettified -->
-                    <div id="guessAgeContainer">
+                    <div id="guessAgeContainer" class="gma-card">
                         <h3 class="gma-heading">Guess my age!</h3>
 
                         <div class="gma-slider-wrap">
