@@ -1008,6 +1008,48 @@
         }
     }
 
+    .modal-content.guess-mode #guessAgeContainer h3 {
+        overflow: hidden;
+        white-space: nowrap;
+        border-right: .15em solid var(--primary-color);
+        display: inline-block;
+        animation: typing 2s steps(13,end) forwards, blinkCaret .75s step-end infinite, hideCaret 0s linear 2s forwards;
+    }
+
+    @keyframes typing {
+        from {
+            width: 0;
+            opacity: 1;
+        }
+
+        to {
+            width: 13ch;
+        }
+    }
+
+    @keyframes blinkCaret {
+        from, to {
+            border-color: transparent;
+        }
+
+        50% {
+            border-color: var(--primary-color);
+        }
+    }
+
+    @keyframes hideCaret {
+        to {
+            border-right: none;
+        }
+    }
+
+    .modal-content.guess-mode #guessAgeContainer .gma-slider-wrap,
+    .modal-content.guess-mode #guessAgeContainer .gma-actions {
+        opacity: 0;
+        animation: fadeIn 0.6s ease-out forwards;
+        animation-delay: 3s;
+    }
+
     .fade-in-element {
         animation: fadeIn 0.6s ease-in-out;
     }
