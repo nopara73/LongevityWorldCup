@@ -1110,11 +1110,15 @@
         font-weight: 700;
     }
 
-    /* slider container */
+    /* slider container – full-bleed across the viewport */
     .gma-slider-wrap {
         position: relative;
-        padding-top: 3rem;
-        margin: 2rem 0;
+        width: 60vw; /* span the full viewport width */
+        left: 50%; /* center from the midpoint */
+        transform: translateX(-50%); /* shift back by half its own width */
+        padding-top: 3rem; /* space for the bubble */
+        margin: 2rem 0; /* vertical spacing */
+        max-width: none; /* override any parent constraints */
     }
 
     /* slider track */
@@ -1337,7 +1341,7 @@
                     <h2 id="athleteName"></h2>
 
                     <!-- GUESS-MY-AGE  — prettified -->
-                    <div id="guessAgeContainer" class="gma-card">
+                    <div id="guessAgeContainer">
                         <h3 class="gma-heading">Guess my age!</h3>
 
                         <div class="gma-slider-wrap">
