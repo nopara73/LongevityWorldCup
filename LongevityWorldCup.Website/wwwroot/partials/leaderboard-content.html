@@ -1161,7 +1161,7 @@
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
                         <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
-                        <p><strong>Crowd Age:</strong> <span id="crowdAge"></span> years, <span id="crowdCount"></span> guesses</p>
+                        <p id="crowdAgeContainer"><strong>Crowd Age:</strong> <span id="crowdAge"></span> years, <span id="crowdCount"></span> guesses</p>
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
@@ -2572,8 +2572,11 @@
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${window.getRankText(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
-        document.getElementById('crowdAge').textContent = athleteData.crowdAge.toFixed(0);
-        document.getElementById('crowdCount').textContent = athleteData.crowdCount.toFixed(0);
+        const crowdContainer = document.getElementById('crowdAgeContainer');
+        crowdContainer.innerHTML = athleteData.crowdCount === 0
+            ? '<strong>Crowd Age:</strong> Crickets...'
+            : `<strong>Crowd Age:</strong> ${athleteData.crowdAge.toFixed(0)} years, ${athleteData.crowdCount.toFixed(0)} guesses`;
+
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
         document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
