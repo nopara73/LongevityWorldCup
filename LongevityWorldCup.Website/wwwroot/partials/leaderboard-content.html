@@ -2474,6 +2474,10 @@
                 const modalContent = document.querySelector('.modal-content');
                 const gmaCard = document.getElementById('guessAgeContainer');
 
+                // always reset the Guess-My-Age UI first:
+                modalContent.classList.remove('guess-mode', 'gma-fast');
+                gmaCard.classList.remove('gma-done');
+
                 // read your guesses from localStorage
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
                 if (allGuesses.hasOwnProperty(athleteSlug)) {
