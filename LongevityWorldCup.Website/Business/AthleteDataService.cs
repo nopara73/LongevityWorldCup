@@ -69,6 +69,10 @@ namespace LongevityWorldCup.Website.Business
                 }
 
                 var athlete = JsonNode.Parse(text)!.AsObject();
+
+                athlete["CrowdAge"] = 0;
+                athlete["CrowdCount"] = 0;
+
                 var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/yan_lin"
                 var key = Path.GetFileName(folder);             // e.g. "yan_lin"
 
