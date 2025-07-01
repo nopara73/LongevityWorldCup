@@ -185,7 +185,8 @@
     }
 
         .gma-btn--primary:hover {
-            background: var(--secondary-color);
+            background: var(--primary-color);
+            filter: brightness(1.1);
         }
 
     .gma-btn--ghost {
@@ -197,6 +198,7 @@
         .gma-btn--ghost:hover {
             background: var(--primary-color);
             color: #fff;
+            border-color: var(--primary-color);
         }
 
     /* small screens - keep it tight */
@@ -226,11 +228,11 @@
 
     <div class="gma-slider-wrap">
         <input type="range"
-               min="0"
-               max="120"
+               min="1"
+               max="130"
                value="33"
                id="gmaRange"
-               aria-label="Guess athlete’s age — 0 to 120 years" />
+               aria-label="Guess athlete’s age — 1 to 130 years" />
 
         <output for="gmaRange" id="gmaBubble">33</output>
     </div>
