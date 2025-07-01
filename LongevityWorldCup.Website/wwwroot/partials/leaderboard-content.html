@@ -2469,25 +2469,28 @@
 
                 // Display the modal
                 modal.style.display = "block";
-                document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
+                document.body.classList.add('no-scroll');
 
                 const modalContent = document.querySelector('.modal-content');
-                const storedGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-                if (!storedGuesses.hasOwnProperty(athleteSlug)) {
-                    modalContent.classList.add('guess-mode');
+                const gmaCard = document.getElementById('guessAgeContainer');
+
+                // read your guesses from localStorage
+                const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                if (allGuesses.hasOwnProperty(athleteSlug)) {
+                    // already guessed/skipped → hide the guess-card permanently
+                    modalContent.classList.remove('guess-mode');
+                    gmaCard.classList.add('gma-done');
                 } else {
-                    // already guessed or skipped → fast-open without guess UI
-                    modalContent.classList.add('gma-fast');
-                    const entry = storedGuesses[athleteSlug];
-                    if (entry.value != null) {
-                        gmaRange.value = entry.value;
-                        syncRange();
-                    }
+                    // first time → show guess UI
+                    modalContent.classList.add('guess-mode');
+                    // optionally keep your sessionStorage logic here if you still want the "fast" animations
+                    sessionStorage.setItem('gmaSeen', 'true');
                 }
 
+                // stash the slug for your submit/skip handler
                 modalContent.dataset.athleteSlug = athleteSlug;
-                const seen = sessionStorage.getItem('gmaSeen');
 
+                const seen = sessionStorage.getItem('gmaSeen');
                 if (seen) {
                     modalContent.classList.add('gma-fast');
                 } else {
