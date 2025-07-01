@@ -2,8 +2,15 @@
     .modal-content.guess-mode #guessAgeContainer .gma-slider-wrap,
     .modal-content.guess-mode #guessAgeContainer .gma-actions {
         opacity: 0;
-        animation: fadeIn 0.6s ease-out forwards;
-        animation-delay: 3s;
+        /* ⚡️ use CSS vars so we can override on repeat views */
+        animation: fadeIn var(--gma-duration, 0.6s) ease-out forwards;
+        animation-delay: var(--gma-delay, 3s);
+    }
+
+    .modal-content.guess-mode.gma-fast #guessAgeContainer {
+        /* ⚡️ much snappier on repeat visits */
+        --gma-duration: 0.2s;
+        --gma-delay: 0.3s;
     }
 
     /* when guessing, hide all modal-content children except the athlete-profile */
@@ -221,6 +228,41 @@
         transition: opacity .3s ease, height .3s ease, padding .3s ease; /* animate padding away */
         pointer-events: none;
     }
+
+    .modal-content.gma-fast .gma-card.gma-done {
+        /* collapse WAY faster on repeat visits */
+        transition: opacity .1s ease, height .1s ease, padding .1s ease !important;
+    }
+    /* 🚀 fast-mode “boom” for the heading */
+    @keyframes gmaBoom {
+        0% {
+            transform: scale(0.5);
+            opacity: 0;
+        }
+
+        70% {
+            transform: scale(1.2);
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    /* disable the slow typewriter + pop in instantly */
+    .modal-content.guess-mode.gma-fast .gma-heading {
+        opacity: 0; /* start hidden */
+        animation: gmaBoom 0.3s cubic-bezier(.4,0,.2,1) forwards !important;
+    }
+
+    /* slam in slider & buttons super-fast */
+    .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-slider-wrap,
+    .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-actions {
+        opacity: 0; /* start hidden */
+        animation: fadeIn 0.2s ease-out forwards !important;
+        animation-delay: 0.25s !important;
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -248,6 +290,14 @@
     const gmaRange = document.getElementById('gmaRange');
     const gmaBubble = document.getElementById('gmaBubble');
     const gmaCard = document.querySelector('.gma-card');
+
+    const modalContent = document.querySelector('.modal-content');
+    const seen = sessionStorage.getItem('gmaSeen');
+    if (seen) {
+        modalContent.classList.add('gma-fast');
+    } else {
+        sessionStorage.setItem('gmaSeen', 'true');
+    }
 
     function syncRange() {
         const val = +gmaRange.value;
