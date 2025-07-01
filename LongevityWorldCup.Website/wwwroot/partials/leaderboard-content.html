@@ -2470,10 +2470,24 @@
                 // Display the modal
                 modal.style.display = "block";
                 document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
-                document.querySelector('.modal-content').classList.add('guess-mode');
 
                 const modalContent = document.querySelector('.modal-content');
+                const storedGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                if (!storedGuesses.hasOwnProperty(athleteSlug)) {
+                    modalContent.classList.add('guess-mode');
+                } else {
+                    // already guessed or skipped → fast-open without guess UI
+                    modalContent.classList.add('gma-fast');
+                    const entry = storedGuesses[athleteSlug];
+                    if (entry.value != null) {
+                        gmaRange.value = entry.value;
+                        syncRange();
+                    }
+                }
+
+                modalContent.dataset.athleteSlug = athleteSlug;
                 const seen = sessionStorage.getItem('gmaSeen');
+
                 if (seen) {
                     modalContent.classList.add('gma-fast');
                 } else {

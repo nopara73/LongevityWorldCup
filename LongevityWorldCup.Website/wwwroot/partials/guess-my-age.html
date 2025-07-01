@@ -340,9 +340,17 @@
     // optional: collapse the card after a guess
     gmaCard.querySelector('.gma-btn--primary').addEventListener('click', hideCard);
     gmaCard.querySelector('.gma-btn--ghost').addEventListener('click', hideCard);
-    function hideCard() {
-        gmaCard.classList.add('gma-done');          /* fade-out / hide via CSS if desired */
-        document.querySelector('.modal-content')
-            .classList.remove('guess-mode');    /* reveal the rest of the modal */
+    function hideCard(e) {
+        const modalContent = document.querySelector('.modal-content');
+        const athleteSlug = modalContent.dataset.athleteSlug;
+        const guessValue = gmaRange.value;
+
+        let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+        const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
+        allGuesses[athleteSlug] = { value: isSkip ? null : guessValue, skipped: isSkip };
+        localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+
+        gmaCard.classList.add('gma-done');
+        document.querySelector('.modal-content').classList.remove('guess-mode');
     }
 </script>
