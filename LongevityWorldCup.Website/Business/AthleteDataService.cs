@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Hosting;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace LongevityWorldCup.Website.Business
 {
@@ -18,6 +19,13 @@ namespace LongevityWorldCup.Website.Business
 
         private CancellationTokenSource? _debounceCts;
         private static readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(100);
+
+        // ── per-athlete in-memory guess lists ──
+        private readonly ConcurrentDictionary<string, List<(DateTime Timestamp, int Age)>> _athleteAgeGuesses
+            = new(StringComparer.OrdinalIgnoreCase);
+
+        // ── lock objects for each athlete’s list ──
+        private readonly object _athleteAgeGuessesLock = new();
 
         public AthleteDataService(IWebHostEnvironment env)
         {
@@ -75,6 +83,9 @@ namespace LongevityWorldCup.Website.Business
 
                 var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/yan_lin"
                 var key = Path.GetFileName(folder);             // e.g. "yan_lin"
+
+                // so we can look up this JsonObject later by slug
+                athlete["AthleteSlug"] = key;
 
                 // PROFILE PIC: look for "{key}.*" in that same folder
                 var pic = Directory
@@ -151,6 +162,61 @@ namespace LongevityWorldCup.Website.Business
             if (int.TryParse(parts.Last(), out var number))
                 return number;
             return int.MaxValue;
+        }
+
+        /// <summary>
+        /// Adds a timestamped age guess for the given athleteSlug, updates
+        /// that athlete’s CrowdAge (median) and CrowdCount in the loaded JSON.
+        /// </summary>
+        public void AddAgeGuess(string athleteSlug, int ageGuess)
+        {
+            // get or create the list
+            var list = _athleteAgeGuesses.GetOrAdd(athleteSlug, _ => []);
+
+            lock (_athleteAgeGuessesLock)
+            {
+                // record
+                list.Add((DateTime.UtcNow, ageGuess));
+
+                // compute median
+                var ages = list.Select(g => g.Age).OrderBy(a => a).ToArray();
+                int cnt = ages.Length;
+                double median = (cnt % 2 == 1)
+                    ? ages[cnt / 2]
+                    : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+
+                // find the matching JSON object
+                var athleteJson = Athletes
+                    .OfType<JsonObject>()
+                    .FirstOrDefault(o => string.Equals(
+                        o["AthleteSlug"]?.GetValue<string>(),
+                        athleteSlug,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (athleteJson != null)
+                {
+                    athleteJson["CrowdCount"] = cnt;
+                    athleteJson["CrowdAge"] = median;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns (Median, Count) for all guesses recorded so far for athleteSlug.
+        /// </summary>
+        public (double Median, int Count) GetCrowdStats(string athleteSlug)
+        {
+            if (_athleteAgeGuesses.TryGetValue(athleteSlug, out var list) && list.Count > 0)
+            {
+                var ages = list.Select(g => g.Age).OrderBy(a => a).ToArray();
+                int cnt = ages.Length;
+                double median = (cnt % 2 == 1)
+                    ? ages[cnt / 2]
+                    : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                return (median, cnt);
+            }
+
+            return (0, 0);
         }
 
         public void Dispose()

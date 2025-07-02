@@ -12,7 +12,17 @@ namespace LongevityWorldCup.Website.Controllers
         [HttpPost("athlete-age")]
         public IActionResult PostAthleteAgeGuess(string athleteName, int ageGuess)
         {
-            return Ok();
+            // normalize incoming name (hyphens → underscores)
+            var key = athleteName.Replace('-', '_');
+
+            // record the guess
+            _svc.AddAgeGuess(key, ageGuess);
+
+            // recompute median & count
+            var (median, count) = _svc.GetCrowdStats(key);
+
+            // return updated crowd stats
+            return Ok(new { CrowdAge = median, CrowdCount = count });
         }
     }
 }
