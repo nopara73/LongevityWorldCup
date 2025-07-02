@@ -1688,20 +1688,12 @@
     // Function to attach click event listener to all athlete-name elements
     function attachAthleteNameClickListeners() {
         const athleteNameElements = document.querySelectorAll('.athlete-name');
-        console.log('[DEBUG] attachAthleteNameClickListeners – found', athleteNameElements.length, 'elements:', Array.from(athleteNameElements).map(el => el.textContent));
 
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-            console.log('[DEBUG]    – binding click to:', athleteNameElement.textContent);
-
             athleteNameElement.removeEventListener('click', handleAthleteNameClick); // Remove existing listeners to prevent duplicates
             athleteNameElement.addEventListener('click', handleAthleteNameClick);
         });
     }
-    document.addEventListener('click', event => {
-        if (event.target.matches('.athlete-name')) {
-            console.log('[DEBUG GLOBAL] clicked .athlete-name:', event.target.textContent);
-        }
-    });
 
     function openEnlargedView(imgElement) {
         // Retrieve and clone the template content
