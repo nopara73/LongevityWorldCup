@@ -14,17 +14,32 @@ namespace LongevityWorldCup.Website.Controllers
         {
             // normalize incoming name (hyphens → underscores)
             var key = athleteName.Replace('-', '_');
-
             var actualAge = _svc.GetActualAge(key);
 
-            // record the guess
-            _svc.AddAgeGuess(key, ageGuess);
+            // rejection rules ─ hard limits + asymmetric “too old” cap
+            const int MinGuess = 10;
+            const int MaxGuess = 110;
+            const double UpwardPct = 0.30;
 
-            // recompute median & count
+            bool unrealistic =
+                ageGuess < MinGuess ||
+                ageGuess > MaxGuess ||
+                (ageGuess > actualAge &&
+                 (ageGuess - actualAge) > actualAge * UpwardPct);
+
+            // record only realistic guesses
+            if (!unrealistic)
+                _svc.AddAgeGuess(key, ageGuess);
+
+            // always return fresh crowd stats (median‑based)
             var (median, count) = _svc.GetCrowdStats(key);
 
-            // return updated crowd stats including actual age
-            return Ok(new { CrowdAge = median, CrowdCount = count, ActualAge = actualAge });
+            return Ok(new
+            {
+                CrowdAge = median,
+                CrowdCount = count,
+                ActualAge = actualAge
+            });
         }
     }
 }
