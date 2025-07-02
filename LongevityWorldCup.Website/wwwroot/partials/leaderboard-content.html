@@ -1161,7 +1161,10 @@
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
                         <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
-                        <p id="crowdAgeContainer"><strong>Crowd Age:</strong> <span id="crowdAge"></span> years, <span id="crowdCount"></span> guesses</p>
+                        <p id="crowdAgeContainer">
+                            <span id="emptyCrowdAgeContainer"><strong>Crowd Age:</strong> Crickets...</span>
+                            <span id="notEmptyCrowdAgeContainer" style="display: none;"><strong>Crowd Age:</strong> <span id="crowdAge"></span> years, <span id="crowdCount"></span> guesses</span>
+                        </p>
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
@@ -3086,8 +3089,17 @@
 
     function updateCrowdContainer(crowdAge, crowdCount) {
         const crowdContainer = document.getElementById('crowdAgeContainer');
-        crowdContainer.innerHTML = crowdCount === 0
-            ? '<strong>Crowd Age:</strong> Crickets...'
-            : `<strong>Crowd Age:</strong> ${crowdAge.toFixed(0)} years, ${crowdCount.toFixed(0)} guesses`;
+        const emptyCrowdContainer = document.getElementById('emptyCrowdAgeContainer');
+        const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
+
+        if (crowdCount === 0) {
+            notEmptyCrowdContainer.style.display = 'none';
+            emptyCrowdContainer.style.display = 'block';
+        } else {
+            notEmptyCrowdContainer.style.display = 'block';
+            emptyCrowdContainer.style.display = 'none';
+            document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
+            document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
+        }
     }
 </script>
