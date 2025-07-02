@@ -219,6 +219,38 @@ namespace LongevityWorldCup.Website.Business
             return (0, 0);
         }
 
+        public int GetActualAge(string athleteSlug)
+        {
+            // find the athlete JSON by slug
+            var athleteJson = Athletes
+                .OfType<JsonObject>()
+                .FirstOrDefault(o => string.Equals(
+                    o["AthleteSlug"]?.GetValue<string>(),
+                    athleteSlug,
+                    StringComparison.OrdinalIgnoreCase));
+            if (athleteJson is null)
+                return 0;
+
+            // read the DOB node
+            var dobNode = athleteJson["DateOfBirth"]?.AsObject();
+            if (dobNode is null)
+                return 0;
+
+            // extract year/month/day
+            int year = dobNode["Year"]!.GetValue<int>();
+            int month = dobNode["Month"]!.GetValue<int>();
+            int day = dobNode["Day"]!.GetValue<int>();
+
+            // compute age as of today (UTC)
+            var dob = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
+            var today = DateTime.UtcNow.Date;
+            int age = today.Year - dob.Year;
+            if (today < dob.AddYears(age))
+                age--;
+
+            return age;
+        }
+
         public void Dispose()
         {
             _athleteWatcher.Dispose();

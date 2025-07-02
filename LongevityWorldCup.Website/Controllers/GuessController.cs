@@ -15,14 +15,16 @@ namespace LongevityWorldCup.Website.Controllers
             // normalize incoming name (hyphens → underscores)
             var key = athleteName.Replace('-', '_');
 
+            var actualAge = _svc.GetActualAge(key);
+
             // record the guess
             _svc.AddAgeGuess(key, ageGuess);
 
             // recompute median & count
             var (median, count) = _svc.GetCrowdStats(key);
 
-            // return updated crowd stats
-            return Ok(new { CrowdAge = median, CrowdCount = count });
+            // return updated crowd stats including actual age
+            return Ok(new { CrowdAge = median, CrowdCount = count, ActualAge = actualAge });
         }
     }
 }
