@@ -2488,6 +2488,8 @@
                 // check if the user has hit “Skip All”
                 const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
 
+                const seen = sessionStorage.getItem('gmaSeen');
+
                 if (skipAll) {
                     // user opted out globally
                     modalContent.classList.remove('guess-mode');
@@ -2516,7 +2518,6 @@
                 // stash the slug for your submit/skip handler
                 modalContent.dataset.athleteSlug = athleteSlug;
 
-                const seen = sessionStorage.getItem('gmaSeen');
                 if (seen) {
                     modalContent.classList.add('gma-fast');
                 } else {
