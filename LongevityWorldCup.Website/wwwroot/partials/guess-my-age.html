@@ -342,6 +342,18 @@
 
         let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
         const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
+
+        if (!isSkip) {
+            fetch(
+                `/api/Guess/athlete-age?athleteName=${encodeURIComponent(athleteSlug)}&ageGuess=${guessValue}`,
+                { method: 'POST' }
+            )
+                .then(response => {
+                    if (!response.ok) console.error('Guess submission failed:', response.statusText);
+                })
+                .catch(error => console.error('Error submitting guess:', error));
+        }
+
         allGuesses[athleteSlug] = { value: isSkip ? null : guessValue, skipped: isSkip };
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
 
