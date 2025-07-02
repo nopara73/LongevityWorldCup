@@ -237,6 +237,39 @@
         /* collapse WAY faster on repeat visits */
         transition: opacity .1s ease, height .1s ease, padding .1s ease !important;
     }
+
+    /* full-screen slide-up trollface overlay */
+    .gma-trollface-container {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 100%;
+        bottom: -100%;
+        background: transparent;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: gmaTrollSlideUpOverlay 2s ease-out forwards;
+    }
+
+    @keyframes gmaTrollSlideUpOverlay {
+        from {
+            bottom: -100%;
+        }
+
+        to {
+            bottom: 0;
+        }
+    }
+
+    .gma-trollface-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
     /* 🚀 fast-mode “boom” for the heading */
     @keyframes gmaBoom {
         0% {
@@ -348,6 +381,14 @@
         const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
 
         if (!isSkip) {
+            // if they chose the absolute min or max, we’ll troll them instead of collapsing
+            const minVal = gmaRange.min;
+            const maxVal = gmaRange.max;
+            if (guessValue === minVal || guessValue === maxVal) {
+                gmaTriggerTrollAnimation();
+                return;
+            }
+
             fetch(
                 `/api/Guess/athlete-age?athleteName=${encodeURIComponent(athleteSlug)}&ageGuess=${guessValue}`,
                 { method: 'POST' }
@@ -373,5 +414,33 @@
 
         gmaCard.classList.add('gma-done');
         document.querySelector('.modal-content').classList.remove('guess-mode');
+    }
+
+    function gmaTriggerTrollAnimation() {
+        const modalContent = document.querySelector('.modal-content');
+
+        // make sure our card is the positioning context…
+        modalContent.style.position = 'relative';
+        // …and once we start trolling, show everything (so our iframe isn’t stuck hidden)
+        modalContent.classList.remove('guess-mode');
+
+        // grab the guess card itself so we can append into it
+        const guessContainer = document.getElementById('guessAgeContainer');
+
+        // create and show trollface
+        const trollDiv = document.createElement('div');
+        trollDiv.id = 'gmaTrollfaceContainer';
+        trollDiv.className = 'gma-trollface-container';
+        const trollImg = document.createElement('img');
+        trollImg.src = '/assets/content-images/trollface.png';
+        trollImg.alt = 'Trollface';
+        trollDiv.appendChild(trollImg);
+        modalContent.appendChild(trollDiv);
+
+        // halfway through the slide-up, start the rickroll
+        setTimeout(() => {
+            window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+            return;
+        }, 2000); // 2s == halfway through the 4s slide-up
     }
 </script>
