@@ -317,6 +317,7 @@
     <div class="gma-actions">
         <button class="gma-btn gma-btn--primary">Submit</button>
         <button class="gma-btn gma-btn--ghost">Skip</button>
+        <button id="gmaSkipAll" class="gma-btn gma-btn--ghost" style="display: none;" title="The Guess My Age game will no longer appear for any athlete">Skip All</button>
     </div>
 </div>
 
@@ -340,7 +341,18 @@
     // optional: collapse the card after a guess
     gmaCard.querySelector('.gma-btn--primary').addEventListener('click', hideCard);
     gmaCard.querySelector('.gma-btn--ghost').addEventListener('click', hideCard);
+    const gmaSkipAll = document.getElementById('gmaSkipAll');
+    if (gmaSkipAll) {
+        gmaSkipAll.addEventListener('click', hideCard);
+    }
+
     function hideCard(e) {
+        // if they clicked “Skip All”, set global flag
+        const isSkipAll = e.currentTarget.id === 'gmaSkipAll';
+        if (isSkipAll) {
+            localStorage.setItem('gmaSkipAll', 'true');
+        }
+
         const modalContent = document.querySelector('.modal-content');
         const athleteSlug = modalContent.dataset.athleteSlug;
         const guessValue = gmaRange.value;

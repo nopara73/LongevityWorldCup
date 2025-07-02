@@ -2483,18 +2483,34 @@
                 // always reset the Guess-My-Age UI first:
                 modalContent.classList.remove('guess-mode', 'gma-fast');
                 gmaCard.classList.remove('gma-done');
-
                 // read your guesses from localStorage
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-                if (allGuesses.hasOwnProperty(athleteSlug)) {
-                    // already guessed/skipped → hide the guess-card permanently
+                // check if the user has hit “Skip All”
+                const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
+
+                if (skipAll) {
+                    // user opted out globally
+                    modalContent.classList.remove('guess-mode');
+                    gmaCard.classList.add('gma-done');
+                } else if (allGuesses.hasOwnProperty(athleteSlug)) {
+                    // already guessed or skipped this athlete
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
                 } else {
-                    // first time → show guess UI
+                    // first time on *this* athlete
                     modalContent.classList.add('guess-mode');
-                    // optionally keep your sessionStorage logic here if you still want the "fast" animations
                     sessionStorage.setItem('gmaSeen', 'true');
+                }
+
+                const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
+                if (gmaSkipAllBtn) {
+                    // reveal “Skip All” once they've skipped at least one athlete,
+                    // but hide it if they already chose skip-all
+                    if (!skipAll && Object.values(allGuesses).some(g => g.skipped)) {
+                        gmaSkipAllBtn.style.display = 'inline-block';
+                    } else {
+                        gmaSkipAllBtn.style.display = 'none';
+                    }
                 }
 
                 // stash the slug for your submit/skip handler
