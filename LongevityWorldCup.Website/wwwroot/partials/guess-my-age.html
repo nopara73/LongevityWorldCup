@@ -172,6 +172,7 @@
         display: flex;
         justify-content: center;
         gap: 1rem;
+        transition: opacity 0.6s ease-out;
     }
 
     .gma-btn {
@@ -318,6 +319,21 @@
             width: 13ch;
         }
     }
+
+    @keyframes fadeOutButtons {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+        }
+    }
+
+    .gma-actions.gma-actions-hide {
+        opacity: 0 !important;
+        animation: none !important;
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -347,6 +363,24 @@
     const gmaBubble = document.getElementById('gmaBubble');
     const gmaCard = document.querySelector('.gma-card');
 
+    const modalContent = document.querySelector('.modal-content');
+    const gmaActions = gmaCard.querySelector('.gma-actions');
+
+    // whenever the modal’s class list changes, if we just opened “guess-mode”,
+    // remove any lingering hide classes so buttons reappear
+    const resetObserver = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (
+                mutation.attributeName === 'class' &&
+                modalContent.classList.contains('guess-mode')
+            ) {
+                gmaActions.classList.remove('gma-actions-hide');
+                gmaCard.classList.remove('gma-done');
+            }
+        });
+    });
+    resetObserver.observe(modalContent, { attributes: true });
+
     function syncRange() {
         const val = +gmaRange.value;
         const pct = (val / gmaRange.max) * 100;
@@ -358,8 +392,13 @@
     gmaRange.addEventListener('input', syncRange);
     syncRange();   // initialise bubble
 
-    // optional: collapse the card after a guess
-    gmaCard.querySelector('.gma-btn--primary').addEventListener('click', hideCard);
+    const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
+    gmaSubmitBtn.addEventListener('click', function (e) {
+        gmaCard.querySelector('.gma-actions').classList.add('gma-actions-hide');
+        const btn = e.currentTarget;
+        setTimeout(() => hideCard({ currentTarget: btn }), 3000);
+    });
+
     // bind hideCard to _all_ ghost buttons (Skip & Skip All)
     gmaCard.querySelectorAll('.gma-btn--ghost')
         .forEach(btn => btn.addEventListener('click', hideCard));
