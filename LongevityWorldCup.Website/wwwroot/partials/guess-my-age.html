@@ -56,8 +56,9 @@
             transform: scale(1.06);
         }
 
-    /* headline & helper text */
-    .gma-heading {
+    /* apply the same headline styles to both */
+    .gma-heading,
+    .chrono-age-heading {
         font-size: 3rem;
         margin: 0 0 2.5rem;
         color: var(--dark-text-color);
@@ -302,29 +303,27 @@
         animation-delay: 0.25s !important;
     }
 
-    .gma-heading.typing-old {
+    .gma-heading,
+    .chrono-age-heading {
         overflow: hidden;
         white-space: nowrap;
         display: inline-block;
-        animation: typing 2s steps(13,end) forwards;
-    }
-
-    .gma-heading.typing-new {
-        overflow: hidden;
-        white-space: nowrap;
-        display: inline-block;
-        animation: typing-new 2s steps(24,end) forwards;
+        /* steps() can take a var() number for the step count */
+        animation: typing 2s steps(var(--ch), end) forwards;
     }
 
     @keyframes typing {
         from {
             width: 0;
-            opacity: 1;
         }
-
+        /* multiply the integer in --ch by 1ch */
         to {
-            width: 13ch;
+            width: calc(var(--ch) * 1ch);
         }
+    }
+
+    .chrono-age-heading--boom {
+        animation: gmaBoom 0.3s cubic-bezier(.4,0,.2,1) forwards;
     }
 
     @keyframes fadeOutButtons {
@@ -341,21 +340,11 @@
         opacity: 0 !important;
         animation: none !important;
     }
-
-    @keyframes typing-new {
-        from {
-            width: 0;
-            opacity: 1;
-        }
-
-        to {
-            width: 24ch;
-        }
-    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
     <h3 class="gma-heading">Guess my age!</h3>
+    <h3 class="chrono-age-heading" style="display: none;">My real age is:</h3>
 
     <div class="gma-slider-wrap">
         <input type="range"
@@ -382,7 +371,11 @@
     const gmaCard = document.querySelector('.gma-card');
 
     const heading = gmaCard.querySelector('.gma-heading');
-    heading.classList.add('typing-old');
+    const chronoHeading = gmaCard.querySelector('.chrono-age-heading');
+
+    heading.style.setProperty('--ch', heading.textContent.length);
+    chronoHeading.style.setProperty('--ch', chronoHeading.textContent.length);
+    heading.classList.add('typing');
 
     const modalContent = document.querySelector('.modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
@@ -395,15 +388,17 @@
                 mutation.attributeName === 'class' &&
                 modalContent.classList.contains('guess-mode')
             ) {
+                // hide the chrono prompt again
+                chronoHeading.style.display = 'none';
+                chronoHeading.classList.remove('typing', 'chrono-age-heading--boom');
+                // restore the original prompt
+                heading.style.display = '';
                 gmaActions.classList.remove('gma-actions-hide');
                 gmaCard.classList.remove('gma-done');
-                heading.classList.remove('typing-new');
-                heading.textContent = 'Guess my age!';
-                heading.classList.add('typing-old');
-
             }
         });
     });
+
     resetObserver.observe(modalContent, { attributes: true });
 
     function syncRange() {
@@ -419,24 +414,26 @@
 
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
     gmaSubmitBtn.addEventListener('click', function (e) {
-        gmaCard.querySelector('.gma-actions').classList.add('gma-actions-hide');
-        const heading = gmaCard.querySelector('.gma-heading');
+        gmaActions.classList.add('gma-actions-hide');
+
+        // hide original, show chrono
+        heading.style.display = 'none';
+        chronoHeading.style.display = 'inline-block';
+
+        // clear any old classes, force a reflow, then add the right one
+        chronoHeading.classList.remove('typing', 'chrono-age-heading--boom');
+        void chronoHeading.offsetWidth;
 
         if (!sessionStorage.getItem('gmaSubmittedOnce')) {
-            // first time: typewriter
-            heading.classList.remove('typing-old');
-            heading.textContent = 'My chronological age is:';
-            heading.classList.add('typing-new');
+            // first time → typewriter
+            chronoHeading.classList.add('typing');
             sessionStorage.setItem('gmaSubmittedOnce', 'true');
         } else {
-            // subsequent times: boom
-            heading.style.opacity = '0';
-            heading.textContent = 'My chronological age is:';
-            heading.style.animation = 'gmaBoom 0.3s cubic-bezier(.4,0,.2,1) forwards';
+            // second+ time → boom
+            chronoHeading.classList.add('chrono-age-heading--boom');
         }
 
-        const btn = e.currentTarget;
-        setTimeout(() => hideCard({ currentTarget: btn }), 3000);
+        setTimeout(() => hideCard({ currentTarget: e.currentTarget }), 3000);
     });
 
     // bind hideCard to _all_ ghost buttons (Skip & Skip All)
