@@ -415,6 +415,12 @@
 
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
     gmaSubmitBtn.addEventListener('click', function (e) {
+        // if they chose the absolute min or max, we’ll troll them instead of collapsing
+        if (gmaRange.value === gmaRange.min || gmaRange.value === gmaRange.max) {
+            gmaTriggerTrollAnimation();
+            return;
+        }
+
         // 1) hide the slider & buttons
         gmaActions.classList.add('gma-actions-hide');
 
@@ -464,14 +470,6 @@
         const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
 
         if (!isSkip) {
-            // if they chose the absolute min or max, we’ll troll them instead of collapsing
-            const minVal = gmaRange.min;
-            const maxVal = gmaRange.max;
-            if (guessValue === minVal || guessValue === maxVal) {
-                gmaTriggerTrollAnimation();
-                return;
-            }
-
             fetch(
                 `/api/Guess/athlete-age?athleteName=${encodeURIComponent(athleteSlug)}&ageGuess=${guessValue}`,
                 { method: 'POST' }
