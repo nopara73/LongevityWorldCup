@@ -302,11 +302,18 @@
         animation-delay: 0.25s !important;
     }
 
-    .modal-content.guess-mode #guessAgeContainer h3 {
+    .gma-heading.typing-old {
         overflow: hidden;
         white-space: nowrap;
         display: inline-block;
         animation: typing 2s steps(13,end) forwards;
+    }
+
+    .gma-heading.typing-new {
+        overflow: hidden;
+        white-space: nowrap;
+        display: inline-block;
+        animation: typing-new 2s steps(24,end) forwards;
     }
 
     @keyframes typing {
@@ -333,6 +340,17 @@
     .gma-actions.gma-actions-hide {
         opacity: 0 !important;
         animation: none !important;
+    }
+
+    @keyframes typing-new {
+        from {
+            width: 0;
+            opacity: 1;
+        }
+
+        to {
+            width: 24ch;
+        }
     }
 </style>
 
@@ -363,6 +381,9 @@
     const gmaBubble = document.getElementById('gmaBubble');
     const gmaCard = document.querySelector('.gma-card');
 
+    const heading = gmaCard.querySelector('.gma-heading');
+    heading.classList.add('typing-old');
+
     const modalContent = document.querySelector('.modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
 
@@ -376,6 +397,10 @@
             ) {
                 gmaActions.classList.remove('gma-actions-hide');
                 gmaCard.classList.remove('gma-done');
+                heading.classList.remove('typing-new');
+                heading.textContent = 'Guess my age!';
+                heading.classList.add('typing-old');
+
             }
         });
     });
@@ -395,6 +420,21 @@
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
     gmaSubmitBtn.addEventListener('click', function (e) {
         gmaCard.querySelector('.gma-actions').classList.add('gma-actions-hide');
+        const heading = gmaCard.querySelector('.gma-heading');
+
+        if (!sessionStorage.getItem('gmaSubmittedOnce')) {
+            // first time: typewriter
+            heading.classList.remove('typing-old');
+            heading.textContent = 'My chronological age is:';
+            heading.classList.add('typing-new');
+            sessionStorage.setItem('gmaSubmittedOnce', 'true');
+        } else {
+            // subsequent times: boom
+            heading.style.opacity = '0';
+            heading.textContent = 'My chronological age is:';
+            heading.style.animation = 'gmaBoom 0.3s cubic-bezier(.4,0,.2,1) forwards';
+        }
+
         const btn = e.currentTarget;
         setTimeout(() => hideCard({ currentTarget: btn }), 3000);
     });
