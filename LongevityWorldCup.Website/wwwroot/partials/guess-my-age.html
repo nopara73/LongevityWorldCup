@@ -360,7 +360,9 @@
 
     // optional: collapse the card after a guess
     gmaCard.querySelector('.gma-btn--primary').addEventListener('click', hideCard);
-    gmaCard.querySelector('.gma-btn--ghost').addEventListener('click', hideCard);
+    // bind hideCard to _all_ ghost buttons (Skip & Skip All)
+    gmaCard.querySelectorAll('.gma-btn--ghost')
+        .forEach(btn => btn.addEventListener('click', hideCard));
     const gmaSkipAll = document.getElementById('gmaSkipAll');
     if (gmaSkipAll) {
         gmaSkipAll.addEventListener('click', hideCard);
