@@ -414,26 +414,30 @@
 
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
     gmaSubmitBtn.addEventListener('click', function (e) {
+        // 1) hide the slider & buttons
         gmaActions.classList.add('gma-actions-hide');
 
-        // hide original, show chrono
+        // 2) swap headings
         heading.style.display = 'none';
         chronoHeading.style.display = 'inline-block';
 
-        // clear any old classes, force a reflow, then add the right one
+        // 3) clear old animations, force reflow
         chronoHeading.classList.remove('typing', 'chrono-age-heading--boom');
         void chronoHeading.offsetWidth;
 
+        // 4) run typewriter or boom
         if (!sessionStorage.getItem('gmaSubmittedOnce')) {
-            // first time → typewriter
             chronoHeading.classList.add('typing');
             sessionStorage.setItem('gmaSubmittedOnce', 'true');
         } else {
-            // second+ time → boom
             chronoHeading.classList.add('chrono-age-heading--boom');
         }
 
-        setTimeout(() => hideCard({ currentTarget: e.currentTarget }), 3000);
+        // 5) **capture the button** and collapse after 3s
+        const btn = e.currentTarget;
+        setTimeout(() => {
+            hideCard({ currentTarget: btn });
+        }, 3000);
     });
 
     // bind hideCard to _all_ ghost buttons (Skip & Skip All)
