@@ -534,28 +534,37 @@
                     transform: 'translateX(-50%)'
                 });
 
-                // slide it to the real age
-                setTimeout(() => {
-                    const targetPct = clampPct((realAge / gmaRange.max) * 100);
-                    realBubble.style.transition = 'left 2s ease';
-                    realBubble.style.left = `${targetPct}%`;
-                }, 50);
+                // remove any left-transition so tick() moves it in perfect sync
+                realBubble.style.transition = 'none';
 
                 // count once per year, then pause before hiding
                 const diff = realAge - startAge;
                 if (diff !== 0) {
-                    const stepTime = 2000 / Math.abs(diff);
+                    const minStep = 30;
+                    const maxStep = 200;
                     let currentAge = startAge;
                     const inc = diff > 0 ? 1 : -1;
-                    const counter = setInterval(() => {
+                    // start counting with easing: fast at first, slowing as we approach realAge
+                    function tick() {
                         currentAge += inc;
                         realBubble.textContent = currentAge;
+                        gmaRange.value = currentAge;
+                        const pct = (currentAge / gmaRange.max) * 100;
+                        gmaRange.style.setProperty('--percent', `${pct}%`);
+                        realBubble.style.left = `${pct}%`;
                         if (currentAge === realAge) {
-                            clearInterval(counter);
-                            // give user 3s to read the final age
+                            // final pause before hiding
                             setTimeout(() => hideCard({ currentTarget: btn }), 3000);
+                        } else {
+                            // t = fraction of journey completed (0→1)
+                            const t = Math.abs((currentAge - startAge) / diff);
+                            // delay grows from minStep to maxStep as t goes 0→1
+                            const delay = minStep + (maxStep - minStep) * Math.pow(t, 2);
+                            setTimeout(tick, delay);
                         }
-                    }, stepTime);
+                    }
+                    tick();
+
                 } else {
                     // if guessed exactly, still show final age for 1s
                     setTimeout(() => hideCard({ currentTarget: btn }), 1000);
@@ -617,10 +626,5 @@
         trollDiv.appendChild(trollImg);
         modalContent.appendChild(trollDiv);
 
-        // halfway through the slide-up, start the rickroll
-        setTimeout(() => {
-            window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-            return;
-        }, 2000); // 2s == halfway through the 4s slide-up
     }
 </script>
