@@ -684,5 +684,10 @@
         trollDiv.appendChild(trollImg);
         modalContent.appendChild(trollDiv);
 
+        // halfway through the slide-up, start the rickroll
+        setTimeout(() => {
+            window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+            return;
+        }, 2000); // 2s == halfway through the 4s slide-up
     }
 </script>
