@@ -503,8 +503,6 @@
                 if (data) {
                     gmaResultData = data;
                     updateCrowdContainer(data.crowdAge, data.crowdCount);
-                    // inject the real age into the heading text
-                    chronoHeading.textContent = `My real age is: ${data.actualAge}`;
                 }
             })
             .catch(error => console.error('Error submitting guess:', error));
