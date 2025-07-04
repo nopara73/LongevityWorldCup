@@ -423,6 +423,8 @@
 
         // 1) hide the slider & buttons
         gmaActions.classList.add('gma-actions-hide');
+        gmaRange.disabled = true;
+        gmaRange.style.pointerEvents = 'none';
 
         // 2) swap headings
         heading.style.display = 'none';
