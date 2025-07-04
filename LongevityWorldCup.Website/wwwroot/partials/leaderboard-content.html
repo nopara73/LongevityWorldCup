@@ -1766,11 +1766,13 @@
     let ageChart;
 
     closeBtn.onclick = function () {
+        // don’t let them close mid-game
+        if (modalContent.classList.contains('guess-mode')) return;
         closeModal();
     };
 
     window.addEventListener('click', function (event) {
-        if (event.target === modal) {
+        if (event.target === modal && !modalContent.classList.contains('guess-mode')) {
             closeModal();
         }
     });
@@ -2390,13 +2392,14 @@
         }
     });
     function closeOpenComponents() {
+        // don’t close the details modal mid-guess
+        if (modalContent.classList.contains('guess-mode')) return;
+
         const enlargedImg = document.querySelector('.enlarged-portrait.show');
         if (enlargedImg) {
-            // Close the enlarged portrait if it's open
             closeEnlargedView(enlargedImg);
         }
         else if (modal.style.display === "block") {
-            // Close the details modal if it's open
             closeModal();
         }
     }
