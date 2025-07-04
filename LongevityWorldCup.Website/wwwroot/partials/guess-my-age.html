@@ -389,6 +389,13 @@
     #gmaRealBubble.gma-real-bubble-glow {
         animation: gmaRealBubbleGlow 1.8s ease-in-out forwards;
     }
+
+    /* dim the old guess bubble once the real one appears */
+    #gmaBubble.gma-bubble-inactive {
+        opacity: 0.4;
+        transform: translateX(-50%) scale(0.8);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -446,6 +453,8 @@
                 heading.style.display = '';
                 gmaActions.classList.remove('gma-actions-hide');
                 gmaCard.classList.remove('gma-done');
+
+                gmaBubble.classList.remove('gma-bubble-inactive');
 
                 const oldRealBubble = document.getElementById('gmaRealBubble');
                 if (oldRealBubble) oldRealBubble.remove();
@@ -571,6 +580,8 @@
                         if (currentAge === realAge) {
                             // final pause before hiding
                             realBubble.classList.add('gma-real-bubble-glow');
+                            gmaBubble.classList.add('gma-bubble-inactive');
+
                             setTimeout(() => hideCard({ currentTarget: btn }), 7000);
                         } else {
                             // t = fraction of journey completed (0→1)
