@@ -541,7 +541,7 @@
                     realBubble.style.left = `${targetPct}%`;
                 }, 50);
 
-                // count once per year
+                // count once per year, then pause before hiding
                 const diff = realAge - startAge;
                 if (diff !== 0) {
                     const stepTime = 2000 / Math.abs(diff);
@@ -550,12 +550,17 @@
                     const counter = setInterval(() => {
                         currentAge += inc;
                         realBubble.textContent = currentAge;
-                        if (currentAge === realAge) clearInterval(counter);
+                        if (currentAge === realAge) {
+                            clearInterval(counter);
+                            // give user 3s to read the final age
+                            setTimeout(() => hideCard({ currentTarget: btn }), 3000);
+                        }
                     }, stepTime);
+                } else {
+                    // if guessed exactly, still show final age for 1s
+                    setTimeout(() => hideCard({ currentTarget: btn }), 1000);
                 }
 
-                // only hide the card *after* the slide finishes
-                realBubble.addEventListener('transitionend', () => hideCard({ currentTarget: btn }));
             }
         };
         chronoHeading.addEventListener('animationend', onChronoAnimEnd);
