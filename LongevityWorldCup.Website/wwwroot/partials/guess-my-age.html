@@ -368,6 +368,8 @@
 <script>
     /* === Guess-My-Age bindings for the new widget === */
     const gmaRange = document.getElementById('gmaRange');
+    const gmaDefaultValue = gmaRange.value;
+
     const gmaBubble = document.getElementById('gmaBubble');
     const gmaCard = document.querySelector('.gma-card');
 
@@ -396,6 +398,11 @@
                 heading.style.display = '';
                 gmaActions.classList.remove('gma-actions-hide');
                 gmaCard.classList.remove('gma-done');
+
+                gmaRange.value = gmaDefaultValue;
+                gmaRange.disabled = false;
+                gmaRange.style.pointerEvents = '';
+                syncRange();
             }
         });
     });
