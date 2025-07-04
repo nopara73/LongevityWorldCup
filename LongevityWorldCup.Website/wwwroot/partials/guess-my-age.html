@@ -580,13 +580,17 @@
                         ? [clamp(rawBounce), clamp(realAge)]
                         : [clamp(realAge)];
 
-                    function animateSegment(index) {
-                        const segmentStart = index === 0
-                            ? startAge
-                            : bounceTargets[index - 1];
-                        const segmentEnd = bounceTargets[index];
-                        let age = segmentStart;
-                        const step = segmentEnd > segmentStart ? 1 : -1;
+                    // prepare segments and overall distance for continuous easing
+                    const segments = bounceTargets.map((target, idx) => ({
+                        start: idx === 0 ? startAge : bounceTargets[idx - 1],
+                        end: target
+                    }));
+                    const totalDistance = segments.reduce((sum, seg) => sum + Math.abs(seg.end - seg.start), 0);
+
+                    function animateSegment(index, distSoFar = 0) {
+                        const seg = segments[index];
+                        let age = seg.start;
+                        const step = seg.end > seg.start ? 1 : -1;
 
                         function segmentTick() {
                             age += step;
@@ -596,19 +600,20 @@
                             gmaRange.style.setProperty('--percent', `${pct}%`);
                             realBubble.style.left = `${pct}%`;
 
-                            if (age === segmentEnd) {
-                                if (index + 1 < bounceTargets.length) {
-                                    animateSegment(index + 1);
+                            // continuous easing based on overall journey
+                            const travelled = distSoFar + Math.abs(age - seg.start);
+                            const t = travelled / totalDistance;
+                            const delay = minStep + (maxStep - minStep) * Math.pow(t, 2);
+
+                            if (age === seg.end) {
+                                if (index + 1 < segments.length) {
+                                    animateSegment(index + 1, distSoFar + Math.abs(seg.end - seg.start));
                                 } else {
                                     realBubble.classList.add('gma-real-bubble-glow');
                                     gmaBubble.classList.add('gma-bubble-inactive');
                                     setTimeout(() => hideCard({ currentTarget: btn }), 7000);
                                 }
                             } else {
-                                // easing delay between minStep and maxStep
-                                const segmentDiff = Math.abs(segmentEnd - segmentStart);
-                                const t = Math.abs((age - segmentStart) / segmentDiff);
-                                const delay = minStep + (maxStep - minStep) * Math.pow(t, 2);
                                 setTimeout(segmentTick, delay);
                             }
                         }
