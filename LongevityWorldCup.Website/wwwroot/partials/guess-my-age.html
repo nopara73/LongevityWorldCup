@@ -373,6 +373,22 @@
         animation: none !important;
         pointer-events: none; /* ← prevent any mouse events */
     }
+
+    @keyframes gmaRealBubbleGlow {
+        0%, 100% {
+            transform: translateX(-50%) scale(1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        50% {
+            transform: translateX(-50%) scale(1.3);
+            box-shadow: 0 0 30px var(--primary-color);
+        }
+    }
+
+    #gmaRealBubble.gma-real-bubble-glow {
+        animation: gmaRealBubbleGlow 1.8s ease-in-out forwards;
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -554,7 +570,8 @@
                         realBubble.style.left = `${pct}%`;
                         if (currentAge === realAge) {
                             // final pause before hiding
-                            setTimeout(() => hideCard({ currentTarget: btn }), 3000);
+                            realBubble.classList.add('gma-real-bubble-glow');
+                            setTimeout(() => hideCard({ currentTarget: btn }), 7000);
                         } else {
                             // t = fraction of journey completed (0→1)
                             const t = Math.abs((currentAge - startAge) / diff);
