@@ -81,20 +81,20 @@ namespace LongevityWorldCup.Website.Business
                 athlete["CrowdAge"] = 0;
                 athlete["CrowdCount"] = 0;
 
-                var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/yan_lin"
-                var key = Path.GetFileName(folder);             // e.g. "yan_lin"
+                var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/michelle_franz-montan"
+                var folderName = Path.GetFileName(folder);             // e.g. "michelle_franz-montan"
 
                 // so we can look up this JsonObject later by slug
-                athlete["AthleteSlug"] = key;
+                athlete["AthleteSlug"] = folderName.Replace('-', '_'); // e.g. "michelle_franz_montan"
 
                 // PROFILE PIC: look for "{key}.*" in that same folder
                 var pic = Directory
-                    .EnumerateFiles(folder, $"{key}.*", SearchOption.TopDirectoryOnly)
+                    .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
                     .OrderByDescending(File.GetLastWriteTimeUtc)
                     .FirstOrDefault();
                 athlete["ProfilePic"] = pic is null
                     ? null
-                    : $"/athletes/{key}/{Path.GetFileName(pic)}";
+                    : $"/athletes/{folderName}/{Path.GetFileName(pic)}";
 
                 // PROOFS: look for proof_*.ext
                 var proofs = new JsonArray();
@@ -102,7 +102,7 @@ namespace LongevityWorldCup.Website.Business
                     .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
                     .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
                 foreach (var p in proofFiles)
-                    proofs.Add($"/athletes/{key}/{Path.GetFileName(p)}");
+                    proofs.Add($"/athletes/{folderName}/{Path.GetFileName(p)}");
                 athlete["Proofs"] = proofs;
 
                 athletesRoot.Add(athlete);
