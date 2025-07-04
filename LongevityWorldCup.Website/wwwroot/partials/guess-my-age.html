@@ -145,7 +145,26 @@
         z-index: 10;
     }
 
-        #gmaBubble::after {
+    #gmaRealBubble {
+        position: absolute;
+        bottom: calc(50% + 0.5rem);
+        left: var(--percent, 50%);
+        transform: translateX(-50%);
+        background: #fff;
+        color: var(--primary-color);
+        font-size: 2.8rem;
+        font-weight: 600;
+        padding: 0.8rem 1.6rem;
+        border: 2px solid var(--primary-color);
+        border-radius: 2rem;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        pointer-events: none;
+        white-space: nowrap;
+        z-index: 10;
+    }
+
+        #gmaRealBubble::after {
             content: '';
             position: absolute;
             bottom: -10px;
@@ -157,6 +176,19 @@
             border-left: 4px solid var(--primary-color);
             border-bottom: 4px solid var(--primary-color);
         }
+
+    #gmaBubble::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        width: 20px;
+        height: 20px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        background: #fff;
+        border-left: 4px solid var(--primary-color);
+        border-bottom: 4px solid var(--primary-color);
+    }
 
     @keyframes bubblePulse {
         0%,100% {
@@ -399,6 +431,9 @@
                 gmaActions.classList.remove('gma-actions-hide');
                 gmaCard.classList.remove('gma-done');
 
+                const oldRealBubble = document.getElementById('gmaRealBubble');
+                if (oldRealBubble) oldRealBubble.remove();
+
                 gmaRange.value = gmaDefaultValue;
                 gmaRange.disabled = false;
                 gmaRange.style.pointerEvents = '';
@@ -449,11 +484,84 @@
             chronoHeading.classList.add('chrono-age-heading--boom');
         }
 
-        // 5) **capture the button** and collapse after 3s
         const btn = e.currentTarget;
-        setTimeout(() => {
-            hideCard({ currentTarget: btn });
-        }, 3000);
+
+        // 5) fire the existing API call immediately, stash the result
+        let gmaResultData;
+        fetch(
+            `/api/Guess/athlete-age?athleteName=${encodeURIComponent(modalContent.dataset.athleteSlug)}&ageGuess=${gmaRange.value}`,
+            { method: 'POST' }
+        )
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Guess submission failed:', response.statusText);
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) {
+                    gmaResultData = data;
+                    updateCrowdContainer(data.crowdAge, data.crowdCount);
+                    // inject the real age into the heading text
+                    chronoHeading.textContent = `My real age is: ${data.actualAge}`;
+                }
+            })
+            .catch(error => console.error('Error submitting guess:', error));
+
+        // wait for the “typing” or “boom” animation to finish, then animate the second bubble
+        const onChronoAnimEnd = event => {
+            if (event.animationName === 'typing' || event.animationName === 'gmaBoom') {
+                chronoHeading.removeEventListener('animationend', onChronoAnimEnd);
+
+                const startAge = +gmaRange.value;
+                const realAge = gmaResultData ? +gmaResultData.actualAge : startAge;
+
+                // create and style the new bubble
+                const sliderWrap = document.querySelector('.gma-slider-wrap');
+                const realBubble = document.createElement('output');
+                realBubble.id = 'gmaRealBubble';
+                realBubble.className = 'gma-real-bubble';
+                realBubble.setAttribute('for', 'gmaRange');
+                realBubble.textContent = startAge;
+                sliderWrap.appendChild(realBubble);
+
+                // position it over the slider at the guessed value
+                const clampPct = pct => Math.min(Math.max(pct, 5), 95);
+                const startPct = clampPct((startAge / gmaRange.max) * 100);
+                Object.assign(realBubble.style, {
+                    position: 'absolute',
+                    bottom: 'calc(50% + 0.5rem)',
+                    left: `${startPct}%`,
+                    transform: 'translateX(-50%)'
+                });
+
+                // slide it to the real age
+                setTimeout(() => {
+                    const targetPct = clampPct((realAge / gmaRange.max) * 100);
+                    realBubble.style.transition = 'left 2s ease';
+                    realBubble.style.left = `${targetPct}%`;
+                }, 50);
+
+                // count once per year
+                const diff = realAge - startAge;
+                if (diff !== 0) {
+                    const stepTime = 2000 / Math.abs(diff);
+                    let currentAge = startAge;
+                    const inc = diff > 0 ? 1 : -1;
+                    const counter = setInterval(() => {
+                        currentAge += inc;
+                        realBubble.textContent = currentAge;
+                        if (currentAge === realAge) clearInterval(counter);
+                    }, stepTime);
+                }
+
+                // only hide the card *after* the slide finishes
+                realBubble.addEventListener('transitionend', () => hideCard({ currentTarget: btn }));
+            }
+        };
+        chronoHeading.addEventListener('animationend', onChronoAnimEnd);
+
     });
 
     // bind hideCard to _all_ ghost buttons (Skip & Skip All)
@@ -477,27 +585,6 @@
 
         let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
         const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
-
-        if (!isSkip) {
-            fetch(
-                `/api/Guess/athlete-age?athleteName=${encodeURIComponent(athleteSlug)}&ageGuess=${guessValue}`,
-                { method: 'POST' }
-            )
-                .then(response => {
-                    if (!response.ok) {
-                        console.error('Guess submission failed:', response.statusText);
-                        return null;
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data) {
-                        // immediately update the UI
-                        updateCrowdContainer(data.crowdAge, data.crowdCount);
-                    }
-                })
-                .catch(error => console.error('Error submitting guess:', error));
-        }
 
         allGuesses[athleteSlug] = { value: isSkip ? null : guessValue, skipped: isSkip };
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
