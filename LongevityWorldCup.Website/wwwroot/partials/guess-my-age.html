@@ -3,7 +3,7 @@
     .gma-pop-banner {
         position: fixed;
         top: 20%;
-        left: 50%;
+        left: 60%;
         transform: translate(-50%, -50%) scale(0);
         padding: 1rem 2rem;
         background: var(--primary-color);
@@ -659,7 +659,7 @@
                                 realBubble.classList.add('gma-real-bubble-glow');
                                 gmaBubble.classList.add('gma-bubble-inactive');
 
-                                const guessed = +gmaRange.value;
+                                const guessed = startAge;
                                 const actual = realAge;
                                 const crowd = gmaResultData.crowdAge;
                                 const userError = Math.abs(actual - guessed);
