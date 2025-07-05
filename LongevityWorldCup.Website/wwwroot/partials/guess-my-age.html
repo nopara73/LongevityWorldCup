@@ -1,4 +1,52 @@
 ﻿<style>
+    /* 🎉 Pop-banner styles */
+    .gma-pop-banner {
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        padding: 1rem 2rem;
+        background: var(--primary-color);
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 700;
+        border-radius: 1rem;
+        z-index: 10000;
+        pointer-events: none;
+    }
+
+        .gma-pop-banner.show {
+            animation: gma-pop-slide-in 0.4s cubic-bezier(.4,0,.2,1) forwards;
+        }
+
+        .gma-pop-banner.hide {
+            animation: gma-pop-slide-out 0.3s ease-in forwards;
+        }
+
+    @keyframes gma-pop-slide-in {
+        from {
+            transform: translate(-50%, -60%) scale(0);
+            opacity: 0;
+        }
+
+        to {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes gma-pop-slide-out {
+        from {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        to {
+            transform: translate(-50%, -40%) scale(0);
+            opacity: 0;
+        }
+    }
+
     .modal-content.guess-mode #guessAgeContainer .gma-slider-wrap,
     .modal-content.guess-mode #guessAgeContainer .gma-actions {
         opacity: 0;
@@ -610,6 +658,23 @@
                             } else {
                                 realBubble.classList.add('gma-real-bubble-glow');
                                 gmaBubble.classList.add('gma-bubble-inactive');
+
+                                const guessed = +gmaRange.value;
+                                const actual = realAge;
+                                const crowd = gmaResultData.crowdAge;
+                                const userError = Math.abs(actual - guessed);
+                                const crowdError = Math.abs(actual - crowd);
+
+                                if (userError === 0) {
+                                    // exact hit!
+                                    gmaCard.classList.add('celebrate-exact');
+                                    popBanner('You nailed it!');
+                                } else if (userError < crowdError) {
+                                    // beat the crowd!
+                                    gmaCard.classList.add('celebrate-better');
+                                    popBanner('You beat the crowd!');
+                                }
+
                                 setTimeout(() => hideCard({ currentTarget: btn }), 5000);
                             }
                         } else {
@@ -683,5 +748,22 @@
             window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
             return;
         }, 2000); // 2s == halfway through the 4s slide-up
+    }
+
+    function popBanner(text) {
+        const b = document.createElement('div');
+        b.textContent = text;
+        b.classList.add('gma-pop-banner');
+
+        document.body.appendChild(b);
+        requestAnimationFrame(() => {
+            b.classList.add('show');
+        });
+
+        setTimeout(() => {
+            b.classList.add('hide');
+            b.addEventListener('animationend', () => b.remove());
+        }, 2000);
+
     }
 </script>
