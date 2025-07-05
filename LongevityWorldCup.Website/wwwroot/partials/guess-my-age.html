@@ -11,6 +11,11 @@
         font-size: 2rem;
         font-weight: 700;
         border-radius: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.25);
         z-index: 10000;
         pointer-events: none;
     }
@@ -668,11 +673,11 @@
                                 if (userError === 0) {
                                     // exact hit!
                                     gmaCard.classList.add('celebrate-exact');
-                                    popBanner('You nailed it!');
+                                    popBanner('🎯 You nailed it! 🎉');
                                 } else if (userError < crowdError) {
                                     // beat the crowd!
                                     gmaCard.classList.add('celebrate-better');
-                                    popBanner('You beat the crowd!');
+                                    popBanner('🎉 You beat the crowd! 🏆');
                                 }
 
                                 setTimeout(() => hideCard({ currentTarget: btn }), 5000);
