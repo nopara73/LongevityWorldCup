@@ -801,11 +801,13 @@
                                 if (userError === 0) {
                                     // exact hit!
                                     gmaCard.classList.add('celebrate-exact');
-                                    popBanner(true);
+                                    popBanner(true, false);
+                                } else if (gmaResultData.crowdCount === 1) {
+                                    popBanner(false, true);
                                 } else if (userError < crowdError) {
                                     // beat the crowd!
                                     gmaCard.classList.add('celebrate-better');
-                                    popBanner(false);
+                                    popBanner(false, false);
                                 }
 
                                 setTimeout(() => hideCard({ currentTarget: btn }), 5000);
@@ -883,10 +885,13 @@
         }, 2000); // 2s == halfway through the 4s slide-up
     }
 
-    function popBanner(isExact) {
+    function popBanner(isExact, isFirst) {
         const b = document.createElement('div');
         if (isExact) {
             b.textContent = '🎯🎯🎯 Bullseye! 🎯🎯🎯';
+        }
+        else if (isFirst) {
+            b.textContent = '🥇 First to guess! 🥇';
         }
         else {
             b.textContent = '🎉 You beat the crowd! 🏆';
@@ -896,17 +901,18 @@
         document.body.appendChild(b);
         requestAnimationFrame(() => {
             b.classList.add('show');
-            spawnTimeIcons();
 
-            let maxConfetties = 5;
-            if (isExact) {
-                maxConfetties = 30;
-            }
-            for (let i = 0; i < maxConfetties; i++) {
-                setTimeout(() => {
-                    spawnTimeIcons();
-                    spawnConfetti();
-                }, i * 300);
+            if (!isFirst) {
+                let maxConfetties = 5;
+                if (isExact) {
+                    maxConfetties = 30;
+                }
+                for (let i = 0; i < maxConfetties; i++) {
+                    setTimeout(() => {
+                        spawnTimeIcons();
+                        spawnConfetti();
+                    }, i * 300);
+                }
             }
         });
 
