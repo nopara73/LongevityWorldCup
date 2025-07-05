@@ -28,6 +28,13 @@
             animation: gma-pop-slide-out 0.3s ease-in forwards;
         }
 
+        /* make the bullseye banner gold */
+        .gma-pop-banner.gma-pop-banner--golden {
+            background: var(--gma-gold) !important;
+            color: #fff !important;
+            box-shadow: 0 0 12px rgba(255,215,0,0.8);
+        }
+
     @keyframes gma-pop-slide-in {
         from {
             transform: translate(-50%, -60%) scale(0);
@@ -902,6 +909,9 @@
             b.textContent = '🎉 You beat the crowd! 🏆';
         }
         b.classList.add('gma-pop-banner');
+        if (isExact) {
+            b.classList.add('gma-pop-banner--golden');
+        }
 
         document.body.appendChild(b);
         requestAnimationFrame(() => {
