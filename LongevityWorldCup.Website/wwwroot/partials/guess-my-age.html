@@ -467,6 +467,41 @@
             transform: translate(calc(-50% - 5px), calc(-50% - 5px)) scale(1.01);
         }
     }
+
+    /* ⏰ Time-icons raining down */
+    .gma-time-icon {
+        position: fixed;
+        pointer-events: none;
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        font-size: 2rem;
+        color: var(--primary-color);
+        will-change: transform, opacity;
+        /* first shake/bounce 4 times at 0.3s each, then start the fall */
+        animation: gma-time-shake 0.3s ease-in-out 0s 4 alternate both, gma-time-float 3s ease-out 1.2s forwards;
+        z-index: 10001;
+    }
+
+    @keyframes gma-time-float {
+        to {
+            transform: translateY(100vh) rotate(360deg) scale(0.5);
+            opacity: 0;
+        }
+    }
+
+    @keyframes gma-time-shake {
+        0% {
+            transform: translateX(0) rotate(0deg);
+        }
+
+        50% {
+            transform: translateX(10px) rotate(10deg);
+        }
+
+        100% {
+            transform: translateX(-10px) rotate(-10deg);
+        }
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -781,12 +816,42 @@
         document.body.appendChild(b);
         requestAnimationFrame(() => {
             b.classList.add('show');
+            spawnTimeIcons();
+
         });
 
         setTimeout(() => {
             b.classList.add('hide');
             b.addEventListener('animationend', () => b.remove());
-        }, 3500);
+        }, 7000);
 
+    }
+
+    function spawnTimeIcons() {
+        const icons = [
+            'clock',
+            'stopwatch',
+            'history',
+            'hourglass',
+            'hourglass-start',
+            'hourglass-half',
+            'hourglass-end',
+            'calendar',
+            'calendar-check',
+            'calendar-times',
+            'calendar-alt'
+        ];
+
+        const total = 200;
+        for (let i = 0; i < total; i++) {
+            const el = document.createElement('i');
+            const icon = icons[Math.floor(Math.random() * icons.length)];
+            el.className = `gma-time-icon fas fa-${icon}`;
+            el.style.left = `${Math.random() * 100}%`;
+            el.style.top = `${Math.random() * 100}%`;
+            el.style.animationDelay = `${Math.random() * 0.5}s`;
+            document.body.appendChild(el);
+            el.addEventListener('animationend', () => el.remove());
+        }
     }
 </script>
