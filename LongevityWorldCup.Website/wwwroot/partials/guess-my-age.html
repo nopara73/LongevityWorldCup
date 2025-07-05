@@ -564,69 +564,63 @@
 
                 // count once per year, then pause before hiding
                 const diff = realAge - startAge;
-                if (diff !== 0) {
-                    const minStep = 30;
-                    const maxStep = 200;
-                    let currentAge = startAge;
+                const minStep = 30;
+                const maxStep = 200;
+                let currentAge = startAge;
 
-                    // if the guess is within 50 years, first bounce further away, then come back
-                    const absDiff = Math.abs(diff);
-                    const clamp = v => Math.min(Math.max(v, +gmaRange.min), +gmaRange.max);
+                // if the guess is within 50 years, first bounce further away, then come back
+                const absDiff = Math.abs(diff);
+                const clamp = v => Math.min(Math.max(v, +gmaRange.min), +gmaRange.max);
 
-                    const rawBounce = diff > 0
-                        ? startAge + (50 - absDiff)
-                        : startAge - (50 - absDiff);
-                    const bounceTargets = absDiff < 50
-                        ? [clamp(rawBounce), clamp(realAge)]
-                        : [clamp(realAge)];
+                const rawBounce = diff > 0
+                    ? startAge + (50 - absDiff)
+                    : startAge - (50 - absDiff);
+                const bounceTargets = absDiff < 50
+                    ? [clamp(rawBounce), clamp(realAge)]
+                    : [clamp(realAge)];
 
-                    // prepare segments and overall distance for continuous easing
-                    const segments = bounceTargets.map((target, idx) => ({
-                        start: idx === 0 ? startAge : bounceTargets[idx - 1],
-                        end: target
-                    }));
-                    const totalDistance = segments.reduce((sum, seg) => sum + Math.abs(seg.end - seg.start), 0);
+                // prepare segments and overall distance for continuous easing
+                const segments = bounceTargets.map((target, idx) => ({
+                    start: idx === 0 ? startAge : bounceTargets[idx - 1],
+                    end: target
+                }));
+                const totalDistance = segments.reduce((sum, seg) => sum + Math.abs(seg.end - seg.start), 0);
 
-                    function animateSegment(index, distSoFar = 0) {
-                        const seg = segments[index];
-                        let age = seg.start;
-                        const step = seg.end > seg.start ? 1 : -1;
+                function animateSegment(index, distSoFar = 0) {
+                    const seg = segments[index];
+                    let age = seg.start;
+                    const step = seg.end > seg.start ? 1 : -1;
 
-                        function segmentTick() {
-                            age += step;
-                            realBubble.textContent = age;
-                            gmaRange.value = age;
-                            const pct = (age / gmaRange.max) * 100;
-                            gmaRange.style.setProperty('--percent', `${pct}%`);
-                            realBubble.style.left = `${pct}%`;
+                    function segmentTick() {
+                        age += step;
+                        realBubble.textContent = age;
+                        gmaRange.value = age;
+                        const pct = (age / gmaRange.max) * 100;
+                        gmaRange.style.setProperty('--percent', `${pct}%`);
+                        realBubble.style.left = `${pct}%`;
 
-                            // continuous easing based on overall journey
-                            const travelled = distSoFar + Math.abs(age - seg.start);
-                            const t = travelled / totalDistance;
-                            const delay = minStep + (maxStep - minStep) * Math.pow(t, 2);
+                        // continuous easing based on overall journey
+                        const travelled = distSoFar + Math.abs(age - seg.start);
+                        const t = travelled / totalDistance;
+                        const delay = minStep + (maxStep - minStep) * Math.pow(t, 2);
 
-                            if (age === seg.end) {
-                                if (index + 1 < segments.length) {
-                                    animateSegment(index + 1, distSoFar + Math.abs(seg.end - seg.start));
-                                } else {
-                                    realBubble.classList.add('gma-real-bubble-glow');
-                                    gmaBubble.classList.add('gma-bubble-inactive');
-                                    setTimeout(() => hideCard({ currentTarget: btn }), 5000);
-                                }
+                        if (age === seg.end) {
+                            if (index + 1 < segments.length) {
+                                animateSegment(index + 1, distSoFar + Math.abs(seg.end - seg.start));
                             } else {
-                                setTimeout(segmentTick, delay);
+                                realBubble.classList.add('gma-real-bubble-glow');
+                                gmaBubble.classList.add('gma-bubble-inactive');
+                                setTimeout(() => hideCard({ currentTarget: btn }), 5000);
                             }
+                        } else {
+                            setTimeout(segmentTick, delay);
                         }
-
-                        segmentTick();
                     }
 
-                    animateSegment(0);
-
-                } else {
-                    // if guessed exactly, still show final age for 1s
-                    setTimeout(() => hideCard({ currentTarget: btn }), 1000);
+                    segmentTick();
                 }
+
+                animateSegment(0);
 
             }
         };
