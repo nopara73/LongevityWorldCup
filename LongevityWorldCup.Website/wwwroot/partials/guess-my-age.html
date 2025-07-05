@@ -766,9 +766,10 @@
                 const clamp = v => Math.min(Math.max(v, +gmaRange.min), +gmaRange.max);
 
                 const rawBounce = diff > 0
-                    ? startAge + (50 - absDiff)
-                    : startAge - (50 - absDiff);
-                const bounceTargets = absDiff < 50
+                    ? clamp(startAge + (50 - absDiff))
+                    : clamp(startAge - (50 - absDiff));
+
+                const bounceTargets = (absDiff < 50 && clamp(rawBounce) !== clamp(realAge))
                     ? [clamp(rawBounce), clamp(realAge)]
                     : [clamp(realAge)];
 
