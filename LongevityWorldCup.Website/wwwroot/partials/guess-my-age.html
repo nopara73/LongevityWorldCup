@@ -573,6 +573,11 @@
         color: #333 !important; /* darker text for contrast */
         text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
+
+    .gma-time-icon.gma-time-icon--golden {
+        color: var(--gma-gold) !important;
+        text-shadow: 0 0 5px rgba(255,215,0,0.8);
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -943,6 +948,11 @@
             const el = document.createElement('i');
             const icon = icons[Math.floor(Math.random() * icons.length)];
             el.className = `gma-time-icon fas fa-${icon}`;
+
+            if (document.querySelector('.gma-card.celebrate-exact')) {
+                el.classList.add('gma-time-icon--golden');
+            }
+
             el.style.left = `${Math.random() * 100}%`;
             el.style.top = `${Math.random() * 100}%`;
             el.style.animationDelay = `${Math.random() * 0.5}s`;
