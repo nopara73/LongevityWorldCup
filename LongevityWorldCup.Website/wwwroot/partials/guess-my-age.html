@@ -502,6 +502,62 @@
             transform: translateX(-10px) rotate(-10deg);
         }
     }
+
+    /* Smooth transitions on track, thumb & bubbles */
+    #gmaRange,
+    #gmaBubble,
+    #gmaRealBubble {
+        transition: background 0.5s ease, border-color 0.5s ease, color 0.5s ease;
+    }
+
+    /* GOLDEN SLIDER TRACK */
+    .gma-card.celebrate-exact #gmaRange {
+        background: linear-gradient( 90deg, var(--gma-gold) 0%, var(--gma-gold) var(--percent, 50%), #d1d5db var(--percent, 50%), #d1d5db 100% ) !important;
+    }
+
+        /* GOLDEN THUMB for WebKit */
+        .gma-card.celebrate-exact #gmaRange::-webkit-slider-thumb {
+            background: var(--gma-gold) !important;
+        }
+
+        /* GOLDEN THUMB for Firefox */
+        .gma-card.celebrate-exact #gmaRange::-moz-range-thumb {
+            background: var(--gma-gold) !important;
+        }
+
+    /* GOLDEN BUBBLES */
+    .gma-card.celebrate-exact #gmaBubble,
+    .gma-card.celebrate-exact #gmaRealBubble {
+        background: var(--gma-gold) !important;
+        border-color: var(--gma-gold) !important;
+        color: #fff !important;
+    }
+    /* 1) A metallic gradient track with a soft glow */
+    .gma-card.celebrate-exact #gmaRange {
+        background: linear-gradient( 90deg, var(--gma-gold-dark) 0%, var(--gma-gold-light) 40%, var(--gma-gold-shine) 60%, #d1d5db 100% ) !important;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.2), 0 0 8px rgba(255,215,0,0.6);
+    }
+
+        /* 2) A glowing, polished thumb */
+        .gma-card.celebrate-exact #gmaRange::-webkit-slider-thumb {
+            background: var(--gma-gold-light) !important;
+            box-shadow: 0 0 8px rgba(255,215,0,0.8), 0 0 0 3px #fff;
+        }
+
+        .gma-card.celebrate-exact #gmaRange::-moz-range-thumb {
+            background: var(--gma-gold-light) !important;
+            box-shadow: 0 0 8px rgba(255,215,0,0.8), 0 0 0 3px #fff;
+        }
+
+    /* 3) Shiny, gradient bubbles with matching border & text-shadow */
+    .gma-card.celebrate-exact #gmaBubble,
+    .gma-card.celebrate-exact #gmaRealBubble {
+        background: linear-gradient( 135deg, var(--gma-gold-light), var(--gma-gold-shine) ) !important;
+        border: 2px solid var(--gma-gold-dark) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 12px rgba(255,215,0,0.5);
+        color: #333 !important; /* darker text for contrast */
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -569,6 +625,8 @@
                 gmaRange.disabled = false;
                 gmaRange.style.pointerEvents = '';
                 syncRange();
+
+                gmaCard.classList.remove('celebrate-exact');
             }
         });
     });
