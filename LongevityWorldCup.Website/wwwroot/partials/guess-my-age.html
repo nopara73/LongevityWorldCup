@@ -532,6 +532,21 @@
         border-color: var(--gma-gold) !important;
         color: #fff !important;
     }
+
+    @keyframes goldenGlow {
+        0%, 100% {
+            box-shadow: 0 0 10px rgba(255,215,0,0.8);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(255,215,0,1);
+        }
+    }
+
+    .gma-card.celebrate-exact #gmaRange {
+        animation: goldenGlow 2s ease-in-out infinite;
+    }
+
     /* 1) A metallic gradient track with a soft glow */
     .gma-card.celebrate-exact #gmaRange {
         background: linear-gradient( 90deg, var(--gma-gold-dark) 0%, var(--gma-gold-light) 40%, var(--gma-gold-shine) 60%, #d1d5db 100% ) !important;
@@ -581,6 +596,8 @@
         <button class="gma-btn gma-btn--primary">Submit</button>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
 
 <script>
     /* === Guess-My-Age bindings for the new widget === */
@@ -784,11 +801,11 @@
                                 if (userError === 0) {
                                     // exact hit!
                                     gmaCard.classList.add('celebrate-exact');
-                                    popBanner('🎯🎯🎯 Bullseye! 🎯🎯🎯');
+                                    popBanner(true);
                                 } else if (userError < crowdError) {
                                     // beat the crowd!
                                     gmaCard.classList.add('celebrate-better');
-                                    popBanner('🎉 You beat the crowd! 🏆');
+                                    popBanner(false);
                                 }
 
                                 setTimeout(() => hideCard({ currentTarget: btn }), 5000);
@@ -866,9 +883,14 @@
         }, 2000); // 2s == halfway through the 4s slide-up
     }
 
-    function popBanner(text) {
+    function popBanner(isExact) {
         const b = document.createElement('div');
-        b.textContent = text;
+        if (isExact) {
+            b.textContent = '🎯🎯🎯 Bullseye! 🎯🎯🎯';
+        }
+        else {
+            b.textContent = '🎉 You beat the crowd! 🏆';
+        }
         b.classList.add('gma-pop-banner');
 
         document.body.appendChild(b);
@@ -876,6 +898,16 @@
             b.classList.add('show');
             spawnTimeIcons();
 
+            let maxConfetties = 5;
+            if (isExact) {
+                maxConfetties = 30;
+            }
+            for (let i = 0; i < maxConfetties; i++) {
+                setTimeout(() => {
+                    spawnTimeIcons();
+                    spawnConfetti();
+                }, i * 300);
+            }
         });
 
         setTimeout(() => {
@@ -911,5 +943,17 @@
             document.body.appendChild(el);
             el.addEventListener('animationend', () => el.remove());
         }
+    }
+
+    function spawnConfetti() {
+        // now pick a fresh random position
+        const randomX = 0.1 + Math.random() * 0.8; // clamp X between 0.1–0.9
+        const randomY = 0.1 + Math.random() * 0.8; // clamp Y between 0.1–0.9
+
+        confetti({
+            particleCount: 300,
+            spread: 120,
+            origin: { x: randomX, y: randomY }
+        });
     }
 </script>
