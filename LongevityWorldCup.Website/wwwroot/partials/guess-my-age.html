@@ -21,7 +21,7 @@
     }
 
         .gma-pop-banner.show {
-            animation: gma-pop-slide-in 0.4s cubic-bezier(.4,0,.2,1) forwards;
+            animation: gma-pop-slide-in 0.4s cubic-bezier(.4,0,.2,1) forwards, gma-pop-shake 0.3s ease-in-out 0.4s 1 both;
         }
 
         .gma-pop-banner.hide {
@@ -448,6 +448,24 @@
         opacity: 0.4;
         transform: translateX(-50%) scale(0.8);
         transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    @keyframes gma-pop-shake {
+        0%, 100% {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        25% {
+            transform: translate(calc(-50% - 5px), calc(-50% + 5px)) scale(1.02);
+        }
+
+        50% {
+            transform: translate(calc(-50% + 5px), calc(-50% - 5px)) scale(0.98);
+        }
+
+        75% {
+            transform: translate(calc(-50% - 5px), calc(-50% - 5px)) scale(1.01);
+        }
     }
 </style>
 
