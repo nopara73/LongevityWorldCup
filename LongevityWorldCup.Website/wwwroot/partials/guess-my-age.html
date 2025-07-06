@@ -615,6 +615,66 @@
             opacity: 0;
         }
     }
+
+    /* 😭 Crying-face emoji animation */
+    .gma-cry-emoji {
+        position: fixed;
+        width: 200px;
+        height: 200px;
+        pointer-events: none;
+        font-size: 15rem;
+        transform-origin: center center;
+        animation: gma-cry-pop 0.8s ease-out forwards;
+        will-change: transform, opacity;
+        z-index: 10003;
+    }
+
+    @keyframes gma-cry-pop {
+        0% {
+            transform: scale(0) rotate(-30deg);
+            opacity: 0;
+        }
+
+        50% {
+            transform: scale(1.2) rotate(0deg);
+            opacity: 1;
+        }
+
+        100% {
+            transform: scale(1) rotate(15deg);
+            opacity: 0;
+        }
+    }
+
+    /* 👀 “eyes” emoji animation */
+    .gma-eyes-emoji {
+        position: fixed;
+        width: 200px;
+        height: 200px;
+        pointer-events: none;
+        font-size: 15rem;
+        transform-origin: center center;
+        animation: gma-eyes-pop 0.8s ease-out forwards;
+        will-change: transform, opacity;
+        z-index: 10003;
+    }
+
+    @keyframes gma-eyes-pop {
+        0% {
+            transform: scale(0) rotate(-30deg);
+            opacity: 0;
+        }
+
+        50% {
+            transform: scale(1.2) rotate(0deg);
+            opacity: 1;
+        }
+
+        100% {
+            transform: scale(1) rotate(15deg);
+            opacity: 0;
+        }
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -772,9 +832,13 @@
                 realBubble.textContent = startAge;
                 sliderWrap.appendChild(realBubble);
 
-                // 🎉 BIG OVER-THE-TOP HIGH-FIVE as soon as the real age appears
+                // right after you append `realBubble` but before you position it:
                 if (startAge < realAge) {
                     animateHighFive();
+                } else if (startAge > realAge) {
+                    animateCry();
+                } else {
+                    animateEyes();
                 }
 
                 // position it over the slider at the guessed value
@@ -1035,6 +1099,34 @@
         emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
 
         document.body.appendChild(emoji);
+        emoji.addEventListener('animationend', () => emoji.remove());
+    }
+
+    function animateCry() {
+        const img = document.getElementById('modalProfilePic');
+        const rect = img.getBoundingClientRect();
+        const emoji = document.createElement('div');
+        emoji.textContent = '😭';
+        emoji.classList.add('gma-cry-emoji');
+        document.body.appendChild(emoji);
+        // center
+        const { width: ew, height: eh } = emoji.getBoundingClientRect();
+        emoji.style.left = `${rect.left + rect.width / 2 - ew / 2}px`;
+        emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
+        emoji.addEventListener('animationend', () => emoji.remove());
+    }
+
+    function animateEyes() {
+        const img = document.getElementById('modalProfilePic');
+        const rect = img.getBoundingClientRect();
+        const emoji = document.createElement('div');
+        emoji.textContent = '👀';
+        emoji.classList.add('gma-eyes-emoji');
+        document.body.appendChild(emoji);
+        // center
+        const { width: ew, height: eh } = emoji.getBoundingClientRect();
+        emoji.style.left = `${rect.left + rect.width / 2 - ew / 2}px`;
+        emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
         emoji.addEventListener('animationend', () => emoji.remove());
     }
 </script>
