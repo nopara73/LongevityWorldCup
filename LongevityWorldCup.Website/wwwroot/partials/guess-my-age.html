@@ -925,7 +925,11 @@
                                     popBanner(false, false);
                                 }
 
-                                setTimeout(() => hideCard({ currentTarget: btn, originalGuess: userGuess }), 5000);
+                                setTimeout(() => hideCard({
+                                    currentTarget: btn,
+                                    originalGuess: userGuess,
+                                    isFirstGuess: gmaResultData && gmaResultData.crowdCount === 1
+                                }), 5000);
                             }
                         } else {
                             setTimeout(segmentTick, delay);
@@ -969,7 +973,11 @@
         let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
         const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
 
-        allGuesses[athleteSlug] = { value: isSkip ? null : guessValue, skipped: isSkip };
+        allGuesses[athleteSlug] = {
+            value: isSkip ? null : guessValue,
+            skipped: isSkip,
+            first: !isSkip && Boolean(e.isFirstGuess)
+        };
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
         updateYourGuess();  // ← Add this line
 
