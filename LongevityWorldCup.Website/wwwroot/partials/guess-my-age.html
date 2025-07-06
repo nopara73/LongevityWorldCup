@@ -814,6 +814,15 @@
                 if (data) {
                     gmaResultData = data;
                     updateCrowdContainer(data.crowdAge, data.crowdCount);
+
+                    if (userGuess < data.actualAge) {
+                        animateHighFive();
+                    } else if (userGuess > data.actualAge) {
+                        animateCry();
+                    } else {
+                        animateEyes();
+                    }
+
                 }
             })
             .catch(error => console.error('Error submitting guess:', error));
@@ -834,15 +843,6 @@
                 realBubble.setAttribute('for', 'gmaRange');
                 realBubble.textContent = startAge;
                 sliderWrap.appendChild(realBubble);
-
-                // right after you append `realBubble` but before you position it:
-                if (startAge < realAge) {
-                    animateHighFive();
-                } else if (startAge > realAge) {
-                    animateCry();
-                } else {
-                    animateEyes();
-                }
 
                 // position it over the slider at the guessed value
                 const clampPct = pct => Math.min(Math.max(pct, 5), 95);
