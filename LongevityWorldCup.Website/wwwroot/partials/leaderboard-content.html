@@ -3128,14 +3128,32 @@
         const guessData = allGuesses[athleteSlug];
 
         if (guessData && guessData.value != null) {
+            // show the container
             yourGuessContainer.style.display = 'block';
-            if (guessData.first) {
-                yourGuessSpan.textContent = `${guessData.value} years (first to guess)`;
-            } else {
-                yourGuessSpan.textContent = `${guessData.value} years`;
-            }
+
+            // convert guess to a number
+            const guess = Number(guessData.value);
+
+            // grab the displayed chrono & crowd ages
+            const chrono = parseInt(document.getElementById('chronologicalAge').textContent, 10);
+            const crowd = parseFloat(document.getElementById('crowdAge').textContent);
+
+            // compute how far you and the crowd are from the true age
+            const diffYou = Math.abs(guess - chrono);
+            const diffCrowd = Math.abs(crowd - chrono);
+
+            // collect any matching icons
+            const iconClasses = [];
+            if (diffYou === 0) iconClasses.push('fa-bullseye');
+            if (diffYou < diffCrowd) iconClasses.push('fa-trophy');
+            if (guessData.first) iconClasses.push('fa-medal');
+
+            // build and render
+            const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
+            yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
 
         } else {
+            // hide if no guess
             yourGuessContainer.style.display = 'none';
         }
     }
