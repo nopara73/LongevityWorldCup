@@ -1058,6 +1058,18 @@
             opacity: 1;
         }
     }
+
+    .first-guess-stamp {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid currentColor;
+        border-radius: 4px;
+        background: transparent;
+        letter-spacing: 0.5px;
+        margin: 0.25rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+    }
 </style>
 
 <div class="main-container">
@@ -3129,7 +3141,7 @@
 
         if (guessData && guessData.value != null) {
             // show the container
-            yourGuessContainer.style.display = 'block';
+            yourGuessContainer.style.display = 'inline-block';
 
             // convert guess to a number
             const guess = Number(guessData.value);
@@ -3151,6 +3163,9 @@
             // build and render
             const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
             yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
+
+            if (guessData.first) yourGuessContainer.classList.add('first-guess-stamp');
+            else yourGuessContainer.classList.remove('first-guess-stamp');
 
         } else {
             // hide if no guess
