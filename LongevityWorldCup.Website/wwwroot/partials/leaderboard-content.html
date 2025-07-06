@@ -1166,8 +1166,9 @@
                             <span id="notEmptyCrowdAgeContainer" style="display: none;"><strong>Crowd Age:</strong> <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses</span>
                         </p>
                         <p id="yourGuessContainer" style="display: none;">
-                            <strong>Your Guess:</strong> <span id="yourGuess"></span> years
+                            <strong>Your Guess:</strong> <span id="yourGuess"></span>
                         </p>
+
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
@@ -3127,7 +3128,12 @@
 
         if (guessData && guessData.value != null) {
             yourGuessContainer.style.display = 'block';
-            yourGuessSpan.textContent = guessData.value;
+            if (guessData.first) {
+                yourGuessSpan.textContent = `${guessData.value} years (first to guess)`;
+            } else {
+                yourGuessSpan.textContent = `${guessData.value} years`;
+            }
+
         } else {
             yourGuessContainer.style.display = 'none';
         }
