@@ -917,7 +917,7 @@
                                     // exact hit!
                                     gmaCard.classList.add('celebrate-exact');
                                     popBanner(true, false);
-                                } else if (gmaResultData.crowdCount === 1) {
+                                } else if (gmaResultData.crowdCount - 1 === 0) {
                                     popBanner(false, true);
                                 } else if (userError < crowdError) {
                                     // beat the crowd!
