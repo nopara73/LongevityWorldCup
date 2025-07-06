@@ -1070,6 +1070,32 @@
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         transition: transform 0.2s ease;
     }
+
+    .primary-stamp {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid var(--primary-color);
+        border-radius: 4px;
+        background: transparent;
+        letter-spacing: 0.5px;
+        margin: 0.25rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+        color: var(--primary-color);
+    }
+
+    .golden-stamp {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid #FFD700;
+        border-radius: 4px;
+        background: #FFD700;
+        letter-spacing: 0.5px;
+        margin: 0.25rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+        color: #000;
+    }
 </style>
 
 <div class="main-container">
@@ -3164,8 +3190,20 @@
             const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
             yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
 
-            if (guessData.first) yourGuessContainer.classList.add('first-guess-stamp');
-            else yourGuessContainer.classList.remove('first-guess-stamp');
+            // remove any existing stamp classes
+            yourGuessContainer.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
+            // exact match → golden stamp
+            if (diffYou === 0) {
+                yourGuessContainer.classList.add('golden-stamp');
+            }
+            // better than crowd → primary-color stamp
+            else if (diffYou < diffCrowd) {
+                yourGuessContainer.classList.add('primary-stamp');
+            }
+            // first-to-guess (fallback) → default black stamp
+            else if (guessData.first) {
+                yourGuessContainer.classList.add('first-guess-stamp');
+            }
 
         } else {
             // hide if no guess
