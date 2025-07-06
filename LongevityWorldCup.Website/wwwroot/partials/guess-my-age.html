@@ -765,6 +765,9 @@
 
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
     gmaSubmitBtn.addEventListener('click', function (e) {
+        // 1) grab the *user’s* guess before we start animating
+        const userGuess = +gmaRange.value;
+
         // if they chose the absolute min or max, we’ll troll them instead of collapsing
         if (gmaRange.value === gmaRange.min || gmaRange.value === gmaRange.max) {
             gmaTriggerTrollAnimation();
@@ -922,7 +925,7 @@
                                     popBanner(false, false);
                                 }
 
-                                setTimeout(() => hideCard({ currentTarget: btn }), 5000);
+                                setTimeout(() => hideCard({ currentTarget: btn, originalGuess: userGuess }), 5000);
                             }
                         } else {
                             setTimeout(segmentTick, delay);
@@ -957,13 +960,18 @@
 
         const modalContent = document.querySelector('.modal-content');
         const athleteSlug = modalContent.dataset.athleteSlug;
-        const guessValue = gmaRange.value;
+
+        // **Use the originalGuess if passed**, otherwise fall back
+        const guessValue = e.originalGuess != null
+            ? e.originalGuess
+            : gmaRange.value;
 
         let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
         const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
 
         allGuesses[athleteSlug] = { value: isSkip ? null : guessValue, skipped: isSkip };
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+        updateYourGuess();  // ← Add this line
 
         gmaCard.classList.add('gma-done');
         document.querySelector('.modal-content').classList.remove('guess-mode');
