@@ -1165,6 +1165,9 @@
                             <span id="emptyCrowdAgeContainer"><strong>Crowd Age:</strong> Crickets...</span>
                             <span id="notEmptyCrowdAgeContainer" style="display: none;"><strong>Crowd Age:</strong> <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses</span>
                         </p>
+                        <p id="yourGuessContainer" style="display: none;">
+                            <strong>Your Guess:</strong> <span id="yourGuess"></span> years
+                        </p>
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
@@ -2598,6 +2601,7 @@
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
+        updateYourGuess();
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
         document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
@@ -3111,6 +3115,21 @@
             emptyCrowdContainer.style.display = 'none';
             document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
             document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
+        }
+    }
+
+    function updateYourGuess() {
+        const yourGuessContainer = document.getElementById('yourGuessContainer');
+        const yourGuessSpan = document.getElementById('yourGuess');
+        const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+        const athleteSlug = document.querySelector('.modal-content').dataset.athleteSlug;
+        const guessData = allGuesses[athleteSlug];
+
+        if (guessData && guessData.value != null) {
+            yourGuessContainer.style.display = 'block';
+            yourGuessSpan.textContent = guessData.value;
+        } else {
+            yourGuessContainer.style.display = 'none';
         }
     }
 </script>
