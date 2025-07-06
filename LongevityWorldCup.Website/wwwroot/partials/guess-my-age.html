@@ -585,6 +585,36 @@
         color: var(--gma-gold) !important;
         text-shadow: 0 0 5px rgba(255,215,0,0.8);
     }
+
+    /* High-five emoji animation */
+    .gma-highfive-emoji {
+        position: fixed;
+        width: 200px; /* was 400px */
+        height: 200px; /* was 400px */
+        pointer-events: none;
+        font-size: 15rem; /* was 30rem */
+        transform-origin: center center;
+        animation: gma-highfive-pop 0.8s ease-out forwards;
+        will-change: transform, opacity;
+        z-index: 10003;
+    }
+
+    @keyframes gma-highfive-pop {
+        0% {
+            transform: scale(0) rotate(-30deg);
+            opacity: 0;
+        }
+
+        50% {
+            transform: scale(1.2) rotate(0deg);
+            opacity: 1;
+        }
+
+        100% {
+            transform: scale(1) rotate(15deg);
+            opacity: 0;
+        }
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
@@ -741,6 +771,11 @@
                 realBubble.setAttribute('for', 'gmaRange');
                 realBubble.textContent = startAge;
                 sliderWrap.appendChild(realBubble);
+
+                // 🎉 BIG OVER-THE-TOP HIGH-FIVE as soon as the real age appears
+                if (startAge < realAge) {
+                    animateHighFive();
+                }
 
                 // position it over the slider at the guessed value
                 const clampPct = pct => Math.min(Math.max(pct, 5), 95);
@@ -983,5 +1018,23 @@
             origin: { x: randomX, y: randomY },
             zIndex: 5
         });
+    }
+
+    function animateHighFive() {
+        const img = document.getElementById('modalProfilePic');
+        const rect = img.getBoundingClientRect();
+        const emoji = document.createElement('div');
+        emoji.textContent = '🙌';
+        emoji.classList.add('gma-highfive-emoji');
+        // center the emoji over the profile pic
+        emoji.classList.add('gma-highfive-emoji');
+        document.body.appendChild(emoji);
+        // measure actual emoji size and center it
+        const { width: ew, height: eh } = emoji.getBoundingClientRect();
+        emoji.style.left = `${rect.left + rect.width / 2 - ew / 2}px`;
+        emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
+
+        document.body.appendChild(emoji);
+        emoji.addEventListener('animationend', () => emoji.remove());
     }
 </script>
