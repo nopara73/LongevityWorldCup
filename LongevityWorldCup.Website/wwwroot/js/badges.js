@@ -625,17 +625,15 @@ window.setBadges = function (athlete, athleteCell) {
     if (mostGuessedMapping[athlete.name]) {
         const rank = mostGuessedMapping[athlete.name];
         const count = athlete.crowdCount;
+        const iconClass = "fa-users";
 
-        let tooltipText, iconClass;
+        let tooltipText;
         if (rank === 1) {
             tooltipText = `Popular AF: Most Age Guesses Received (${count})`;
-            iconClass = "fa-users";
         } else if (rank === 2) {
             tooltipText = `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
-            iconClass = "fa-user-friends";
         } else if (rank === 3) {
             tooltipText = `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
-            iconClass = "fa-user-plus";
         }
 
         // apply gold/silver/bronze bg
