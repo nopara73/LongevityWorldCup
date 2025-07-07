@@ -16,6 +16,9 @@ let phenoAgeDiffMapping = {};
 let mostGuessedMapping = {};
 let ageGapMapping = {};
 let crowdAgeMapping = {};
+let perfectGuessMapping = {};
+let bestGuessMapping = {};
+let bestGuessDiffMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -279,6 +282,43 @@ window.computeBadges = function (athleteResults) {
                 crowdAgeMapping[a.name] = rank + 1;
             }
         });
+    }
+
+    // — User‐Guess‐Based badges —
+    // 1) Load your guesses from localStorage
+    const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+
+    // 2) Build an array of { name, diff, isExact } for athletes you actually guessed
+    const guessEntries = athleteResults
+        .map(a => {
+            const slug = window.slugifyName(a.name, true);
+            const g = allGuesses[slug];
+            if (g && g.value != null) {
+                const guessInt = parseInt(g.value, 10);
+                const actualInt = parseInt(a.chronologicalAge, 10);
+                const diff = Math.abs(guessInt - actualInt);
+                return { name: a.name, diff, isExact: diff === 0 };
+            }
+            return null;
+        })
+        .filter(x => x !== null);
+
+    // 3a) If you have any perfect (zero-error) guesses, badge them:
+    const perfects = guessEntries.filter(x => x.isExact);
+    if (perfects.length > 0) {
+        perfects.forEach(x => {
+            perfectGuessMapping[x.name] = true;
+        });
+    }
+    // 3b) Otherwise, if you have guesses but none perfect, find the closest (min-diff)
+    else if (guessEntries.length > 0) {
+        const minDiff = Math.min(...guessEntries.map(x => x.diff));
+        guessEntries
+            .filter(x => x.diff === minDiff)
+            .forEach(x => {
+                bestGuessMapping[x.name] = true;
+                bestGuessDiffMapping[x.name] = minDiff;
+            });
     }
 }
 
@@ -742,6 +782,34 @@ window.setBadges = function (athlete, athleteCell) {
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
+    // — Perfect Guess badge (exact match) —
+    if (perfectGuessMapping[athlete.name]) {
+        const tooltip = `Dead On: Perfect Guess!`;
+        const icon = "fa-bullseye";
+        const html = `
+        <span class="badge-class"
+              title="${tooltip}"
+              style="cursor: none; ${defaultBadgeBackground}">
+          <i class="fa ${icon}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html });
+    }
+
+    // — Best Guess badge (closest when no perfects exist) —
+    if (bestGuessMapping[athlete.name]) {
+        const diff = bestGuessDiffMapping[athlete.name];
+        const yearWord = diff === 1 ? 'year' : 'years';
+        const tooltip = `Sharp Shooter: Closest Guess (${diff} ${yearWord} off)`;
+        const icon = "fa-trophy";
+        const html = `
+        <span class="badge-class"
+              title="${tooltip}"
+              style="cursor: none; ${defaultBadgeBackground}">
+          <i class="fa ${icon}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html });
     }
 
     // Sort the badge elements by the color order: black (1) first, then gold (2), silver (3), and bronze (4)
