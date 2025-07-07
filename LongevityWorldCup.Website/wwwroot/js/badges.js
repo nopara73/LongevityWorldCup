@@ -246,8 +246,8 @@ window.computeBadges = function (athleteResults) {
     if (guessedAthletes.length > 0) {
         // 1) build a list of all positive gaps
         const allGaps = guessedAthletes
-            .map(a => Math.abs(a.chronologicalAge - a.crowdAge))
-            .filter(g => g > 0);
+            .map(a => a.chronologicalAge - a.crowdAge) // no Math.abs()
+            .filter(diff => diff > 0) // only when crowd guessed younger
 
         // 2) dedupe and sort descending
         const topGaps = [...new Set(allGaps)]
@@ -667,7 +667,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-user-ninja";
         } else {
             tooltipText = `Bronze Detective: 3rd Biggest Gap (${gap} ${yearWord})`;
-            iconClass = "fa-user-lock";
+            iconClass = "fa-user-tie";
         }
 
         // gold/silver/bronze bg from badgeBackgrounds[0..2]
