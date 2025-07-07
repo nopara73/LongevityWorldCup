@@ -731,7 +731,7 @@ window.setBadges = function (athlete, athleteCell) {
 
     // — Perfect Guess badge (exact match) —
     if (perfectGuessMapping[athlete.name]) {
-        const tooltip = `Bullseye: You guessed their age perfectly!`;
+        const tooltip = `Bullseye: You Guessed Their Age Perfectly!`;
         const icon = "fa-bullseye";
         const html = `
         <span class="badge-class"
@@ -746,7 +746,7 @@ window.setBadges = function (athlete, athleteCell) {
     if (bestGuessMapping[athlete.name]) {
         const diff = bestGuessDiffMapping[athlete.name];
         const yearWord = diff === 1 ? 'year' : 'years';
-        const tooltip = `Your Best Age Guess: only ${diff} ${yearWord} off!`;
+        const tooltip = `Your Best Age Guess: Only ${diff} ${yearWord} Off!`;
         const icon = "fa-crosshairs";
         const html = `
         <span class="badge-class"
