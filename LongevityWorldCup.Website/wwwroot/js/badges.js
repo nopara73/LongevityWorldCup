@@ -625,18 +625,16 @@ window.setBadges = function (athlete, athleteCell) {
     if (mostGuessedMapping[athlete.name]) {
         const rank = mostGuessedMapping[athlete.name];
         const count = athlete.crowdCount;
-        // pick singular/plural
-        const guessWord = count === 1 ? 'guess' : 'guesses';
 
         let tooltipText, iconClass;
         if (rank === 1) {
-            tooltipText = `Trendsetter: Most Guessed by the Crowd (${count} ${guessWord})`;
+            tooltipText = `Center of Attention: Most Age Guesses Received (${count})`;
             iconClass = "fa-users";
         } else if (rank === 2) {
-            tooltipText = `Crowd Follower: 2nd Most Guessed (${count} ${guessWord})`;
+            tooltipText = `Under the Spotlight: 2nd Most Age Guesses Received (${count})`;
             iconClass = "fa-user-friends";
         } else if (rank === 3) {
-            tooltipText = `Crowd Participant: 3rd Most Guessed (${count} ${guessWord})`;
+            tooltipText = `Catching Eyes: 3rd Most Age Guesses Received (${count})`;
             iconClass = "fa-user-plus";
         }
 
