@@ -729,6 +729,34 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
+    // — Perfect Guess badge (exact match) —
+    if (perfectGuessMapping[athlete.name]) {
+        const tooltip = `Dead On: Perfect Guess!`;
+        const icon = "fa-bullseye";
+        const html = `
+        <span class="badge-class"
+              title="${tooltip}"
+              style="cursor: none; ${defaultBadgeBackground}">
+          <i class="fa ${icon}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html });
+    }
+
+    // — Best Guess badge (closest when no perfects exist) —
+    if (bestGuessMapping[athlete.name]) {
+        const diff = bestGuessDiffMapping[athlete.name];
+        const yearWord = diff === 1 ? 'year' : 'years';
+        const tooltip = `Sharp Shooter: Closest Guess (${diff} ${yearWord} off)`;
+        const icon = "fa-trophy";
+        const html = `
+        <span class="badge-class"
+              title="${tooltip}"
+              style="cursor: none; ${defaultBadgeBackground}">
+          <i class="fa ${icon}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html });
+    }
+
     // Liver Biomarker Contribution badge (colored backgrounds)
     if (liverMapping[athlete.name]) {
         const tooltipText = liverMapping[athlete.name];
@@ -782,34 +810,6 @@ window.setBadges = function (athlete, athleteCell) {
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Perfect Guess badge (exact match) —
-    if (perfectGuessMapping[athlete.name]) {
-        const tooltip = `Dead On: Perfect Guess!`;
-        const icon = "fa-bullseye";
-        const html = `
-        <span class="badge-class"
-              title="${tooltip}"
-              style="cursor: none; ${defaultBadgeBackground}">
-          <i class="fa ${icon}"></i>
-        </span>`;
-        badgeElements.push({ order: 1, html });
-    }
-
-    // — Best Guess badge (closest when no perfects exist) —
-    if (bestGuessMapping[athlete.name]) {
-        const diff = bestGuessDiffMapping[athlete.name];
-        const yearWord = diff === 1 ? 'year' : 'years';
-        const tooltip = `Sharp Shooter: Closest Guess (${diff} ${yearWord} off)`;
-        const icon = "fa-trophy";
-        const html = `
-        <span class="badge-class"
-              title="${tooltip}"
-              style="cursor: none; ${defaultBadgeBackground}">
-          <i class="fa ${icon}"></i>
-        </span>`;
-        badgeElements.push({ order: 1, html });
     }
 
     // Sort the badge elements by the color order: black (1) first, then gold (2), silver (3), and bronze (4)
