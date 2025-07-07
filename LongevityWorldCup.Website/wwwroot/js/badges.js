@@ -731,7 +731,7 @@ window.setBadges = function (athlete, athleteCell) {
 
     // — Perfect Guess badge (exact match) —
     if (perfectGuessMapping[athlete.name]) {
-        const tooltip = `Dead On: Perfect Guess!`;
+        const tooltip = `Bullseye: You guessed their age perfectly!`;
         const icon = "fa-bullseye";
         const html = `
         <span class="badge-class"
