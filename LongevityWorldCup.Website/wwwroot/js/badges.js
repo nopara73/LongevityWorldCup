@@ -14,6 +14,7 @@ let submissionOverTwoMapping = {};
 let mostSubmissionMapping = {};
 let phenoAgeDiffMapping = {};
 let mostGuessedMapping = {};
+let ageGapMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -233,6 +234,32 @@ window.computeBadges = function (athleteResults) {
             mostGuessedMapping[athlete.name] = rank + 1;
         }
     });
+
+    // — Compute the three biggest age-guess gaps (real age vs crowd age), allowing ties —
+    //    but only for athletes who have at least one guess
+    const guessedAthletes = athleteResults.filter(a => a.crowdCount > 0);
+
+    if (guessedAthletes.length > 0) {
+        // 1) build a list of all positive gaps
+        const allGaps = guessedAthletes
+            .map(a => Math.abs(a.chronologicalAge - a.crowdAge))
+            .filter(g => g > 0);
+
+        // 2) dedupe and sort descending
+        const topGaps = [...new Set(allGaps)]
+            .sort((a, b) => b - a)
+            .slice(0, 3);
+
+        // 3) assign everyone whose gap matches one of those top three
+        guessedAthletes.forEach(athlete => {
+            const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge);
+            const rank = topGaps.indexOf(gap);
+            if (rank !== -1) {
+                // 0 → gold, 1 → silver, 2 → bronze
+                ageGapMapping[athlete.name] = rank + 1;
+            }
+        });
+    }
 }
 
 window.setBadges = function (athlete, athleteCell) {
@@ -307,7 +334,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-leaf";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -330,7 +357,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-running";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -353,7 +380,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-hourglass-start";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -390,7 +417,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-dove";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -402,7 +429,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = "Baby on Board! Delivering in 2025";
         const iconClass = "fa-baby-carriage"; // Alternatively, "fa-baby" can be used
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -413,7 +440,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = "Host: Organizer of the Longevity World Cup";
         const iconClass = "fa-house";
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -519,7 +546,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = mostSubmissionMapping[athlete.name];
         const iconClass = "fa-skull-crossbones";  // choose your preferred icon for submissions
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -528,7 +555,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = submissionOverTwoMapping[athlete.name];
         const iconClass = "fa-calendar-check";  // choose your preferred icon for submissions
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -559,7 +586,40 @@ window.setBadges = function (athlete, athleteCell) {
         const badgeHtml = `
     <span class="badge-class"
           title="${tooltipText}"
-          style="cursor: pointer; ${bgStyle}">
+          style="cursor: none; ${bgStyle}">
+      <i class="fa ${iconClass}"></i>
+    </span>`;
+
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
+    }
+
+    // Age-Gap ranking badges (gold / silver / bronze)
+    if (ageGapMapping[athlete.name]) {
+        const rank = ageGapMapping[athlete.name];
+        const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge).toFixed(1);
+        // singular/plural
+        const yearWord = (gap === '1.0') ? 'year' : 'years';
+
+        let tooltipText, iconClass;
+        if (rank === 1) {
+            tooltipText = `Mastermind: Biggest Age-Guess Gap (${gap} ${yearWord})`;
+            iconClass = "fa-user-secret";
+        } else if (rank === 2) {
+            tooltipText = `Silver Sleuth: 2nd Biggest Gap (${gap} ${yearWord})`;
+            iconClass = "fa-user-ninja";
+        } else {
+            tooltipText = `Bronze Detective: 3rd Biggest Gap (${gap} ${yearWord})`;
+            iconClass = "fa-user-lock";
+        }
+
+        // gold/silver/bronze bg from badgeBackgrounds[0..2]
+        const bgStyle = badgeBackgrounds[rank - 1];
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+
+        const badgeHtml = `
+    <span class="badge-class"
+          title="${tooltipText}"
+          style="cursor: none; ${bgStyle}">
       <i class="fa ${iconClass}"></i>
     </span>`;
 
@@ -571,7 +631,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = phenoAgeDiffMapping[athlete.name];
         const iconClass = "fa-clock";  // choose your preferred icon for time/difference
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -582,7 +642,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = liverMapping[athlete.name];
         const iconClass = "fa-droplet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${liverBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${liverBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -593,7 +653,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = kidneyMapping[athlete.name];
         const iconClass = "fa-toilet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${kidneyBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${kidneyBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -604,7 +664,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = metabolicMapping[athlete.name];
         const iconClass = "fa-fire";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${metabolicBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${metabolicBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -615,7 +675,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = inflammationMapping[athlete.name];
         const iconClass = "fa-temperature-three-quarters";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${inflammationBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${inflammationBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -626,7 +686,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = immuneMapping[athlete.name];
         const iconClass = "fa-virus";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${immuneBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${immuneBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
