@@ -15,6 +15,7 @@ let mostSubmissionMapping = {};
 let phenoAgeDiffMapping = {};
 let mostGuessedMapping = {};
 let ageGapMapping = {};
+let crowdAgeMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -257,6 +258,25 @@ window.computeBadges = function (athleteResults) {
             if (rank !== -1) {
                 // 0 → gold, 1 → silver, 2 → bronze
                 ageGapMapping[athlete.name] = rank + 1;
+            }
+        });
+    }
+
+    // — Compute the three lowest crowd-guessed ages (gold/silver/bronze), allowing ties —
+    //    only consider athletes who actually have at least one guess
+    const crowdGuessers = athleteResults.filter(a => a.crowdCount > 0);
+    if (crowdGuessers.length) {
+        // 1) collect and dedupe all crowdAge values
+        const uniqueAges = [...new Set(crowdGuessers.map(a => a.crowdAge))]
+            .sort((a, b) => a - b)   // ascending = lowest first
+            .slice(0, 3);            // take the top-3 distinct
+
+        // 2) assign each athlete whose crowdAge matches one of those
+        crowdGuessers.forEach(a => {
+            const rank = uniqueAges.indexOf(a.crowdAge);
+            if (rank !== -1) {
+                // 0 → gold, 1 → silver, 2 → bronze
+                crowdAgeMapping[a.name] = rank + 1;
             }
         });
     }
@@ -621,6 +641,38 @@ window.setBadges = function (athlete, athleteCell) {
           title="${tooltipText}"
           style="cursor: none; ${bgStyle}">
       <i class="fa ${iconClass}"></i>
+    </span>`;
+
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
+    }
+
+    // — Lowest crowd-guessed age badges (gold/silver/bronze) —
+    if (crowdAgeMapping[athlete.name]) {
+        const rank = crowdAgeMapping[athlete.name];
+        const age = athlete.crowdAge.toFixed(1);
+        const yearWord = age === '1.0' ? 'year' : 'years';
+
+        let tooltip, icon;
+        if (rank === 1) {
+            tooltip = `Crowd Child: Lowest Guessed Age (${age} ${yearWord})`;
+            icon = "fa-child";
+        } else if (rank === 2) {
+            tooltip = `Crowd Tween: 2nd Lowest Guessed Age (${age} ${yearWord})`;
+            icon = "fa-user-graduate";
+        } else {
+            tooltip = `Crowd Kid: 3rd Lowest Guessed Age (${age} ${yearWord})`;
+            icon = "fa-baby";
+        }
+
+        // reuse your medal backgrounds
+        const bgStyle = badgeBackgrounds[rank - 1];
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+
+        const badgeHtml = `
+    <span class="badge-class"
+          title="${tooltip}"
+          style="cursor: none; ${bgStyle}">
+      <i class="fa ${icon}"></i>
     </span>`;
 
         badgeElements.push({ order: colorOrder, html: badgeHtml });
