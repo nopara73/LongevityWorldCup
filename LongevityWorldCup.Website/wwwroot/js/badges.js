@@ -654,7 +654,7 @@ window.setBadges = function (athlete, athleteCell) {
         const rank = ageGapMapping[athlete.name];
         const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge).toFixed(1);
         // singular/plural
-        const yearWord = (gap === '1.0') ? 'Year' : 'Years';
+        const yearWord = (gap === '1.0') ? 'year' : 'years';
         const iconClass = "fa-user-ninja";
 
         let tooltipText;
@@ -684,18 +684,16 @@ window.setBadges = function (athlete, athleteCell) {
     if (crowdAgeMapping[athlete.name]) {
         const rank = crowdAgeMapping[athlete.name];
         const age = athlete.crowdAge.toFixed(1);
-        const yearWord = age === '1.0' ? 'Year' : 'Years';
+        const yearWord = age === '1.0' ? 'year' : 'years';
+        const iconClass = "fa-baby";
 
-        let tooltip, icon;
+        let tooltip;
         if (rank === 1) {
-            tooltip = `Crowd Child: Lowest Guessed Age (${age} ${yearWord})`;
-            icon = "fa-child";
+            tooltip = `Baby Boss: Youngest Looking (Crowd Age: ${age} ${yearWord})`;
         } else if (rank === 2) {
-            tooltip = `Crowd Tween: 2nd Lowest Guessed Age (${age} ${yearWord})`;
-            icon = "fa-user-graduate";
+            tooltip = `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
         } else {
-            tooltip = `Crowd Kid: 3rd Lowest Guessed Age (${age} ${yearWord})`;
-            icon = "fa-baby";
+            tooltip = `Diaper Don: 3rd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
         }
 
         // reuse your medal backgrounds
@@ -706,7 +704,7 @@ window.setBadges = function (athlete, athleteCell) {
     <span class="badge-class"
           title="${tooltip}"
           style="cursor: none; ${bgStyle}">
-      <i class="fa ${icon}"></i>
+      <i class="fa ${iconClass}"></i>
     </span>`;
 
         badgeElements.push({ order: colorOrder, html: badgeHtml });
