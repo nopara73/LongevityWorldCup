@@ -746,8 +746,8 @@ window.setBadges = function (athlete, athleteCell) {
     if (bestGuessMapping[athlete.name]) {
         const diff = bestGuessDiffMapping[athlete.name];
         const yearWord = diff === 1 ? 'year' : 'years';
-        const tooltip = `Sharp Shooter: Closest Guess (${diff} ${yearWord} off)`;
-        const icon = "fa-trophy";
+        const tooltip = `Your Best Age Guess: only ${diff} ${yearWord} off!`;
+        const icon = "fa-crosshairs";
         const html = `
         <span class="badge-class"
               title="${tooltip}"
