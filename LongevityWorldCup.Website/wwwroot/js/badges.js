@@ -13,6 +13,7 @@ let immuneMapping = {};
 let submissionOverTwoMapping = {};
 let mostSubmissionMapping = {};
 let phenoAgeDiffMapping = {};
+let mostGuessedMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -209,6 +210,27 @@ window.computeBadges = function (athleteResults) {
         if (athlete.phenoAgeDifference === bestPhenoAgeDiff) {
             const tooltipText = `Redemption Arc: Greatest Age Reversal from Frist Submission (Baseline) (${athlete.phenoAgeDifference.toFixed(1)} years)`;
             phenoAgeDiffMapping[athlete.name] = tooltipText;
+        }
+    });
+
+    // — Compute the three crowd-guess tiers (gold/silver/bronze), allowing ties —
+    // 1) build a list of all positive counts
+    const positiveCounts = athleteResults
+        .map(a => a.crowdCount)
+        .filter(c => c > 0);
+
+    // 2) dedupe and sort descending
+    const uniqueCounts = [...new Set(positiveCounts)].sort((a, b) => b - a);
+
+    // 3) take the top-3 distinct values
+    const topThree = uniqueCounts.slice(0, 3);
+
+    // 4) assign everyone whose crowdCount matches one of those topThree
+    athleteResults.forEach(athlete => {
+        const rank = topThree.indexOf(athlete.crowdCount);
+        if (rank !== -1) {
+            // rank === 0 → gold, 1 → silver, 2 → bronze
+            mostGuessedMapping[athlete.name] = rank + 1;
         }
     });
 }
@@ -510,6 +532,38 @@ window.setBadges = function (athlete, athleteCell) {
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
+    // Crowd-Guessed ranking badges (gold / silver / bronze)
+    if (mostGuessedMapping[athlete.name]) {
+        const rank = mostGuessedMapping[athlete.name];
+        const count = athlete.crowdCount;
+        // pick singular/plural
+        const guessWord = count === 1 ? 'guess' : 'guesses';
+
+        let tooltipText, iconClass;
+        if (rank === 1) {
+            tooltipText = `Trendsetter: Most Guessed by the Crowd (${count} ${guessWord})`;
+            iconClass = "fa-users";
+        } else if (rank === 2) {
+            tooltipText = `Crowd Follower: 2nd Most Guessed (${count} ${guessWord})`;
+            iconClass = "fa-user-friends";
+        } else if (rank === 3) {
+            tooltipText = `Crowd Participant: 3rd Most Guessed (${count} ${guessWord})`;
+            iconClass = "fa-user-plus";
+        }
+
+        // apply gold/silver/bronze bg
+        const bgStyle = badgeBackgrounds[rank - 1];
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+        const badgeHtml = `
+    <span class="badge-class"
+          title="${tooltipText}"
+          style="cursor: pointer; ${bgStyle}">
+      <i class="fa ${iconClass}"></i>
+    </span>`;
+
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
     // PhenoAge Difference badge (using default blackish background)
