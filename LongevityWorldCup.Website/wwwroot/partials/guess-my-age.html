@@ -910,10 +910,15 @@
                                 const guessed = startAge;
                                 const actual = realAge;
                                 const crowd = gmaResultData.crowdAge;
-                                const crowdCount = gmaResultData.crowdCount;
+
+                                // If this is the first guess then it's 1, including our guess. Let's make it 0.
+                                // However it can also be 0 if our guess is invalid.
+                                const crowdCount = (gmaResultData.crowdCount === 1) ? 0 : gmaResultData.crowdCount;
 
                                 const userError = Math.abs(actual - guessed);
-                                const crowdError = crowdCount === 0 ? 0 : Math.abs(actual - crowd);
+
+                                // It's kinda flawed because crowd guess here includes ours, but whatever. After sufficiently big numbers it shouldn't matter.
+                                const crowdError = (crowd === 0 || crowdCount === 0) ? 0 : Math.abs(actual - crowd);
 
                                 if (userError === 0) {
                                     // exact hit!
