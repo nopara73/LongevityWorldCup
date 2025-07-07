@@ -628,13 +628,13 @@ window.setBadges = function (athlete, athleteCell) {
 
         let tooltipText, iconClass;
         if (rank === 1) {
-            tooltipText = `Center of Attention: Most Age Guesses Received (${count})`;
+            tooltipText = `Popular AF: Most Age Guesses Received (${count})`;
             iconClass = "fa-users";
         } else if (rank === 2) {
-            tooltipText = `Under the Spotlight: 2nd Most Age Guesses Received (${count})`;
+            tooltipText = `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
             iconClass = "fa-user-friends";
         } else if (rank === 3) {
-            tooltipText = `Catching Eyes: 3rd Most Age Guesses Received (${count})`;
+            tooltipText = `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
             iconClass = "fa-user-plus";
         }
 
