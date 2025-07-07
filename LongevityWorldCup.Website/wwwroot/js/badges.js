@@ -654,18 +654,16 @@ window.setBadges = function (athlete, athleteCell) {
         const rank = ageGapMapping[athlete.name];
         const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge).toFixed(1);
         // singular/plural
-        const yearWord = (gap === '1.0') ? 'year' : 'years';
+        const yearWord = (gap === '1.0') ? 'Year' : 'Years';
+        const iconClass = "fa-user-ninja";
 
-        let tooltipText, iconClass;
+        let tooltipText;
         if (rank === 1) {
-            tooltipText = `Mastermind: Biggest Age-Guess Gap (${gap} ${yearWord})`;
-            iconClass = "fa-user-secret";
+            tooltipText = `Skin Trafficker: Perceived ${gap} ${yearWord} Younger`;
         } else if (rank === 2) {
-            tooltipText = `Silver Sleuth: 2nd Biggest Gap (${gap} ${yearWord})`;
-            iconClass = "fa-user-ninja";
+            tooltipText = `Wrinkle Launderer: Perceived ${gap} ${yearWord} Younger`;
         } else {
-            tooltipText = `Bronze Detective: 3rd Biggest Gap (${gap} ${yearWord})`;
-            iconClass = "fa-user-tie";
+            tooltipText = `Collagen Smuggler: Perceived ${gap} ${yearWord} Younger`;
         }
 
         // gold/silver/bronze bg from badgeBackgrounds[0..2]
@@ -686,7 +684,7 @@ window.setBadges = function (athlete, athleteCell) {
     if (crowdAgeMapping[athlete.name]) {
         const rank = crowdAgeMapping[athlete.name];
         const age = athlete.crowdAge.toFixed(1);
-        const yearWord = age === '1.0' ? 'year' : 'years';
+        const yearWord = age === '1.0' ? 'Year' : 'Years';
 
         let tooltip, icon;
         if (rank === 1) {
