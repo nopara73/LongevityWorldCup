@@ -26,12 +26,20 @@ namespace LongevityWorldCup.Website.Business
 
         private readonly SqliteConnection _sqliteConnection;
 
+        private const int MaxBackupFiles = 5;
+        private readonly string _backupDir;
+
         public AthleteDataService(IWebHostEnvironment env)
         {
             _env = env;
 
             var dataDir = EnvironmentHelpers.GetDataDir();
             Directory.CreateDirectory(dataDir);
+
+            // set up backup directory
+            _backupDir = Path.Combine(dataDir, "Backups");
+            Directory.CreateDirectory(_backupDir);
+
             var dbPath = Path.Combine(dataDir, DatabaseFileName);
             _sqliteConnection = new SqliteConnection($"Data Source={dbPath}");
             _sqliteConnection.Open();
@@ -91,6 +99,16 @@ namespace LongevityWorldCup.Website.Business
                         lastWrite = newWrite;
                         ReloadCrowdStats();
                     }
+                }
+            });
+
+            // kick off a daily backup + retention
+            _ = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
+                    BackupDatabase();
                 }
             });
         }
@@ -274,6 +292,38 @@ namespace LongevityWorldCup.Website.Business
                     athleteJson["CrowdCount"] = count;
                 }
             }
+        }
+
+        /// <summary>
+        /// Creates a timestamped backup, then prunes old backups so only the newest
+        /// `MaxBackupFiles` remain.
+        /// </summary>
+        public void BackupDatabase()
+        {
+            // checkpoint WAL so the main file is up-to-date
+            using var chk = _sqliteConnection.CreateCommand();
+            chk.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+            chk.ExecuteNonQuery();
+
+            // copy into a new file
+            var backupFile = Path.Combine(
+                _backupDir,
+                $"LongevityWC_{DateTime.UtcNow:yyyyMMdd_HHmmss}.db");
+            lock (_sqliteConnection)
+            {
+                using var dest = new SqliteConnection($"Data Source={backupFile}");
+                dest.Open();
+                _sqliteConnection.BackupDatabase(dest);
+            }
+
+            // prune old backups
+            var files = Directory
+                .GetFiles(_backupDir, "*.db")
+                .Select(f => new FileInfo(f))
+                .OrderByDescending(f => f.CreationTimeUtc)
+                .Skip(MaxBackupFiles);
+            foreach (var f in files)
+                f.Delete();
         }
 
         /// <summary>
