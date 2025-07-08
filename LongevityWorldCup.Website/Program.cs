@@ -1,6 +1,8 @@
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Middleware;
+using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using SQLitePCL;
 using System.Text.Json;
 
 namespace LongevityWorldCup.Website
@@ -14,6 +16,7 @@ namespace LongevityWorldCup.Website
             InitializeDefaultConfig(); // Ensure default config file is created
 
             var builder = WebApplication.CreateBuilder(args);
+            Batteries.Init();
 
             // Configure Kestrel to use settings from appsettings.json
             builder.WebHost.ConfigureKestrel((context, options) =>
@@ -47,6 +50,9 @@ namespace LongevityWorldCup.Website
             });
 
             var app = builder.Build();
+
+            var lf = app.Services.GetRequiredService<ILoggerFactory>();
+            EnvironmentHelpers.Log = lf.CreateLogger(nameof(EnvironmentHelpers));
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
