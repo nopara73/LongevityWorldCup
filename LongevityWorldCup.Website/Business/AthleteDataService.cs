@@ -76,6 +76,23 @@ namespace LongevityWorldCup.Website.Business
             _athleteWatcher.Renamed += (s, e) => DebounceReload();
             _athleteWatcher.EnableRaisingEvents = true;
             _athleteWatcher.Error += OnWatcherError;
+
+            // Start a poll‐loop to detect external DB writes and reload stats
+            _ = Task.Run(async () =>
+            {
+                var lastWrite = File.GetLastWriteTimeUtc(dbPath);
+                while (true)   // you could wire this to a CancellationToken if you like
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+
+                    var newWrite = File.GetLastWriteTimeUtc(dbPath);
+                    if (newWrite > lastWrite)
+                    {
+                        lastWrite = newWrite;
+                        ReloadCrowdStats();
+                    }
+                }
+            });
         }
 
         private async Task LoadAthletesAsync()
@@ -238,6 +255,23 @@ namespace LongevityWorldCup.Website.Business
                 {
                     athleteJson["CrowdCount"] = cnt;
                     athleteJson["CrowdAge"] = median;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Re‐reads all medians & counts from SQLite and updates the in‐memory JSON.
+        /// </summary>
+        public void ReloadCrowdStats()
+        {
+            lock (_sqliteConnection)
+            {
+                foreach (var athleteJson in Athletes.OfType<JsonObject>())
+                {
+                    var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
+                    var (median, count) = GetCrowdStats(slug);
+                    athleteJson["CrowdAge"] = median;
+                    athleteJson["CrowdCount"] = count;
                 }
             }
         }
