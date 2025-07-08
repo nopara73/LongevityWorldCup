@@ -3,9 +3,11 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.Sqlite;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
+using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business
 {
@@ -20,18 +22,42 @@ namespace LongevityWorldCup.Website.Business
         private CancellationTokenSource? _debounceCts;
         private static readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(100);
 
-        // ── per-athlete in-memory guess lists ──
-        private readonly ConcurrentDictionary<string, List<(DateTime Timestamp, int Age)>> _athleteAgeGuesses
-            = new(StringComparer.OrdinalIgnoreCase);
+        private const string DatabaseFileName = "LongevityWorldCup.db";
 
-        // ── lock objects for each athlete’s list ──
-        private readonly object _athleteAgeGuessesLock = new();
+        private readonly SqliteConnection _sqliteConnection;
 
         public AthleteDataService(IWebHostEnvironment env)
         {
             _env = env;
+
+            var dataDir = EnvironmentHelpers.GetDataDir();
+            Directory.CreateDirectory(dataDir);
+            var dbPath = Path.Combine(dataDir, DatabaseFileName);
+            _sqliteConnection = new SqliteConnection($"Data Source={dbPath}");
+            _sqliteConnection.Open();
+            using (var cmd = _sqliteConnection.CreateCommand())
+            {
+                cmd.CommandText = @"
+        CREATE TABLE IF NOT EXISTS AthleteAgeGuesses (
+            Id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            AthleteSlug    TEXT    NOT NULL,
+            TimestampUtc   TEXT    NOT NULL,
+            Age            INTEGER NOT NULL
+        )";
+                cmd.ExecuteNonQuery();
+            }
+
             // Initial load
             LoadAthletesAsync().GetAwaiter().GetResult();
+
+            // Hydrate persisted age‐guess stats from SQLite
+            foreach (var athleteJson in Athletes.OfType<JsonObject>())
+            {
+                var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
+                var (median, count) = GetCrowdStats(slug);
+                athleteJson["CrowdAge"] = median;
+                athleteJson["CrowdCount"] = count;
+            }
 
             // Watch the new per-athlete folders recursively
             var athletesDir = Path.Combine(env.WebRootPath, "athletes");
@@ -170,22 +196,37 @@ namespace LongevityWorldCup.Website.Business
         /// </summary>
         public void AddAgeGuess(string athleteSlug, int ageGuess)
         {
-            // get or create the list
-            var list = _athleteAgeGuesses.GetOrAdd(athleteSlug, _ => []);
-
-            lock (_athleteAgeGuessesLock)
+            lock (_sqliteConnection)
             {
-                // record
-                list.Add((DateTime.UtcNow, ageGuess));
+                // insert the new guess
+                using var insertCmd = _sqliteConnection.CreateCommand();
+                insertCmd.CommandText =
+                    "INSERT INTO AthleteAgeGuesses (AthleteSlug, TimestampUtc, Age) VALUES (@slug, @ts, @age)";
+                insertCmd.Parameters.AddWithValue("@slug", athleteSlug);
+                insertCmd.Parameters.AddWithValue("@ts", DateTime.UtcNow.ToString("o"));
+                insertCmd.Parameters.AddWithValue("@age", ageGuess);
+                insertCmd.ExecuteNonQuery();
 
-                // compute median
-                var ages = list.Select(g => g.Age).OrderBy(a => a).ToArray();
-                int cnt = ages.Length;
-                double median = (cnt % 2 == 1)
-                    ? ages[cnt / 2]
-                    : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                // fetch all ages to compute median & count
+                var ages = new List<int>();
+                using var selectCmd = _sqliteConnection.CreateCommand();
+                selectCmd.CommandText =
+                    "SELECT Age FROM AthleteAgeGuesses WHERE AthleteSlug = @slug ORDER BY Age";
+                selectCmd.Parameters.AddWithValue("@slug", athleteSlug);
+                using var reader = selectCmd.ExecuteReader();
+                while (reader.Read())
+                    ages.Add(reader.GetInt32(0));
 
-                // find the matching JSON object
+                int cnt = ages.Count;
+                double median = 0;
+                if (cnt > 0)
+                {
+                    median = (cnt % 2 == 1)
+                        ? ages[cnt / 2]
+                        : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                }
+
+                // update the in-memory JSON
                 var athleteJson = Athletes
                     .OfType<JsonObject>()
                     .FirstOrDefault(o => string.Equals(
@@ -206,17 +247,27 @@ namespace LongevityWorldCup.Website.Business
         /// </summary>
         public (double Median, int Count) GetCrowdStats(string athleteSlug)
         {
-            if (_athleteAgeGuesses.TryGetValue(athleteSlug, out var list) && list.Count > 0)
+            lock (_sqliteConnection)
             {
-                var ages = list.Select(g => g.Age).OrderBy(a => a).ToArray();
-                int cnt = ages.Length;
-                double median = (cnt % 2 == 1)
-                    ? ages[cnt / 2]
-                    : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                var ages = new List<int>();
+                using var cmd = _sqliteConnection.CreateCommand();
+                cmd.CommandText =
+                    "SELECT Age FROM AthleteAgeGuesses WHERE AthleteSlug = @slug ORDER BY Age";
+                cmd.Parameters.AddWithValue("@slug", athleteSlug);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                    ages.Add(reader.GetInt32(0));
+
+                int cnt = ages.Count;
+                double median = 0;
+                if (cnt > 0)
+                {
+                    median = (cnt % 2 == 1)
+                        ? ages[cnt / 2]
+                        : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                }
                 return (median, cnt);
             }
-
-            return (0, 0);
         }
 
         public int GetActualAge(string athleteSlug)
@@ -256,6 +307,8 @@ namespace LongevityWorldCup.Website.Business
             _athleteWatcher.Dispose();
             _reloadLock.Dispose();          // ← dispose the semaphore
             _debounceCts?.Dispose();       // ← dispose the CTS
+            _sqliteConnection.Close();
+            _sqliteConnection.Dispose();
             GC.SuppressFinalize(this);
         }
     }
