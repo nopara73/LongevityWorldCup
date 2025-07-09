@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using LongevityWorldCup.Website.Tools;
+using System.Text.Json;
 
 namespace LongevityWorldCup.Website.Business
 {
@@ -46,17 +47,26 @@ namespace LongevityWorldCup.Website.Business
             using (var cmd = _sqliteConnection.CreateCommand())
             {
                 cmd.CommandText = @"
-        CREATE TABLE IF NOT EXISTS AthleteAgeGuesses (
-            Id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            AthleteSlug    TEXT    NOT NULL,
-            TimestampUtc   TEXT    NOT NULL,
-            Age            INTEGER NOT NULL
-        )";
+    CREATE TABLE IF NOT EXISTS Athletes (
+        Key          TEXT    PRIMARY KEY,
+        AgeGuesses   TEXT    NOT NULL
+    )";
                 cmd.ExecuteNonQuery();
             }
 
             // Initial load
             LoadAthletesAsync().GetAwaiter().GetResult();
+
+            foreach (var athleteJson in Athletes.OfType<JsonObject>())
+            {
+                var athleteKey = athleteJson["AthleteSlug"]!.GetValue<string>();
+                using var insertAthleteCmd = _sqliteConnection.CreateCommand();
+                insertAthleteCmd.CommandText =
+                    "INSERT OR IGNORE INTO Athletes (Key, AgeGuesses) VALUES (@key, @ages)";
+                insertAthleteCmd.Parameters.AddWithValue("@key", athleteKey);
+                insertAthleteCmd.Parameters.AddWithValue("@ages", "[]");
+                insertAthleteCmd.ExecuteNonQuery();
+            }
 
             // Hydrate persisted age‐guess stats from SQLite
             foreach (var athleteJson in Athletes.OfType<JsonObject>())
@@ -107,8 +117,8 @@ namespace LongevityWorldCup.Website.Business
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
                     BackupDatabase();
+                    await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
                 }
             });
         }
@@ -234,23 +244,38 @@ namespace LongevityWorldCup.Website.Business
             lock (_sqliteConnection)
             {
                 // insert the new guess
-                using var insertCmd = _sqliteConnection.CreateCommand();
-                insertCmd.CommandText =
-                    "INSERT INTO AthleteAgeGuesses (AthleteSlug, TimestampUtc, Age) VALUES (@slug, @ts, @age)";
-                insertCmd.Parameters.AddWithValue("@slug", athleteSlug);
-                insertCmd.Parameters.AddWithValue("@ts", DateTime.UtcNow.ToString("o"));
-                insertCmd.Parameters.AddWithValue("@age", ageGuess);
-                insertCmd.ExecuteNonQuery();
+                using var selectJsonCmd = _sqliteConnection.CreateCommand();
+                selectJsonCmd.CommandText =
+                    "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
+                selectJsonCmd.Parameters.AddWithValue("@key", athleteSlug);
+                var existingJson = (selectJsonCmd.ExecuteScalar() as string) ?? "[]";
+
+                var ageArray = JsonSerializer.Deserialize<List<JsonObject>>(existingJson)!;
+                ageArray.Add(new JsonObject
+                {
+                    ["TimestampUtc"] = DateTime.UtcNow.ToString("o"),
+                    ["AgeGuess"] = ageGuess
+                });
+                var updatedJson = JsonSerializer.Serialize(ageArray);
+
+                using var updateCmd = _sqliteConnection.CreateCommand();
+                updateCmd.CommandText =
+                    "UPDATE Athletes SET AgeGuesses = @ages WHERE Key = @key";
+                updateCmd.Parameters.AddWithValue("@ages", updatedJson);
+                updateCmd.Parameters.AddWithValue("@key", athleteSlug);
+                updateCmd.ExecuteNonQuery();
 
                 // fetch all ages to compute median & count
-                var ages = new List<int>();
-                using var selectCmd = _sqliteConnection.CreateCommand();
-                selectCmd.CommandText =
-                    "SELECT Age FROM AthleteAgeGuesses WHERE AthleteSlug = @slug ORDER BY Age";
-                selectCmd.Parameters.AddWithValue("@slug", athleteSlug);
-                using var reader = selectCmd.ExecuteReader();
-                while (reader.Read())
-                    ages.Add(reader.GetInt32(0));
+                using var selectAgesJson = _sqliteConnection.CreateCommand();
+                selectAgesJson.CommandText =
+                    "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
+                selectAgesJson.Parameters.AddWithValue("@key", athleteSlug);
+                var agesJsonText = (selectAgesJson.ExecuteScalar() as string) ?? "[]";
+                var allGuesses = JsonSerializer.Deserialize<List<JsonObject>>(agesJsonText)!;
+                var ages = allGuesses
+                    .Select(node => node["AgeGuess"]!.GetValue<int>())
+                    .OrderBy(val => val)
+                    .ToList();
 
                 int cnt = ages.Count;
                 double median = 0;
@@ -333,14 +358,16 @@ namespace LongevityWorldCup.Website.Business
         {
             lock (_sqliteConnection)
             {
-                var ages = new List<int>();
-                using var cmd = _sqliteConnection.CreateCommand();
-                cmd.CommandText =
-                    "SELECT Age FROM AthleteAgeGuesses WHERE AthleteSlug = @slug ORDER BY Age";
-                cmd.Parameters.AddWithValue("@slug", athleteSlug);
-                using var reader = cmd.ExecuteReader();
-                while (reader.Read())
-                    ages.Add(reader.GetInt32(0));
+                using var selectAgesJson = _sqliteConnection.CreateCommand();
+                selectAgesJson.CommandText =
+                    "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
+                selectAgesJson.Parameters.AddWithValue("@key", athleteSlug);
+                var agesJsonText = (selectAgesJson.ExecuteScalar() as string) ?? "[]";
+                var allGuesses = JsonSerializer.Deserialize<List<JsonObject>>(agesJsonText)!;
+                var ages = allGuesses
+                    .Select(node => node["AgeGuess"]!.GetValue<int>())
+                    .OrderBy(val => val)
+                    .ToList();
 
                 int cnt = ages.Count;
                 double median = 0;
