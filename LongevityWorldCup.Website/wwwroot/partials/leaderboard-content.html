@@ -1058,6 +1058,44 @@
             opacity: 1;
         }
     }
+
+    .first-guess-stamp {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid currentColor;
+        border-radius: 4px;
+        background: transparent;
+        letter-spacing: 0.5px;
+        margin: 0.25rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+    }
+
+    .primary-stamp {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid var(--primary-color);
+        border-radius: 4px;
+        background: transparent;
+        letter-spacing: 0.5px;
+        margin: 0.25rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+        color: var(--primary-color);
+    }
+
+    .golden-stamp {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid #FFD700;
+        border-radius: 4px;
+        background: #FFD700;
+        letter-spacing: 0.5px;
+        margin: 0.25rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+        color: #000;
+    }
 </style>
 
 <div class="main-container">
@@ -1145,6 +1183,9 @@
                          class="illustration"
                          loading="lazy" />
                     <h2 id="athleteName"></h2>
+
+                    <!--GUESS-MY-AGE-->
+
                     <div id="modalBadgeStrip" class="modal-badge-strip"></div>
                     <p id="athleteBio"></p>
                     <div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
@@ -1158,6 +1199,14 @@
                         <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
                         <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
                         <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
+                        <p id="crowdAgeContainer">
+                            <span id="emptyCrowdAgeContainer"><strong>Crowd Age:</strong> Crickets...</span>
+                            <span id="notEmptyCrowdAgeContainer" style="display: none;"><strong>Crowd Age:</strong> <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses</span>
+                        </p>
+                        <p id="yourGuessContainer" style="display: none;">
+                            <strong>Your Guess:</strong> <span id="yourGuess"></span>
+                        </p>
+
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
@@ -1238,6 +1287,9 @@
                         athlete.DateOfBirth.Day
                     );
                     const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dob);
+
+                    const crowdAge = athlete.CrowdAge;
+                    const crowdCount = athlete.CrowdCount;
 
                     // Get birth year and generation
                     const birthYear = athlete.DateOfBirth.Year;
@@ -1367,6 +1419,8 @@
                         mediaContact: athlete.MediaContact,
                         dateOfBirth: dob,
                         chronologicalAge: chronologicalAge,
+                        crowdAge: crowdAge,
+                        crowdCount: crowdCount,
                         lowestPhenoAge: lowestPhenoAge,
                         ageReduction: ageReduction,
                         bestBiomarkerValues: bestBiomarkerValues,
@@ -1592,13 +1646,13 @@
                         row.classList.add('extra-athlete');
                     }
 
+                    tableBody.appendChild(row);
+
                     attachAthleteNameClickListeners();
                     applyCamelCaseNewlines();
                     addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
                         openEnlargedView(this);
                     });
-
-                    tableBody.appendChild(row);
                 });
 
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
@@ -1675,6 +1729,8 @@
 
     // Function to attach click event listener to all athlete-name elements
     function attachAthleteNameClickListeners() {
+        const athleteNameElements = document.querySelectorAll('.athlete-name');
+
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
             athleteNameElement.removeEventListener('click', handleAthleteNameClick); // Remove existing listeners to prevent duplicates
             athleteNameElement.addEventListener('click', handleAthleteNameClick);
@@ -1752,11 +1808,13 @@
     let ageChart;
 
     closeBtn.onclick = function () {
+        // don’t let them close mid-game
+        if (modalContent.classList.contains('guess-mode')) return;
         closeModal();
     };
 
     window.addEventListener('click', function (event) {
-        if (event.target === modal) {
+        if (event.target === modal && !modalContent.classList.contains('guess-mode')) {
             closeModal();
         }
     });
@@ -2376,13 +2434,14 @@
         }
     });
     function closeOpenComponents() {
+        // don’t close the details modal mid-guess
+        if (modalContent.classList.contains('guess-mode')) return;
+
         const enlargedImg = document.querySelector('.enlarged-portrait.show');
         if (enlargedImg) {
-            // Close the enlarged portrait if it's open
             closeEnlargedView(enlargedImg);
         }
         else if (modal.style.display === "block") {
-            // Close the details modal if it's open
             closeModal();
         }
     }
@@ -2466,7 +2525,56 @@
 
                 // Display the modal
                 modal.style.display = "block";
-                document.body.classList.add('no-scroll'); // Disable scrolling when modal opens
+                document.body.classList.add('no-scroll');
+
+                const modalContent = document.querySelector('.modal-content');
+                const gmaCard = document.getElementById('guessAgeContainer');
+
+                // always reset the Guess-My-Age UI first:
+                modalContent.classList.remove('guess-mode', 'gma-fast');
+                gmaCard.classList.remove('gma-done');
+                // read your guesses from localStorage
+                const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                // check if the user has hit “Skip All”
+                const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
+
+                const seen = sessionStorage.getItem('gmaSeen');
+
+                if (skipAll) {
+                    // user opted out globally
+                    modalContent.classList.remove('guess-mode');
+                    gmaCard.classList.add('gma-done');
+                } else if (allGuesses.hasOwnProperty(athleteSlug)) {
+                    // already guessed or skipped this athlete
+                    modalContent.classList.remove('guess-mode');
+                    gmaCard.classList.add('gma-done');
+                } else {
+                    // first time on *this* athlete
+                    modalContent.classList.add('guess-mode');
+                    sessionStorage.setItem('gmaSeen', 'true');
+                }
+
+                const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
+                if (gmaSkipAllBtn) {
+                    // reveal “Skip All” once they've skipped at least one athlete,
+                    // but hide it if they already chose skip-all
+                    if (!skipAll && Object.values(allGuesses).some(g => g.skipped)) {
+                        gmaSkipAllBtn.style.display = 'inline-block';
+                    } else {
+                        gmaSkipAllBtn.style.display = 'none';
+                    }
+                }
+
+                // stash the slug for your submit/skip handler
+                modalContent.dataset.athleteSlug = athleteSlug;
+                updateYourGuess();
+
+                if (seen) {
+                    modalContent.classList.add('gma-fast');
+                } else {
+                    sessionStorage.setItem('gmaSeen', 'true');
+                }
+
             })
             .catch(error => {
                 console.error('Error fetching full athlete data:', error);
@@ -2532,6 +2640,8 @@
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${window.getRankText(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
+        updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
+        updateYourGuess();
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
         document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
@@ -2974,11 +3084,15 @@
     const TAP_THRESHOLD = 10; // Allowable movement for taps
 
     document.addEventListener('touchstart', (e) => {
+        if (modal.style.display === "block") return;
+
         startX = e.changedTouches[0].clientX;
         startY = e.changedTouches[0].clientY;
     }, false);
 
     document.addEventListener('touchend', (e) => {
+        if (modal.style.display === "block") return;
+
         endX = e.changedTouches[0].clientX;
         endY = e.changedTouches[0].clientY;
 
@@ -3020,5 +3134,80 @@
                 img.dataset.listenerAdded = true; // Mark this element as having a listener added
             }
         });
+    }
+
+    function updateCrowdContainer(crowdAge, crowdCount) {
+        const crowdContainer = document.getElementById('crowdAgeContainer');
+        const emptyCrowdContainer = document.getElementById('emptyCrowdAgeContainer');
+        const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
+        const oldCountText = document.getElementById('crowdCount').textContent;
+
+        const previousCount = parseFloat(oldCountText) || 0;
+        if (crowdCount < previousCount) {
+            return;
+        }
+
+        if (crowdCount === 0) {
+            notEmptyCrowdContainer.style.display = 'none';
+            emptyCrowdContainer.style.display = 'block';
+        } else {
+            notEmptyCrowdContainer.style.display = 'block';
+            emptyCrowdContainer.style.display = 'none';
+            document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
+            document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
+        }
+    }
+
+    function updateYourGuess() {
+        const yourGuessContainer = document.getElementById('yourGuessContainer');
+        const yourGuessSpan = document.getElementById('yourGuess');
+        const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+        const athleteSlug = document.querySelector('.modal-content').dataset.athleteSlug;
+        const guessData = allGuesses[athleteSlug];
+
+        if (guessData && guessData.value != null) {
+            // show the container
+            yourGuessContainer.style.display = 'inline-block';
+
+            // convert guess to a number
+            const guess = Number(guessData.value);
+
+            // grab the displayed chrono & crowd ages
+            const chrono = parseInt(document.getElementById('chronologicalAge').textContent, 10);
+            const crowd = parseFloat(document.getElementById('crowdAge').textContent);
+
+            // compute how far you and the crowd are from the true age
+            const diffYou = Math.abs(guess - chrono);
+            const diffCrowd = Math.abs(crowd - chrono);
+
+            // collect any matching icons
+            const iconClasses = [];
+            if (diffYou === 0) iconClasses.push('fa-bullseye');
+            if (diffYou < diffCrowd) iconClasses.push('fa-trophy');
+            if (guessData.first) iconClasses.push('fa-medal');
+
+            // build and render
+            const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
+            yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
+
+            // remove any existing stamp classes
+            yourGuessContainer.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
+            // exact match → golden stamp
+            if (diffYou === 0) {
+                yourGuessContainer.classList.add('golden-stamp');
+            }
+            // better than crowd → primary-color stamp
+            else if (diffYou < diffCrowd) {
+                yourGuessContainer.classList.add('primary-stamp');
+            }
+            // first-to-guess (fallback) → default black stamp
+            else if (guessData.first) {
+                yourGuessContainer.classList.add('first-guess-stamp');
+            }
+
+        } else {
+            // hide if no guess
+            yourGuessContainer.style.display = 'none';
+        }
     }
 </script>

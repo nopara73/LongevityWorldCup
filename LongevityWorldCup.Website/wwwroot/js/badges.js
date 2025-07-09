@@ -13,6 +13,12 @@ let immuneMapping = {};
 let submissionOverTwoMapping = {};
 let mostSubmissionMapping = {};
 let phenoAgeDiffMapping = {};
+let mostGuessedMapping = {};
+let ageGapMapping = {};
+let crowdAgeMapping = {};
+let perfectGuessMapping = {};
+let bestGuessMapping = {};
+let bestGuessDiffMapping = {};
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -211,6 +217,109 @@ window.computeBadges = function (athleteResults) {
             phenoAgeDiffMapping[athlete.name] = tooltipText;
         }
     });
+
+    // — Compute the three crowd-guess tiers (gold/silver/bronze), allowing ties —
+    // 1) build a list of all positive counts
+    const positiveCounts = athleteResults
+        .map(a => a.crowdCount)
+        .filter(c => c > 0);
+
+    // 2) dedupe and sort descending
+    const uniqueCounts = [...new Set(positiveCounts)].sort((a, b) => b - a);
+
+    // 3) take the top-3 distinct values
+    const topThree = uniqueCounts.slice(0, 3);
+
+    // 4) assign everyone whose crowdCount matches one of those topThree
+    athleteResults.forEach(athlete => {
+        const rank = topThree.indexOf(athlete.crowdCount);
+        if (rank !== -1) {
+            // rank === 0 → gold, 1 → silver, 2 → bronze
+            mostGuessedMapping[athlete.name] = rank + 1;
+        }
+    });
+
+    // — Compute the three biggest age-guess gaps (real age vs crowd age), allowing ties —
+    //    but only for athletes who have at least one guess
+    const guessedAthletes = athleteResults.filter(a => a.crowdCount > 0);
+
+    if (guessedAthletes.length > 0) {
+        // 1) build a list of all positive gaps
+        const allGaps = guessedAthletes
+            .map(a => a.chronologicalAge - a.crowdAge) // no Math.abs()
+            .filter(diff => diff > 0) // only when crowd guessed younger
+
+        // 2) dedupe and sort descending
+        const topGaps = [...new Set(allGaps)]
+            .sort((a, b) => b - a)
+            .slice(0, 3);
+
+        // 3) assign everyone whose gap matches one of those top three
+        guessedAthletes.forEach(athlete => {
+            const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge);
+            const rank = topGaps.indexOf(gap);
+            if (rank !== -1) {
+                // 0 → gold, 1 → silver, 2 → bronze
+                ageGapMapping[athlete.name] = rank + 1;
+            }
+        });
+    }
+
+    // — Compute the three lowest crowd-guessed ages (gold/silver/bronze), allowing ties —
+    //    only consider athletes who actually have at least one guess
+    const crowdGuessers = athleteResults.filter(a => a.crowdCount > 0);
+    if (crowdGuessers.length) {
+        // 1) collect and dedupe all crowdAge values
+        const uniqueAges = [...new Set(crowdGuessers.map(a => a.crowdAge))]
+            .sort((a, b) => a - b)   // ascending = lowest first
+            .slice(0, 3);            // take the top-3 distinct
+
+        // 2) assign each athlete whose crowdAge matches one of those
+        crowdGuessers.forEach(a => {
+            const rank = uniqueAges.indexOf(a.crowdAge);
+            if (rank !== -1) {
+                // 0 → gold, 1 → silver, 2 → bronze
+                crowdAgeMapping[a.name] = rank + 1;
+            }
+        });
+    }
+
+    // — User‐Guess‐Based badges —
+    // 1) Load your guesses from localStorage
+    const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+
+    // 2) Build an array of { name, diff, isExact } for athletes you actually guessed
+    const guessEntries = athleteResults
+        .map(a => {
+            const slug = window.slugifyName(a.name, true);
+            const g = allGuesses[slug];
+            if (g && g.value != null) {
+                const guessInt = parseInt(g.value, 10);
+                const actualInt = parseInt(a.chronologicalAge, 10);
+                const diff = Math.abs(guessInt - actualInt);
+                return { name: a.name, diff, isExact: diff === 0 };
+            }
+            return null;
+        })
+        .filter(x => x !== null);
+
+    // 3a) If you have any perfect (zero-error) guesses, badge them:
+    const perfects = guessEntries.filter(x => x.isExact);
+    if (perfects.length > 0) {
+        perfects.forEach(x => {
+            perfectGuessMapping[x.name] = true;
+        });
+    }
+    // 3b) Otherwise, if you have guesses but none perfect, find the closest (min-diff)
+    else if (guessEntries.length > 0) {
+        const minDiff = Math.min(...guessEntries.map(x => x.diff));
+        guessEntries
+            .filter(x => x.diff === minDiff)
+            .forEach(x => {
+                bestGuessMapping[x.name] = true;
+                bestGuessDiffMapping[x.name] = minDiff;
+            });
+    }
 }
 
 window.setBadges = function (athlete, athleteCell) {
@@ -285,7 +394,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-leaf";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -308,7 +417,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-running";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -331,7 +440,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-hourglass-start";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -368,7 +477,7 @@ window.setBadges = function (athlete, athleteCell) {
             iconClass = "fa-dove";
         }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -380,7 +489,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = "Baby on Board! Delivering in 2025";
         const iconClass = "fa-baby-carriage"; // Alternatively, "fa-baby" can be used
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -391,7 +500,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = "Host: Organizer of the Longevity World Cup";
         const iconClass = "fa-house";
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -497,7 +606,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = mostSubmissionMapping[athlete.name];
         const iconClass = "fa-skull-crossbones";  // choose your preferred icon for submissions
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -506,10 +615,99 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = submissionOverTwoMapping[athlete.name];
         const iconClass = "fa-calendar-check";  // choose your preferred icon for submissions
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
+    // Crowd-Guessed ranking badges (gold / silver / bronze)
+    if (mostGuessedMapping[athlete.name]) {
+        const rank = mostGuessedMapping[athlete.name];
+        const count = athlete.crowdCount;
+        const iconClass = "fa-users";
+
+        let tooltipText;
+        if (rank === 1) {
+            tooltipText = `Popular AF: Most Age Guesses Received (${count})`;
+        } else if (rank === 2) {
+            tooltipText = `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
+        } else if (rank === 3) {
+            tooltipText = `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
+        }
+
+        // apply gold/silver/bronze bg
+        const bgStyle = badgeBackgrounds[rank - 1];
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+        const badgeHtml = `
+    <span class="badge-class"
+          title="${tooltipText}"
+          style="cursor: none; ${bgStyle}">
+      <i class="fa ${iconClass}"></i>
+    </span>`;
+
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
+    }
+
+    // Age-Gap ranking badges (gold / silver / bronze)
+    if (ageGapMapping[athlete.name]) {
+        const rank = ageGapMapping[athlete.name];
+        const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge).toFixed(1);
+        // singular/plural
+        const yearWord = (gap === '1.0') ? 'year' : 'years';
+        const iconClass = "fa-user-ninja";
+
+        let tooltipText;
+        if (rank === 1) {
+            tooltipText = `Skin Trafficker: Perceived ${gap} ${yearWord} Younger`;
+        } else if (rank === 2) {
+            tooltipText = `Wrinkle Launderer: Perceived ${gap} ${yearWord} Younger`;
+        } else {
+            tooltipText = `Collagen Smuggler: Perceived ${gap} ${yearWord} Younger`;
+        }
+
+        // gold/silver/bronze bg from badgeBackgrounds[0..2]
+        const bgStyle = badgeBackgrounds[rank - 1];
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+
+        const badgeHtml = `
+    <span class="badge-class"
+          title="${tooltipText}"
+          style="cursor: none; ${bgStyle}">
+      <i class="fa ${iconClass}"></i>
+    </span>`;
+
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
+    }
+
+    // — Lowest crowd-guessed age badges (gold/silver/bronze) —
+    if (crowdAgeMapping[athlete.name]) {
+        const rank = crowdAgeMapping[athlete.name];
+        const age = athlete.crowdAge.toFixed(1);
+        const yearWord = age === '1.0' ? 'year' : 'years';
+        const iconClass = "fa-baby";
+
+        let tooltip;
+        if (rank === 1) {
+            tooltip = `Baby Boss: Youngest Looking (Crowd Age: ${age} ${yearWord})`;
+        } else if (rank === 2) {
+            tooltip = `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
+        } else {
+            tooltip = `Diaper Don: 3rd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
+        }
+
+        // reuse your medal backgrounds
+        const bgStyle = badgeBackgrounds[rank - 1];
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+
+        const badgeHtml = `
+    <span class="badge-class"
+          title="${tooltip}"
+          style="cursor: none; ${bgStyle}">
+      <i class="fa ${iconClass}"></i>
+    </span>`;
+
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
     // PhenoAge Difference badge (using default blackish background)
@@ -517,10 +715,38 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = phenoAgeDiffMapping[athlete.name];
         const iconClass = "fa-clock";  // choose your preferred icon for time/difference
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
+    // — Perfect Guess badge (exact match) —
+    if (perfectGuessMapping[athlete.name]) {
+        const tooltip = `Bullseye: You Guessed Their Age Perfectly!`;
+        const icon = "fa-bullseye";
+        const html = `
+        <span class="badge-class"
+              title="${tooltip}"
+              style="cursor: none; ${defaultBadgeBackground}">
+          <i class="fa ${icon}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html });
+    }
+
+    // — Best Guess badge (closest when no perfects exist) —
+    if (bestGuessMapping[athlete.name]) {
+        const diff = bestGuessDiffMapping[athlete.name];
+        const yearWord = diff === 1 ? 'year' : 'years';
+        const tooltip = `Your Best Age Guess: Only ${diff} ${yearWord} Off!`;
+        const icon = "fa-crosshairs";
+        const html = `
+        <span class="badge-class"
+              title="${tooltip}"
+              style="cursor: none; ${defaultBadgeBackground}">
+          <i class="fa ${icon}"></i>
+        </span>`;
+        badgeElements.push({ order: 1, html });
     }
 
     // Liver Biomarker Contribution badge (colored backgrounds)
@@ -528,7 +754,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = liverMapping[athlete.name];
         const iconClass = "fa-droplet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${liverBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${liverBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -539,7 +765,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = kidneyMapping[athlete.name];
         const iconClass = "fa-toilet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${kidneyBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${kidneyBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -550,7 +776,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = metabolicMapping[athlete.name];
         const iconClass = "fa-fire";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${metabolicBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${metabolicBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -561,7 +787,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = inflammationMapping[athlete.name];
         const iconClass = "fa-temperature-three-quarters";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${inflammationBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${inflammationBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
@@ -572,7 +798,7 @@ window.setBadges = function (athlete, athleteCell) {
         const tooltipText = immuneMapping[athlete.name];
         const iconClass = "fa-virus";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="${immuneBackground}">
+        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${immuneBackground}">
             <i class="fa ${iconClass}"></i>
         </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });

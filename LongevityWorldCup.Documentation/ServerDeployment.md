@@ -28,6 +28,24 @@ https://www.longevityworldcup.com/
 3. Mobile, portrait
 4. Mobile, landscape
 
+## Athletes
+
+### List Athlete Keys
+```sh
+sqlite3 LongevityWorldCup.db "SELECT Key FROM Athletes;"
+```
+
+### Show Athlete Record
+
+```sh
+sqlite3 LongevityWorldCup.db "SELECT * FROM Athletes WHERE Key = 'your_key_here';"
+```
+
+### Delete Athlete Record
+```sh
+sqlite3 LongevityWorldCup.db "DELETE FROM Athletes WHERE Key = 'your_key_here';"
+```
+
 ## Subscriptions
 
 ### View
@@ -100,3 +118,5 @@ Publish before generating refresh token!
 Copy google SMTP credentials into the config file:
 - Find the client ID and secret at https://console.cloud.google.com/apis/credentials
 - Generate refresh token at https://developers.google.com/oauthplayground/
+
+
