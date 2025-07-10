@@ -864,6 +864,12 @@
             cursor: default;
         }
 
+            /* Allow only the podcast badge to be clickable on mobile */
+            #detailsModal .badge-class.badge-podcast {
+                pointer-events: auto !important;
+                cursor: pointer !important;
+            }
+
         .search-container {
             max-width: 100%;
             margin-top: 1rem;
