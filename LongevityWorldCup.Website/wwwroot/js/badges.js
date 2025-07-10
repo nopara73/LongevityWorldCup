@@ -387,7 +387,7 @@ window.setBadges = function (athlete, athleteCell) {
            href="${linkHref}"
            target="_blank"
            rel="noopener"
-           title="Podcast"
+           title="Podcast: hear to this athlete's story in depth"
            style="cursor: pointer; ${defaultBadgeBackground}">
             <i class="fa fa-microphone"></i>
         </a>`;
