@@ -107,6 +107,13 @@ echo "Difference in subscriptions: $DIFF"
 
 ## Configure
 
+Before first run on Linux ensure you give permission to the data folder.
+```
+sudo mkdir -p /var/www/.longevityworldcup
+sudo chown -R www-data:www-data /var/www/.longevityworldcup
+sudo chmod 700 /var/www/.longevityworldcup
+```
+
 After first run, config file is created: 
 ```sh
 sudo nano /var/www/LongevityWorldCup/publish/config.json
