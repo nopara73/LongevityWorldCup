@@ -659,11 +659,11 @@ window.setBadges = function (athlete, athleteCell) {
 
         let tooltipText;
         if (rank === 1) {
-            tooltipText = `Skin Trafficker: Perceived ${gap} ${yearWord} Younger`;
+            tooltipText = `Skin Trafficker: Perceived ${gap} ${yearWord} younger`;
         } else if (rank === 2) {
-            tooltipText = `Wrinkle Launderer: Perceived ${gap} ${yearWord} Younger`;
+            tooltipText = `Wrinkle Launderer: Perceived ${gap} ${yearWord} younger`;
         } else {
-            tooltipText = `Collagen Smuggler: Perceived ${gap} ${yearWord} Younger`;
+            tooltipText = `Collagen Smuggler: Perceived ${gap} ${yearWord} younger`;
         }
 
         // gold/silver/bronze bg from badgeBackgrounds[0..2]
