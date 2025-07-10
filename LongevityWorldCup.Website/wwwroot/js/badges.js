@@ -377,6 +377,23 @@ window.setBadges = function (athlete, athleteCell) {
         badgeElements.push({ order: 0, html: badgeHtml });
     }
 
+    // Podcast badge for athletes with a podcast link (black background, mic icon)
+    if (athlete.podcastLink) {
+        const linkHref = athlete.podcastLink.startsWith('http')
+            ? athlete.podcastLink
+            : 'https://' + athlete.podcastLink;
+        const podcastBadgeHtml = `
+        <a class="badge-class badge-podcast"
+           href="${linkHref}"
+           target="_blank"
+           rel="noopener"
+           title="Podcast"
+           style="cursor: pointer; ${defaultBadgeBackground}">
+            <i class="fa fa-microphone"></i>
+        </a>`;
+        badgeElements.push({ order: 1, html: podcastBadgeHtml });
+    }
+
     // Chronologically Oldest badge (uses black)
     if (oldestMapping[athlete.name]) {
         const rank = oldestMapping[athlete.name];
