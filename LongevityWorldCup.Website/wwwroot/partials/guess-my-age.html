@@ -308,12 +308,56 @@
 
     /* small screens - keep it tight */
     @media (max-width: 420px) {
+        /* adjust buttons on small screens */
+        .gma-actions {
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .gma-btn {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .gma-btn--ghost {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+        }
+
+        .gma-btn--primary {
+            font-size: 1.1rem;
+            padding: 0.6rem 1.2rem;
+        }
+
         .gma-card {
             padding: 1.5rem 1.25rem;
         }
 
         .gma-avatar {
             width: 116px;
+        }
+
+        /* reduce text size on small screens */
+        .gma-heading {
+            font-size: 2rem;
+        }
+
+        .chrono-age-heading {
+            font-size: 2rem;
+        }
+
+        #gmaBubble,
+        #gmaRealBubble {
+            font-size: 2rem;
+        }
+
+        /* reduce emoji size on small screens */
+        .gma-highfive-emoji,
+        .gma-cry-emoji,
+        .gma-eyes-emoji {
+            width: 100px;
+            height: 100px;
+            font-size: 7.5rem;
         }
     }
 
