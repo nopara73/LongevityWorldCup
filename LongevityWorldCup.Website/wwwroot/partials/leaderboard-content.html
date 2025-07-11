@@ -600,6 +600,7 @@
         width: 200px;
         min-height: 230px;
         transition: opacity 0.3s ease, transform 0.3s ease;
+        cursor: pointer;
     }
 
     .podium-portrait {
@@ -612,8 +613,11 @@
         margin: 1rem 0;
     }
 
-    .podium-item:hover {
-        transform: scale(1.02);
+    .podium .podium-item:hover {
+        /* bump up the scale */
+        transform: scale(1.05) !important;
+        /* hint for smoother animation */
+        will-change: transform;
         transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     }
@@ -1587,9 +1591,19 @@
 
                                     // Attach click event listeners to athlete names
                                     attachAthleteNameClickListeners();
+
+                                    document.querySelectorAll('.podium-item').forEach(item => {
+                                        item.addEventListener('click', function (e) {
+                                            // don’t interfere with existing link or prize-area clicks
+                                            if (e.target.closest('a') || e.target.closest('.podium-item-lower')) return;
+                                            // forward to the same handler as clicking the name
+                                            handleAthleteNameClick(e);
+                                        });
+                                    });
+
                                     applyCamelCaseNewlines();
 
-                                    addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
+                                    addClickListenerToImages('.portrait, #modalProfilePic', function () {
                                         openEnlargedView(this);
                                     });
                                 })
@@ -1730,7 +1744,7 @@
     }
 
     // Usage
-    addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
+    addClickListenerToImages('.portrait, #modalProfilePic', function () {
         openEnlargedView(this);
     });
 
