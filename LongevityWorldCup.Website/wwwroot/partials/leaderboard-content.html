@@ -3147,12 +3147,6 @@
         const crowdContainer = document.getElementById('crowdAgeContainer');
         const emptyCrowdContainer = document.getElementById('emptyCrowdAgeContainer');
         const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
-        const oldCountText = document.getElementById('crowdCount').textContent;
-
-        const previousCount = parseFloat(oldCountText) || 0;
-        if (crowdCount < previousCount) {
-            return;
-        }
 
         if (crowdCount === 0) {
             notEmptyCrowdContainer.style.display = 'none';
