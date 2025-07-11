@@ -1671,9 +1671,11 @@
 
                     attachAthleteNameClickListeners();
                     applyCamelCaseNewlines();
-                    addClickListenerToImages('.portrait, .podium-portrait, #modalProfilePic', function () {
+                    addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
                     });
+                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
+
                 });
 
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
@@ -1744,9 +1746,10 @@
     }
 
     // Usage
-    addClickListenerToImages('.portrait, #modalProfilePic', function () {
+    addClickListenerToImages('#modalProfilePic', function () {
         openEnlargedView(this);
     });
+    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
 
     // Function to attach click event listener to all athlete-name elements
     function attachAthleteNameClickListeners() {
