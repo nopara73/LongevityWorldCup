@@ -356,15 +356,17 @@
         text-align: left;
     }
 
-    tr:nth-child(even) {
+    .leaderboard table tr:nth-child(even) {
         background-color: rgba(240, 244, 248, 0.5);
     }
 
-    tr {
+    /* your normal styles for all tbody rows */
+    .leaderboard table tbody tr {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
     }
 
-        tr:hover {
+        .leaderboard table tbody tr:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
@@ -1667,14 +1669,19 @@
                         row.classList.add('extra-athlete');
                     }
 
-                    tableBody.appendChild(row);
-
                     attachAthleteNameClickListeners();
                     applyCamelCaseNewlines();
                     addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
                     });
                     addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
+
+                    row.style.cursor = 'pointer';
+                    row.addEventListener('click', function (e) {
+                        if (e.target.closest('a')) return;
+                        handleAthleteNameClick(e);
+                    });
+                    tableBody.appendChild(row);
 
                 });
 
