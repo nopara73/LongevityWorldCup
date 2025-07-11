@@ -2559,6 +2559,8 @@
                 document.body.classList.add('no-scroll');
 
                 const modalContent = document.querySelector('.modal-content');
+                modalContent.scrollTop = 0;
+
                 const gmaCard = document.getElementById('guessAgeContainer');
 
                 // always reset the Guess-My-Age UI first:
