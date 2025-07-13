@@ -1,0 +1,27 @@
+{
+  "Name": "Kaytlyn Merchant",
+  "MediaContact": "https://www.instagram.com/kaytlyn_merchant",
+  "DateOfBirth": {
+    "Year": 2000,
+    "Month": 9,
+    "Day": 6
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-12",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 73.45132743362832,
+      "GluMmolL": 4.773534635879219,
+      "CrpMgL": 0.2,
+      "LymPc": 44.4,
+      "McvFL": 98.8,
+      "RdwPc": 10.9,
+      "AlpUL": 58,
+      "Wbc1000cellsuL": 3.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "Some things just have to be done",
+  "PersonalLink": "https://www.instagram.com/kaytlyn_merchant"
+}
