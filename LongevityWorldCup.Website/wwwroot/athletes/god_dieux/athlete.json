@@ -41,6 +41,17 @@
       "McvFL": 90.4,
       "AlpUL": 274,
       "Wbc1000cellsuL": 7.1
+    },
+    {
+      "Date": "2025-07-14",
+      "AlbGL": 44,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 5.717140319715809,
+      "LymPc": 35,
+      "McvFL": 91,
+      "RdwPc": 10.6,
+      "AlpUL": 75,
+      "Wbc1000cellsuL": 6.9
     }
   ],
   "Division": "Open",
