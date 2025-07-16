@@ -181,7 +181,7 @@ window.computeBadges = function (athleteResults) {
             const lymphocyte = athlete.bestBiomarkerValues[6].toFixed(1);
             const mcv = athlete.bestBiomarkerValues[7].toFixed(1);
             const rcdw = athlete.bestBiomarkerValues[8].toFixed(1);
-            const tooltipText = `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lymphocyte}%, MCV ${mcv} fL, RCDW ${rcdw}%)`;
+            const tooltipText = `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lymphocyte}%, MCV ${mcv} fL, RDW ${rcdw}%)`;
             immuneMapping[athlete.name] = tooltipText;
         }
     });
