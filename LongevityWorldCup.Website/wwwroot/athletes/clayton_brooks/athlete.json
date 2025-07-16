@@ -1,0 +1,39 @@
+{
+  "Name": "Clayton Brooks",
+  "MediaContact": "claytonbrooks200@yahoo.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 6,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-15",
+      "AlbGL": 47,
+      "CreatUmolL": 99.11504424778762,
+      "GluMmolL": 5.439609236234459,
+      "CrpMgL": 0.2,
+      "LymPc": 39.3,
+      "McvFL": 96.7,
+      "RdwPc": 11.7,
+      "AlpUL": 47,
+      "Wbc1000cellsuL": 4.3
+    },
+    {
+      "Date": "2025-02-07",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 92.0353982300885,
+      "GluMmolL": 5.051065719360569,
+      "CrpMgL": 0.2,
+      "LymPc": 38.5,
+      "McvFL": 95.8,
+      "RdwPc": 11.6,
+      "AlpUL": 48,
+      "Wbc1000cellsuL": 4.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "USA",
+  "Why": "My goal on a daily basis is to be packed with energy and motivation. Longevity to some extent is a byproduct of my protocol.",
+  "PersonalLink": "https://www.facebook.com/clayton.brooks.37/"
+}
