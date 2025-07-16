@@ -1,0 +1,27 @@
+{
+  "Name": "Devin Neko",
+  "MediaContact": "Devin.feher@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 8,
+    "Day": 10
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-14",
+      "AlbGL": 52.99999999999999,
+      "CreatUmolL": 78.76106194690266,
+      "GluMmolL": 4.218472468916519,
+      "CrpMgL": 1.09,
+      "LymPc": 31.8,
+      "McvFL": 88.8,
+      "RdwPc": 12.8,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 7.1
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Cyberspace",
+  "Why": "To travel the stars and see all there is to see",
+  "PersonalLink": "https://www.instagram.com/devinneko"
+}
