@@ -77,7 +77,7 @@ window.PhenoAge.calculateInflammationScore = function (markerValues) {
 
 // Immune: includes White blood cell count (index 5), Lymphocyte percent (index 6),
 // Mean corpuscular volume (index 7) and Red cell distribution width (index 8)
-// Note: For WBC and RCDW (positive coefficients) we use Math.max; for lymphocytes (negative coefficient) we use Math.min;
+// Note: For WBC and RDW (positive coefficients) we use Math.max; for lymphocytes (negative coefficient) we use Math.min;
 // MCV is used directly.
 window.PhenoAge.calculateImmuneScore = function (markerValues) {
     // White blood cell count (index 5)
