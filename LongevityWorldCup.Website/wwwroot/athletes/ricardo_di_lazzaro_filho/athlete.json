@@ -1,6 +1,6 @@
 {
   "Name": "Ricardo di Lazzaro Filho",
-  "MediaContact": "riclazzaro@gmail.com",
+  "MediaContact": "https://www.instagram.com/ricardodilazzaro",
   "DateOfBirth": {
     "Year": 1986,
     "Month": 1,
@@ -18,10 +18,21 @@
       "RdwPc": 12.6,
       "AlpUL": 47,
       "Wbc1000cellsuL": 3.52
+    },
+    {
+      "Date": "2025-05-23",
+      "AlbGL": 45,
+      "CreatUmolL": 100.88495575221239,
+      "GluMmolL": 4.829040852575489,
+      "CrpMgL": 0.4,
+      "LymPc": 27.1,
+      "McvFL": 80.3,
+      "RdwPc": 12.2,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 5.2
     }
   ],
   "Division": "Men's",
   "Flag": "Brazil",
-  "Why": "Living well at least during my first century :)",
-  "PersonalLink": "https://www.instagram.com/ricardodilazzaro"
+  "Why": "Living well at least during my first century :)"
 }
