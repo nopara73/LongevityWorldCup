@@ -1,0 +1,27 @@
+{
+  "Name": "João Paulo Longo",
+  "MediaContact": "jplongo82@gmail.com",
+  "DateOfBirth": {
+    "Year": 1982,
+    "Month": 5,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-10",
+      "AlbGL": 47.99999999999999,
+      "CreatUmolL": 96.46017699115046,
+      "GluMmolL": 5.217584369449379,
+      "CrpMgL": 1.2,
+      "LymPc": 39.6,
+      "McvFL": 86.8,
+      "RdwPc": 12.5,
+      "AlpUL": 51,
+      "Wbc1000cellsuL": 3.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Brasil",
+  "Why": "Keep moving forward! Try to improve something every day!",
+  "PersonalLink": "https://www.instagram.com/longo.joaopaulo/"
+}
