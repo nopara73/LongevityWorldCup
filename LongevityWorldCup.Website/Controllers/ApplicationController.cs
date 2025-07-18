@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using LongevityWorldCup.Website.Business;
 using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.AspNetCore.Mvc;
 using MimeKit;
-using LongevityWorldCup.Website.Business;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Webp;
-using MailKit.Security;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -23,13 +25,48 @@ namespace LongevityWorldCup.Website.Controllers
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        // Helper method to sanitize file names
+        // Helper method to slugify file/folder names:
+        //  - compatibility-decompose (FormKD) to split accents & ligatures
+        //  - strip all non-spacing marks (accents)
+        //  - allow only ASCII letters, digits, hyphens/underscores
+        //  - convert spaces & hyphens to single underscores
+        //  - collapse multiple underscores, trim edges
         private static string SanitizeFileName(string name)
         {
-            var invalidChars = Path.GetInvalidFileNameChars();
-            var sanitized = new string([.. name.ToLower().Where(c => !invalidChars.Contains(c))]);
-            sanitized = sanitized.Replace(' ', '_');
-            return sanitized;
+            if (string.IsNullOrWhiteSpace(name))
+                return string.Empty;
+
+            // 1) Trim, lowercase, compatibility-decompose
+            var normalized = name
+                .Trim()
+                .ToLowerInvariant()
+                .Normalize(NormalizationForm.FormKD);
+
+            var sb = new StringBuilder();
+            foreach (var c in normalized)
+            {
+                // 2) Skip diacritical marks
+                if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+                    continue;
+
+                // 3) Keep ASCII letters or digits
+                if (c >= 'a' && c <= 'z' || c >= '0' && c <= '9')
+                {
+                    sb.Append(c);
+                }
+                // 4) Treat whitespace or hyphens as underscores
+                else if (char.IsWhiteSpace(c) || c == '-')
+                {
+                    sb.Append('_');
+                }
+                // everything else dropped
+            }
+
+            // 5) Collapse multiple underscores & trim
+            var result = Regex.Replace(sb.ToString(), "_+", "_")
+                              .Trim('_');
+
+            return result;
         }
 
         private const int MaxBase64Length = 10 * 1024 * 1024; // 10 MB
