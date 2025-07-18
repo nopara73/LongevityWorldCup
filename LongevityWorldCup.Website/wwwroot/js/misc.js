@@ -67,7 +67,7 @@ window.slugifyName = function (name, encode) {
     let normalized = name
         .trim()
         .toLowerCase()
-        .normalize('NFD')
+        .normalize('NFKD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9\-]/g, '')
@@ -85,7 +85,7 @@ window.slugifyName = function (name, encode) {
     }
 }
 window.normalizeString = function (str) {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return str.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 window.escapeHTML = function (string) {
