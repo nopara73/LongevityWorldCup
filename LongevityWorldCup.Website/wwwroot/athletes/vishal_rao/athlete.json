@@ -18,6 +18,18 @@
       "RdwPc": 12.9,
       "AlpUL": 95,
       "Wbc1000cellsuL": 7.5
+    },
+    {
+      "Date": "2025-07-11",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 100,
+      "GluMmolL": 5.273090586145649,
+      "CrpMgL": 0.55,
+      "LymPc": 31,
+      "McvFL": 91,
+      "RdwPc": 11.9,
+      "AlpUL": 110,
+      "Wbc1000cellsuL": 5.2
     }
   ],
   "Division": "Open",
