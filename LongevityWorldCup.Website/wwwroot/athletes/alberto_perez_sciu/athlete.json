@@ -1,0 +1,27 @@
+{
+  "Name": "Alberto Pérez Sciú",
+  "MediaContact": "sanas999@hotmail.com",
+  "DateOfBirth": {
+    "Year": 1953,
+    "Month": 7,
+    "Day": 26
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-10",
+      "AlbGL": 42.199999999999996,
+      "CreatUmolL": 81.41592920353983,
+      "GluMmolL": 4.995559502664299,
+      "CrpMgL": 0.8,
+      "LymPc": 30,
+      "McvFL": 93.32,
+      "RdwPc": 11.69,
+      "AlpUL": 87,
+      "Wbc1000cellsuL": 5.645
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Argentina",
+  "Why": "Tennis, Meditation, The Beauty of Life and Love.",
+  "PersonalLink": "https://www.facebook.com/share/1JqfDXJ4tA/"
+}
