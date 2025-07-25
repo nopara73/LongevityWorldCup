@@ -1,0 +1,27 @@
+{
+  "Name": "Cosmina Slattengren",
+  "MediaContact": "Cosmina88may@yahoo.com",
+  "DateOfBirth": {
+    "Year": 1983,
+    "Month": 5,
+    "Day": 3
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-23",
+      "AlbGL": 50,
+      "CreatUmolL": 65.48672566371681,
+      "GluMmolL": 4.940053285968029,
+      "CrpMgL": 2.4,
+      "LymPc": 32.3,
+      "McvFL": 86.9,
+      "RdwPc": 12.2,
+      "AlpUL": 86,
+      "Wbc1000cellsuL": 9.85
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Romania",
+  "Why": "I want to stay healthy for longer",
+  "PersonalLink": null
+}
