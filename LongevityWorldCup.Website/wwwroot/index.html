@@ -428,6 +428,100 @@
             color: var(--dark-text-color);
             line-height: 1.6;
         }
+
+        .launch-announcement {
+            display: flex;
+            flex-direction: column; /* stack vertically */
+            justify-content: center;
+            align-items: center;
+            gap: 1rem; /* vertical spacing between rows/text */
+            min-height: 150px;
+            font-size: 2rem;
+            color: var(--primary-color);
+            position: relative;
+        }
+
+        .rocket-icon {
+            font-size: 2.5rem;
+            opacity: 0;
+            transform: translateY(20px) scale(0.5) rotate(-45deg);
+            animation: rocketLaunch 0.8s ease forwards;
+        }
+
+        .left-rocket {
+            animation-delay: 0.1s;
+        }
+
+        .right-rocket {
+            transform: translateY(20px) scale(0.5) rotate(45deg);
+            animation-delay: 0.2s;
+        }
+
+        .launch-text {
+            animation: fadeIn 0.6s ease 0.4s forwards;
+            opacity: 0;
+        }
+
+        @keyframes rocketLaunch {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0deg);
+            }
+        }
+
+        @keyframes rocketExit {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0deg);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.5) rotate(-45deg);
+            }
+        }
+
+        .rocket-row {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 0.5rem 0;
+        }
+
+            .rocket-row .rocket-icon {
+                opacity: 0;
+                transform: translateY(20px) scale(0.5);
+            }
+
+        .top-rockets .rocket-icon:nth-child(1) {
+            animation: rocketLaunch 0.8s ease forwards;
+            animation-delay: 0.1s;
+        }
+
+        .top-rockets .rocket-icon:nth-child(2) {
+            animation: rocketLaunch 0.8s ease forwards;
+            animation-delay: 0.2s;
+        }
+
+        .top-rockets .rocket-icon:nth-child(3) {
+            animation: rocketLaunch 0.8s ease forwards;
+            animation-delay: 0.3s;
+        }
+
+        .bottom-rockets .rocket-icon:nth-child(1) {
+            animation: rocketLaunch 0.8s ease forwards;
+            animation-delay: 0.4s;
+        }
+
+        .bottom-rockets .rocket-icon:nth-child(2) {
+            animation: rocketLaunch 0.8s ease forwards;
+            animation-delay: 0.5s;
+        }
+
+        .bottom-rockets .rocket-icon:nth-child(3) {
+            animation: rocketLaunch 0.8s ease forwards;
+            animation-delay: 0.6s;
+        }
     </style>
 </head>
 <body>
@@ -748,8 +842,28 @@
                 if (distance < 0) {
                     // Countdown has finished
                     clearInterval(countdownInterval);
-                    countdownElement.innerHTML = "<div style='display: flex; align-items: center; justify-content: center; min-height: 150px;'>The competition has started!</div>";
+                    countdownElement.innerHTML = `
+                          <div class="launch-announcement">
+                            <div class="rocket-row top-rockets">
+                              <i class="fas fa-rocket rocket-icon rocket-top-1"></i>
+                              <i class="fas fa-rocket rocket-icon rocket-top-2"></i>
+                              <i class="fas fa-rocket rocket-icon rocket-top-3"></i>
+                            </div>
+                            <span class="launch-text">The competition has just STARTED</span>
+                            <div class="rocket-row bottom-rockets">
+                              <i class="fas fa-rocket rocket-icon rocket-bottom-1"></i>
+                              <i class="fas fa-rocket rocket-icon rocket-bottom-2"></i>
+                              <i class="fas fa-rocket rocket-icon rocket-bottom-3"></i>
+                            </div>
+                          </div>
+`;
 
+                    setTimeout(() => {
+                        document.querySelectorAll('.rocket-row.top-rockets .rocket-icon')
+                            .forEach(el => el.style.animation = 'rocketExit 0.6s ease-out forwards');
+                    }, 1200);
+
+                    if (typeof confetti === 'function') confetti();
                     // Hide the "Competition Starts In:" header and illustrative text
                     const countdownHeader = document.querySelector('.countdown-section h2'); // Replace with actual selector for the header
                     const illustrativeText = document.querySelector('.countdown-section p'); // Replace with actual selector for the text
