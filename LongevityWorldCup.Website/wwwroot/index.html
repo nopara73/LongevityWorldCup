@@ -733,7 +733,7 @@
             let countdownInterval; // Declare the variable outside the function
 
             const updateCountdown = () => {
-                const now = new Date(2025, 8, 17).getTime();
+                const now = new Date().getTime();
                 const distance = targetDate - now;
 
                 // if timer passed and not within first month anymore
