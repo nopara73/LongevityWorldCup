@@ -733,8 +733,17 @@
             let countdownInterval; // Declare the variable outside the function
 
             const updateCountdown = () => {
-                const now = new Date().getTime();
+                const now = new Date(2025, 8, 17).getTime();
                 const distance = targetDate - now;
+
+                // if timer passed and not within first month anymore
+                const oneMonthMs = 30 * 24 * 60 * 60 * 1000;  // 30 days in milliseconds
+                if (distance < -oneMonthMs) {
+                    const countdownSectionElem = document.querySelector('.countdown-section');
+                    if (countdownSectionElem) countdownSectionElem.style.display = 'none';
+                    clearInterval(countdownInterval);
+                    return;
+                }
 
                 if (distance < 0) {
                     // Countdown has finished
