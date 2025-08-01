@@ -111,7 +111,7 @@
 
         .game-description {
             text-align: center;
-            margin: 0.5rem; /* Increased space between description and podium */
+            margin: 0.5rem 0 2rem; /* top 0.5rem, sides 0, bottom 2rem for extra space below */
             line-height: 1.6;
             color: var(--dark-text-color);
         }
@@ -739,17 +739,13 @@
                 if (distance < 0) {
                     // Countdown has finished
                     clearInterval(countdownInterval);
-                    countdownElement.innerHTML = "The competition has started!";
+                    countdownElement.innerHTML = "<div style='display: flex; align-items: center; justify-content: center; min-height: 150px;'>The competition has started!</div>";
 
                     // Hide the "Competition Starts In:" header and illustrative text
                     const countdownHeader = document.querySelector('.countdown-section h2'); // Replace with actual selector for the header
                     const illustrativeText = document.querySelector('.countdown-section p'); // Replace with actual selector for the text
                     if (countdownHeader) countdownHeader.style.display = 'none';
                     if (illustrativeText) illustrativeText.style.display = 'none';
-
-                    // Show competition-related content
-                    if (leaderboardButton) leaderboardButton.style.display = 'block';
-                    if (leaderboardContent) leaderboardContent.style.display = 'block';
 
                     return;
                 }
