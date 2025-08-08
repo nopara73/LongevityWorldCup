@@ -1,0 +1,27 @@
+{
+  "Name": "André Rebolo",
+  "MediaContact": "rebolophl@gmail.com",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 12,
+    "Day": 28
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-07",
+      "AlbGL": 51,
+      "CreatUmolL": 79.64601769911505,
+      "GluMmolL": 4.329484902309059,
+      "CrpMgL": 0.6,
+      "LymPc": 39.3,
+      "McvFL": 96.4,
+      "RdwPc": 12.3,
+      "AlpUL": 59,
+      "Wbc1000cellsuL": 3.46
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Portugal",
+  "Why": "I want to live the longest and healthiest possible, to help other people achive the same!",
+  "PersonalLink": "https://www.instagram.com/andrerebolo1/"
+}
