@@ -1,0 +1,27 @@
+{
+  "Name": "David X",
+  "MediaContact": "https://x.com/jooooby1",
+  "DateOfBirth": {
+    "Year": 1981,
+    "Month": 1,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-07",
+      "AlbGL": 49,
+      "CreatUmolL": 81.41592920353983,
+      "GluMmolL": 5.328596802841918,
+      "CrpMgL": 0.2,
+      "LymPc": 51.2,
+      "McvFL": 98.8,
+      "RdwPc": 12.2,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 2.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Continuously experimenting and tuning.",
+  "PersonalLink": null
+}
