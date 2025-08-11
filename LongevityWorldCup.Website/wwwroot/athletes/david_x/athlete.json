@@ -8,7 +8,19 @@
   },
   "Biomarkers": [
     {
-      "Date": "2025-08-07",
+      "Date": "2025-04-08",
+      "AlbGL": 47,
+      "CreatUmolL": 71.6,
+      "GluMmolL": 5.61,
+      "CrpMgL": 0.2,
+      "LymPc": 41.1,
+      "McvFL": 94,
+      "RdwPc": 11.8,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 3.5
+    },
+    {
+      "Date": "2025-08-04",
       "AlbGL": 49,
       "CreatUmolL": 81.41592920353983,
       "GluMmolL": 5.328596802841918,
