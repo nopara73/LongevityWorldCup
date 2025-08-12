@@ -39,81 +39,82 @@
                 <a href="mailto:longevityworldcup@gmail.com">longevityworldcup@gmail.com</a>
             </p>
         </section>
-
-        <!-- JSZip (client-side unzip) -->
-        <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
-        <script>
-            const ZIP_PRIMARY = "https://cdn.jsdelivr.net/gh/nopara73/LongevityWorldCup@master/LongevityWorldCup.Documentation/MediaKit.zip";
-            const ZIP_FALLBACK = "https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip";
-
-            const loadingEl = document.getElementById('loading');
-            const listEl = document.getElementById('fileList');
-            const fallbackEl = document.getElementById('fallback');
-
-            async function fetchZip(url) {
-                const res = await fetch(url, { cache: 'no-store' });
-                if (!res.ok) throw new Error("HTTP " + res.status);
-                return await res.arrayBuffer();
-            }
-
-            async function loadList() {
-                try {
-                    let buf;
-                    try {
-                        buf = await fetchZip(ZIP_PRIMARY);
-                    } catch (_) {
-                        buf = await fetchZip(ZIP_FALLBACK);
-                    }
-
-                    const zip = await JSZip.loadAsync(buf);
-                    const files = [];
-                    zip.forEach((path, file) => { if (!file.dir) files.push(path); });
-                    files.sort();
-
-                    for (const path of files) {
-                        const li = document.createElement('li');
-                        li.style.margin = '0.35rem 0';
-
-                        const name = document.createElement('span');
-                        name.textContent = path;
-                        name.style.marginRight = '0.5rem';
-
-                        const btn = document.createElement('button');
-                        btn.textContent = 'Download';
-                        btn.style.padding = '0.3rem 0.6rem';
-                        btn.style.marginLeft = '0.25rem';
-                        btn.style.border = '1px solid #ccc';
-                        btn.style.borderRadius = '4px';
-                        btn.style.cursor = 'pointer';
-                        btn.addEventListener('click', async () => {
-                            const file = zip.file(path);
-                            const blob = await file.async('blob');
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = path.split('/').pop();
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            URL.revokeObjectURL(url);
-                        });
-
-                        li.appendChild(name);
-                        li.appendChild(btn);
-                        listEl.appendChild(li);
-                    }
-                } catch (e) {
-                    console.error(e);
-                    fallbackEl.style.display = 'block';
-                } finally {
-                    loadingEl.style.display = 'none';
-                }
-            }
-
-            document.addEventListener('DOMContentLoaded', loadList);
-        </script>
     </main>
 
     <!--FOOTER-->
+    <!-- JSZip (client-side unzip) -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
+    <script>
+        history.pushState({ modal: 'details' }, "", `/media`);
+
+        const ZIP_PRIMARY = "https://cdn.jsdelivr.net/gh/nopara73/LongevityWorldCup@master/LongevityWorldCup.Documentation/MediaKit.zip";
+        const ZIP_FALLBACK = "https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip";
+
+        const loadingEl = document.getElementById('loading');
+        const listEl = document.getElementById('fileList');
+        const fallbackEl = document.getElementById('fallback');
+
+        async function fetchZip(url) {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return await res.arrayBuffer();
+        }
+
+        async function loadList() {
+            try {
+                let buf;
+                try {
+                    buf = await fetchZip(ZIP_PRIMARY);
+                } catch (_) {
+                    buf = await fetchZip(ZIP_FALLBACK);
+                }
+
+                const zip = await JSZip.loadAsync(buf);
+                const files = [];
+                zip.forEach((path, file) => { if (!file.dir) files.push(path); });
+                files.sort();
+
+                for (const path of files) {
+                    const li = document.createElement('li');
+                    li.style.margin = '0.35rem 0';
+
+                    const name = document.createElement('span');
+                    name.textContent = path;
+                    name.style.marginRight = '0.5rem';
+
+                    const btn = document.createElement('button');
+                    btn.textContent = 'Download';
+                    btn.style.padding = '0.3rem 0.6rem';
+                    btn.style.marginLeft = '0.25rem';
+                    btn.style.border = '1px solid #ccc';
+                    btn.style.borderRadius = '4px';
+                    btn.style.cursor = 'pointer';
+                    btn.addEventListener('click', async () => {
+                        const file = zip.file(path);
+                        const blob = await file.async('blob');
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = path.split('/').pop();
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                    });
+
+                    li.appendChild(name);
+                    li.appendChild(btn);
+                    listEl.appendChild(li);
+                }
+            } catch (e) {
+                console.error(e);
+                fallbackEl.style.display = 'block';
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadList);
+    </script>
 </body>
 </html>
