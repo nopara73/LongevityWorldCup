@@ -17,23 +17,21 @@
             <h1>Media Kit</h1>
             <p>Press-ready assets for Longevity World Cup 2025.</p>
 
-            <!-- Primary download -->
             <p style="margin:1rem 0;">
-                <a id="downloadZipBtn"
-                   href="https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip"
+                <a href="https://cdn.jsdelivr.net/gh/nopara73/LongevityWorldCup@master/LongevityWorldCup.Documentation/MediaKit.zip"
+                   target="_blank" rel="noopener noreferrer"
                    style="display:inline-block;padding:0.75rem 1.25rem;border-radius:6px;background:#0a7c0a;color:#fff;text-decoration:none;">
-                    Download Media Kit (ZIP)
+                    Download Full Media Kit (ZIP)
                 </a>
             </p>
 
-            <!-- Live file list extracted from the ZIP -->
+            <!-- Live file list extracted from ZIP (auto-load) -->
             <div id="zipPreview" style="margin-top:1.5rem;">
-                <button id="loadListBtn"
-                        style="padding:0.6rem 1rem;border-radius:6px;background:#444;color:#fff;border:none;cursor:pointer;">
-                    Preview individual files
-                </button>
-                <div id="loading" style="display:none;margin-top:0.75rem;">Loading…</div>
+                <div id="loading" style="margin-top:0.75rem;">Loading…</div>
                 <ul id="fileList" style="list-style:none;padding:0;margin-top:0.75rem;"></ul>
+                <div id="fallback" style="display:none;margin-top:0.75rem;">
+                    Failed to preview. Use the ZIP link above.
+                </div>
             </div>
 
             <p style="margin-top:1.5rem;">
@@ -43,25 +41,31 @@
         </section>
 
         <!-- JSZip (client-side unzip) -->
-        <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha256-3WvCz7Nf4K7fV8oO2jMNqre9o7tZ28E3PVi6J0xHhJw=" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
         <script>
-            const ZIP_URL = "https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip";
+            const ZIP_PRIMARY = "https://cdn.jsdelivr.net/gh/nopara73/LongevityWorldCup@master/LongevityWorldCup.Documentation/MediaKit.zip";
+            const ZIP_FALLBACK = "https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip";
 
-            const loadBtn = document.getElementById('loadListBtn');
             const loadingEl = document.getElementById('loading');
             const listEl = document.getElementById('fileList');
+            const fallbackEl = document.getElementById('fallback');
 
-            loadBtn.addEventListener('click', async () => {
-                loadBtn.disabled = true;
-                loadingEl.style.display = 'block';
-                listEl.innerHTML = '';
+            async function fetchZip(url) {
+                const res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                return await res.arrayBuffer();
+            }
 
+            async function loadList() {
                 try {
-                    const res = await fetch(ZIP_URL, { cache: 'no-store' });
-                    if (!res.ok) throw new Error('Failed to fetch ZIP');
-                    const buf = await res.arrayBuffer();
-                    const zip = await JSZip.loadAsync(buf);
+                    let buf;
+                    try {
+                        buf = await fetchZip(ZIP_PRIMARY);
+                    } catch (_) {
+                        buf = await fetchZip(ZIP_FALLBACK);
+                    }
 
+                    const zip = await JSZip.loadAsync(buf);
                     const files = [];
                     zip.forEach((path, file) => { if (!file.dir) files.push(path); });
                     files.sort();
@@ -99,12 +103,14 @@
                         listEl.appendChild(li);
                     }
                 } catch (e) {
-                    listEl.innerHTML = '<li style="color:#c00;">Error loading ZIP. Try again later.</li>';
                     console.error(e);
+                    fallbackEl.style.display = 'block';
                 } finally {
                     loadingEl.style.display = 'none';
                 }
-            });
+            }
+
+            document.addEventListener('DOMContentLoaded', loadList);
         </script>
     </main>
 
