@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Media Kit - Longevity World Cup 2025</title>
+    <!--HEAD-->
+    <style>
+        /* Hide the join-game button in the header */
+        .join-game {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <section style="max-width:900px;margin:2rem auto;padding:1rem 1.25rem;">
+            <h1>Media Kit</h1>
+            <p>Press-ready assets for Longevity World Cup 2025.</p>
+
+            <!-- Primary download -->
+            <p style="margin:1rem 0;">
+                <a id="downloadZipBtn"
+                   href="https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip"
+                   style="display:inline-block;padding:0.75rem 1.25rem;border-radius:6px;background:#0a7c0a;color:#fff;text-decoration:none;">
+                    Download Media Kit (ZIP)
+                </a>
+            </p>
+
+            <!-- Live file list extracted from the ZIP -->
+            <div id="zipPreview" style="margin-top:1.5rem;">
+                <button id="loadListBtn"
+                        style="padding:0.6rem 1rem;border-radius:6px;background:#444;color:#fff;border:none;cursor:pointer;">
+                    Preview individual files
+                </button>
+                <div id="loading" style="display:none;margin-top:0.75rem;">Loading…</div>
+                <ul id="fileList" style="list-style:none;padding:0;margin-top:0.75rem;"></ul>
+            </div>
+
+            <p style="margin-top:1.5rem;">
+                Press contact:
+                <a href="mailto:longevityworldcup@gmail.com">longevityworldcup@gmail.com</a>
+            </p>
+        </section>
+
+        <!-- JSZip (client-side unzip) -->
+        <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha256-3WvCz7Nf4K7fV8oO2jMNqre9o7tZ28E3PVi6J0xHhJw=" crossorigin="anonymous"></script>
+        <script>
+            const ZIP_URL = "https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip";
+
+            const loadBtn = document.getElementById('loadListBtn');
+            const loadingEl = document.getElementById('loading');
+            const listEl = document.getElementById('fileList');
+
+            loadBtn.addEventListener('click', async () => {
+                loadBtn.disabled = true;
+                loadingEl.style.display = 'block';
+                listEl.innerHTML = '';
+
+                try {
+                    const res = await fetch(ZIP_URL, { cache: 'no-store' });
+                    if (!res.ok) throw new Error('Failed to fetch ZIP');
+                    const buf = await res.arrayBuffer();
+                    const zip = await JSZip.loadAsync(buf);
+
+                    const files = [];
+                    zip.forEach((path, file) => { if (!file.dir) files.push(path); });
+                    files.sort();
+
+                    for (const path of files) {
+                        const li = document.createElement('li');
+                        li.style.margin = '0.35rem 0';
+
+                        const name = document.createElement('span');
+                        name.textContent = path;
+                        name.style.marginRight = '0.5rem';
+
+                        const btn = document.createElement('button');
+                        btn.textContent = 'Download';
+                        btn.style.padding = '0.3rem 0.6rem';
+                        btn.style.marginLeft = '0.25rem';
+                        btn.style.border = '1px solid #ccc';
+                        btn.style.borderRadius = '4px';
+                        btn.style.cursor = 'pointer';
+                        btn.addEventListener('click', async () => {
+                            const file = zip.file(path);
+                            const blob = await file.async('blob');
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = path.split('/').pop();
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                        });
+
+                        li.appendChild(name);
+                        li.appendChild(btn);
+                        listEl.appendChild(li);
+                    }
+                } catch (e) {
+                    listEl.innerHTML = '<li style="color:#c00;">Error loading ZIP. Try again later.</li>';
+                    console.error(e);
+                } finally {
+                    loadingEl.style.display = 'none';
+                }
+            });
+        </script>
+    </main>
+
+    <!--FOOTER-->
+</body>
+</html>
