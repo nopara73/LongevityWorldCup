@@ -1,0 +1,27 @@
+{
+  "Name": "Sergey Vlasov",
+  "MediaContact": "SergeyVlasov@vlasovstudio.com",
+  "DateOfBirth": {
+    "Year": 1975,
+    "Month": 10,
+    "Day": 10
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-12",
+      "AlbGL": 47,
+      "CreatUmolL": 78.05309734513276,
+      "GluMmolL": 4.801287744227354,
+      "CrpMgL": 0.4,
+      "LymPc": 37.4,
+      "McvFL": 95.3,
+      "RdwPc": 12.2,
+      "AlpUL": 120,
+      "Wbc1000cellsuL": 3.73
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Biomarker Optimizers",
+  "Why": "Immortality, challenges, compassion.",
+  "PersonalLink": "https://biomarkeroptimizers.com/members/2/profile"
+}
