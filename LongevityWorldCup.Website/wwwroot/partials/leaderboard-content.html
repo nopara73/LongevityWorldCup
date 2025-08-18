@@ -1279,6 +1279,14 @@
     let includePodiumGlobal = true
     let maxAthletesGlobal = Infinity;
 
+    function isCompleteBiomarkerSet(set) {
+        const values = [
+            set.AlbGL, set.CreatUmolL, set.GluMmolL, set.CrpMgL,
+            set.Wbc1000cellsuL, set.LymPc, set.McvFL, set.RdwPc, set.AlpUL
+        ];
+        return values.every(Number.isFinite) && set.CrpMgL > 0;
+    }
+
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
         includePodiumGlobal = includePodium;
         maxAthletesGlobal = maxAthletes;
@@ -1302,6 +1310,7 @@
 
                     const crowdAge = athlete.CrowdAge;
                     const crowdCount = athlete.CrowdCount;
+                    const completeBiomarkerSets = athlete.Biomarkers.filter(isCompleteBiomarkerSet);
 
                     // Get birth year and generation
                     const birthYear = athlete.DateOfBirth.Year;
@@ -1321,7 +1330,7 @@
                     };
 
                     // Iterate through each biomarker set to update the best values
-                    athlete.Biomarkers.forEach(biomarkerSet => {
+                    completeBiomarkerSets.forEach(biomarkerSet => {
                         // Albumin: negative coefficient means higher is better
                         if (bestBiomarkers.AlbGL === null || biomarkerSet.AlbGL > bestBiomarkers.AlbGL) {
                             bestBiomarkers.AlbGL = biomarkerSet.AlbGL;
@@ -1361,12 +1370,10 @@
                     });
                     let phenoAgeDifference = 0;
                     // Only proceed if there are submissions.
-                    if (athlete.Biomarkers.length > 0) {
-                        // Get the first and last biomarker submissions.
-                        const firstSubmission = athlete.Biomarkers[0];
-                        const lastSubmission = athlete.Biomarkers[athlete.Biomarkers.length - 1];
+                    if (completeBiomarkerSets.length > 0) {
+                        const firstSubmission = completeBiomarkerSets[0];
+                        const lastSubmission = completeBiomarkerSets[completeBiomarkerSets.length - 1];
 
-                        // Prepare the biomarker values for the first submission.
                         const firstSubmissionValues = [
                             chronologicalAge,
                             firstSubmission.AlbGL,
@@ -1380,7 +1387,6 @@
                             firstSubmission.AlpUL
                         ];
 
-                        // Prepare the biomarker values for the last submission.
                         const lastSubmissionValues = [
                             chronologicalAge,
                             lastSubmission.AlbGL,
@@ -1394,28 +1400,32 @@
                             lastSubmission.AlpUL
                         ];
 
-                        // Calculate the PhenoAges for the first and last submissions.
                         const firstPhenoAge = window.PhenoAge.calculatePhenoAge(firstSubmissionValues);
                         const lastPhenoAge = window.PhenoAge.calculatePhenoAge(lastSubmissionValues);
 
-                        // Compute the difference between the last and first PhenoAges.
                         phenoAgeDifference = lastPhenoAge - firstPhenoAge;
                     }
 
-                    const submissionCount = athlete.Biomarkers.length;
+                    const submissionCount = completeBiomarkerSets.length;
                     // Prepare the biomarker values array in the order required for the PhenoAge calculation
                     const bestBiomarkerValues = [
-                        chronologicalAge,
-                        bestBiomarkers.AlbGL,
-                        bestBiomarkers.CreatUmolL,
-                        bestBiomarkers.GluMmolL,
-                        Math.log(bestBiomarkers.CrpMgL / 10), // Apply log transformation to CRP (converting mg/L to µg/L)
-                        bestBiomarkers.Wbc1000cellsuL,
-                        bestBiomarkers.LymPc,
-                        bestBiomarkers.McvFL,
-                        bestBiomarkers.RdwPc,
-                        bestBiomarkers.AlpUL
-                    ];
+                        bestBiomarkers.AlbGL, bestBiomarkers.CreatUmolL, bestBiomarkers.GluMmolL,
+                        bestBiomarkers.CrpMgL, bestBiomarkers.Wbc1000cellsuL, bestBiomarkers.LymPc,
+                        bestBiomarkers.McvFL, bestBiomarkers.RdwPc, bestBiomarkers.AlpUL
+                    ].every(Number.isFinite) && bestBiomarkers.CrpMgL > 0
+                        ? [
+                            chronologicalAge,
+                            bestBiomarkers.AlbGL,
+                            bestBiomarkers.CreatUmolL,
+                            bestBiomarkers.GluMmolL,
+                            Math.log(bestBiomarkers.CrpMgL / 10),
+                            bestBiomarkers.Wbc1000cellsuL,
+                            bestBiomarkers.LymPc,
+                            bestBiomarkers.McvFL,
+                            bestBiomarkers.RdwPc,
+                            bestBiomarkers.AlpUL
+                        ]
+                        : null;
 
                     // Compute the actually lowest PhenoAge across real submissions
                     let lowestPhenoAge = Infinity;
@@ -1449,22 +1459,26 @@
                     });
 
                     // Fallback: if nothing valid (should be rare), use the last submission
-                    if (!Number.isFinite(lowestPhenoAge) && athlete.Biomarkers.length > 0) {
-                        const last = athlete.Biomarkers[athlete.Biomarkers.length - 1];
-                        const ageAtLast = window.calculateAgeAtDate(dob, new Date(last.Date));
-                        valuesForLowestPhenoAge = [
-                            ageAtLast,
-                            last.AlbGL,
-                            last.CreatUmolL,
-                            last.GluMmolL,
-                            Math.log(last.CrpMgL / 10),
-                            last.Wbc1000cellsuL,
-                            last.LymPc,
-                            last.McvFL,
-                            last.RdwPc,
-                            last.AlpUL
-                        ];
-                        lowestPhenoAge = window.PhenoAge.calculatePhenoAge(valuesForLowestPhenoAge);
+                    if (!Number.isFinite(lowestPhenoAge)) {
+                        if (completeBiomarkerSets.length > 0) {
+                            const last = completeBiomarkerSets[completeBiomarkerSets.length - 1];
+                            const ageAtLast = window.calculateAgeAtDate(dob, new Date(last.Date));
+                            valuesForLowestPhenoAge = [
+                                ageAtLast,
+                                last.AlbGL,
+                                last.CreatUmolL,
+                                last.GluMmolL,
+                                Math.log(last.CrpMgL / 10),
+                                last.Wbc1000cellsuL,
+                                last.LymPc,
+                                last.McvFL,
+                                last.RdwPc,
+                                last.AlpUL
+                            ];
+                            lowestPhenoAge = window.PhenoAge.calculatePhenoAge(valuesForLowestPhenoAge);
+                        } else {
+                            lowestPhenoAge = chronologicalAge; // no complete data → neutral (no reduction/acceleration)
+                        }
                     }
 
                     // Calculate the age reduction
@@ -2808,17 +2822,33 @@
             fullAthleteData.DateOfBirth.Day
         );
 
-        const labels = biomarkerData.map(entry => entry.Date);
+        const completeData = biomarkerData.filter(isCompleteBiomarkerSet);
+        if (completeData.length === 0) {
+            if (window.biomarkerChartInstance) {
+                window.biomarkerChartInstance.destroy();
+            }
+            return;
+        }
+
+        const labels = completeData.map(entry => entry.Date);
         const phenoAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
 
-        biomarkerData.forEach(entry => {
+        completeData.forEach(entry => {
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
-            collectBiomarkerValues(entry, biomarkersRaw);
-            const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
+            biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL);
+            biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
+            biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
+            biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
+            biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc);
+            biomarkersRaw['MCV (fL)'].push(entry.McvFL);
+            biomarkersRaw['RDW (%)'].push(entry.RdwPc);
+            biomarkersRaw['ALP (U/L)'].push(entry.AlpUL);
+            biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
 
+            const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
             phenoAges.push(phenoAge.toFixed(1));
         });
