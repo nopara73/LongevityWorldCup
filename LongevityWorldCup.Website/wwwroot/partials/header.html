@@ -87,9 +87,20 @@
         filter: invert(100%);
     }
 
+    h1.bannertext {
+        text-align: center; /* Optional */
+        font-size: 2.7rem;
+        font-weight: 700;
+        text-transform: capitalize;
+        letter-spacing: 2px;
+        position: relative;
+        text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
+        padding: 0 1rem;
+    }
+
     h1 {
-        margin: 0;
-        font-size: 3rem;
+        text-align: center; /* Optional */
+        font-size: 2.7rem;
         font-weight: 700;
         text-transform: capitalize;
         letter-spacing: 2px;
@@ -105,6 +116,10 @@
     }
 
     @media (max-width: 768px) {
+        h1 {
+            font-size: 8vw;
+        }
+
         h2 {
             font-size: 7vw;
         }
@@ -460,8 +475,8 @@
              class="main-logo-image"
              loading="lazy"
              data-aos="fade" data-aos-duration="700" data-aos-delay="50">
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="100">Longevity World&nbsp;Cup</h1>
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="150">2025</h1>
+        <h1 class="bannertext" data-aos="fade" data-aos-duration="700" data-aos-delay="100">Longevity World&nbsp;Cup</h1>
+        <h1 class="bannertext" data-aos="fade" data-aos-duration="700" data-aos-delay="150">2025</h1>
         <span class="tagline" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
             Race To Longevity Escape Velocity <i class="fa-solid fa-rocket"></i>
         </span>
