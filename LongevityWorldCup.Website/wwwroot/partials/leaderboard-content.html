@@ -1359,7 +1359,6 @@
                             bestBiomarkers.AlpUL = biomarkerSet.AlpUL;
                         }
                     });
-
                     let phenoAgeDifference = 0;
                     // Only proceed if there are submissions.
                     if (athlete.Biomarkers.length > 0) {
@@ -1404,7 +1403,6 @@
                     }
 
                     const submissionCount = athlete.Biomarkers.length;
-
                     // Prepare the biomarker values array in the order required for the PhenoAge calculation
                     const bestBiomarkerValues = [
                         chronologicalAge,
@@ -1419,9 +1417,55 @@
                         bestBiomarkers.AlpUL
                     ];
 
-                    // Initialize a variable to keep track of the lowest PhenoAge for this athlete
+                    // Compute the actually lowest PhenoAge across real submissions
                     let lowestPhenoAge = Infinity;
-                    lowestPhenoAge = window.PhenoAge.calculatePhenoAge(bestBiomarkerValues);
+                    let valuesForLowestPhenoAge = null;
+
+                    athlete.Biomarkers.forEach(entry => {
+                        const entryDate = new Date(entry.Date);
+                        const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
+
+                        const candidateValues = [
+                            ageAtEntry,
+                            entry.AlbGL,
+                            entry.CreatUmolL,
+                            entry.GluMmolL,
+                            Math.log(entry.CrpMgL / 10),
+                            entry.Wbc1000cellsuL,
+                            entry.LymPc,
+                            entry.McvFL,
+                            entry.RdwPc,
+                            entry.AlpUL
+                        ];
+
+                        // Only consider submissions with complete numeric data
+                        if (candidateValues.every(Number.isFinite)) {
+                            const ph = window.PhenoAge.calculatePhenoAge(candidateValues);
+                            if (ph < lowestPhenoAge) {
+                                lowestPhenoAge = ph;
+                                valuesForLowestPhenoAge = candidateValues;
+                            }
+                        }
+                    });
+
+                    // Fallback: if nothing valid (should be rare), use the last submission
+                    if (!Number.isFinite(lowestPhenoAge) && athlete.Biomarkers.length > 0) {
+                        const last = athlete.Biomarkers[athlete.Biomarkers.length - 1];
+                        const ageAtLast = window.calculateAgeAtDate(dob, new Date(last.Date));
+                        valuesForLowestPhenoAge = [
+                            ageAtLast,
+                            last.AlbGL,
+                            last.CreatUmolL,
+                            last.GluMmolL,
+                            Math.log(last.CrpMgL / 10),
+                            last.Wbc1000cellsuL,
+                            last.LymPc,
+                            last.McvFL,
+                            last.RdwPc,
+                            last.AlpUL
+                        ];
+                        lowestPhenoAge = window.PhenoAge.calculatePhenoAge(valuesForLowestPhenoAge);
+                    }
 
                     // Calculate the age reduction
                     const ageReduction = lowestPhenoAge - chronologicalAge;
