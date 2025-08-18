@@ -48,15 +48,19 @@ namespace LongevityWorldCup.Website.Business
             {
                 cmd.CommandText = @"
     CREATE TABLE IF NOT EXISTS Athletes (
-        Key          TEXT    PRIMARY KEY,
-        AgeGuesses   TEXT    NOT NULL
+        Key        TEXT PRIMARY KEY,
+        AgeGuesses TEXT NOT NULL
     )";
                 cmd.ExecuteNonQuery();
+
+                // Try to add column (ignore if exists)
+                cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
+                try { cmd.ExecuteNonQuery(); } catch { /* column already exists */ }
             }
 
             // Initial load
             LoadAthletesAsync().GetAwaiter().GetResult();
-
+            
             foreach (var athleteJson in Athletes.OfType<JsonObject>())
             {
                 var athleteKey = athleteJson["AthleteSlug"]!.GetValue<string>();
@@ -66,6 +70,17 @@ namespace LongevityWorldCup.Website.Business
                 insertAthleteCmd.Parameters.AddWithValue("@key", athleteKey);
                 insertAthleteCmd.Parameters.AddWithValue("@ages", "[]");
                 insertAthleteCmd.ExecuteNonQuery();
+            }
+            
+            // TODO: Remove later, just refills JoinedAt with better values
+            BackfillJoinedAt();
+
+            // Finally, set JoinedAt=now for any that are still null
+            using (var fillNow = _sqliteConnection.CreateCommand())
+            {
+                fillNow.CommandText = "UPDATE Athletes SET JoinedAt=@now WHERE JoinedAt IS NULL OR JoinedAt=''";
+                fillNow.Parameters.AddWithValue("@now", DateTime.UtcNow.ToString("o"));
+                fillNow.ExecuteNonQuery();
             }
 
             // Hydrate persisted age‐guess stats from SQLite
@@ -121,6 +136,112 @@ namespace LongevityWorldCup.Website.Business
                     await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
                 }
             });
+        }
+        
+         private void BackfillJoinedAt()
+        {
+            try
+            {
+                using var cmd = _sqliteConnection.CreateCommand();
+                var columnName = "JoinedAt";
+                cmd.CommandText =
+                $"""
+                 BEGIN TRANSACTION;
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='alan_v' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-07-24T09:13:19.0000000Z' WHERE Key='alberto_perez_sciu' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='andreea_vuscan' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='andressa_lohana_de_almeida' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-08-08T08:39:32.0000000Z' WHERE Key='andre_rebolo' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='angela_buzzeo' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='anton_eich' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-06-21T06:01:30.0000000Z' WHERE Key='bas_pronk' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='beatriz_bevilaqua' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='bestape' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='biohacker_babe' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='brandon' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='charlotte_wong' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-07-16T08:39:44.0000000Z' WHERE Key='clayton_brooks' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='cody_hergenroeder' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-07-25T12:35:40.0000000Z' WHERE Key='cosmina_slattengren' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='dave_pascoe' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='david_ruiz_fernandez' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-08-08T08:39:32.0000000Z' WHERE Key='david_x' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-06-04T08:29:10.0000000Z' WHERE Key='devarajan_narayanan' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-07-16T08:46:05.0000000Z' WHERE Key='devin_neko' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='djstern' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='dr_thomas_irawan' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='eatbiohacklove' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='eng_wai_ong' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-05-28T07:24:35.0000000Z' WHERE Key='erin_easterly' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-28T06:27:23.0000000Z' WHERE Key='eugene' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='giorgio_zinetti' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='giuvana_salvador' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='god_dieux' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-06-06T07:39:57.0000000Z' WHERE Key='gui' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='healthoptimisers' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='inka_land' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-05-06T08:39:38.0000000Z' WHERE Key='ivan_morgunov' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-30T08:54:22.0000000Z' WHERE Key='jack_krone' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-05-31T09:20:20.0000000Z' WHERE Key='james_tauber' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='jason_sugar' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='jay_roach' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='jesse' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-07-17T12:05:44.0000000Z' WHERE Key='joao_paulo_longo' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='johan_sandgren' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='john_hannon' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-06-11T06:14:38.0000000Z' WHERE Key='john_prince' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='juan_robalino' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='june_hou' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-07-13T06:32:31.0000000Z' WHERE Key='kaytlyn_merchant' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-06-18T06:36:10.0000000Z' WHERE Key='keith_blondin' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-25T07:45:35.0000000Z' WHERE Key='larissa_schmeing' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='lbron' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='marcin' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='marcus' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='maria_olenina' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='max' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='max_eaimsirakul' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='mel_c' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='michael_lustgarten' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-05-13T10:52:02.0000000Z' WHERE Key='michelle_franz_montan' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='miguel_c' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='mind4u2cn' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='nils' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='nopara73' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='olga_vresca' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-05-09T06:34:00.0000000Z' WHERE Key='olga_wood' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='philipp_schmeing' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-07-17T12:11:58.0000000Z' WHERE Key='ping_long' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='ricardo_di_lazzaro_filho' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='richard_heck' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='richlee' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='rodrigo_quercia' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-06-12T08:08:00.0000000Z' WHERE Key='samantha_lin' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='satya_disha_dieux' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='scottbrylow' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-06-14T10:54:27.0000000Z' WHERE Key='serega' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-08-14T06:40:12.0000000Z' WHERE Key='sergey_vlasov' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='spiderius' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='stellar_madic' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-05-04T06:42:36.0000000Z' WHERE Key='swami_jupiter' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-05-10T06:47:56.0000000Z' WHERE Key='thiago_beber' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='tiat_lim' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='tone_vays' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-26T06:36:53.0000000Z' WHERE Key='troy_hale' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='veron' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='virgil_cain' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='vishal_rao' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='vuscan_horea' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='yan_lin' AND ({columnName} IS NULL OR {columnName}='');
+                 UPDATE Athletes SET {columnName}='2025-04-24T08:15:39.0000000Z' WHERE Key='zdenek_sipek' AND ({columnName} IS NULL OR {columnName}='');
+                 COMMIT;                   
+                 """;
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                // ignored.
+            }
         }
 
         private async Task LoadAthletesAsync()
