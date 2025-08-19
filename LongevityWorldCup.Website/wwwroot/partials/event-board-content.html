@@ -1,15 +1,16 @@
-﻿    <style>
-        .events-board {
-            display: flex;
-            align-items: stretch;
-            background-color: var(--card-bg);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            flex-grow: 1;
-            max-width: 900px;
-            margin: 0 auto;
-        }
+﻿<style>
+    .events-board {
+        display: flex;
+        align-items: stretch;
+        background-color: var(--card-bg);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        flex-grow: 1;
+        max-width: 1250px;
+        margin: 0 auto;
+    }
+
         .events-board table {
             flex-grow: 1;
             width: 100%;
@@ -17,6 +18,7 @@
             border-spacing: 0;
             align-self: flex-start;
         }
+
         .events-board thead th {
             background: rgba(0, 188, 212, 0.12);
             color: var(--primary-color);
@@ -27,109 +29,203 @@
             text-align: left;
             padding: 15px 20px;
         }
-        .events-board td.col-avatar { padding-right: 8px; }
-        .events-board td.event-message { padding-left: 0px; }
-        .header-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
+
+        .events-board td.col-avatar {
+            padding-right: 8px;
         }
-        .view-all {
-            text-decoration: none;
-            color: var(--primary-color);
-            opacity: 0.8;
-            font-weight: 400;
-            font-size: 0.85rem;
+
+        .events-board td.event-message {
+            padding-left: 0px;
         }
-        .view-all:hover { opacity: 1; text-decoration: underline; }
-        .events-board tbody td {
-            vertical-align: middle;
-            padding: 0 20px;
-            height: 40px;
-            line-height: 30px;
+
+    .header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .view-all {
+        text-decoration: none;
+        color: var(--primary-color);
+        opacity: 0.8;
+        font-weight: 400;
+        font-size: 0.85rem;
+    }
+
+        .view-all:hover {
+            opacity: 1;
+            text-decoration: underline;
         }
-        .events-board table tr:nth-child(even) { background-color: rgba(240, 244, 248, 0.5); }
-        .events-board table tbody tr {
-            height: 30px;
-            transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
-            cursor: default;
-        }
+
+    .events-board tbody td {
+        vertical-align: middle;
+        padding: 0 20px;
+        height: 40px;
+        line-height: 30px;
+    }
+
+    .events-board table tr:nth-child(even) {
+        background-color: rgba(240, 244, 248, 0.5);
+    }
+
+    .events-board table tbody tr {
+        height: 30px;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+        cursor: default;
+    }
+
         .events-board table tbody tr:hover {
             transform: scale(1.01);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
             background-color: rgba(240, 244, 248, 0.8);
         }
-        .col-avatar { width: 36px; }
-        .avatar,.avatar-fallback {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 2px solid var(--secondary-color, #ff4f87);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-            background: none;
-        }
-        .avatar { object-fit: cover; display: block; }
-        .avatar-fallback {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #5a6b7b;
-            font-weight: 800;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            line-height: 24px;
-        }
-        .avatar-link { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-        .athlete-td { display: flex; align-items: center; gap: 0.6rem; text-align: left; }
-        .event-message a { color: var(--primary-color); text-decoration: underline; cursor: pointer; }
-        .event-message { color: var(--dark-text-color); }
-        .col-date { text-align: right; white-space: nowrap; color: #7a8a99; font-weight: 400; font-size: 0.8rem; opacity: 50% }
-        .event-message{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
-        @media (max-width:600px){
-            .events-board thead th{font-size:.85rem;padding:10px 12px}
-            .view-all{font-size:.75rem}
-            .events-board tbody td{padding:6px 12px;height:auto;line-height:1.25}
-            .events-board table tbody tr{height:auto}
-            .col-avatar{width:28px}
-            .avatar,.avatar-fallback{width:22px;height:22px;border-width:2px}
-            .event-message{font-size:.95rem}
-            .col-date{font-size:.72rem;opacity:.6;padding-left:6px}
-        }
-        @media (max-width:360px){
-            .col-date{display:none}
-        }
-        .event-message a:hover,
-        .event-message a:focus {
-            color: var(--secondary-color, #ff4f87);
-            text-decoration-color: var(--secondary-color, #ff4f87);
-        }
-    
-        .avatar,
-        .avatar-fallback {
-            transition: transform .15s ease, box-shadow .15s ease;
-            will-change: transform;
-        }
-    
-        .avatar-link:hover .avatar,
-        .avatar-link:focus .avatar,
-        .avatar-link:hover .avatar-fallback,
-        .avatar-link:focus .avatar-fallback {
-            transform: scale(1.15);
-            box-shadow: 0 2px 6px rgba(0,0,0,.16);
+
+    .col-avatar {
+        width: 36px;
+    }
+
+    .avatar, .avatar-fallback {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid var(--secondary-color, #ff4f87);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        background: none;
+    }
+
+    .avatar {
+        object-fit: cover;
+        display: block;
+    }
+
+    .avatar-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #5a6b7b;
+        font-weight: 800;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        line-height: 24px;
+    }
+
+    .avatar-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .athlete-td {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        text-align: left;
+    }
+
+    .event-message a {
+        color: var(--primary-color);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .event-message {
+        color: var(--dark-text-color);
+    }
+
+    .col-date {
+        text-align: right;
+        white-space: nowrap;
+        color: #7a8a99;
+        font-weight: 400;
+        font-size: 0.8rem;
+        opacity: 50%
+    }
+
+    .event-message {
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+        flex-wrap: wrap
+    }
+
+    @media (max-width:600px) {
+        .events-board thead th {
+            font-size: .85rem;
+            padding: 10px 12px
         }
 
-        .events-board table{
-            padding-bottom:5px;
+        .view-all {
+            font-size: .75rem
         }
 
+        .events-board tbody td {
+            padding: 6px 12px;
+            height: auto;
+            line-height: 1.25
+        }
 
-    </style>
-    
-    <div id="events-root" class="events-board">
-        <table id="eventsTable">
-            <thead>
+        .events-board table tbody tr {
+            height: auto
+        }
+
+        .col-avatar {
+            width: 28px
+        }
+
+        .avatar, .avatar-fallback {
+            width: 22px;
+            height: 22px;
+            border-width: 2px
+        }
+
+        .event-message {
+            font-size: .95rem
+        }
+
+        .col-date {
+            font-size: .72rem;
+            opacity: .6;
+            padding-left: 6px
+        }
+    }
+
+    @media (max-width:360px) {
+        .col-date {
+            display: none
+        }
+    }
+
+    .event-message a:hover,
+    .event-message a:focus {
+        color: var(--secondary-color, #ff4f87);
+        text-decoration-color: var(--secondary-color, #ff4f87);
+    }
+
+    .avatar,
+    .avatar-fallback {
+        transition: transform .15s ease, box-shadow .15s ease;
+        will-change: transform;
+    }
+
+    .avatar-link:hover .avatar,
+    .avatar-link:focus .avatar,
+    .avatar-link:hover .avatar-fallback,
+    .avatar-link:focus .avatar-fallback {
+        transform: scale(1.15);
+        box-shadow: 0 2px 6px rgba(0,0,0,.16);
+    }
+
+    .events-board table {
+        padding-bottom: 5px;
+    }
+</style>
+
+<div id="events-root" class="events-board">
+    <table id="eventsTable">
+        <thead>
             <tr>
                 <th colspan="3">
                     <div class="header-bar">
@@ -138,64 +234,64 @@
                     </div>
                 </th>
             </tr>
-            </thead>
-            <tbody>
+        </thead>
+        <tbody>
             <tr><td colspan="3">Loading…</td></tr>
-            </tbody>
-        </table>
-    </div>
-    
-    <script>
-        function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
-        function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
-        function getAthleteName(a){if(!a||typeof a!=="object")return"";const map=lowerKeyMap(a);const nameKey=map["name"]||map["athletename"]||map["fullname"]||map["displayname"];if(nameKey)return String(a[nameKey]).trim();const slugKey=map["athleteslug"]||map["slug"]||map["key"]||map["id"];return slugKey?String(a[slugKey]).trim():"";}
-        function getAthleteLinkId(a){if(!a||typeof a!=="object")return"";const map=lowerKeyMap(a);const cand=["athleteid","athleteslug","slug","key","id"];for(const c of cand){if(map[c]){const v=String(a[map[c]]).trim();if(v)return v;}}return slugifyLocal(getAthleteName(a));}
-        function normalizeLinkId(id){return String(id).replace(/_/g,"-");}
-        function getAthleteUrl(a){if(!a||typeof a!=="object")return"";const map=lowerKeyMap(a);const urlKey=map["url"]||map["profileurl"]||map["pageurl"]||map["href"];if(urlKey)return String(a[urlKey]).trim();let id=getAthleteLinkId(a);if(!id)return"";id=normalizeLinkId(id);return `/athlete/${encodeURIComponent(id)}`;}
-        function getAthleteImage(a){
-            if(!a||typeof a!=="object")return"";
-            const map=lowerKeyMap(a);
-            const keys=["profilepic","profilepicurl","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl"];
-            for(const k of keys){if(map[k]){const v=String(a[map[k]]).trim();if(v)return v;}}
-            return"";
-        }
-        function initialsFromName(n){const parts=String(n||"").trim().split(/\s+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
-        function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
-        function relativeDayLabel(iso){const dt=new Date(iso);if(isNaN(dt))return"";const today=startOfLocalDay(new Date());const thatDay=startOfLocalDay(dt);const diffDays=Math.round((today-thatDay)/86400000);if(diffDays<=0)return"Today.";if(diffDays===1)return"Yesterday.";if(diffDays<30)return`${diffDays} days ago.`;const months=Math.floor(diffDays/30);return months===1?"1 month ago.":`${months} months ago.`;}
-        function formatListDate(iso){const d=new Date(iso);if(isNaN(d))return"";const s=d.toLocaleDateString(undefined,{month:"short",day:"numeric"});return s.replace(",","")+".";}
-        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll");link.style.display=show?"":"none";}
-        function renderRows(events){
-            const tbody=document.querySelector("#eventsTable tbody");
-            tbody.innerHTML="";
-            if(!Array.isArray(events)||events.length===0){tbody.innerHTML=`<tr><td colspan="3">No events yet.</td></tr>`;return;}
-            events.forEach(e=>{
-                const map=lowerKeyMap(e||{});
-                const athlete=map["athlete"]?e[map["athlete"]]:null;
-                const whenIso=map["joinedat"]?e[map["joinedat"]]:null;
-                const name=getAthleteName(athlete)||"Unknown athlete";
-                const url=getAthleteUrl(athlete);
-                const img=getAthleteImage(athlete);
-                const rel=whenIso?relativeDayLabel(whenIso):"";
-                const dateLabel=whenIso?formatListDate(whenIso):"";
-                const content = img
-                    ? `<img class="avatar" src="${img}" alt="${name}" loading="lazy">`
-                    : `<div class="avatar-fallback" title="${name}">${initialsFromName(name)}</div>`;
-                const avatarHtml = url
-                    ? `<a href="${url}" class="avatar-link" title="${name}" aria-label="${name}">${content}</a>`
-                    : content;
-                const nameHtml = url ? `<a href="${url}">${name}</a>` : name;
-                const msgHtml = `${nameHtml} joined ${rel}`;
-                const tr=document.createElement("tr");
-                tr.innerHTML=`<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td><td class="athlete-td event-message">${msgHtml}</td><td class="col-date">${dateLabel}</td>`;
-                tbody.appendChild(tr);
-            });
-        }
-        function parseLimit(val){if(val===undefined||val===null||val==="")return null;const n=typeof val==="string"?parseInt(val,10):Number(val);return Number.isFinite(n)&&n>0?Math.floor(n):null;}
-        window.loadEventsTable=function(maxRows=null,showViewAll=true){
-            setViewAllVisible(!!showViewAll);
-            fetch("/api/data/events",{headers:{"accept":"application/json"}})
-                .then(async r=>{if(!r.ok)throw new Error("HTTP "+r.status);const t=await r.text();return JSON.parse(t);})
-                .then(events=>{let list=Array.isArray(events)?events:[];const n=parseLimit(maxRows);if(n!==null)list=list.slice(0,n);renderRows(list);})
-                .catch(()=>{const tbody=document.querySelector("#eventsTable tbody");tbody.innerHTML=`<tr><td colspan="3">Failed to load events.</td></tr>`;});
-        };
-    </script>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function lowerKeyMap(o) { const m = {}; Object.keys(o || {}).forEach(k => m[k.toLowerCase()] = k); return m; }
+    function slugifyLocal(s) { return (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/-+/g, "-"); }
+    function getAthleteName(a) { if (!a || typeof a !== "object") return ""; const map = lowerKeyMap(a); const nameKey = map["name"] || map["athletename"] || map["fullname"] || map["displayname"]; if (nameKey) return String(a[nameKey]).trim(); const slugKey = map["athleteslug"] || map["slug"] || map["key"] || map["id"]; return slugKey ? String(a[slugKey]).trim() : ""; }
+    function getAthleteLinkId(a) { if (!a || typeof a !== "object") return ""; const map = lowerKeyMap(a); const cand = ["athleteid", "athleteslug", "slug", "key", "id"]; for (const c of cand) { if (map[c]) { const v = String(a[map[c]]).trim(); if (v) return v; } } return slugifyLocal(getAthleteName(a)); }
+    function normalizeLinkId(id) { return String(id).replace(/_/g, "-"); }
+    function getAthleteUrl(a) { if (!a || typeof a !== "object") return ""; const map = lowerKeyMap(a); const urlKey = map["url"] || map["profileurl"] || map["pageurl"] || map["href"]; if (urlKey) return String(a[urlKey]).trim(); let id = getAthleteLinkId(a); if (!id) return ""; id = normalizeLinkId(id); return `/athlete/${encodeURIComponent(id)}`; }
+    function getAthleteImage(a) {
+        if (!a || typeof a !== "object") return "";
+        const map = lowerKeyMap(a);
+        const keys = ["profilepic", "profilepicurl", "profilepicture", "profilepictureurl", "image", "avatar", "photo", "picture", "profileimage", "img", "imageurl"];
+        for (const k of keys) { if (map[k]) { const v = String(a[map[k]]).trim(); if (v) return v; } }
+        return "";
+    }
+    function initialsFromName(n) { const parts = String(n || "").trim().split(/\s+/).slice(0, 2); return parts.map(p => p.charAt(0)).join("").toUpperCase() || "?"; }
+    function startOfLocalDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+    function relativeDayLabel(iso) { const dt = new Date(iso); if (isNaN(dt)) return ""; const today = startOfLocalDay(new Date()); const thatDay = startOfLocalDay(dt); const diffDays = Math.round((today - thatDay) / 86400000); if (diffDays <= 0) return "Today."; if (diffDays === 1) return "Yesterday."; if (diffDays < 30) return `${diffDays} days ago.`; const months = Math.floor(diffDays / 30); return months === 1 ? "1 month ago." : `${months} months ago.`; }
+    function formatListDate(iso) { const d = new Date(iso); if (isNaN(d)) return ""; const s = d.toLocaleDateString(undefined, { month: "short", day: "numeric" }); return s.replace(",", "") + "."; }
+    function setViewAllVisible(show) { const link = document.getElementById("eventsViewAll"); link.style.display = show ? "" : "none"; }
+    function renderRows(events) {
+        const tbody = document.querySelector("#eventsTable tbody");
+        tbody.innerHTML = "";
+        if (!Array.isArray(events) || events.length === 0) { tbody.innerHTML = `<tr><td colspan="3">No events yet.</td></tr>`; return; }
+        events.forEach(e => {
+            const map = lowerKeyMap(e || {});
+            const athlete = map["athlete"] ? e[map["athlete"]] : null;
+            const whenIso = map["joinedat"] ? e[map["joinedat"]] : null;
+            const name = getAthleteName(athlete) || "Unknown athlete";
+            const url = getAthleteUrl(athlete);
+            const img = getAthleteImage(athlete);
+            const rel = whenIso ? relativeDayLabel(whenIso) : "";
+            const dateLabel = whenIso ? formatListDate(whenIso) : "";
+            const content = img
+                ? `<img class="avatar" src="${img}" alt="${name}" loading="lazy">`
+                : `<div class="avatar-fallback" title="${name}">${initialsFromName(name)}</div>`;
+            const avatarHtml = url
+                ? `<a href="${url}" class="avatar-link" title="${name}" aria-label="${name}">${content}</a>`
+                : content;
+            const nameHtml = url ? `<a href="${url}">${name}</a>` : name;
+            const msgHtml = `${nameHtml} joined ${rel}`;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td><td class="athlete-td event-message">${msgHtml}</td><td class="col-date">${dateLabel}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+    function parseLimit(val) { if (val === undefined || val === null || val === "") return null; const n = typeof val === "string" ? parseInt(val, 10) : Number(val); return Number.isFinite(n) && n > 0 ? Math.floor(n) : null; }
+    window.loadEventsTable = function (maxRows = null, showViewAll = true) {
+        setViewAllVisible(!!showViewAll);
+        fetch("/api/data/events", { headers: { "accept": "application/json" } })
+            .then(async r => { if (!r.ok) throw new Error("HTTP " + r.status); const t = await r.text(); return JSON.parse(t); })
+            .then(events => { let list = Array.isArray(events) ? events : []; const n = parseLimit(maxRows); if (n !== null) list = list.slice(0, n); renderRows(list); })
+            .catch(() => { const tbody = document.querySelector("#eventsTable tbody"); tbody.innerHTML = `<tr><td colspan="3">Failed to load events.</td></tr>`; });
+    };
+</script>
