@@ -11,6 +11,7 @@ namespace LongevityWorldCup.Website.Business
         private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
         
         public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
+        public JsonArray Events { get; private set; } = []; // Initialize to avoid nullability issue
 
         private readonly IWebHostEnvironment _env;
         private readonly FileSystemWatcher _athleteWatcher;
@@ -103,6 +104,8 @@ namespace LongevityWorldCup.Website.Business
             _athleteWatcher.EnableRaisingEvents = true;
             _athleteWatcher.Error += OnWatcherError;
 
+            CreateEvents();
+            
             // Start a poll‐loop to detect external DB writes and reload stats
             _ = Task.Run(async () =>
             {
@@ -131,12 +134,11 @@ namespace LongevityWorldCup.Website.Business
             });
         }
         
-        public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetNewAthletes()
+        public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
         {
             var result = new List<(JsonObject, DateTime)>();
             using var cmd = _sqliteConnection.CreateCommand();
-            cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes WHERE JoinedAt >= @since";
-            cmd.Parameters.AddWithValue("@since", _serviceStartUtc.ToString("o"));
+            cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -154,6 +156,24 @@ namespace LongevityWorldCup.Website.Business
             }
 
             return result;
+        }
+        
+        public void CreateEvents()
+        {
+            var joinedData = GetAthletesJoinedData().OrderByDescending(x => x.JoinedAt);
+
+            var root = new JsonArray();
+            foreach (var jd in joinedData)
+            {
+                var athleteCopy = (JsonObject?)(jd.Athlete?.DeepClone() ?? new JsonObject());
+                root.Add(new JsonObject
+                {
+                    ["Athlete"] = athleteCopy,
+                    ["JoinedAt"] = jd.JoinedAt.ToString("o")
+                });
+            }
+
+            Events = root;
         }
 
         private async Task LoadAthletesAsync()

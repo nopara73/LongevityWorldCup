@@ -501,7 +501,7 @@
 
         .top-rockets .rocket-icon:nth-child(2) {
             animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.2s;
+            animation-delay: 0.2s; 
         }
 
         .top-rockets .rocket-icon:nth-child(3) {
@@ -523,6 +523,12 @@
             animation: rocketLaunch 0.8s ease forwards;
             animation-delay: 0.6s;
         }
+
+        .events-board { margin-bottom: 28px !important; }
+        @media (min-width: 992px) {
+            .events-board { margin-bottom: 36px !important; }
+        }
+        
     </style>
 </head>
 <body>
@@ -543,6 +549,9 @@
                 </span>
             </p>
         </div>
+        
+        <!--EVENT-BOARD-CONTENT-->
+        
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
             <button id="viewAllAthletesBtn" onclick="window.location.href='/leaderboard/leaderboard.html'" class="rankings-btn" aria-label="View all athletes on the leaderboard" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
@@ -625,6 +634,7 @@
         window.bitcoinDonationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
 
         document.addEventListener('DOMContentLoaded', function () {
+            loadEventsTable(5, true);
             LoadLeaderboard(true, 10);
         });
 
