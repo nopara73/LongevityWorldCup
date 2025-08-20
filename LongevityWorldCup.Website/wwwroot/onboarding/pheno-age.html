@@ -585,8 +585,9 @@
         function calculateResult() {
             // In update mode, ensure at least one new biomarker was entered
             if (isUpdate) {
-                if (touchedBiomarkers.size === 0) {
-                    customAlert('😱 No new biomarker data entered! Cannot submit nothing!');
+                if (touchedBiomarkers.size < 9) {
+                    document.getElementById('continueButton').classList.remove('show');
+                    customAlert('😱 Need to submit all 9 biomarkers!');
                     return;
                 }
             }
