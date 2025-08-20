@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Longevity World Cup 2025 - Event Board</title>
+    <!--HEAD-->
+</head>
+<body>
+<!--HEADER-->
+<main>
+    <h1 id="eventBoardTitle">Highlights</h1>
+    <!--EVENT-BOARD-CONTENT-->
+    <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
+        <button class="option-button back-button" onclick="window.goBackOrHome()">
+            <i class="fas fa-arrow-left"></i>&nbsp;Back
+        </button>
+    </div>
+</main>
+<!--FOOTER-->
+
+<script>
+    function initEventBoard() {
+        const titleEl = document.getElementById('eventBoardTitle');
+        if (titleEl && titleEl.scrollIntoView) {
+            setTimeout(() => {
+                titleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+        }
+        if (typeof window.loadEventsTable === 'function') {
+            window.loadEventsTable(Infinity, false);
+        } else {
+            console.error('loadEventsTable is not defined');
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initEventBoard);
+    } else {
+        initEventBoard();
+    }
+</script>
+</body>
+</html>
