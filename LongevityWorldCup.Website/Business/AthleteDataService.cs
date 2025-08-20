@@ -1,12 +1,6 @@
-﻿using System;
-using System.IO;
-using System.Linq;
+﻿using System.Collections;
 using System.Text.Json.Nodes;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
 
@@ -14,7 +8,10 @@ namespace LongevityWorldCup.Website.Business
 {
     public class AthleteDataService : IDisposable
     {
+        private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
+        
         public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
+        public JsonArray Events { get; private set; } = []; // Initialize to avoid nullability issue
 
         private readonly IWebHostEnvironment _env;
         private readonly FileSystemWatcher _athleteWatcher;
@@ -48,15 +45,19 @@ namespace LongevityWorldCup.Website.Business
             {
                 cmd.CommandText = @"
     CREATE TABLE IF NOT EXISTS Athletes (
-        Key          TEXT    PRIMARY KEY,
-        AgeGuesses   TEXT    NOT NULL
+        Key        TEXT PRIMARY KEY,
+        AgeGuesses TEXT NOT NULL
     )";
                 cmd.ExecuteNonQuery();
+
+                // Try to add column (ignore if exists)
+                cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
+                try { cmd.ExecuteNonQuery(); } catch { /* column already exists */ }
             }
 
             // Initial load
             LoadAthletesAsync().GetAwaiter().GetResult();
-
+            
             foreach (var athleteJson in Athletes.OfType<JsonObject>())
             {
                 var athleteKey = athleteJson["AthleteSlug"]!.GetValue<string>();
@@ -66,6 +67,14 @@ namespace LongevityWorldCup.Website.Business
                 insertAthleteCmd.Parameters.AddWithValue("@key", athleteKey);
                 insertAthleteCmd.Parameters.AddWithValue("@ages", "[]");
                 insertAthleteCmd.ExecuteNonQuery();
+            }
+            
+            // Finally, set JoinedAt=now for any that are still null
+            using (var fillNow = _sqliteConnection.CreateCommand())
+            {
+                fillNow.CommandText = "UPDATE Athletes SET JoinedAt=@now WHERE JoinedAt IS NULL OR JoinedAt=''";
+                fillNow.Parameters.AddWithValue("@now", _serviceStartUtc.ToString("o"));
+                fillNow.ExecuteNonQuery();
             }
 
             // Hydrate persisted age‐guess stats from SQLite
@@ -95,6 +104,8 @@ namespace LongevityWorldCup.Website.Business
             _athleteWatcher.EnableRaisingEvents = true;
             _athleteWatcher.Error += OnWatcherError;
 
+            CreateEvents();
+            
             // Start a poll‐loop to detect external DB writes and reload stats
             _ = Task.Run(async () =>
             {
@@ -121,6 +132,48 @@ namespace LongevityWorldCup.Website.Business
                     await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
                 }
             });
+        }
+        
+        public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
+        {
+            var result = new List<(JsonObject, DateTime)>();
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var key = reader.GetString(0);
+                var joinedAt = DateTime.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+                var athleteJson = Athletes
+                    .OfType<JsonObject>()
+                    .FirstOrDefault(a =>
+                        string.Equals(a["AthleteSlug"]?.GetValue<string>(), key, StringComparison.OrdinalIgnoreCase));
+
+                if (athleteJson != null)
+                    result.Add((athleteJson, joinedAt));
+            }
+
+            return result;
+        }
+        
+        public void CreateEvents()
+        {
+            var joinedData = GetAthletesJoinedData().OrderByDescending(x => x.JoinedAt);
+
+            var root = new JsonArray();
+            foreach (var jd in joinedData)
+            {
+                var athleteCopy = (JsonObject?)(jd.Athlete?.DeepClone() ?? new JsonObject());
+                root.Add(new JsonObject
+                {
+                    ["Athlete"] = athleteCopy,
+                    ["JoinedAt"] = jd.JoinedAt.ToString("o")
+                });
+            }
+
+            Events = root;
         }
 
         private async Task LoadAthletesAsync()

@@ -501,7 +501,7 @@
 
         .top-rockets .rocket-icon:nth-child(2) {
             animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.2s;
+            animation-delay: 0.2s; 
         }
 
         .top-rockets .rocket-icon:nth-child(3) {
@@ -523,6 +523,12 @@
             animation: rocketLaunch 0.8s ease forwards;
             animation-delay: 0.6s;
         }
+
+        .events-board { margin-bottom: 28px !important; }
+        @media (min-width: 992px) {
+            .events-board { margin-bottom: 36px !important; }
+        }
+        
     </style>
 </head>
 <body>
@@ -543,6 +549,9 @@
                 </span>
             </p>
         </div>
+
+        <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
+
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
             <button id="viewAllAthletesBtn" onclick="window.location.href='/leaderboard/leaderboard.html'" class="rankings-btn" aria-label="View all athletes on the leaderboard" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
@@ -624,7 +633,19 @@
     <script>
         window.bitcoinDonationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
 
+        if(!window.callScoped){
+            window.callScoped=function(root,fn){
+                var r=typeof root==='string'?document.getElementById(root):root; if(!r)return;
+                var g1=document.getElementById, g2=document.querySelector, g3=document.querySelectorAll;
+                document.getElementById=function(id){return r.querySelector('#'+(window.CSS&&CSS.escape?CSS.escape(id):id))}
+                document.querySelector=function(sel){return r.querySelector(sel)}
+                document.querySelectorAll=function(sel){return r.querySelectorAll(sel)}
+                try{ fn() } finally { document.getElementById=g1; document.querySelector=g2; document.querySelectorAll=g3 }
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function () {
+            callScoped('events-root-index', function(){ loadEventsTable(5, true); });
             LoadLeaderboard(true, 10);
         });
 

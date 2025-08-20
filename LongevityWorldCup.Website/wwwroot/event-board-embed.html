@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!--HEAD-->
+    <style>
+        html,body{margin:0;padding:0;height:auto;min-height:0;background:transparent}
+    </style>
+    <style>
+        #events-embed-root .events-board{box-shadow:none !important}
+        #events-embed-root .events-board table tbody tr:hover{box-shadow:none !important;transform:none !important}
+        #events-embed-root .events-board thead th{
+            font-weight: 700 !important;
+        }
+    </style>
+</head>
+<body>
+<div id="events-embed-root">
+    <!--EVENT-BOARD-CONTENT-->
+</div>
+<script>
+    (function(){
+        function applyParentTheme(){
+            try{
+                if(window.parent&&window.parent!==window){
+                    var pdoc=window.parent.document;
+                    var pr=window.parent.getComputedStyle(pdoc.documentElement);
+                    var vars=['--primary-color','--secondary-color','--card-bg','--dark-text-color','--light-text-color','--body-bg'];
+                    for(var i=0;i<vars.length;i++){
+                        var v=pr.getPropertyValue(vars[i]).trim();
+                        if(v)document.documentElement.style.setProperty(vars[i],v);
+                    }
+                    var bf=window.parent.getComputedStyle(pdoc.body).getPropertyValue('font-family');
+                    if(bf)document.body.style.fontFamily=bf;
+                    document.body.style.backgroundColor='transparent';
+                }
+            }catch(e){}
+        }
+        applyParentTheme();
+        window.addEventListener('message',function(e){
+            var d=e.data;
+            if(!d)return;
+            if(d.type==='events-theme-vars'){
+                for(var k in d){
+                    if(Object.prototype.hasOwnProperty.call(d,k)){
+                        if(k.indexOf('--')===0)document.documentElement.style.setProperty(k,String(d[k]).trim());
+                    }
+                }
+                if(d['font-family'])document.body.style.fontFamily=d['font-family'];
+                document.body.style.backgroundColor='transparent';
+            }
+        });
+    })();
+</script>
+<script>
+    (function(){
+        function ready(fn){if(document.readyState!=='loading')fn();else document.addEventListener('DOMContentLoaded',fn)}
+        ready(function(){
+            var root=document.getElementById('events-embed-root');
+            function post(){if(window.parent&&window.parent!==window){var h=Math.ceil(root.getBoundingClientRect().height);window.parent.postMessage({type:'events-embed-height',h:h},'*')}}
+            var ro=new ResizeObserver(post);if(root)ro.observe(root);
+            var mo=new MutationObserver(function(){requestAnimationFrame(post)});if(root)mo.observe(root,{childList:true,subtree:true});
+            window.addEventListener('load',post);
+            var q=new URLSearchParams(window.location.search);
+            var rows=parseInt(q.get('rows')||'5',10);
+            var viewAll=(q.get('viewAll')||'true')==='true';
+            var athlete=q.get('athlete')||null;
+            var ln=q.get('linkNames');
+            var linkNames=ln==null?true:!(ln==='false'||ln==='0');
+            function safeLoad(){
+                if(typeof window.loadEventsTable==='function'){window.loadEventsTable(rows,viewAll,athlete,linkNames);post();return true}
+                return false
+            }
+            if(!safeLoad()){
+                var t=0,int=setInterval(function(){t+=1;if(safeLoad()||t>60){clearInterval(int)}},50)
+            }
+        })
+    })();
+</script>
+</body>
+</html>
