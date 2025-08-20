@@ -197,197 +197,227 @@
 </script>
 
 <script>
-    function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
-    function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
-    function getAthleteName(a){
-        if(!a||typeof a!=="object")return"";
-        const map=lowerKeyMap(a);
-        const nameKey=map["name"]||map["athletename"]||map["fullname"]||map["displayname"];
-        if(nameKey)return String(a[nameKey]).trim();
-        const slugKey=map["athleteslug"]||map["slug"]||map["key"]||map["id"];
-        return slugKey?String(a[slugKey]).trim():"";
-    }
-    function getAthleteLinkId(a){
-        if(!a||typeof a!=="object")return"";
-        const map=lowerKeyMap(a);
-        const cand=["athleteid","athleteslug","slug","key","id"];
-        for(const c of cand){if(map[c]){const v=String(a[map[c]]).trim();if(v)return v;}}
-        return slugifyLocal(getAthleteName(a));
-    }
-    function normalizeLinkId(id){return String(id).replace(/_/g,"-");}
-    function getAthleteUrl(a){
-        if(!a||typeof a!=="object")return"";
-        const map=lowerKeyMap(a);
-        const urlKey=map["url"]||map["profileurl"]||map["pageurl"]||map["href"];
-        if(urlKey)return String(a[urlKey]).trim();
-        let id=getAthleteLinkId(a);
-        if(!id)return"";
-        id=normalizeLinkId(id);
-        return `/athlete/${encodeURIComponent(id)}`;
-    }
-    function getAthleteImage(a){
-        if(!a||typeof a!=="object")return"";
-        const map=lowerKeyMap(a);
-        const keys=["profilepic","profilepicurl","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl"];
-        for(const k of keys){if(map[k]){const v=String(a[map[k]]).trim();if(v)return v;}}
-        return"";
-    }
-    function initialsFromName(n){const parts=String(n||"").trim().split(/\s+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
-    function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
-    function relativeDayLabel(iso){
-        const dt=new Date(iso); if(isNaN(dt)) return "";
-        const today=startOfLocalDay(new Date());
-        const thatDay=startOfLocalDay(dt);
-        if(thatDay>today) return 'Today <i class="fa fa-rocket"></i>';
+    (function(){
+        // --- constants ---
+        const EVENT_TYPE = { General: 0, Joined: 1 };
 
-        const years = today.getFullYear() - thatDay.getFullYear()
-            - ((today.getMonth()<thatDay.getMonth() || (today.getMonth()===thatDay.getMonth() && today.getDate()<thatDay.getDate())) ? 1 : 0);
-        if(years>=1) return years===1 ? '1 year ago <i class="fa fa-rocket"></i>' : `${years} years ago <i class="fa fa-rocket"></i>`;
-
-        const months = (today.getFullYear()*12 + today.getMonth()) - (thatDay.getFullYear()*12 + thatDay.getMonth())
-            - (today.getDate()<thatDay.getDate()?1:0);
-        if(months>=1) return months===1 ? '1 month ago <i class="fa fa-rocket"></i>' : `${months} months ago <i class="fa fa-rocket"></i>`;
-
-        const diffDays=Math.round((today-thatDay)/86400000);
-        if(diffDays<=0) return 'Today <i class="fa fa-rocket"></i>';
-        if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
-        return `${diffDays} days ago <i class="fa fa-rocket"></i>`;
-    }
-    function formatListDate(iso, { separator = ', ' } = {}) {
-        const d = new Date(iso);
-        if (isNaN(d)) return '';
-        const nowYear = new Date().getFullYear();
-        const base = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).replace(/,/g, '');
-        return d.getFullYear() === nowYear ? base : `${base}${separator}${d.getFullYear()}`;
-    }
-    
-    function setViewAllVisible(show){const link=document.getElementById("eventsViewAll");link.style.display=show?"":"none";}
-    function normalizeIncomingAthleteId(id){
-        if(id==null) return '';
-        let s=String(id).trim();
-        if(!s) return '';
-        s = s.split('#')[0].split('?')[0];
-        if(s.includes('/')) s = s.split('/').filter(Boolean).pop();
-        return normalizeLinkId(slugifyLocal(s));
-    }
-    let rowObserver = null;
-    const BIG_LIST_THRESHOLD = 60;
-    function ensureRowObserver(){
-        if(rowObserver) return rowObserver;
-        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        rowObserver = new IntersectionObserver((entries, io)=>{
-            entries.forEach(entry=>{
-                const el = entry.target;
-                if(entry.isIntersecting || entry.intersectionRatio > 0){
-                    if(!prefersReduced){
-                        const idx = Number(el.dataset.rowIndex || 0);
-                        const groupSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size')) || 8;
-                        const stepMs = parseTimeVar('--row-stagger-step', 40);
-                        el.style.setProperty('--row-delay', `${(idx % groupSize) * stepMs}ms`);
-                    }
-                    el.classList.add('is-visible');
-                    io.unobserve(el);
-                }
-            });
-        },{
-            root: null,
-            rootMargin: '0px 0px -10% 0px',
-            threshold: 0.01
-        });
-        return rowObserver;
-    }
-    function parseTimeVar(varName, fallbackMs){
-        const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-        if(!v) return fallbackMs;
-        if(v.endsWith('ms')) return parseFloat(v);
-        if(v.endsWith('s'))  return parseFloat(v)*1000;
-        const n = parseFloat(v); return isNaN(n)?fallbackMs:n;
-    }
-    function renderRows(events, linkNames){
-        const tbody=document.querySelector("#eventsTable tbody");
-        tbody.innerHTML="";
-        if(!Array.isArray(events)||events.length===0){
-            tbody.innerHTML=`<tr><td colspan="3">No events yet.</td></tr>`;
-            return;
+        // --- tiny utils ---
+        function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
+        function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+            .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
+        function normalizeLinkId(id){return String(id||"").replace(/_/g,"-");}
+        function esc(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
+        function initialsFromName(n){const parts=String(n||"").trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
+        function parseTimeVar(varName, fallbackMs){
+            const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+            if(!v) return fallbackMs;
+            if(v.endsWith('ms')) return parseFloat(v);
+            if(v.endsWith('s')) return parseFloat(v)*1000;
+            const n=parseFloat(v); return Number.isFinite(n)?n:fallbackMs;
         }
-        const frag = document.createDocumentFragment();
-        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        events.forEach((e, idx)=>{
-            const map=lowerKeyMap(e||{});
-            const athlete=map["athlete"]?e[map["athlete"]]:null;
-            const whenIso=map["joinedat"]?e[map["joinedat"]]:null;
-            const name=getAthleteName(athlete)||"Unknown athlete";
-            const url=getAthleteUrl(athlete);
-            const img=getAthleteImage(athlete);
-            const rel=whenIso?relativeDayLabel(whenIso):"";
-            const dateLabel=whenIso?formatListDate(whenIso):"";
-            const clickable = !!linkNames;
-            const content = img
-                ? `<img class="avatar" src="${img}" alt="${name}" loading="lazy">`
-                : `<div class="avatar-fallback" title="${name}">${initialsFromName(name)}</div>`;
-            const avatarHtml = (clickable && url)
-                ? `<a href="${url}" class="avatar-link" title="${name}" aria-label="${name}">${content}</a>`
-                : content;
-            const nameHtml = (clickable && url) ? `<a href="${url}">${name}</a>` : `<span class="athlete-name-text">${name}</span>`;
-            const msgHtml = `${nameHtml} joined ${rel}`;
-            const tr=document.createElement("tr");
-            tr.className = 'row-appear';
-            tr.dataset.rowIndex = idx;
-            tr.innerHTML=
-                `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
+
+        // --- date helpers (unchanged behavior) ---
+        function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+        function relativeDayLabel(iso){
+            const dt=new Date(iso); if(isNaN(dt)) return "";
+            const today=startOfLocalDay(new Date());
+            const thatDay=startOfLocalDay(dt);
+            if(thatDay>today) return 'Today <i class="fa fa-rocket"></i>';
+
+            const years = today.getFullYear() - thatDay.getFullYear()
+                - ((today.getMonth()<thatDay.getMonth() || (today.getMonth()===thatDay.getMonth() && today.getDate()<thatDay.getDate())) ? 1 : 0);
+            if(years>=1) return years===1 ? '1 year ago <i class="fa fa-rocket"></i>' : `${years} years ago <i class="fa fa-rocket"></i>`;
+
+            const months = (today.getFullYear()*12 + today.getMonth()) - (thatDay.getFullYear()*12 + thatDay.getMonth())
+                - (today.getDate()<thatDay.getDate()?1:0);
+            if(months>=1) return months===1 ? '1 month ago <i class="fa fa-rocket"></i>' : `${months} months ago <i class="fa fa-rocket"></i>`;
+
+            const diffDays=Math.round((today-thatDay)/86400000);
+            if(diffDays<=0) return 'Today <i class="fa fa-rocket"></i>';
+            if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
+            return `${diffDays} days ago <i class="fa fa-rocket"></i>`;
+        }
+        function formatListDate(iso,{separator=', '}={}){
+            const d=new Date(iso); if(isNaN(d)) return '';
+            const nowYear=new Date().getFullYear();
+            const base=d.toLocaleDateString(undefined,{month:'short',day:'numeric'}).replace(/,/g,'');
+            return d.getFullYear()===nowYear?base:`${base}${separator}${d.getFullYear()}`;
+        }
+
+        // --- view helpers ---
+        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
+        function parseLimit(val){
+            if(val===undefined||val===null||val==="")return null;
+            const n=typeof val==="string"?parseInt(val,10):Number(val);
+            return Number.isFinite(n)&&n>0?Math.floor(n):null;
+        }
+        function normalizeIncomingAthleteId(id){
+            if(id==null) return '';
+            let s=String(id).trim();
+            if(!s) return '';
+            s = s.split('#')[0].split('?')[0];
+            if(s.includes('/')) s = s.split('/').filter(Boolean).pop();
+            return normalizeLinkId(slugifyLocal(s));
+        }
+
+        // --- build an index for fast slug->athlete lookup ---
+        function buildAthleteIndex(athletes){
+            const index=new Map();
+            (athletes||[]).forEach(a=>{
+                const map=lowerKeyMap(a||{});
+                const slugKey=map["athleteslug"]||map["slug"]||map["key"]||map["id"];
+                const rawSlug=slugKey?String(a[slugKey]).trim():"";
+                if(!rawSlug) return;
+                const dashed=normalizeLinkId(rawSlug);
+                const canon=slugifyLocal(dashed);
+                index.set(canon,a);                     // dashed canonical
+                index.set(slugifyLocal(rawSlug),a);     // underscore canonical
+            });
+            return index;
+        }
+        function makeAthleteUrlFromSlug(slug){
+            if(!slug) return "";
+            return `/athlete/${encodeURIComponent(normalizeLinkId(slugifyLocal(slug)))}`;
+        }
+
+        // --- transform server events -> rows the renderer can consume ---
+        function enrichEvents(rawEvents, athletesIndex){
+            return (rawEvents||[]).map(e=>{
+                const map=lowerKeyMap(e||{});
+                const type=Number(e[map["type"]] ?? 0);
+                const text=String(e[map["text"]] ?? "");
+                const occurredAt=e[map["occurredat"]] || e[map["occurredAt"]] || e["OccurredAt"] || null;
+
+                // For Joined events: Text == athlete slug only
+                if(type===EVENT_TYPE.Joined){
+                    const key=slugifyLocal(normalizeLinkId(text));
+                    const athlete=athletesIndex.get(key);
+                    const name = athlete ? String((athlete.Name??athlete.name??text)).trim()
+                        : text.replace(/[_-]/g," ").replace(/\s+/g," ").trim();
+                    const img  = athlete ? (athlete.ProfilePic??athlete.profilePic??"") : "";
+                    const url  = makeAthleteUrlFromSlug(text);
+                    return { type, occurredAt, slug:text, name, img, url, message:"joined" };
+                }
+
+                // General or other: show plain text
+                return { type, occurredAt, slug:null, name:null, img:null, url:null, message:text };
+            });
+        }
+
+        // --- animation observer (same behavior as before) ---
+        let rowObserver=null;
+        function ensureRowObserver(){
+            if(rowObserver) return rowObserver;
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            rowObserver = new IntersectionObserver((entries, io)=>{
+                entries.forEach(entry=>{
+                    const el=entry.target;
+                    if(entry.isIntersecting || entry.intersectionRatio>0){
+                        if(!prefersReduced){
+                            const idx=Number(el.dataset.rowIndex||0);
+                            const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
+                            const stepMs=parseTimeVar('--row-stagger-step',40);
+                            el.style.setProperty('--row-delay',`${(idx % groupSize)*stepMs}ms`);
+                        }
+                        el.classList.add('is-visible');
+                        io.unobserve(el);
+                    }
+                });
+            },{root:null,rootMargin:'0px 0px -10% 0px',threshold:0.01});
+            return rowObserver;
+        }
+
+        // --- renderer ---
+        function renderRows(rows, linkNames){
+            const tbody=document.querySelector("#eventsTable tbody");
+            tbody.innerHTML="";
+            if(!Array.isArray(rows)||rows.length===0){
+                tbody.innerHTML=`<tr><td colspan="3">No events yet.</td></tr>`;
+                return;
+            }
+            const frag=document.createDocumentFragment();
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            rows.forEach((r, idx)=>{
+                const dateLabel=r.occurredAt?formatListDate(r.occurredAt):"";
+                const rel=r.occurredAt?relativeDayLabel(r.occurredAt):"";
+
+                let avatarHtml="";
+                if(r.type===EVENT_TYPE.Joined){
+                    if(r.img){
+                        avatarHtml=`<a href="${r.url}" class="avatar-link" title="${esc(r.name)}" aria-label="${esc(r.name)}">
+                                    <img class="avatar" src="${esc(r.img)}" alt="${esc(r.name)}" loading="lazy">
+                                </a>`;
+                    }else{
+                        const ini=initialsFromName(r.name||r.slug);
+                        avatarHtml=`<a href="${r.url}" class="avatar-link" title="${esc(r.name||r.slug)}" aria-label="${esc(r.name||r.slug)}">
+                                    <div class="avatar-fallback">${ini}</div>
+                                </a>`;
+                    }
+                }else{
+                    avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
+                }
+
+                let msgHtml="";
+                if(r.type===EVENT_TYPE.Joined){
+                    const nameHtml = linkNames ? `<a href="${r.url}">${esc(r.name)}</a>`
+                        : `<span class="athlete-name-text">${esc(r.name)}</span>`;
+                    msgHtml = `${nameHtml} joined ${rel}`;
+                }else{
+                    msgHtml = `${esc(r.message)} ${rel}`;
+                }
+
+                const tr=document.createElement("tr");
+                tr.className='row-appear';
+                tr.dataset.rowIndex=String(idx);
+                tr.innerHTML =
+                    `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
                  <td class="athlete-td event-message">${msgHtml}</td>
                  <td class="col-date">${dateLabel}</td>`;
-            frag.appendChild(tr);
-        });
-        tbody.appendChild(frag);
-        if(!prefersReduced && events.length){
-            const io = ensureRowObserver();
-            tbody.querySelectorAll('.row-appear').forEach(r => io.observe(r));
-        }else{
-            tbody.querySelectorAll('.row-appear').forEach(r => r.classList.add('is-visible'));
-        }
-    }
-    function parseLimit(val){
-        if(val===undefined||val===null||val==="")return null;
-        const n=typeof val==="string"?parseInt(val,10):Number(val);
-        return Number.isFinite(n)&&n>0?Math.floor(n):null;
-    }
-    window.loadEventsTable = function (maxRows = null, showViewAll = true, athleteId = null, linkNames = true) {
-        setViewAllVisible(!!showViewAll);
-        fetch("/api/data/events",{headers:{"accept":"application/json"}})
-            .then(async r=>{if(!r.ok)throw new Error("HTTP "+r.status);const t=await r.text();return JSON.parse(t);})
-            .then(events=>{
-                let list = Array.isArray(events) ? events : [];
-                const target = normalizeIncomingAthleteId(athleteId);
-                if (target) {
-                    list = list.filter(ev => {
-                        const map = lowerKeyMap(ev || {});
-                        const athlete = map["athlete"] ? ev[map["athlete"]] : null;
-                        if (athlete && typeof athlete === 'object') {
-                            const id = normalizeLinkId(slugifyLocal(getAthleteLinkId(athlete)));
-                            if (id && id === target) return true;
-                        }
-                        const eventIdKeys = ["athleteid","athleteslug","slug","key","id"];
-                        for (const k of eventIdKeys) {
-                            if (map[k]) {
-                                const v = String(ev[map[k]]).trim();
-                                if (v && normalizeLinkId(slugifyLocal(v)) === target) return true;
-                            }
-                        }
-                        return false;
-                    });
-                }
-                const n = parseLimit(maxRows);
-                if (n !== null) list = list.slice(0, n);
-                renderRows(list, linkNames);
-            })
-            .catch(()=>{
-                const tbody=document.querySelector("#eventsTable tbody");
-                tbody.innerHTML=`<tr><td colspan="3">Failed to load events.</td></tr>`;
+                frag.appendChild(tr);
             });
-    };
-    document.addEventListener('DOMContentLoaded', () => {
-        const root = document.getElementById('events-root');
-        if(root) root.classList.add('fade-in-board');
-    });
+
+            tbody.appendChild(frag);
+            if(!prefersReduced && rows.length){
+                const io=ensureRowObserver();
+                tbody.querySelectorAll('.row-appear').forEach(r=>io.observe(r));
+            }else{
+                tbody.querySelectorAll('.row-appear').forEach(r=>r.classList.add('is-visible'));
+            }
+        }
+
+        // --- public loader (same signature you used before) ---
+        window.loadEventsTable = function (maxRows = null, showViewAll = true, athleteId = null, linkNames = true) {
+            setViewAllVisible(!!showViewAll);
+
+            const eventsReq   = fetch("/api/events",         { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
+            const athletesReq = fetch("/api/data/athletes",  { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
+
+            Promise.all([eventsReq, athletesReq])
+                .then(([events, athletes])=>{
+                    const index=buildAthleteIndex(athletes);
+                    let rows=enrichEvents(Array.isArray(events)?events:[], index);
+
+                    const target=normalizeIncomingAthleteId(athleteId);
+                    if(target){
+                        rows=rows.filter(r=>r.type===EVENT_TYPE.Joined && normalizeLinkId(slugifyLocal(r.slug))===target);
+                    }
+
+                    const n=parseLimit(maxRows);
+                    if(n!==null) rows=rows.slice(0,n);
+
+                    renderRows(rows, !!linkNames);
+                })
+                .catch(()=>{
+                    const tbody=document.querySelector("#eventsTable tbody");
+                    if(tbody) tbody.innerHTML=`<tr><td colspan="3">Failed to load events.</td></tr>`;
+                });
+        };
+
+        document.addEventListener('DOMContentLoaded',()=>{
+            const root=document.getElementById('events-root');
+            if(root) root.classList.add('fade-in-board');
+        });
+    })();
 </script>
+

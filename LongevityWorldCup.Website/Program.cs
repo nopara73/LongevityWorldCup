@@ -32,8 +32,8 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
 
-            // Register the in-memory cached athlete data
             builder.Services.AddSingleton<AthleteDataService>();
+            builder.Services.AddSingleton<EventDataService>();
 
             builder.Services.AddQuartz(q =>
             {

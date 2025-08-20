@@ -23,8 +23,5 @@ namespace LongevityWorldCup.Website.Controllers
 
         [HttpGet("athletes")]
         public IActionResult GetAthletes() => Ok(_svc.Athletes);
-        
-        [HttpGet("events")]
-        public IActionResult GetEvents() => Ok(_svc.Events);
     }
 }
