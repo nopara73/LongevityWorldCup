@@ -1,19 +1,15 @@
 ﻿<style>
     :root{
-        --row-fade-duration:.35s;     /* per-row fade speed */
-        --row-stagger-step:40ms;      /* stagger step inside a group */
-        --row-stagger-group-size:8;   /* how many rows share the stagger cycle */
+        --row-fade-duration:.35s;
+        --row-stagger-step:40ms;
+        --row-stagger-group-size:8;
         --row-delay: 0ms;
     }
-
-    /* Board fade-in (unchanged) */
     @keyframes fadeInBoard{
         from{opacity:0; transform:translateY(10px)}
         to{opacity:1; transform:translateY(0)}
     }
     .fade-in-board{ animation: fadeInBoard .6s ease-in-out both; }
-
-    /* Row appear: transition (no keyframes) so there’s no “flash then animate” */
     .row-appear{
         opacity:0;
         transform:translateY(8px);
@@ -26,14 +22,11 @@
                 transform var(--row-fade-duration) ease;
         transition-delay: var(--row-delay, 0ms);
     }
-
-    /* Respect reduced motion */
     @media (prefers-reduced-motion: reduce){
         .fade-in-board{ animation:none !important }
         .row-appear,
         .row-appear.is-visible{ opacity:1; transform:none; transition:none !important }
     }
-
     .events-board {
         display: flex;
         align-items: stretch;
@@ -122,7 +115,11 @@
     .event-message { color: var(--dark-text-color); }
     .col-date { text-align: right; white-space: nowrap; color: #7a8a99; font-weight: 400; font-size: 0.8rem; opacity: 50% }
     .event-message{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
-
+    .event-message .athlete-name-text{
+        color: var(--primary-color);
+        text-decoration: none;
+        cursor: default;
+    }
     @media (max-width:600px){
         .events-board thead th{font-size:.85rem;padding:10px 12px}
         .view-all{font-size:.75rem}
@@ -136,13 +133,11 @@
     @media (max-width:360px){
         .col-date{display:none}
     }
-
     .event-message a:hover,
     .event-message a:focus {
         color: var(--secondary-color, #ff4f87);
         text-decoration-color: var(--secondary-color, #ff4f87);
     }
-
     .avatar,
     .avatar-fallback {
         transition: transform .15s ease, box-shadow .15s ease;
@@ -164,7 +159,7 @@
             <th colspan="3">
                 <div class="header-bar">
                     <span>Highlights</span>
-                    <a class="view-all" id="eventsViewAll" href="/event-board/event-board.html">View All</a>
+                    <a class="view-all" id="eventsViewAll" href="/event-board/event-board.html" target="_top">View All</a>
                 </div>
             </th>
         </tr>
@@ -176,13 +171,60 @@
 </div>
 
 <script>
-    /* ---------- helpers ---------- */
+    (function(){
+        function applyParentTheme(){
+            try{
+                if(window.parent&&window.parent!==window){
+                    var pdoc=window.parent.document;
+                    var pr=window.parent.getComputedStyle(pdoc.documentElement);
+                    var vars=['--primary-color','--secondary-color','--card-bg','--dark-text-color','--light-text-color','--body-bg'];
+                    vars.forEach(function(v){var val=pr.getPropertyValue(v).trim();if(val)document.documentElement.style.setProperty(v,val)});
+                    var bf=window.parent.getComputedStyle(pdoc.body).getPropertyValue('font-family');
+                    if(bf)document.body.style.fontFamily=bf;
+                    var bg=window.parent.getComputedStyle(pdoc.body).getPropertyValue('background-color');
+                    if(bg)document.body.style.backgroundColor=bg;
+                }
+            }catch(e){}
+        }
+        applyParentTheme();
+        window.addEventListener('message',function(e){
+            var d=e.data; if(!d||d.type!=='events-theme-vars')return;
+            Object.keys(d).forEach(function(k){ if(k.indexOf('--')===0){ document.documentElement.style.setProperty(k,String(d[k]).trim()) }});
+            if(d['font-family'])document.body.style.fontFamily=d['font-family'];
+            if(d['background-color'])document.body.style.backgroundColor=d['background-color'];
+        });
+    })();
+</script>
+
+<script>
     function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
     function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
-    function getAthleteName(a){if(!a||typeof a!=="object")return"";const map=lowerKeyMap(a);const nameKey=map["name"]||map["athletename"]||map["fullname"]||map["displayname"];if(nameKey)return String(a[nameKey]).trim();const slugKey=map["athleteslug"]||map["slug"]||map["key"]||map["id"];return slugKey?String(a[slugKey]).trim():"";}
-    function getAthleteLinkId(a){if(!a||typeof a!=="object")return"";const map=lowerKeyMap(a);const cand=["athleteid","athleteslug","slug","key","id"];for(const c of cand){if(map[c]){const v=String(a[map[c]]).trim();if(v)return v;}}return slugifyLocal(getAthleteName(a));}
+    function getAthleteName(a){
+        if(!a||typeof a!=="object")return"";
+        const map=lowerKeyMap(a);
+        const nameKey=map["name"]||map["athletename"]||map["fullname"]||map["displayname"];
+        if(nameKey)return String(a[nameKey]).trim();
+        const slugKey=map["athleteslug"]||map["slug"]||map["key"]||map["id"];
+        return slugKey?String(a[slugKey]).trim():"";
+    }
+    function getAthleteLinkId(a){
+        if(!a||typeof a!=="object")return"";
+        const map=lowerKeyMap(a);
+        const cand=["athleteid","athleteslug","slug","key","id"];
+        for(const c of cand){if(map[c]){const v=String(a[map[c]]).trim();if(v)return v;}}
+        return slugifyLocal(getAthleteName(a));
+    }
     function normalizeLinkId(id){return String(id).replace(/_/g,"-");}
-    function getAthleteUrl(a){if(!a||typeof a!=="object")return"";const map=lowerKeyMap(a);const urlKey=map["url"]||map["profileurl"]||map["pageurl"]||map["href"];if(urlKey)return String(a[urlKey]).trim();let id=getAthleteLinkId(a);if(!id)return"";id=normalizeLinkId(id);return `/athlete/${encodeURIComponent(id)}`;}
+    function getAthleteUrl(a){
+        if(!a||typeof a!=="object")return"";
+        const map=lowerKeyMap(a);
+        const urlKey=map["url"]||map["profileurl"]||map["pageurl"]||map["href"];
+        if(urlKey)return String(a[urlKey]).trim();
+        let id=getAthleteLinkId(a);
+        if(!id)return"";
+        id=normalizeLinkId(id);
+        return `/athlete/${encodeURIComponent(id)}`;
+    }
     function getAthleteImage(a){
         if(!a||typeof a!=="object")return"";
         const map=lowerKeyMap(a);
@@ -196,28 +238,31 @@
         const dt=new Date(iso);if(isNaN(dt))return"";
         const today=startOfLocalDay(new Date());const thatDay=startOfLocalDay(dt);
         const diffDays=Math.round((today-thatDay)/86400000);
-        if(diffDays<=0)return"Today  <i class=\"fa fa-rocket\"></i>";
-        if(diffDays===1)return"Yesterday <i class=\"fa fa-rocket\"></i>";
+        if(diffDays<=0)return'Today  <i class="fa fa-rocket"></i>';
+        if(diffDays===1)return'Yesterday <i class="fa fa-rocket"></i>';
         if(diffDays<30)return`${diffDays} days ago <i class="fa fa-rocket"></i>`;
         const months=Math.floor(diffDays/30);
-        return months===1?"1 month ago <i class=\"fa fa-rocket\"></i>":`${months} months ago <i class="fa fa-rocket"></i>`;
+        return months===1?'1 month ago <i class="fa fa-rocket"></i>':`${months} months ago <i class="fa fa-rocket"></i>`;
     }
     function formatListDate(iso){const d=new Date(iso);if(isNaN(d))return"";const s=d.toLocaleDateString(undefined,{month:"short",day:"numeric"});return s.replace(",","")+".";}
     function setViewAllVisible(show){const link=document.getElementById("eventsViewAll");link.style.display=show?"":"none";}
-
-    /* ---------- performance-friendly row reveal ---------- */
+    function normalizeIncomingAthleteId(id){
+        if(id==null) return '';
+        let s=String(id).trim();
+        if(!s) return '';
+        s = s.split('#')[0].split('?')[0];
+        if(s.includes('/')) s = s.split('/').filter(Boolean).pop();
+        return normalizeLinkId(slugifyLocal(s));
+    }
     let rowObserver = null;
-    const BIG_LIST_THRESHOLD = 60; // if over this, keep transitions very light
-
+    const BIG_LIST_THRESHOLD = 60;
     function ensureRowObserver(){
         if(rowObserver) return rowObserver;
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
         rowObserver = new IntersectionObserver((entries, io)=>{
             entries.forEach(entry=>{
                 const el = entry.target;
                 if(entry.isIntersecting || entry.intersectionRatio > 0){
-                    // small stagger only within a small group (mod) to avoid huge total delays
                     if(!prefersReduced){
                         const idx = Number(el.dataset.rowIndex || 0);
                         const groupSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size')) || 8;
@@ -230,12 +275,11 @@
             });
         },{
             root: null,
-            rootMargin: '0px 0px -10% 0px', // start just before it fully enters
+            rootMargin: '0px 0px -10% 0px',
             threshold: 0.01
         });
         return rowObserver;
     }
-
     function parseTimeVar(varName, fallbackMs){
         const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
         if(!v) return fallbackMs;
@@ -243,19 +287,15 @@
         if(v.endsWith('s'))  return parseFloat(v)*1000;
         const n = parseFloat(v); return isNaN(n)?fallbackMs:n;
     }
-
-    function renderRows(events){
+    function renderRows(events, linkNames){
         const tbody=document.querySelector("#eventsTable tbody");
         tbody.innerHTML="";
         if(!Array.isArray(events)||events.length===0){
             tbody.innerHTML=`<tr><td colspan="3">No events yet.</td></tr>`;
             return;
         }
-
         const frag = document.createDocumentFragment();
-        const bigList = events.length > BIG_LIST_THRESHOLD;
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
         events.forEach((e, idx)=>{
             const map=lowerKeyMap(e||{});
             const athlete=map["athlete"]?e[map["athlete"]]:null;
@@ -265,66 +305,73 @@
             const img=getAthleteImage(athlete);
             const rel=whenIso?relativeDayLabel(whenIso):"";
             const dateLabel=whenIso?formatListDate(whenIso):"";
-
+            const clickable = !!linkNames;
             const content = img
                 ? `<img class="avatar" src="${img}" alt="${name}" loading="lazy">`
                 : `<div class="avatar-fallback" title="${name}">${initialsFromName(name)}</div>`;
-
-            const avatarHtml = url
+            const avatarHtml = (clickable && url)
                 ? `<a href="${url}" class="avatar-link" title="${name}" aria-label="${name}">${content}</a>`
                 : content;
-
-            const nameHtml = url ? `<a href="${url}">${name}</a>` : name;
+            const nameHtml = (clickable && url) ? `<a href="${url}">${name}</a>` : `<span class="athlete-name-text">${name}</span>`;
             const msgHtml = `${nameHtml} joined ${rel}`;
-
             const tr=document.createElement("tr");
-            tr.className = 'row-appear';               // start hidden; no flash
-            tr.dataset.rowIndex = idx;                 // for small-group stagger
+            tr.className = 'row-appear';
+            tr.dataset.rowIndex = idx;
             tr.innerHTML=
                 `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-         <td class="athlete-td event-message">${msgHtml}</td>
-         <td class="col-date">${dateLabel}</td>`;
-
+                 <td class="athlete-td event-message">${msgHtml}</td>
+                 <td class="col-date">${dateLabel}</td>`;
             frag.appendChild(tr);
         });
-
         tbody.appendChild(frag);
-
-        // Only observe if not a big list and not reduced motion; otherwise reveal instantly.
         if(!prefersReduced && events.length){
-            if(events.length > BIG_LIST_THRESHOLD){
-                // instant reveal to keep long lists snappy
-                tbody.querySelectorAll('.row-appear').forEach(r => r.classList.add('is-visible'));
-            }else{
-                const io = ensureRowObserver();
-                tbody.querySelectorAll('.row-appear').forEach(r => io.observe(r));
-            }
+            const io = ensureRowObserver();
+            tbody.querySelectorAll('.row-appear').forEach(r => io.observe(r));
         }else{
             tbody.querySelectorAll('.row-appear').forEach(r => r.classList.add('is-visible'));
         }
     }
-
-    function parseLimit(val){if(val===undefined||val===null||val==="")return null;const n=typeof val==="string"?parseInt(val,10):Number(val);return Number.isFinite(n)&&n>0?Math.floor(n):null;}
-
-    window.loadEventsTable=function(maxRows=null,showViewAll=true){
+    function parseLimit(val){
+        if(val===undefined||val===null||val==="")return null;
+        const n=typeof val==="string"?parseInt(val,10):Number(val);
+        return Number.isFinite(n)&&n>0?Math.floor(n):null;
+    }
+    window.loadEventsTable = function (maxRows = null, showViewAll = true, athleteId = null, linkNames = true) {
         setViewAllVisible(!!showViewAll);
         fetch("/api/data/events",{headers:{"accept":"application/json"}})
             .then(async r=>{if(!r.ok)throw new Error("HTTP "+r.status);const t=await r.text();return JSON.parse(t);})
             .then(events=>{
-                let list=Array.isArray(events)?events:[];
-                const n=parseLimit(maxRows);
-                if(n!==null) list=list.slice(0,n);
-                renderRows(list);
+                let list = Array.isArray(events) ? events : [];
+                const target = normalizeIncomingAthleteId(athleteId);
+                if (target) {
+                    list = list.filter(ev => {
+                        const map = lowerKeyMap(ev || {});
+                        const athlete = map["athlete"] ? ev[map["athlete"]] : null;
+                        if (athlete && typeof athlete === 'object') {
+                            const id = normalizeLinkId(slugifyLocal(getAthleteLinkId(athlete)));
+                            if (id && id === target) return true;
+                        }
+                        const eventIdKeys = ["athleteid","athleteslug","slug","key","id"];
+                        for (const k of eventIdKeys) {
+                            if (map[k]) {
+                                const v = String(ev[map[k]]).trim();
+                                if (v && normalizeLinkId(slugifyLocal(v)) === target) return true;
+                            }
+                        }
+                        return false;
+                    });
+                }
+                const n = parseLimit(maxRows);
+                if (n !== null) list = list.slice(0, n);
+                renderRows(list, linkNames);
             })
             .catch(()=>{
                 const tbody=document.querySelector("#eventsTable tbody");
                 tbody.innerHTML=`<tr><td colspan="3">Failed to load events.</td></tr>`;
             });
     };
-
-    // Fade-in the board itself on first paint
     document.addEventListener('DOMContentLoaded', () => {
         const root = document.getElementById('events-root');
-        root && root.classList.add('fade-in-board');
+        if(root) root.classList.add('fade-in-board');
     });
 </script>

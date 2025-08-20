@@ -1232,6 +1232,10 @@
                     </div>
                 </div>
 
+                <div class="events-embed" style="margin-top:16px">
+                    <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
+                </div>
+
                 <div class="biomarkers-section">
                     <h3>Biomarkers Over Time</h3>
                     <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
@@ -1278,7 +1282,7 @@
 
     let includePodiumGlobal = true
     let maxAthletesGlobal = Infinity;
-
+    
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
         includePodiumGlobal = includePodium;
         maxAthletesGlobal = maxAthletes;
@@ -2561,6 +2565,11 @@
                 const modalContent = document.querySelector('.modal-content');
                 modalContent.scrollTop = 0;
 
+                var frame=document.getElementById('events-frame');
+                if (frame) {
+                    frame.src = `/event-board-embed.html?athlete=${encodeURIComponent(athleteSlug)}&rows=10&viewAll=false&linkNames=false`;
+                }
+
                 const gmaCard = document.getElementById('guessAgeContainer');
 
                 // always reset the Guess-My-Age UI first:
@@ -3237,4 +3246,34 @@
             yourGuessContainer.style.display = 'none';
         }
     }
+</script>
+
+<script>
+    if(!window.__eventsEmbedListener){
+        window.__eventsEmbedListener=1;
+        window.addEventListener('message',function(e){
+            var d=e.data;
+            if(d&&d.type==='events-embed-height'){
+                var f=document.getElementById('events-frame');
+                if(f)f.style.height=d.h+'px';
+            }
+        })
+    }
+
+    (function(){
+        function sendThemeToFrame(f){
+            if(!f||!f.contentWindow)return;
+            var cs=getComputedStyle(document.documentElement);
+            var bs=getComputedStyle(document.body);
+            var vars=['--primary-color','--secondary-color','--card-bg','--dark-text-color','--light-text-color','--body-bg'];
+            var payload={type:'events-theme-vars','font-family':bs.getPropertyValue('font-family'),'background-color':bs.getPropertyValue('background-color')};
+            vars.forEach(function(v){payload[v]=cs.getPropertyValue(v)});
+            f.contentWindow.postMessage(payload,'*');
+        }
+        var frame=document.getElementById('events-frame');
+        if(frame){
+            frame.addEventListener('load',function(){sendThemeToFrame(frame)});
+        }
+    })();
+    
 </script>
