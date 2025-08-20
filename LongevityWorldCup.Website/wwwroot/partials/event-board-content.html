@@ -198,25 +198,14 @@
 
 <script>
     (function(){
-        // --- constants ---
         const EVENT_TYPE = { General: 0, Joined: 1 };
 
-        // --- tiny utils ---
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
-        function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-            .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
+        function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
         function normalizeLinkId(id){return String(id||"").replace(/_/g,"-");}
         function esc(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
         function initialsFromName(n){const parts=String(n||"").trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
-        function parseTimeVar(varName, fallbackMs){
-            const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-            if(!v) return fallbackMs;
-            if(v.endsWith('ms')) return parseFloat(v);
-            if(v.endsWith('s')) return parseFloat(v)*1000;
-            const n=parseFloat(v); return Number.isFinite(n)?n:fallbackMs;
-        }
 
-        // --- date helpers (unchanged behavior) ---
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
             const dt=new Date(iso); if(isNaN(dt)) return "";
@@ -237,30 +226,23 @@
             if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
             return `${diffDays} days ago <i class="fa fa-rocket"></i>`;
         }
-        function formatListDate(iso,{separator=', '}={}){
+        function formatListDate(iso,{separator=', '}={}) {
             const d=new Date(iso); if(isNaN(d)) return '';
             const nowYear=new Date().getFullYear();
             const base=d.toLocaleDateString(undefined,{month:'short',day:'numeric'}).replace(/,/g,'');
             return d.getFullYear()===nowYear?base:`${base}${separator}${d.getFullYear()}`;
         }
 
-        // --- view helpers ---
         function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
-        function parseLimit(val){
-            if(val===undefined||val===null||val==="")return null;
-            const n=typeof val==="string"?parseInt(val,10):Number(val);
-            return Number.isFinite(n)&&n>0?Math.floor(n):null;
-        }
-        function normalizeIncomingAthleteId(id){
-            if(id==null) return '';
-            let s=String(id).trim();
-            if(!s) return '';
-            s = s.split('#')[0].split('?')[0];
-            if(s.includes('/')) s = s.split('/').filter(Boolean).pop();
-            return normalizeLinkId(slugifyLocal(s));
+        function parseLimit(val){ if(val===undefined||val===null||val==="")return null; const n=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(n)&&n>0?Math.floor(n):null; }
+        function parseTimeVar(varName, fallbackMs){
+            const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+            if(!v) return fallbackMs;
+            if(v.endsWith('ms')) return parseFloat(v);
+            if(v.endsWith('s')) return parseFloat(v)*1000;
+            const n=parseFloat(v); return Number.isFinite(n)?n:fallbackMs;
         }
 
-        // --- build an index for fast slug->athlete lookup ---
         function buildAthleteIndex(athletes){
             const index=new Map();
             (athletes||[]).forEach(a=>{
@@ -268,10 +250,8 @@
                 const slugKey=map["athleteslug"]||map["slug"]||map["key"]||map["id"];
                 const rawSlug=slugKey?String(a[slugKey]).trim():"";
                 if(!rawSlug) return;
-                const dashed=normalizeLinkId(rawSlug);
-                const canon=slugifyLocal(dashed);
-                index.set(canon,a);                     // dashed canonical
-                index.set(slugifyLocal(rawSlug),a);     // underscore canonical
+                const canon=slugifyLocal(normalizeLinkId(rawSlug));
+                index.set(canon, a);
             });
             return index;
         }
@@ -279,32 +259,66 @@
             if(!slug) return "";
             return `/athlete/${encodeURIComponent(normalizeLinkId(slugifyLocal(slug)))}`;
         }
+        function athleteName(a){
+            if(!a) return "";
+            const map=lowerKeyMap(a);
+            const k=map["name"]||map["athletename"]||map["fullname"]||map["displayname"];
+            return k?String(a[k]).trim():"";
+        }
+        function athletePic(a){
+            if(!a) return "";
+            const map=lowerKeyMap(a);
+            const keys=["profilepic","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl"];
+            for(const k of keys){ if(map[k]){ const v=String(a[map[k]]).trim(); if(v) return v; } }
+            return "";
+        }
 
-        // --- transform server events -> rows the renderer can consume ---
-        function enrichEvents(rawEvents, athletesIndex){
+        // Extract all slug tokens from text -> array of raw slugs
+        function extractSlugs(text){
+            const rx=/slug\[(.+?)\]/g;
+            const out=[];
+            let m;
+            while((m=rx.exec(String(text)))!==null){
+                out.push(m[1]);
+            }
+            return out;
+        }
+
+        // Convert "Text" to HTML with tokens replaced by clickable athlete names
+        function renderTextWithSlugLinks(text, linkNames, athletesIndex){
+            const s=String(text||"");
+            const rx=/slug\[(.+?)\]/g;
+            let out="", last=0, m;
+            while((m=rx.exec(s))!==null){
+                out += esc(s.slice(last, m.index));
+                const raw = m[1];
+                const key = slugifyLocal(normalizeLinkId(raw));
+                const a   = athletesIndex.get(key);
+                const name = a ? athleteName(a) || raw : raw;
+                const href = a ? makeAthleteUrlFromSlug(raw) : "";
+                const piece = linkNames && href
+                    ? `<a href="${href}">${esc(name)}</a>`
+                    : `<span class="athlete-name-text">${esc(name)}</span>`;
+                out += piece;
+                last = rx.lastIndex;
+            }
+            out += esc(s.slice(last));
+            return out;
+        }
+
+        // Build row objects from raw events (keep text, compute slugs, identify primary artist for Joined)
+        function toRows(rawEvents){
             return (rawEvents||[]).map(e=>{
                 const map=lowerKeyMap(e||{});
-                const type=Number(e[map["type"]] ?? 0);
-                const text=String(e[map["text"]] ?? "");
-                const occurredAt=e[map["occurredat"]] || e[map["occurredAt"]] || e["OccurredAt"] || null;
-
-                // For Joined events: Text == athlete slug only
-                if(type===EVENT_TYPE.Joined){
-                    const key=slugifyLocal(normalizeLinkId(text));
-                    const athlete=athletesIndex.get(key);
-                    const name = athlete ? String((athlete.Name??athlete.name??text)).trim()
-                        : text.replace(/[_-]/g," ").replace(/\s+/g," ").trim();
-                    const img  = athlete ? (athlete.ProfilePic??athlete.profilePic??"") : "";
-                    const url  = makeAthleteUrlFromSlug(text);
-                    return { type, occurredAt, slug:text, name, img, url, message:"joined" };
-                }
-
-                // General or other: show plain text
-                return { type, occurredAt, slug:null, name:null, img:null, url:null, message:text };
+                const type = Number(e[map["type"]] ?? 0);
+                const text = String(e[map["text"]] ?? "");
+                const occurredAt = e[map["occurredat"]] ?? e[map["occurredAt"]] ?? e["OccurredAt"] ?? null;
+                const slugs = extractSlugs(text).map(s=>slugifyLocal(normalizeLinkId(s)));
+                const primarySlug = slugs[0] || null;
+                return { type, text, occurredAt, slugs, primarySlug };
             });
         }
 
-        // --- animation observer (same behavior as before) ---
         let rowObserver=null;
         function ensureRowObserver(){
             if(rowObserver) return rowObserver;
@@ -327,8 +341,7 @@
             return rowObserver;
         }
 
-        // --- renderer ---
-        function renderRows(rows, linkNames){
+        function renderRows(rows, athletesIndex, linkNames){
             const tbody=document.querySelector("#eventsTable tbody");
             tbody.innerHTML="";
             if(!Array.isArray(rows)||rows.length===0){
@@ -342,38 +355,39 @@
                 const dateLabel=r.occurredAt?formatListDate(r.occurredAt):"";
                 const rel=r.occurredAt?relativeDayLabel(r.occurredAt):"";
 
+                // Avatar: for Joined show athlete avatar from the first slug; otherwise generic
                 let avatarHtml="";
-                if(r.type===EVENT_TYPE.Joined){
-                    if(r.img){
-                        avatarHtml=`<a href="${r.url}" class="avatar-link" title="${esc(r.name)}" aria-label="${esc(r.name)}">
-                                    <img class="avatar" src="${esc(r.img)}" alt="${esc(r.name)}" loading="lazy">
-                                </a>`;
+                if(r.type===EVENT_TYPE.Joined && r.primarySlug){
+                    const a = athletesIndex.get(r.primarySlug);
+                    const name = a ? athleteName(a) || r.primarySlug : r.primarySlug;
+                    const url  = makeAthleteUrlFromSlug(r.primarySlug);
+                    const img  = a ? athletePic(a) : "";
+                    if(img){
+                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">
+                                        <img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy">
+                                    </a>`;
                     }else{
-                        const ini=initialsFromName(r.name||r.slug);
-                        avatarHtml=`<a href="${r.url}" class="avatar-link" title="${esc(r.name||r.slug)}" aria-label="${esc(r.name||r.slug)}">
-                                    <div class="avatar-fallback">${ini}</div>
-                                </a>`;
+                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">
+                                        <div class="avatar-fallback">${initialsFromName(name)}</div>
+                                    </a>`;
                     }
                 }else{
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
 
-                let msgHtml="";
-                if(r.type===EVENT_TYPE.Joined){
-                    const nameHtml = linkNames ? `<a href="${r.url}">${esc(r.name)}</a>`
-                        : `<span class="athlete-name-text">${esc(r.name)}</span>`;
-                    msgHtml = `${nameHtml} joined ${rel}`;
-                }else{
-                    msgHtml = `${esc(r.message)} ${rel}`;
-                }
+                // Message: replace slug[...] tokens everywhere
+                const tokenHtml = renderTextWithSlugLinks(r.text, linkNames, athletesIndex);
+                const msgHtml = r.type===EVENT_TYPE.Joined
+                    ? `${tokenHtml} joined ${rel}`
+                    : `${tokenHtml} ${rel}`;
 
                 const tr=document.createElement("tr");
                 tr.className='row-appear';
                 tr.dataset.rowIndex=String(idx);
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                 <td class="athlete-td event-message">${msgHtml}</td>
-                 <td class="col-date">${dateLabel}</td>`;
+                     <td class="athlete-td event-message">${msgHtml}</td>
+                     <td class="col-date">${dateLabel}</td>`;
                 frag.appendChild(tr);
             });
 
@@ -386,27 +400,35 @@
             }
         }
 
-        // --- public loader (same signature you used before) ---
+        function normalizeIncomingAthleteId(id){
+            if(id==null) return '';
+            let s=String(id).trim();
+            if(!s) return '';
+            s = s.split('#')[0].split('?')[0];
+            if(s.includes('/')) s = s.split('/').filter(Boolean).pop();
+            return normalizeLinkId(slugifyLocal(s));
+        }
+
         window.loadEventsTable = function (maxRows = null, showViewAll = true, athleteId = null, linkNames = true) {
             setViewAllVisible(!!showViewAll);
 
-            const eventsReq   = fetch("/api/events",         { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
-            const athletesReq = fetch("/api/data/athletes",  { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
+            const eventsReq   = fetch("/api/events",        { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
+            const athletesReq = fetch("/api/data/athletes", { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
 
             Promise.all([eventsReq, athletesReq])
                 .then(([events, athletes])=>{
-                    const index=buildAthleteIndex(athletes);
-                    let rows=enrichEvents(Array.isArray(events)?events:[], index);
+                    const athletesIndex = buildAthleteIndex(athletes);
+                    let rows = toRows(Array.isArray(events)?events:[]);
 
-                    const target=normalizeIncomingAthleteId(athleteId);
+                    const target = normalizeIncomingAthleteId(athleteId);
                     if(target){
-                        rows=rows.filter(r=>r.type===EVENT_TYPE.Joined && normalizeLinkId(slugifyLocal(r.slug))===target);
+                        rows = rows.filter(r => r.slugs.includes(target));
                     }
 
                     const n=parseLimit(maxRows);
                     if(n!==null) rows=rows.slice(0,n);
 
-                    renderRows(rows, !!linkNames);
+                    renderRows(rows, athletesIndex, !!linkNames);
                 })
                 .catch(()=>{
                     const tbody=document.querySelector("#eventsTable tbody");
@@ -414,10 +436,9 @@
                 });
         };
 
-        document.addEventListener('DOMContentLoaded',()=>{
-            const root=document.getElementById('events-root');
+        document.addEventListener('DOMContentLoaded', () => {
+            const root = document.getElementById('events-root');
             if(root) root.classList.add('fade-in-board');
         });
     })();
 </script>
-
