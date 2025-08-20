@@ -8,18 +8,18 @@ public record EventItem(string Id, EventType Type, string Text, DateTime Occurre
 {
     public JsonObject ToJson() => new()
     {
-        ["Id"]         = Id,
-        ["Type"]       = (int)Type,
-        ["Text"]       = Text,
+        ["Id"] = Id,
+        ["Type"] = (int)Type,
+        ["Text"] = Text,
         ["OccurredAt"] = OccurredAtUtc.ToString("o"),
-        ["Relevance"]  = Relevance
+        ["Relevance"] = Relevance
     };
 }
 
 public enum EventType
 {
     General = 0,
-    Joined  = 1,
+    Joined = 1,
 }
 
 public sealed class EventDataService : IDisposable
@@ -34,52 +34,26 @@ public sealed class EventDataService : IDisposable
         _ = env;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
-        System.IO.Directory.CreateDirectory(dataDir);
+        Directory.CreateDirectory(dataDir);
 
-        var dbPath = System.IO.Path.Combine(dataDir, DatabaseFileName);
+        var dbPath = Path.Combine(dataDir, DatabaseFileName);
         _sqlite = new SqliteConnection($"Data Source={dbPath}");
         _sqlite.Open();
 
         using (var cmd = _sqlite.CreateCommand())
         {
-            // Base schema (fresh installs)
             cmd.CommandText =
-            """
-            CREATE TABLE IF NOT EXISTS Events (
-                Id         TEXT PRIMARY KEY,
-                Type       INTEGER NOT NULL,
-                Text       TEXT NOT NULL,
-                OccurredAt TEXT NOT NULL,
-                Relevance  REAL  NOT NULL DEFAULT 0
-            );
-            """;
+                """
+                CREATE TABLE IF NOT EXISTS Events (
+                    Id         TEXT PRIMARY KEY,
+                    Type       INTEGER NOT NULL,
+                    Text       TEXT NOT NULL,
+                    OccurredAt TEXT NOT NULL,
+                    Relevance  REAL  NOT NULL DEFAULT 0
+                );
+                """;
             cmd.ExecuteNonQuery();
 
-            // Migration: check existing columns
-            bool hasType = false, hasRelevance = false;
-            cmd.CommandText = "PRAGMA table_info(Events);";
-            using (var r = cmd.ExecuteReader())
-            {
-                while (r.Read())
-                {
-                    var col = r.GetString(1);
-                    if (col.Equals("Type", StringComparison.OrdinalIgnoreCase)) hasType = true;
-                    if (col.Equals("Relevance", StringComparison.OrdinalIgnoreCase)) hasRelevance = true;
-                }
-            }
-
-            if (!hasType)
-            {
-                cmd.CommandText = "ALTER TABLE Events ADD COLUMN Type INTEGER NOT NULL DEFAULT 0;";
-                cmd.ExecuteNonQuery();
-            }
-            if (!hasRelevance)
-            {
-                cmd.CommandText = "ALTER TABLE Events ADD COLUMN Relevance REAL NOT NULL DEFAULT 0;";
-                cmd.ExecuteNonQuery();
-            }
-
-            // Helpful indexes
             cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_OccurredAt ON Events(OccurredAt);";
             cmd.ExecuteNonQuery();
 
@@ -109,26 +83,26 @@ public sealed class EventDataService : IDisposable
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
             existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
-            var exType = existsCmd.Parameters.Add("@t",   SqliteType.Integer);
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
-            var pId   = insertCmd.Parameters.Add("@id",   SqliteType.Text);
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
             var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
-            var pOcc  = insertCmd.Parameters.Add("@occ",  SqliteType.Text);
-            var pRel  = insertCmd.Parameters.Add("@rel",  SqliteType.Real);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
             foreach (var (slug, joinedAtUtc) in athletes)
             {
                 if (string.IsNullOrWhiteSpace(slug))
                     continue;
 
-                // Text stores only the slug; frontend will render human-friendly output.
-                var text = slug;
+                // Store slug token so frontend can resolve name/link: slug[XXXXX]
+                var text = $"slug[{slug}]";
 
                 if (skipIfExists)
                 {
@@ -139,11 +113,11 @@ public sealed class EventDataService : IDisposable
                         continue;
                 }
 
-                pId.Value   = Guid.NewGuid().ToString("N");
+                pId.Value = Guid.NewGuid().ToString("N");
                 pType.Value = (int)EventType.Joined;
                 pText.Value = text;
-                pOcc.Value  = EnsureUtc(joinedAtUtc).ToString("o");
-                pRel.Value  = defaultRelevance;
+                pOcc.Value = EnsureUtc(joinedAtUtc).ToString("o");
+                pRel.Value = defaultRelevance;
 
                 insertCmd.ExecuteNonQuery();
                 created++;
@@ -156,7 +130,6 @@ public sealed class EventDataService : IDisposable
             ReloadIntoCache();
     }
 
-    // Create-only API (now with relevance)
     public EventItem AddEvent(EventType type, string text, DateTime occurredAtUtc, double relevance = 0)
     {
         var id = Guid.NewGuid().ToString("N");
@@ -166,15 +139,15 @@ public sealed class EventDataService : IDisposable
         {
             using var cmd = _sqlite.CreateCommand();
             cmd.CommandText =
-            """
-            INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance)
-            VALUES (@id, @type, @text, @occ, @rel);
-            """;
-            cmd.Parameters.AddWithValue("@id",   id);
+                """
+                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance)
+                VALUES (@id, @type, @text, @occ, @rel);
+                """;
+            cmd.Parameters.AddWithValue("@id", id);
             cmd.Parameters.AddWithValue("@type", (int)type);
             cmd.Parameters.AddWithValue("@text", text ?? string.Empty);
-            cmd.Parameters.AddWithValue("@occ",  occurred.ToString("o"));
-            cmd.Parameters.AddWithValue("@rel",  relevance);
+            cmd.Parameters.AddWithValue("@occ", occurred.ToString("o"));
+            cmd.Parameters.AddWithValue("@rel", relevance);
             cmd.ExecuteNonQuery();
         }
 
@@ -245,17 +218,13 @@ public sealed class EventDataService : IDisposable
 
     private static EventItem Map(SqliteDataReader r)
     {
-        var id       = r.GetString(0);
-        var typeInt  = r.GetInt32(1);
-        var text     = r.GetString(2);
+        var id = r.GetString(0);
+        var typeInt = r.GetInt32(1);
+        var text = r.GetString(2);
         var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
-        double relevance = 0;
-        if (r.FieldCount > 4 && !r.IsDBNull(4)) relevance = r.GetDouble(4);
+        var relevance = r.GetDouble(4);
 
-        var type = Enum.IsDefined(typeof(EventType), typeInt)
-            ? (EventType)typeInt
-            : EventType.General;
-
+        var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
         return new EventItem(id, type, text, occurred, relevance);
     }
 
