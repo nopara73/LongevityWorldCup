@@ -52,6 +52,30 @@ public class AthleteDataService : IDisposable
             // Try to add column (ignore if exists)
             cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
             try { cmd.ExecuteNonQuery(); } catch { /* column already exists */ }
+
+            // Ensure Placements column exists (JSON array text)
+            cmd.CommandText = "PRAGMA table_info(Athletes);";
+            using var r = cmd.ExecuteReader();
+            var hasPlacements = false;
+            while (r.Read())
+            {
+                var colName = r.GetString(1);
+                if (string.Equals(colName, "Placements", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasPlacements = true;
+                    break;
+                }
+            }
+            if (!hasPlacements)
+            {
+                using var alter = _sqliteConnection.CreateCommand();
+                alter.CommandText = "ALTER TABLE Athletes ADD COLUMN Placements TEXT NOT NULL DEFAULT '[]';";
+                alter.ExecuteNonQuery();
+
+                using var backfill = _sqliteConnection.CreateCommand();
+                backfill.CommandText = "UPDATE Athletes SET Placements='[]' WHERE Placements IS NULL OR Placements='';";
+                backfill.ExecuteNonQuery();
+            }
         }
 
         // Initial load
@@ -564,6 +588,58 @@ public class AthleteDataService : IDisposable
             }
             catch { return false; }
         }
+    }
+
+    public int?[] GetPlacements(string athleteSlug)
+    {
+        lock (_sqliteConnection)
+        {
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "SELECT Placements FROM Athletes WHERE Key=@k";
+            cmd.Parameters.AddWithValue("@k", athleteSlug);
+            var txt = cmd.ExecuteScalar() as string ?? "[]";
+
+            int?[] result;
+            try
+            {
+                var arr = JsonSerializer.Deserialize<int?[]>(txt) ?? Array.Empty<int?>();
+                result = new int?[4];
+                for (int i = 0; i < 4; i++)
+                    result[i] = i < arr.Length ? arr[i] : null;
+            }
+            catch
+            {
+                result = new int?[4];
+            }
+            return result;
+        }
+    }
+
+    public void SetPlacements(string athleteSlug, int?[] placements)
+    {
+        if (placements is null) throw new ArgumentNullException(nameof(placements));
+        if (placements.Length != 4) placements = new[] { placements.ElementAtOrDefault(0), placements.ElementAtOrDefault(1), placements.ElementAtOrDefault(2), placements.ElementAtOrDefault(3) };
+
+        var json = JsonSerializer.Serialize(placements);
+
+        lock (_sqliteConnection)
+        {
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "UPDATE Athletes SET Placements=@p WHERE Key=@k";
+            cmd.Parameters.AddWithValue("@p", json);
+            cmd.Parameters.AddWithValue("@k", athleteSlug);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public void UpdatePlacements(string athleteSlug, int? yesterday = null, int? weekly = null, int? monthly = null, int? yearly = null)
+    {
+        var p = GetPlacements(athleteSlug);
+        if (yesterday.HasValue) p[0] = yesterday;
+        if (weekly.HasValue) p[1] = weekly;
+        if (monthly.HasValue) p[2] = monthly;
+        if (yearly.HasValue) p[3] = yearly;
+        SetPlacements(athleteSlug, p);
     }
         
     public void Dispose()
