@@ -9,7 +9,7 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 
 ## Point System
 - In LWC2025, what counts is the highest biological age reversal: the larger the difference between your biological and chronological age, the higher you rank.
-- You can submit as many tests as you want. For your ranking, the PhenoAge is calculated by taking the best value for each biomarker across all your submissions throughout the year—even if some submissions are partial. This rewards consistent reporting without penalizing transparency. If cost is a concern, you can choose to submit just one test during the year at the best possible time, allowing you to participate without significant financial burden. However, if you're addicted to getting your blood drawn, you can theoretically also be submitting a test result every single day of the year.
+- You can submit as many tests as you want. For your ranking, the PhenoAge is calculated by taking the best pheno age across all your submissions throughout the year. Partial or non-same day submissions are not allowed. If cost is a concern, you can choose to submit just one test during the year at the best possible time, allowing you to participate without significant financial burden. However, if you're addicted to getting your blood drawn, you can theoretically also be submitting a test result every single day of the year.
 - In LWC2025 various leagues are also in effect. You might be doing average in the ultimate league and you could still be winning the league of your generation.
 
 ![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
@@ -71,7 +71,7 @@ The older you are, the higher you rank in case of a tie. If necessary, alphabeti
 ![image](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
 
 #### How is my PhenoAge calculated if I submit multiple results?
-If you submit multiple test results (including partial ones), the final PhenoAge is calculated by taking the best value of each biomarker across all your 2025 submissions. This encourages incremental updates and fair comparisons between strategic and transparent participants.
+If you submit multiple test results, the best PhenoAge is taken across all your 2025 submissions. This encourages incremental updates and fair comparisons between strategic and transparent participants.
 
 #### How are lab detection limits handled in the competition?
 When your lab result shows a biomarker value as below the detection limit the detection limit itself will be used in calculating your PhenoAge. This policy is applied to keep it fair towards other participants. This happens most often with CRP, in that case when the detection limit is unknown we default it to 1 mg/L.
