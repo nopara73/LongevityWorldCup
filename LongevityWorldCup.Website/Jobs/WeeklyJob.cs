@@ -19,7 +19,7 @@ public class WeeklyJob : IJob
     {
         _logger.LogInformation("WeeklyJob {ts}", DateTime.UtcNow);
 
-        var ranked = _athletes.ComputeAgeDifferencesUtc();
+        var ranked = _athletes.GetRankingsOrder();
         var updated = 0;
 
         for (var i = 0; i < ranked.Count; i++)

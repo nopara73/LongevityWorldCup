@@ -155,8 +155,6 @@ public class AthleteDataService : IDisposable
                 await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
             }
         });
-
-        var x = ComputeAgeDifferencesUtc();
     }
         
     public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
@@ -491,10 +489,10 @@ public class AthleteDataService : IDisposable
         return age;
     }
     
-    public JsonArray ComputeAgeDifferencesUtc(DateTime? asOfUtc = null)
+    public JsonArray GetRankingsOrder(DateTime? asOfUtc = null)
     {
         var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
-        var results = new List<(double SortKey, string Name, JsonObject Obj)>();
+        var results = new List<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
 
         foreach (var athlete in Athletes.OfType<JsonObject>())
         {
@@ -511,7 +509,7 @@ public class AthleteDataService : IDisposable
 
             double AgeYears(DateTime date) => (date.Date - dobUtc.Date).TotalDays / 365.2425;
 
-            var chronoToday = Math.Round(AgeYears(asOf), 2);   
+            var chronoToday = Math.Round(AgeYears(asOf), 2);
             double lowestPheno = double.PositiveInfinity;
 
             if (athlete["Biomarkers"] is JsonArray biomArr)
@@ -563,17 +561,13 @@ public class AthleteDataService : IDisposable
                 ["AgeDifference"] = ageDiff
             };
 
-            results.Add((ageDiff, name, obj));
+            results.Add((ageDiff, dobUtc, name, obj));
         }
 
         var arr = new JsonArray();
-        foreach (var o in results
-                     .OrderBy(t => t.SortKey)
-                     .ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
-                     .Select(t => t.Obj))
-        {
+        foreach (var o in SortByCompetitionRules(results).Select(t => t.Obj))
             arr.Add(o);
-        }
+
         return arr;
 
         static bool TryGet(JsonObject o, string key, out double v)
@@ -588,6 +582,15 @@ public class AthleteDataService : IDisposable
             }
             catch { return false; }
         }
+    }
+
+    private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>
+        SortByCompetitionRules(IEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
+    {
+        return rows
+            .OrderBy(t => t.AgeReduction)                 // 1) more negative is better
+            .ThenBy(t => t.DobUtc)                        // 2) older (earlier DOB) wins
+            .ThenBy(t => t.Name, StringComparer.Ordinal); // 3) alphabetical
     }
 
     public int?[] GetPlacements(string athleteSlug)
