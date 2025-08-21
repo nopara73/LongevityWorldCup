@@ -120,6 +120,11 @@
         text-decoration: none;
         cursor: default;
     }
+    .name-and-rank{display:inline-flex;align-items:baseline}
+    .event-message a.placement-link{ text-decoration:none }
+    .event-message a.placement-link:hover,
+    .event-message a.placement-link:focus{ text-decoration:none }
+    .placement-link{margin-left:2px}
     @media (max-width:600px){
         .events-board thead th{font-size:.85rem;padding:10px 12px}
         .view-all{font-size:.75rem}
@@ -212,15 +217,12 @@
             const today=startOfLocalDay(new Date());
             const thatDay=startOfLocalDay(dt);
             if(thatDay>today) return 'Today <i class="fa fa-rocket"></i>';
-
             const years = today.getFullYear() - thatDay.getFullYear()
                 - ((today.getMonth()<thatDay.getMonth() || (today.getMonth()===thatDay.getMonth() && today.getDate()<thatDay.getDate())) ? 1 : 0);
             if(years>=1) return years===1 ? '1 year ago <i class="fa fa-rocket"></i>' : `${years} years ago <i class="fa fa-rocket"></i>`;
-
             const months = (today.getFullYear()*12 + today.getMonth()) - (thatDay.getFullYear()*12 + thatDay.getMonth())
                 - (today.getDate()<thatDay.getDate()?1:0);
             if(months>=1) return months===1 ? '1 month ago <i class="fa fa-rocket"></i>' : `${months} months ago <i class="fa fa-rocket"></i>`;
-
             const diffDays=Math.round((today-thatDay)/86400000);
             if(diffDays<=0) return 'Today <i class="fa fa-rocket"></i>';
             if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
@@ -259,6 +261,9 @@
             if(!slug) return "";
             return `/athlete/${encodeURIComponent(normalizeLinkId(slugifyLocal(slug)))}`;
         }
+        function leaderboardUrl(){
+            return "/leaderboard/leaderboard.html";
+        }
         function athleteName(a){
             if(!a) return "";
             const map=lowerKeyMap(a);
@@ -272,8 +277,16 @@
             for(const k of keys){ if(map[k]){ const v=String(a[map[k]]).trim(); if(v) return v; } }
             return "";
         }
+        function getCurrentPlacement(a){
+            if(!a) return null;
+            const map=lowerKeyMap(a);
+            const k=map["currentplacement"];
+            if(!k) return null;
+            const v=Number(a[k]);
+            if(!Number.isFinite(v)) return null;
+            return Math.max(1,Math.floor(v));
+        }
 
-        // Extract all slug tokens from text -> array of raw slugs
         function extractSlugs(text){
             const rx=/slug\[(.+?)\]/g;
             const out=[];
@@ -284,8 +297,7 @@
             return out;
         }
 
-        // Convert "Text" to HTML with tokens replaced by clickable athlete names
-        function renderTextWithSlugLinks(text, linkNames, athletesIndex){
+        function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
             const s=String(text||"");
             const rx=/slug\[(.+?)\]/g;
             let out="", last=0, m;
@@ -299,14 +311,14 @@
                 const piece = linkNames && href
                     ? `<a href="${href}">${esc(name)}</a>`
                     : `<span class="athlete-name-text">${esc(name)}</span>`;
-                out += piece;
+                const extra = typeof afterSlug==="function" ? afterSlug(key, a) : "";
+                out += `<span class="name-and-rank">${piece}${extra}</span>`;
                 last = rx.lastIndex;
             }
             out += esc(s.slice(last));
             return out;
         }
 
-        // Build row objects from raw events (keep text, compute slugs, identify primary artist for Joined)
         function toRows(rawEvents){
             return (rawEvents||[]).map(e=>{
                 const map=lowerKeyMap(e||{});
@@ -355,7 +367,6 @@
                 const dateLabel=r.occurredAt?formatListDate(r.occurredAt):"";
                 const rel=r.occurredAt?relativeDayLabel(r.occurredAt):"";
 
-                // Avatar: for Joined show athlete avatar from the first slug; otherwise generic
                 let avatarHtml="";
                 if(r.type===EVENT_TYPE.Joined && r.primarySlug){
                     const a = athletesIndex.get(r.primarySlug);
@@ -375,8 +386,26 @@
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
 
-                // Message: replace slug[...] tokens everywhere
-                const tokenHtml = renderTextWithSlugLinks(r.text, linkNames, athletesIndex);
+                const afterNameForJoined = (slug, a) => {
+                    if(r.type!==EVENT_TYPE.Joined) return "";
+                    if(!r.primarySlug || slug!==r.primarySlug) return "";
+                    const placement = getCurrentPlacement(a);
+                    if(!placement) return "";
+                    const label = `(#${placement})`;
+                    if(linkNames){
+                        return `<a href="${leaderboardUrl()}" class="placement-link" target="_top">${esc(label)}</a>`;
+                    }else{
+                        return `<span class="placement-link">${esc(label)}</span>`;
+                    }
+                };
+
+                const tokenHtml = renderTextWithSlugLinks(
+                    r.text,
+                    linkNames,
+                    athletesIndex,
+                    r.type===EVENT_TYPE.Joined ? afterNameForJoined : null
+                );
+
                 const msgHtml = r.type===EVENT_TYPE.Joined
                     ? `${tokenHtml} joined ${rel}`
                     : `${tokenHtml} ${rel}`;

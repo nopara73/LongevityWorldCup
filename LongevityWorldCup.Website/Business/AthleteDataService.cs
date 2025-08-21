@@ -107,7 +107,8 @@ public class AthleteDataService : IDisposable
         // Hydrate persisted age‐guess stats from SQLite
         ReloadCrowdStats();
         HydratePlacementsIntoAthletesJson();
-        HydrateNewFlagsIntoAthletesJson(); // NEW
+        HydrateNewFlagsIntoAthletesJson();
+        HydrateCurrentPlacementIntoAthletesJson();
 
         // Watch the new per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
@@ -144,7 +145,8 @@ public class AthleteDataService : IDisposable
                     lastWrite = newWrite;
                     ReloadCrowdStats();
                     HydratePlacementsIntoAthletesJson();
-                    HydrateNewFlagsIntoAthletesJson(); // NEW
+                    HydrateNewFlagsIntoAthletesJson();
+                    HydratePlacementsIntoAthletesJson();
                 }
             }
         });
@@ -270,7 +272,8 @@ public class AthleteDataService : IDisposable
             await LoadAthletesAsync();
             ReloadCrowdStats();
             HydratePlacementsIntoAthletesJson();
-            HydrateNewFlagsIntoAthletesJson(); // NEW
+            HydrateNewFlagsIntoAthletesJson();
+            HydratePlacementsIntoAthletesJson();
         }
         finally
         {
@@ -696,6 +699,30 @@ public class AthleteDataService : IDisposable
 
                 athleteJson["IsNew"] = isNew;
             }
+        }
+    }
+    
+    private void HydrateCurrentPlacementIntoAthletesJson()
+    {
+        var order = GetRankingsOrder();
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 0; i < order.Count; i++)
+        {
+            if (order[i] is JsonObject o)
+            {
+                var slug = o["AthleteSlug"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(slug)) map[slug] = i + 1;
+            }
+        }
+
+        foreach (var athlete in Athletes.OfType<JsonObject>())
+        {
+            var slug = athlete["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug) && map.TryGetValue(slug, out var pos))
+                athlete["CurrentPlacement"] = pos;
+            else
+                athlete["CurrentPlacement"] = null;
         }
     }
 
