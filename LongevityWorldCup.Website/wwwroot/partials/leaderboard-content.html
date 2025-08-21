@@ -1,11 +1,113 @@
 ﻿<style>
+    /* =========================
+       Vars (table portrait sizes)
+       ========================= */
+    :root{
+        --portrait-size: 60px;          /* table portrait size */
+        --portrait-hover-scale: 1.1;    /* table hover scale */
+        --arrow-left: -15px;            /* base arrow position */
+        --arrow-hover-shift: calc((var(--portrait-size) * (var(--portrait-hover-scale) - 1)) / 2);
+        --arrow-cover-extra: 24px; /* arrow width (20) + ~4px safety */
+    }
+
+    /* =========================
+       Rank-change wrapper + arrow
+       ========================= */
+    .rank-change { position: relative; display: inline-block; z-index: 0; }
+    .rank-change img { display: block; position: relative; z-index: 1; }
+
+    /* green ring only in the TABLE (no green ring on podium) */
+    .rank-change.rank-up img.portrait { border-color: #2ecc71; }
+
+    /* never show the rank arrow on the podium */
+    .podium .rank-arrow,
+    .podium-item .rank-arrow { display: none !important; }
+
+
+    .rank-change .rank-arrow{
+        position: absolute;
+        z-index: -1;
+        left: var(--arrow-left);
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        border-radius: 50% 0 0 50%;
+        background: #2ecc71;
+        color: rgb(255 255 255 / 80%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        pointer-events: none;
+        transition: left .3s ease;
+    }
+
+    /* Replace your current hover rule with this */
+    .rank-change img:hover + .rank-arrow,
+    .rank-change:hover .rank-arrow{
+        left: calc(var(--arrow-left) + var(--arrow-cover-extra) + var(--arrow-hover-shift));
+    }
+
+    /* =========================
+       Portraits
+       ========================= */
+
+    /* TABLE portrait (fixed 60x60) */
+    .portrait{
+        width: var(--portrait-size);
+        height: var(--portrait-size);
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--secondary-color);
+        margin: .5rem 0;
+        cursor: pointer;
+        transition: transform .3s ease;
+    }
+    .portrait:hover{ transform: scale(var(--portrait-hover-scale)); }
+
+    /* PODIUM portrait (bounded even if not wrapped in .rank-change) */
+    .podium-item .podium-portrait{
+        width: auto;
+        height: 40%;
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--secondary-color);
+        margin: 1rem 0;
+        cursor: pointer;
+        transition: transform .3s ease;
+        will-change: transform;
+        box-sizing: border-box;                /* <-- FIX: include border in the height */
+    }
+    .podium-item .podium-portrait:hover{ transform: scale(1.1); }
+
+    /* When wrapped: the wrapper defines the circle and the img fills it */
+    .podium-item .rank-change{
+        display: block;
+        height: 40%;
+        aspect-ratio: 1 / 1;
+        margin: 1rem 0;
+    }
+    .podium-item .rank-change img.podium-portrait{
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        transition: transform .3s ease;
+        box-sizing: border-box;                /* <-- FIX also for wrapped variant */
+    }
+    .podium-item .rank-change img.podium-portrait:hover{ transform: scale(1.1); }
+
+    /* =========================
+       Badges
+       ========================= */
     .badge-section {
         display: flex;
-        align-items: center; /* Vertically centers the badges */
+        align-items: center;
         flex-wrap: wrap;
         gap: 0.3rem;
     }
-
     .badge-class {
         display: inline-flex;
         align-items: center;
@@ -18,1095 +120,300 @@
         font-weight: bold;
         color: #fff;
         margin-left: 0.3rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Clean drop shadow only */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         transition: transform 0.2s ease;
     }
-
-    @keyframes shadowPulse {
-        0% {
-            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
-        }
-
-        50% {
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
-        }
-
-        100% {
-            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
-        }
+    @keyframes shadowPulse{
+        0%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
+        50%{ box-shadow:0 0 10px rgba(0,0,0,.6); }
+        100%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
     }
+    .badge-class:hover{ transform: scale(1.2); animation: shadowPulse 1s ease-in-out 1 forwards; }
 
-    .badge-class:hover {
-        transform: scale(1.2);
-        animation: shadowPulse 1s ease-in-out 1 forwards;
+    .modal-badge-strip{
+        display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; margin:.5rem 0 1rem;
     }
-
-    .modal-badge-strip {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 0.25rem;
-        margin: 0.5rem 0 1rem;
+    .modal-badge-strip .badge-class{ width:70px; height:70px; font-size:2rem; margin:.4rem; }
+    .modal-badge-strip .modal-badge-item{ display:inline-flex; flex-direction:column; align-items:center; margin:.4rem; }
+    .modal-badge-strip .modal-badge-name{
+        font-size:.75rem; margin-top:.2rem; color:var(--primary-color); text-align:center; width:100px;
+        white-space:normal; word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
     }
-
-        /* make the badges in the modal larger */
-        .modal-badge-strip .badge-class {
-            width: 70px;
-            height: 70px;
-            font-size: 2rem;
-            margin: 0.4rem;
-        }
-
-        /* BADGE LABELS IN MODAL */
-        .modal-badge-strip .modal-badge-item {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0.4rem;
-        }
-
-        /* BADGE LABELS IN MODAL: full tooltip, wrapped and clamped */
-        .modal-badge-strip .modal-badge-name {
-            font-size: 0.75rem;
-            margin-top: 0.2rem;
-            color: var(--primary-color);
-            text-align: center;
-            width: 100px; /* fix width so it wraps */
-            white-space: normal; /* allow wrapping */
-            word-break: break-word; /* break long words */
-            display: -webkit-box; /* for line‑clamp */
-            -webkit-line-clamp: 3; /* show up to 3 lines */
-            -webkit-box-orient: vertical; /* required for line‑clamp */
-            overflow: hidden; /* hide anything past 3 lines */
-        }
-
-    /* only make the badge title bold */
-    .modal-badge-name .modal-badge-title {
-        display: block;
-        font-weight: bold;
-    }
-
-    .modal-badge-name .modal-badge-detail {
-        display: none;
-    }
-    /* reveal the detail line on hover (desktop) or when tapped (mobile) */
+    .modal-badge-name .modal-badge-title{ display:block; font-weight:bold; }
+    .modal-badge-name .modal-badge-detail{ display:none; }
     .modal-badge-item:hover .modal-badge-detail,
-    .modal-badge-item.expanded .modal-badge-detail {
-        display: block;
+    .modal-badge-item.expanded .modal-badge-detail{ display:block; }
+    .modal-badge-item:hover .modal-badge-name,
+    .modal-badge-item.expanded .modal-badge-name{ -webkit-line-clamp:unset; max-height:none; overflow:visible; }
+
+    /* =========================
+       Leaderboard shell
+       ========================= */
+    .leaderboard{
+        display:flex; align-items:stretch; background-color:var(--card-bg);
+        border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
+    }
+    table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
+    .leaderboard td{ text-align:center; }
+    .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
+    .age-reduction{ font-weight:700; color:#4caf50; text-align:left; }
+    .athlete-td{ display:flex; align-items:center; text-align:left; gap:.5rem; }
+
+    th{
+        padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
+        color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
+    }
+    .leaderboard table th:nth-child(1){ width:15px; }
+    .leaderboard table th:nth-child(2){ text-align:left; }
+    .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
+
+    .leaderboard table tbody tr{ transition: transform .3s ease, box-shadow .3s ease; cursor:pointer; }
+    .leaderboard table tbody tr:hover{ transform: scale(1.02); box-shadow:0 4px 10px rgba(0,0,0,.1); }
+
+    .media-contact{ color:rgba(255,64,129,.7); text-decoration:none; transition:color .2s ease-in-out; font-size:1.5rem; padding:.5rem; margin:10px 0; }
+    .media-contact:hover{ color:var(--primary-color); }
+    .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
+
+    .athlete-name{
+        color:var(--primary-color); text-decoration:underline; text-align:left; cursor:pointer; transition:color .2s ease-in-out;
+        display:inline-block; padding:.5rem .2rem .5rem .5rem; white-space:pre-wrap;
+    }
+    .athlete-name:hover{ color:var(--secondary-color); background-color:rgba(0,0,0,.05); border-radius:8px; font-size:1.1em; }
+    .podium .athlete-name{ font-size:1.1rem; padding-bottom:.2rem; }
+
+    /* =========================
+       Modal
+       ========================= */
+    .modal{ display:none; position:fixed; z-index:3; left:0; top:0; width:100%; height:100%;
+        overflow:auto; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+    .modal-content{
+        background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
+        border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn .5s ease-out;
+    }
+    .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
+    #modalProfilePic{
+        width:70%; aspect-ratio:1/1; height:auto; cursor:pointer; transition:transform .3s ease, border-color .3s ease;
+        border-radius:50%; object-fit:cover;
+    }
+    #modalProfilePic:hover{ transform: scale(1.05); }
+    .athlete-info{ text-align:left; width:100%; max-width:600px; margin-bottom:1rem; }
+    .athlete-info p{ margin:.3rem 0; }
+
+    .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
+    .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
+    .athlete-links a:hover{ color:var(--secondary-color); }
+
+    .proofs-gallery{ display:flex; flex-direction:column; align-items:center; flex-wrap:wrap; gap:1rem; justify-content:center; padding:0; }
+    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; }
+    .proof-item:hover{ transform: scale(1.05); }
+    .proof-item img{ width:100%; height:100%; object-fit:cover; }
+
+    .enlarged-portrait{
+        position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85);
+        display:flex; justify-content:center; align-items:center; z-index:1000; cursor:pointer;
+        opacity:0; transform:scale(.95); transition:opacity .5s ease, transform .5s ease;
+    }
+    .enlarged-portrait.show{ opacity:1; transform:scale(1); filter:blur(0); }
+    .enlarged-portrait .close-btn{
+        position:absolute; top:20px; left:20px; font-size:1.8rem; color:rgba(255,255,255,.85); background:rgba(0,0,0,.6);
+        width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
+        transition:color .3s, background-color .3s, transform .2s; padding:0;
+    }
+    .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
+    .enlarged-portrait img{ max-width:90%; max-height:90%; object-fit:contain; cursor:default; }
+
+    /* =========================
+       Podium cards
+       ========================= */
+    .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:2rem; }
+    .podium-item{
+        position:relative; text-align:center; padding:1rem; background:var(--card-bg); border-radius:15px;
+        box-shadow:0 10px 30px rgba(0,0,0,.1); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
+        justify-content:flex-start; width:200px; min-height:230px; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
+    }
+    .podium .podium-item:hover{ transform: scale(1.05) !important; will-change: transform;
+        transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2); }
+    .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
+
+    .podium-item.first{ order:2; height:340px; }
+    .podium-item.second{ order:1; height:320px; }
+    .podium-item.third{ order:3; height:300px; }
+
+    .podium-item-lower{
+        position:absolute; bottom:0; width:100%; padding:10px 0; border-radius:0 0 15px 15px;
+        display:flex; flex-direction:column; align-items:center; clip-path:polygon(0 30%, 100% 0, 100% 100%, 0% 100%);
+        transition:clip-path .3s ease-in-out; pointer-events:auto; cursor:pointer;
+    }
+    .podium-item-lower:hover{ clip-path:polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
+    .podium-item.first .podium-item-lower{ background:#FFF9C4; }
+    .podium-item.second .podium-item-lower{ background:#E0E0E0; }
+    .podium-item.third .podium-item-lower{ background:#D9C3A3; }
+    .prize-money{ font-weight:bold; font-size:2rem; color:#4caf50; margin-top:2px; }
+    .btc-amount{ margin-top:1rem; font-weight:normal; font-size:.8rem; color:var(--dark-text-color); }
+
+    .podium-rank{
+        position:absolute; top:-6px; left:10%; transform:translateX(-50%); background:#fff;
+        padding:2px; border-radius:50%; width:60px; height:60px; display:flex; justify-content:center; align-items:center;
+        font-size:2rem; box-shadow:0 4px 8px rgba(0,0,0,.1);
     }
 
-    /* on hover (desktop) or when .expanded is toggled (mobile), drop the clamp */
-    .modal-badge-item:hover .modal-badge-name, .modal-badge-item.expanded .modal-badge-name {
-        -webkit-line-clamp: unset;
-        max-height: none;
-        overflow: visible;
+    /* =========================
+       Misc UI
+       ========================= */
+    .personal-link-icon{ color:var(--primary-color); font-size:1rem; text-decoration:none; transition:color .2s ease-in-out; margin-left:.2rem; }
+    .personal-link-icon:first-of-type{ margin-left:0; }
+    .personal-link-icon:hover{ color:var(--secondary-color); }
+
+    .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
+    .search-container{ position:relative; max-width:250px; width:100%; margin-right:.5rem; }
+    #athleteSearch{
+        width:100%; padding:.5rem 2.5rem .5rem 1rem; border:2px solid var(--primary-color); border-radius:25px; font-size:1rem;
+        transition:border-color .3s ease; outline:none; box-sizing:border-box;
+    }
+    #athleteSearch:focus{ border-color:var(--secondary-color); }
+    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
+    .clear-icon{
+        position:absolute; right:3rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; cursor:pointer; z-index:2;
+        opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s ease;
+    }
+    .clear-icon.visible{ opacity:1; visibility:visible; }
+    .clear-icon:hover{ color:var(--secondary-color); }
+
+    .visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+    .highlight{ background-color: rgba(255,255,0,.5); color:#000; }
+    #comingSoon{ font-size:.5rem; font-weight:normal; }
+
+    .leaderboard table tbody tr, .podium-item{ transition:opacity .3s ease, transform .3s ease; }
+    .fade-out{ opacity:0; transition:opacity .4s ease; }
+    .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
+
+    .filter-section{ margin-bottom:1.5rem; }
+    .filter-section h3{ margin-bottom:.5rem; color:var(--secondary-color); font-size:1.2rem; }
+    .filter-section ul{ list-style:none; padding:0; }
+    .filter-section li{ margin-bottom:.5rem; }
+    .filter-section label{ display:flex; align-items:center; cursor:pointer; color:#555; transition:color .2s; }
+    .filter-section input[type="checkbox"]{ margin-right:.5rem; accent-color:var(--primary-color); }
+    .filter-section label:hover{ color:var(--primary-color); }
+    .filter-section input[type="checkbox"]:checked + label{ font-weight:bold; color:var(--secondary-color); }
+
+    .sidebar.partially-expanded{ width:80px; }
+    .sidebar-toggle{
+        background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:40px; height:40px;
+        display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color .3s ease, transform .3s ease; margin-right:1rem;
+    }
+    .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
+    .sidebar-toggle.active i{ color:var(--card-bg); }
+    .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
+    .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
+    .sidebar-toggle:hover i{ color:var(--card-bg); }
+
+    .sidebar-close{
+        display:none; background:none; border:none; font-size:1.5rem; color:var(--primary-color); cursor:pointer;
+        position:absolute; top:3px; right:3px; z-index:10; transition:background-color .3s ease, color .3s ease;
+        width:40px; height:40px; border-radius:50%;
+    }
+    .sidebar.expanded .sidebar-close{ display:block; }
+    .sidebar-close:hover{ background:var(--primary-color); color:var(--card-bg); transform:scale(1.1); }
+
+    .sidebar{
+        position:relative; width:50px; padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
+        margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
+        overflow:hidden; flex-shrink:0;
+    }
+    .sidebar:hover:not(.button-collapsed), .sidebar.expanded{ width:auto; padding:1rem; align-items:flex-start; }
+    .sidebar .filter-section{ display:none; }
+    .sidebar:hover .filter-section, .sidebar.expanded .filter-section{ display:block; }
+
+    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; }
+    .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:2rem; }
+    .sidebar:hover .sidebar-title .sidebar-title-text,
+    .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
+
+    .collapsed-title{
+        display:block; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
+        padding:15px 0; letter-spacing:1px; word-spacing:10px; font-family:'Orbitron', sans-serif;
+        background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
+        -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
+    }
+    .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
+    .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:100%; }
+    .sidebar-title{ margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color); display:flex; align-items:center; justify-content:left; border-bottom:2px solid var(--primary-color); }
+
+    .content{ flex-grow:1; transition:margin-left .3s ease; }
+    .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
+
+    .main-container{ display:flex; align-items:flex-start; }
+
+    /* =========================
+       Links + animations
+       ========================= */
+    .league-link{ color:var(--primary-color); text-decoration:underline; transition:color .2s ease; }
+    .league-link:hover{ color:var(--secondary-color); }
+
+    @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+    .fade-in-element{ animation:fadeIn .6s ease-in-out; }
+
+    @keyframes expandCircle{ from{ transform:scale(.5); opacity:0;} to{ transform:scale(1); opacity:1;} }
+    #targetShootingVisualization{ animation:expandCircle 1s ease-in-out; }
+
+    .modal-link{ display:flex; align-items:center; gap:.5rem; font-size:1.2rem; color:var(--primary-color); text-decoration:none; transition:color .3s ease; }
+    .modal-link:hover{ color:var(--secondary-color); }
+    .modal-link i{ font-size:1.8rem; line-height:1; }
+
+    @keyframes pop{ 0%{ transform:scale(0); opacity:0;} 100%{ transform:scale(1); opacity:1;} }
+    .first-guess-stamp{
+        display:inline-block; padding:.3rem .6rem; border:1px solid currentColor; border-radius:4px; background:transparent;
+        letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease;
+    }
+    .primary-stamp{
+        display:inline-block; padding:.3rem .6rem; border:1px solid var(--primary-color); border-radius:4px; background:transparent;
+        letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease; color:var(--primary-color);
+    }
+    .golden-stamp{
+        display:inline-block; padding:.3rem .6rem; border:1px solid #FFD700; border-radius:4px; background:#FFD700;
+        letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease; color:#000;
     }
 
-    .portrait,
-    .podium-portrait {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid var(--secondary-color);
-        margin: 0.5rem 0; /* Reduce the vertical margin of the portrait */
-        cursor: pointer;
-        transition: transform 0.3s ease;
-    }
+    /* =========================
+       Mobile
+       ========================= */
+    @media (max-width: 768px){
+        #detailsModal .badge-class{ pointer-events:none; cursor:default; }
+        #detailsModal .badge-class.badge-podcast{ pointer-events:auto !important; cursor:pointer !important; }
 
-        .portrait:hover,
-        .podium-portrait:hover {
-            transform: scale(1.1);
+        .search-container{ max-width:100%; margin-top:1rem; }
+        #athleteSearch{ padding:.5rem 2.5rem .5rem 1rem; font-size:1rem; }
+        .search-icon{ right:1rem; }
+        .clear-icon{ right:3rem; }
+        .search-wrapper{ display:flex; align-items:center; }
+
+        .sidebar-toggle{ align-self:center; margin-top:1rem; height:40px; }
+
+        .main-container{ flex-direction:column; }
+        .sidebar{ width:100%; margin-right:0; margin-bottom:1rem; position:fixed; top:0; left:0; width:70%; max-width:300px; height:100%;
+            background:var(--card-bg); z-index:999; box-shadow:0 2px 10px rgba(0,0,0,.2); overflow-y:auto; transform:translateX(-100%);
+            transition:transform .3s ease-in-out; }
+        .sidebar.expanded{ display:block; transform:translateX(0); }
+
+        .content{ margin-left:0; }
+
+        .podium{
+            display:flex; flex-direction:row; justify-content:center; align-items:flex-end; gap:3rem; margin:0; padding:0; flex-wrap:wrap; width:100%;
         }
-
-    .leaderboard {
-        display: flex;
-        align-items: stretch;
-        background-color: var(--card-bg);
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        flex-grow: 1;
-    }
-
-    .sidebar.partially-expanded {
-        width: 80px;
-    }
-
-    .sidebar-toggle {
-        background-color: var(--card-bg);
-        border: 2px solid var(--primary-color);
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: background-color 0.3s ease, transform 0.3s ease;
-        margin-right: 1rem;
-    }
-
-        .sidebar-toggle.active {
-            background-color: var(--primary-color);
-            transform: scale(1); /* Keep the size consistent */
-        }
-
-            .sidebar-toggle.active i {
-                color: var(--card-bg);
-            }
-
-        .sidebar-toggle:hover {
-            background-color: var(--primary-color);
-            transform: scale(1.05); /* Reduced scaling for subtle effect */
-        }
-
-        .sidebar-toggle i {
-            color: var(--primary-color);
-            font-size: 1.5rem;
-            transition: color 0.3s ease;
-        }
-
-        .sidebar-toggle:hover i {
-            color: var(--card-bg);
-        }
-
-    .sidebar-close {
-        display: none; /* Hidden by default */
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        color: var(--primary-color);
-        cursor: pointer;
-        position: absolute;
-        top: 3px; /* Adjusted for better placement */
-        right: 3px; /* Close to the edge */
-        z-index: 10; /* Ensure it's visible above content */
-        transition: background-color 0.3s ease, color 0.3s ease;
-        width: 40px; /* Width of the button */
-        height: 40px; /* Height of the button (equal to width) */
-        border-radius: 50%; /* Makes it a perfect circle */
-    }
-
-    /* Show the close button only when the sidebar is expanded via the toggle button */
-    .sidebar.expanded .sidebar-close {
-        display: block;
-    }
-
-    /* Optional: Hover effect */
-    .sidebar-close:hover {
-        background-color: var(--primary-color); /* Add background to improve contrast */
-        color: var(--card-bg); /* Adjust text/icon color for contrast */
-        transform: scale(1.1); /* Slight scale for interactivity */
-    }
-
-    .sidebar {
-        position: relative; /* To position the close button absolutely within the sidebar */
-        width: 50px;
-        padding: 0;
-        background-color: var(--card-bg);
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin-right: 0.2rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        transition: width 0.3s ease, padding 0.3s ease;
-        overflow: hidden;
-        flex-shrink: 0;
-    }
-
-        .sidebar:hover:not(.button-collapsed),
-        .sidebar.expanded {
-            width: auto;
-            padding: 1rem;
-            align-items: flex-start;
-        }
-
-        .sidebar .filter-section {
-            display: none;
-        }
-
-        .sidebar:hover .filter-section,
-        .sidebar.expanded .filter-section {
-            display: block;
-        }
-
-        .sidebar .sidebar-title .sidebar-icon {
-            display: inline-block;
-            font-size: 2rem;
-        }
-
-        .sidebar .sidebar-title .sidebar-title-text {
-            display: none;
-            margin-left: 0.5rem;
-            font-size: 2rem;
-        }
-
-        .sidebar:hover .sidebar-title .sidebar-title-text,
-        .sidebar.expanded .sidebar-title .sidebar-title-text {
-            display: inline-block;
-        }
-
-    .collapsed-title {
-        display: block;
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
-        text-align: center;
-        font-size: 1.8rem;
-        color: var(--primary-color);
-        padding: 15px 0;
-        letter-spacing: 1px;
-        word-spacing: 10px;
-        font-family: 'Orbitron', sans-serif;
-        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-        background-size: 200%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: none;
-        border-radius: 5px; /* Softens edges */
-    }
-
-    .sidebar:hover .collapsed-title,
-    .sidebar.expanded .collapsed-title {
-        display: none;
-    }
-
-    .sidebar:hover .sidebar-title,
-    .sidebar.expanded .sidebar-title {
-        width: 100%; /* Full width only when sidebar is expanded */
-    }
-
-    .sidebar-title {
-        margin: 0;
-        padding: 1rem 0;
-        text-align: center;
-        font-size: 1.2rem;
-        color: var(--primary-color);
-        display: flex;
-        align-items: center;
-        justify-content: left;
-        border-bottom: 2px solid var(--primary-color);
-    }
-
-    .content {
-        flex-grow: 1;
-        transition: margin-left 0.3s ease;
-    }
-
-    .sidebar:hover ~ .content,
-    .sidebar.expanded ~ .content {
-        margin-left: 200px;
-    }
-
-    .main-container {
-        display: flex;
-        align-items: flex-start;
-    }
-
-    table {
-        flex-grow: 1;
-        width: auto;
-        border-collapse: separate;
-        border-spacing: 0;
-        align-self: flex-start; /* Add this line */
-    }
-
-    .leaderboard td {
-        text-align: center;
-    }
-
-    .rank {
-        font-weight: 700;
-        font-size: 1.2rem;
-        color: var(--primary-color);
-    }
-
-    .age-reduction {
-        font-weight: 700;
-        color: #4caf50;
-        text-align: left;
-    }
-
-    .athlete-td {
-        display: flex;
-        align-items: center;
-        text-align: left;
-        gap: 0.5rem;
-    }
-
-    th {
-        padding: 1rem 1rem;
-        text-align: center;
-        background-color: rgba(0, 188, 212, 0.1);
-        color: var(--primary-color);
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.9rem;
-        letter-spacing: 1px;
-    }
-
-    /* Adjust Rank column */
-    .leaderboard table th:nth-child(1) {
-        width: 15px;
-    }
-
-    /* Adjust Athlete column */
-    .leaderboard table th:nth-child(2) {
-        text-align: left;
-    }
-
-    .leaderboard table tr:nth-child(even) {
-        background-color: rgba(240, 244, 248, 0.5);
-    }
-
-    /* your normal styles for all tbody rows */
-    .leaderboard table tbody tr {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        cursor: pointer;
-    }
-
-        .leaderboard table tbody tr:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-    .media-contact {
-        color: rgba(255, 64, 129, 0.7);
-        text-decoration: none;
-        transition: color 0.2s ease-in-out;
-        font-size: 1.5rem;
-        padding: 0.5rem;
-        margin: 10px 0;
-    }
-
-        .media-contact:hover {
-            color: var(--primary-color);
-        }
-
-        .media-contact i {
-            font-size: 2rem;
-            width: 2rem;
-            height: 2rem;
-            line-height: 2rem;
-            display: inline-block;
-            text-align: center;
-            vertical-align: middle;
-        }
-
-    .athlete-name {
-        color: var(--primary-color);
-        text-decoration: underline;
-        text-align: left;
-        cursor: pointer;
-        transition: color 0.2s ease-in-out;
-        display: inline-block; /* Ensures padding is applied around the element */
-        padding: 0.5rem 0.2rem 0.5rem 0.5rem; /* Increase the clickable area */
-        white-space: pre-wrap;
-    }
-
-        .athlete-name:hover {
-            color: var(--secondary-color);
-            background-color: rgba(0, 0, 0, 0.05); /* Optional: Highlight the hitbox on hover */
-            border-radius: 8px; /* Optional: Makes the hover effect look rounded */
-            font-size: 1.1em;
-        }
-
-    .podium .athlete-name {
-        font-size: 1.1rem;
-        padding-bottom: 0.2rem; /* Looks better with decreased padding here. */
-    }
-
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 3;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-    }
-
-    .modal-content {
-        background-color: #fefefe;
-        margin: 1% auto;
-        padding: 20px;
-        border: none;
-        width: 80%;
-        height: 88%;
-        max-width: 900px;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        overflow-y: auto;
-        max-height: 90vh;
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    .athlete-profile {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    #modalProfilePic {
-        width: 70%;
-        aspect-ratio: 1 / 1;
-        height: auto;
-        cursor: pointer;
-        transition: transform 0.3s ease, border-color 0.3s ease;
-        border-radius: 50%; /* Retain circular appearance if needed */
-        object-fit: cover; /* Ensure it fits nicely */
-    }
-
-        #modalProfilePic:hover {
-            transform: scale(1.05); /* Subtle enlargement */
-        }
-
-    .athlete-info {
-        text-align: left;
-        width: 100%;
-        max-width: 600px;
-        margin-bottom: 1rem;
-    }
-
-        .athlete-info p {
-            margin: 0.3rem 0;
-        }
-
-    .athlete-links {
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-        .athlete-links a {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: var(--primary-color);
-            transition: color 0.2s ease-in-out;
-        }
-
-            .athlete-links a:hover {
-                color: var(--secondary-color);
-            }
-
-    .proofs-gallery {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-        justify-content: center;
-        padding: 0;
-    }
-
-    .proof-item {
-        width: 100%;
-        height: auto;
-        border-radius: 10px;
-        overflow: hidden;
-        cursor: pointer;
-        transition: transform 0.3s ease;
-    }
-
-        .proof-item:hover {
-            transform: scale(1.05);
-        }
-
-        .proof-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-    .enlarged-portrait {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.85); /* Darkened background */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        cursor: pointer;
-        opacity: 0; /* Start hidden */
-        transform: scale(0.95); /* Slightly scaled down */
-        transition: opacity 0.5s ease, transform 0.5s ease; /* Smoother transition */
-    }
-
-        .enlarged-portrait.show {
-            opacity: 1; /* Fade in */
-            transform: scale(1); /* Scale up smoothly */
-            filter: blur(0); /* Clear any background blur effect */
-        }
-
-        .enlarged-portrait .close-btn {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 1.8rem; /* Adjust as needed */
-            color: rgba(255, 255, 255, 0.85);
-            background-color: rgba(0, 0, 0, 0.6);
-            width: 40px; /* Equal width */
-            height: 40px; /* Equal height */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%; /* Makes it circular */
-            cursor: pointer;
-            transition: color 0.3s, background-color 0.3s, transform 0.2s;
-            padding: 0; /* Remove padding to prevent distortion */
-        }
-
-            .enlarged-portrait .close-btn:hover {
-                color: var(--light-text-color);
-                background-color: rgba(0, 0, 0, 0.9);
-                transform: scale(1.1); /* Subtle hover effect */
-            }
-
-        .enlarged-portrait img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            cursor: default; /* Change to default cursor to indicate no action on click */
-        }
-
-    .podium {
-        display: flex;
-        justify-content: center;
-        align-items: flex-end;
-        margin-bottom: 2rem;
-    }
-
-    .podium-item {
-        position: relative;
-        text-align: center;
-        padding: 1rem;
-        background-color: var(--card-bg);
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin: 0 1rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        width: 200px;
-        min-height: 230px;
-        transition: opacity 0.3s ease, transform 0.3s ease;
-        cursor: pointer;
-    }
-
-    .podium-portrait {
-        width: auto;
-        height: 40%;
-        aspect-ratio: 1 / 1;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid var(--secondary-color);
-        margin: 1rem 0;
-    }
-
-    .podium .podium-item:hover {
-        /* bump up the scale */
-        transform: scale(1.05) !important;
-        /* hint for smoother animation */
-        will-change: transform;
-        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .podium-item.blurred {
-        filter: blur(5px);
-        pointer-events: none; /* Optional, prevents interaction with blurred items */
-    }
-
-    .podium-item.first {
-        order: 2;
-        height: 340px;
-    }
-
-    .podium-item.second {
-        order: 1;
-        height: 320px;
-    }
-
-    .podium-item.third {
-        order: 3;
-        height: 300px;
-    }
-
-    .podium-item-lower {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        padding: 10px 0;
-        border-radius: 0 0 15px 15px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        clip-path: polygon(0 30%, 100% 0, 100% 100%, 0% 100%);
-        transition: clip-path 0.3s ease-in-out;
-        pointer-events: auto; /* Enable click events */
-        cursor: pointer; /* Indicate that it's clickable */
-    }
-
-        .podium-item-lower:hover {
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-        }
-
-    .podium-item.first .podium-item-lower {
-        background-color: #FFF9C4;
-    }
-
-    .podium-item.second .podium-item-lower {
-        background-color: #E0E0E0;
-    }
-
-    .podium-item.third .podium-item-lower {
-        background-color: #D9C3A3;
-    }
-
-    .prize-money {
-        font-weight: bold;
-        font-size: 2rem;
-        color: #4caf50;
-        margin-top: 2px;
-    }
-
-    .btc-amount {
-        margin-top: 1rem;
-        font-weight: normal;
-        font-size: 0.8rem;
-        color: var(--dark-text-color);
-    }
-
-    .podium-rank {
-        position: absolute;
-        top: -6px;
-        left: 10%;
-        transform: translateX(-50%);
-        background-color: white;
-        padding: 2px;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 2rem;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .personal-link-icon {
-        color: var(--primary-color);
-        font-size: 1rem;
-        text-decoration: none;
-        transition: color 0.2s ease-in-out;
-        margin-left: 0.2rem;
-    }
-
-        .personal-link-icon:first-of-type {
-            margin-left: 0;
-        }
-
-        .personal-link-icon:hover {
-            color: var(--secondary-color);
-        }
-
-    .search-wrapper {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 1rem;
-    }
-
-    .search-container {
-        position: relative;
-        max-width: 250px;
-        width: 100%;
-        margin-right: 0.5rem;
-    }
-
-    #athleteSearch {
-        width: 100%;
-        padding: 0.5rem 2.5rem 0.5rem 1rem;
-        border: 2px solid var(--primary-color);
-        border-radius: 25px;
-        font-size: 1rem;
-        transition: border-color 0.3s ease;
-        outline: none;
-        box-sizing: border-box;
-    }
-
-        #athleteSearch:focus {
-            border-color: var(--secondary-color);
-        }
-
-    .search-icon {
-        position: absolute;
-        right: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--primary-color);
-        font-size: 1.2rem;
-        pointer-events: none;
-        z-index: 2;
-    }
-
-    .clear-icon {
-        position: absolute;
-        right: 3rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--primary-color);
-        font-size: 1.2rem;
-        cursor: pointer;
-        z-index: 2;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-        .clear-icon.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .clear-icon:hover {
-            color: var(--secondary-color);
-        }
-
-    .visually-hidden {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        border: 0;
-    }
-
-    .highlight {
-        background-color: rgba(255, 255, 0, 0.5);
-        color: #000;
-    }
-
-    #comingSoon {
-        font-size: 0.5rem;
-        font-weight: normal;
-    }
-
-    .leaderboard table tbody tr,
-    .podium-item {
-        transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .fade-out {
-        opacity: 0;
-        transition: opacity 0.4s ease;
-    }
-
-    .no-results {
-        color: var(--primary-color);
-        font-weight: bold;
-        text-align: center;
-        padding: 1rem;
-        font-size: 1.2rem;
-    }
-
-    .filter-section {
-        margin-bottom: 1.5rem;
-    }
-
-        .filter-section h3 {
-            margin-bottom: 0.5rem;
-            color: var(--secondary-color);
-            font-size: 1.2rem;
-        }
-
-        .filter-section ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .filter-section li {
-            margin-bottom: 0.5rem;
-        }
-
-        .filter-section label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            color: #555;
-            transition: color 0.2s;
-        }
-
-        .filter-section input[type="checkbox"] {
-            margin-right: 0.5rem;
-            accent-color: var(--primary-color);
-        }
-
-        .filter-section label:hover {
-            color: var(--primary-color);
-        }
-
-        .filter-section input[type="checkbox"]:checked + label {
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-
-    @media (max-width: 768px) {
-        #detailsModal .badge-class {
-            pointer-events: none;
-            cursor: default;
-        }
-
-            /* Allow only the podcast badge to be clickable on mobile */
-            #detailsModal .badge-class.badge-podcast {
-                pointer-events: auto !important;
-                cursor: pointer !important;
-            }
-
-        .search-container {
-            max-width: 100%;
-            margin-top: 1rem;
-        }
-
-        #athleteSearch {
-            padding: 0.5rem 2.5rem 0.5rem 1rem;
-            font-size: 1rem;
-        }
-
-        .search-icon {
-            right: 1rem;
-        }
-
-        .clear-icon {
-            right: 3rem;
-        }
-
-        .search-wrapper {
-            display: flex;
-            align-items: center;
-        }
-
-        .sidebar-toggle {
-            align-self: center;
-            margin-top: 1rem;
-            height: 40px;
-        }
-
-        /* Main Container and Sidebar */
-        .main-container {
-            flex-direction: column;
-        }
-
-        .sidebar {
-            width: 100%;
-            margin-right: 0;
-            margin-bottom: 1rem;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 70%;
-            max-width: 300px;
-            height: 100%;
-            background-color: var(--card-bg);
-            z-index: 999;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            overflow-y: auto;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-        }
-
-            .sidebar.expanded {
-                display: block;
-                transform: translateX(0);
-            }
-
-        .content {
-            margin-left: 0;
-        }
-
-        /* Podium Styling */
-        .podium {
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: flex-end;
-            gap: 3rem;
-            margin: 0;
-            padding: 0;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-
-            .podium .athlete-name {
-                font-size: 1.5rem;
-            }
-
-        .podium-item {
-            width: 100%;
-        }
-
-            /* Adjust heights for different placements */
-            .podium-item.first {
-                order: 1;
-            }
-
-            .podium-item.second {
-                order: 2;
-            }
-
-            .podium-item.third {
-                order: 3;
-            }
-
-        .podium-rank {
-            left: 5%;
-        }
-
-        .leaderboard table {
-            width: 100%;
-            table-layout: fixed;
-        }
-
-            .leaderboard table td .badge-section {
-                display: none;
-            }
-
-            .leaderboard table th {
-                font-size: 0.6rem;
-            }
-
-            .leaderboard table td {
-                font-size: 0.8rem;
-            }
-
-        .leaderboard .portrait {
-            width: 40px;
-            height: 40px;
-        }
-    }
-
-    .league-link {
-        color: var(--primary-color);
-        text-decoration: underline;
-        transition: color 0.2s ease;
-    }
-
-        .league-link:hover {
-            color: var(--secondary-color);
-        }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .fade-in-element {
-        animation: fadeIn 0.6s ease-in-out;
-    }
-
-    @keyframes expandCircle {
-        from {
-            transform: scale(0.5);
-            opacity: 0;
-        }
-
-        to {
-            transform: scale(1);
-            opacity: 1;
-        }
-    }
-
-    #targetShootingVisualization {
-        animation: expandCircle 1s ease-in-out;
-    }
-
-    .modal-link {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 1.2rem;
-        color: var(--primary-color);
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-
-        .modal-link:hover {
-            color: var(--secondary-color);
-        }
-
-        .modal-link i {
-            font-size: 1.8rem;
-            line-height: 1;
-        }
-
-    @keyframes pop {
-        0% {
-            transform: scale(0);
-            opacity: 0;
-        }
-
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-    }
-
-    .first-guess-stamp {
-        display: inline-block;
-        padding: 0.3rem 0.6rem;
-        border: 1px solid currentColor;
-        border-radius: 4px;
-        background: transparent;
-        letter-spacing: 0.5px;
-        margin: 0.25rem 0;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease;
-    }
-
-    .primary-stamp {
-        display: inline-block;
-        padding: 0.3rem 0.6rem;
-        border: 1px solid var(--primary-color);
-        border-radius: 4px;
-        background: transparent;
-        letter-spacing: 0.5px;
-        margin: 0.25rem 0;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease;
-        color: var(--primary-color);
-    }
-
-    .golden-stamp {
-        display: inline-block;
-        padding: 0.3rem 0.6rem;
-        border: 1px solid #FFD700;
-        border-radius: 4px;
-        background: #FFD700;
-        letter-spacing: 0.5px;
-        margin: 0.25rem 0;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease;
-        color: #000;
+        .podium .athlete-name{ font-size:1.5rem; }
+        .podium-item{ width:100%; }
+        .podium-item.first{ order:1; }
+        .podium-item.second{ order:2; }
+        .podium-item.third{ order:3; }
+        .podium-rank{ left:5%; }
+
+        .leaderboard table{ width:100%; table-layout:fixed; }
+        .leaderboard table td .badge-section{ display:none; }
+        .leaderboard table th{ font-size:.6rem; }
+        .leaderboard table td{ font-size:.8rem; }
+
+        /* table portraits smaller on mobile */
+        .leaderboard .portrait{ width:40px; height:40px; }
     }
 </style>
 
@@ -1155,31 +462,31 @@
             </div>
             <table>
                 <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Athlete</th>
-                        <th>
-                            Sponsor<br />
-                            <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
-                               onmouseover="this.style.color='var(--secondary-color)';"
-                               onmouseout="this.style.color='#999';">
+                <tr>
+                    <th>Rank</th>
+                    <th>Athlete</th>
+                    <th>
+                        Sponsor<br />
+                        <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
+                           onmouseover="this.style.color='var(--secondary-color)';"
+                           onmouseout="this.style.color='#999';">
                                 <span id="comingSoon">
                                     coming soon
                                 </span>
-                            </a>
-                        </th>
-                        <th>
-                            <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
-                               onmouseover="this.style.color='var(--secondary-color)';"
-                               onmouseout="this.style.color='var(--primary-color)';">
-                                Age Reduction
-                            </a>
-                        </th>
-                        <th>Media Contact</th>
-                    </tr>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
+                           onmouseover="this.style.color='var(--secondary-color)';"
+                           onmouseout="this.style.color='var(--primary-color)';">
+                            Age Reduction
+                        </a>
+                    </th>
+                    <th>Media Contact</th>
+                </tr>
                 </thead>
                 <tbody>
-                    <!-- Table rows will be dynamically inserted here -->
+                <!-- Table rows will be dynamically inserted here -->
                 </tbody>
             </table>
         </div>
@@ -1289,6 +596,20 @@
             set.Wbc1000cellsuL, set.LymPc, set.McvFL, set.RdwPc, set.AlpUL
         ];
         return values.every(Number.isFinite) && set.CrpMgL > 0;
+    }
+
+    function applyRankUpUI(imgEl) {
+        const wrapper = document.createElement('span');
+        wrapper.className = 'rank-change rank-up';
+        imgEl.replaceWith(wrapper);
+        wrapper.appendChild(imgEl);
+
+        const arrow = document.createElement('span');
+        arrow.className = 'rank-arrow';
+        arrow.innerHTML = '<i class="fa fa-arrow-up" aria-hidden="true"></i>';
+        arrow.title = 'Ranking improved since last month';
+        arrow.setAttribute('aria-label', 'Ranking improved since last month');
+        wrapper.appendChild(arrow);
     }
 
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
@@ -1488,6 +809,19 @@
                     // Calculate the age reduction
                     const ageReduction = lowestPhenoAge - chronologicalAge;
 
+                    // Placements: [yesterday, last week, last month, last year]
+                    // Store last month's rank (index 2). If missing or not a number, use null.
+                    const lastMonthRank =
+                        Array.isArray(athlete.Placements) && Number.isFinite(athlete.Placements[2])
+                            ? athlete.Placements[2]
+                            : null;
+
+                    // “Higher rank” = smaller number than last month
+                    const rankImproved =
+                        Number.isFinite(lastMonthRank) && typeof lastMonthRank === 'number'
+                            ? (/* current rank is set a bit later */ true) // placeholder; we’ll re-evaluate after rank assignment
+                            : false;
+
                     return {
                         name: athlete.Name,
                         mediaContact: athlete.MediaContact,
@@ -1505,7 +839,9 @@
                         exclusiveLeague: athlete.ExclusiveLeague,
                         submissionCount: submissionCount,
                         phenoAgeDifference: phenoAgeDifference,
-                        podcastLink: athlete.PodcastLink
+                        podcastLink: athlete.PodcastLink,
+                        lastMonthRank: lastMonthRank,
+                        rankImproved: rankImproved
                     };
                 });
 
@@ -1518,6 +854,11 @@
 
                 // Assign ranks to each athlete based on the sorted order
                 athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
+
+                athleteResults.forEach(a => {
+                    a.rankImproved =
+                        Number.isFinite(a.lastMonthRank) && a.rank < a.lastMonthRank;
+                });
 
                 // Initialize a 'ranks' object for each athlete to store ranks based on different criteria
                 athleteResults.forEach(athlete => { athlete.ranks = {}; });
@@ -1702,6 +1043,7 @@
                     const portraitImg = athleteCell.querySelector('img.portrait');
                     portraitImg.src = athlete.profilePic;
                     portraitImg.alt = `${athlete.name} portrait`;
+                    if (athlete.rankImproved) applyRankUpUI(portraitImg);
                     const athleteNameSpan = athleteCell.querySelector('.athlete-name');
                     athleteNameSpan.textContent = athlete.name;
                     athleteNameSpan.title = `View stats of ${athlete.name}`;
@@ -1883,7 +1225,7 @@
                 : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
                 ${window.getIcon(contact)}
                </a>`
-                }`;
+            }`;
         }
         return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}" title="${tooltipText}">
@@ -1892,7 +1234,7 @@
             : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
             ${window.getIcon(contact)}
            </a>`
-            }`;
+        }`;
     }
 
     const modal = document.getElementById("detailsModal");

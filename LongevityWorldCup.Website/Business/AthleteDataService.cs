@@ -1,7 +1,14 @@
-﻿using System.Text.Json.Nodes;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -102,13 +109,8 @@ public class AthleteDataService : IDisposable
         }
 
         // Hydrate persisted age‐guess stats from SQLite
-        foreach (var athleteJson in Athletes.OfType<JsonObject>())
-        {
-            var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
-            var (median, count) = GetCrowdStats(slug);
-            athleteJson["CrowdAge"] = median;
-            athleteJson["CrowdCount"] = count;
-        }
+        ReloadCrowdStats();
+        HydratePlacementsIntoAthletesJson();
 
         // Watch the new per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
@@ -144,6 +146,7 @@ public class AthleteDataService : IDisposable
                 {
                     lastWrite = newWrite;
                     ReloadCrowdStats();
+                    HydratePlacementsIntoAthletesJson();
                 }
             }
         });
@@ -266,6 +269,8 @@ public class AthleteDataService : IDisposable
         try
         {
             await LoadAthletesAsync();
+            ReloadCrowdStats();
+            HydratePlacementsIntoAthletesJson();
         }
         finally
         {
@@ -617,6 +622,20 @@ public class AthleteDataService : IDisposable
             cmd.Parameters.AddWithValue("@k", athleteSlug);
             cmd.ExecuteNonQuery();
         }
+
+        var athleteJson = Athletes
+            .OfType<JsonObject>()
+            .FirstOrDefault(o => string.Equals(
+                o["AthleteSlug"]?.GetValue<string>(),
+                athleteSlug,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (athleteJson != null)
+        {
+            var arr = new JsonArray();
+            foreach (var v in placements) arr.Add(v is int x ? JsonValue.Create(x) : null);
+            athleteJson["Placements"] = arr;
+        }
     }
 
     public void UpdatePlacements(string athleteSlug, int? yesterday = null, int? weekly = null, int? monthly = null, int? yearly = null)
@@ -627,6 +646,18 @@ public class AthleteDataService : IDisposable
         if (monthly.HasValue) p[2] = monthly;
         if (yearly.HasValue) p[3] = yearly;
         SetPlacements(athleteSlug, p);
+    }
+
+    private void HydratePlacementsIntoAthletesJson()
+    {
+        foreach (var athleteJson in Athletes.OfType<JsonObject>())
+        {
+            var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
+            var p = GetPlacements(slug);
+            var arr = new JsonArray();
+            foreach (var v in p) arr.Add(v is int x ? JsonValue.Create(x) : null);
+            athleteJson["Placements"] = arr;
+        }
     }
         
     public void Dispose()
