@@ -82,7 +82,6 @@
             margin-top: 0.5rem;
         }
     </style>
-    
 </head>
 <body>
     <!--HEADER-->
@@ -113,16 +112,16 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
-                const viewTarget = document.querySelector('h2');
+                const viewTarget = document.querySelector('h1');
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
 
             document.getElementById('character-title').textContent = athlete.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
-                                                                                                                                                                                                                                            class="illustration"
-                                                                                                                                                                                                                                            loading="lazy">`;
+                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                class="illustration"
+                                                                                                                                                                                                                                                loading="lazy">`;
         });
     </script>
 </body>
