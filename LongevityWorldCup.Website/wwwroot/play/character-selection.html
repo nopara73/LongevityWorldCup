@@ -123,7 +123,7 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
-                const viewTarget = document.querySelector('h2');
+                const viewTarget = document.querySelector('h1');
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
 
@@ -262,10 +262,10 @@
             athleteInput.value = a.Name;
             document.getElementById('character-title').textContent = a.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                        <img src="${a.ProfilePic}"
-                                                                                                                alt="${a.Name} headshot"
-                                                                                                                class="illustration"
-                                                                                                                loading="lazy">`;
+                                                                                                            <img src="${a.ProfilePic}"
+                                                                                                                    alt="${a.Name} headshot"
+                                                                                                                    class="illustration"
+                                                                                                                    loading="lazy">`;
             confirmBtn.style.display = 'inline-block';
             confirmBtn.disabled = false;
             currentAthlete = a;
