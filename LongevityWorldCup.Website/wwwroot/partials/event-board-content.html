@@ -261,8 +261,9 @@
             if(!slug) return "";
             return `/athlete/${encodeURIComponent(normalizeLinkId(slugifyLocal(slug)))}`;
         }
-        function leaderboardUrl(){
-            return "/leaderboard/leaderboard.html";
+        function leaderboardUrl(rank){
+            const base="/leaderboard/leaderboard.html";
+            return Number.isFinite(rank)&&rank>0?`${base}#rank-${Math.floor(rank)}`:base;
         }
         function athleteName(a){
             if(!a) return "";
@@ -393,7 +394,7 @@
                     if(!placement) return "";
                     const label = `(#${placement})`;
                     if(linkNames){
-                        return `<a href="${leaderboardUrl()}" class="placement-link" target="_top">${esc(label)}</a>`;
+                        return `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`;
                     }else{
                         return `<span class="placement-link">${esc(label)}</span>`;
                     }

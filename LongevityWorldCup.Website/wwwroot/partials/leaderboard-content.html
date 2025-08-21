@@ -252,6 +252,9 @@
     .personal-link-icon:first-of-type{ margin-left:0; }
     .personal-link-icon:hover{ color:var(--secondary-color); }
 
+    .leaderboard table tbody tr{scroll-margin-top:80px}
+    .leaderboard table tbody tr:target{background:rgba(255,255,0,.35);transition:background-color 1.2s ease}
+
     /* =========================
        9) Badges (table + modal strip)
        ========================= */
@@ -576,6 +579,49 @@
 
 <script>
     let athleteResults = [];
+
+    // Prevent browser auto-restoring scroll on history nav (harmless if unsupported)
+    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch {}
+
+    /* ------- ScrollGuard: block untrusted scrolls during anchor jump ------- */
+    (function () {
+        if (window.__scrollGuardInstalled) return;
+        window.__scrollGuardInstalled = true;
+
+        const ORIG = {
+            scrollTo: window.scrollTo.bind(window),
+            scrollBy: window.scrollBy.bind(window),
+            elSIV: Element.prototype.scrollIntoView,
+        };
+        let guardUntil = 0;
+        let anchorTarget = null;
+
+        function blocked() { return Date.now() <= guardUntil; }
+
+        // Public API
+        window.ScrollGuard = {
+            block(ms = 1600) { guardUntil = Date.now() + ms; },
+            trustedScrollTo(opts) { ORIG.scrollTo(opts); },
+            trustedScrollIntoView(el, opts) { ORIG.elSIV.call(el, opts); },
+            setAnchorTarget(el) { anchorTarget = el || null; }
+        };
+
+        // Patch global scroll fns (no-op while blocked)
+        window.scrollTo = function (...args) { if (blocked()) return; return ORIG.scrollTo(...args); };
+        window.scrollBy = function (...args) { if (blocked()) return; return ORIG.scrollBy(...args); };
+        Element.prototype.scrollIntoView = function (...args) {
+            if (blocked()) return;
+            return ORIG.elSIV.apply(this, args);
+        };
+
+        // If *anything* flips the hash during the guard, re-center the intended target
+        window.addEventListener('hashchange', () => {
+            if (blocked() && anchorTarget) {
+                ORIG.elSIV.call(anchorTarget, { behavior: 'auto', block: 'center' });
+            }
+        }, true);
+    })();
+
 
     let includePodiumGlobal = true
     let maxAthletesGlobal = Infinity;
@@ -1136,9 +1182,21 @@
                         if (e.target.closest('a')) return;
                         handleAthleteNameClick(e);
                     });
+                    row.id = `rank-${athlete.rank}`;
                     tableBody.appendChild(row);
-
                 });
+
+                const hash = window.location.hash;
+                if (hash && /^#rank-\d+$/.test(hash)) {
+                    const el = document.querySelector(hash);
+                    if (el) {
+                        ScrollGuard.setAnchorTarget(el);
+                        // Do the trusted scroll *first*…
+                        ScrollGuard.trustedScrollIntoView(el, { behavior: 'smooth', block: 'center' });
+                        // …then block anything else from hijacking the viewport for ~1.6s
+                        ScrollGuard.block(1600);
+                    }
+                }
 
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
                 const urlParams = new URLSearchParams(window.location.search);
@@ -1183,7 +1241,9 @@
 
                         // Even here scroll to the search when filter applied because the table kinda starts there conceptually
                         setTimeout(() => {
-                            searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            if (canAutoScroll()) {
+                                searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
                         }, 1000);
                     }
                 }
@@ -2563,10 +2623,12 @@
         sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
 
         // Scroll to the leaderboard table
-        document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-        });
+        if (canAutoScroll()) {
+            document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        }
     }
 
     function closeSidebar() {
