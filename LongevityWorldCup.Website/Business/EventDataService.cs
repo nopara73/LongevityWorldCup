@@ -49,7 +49,7 @@ public sealed class EventDataService : IDisposable
                     Type       INTEGER NOT NULL,
                     Text       TEXT NOT NULL,
                     OccurredAt TEXT NOT NULL,
-                    Relevance  REAL  NOT NULL DEFAULT 0
+                    Relevance  REAL  NOT NULL DEFAULT 5
                 );
                 """;
             cmd.ExecuteNonQuery();
