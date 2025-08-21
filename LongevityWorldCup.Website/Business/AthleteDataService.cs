@@ -1,20 +1,16 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
 
 namespace LongevityWorldCup.Website.Business;
 
 public class AthleteDataService : IDisposable
 {
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
+
+    // NEW: rolling window for new-athlete detection (currently ~1 month)
+    private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
         
     public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
 
@@ -111,6 +107,7 @@ public class AthleteDataService : IDisposable
         // Hydrate persisted age‐guess stats from SQLite
         ReloadCrowdStats();
         HydratePlacementsIntoAthletesJson();
+        HydrateNewFlagsIntoAthletesJson(); // NEW
 
         // Watch the new per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
@@ -147,6 +144,7 @@ public class AthleteDataService : IDisposable
                     lastWrite = newWrite;
                     ReloadCrowdStats();
                     HydratePlacementsIntoAthletesJson();
+                    HydrateNewFlagsIntoAthletesJson(); // NEW
                 }
             }
         });
@@ -214,6 +212,7 @@ public class AthleteDataService : IDisposable
 
             athlete["CrowdAge"] = 0;
             athlete["CrowdCount"] = 0;
+            athlete["IsNew"] = false;
 
             var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/michelle_franz-montan"
             var folderName = Path.GetFileName(folder);             // e.g. "michelle_franz-montan"
@@ -271,6 +270,7 @@ public class AthleteDataService : IDisposable
             await LoadAthletesAsync();
             ReloadCrowdStats();
             HydratePlacementsIntoAthletesJson();
+            HydrateNewFlagsIntoAthletesJson(); // NEW
         }
         finally
         {
@@ -660,6 +660,45 @@ public class AthleteDataService : IDisposable
         }
     }
         
+    // NEW: compute IsNew from SQLite JoinedAt using the NewAthleteWindow
+    private void HydrateNewFlagsIntoAthletesJson()
+    {
+        lock (_sqliteConnection)
+        {
+            var cutoffUtc = DateTime.UtcNow - NewAthleteWindow;
+
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
+
+            var joinedByKey = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var key = reader.GetString(0);
+                    var joinedAtText = reader.IsDBNull(1) ? null : reader.GetString(1);
+                    if (string.IsNullOrWhiteSpace(joinedAtText)) continue;
+
+                    if (DateTime.TryParse(joinedAtText, null, System.Globalization.DateTimeStyles.RoundtripKind, out var joinedAt))
+                    {
+                        joinedByKey[key] = joinedAt;
+                    }
+                }
+            }
+
+            foreach (var athleteJson in Athletes.OfType<JsonObject>())
+            {
+                var slug = athleteJson["AthleteSlug"]?.GetValue<string>();
+                var isNew = false;
+
+                if (!string.IsNullOrEmpty(slug) && joinedByKey.TryGetValue(slug, out var joinedAt))
+                    isNew = joinedAt >= cutoffUtc;
+
+                athleteJson["IsNew"] = isNew;
+            }
+        }
+    }
+
     public void Dispose()
     {
         _athleteWatcher.Dispose();

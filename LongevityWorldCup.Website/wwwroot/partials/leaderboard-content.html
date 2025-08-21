@@ -1,58 +1,132 @@
 ﻿<style>
     /* =========================
-       Vars (table portrait sizes)
-       ========================= */
+   1) Design tokens
+   ========================= */
     :root{
         --portrait-size: 60px;          /* table portrait size */
         --portrait-hover-scale: 1.1;    /* table hover scale */
         --arrow-left: -15px;            /* base arrow position */
         --arrow-hover-shift: calc((var(--portrait-size) * (var(--portrait-hover-scale) - 1)) / 2);
-        --arrow-cover-extra: 24px; /* arrow width (20) + ~4px safety */
+        --arrow-cover-extra: 24px;      /* arrow width (20) + ~4px safety */
     }
 
     /* =========================
-       Rank-change wrapper + arrow
+       2) Utilities / helpers
        ========================= */
-    .rank-change { position: relative; display: inline-block; z-index: 0; }
-    .rank-change img { display: block; position: relative; z-index: 1; }
+    .visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+    .highlight{ background-color: rgba(255,255,0,.5); color:#000; }
+    .fade-out{ opacity:0; transition:opacity .4s ease; }
+    .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
+    #comingSoon{ font-size:.5rem; font-weight:normal; }
 
-    /* green ring only in the TABLE (no green ring on podium) */
-    .rank-change.rank-up img.portrait { border-color: #2ecc71; }
-
-    /* never show the rank arrow on the podium */
-    .podium .rank-arrow,
-    .podium-item .rank-arrow { display: none !important; }
-
-
-    .rank-change .rank-arrow{
-        position: absolute;
-        z-index: -1;
-        left: var(--arrow-left);
-        top: 50%;
-        transform: translateY(-50%);
-        width: 20px;
-        height: 20px;
-        border-radius: 50% 0 0 50%;
-        background: #2ecc71;
-        color: rgb(255 255 255 / 80%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        pointer-events: none;
-        transition: left .3s ease;
-    }
-
-    /* Replace your current hover rule with this */
-    .rank-change img:hover + .rank-arrow,
-    .rank-change:hover .rank-arrow{
-        left: calc(var(--arrow-left) + var(--arrow-cover-extra) + var(--arrow-hover-shift));
-    }
+    /* Common transition for table rows and podium items */
+    .leaderboard table tbody tr, .podium-item{ transition:opacity .3s ease, transform .3s ease; }
 
     /* =========================
-       Portraits
+       3) Global layout / shell
        ========================= */
+    .main-container{ display:flex; align-items:flex-start; }
+    .content{ flex-grow:1; transition:margin-left .3s ease; }
 
+    .leaderboard{
+        display:flex; align-items:stretch; background-color:var(--card-bg);
+        border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
+    }
+    table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
+    .leaderboard td{ text-align:center; }
+
+    th{
+        padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
+        color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
+    }
+    .leaderboard table th:nth-child(1){ width:15px; }
+    .leaderboard table th:nth-child(2){ text-align:left; }
+    .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
+
+    .leaderboard table tbody tr{ cursor:pointer; }
+    .leaderboard table tbody tr:hover{ transform: scale(1.02); box-shadow:0 4px 10px rgba(0,0,0,.1); }
+
+    /* =========================
+       4) Sidebar & filters
+       ========================= */
+    .sidebar{
+        position:relative; width:50px; padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
+        margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
+        overflow:hidden; flex-shrink:0;
+    }
+    .sidebar:hover:not(.button-collapsed), .sidebar.expanded{ width:auto; padding:1rem; align-items:flex-start; }
+    .sidebar .filter-section{ display:none; }
+    .sidebar:hover .filter-section, .sidebar.expanded .filter-section{ display:block; }
+
+    .sidebar.partially-expanded{ width:80px; }
+    .sidebar-toggle{
+        background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:40px; height:40px;
+        display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color .3s ease, transform .3s ease; margin-right:1rem;
+    }
+    .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
+    .sidebar-toggle.active i{ color:var(--card-bg); }
+    .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
+    .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
+    .sidebar-toggle:hover i{ color:var(--card-bg); }
+
+    .sidebar-close{
+        display:none; background:none; border:none; font-size:1.5rem; color:var(--primary-color); cursor:pointer;
+        position:absolute; top:3px; right:3px; z-index:10; transition:background-color .3s ease, color .3s ease;
+        width:40px; height:40px; border-radius:50%;
+    }
+    .sidebar.expanded .sidebar-close{ display:block; }
+    .sidebar-close:hover{ background:var(--primary-color); color:var(--card-bg); transform:scale(1.1); }
+
+    .collapsed-title{
+        display:block; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
+        padding:15px 0; letter-spacing:1px; word-spacing:10px; font-family:'Orbitron', sans-serif;
+        background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
+        -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
+    }
+    .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
+    .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:100%; }
+
+    .sidebar-title{
+        margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color);
+        display:flex; align-items:center; justify-content:left; border-bottom:2px solid var(--primary-color);
+    }
+    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; }
+    .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:2rem; }
+    .sidebar:hover .sidebar-title .sidebar-title-text,
+    .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
+
+    .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
+
+    .filter-section{ margin-bottom:1.5rem; }
+    .filter-section h3{ margin-bottom:.5rem; color:var(--secondary-color); font-size:1.2rem; }
+    .filter-section ul{ list-style:none; padding:0; }
+    .filter-section li{ margin-bottom:.5rem; }
+    .filter-section label{ display:flex; align-items:center; cursor:pointer; color:#555; transition:color .2s; }
+    .filter-section input[type="checkbox"]{ margin-right:.5rem; accent-color:var(--primary-color); }
+    .filter-section label:hover{ color:var(--primary-color); }
+    .filter-section input[type="checkbox"]:checked + label{ font-weight:bold; color:var(--secondary-color); }
+
+    /* =========================
+       5) Search
+       ========================= */
+    .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
+    .search-container{ position:relative; max-width:250px; width:100%; margin-right:.5rem; }
+    #athleteSearch{
+        width:100%; padding:.5rem 2.5rem .5rem 1rem; border:2px solid var(--primary-color); border-radius:25px; font-size:1rem;
+        transition:border-color .3s ease; outline:none; box-sizing:border-box;
+    }
+    #athleteSearch:focus{ border-color:var(--secondary-color); }
+    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
+    .clear-icon{
+        position:absolute; right:3rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; cursor:pointer; z-index:2;
+        opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s ease;
+    }
+    .clear-icon.visible{ opacity:1; visibility:visible; }
+    .clear-icon:hover{ color:var(--secondary-color); }
+
+    /* =========================
+       6) Portraits & rank indicators
+       ========================= */
     /* TABLE portrait (fixed 60x60) */
     .portrait{
         width: var(--portrait-size);
@@ -66,164 +140,60 @@
     }
     .portrait:hover{ transform: scale(var(--portrait-hover-scale)); }
 
-    /* PODIUM portrait (bounded even if not wrapped in .rank-change) */
+    /* PODIUM portrait (bounded even if not wrapped) */
     .podium-item .podium-portrait{
-        width: auto;
-        height: 40%;
-        aspect-ratio: 1 / 1;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid var(--secondary-color);
-        margin: 1rem 0;
-        cursor: pointer;
-        transition: transform .3s ease;
-        will-change: transform;
-        box-sizing: border-box;                /* <-- FIX: include border in the height */
+        width:auto; height:40%; aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
+        border:3px solid var(--secondary-color); margin:1rem 0; cursor:pointer; transition:transform .3s ease; will-change:transform;
+        box-sizing:border-box; /* include border in the height */
     }
     .podium-item .podium-portrait:hover{ transform: scale(1.1); }
 
-    /* When wrapped: the wrapper defines the circle and the img fills it */
-    .podium-item .rank-change{
-        display: block;
-        height: 40%;
-        aspect-ratio: 1 / 1;
-        margin: 1rem 0;
-    }
+    /* When wrapped on podium: wrapper defines circle, img fills it */
+    .podium-item .rank-change{ display:block; height:40%; aspect-ratio:1 / 1; margin:1rem 0; }
     .podium-item .rank-change img.podium-portrait{
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        object-fit: cover;
-        transition: transform .3s ease;
-        box-sizing: border-box;                /* <-- FIX also for wrapped variant */
+        width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform .3s ease; box-sizing:border-box;
     }
     .podium-item .rank-change img.podium-portrait:hover{ transform: scale(1.1); }
 
-    /* =========================
-       Badges
-       ========================= */
-    .badge-section {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.3rem;
-    }
-    .badge-class {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        font-size: 1rem;
-        font-weight: bold;
-        color: #fff;
-        margin-left: 0.3rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        transition: transform 0.2s ease;
-    }
-    @keyframes shadowPulse{
-        0%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
-        50%{ box-shadow:0 0 10px rgba(0,0,0,.6); }
-        100%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
-    }
-    .badge-class:hover{ transform: scale(1.2); animation: shadowPulse 1s ease-in-out 1 forwards; }
+    /* Rank-change wrapper */
+    .rank-change{ position: relative; display: inline-block; z-index: 0; }
+    .rank-change img{ display:block; position:relative; z-index:1; }
 
-    .modal-badge-strip{
-        display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; margin:.5rem 0 1rem;
+    /* Rings (green = rank-up only in table, blue = new athlete) */
+    .rank-change.rank-up img.portrait{ border-color:#2ecc71; }     /* no green ring on podium */
+    img.portrait.is-new,
+    .rank-change img.portrait.is-new,
+    img.podium-portrait.is-new{ border-color:#3B82F6; }
+
+    /* Arrow + Star bubbles share the same geometry — GLOBAL */
+    .rank-change .rank-arrow,
+    .rank-change .new-bubble{
+        position:absolute; z-index:-1; left:var(--arrow-left); top:50%; transform:translateY(-50%);
+        width:20px; height:20px; border-radius:50% 0 0 50%;
+        color: rgb(255 255 255 / 80%); display:flex; align-items:center; justify-content:center;
+        font-size:12px; pointer-events:none; transition:left .3s ease;
     }
-    .modal-badge-strip .badge-class{ width:70px; height:70px; font-size:2rem; margin:.4rem; }
-    .modal-badge-strip .modal-badge-item{ display:inline-flex; flex-direction:column; align-items:center; margin:.4rem; }
-    .modal-badge-strip .modal-badge-name{
-        font-size:.75rem; margin-top:.2rem; color:var(--primary-color); text-align:center; width:100px;
-        white-space:normal; word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+    /* Star icon size only (bubble size unchanged) */
+    .rank-change .new-bubble {
+        font-size: 10px;   /* ← tweak this */
+        line-height: 1;    /* keeps the glyph snug */
     }
-    .modal-badge-name .modal-badge-title{ display:block; font-weight:bold; }
-    .modal-badge-name .modal-badge-detail{ display:none; }
-    .modal-badge-item:hover .modal-badge-detail,
-    .modal-badge-item.expanded .modal-badge-detail{ display:block; }
-    .modal-badge-item:hover .modal-badge-name,
-    .modal-badge-item.expanded .modal-badge-name{ -webkit-line-clamp:unset; max-height:none; overflow:visible; }
+    /* Individual colors */
+    .rank-change .rank-arrow{ background:#2ecc71; }  /* green up arrow */
+    .rank-change .new-bubble{ background:#3B82F6; }  /* blue star */
+    /* Hover shift for both bubbles */
+    .rank-change:hover .rank-arrow,
+    .rank-change:hover .new-bubble,
+    .rank-change img:hover + .rank-arrow,
+    .rank-change img:hover + .new-bubble{
+        left: calc(var(--arrow-left) + var(--arrow-cover-extra) + var(--arrow-hover-shift));
+    }
+    /* Never show bubbles on the podium */
+    .podium .rank-arrow, .podium-item .rank-arrow{ display:none !important; }
+    .podium .new-bubble, .podium-item .new-bubble{ display:none !important; }
 
     /* =========================
-       Leaderboard shell
-       ========================= */
-    .leaderboard{
-        display:flex; align-items:stretch; background-color:var(--card-bg);
-        border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
-    }
-    table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
-    .leaderboard td{ text-align:center; }
-    .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
-    .age-reduction{ font-weight:700; color:#4caf50; text-align:left; }
-    .athlete-td{ display:flex; align-items:center; text-align:left; gap:.5rem; }
-
-    th{
-        padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
-        color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
-    }
-    .leaderboard table th:nth-child(1){ width:15px; }
-    .leaderboard table th:nth-child(2){ text-align:left; }
-    .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
-
-    .leaderboard table tbody tr{ transition: transform .3s ease, box-shadow .3s ease; cursor:pointer; }
-    .leaderboard table tbody tr:hover{ transform: scale(1.02); box-shadow:0 4px 10px rgba(0,0,0,.1); }
-
-    .media-contact{ color:rgba(255,64,129,.7); text-decoration:none; transition:color .2s ease-in-out; font-size:1.5rem; padding:.5rem; margin:10px 0; }
-    .media-contact:hover{ color:var(--primary-color); }
-    .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
-
-    .athlete-name{
-        color:var(--primary-color); text-decoration:underline; text-align:left; cursor:pointer; transition:color .2s ease-in-out;
-        display:inline-block; padding:.5rem .2rem .5rem .5rem; white-space:pre-wrap;
-    }
-    .athlete-name:hover{ color:var(--secondary-color); background-color:rgba(0,0,0,.05); border-radius:8px; font-size:1.1em; }
-    .podium .athlete-name{ font-size:1.1rem; padding-bottom:.2rem; }
-
-    /* =========================
-       Modal
-       ========================= */
-    .modal{ display:none; position:fixed; z-index:3; left:0; top:0; width:100%; height:100%;
-        overflow:auto; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
-    .modal-content{
-        background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
-        border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn .5s ease-out;
-    }
-    .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
-    #modalProfilePic{
-        width:70%; aspect-ratio:1/1; height:auto; cursor:pointer; transition:transform .3s ease, border-color .3s ease;
-        border-radius:50%; object-fit:cover;
-    }
-    #modalProfilePic:hover{ transform: scale(1.05); }
-    .athlete-info{ text-align:left; width:100%; max-width:600px; margin-bottom:1rem; }
-    .athlete-info p{ margin:.3rem 0; }
-
-    .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
-    .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
-    .athlete-links a:hover{ color:var(--secondary-color); }
-
-    .proofs-gallery{ display:flex; flex-direction:column; align-items:center; flex-wrap:wrap; gap:1rem; justify-content:center; padding:0; }
-    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; }
-    .proof-item:hover{ transform: scale(1.05); }
-    .proof-item img{ width:100%; height:100%; object-fit:cover; }
-
-    .enlarged-portrait{
-        position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85);
-        display:flex; justify-content:center; align-items:center; z-index:1000; cursor:pointer;
-        opacity:0; transform:scale(.95); transition:opacity .5s ease, transform .5s ease;
-    }
-    .enlarged-portrait.show{ opacity:1; transform:scale(1); filter:blur(0); }
-    .enlarged-portrait .close-btn{
-        position:absolute; top:20px; left:20px; font-size:1.8rem; color:rgba(255,255,255,.85); background:rgba(0,0,0,.6);
-        width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
-        transition:color .3s, background-color .3s, transform .2s; padding:0;
-    }
-    .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
-    .enlarged-portrait img{ max-width:90%; max-height:90%; object-fit:contain; cursor:default; }
-
-    /* =========================
-       Podium cards
+       7) Podium cards
        ========================= */
     .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:2rem; }
     .podium-item{
@@ -231,10 +201,11 @@
         box-shadow:0 10px 30px rgba(0,0,0,.1); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
         justify-content:flex-start; width:200px; min-height:230px; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
     }
-    .podium .podium-item:hover{ transform: scale(1.05) !important; will-change: transform;
-        transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2); }
+    .podium .podium-item:hover{
+        transform: scale(1.05) !important; will-change: transform;
+        transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2);
+    }
     .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
-
     .podium-item.first{ order:2; height:340px; }
     .podium-item.second{ order:1; height:320px; }
     .podium-item.third{ order:3; height:300px; }
@@ -258,109 +229,116 @@
     }
 
     /* =========================
-       Misc UI
+       8) Table row bits
        ========================= */
+    .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
+    .age-reduction{ font-weight:700; color:#4caf50; text-align:left; }
+    .athlete-td{ display:flex; align-items:center; text-align:left; gap:.5rem; }
+
+    .athlete-name{
+        color:var(--primary-color); text-decoration:underline; text-align:left; cursor:pointer; transition:color .2s ease-in-out;
+        display:inline-block; padding:.5rem .2rem .5rem .5rem; white-space:pre-wrap;
+    }
+    .athlete-name:hover{ color:var(--secondary-color); background-color:rgba(0,0,0,.05); border-radius:8px; font-size:1.1em; }
+    .podium .athlete-name{ font-size:1.1rem; padding-bottom:.2rem; }
+
+    .media-contact{
+        color:rgba(255,64,129,.7); text-decoration:none; transition:color .2s ease-in-out; font-size:1.5rem; padding:.5rem; margin:10px 0;
+    }
+    .media-contact:hover{ color:var(--primary-color); }
+    .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
+
     .personal-link-icon{ color:var(--primary-color); font-size:1rem; text-decoration:none; transition:color .2s ease-in-out; margin-left:.2rem; }
     .personal-link-icon:first-of-type{ margin-left:0; }
     .personal-link-icon:hover{ color:var(--secondary-color); }
 
-    .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
-    .search-container{ position:relative; max-width:250px; width:100%; margin-right:.5rem; }
-    #athleteSearch{
-        width:100%; padding:.5rem 2.5rem .5rem 1rem; border:2px solid var(--primary-color); border-radius:25px; font-size:1rem;
-        transition:border-color .3s ease; outline:none; box-sizing:border-box;
+    /* =========================
+       9) Badges (table + modal strip)
+       ========================= */
+    .badge-section{ display:flex; align-items:center; flex-wrap:wrap; gap:.3rem; }
+    .badge-class{
+        display:inline-flex; align-items:center; justify-content:center; text-decoration:none;
+        width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:bold; color:#fff;
+        margin-left:.3rem; box-shadow:0 2px 4px rgba(0,0,0,.3); transition:transform .2s ease;
     }
-    #athleteSearch:focus{ border-color:var(--secondary-color); }
-    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
-    .clear-icon{
-        position:absolute; right:3rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; cursor:pointer; z-index:2;
-        opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s ease;
+    .badge-class:hover{ transform: scale(1.2); animation: shadowPulse 1s ease-in-out 1 forwards; }
+
+    .modal-badge-strip{ display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; margin:.5rem 0 1rem; }
+    .modal-badge-strip .badge-class{ width:70px; height:70px; font-size:2rem; margin:.4rem; }
+    .modal-badge-strip .modal-badge-item{ display:inline-flex; flex-direction:column; align-items:center; margin:.4rem; }
+    .modal-badge-strip .modal-badge-name{
+        font-size:.75rem; margin-top:.2rem; color:var(--primary-color); text-align:center; width:100px;
+        white-space:normal; word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
     }
-    .clear-icon.visible{ opacity:1; visibility:visible; }
-    .clear-icon:hover{ color:var(--secondary-color); }
-
-    .visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
-    .highlight{ background-color: rgba(255,255,0,.5); color:#000; }
-    #comingSoon{ font-size:.5rem; font-weight:normal; }
-
-    .leaderboard table tbody tr, .podium-item{ transition:opacity .3s ease, transform .3s ease; }
-    .fade-out{ opacity:0; transition:opacity .4s ease; }
-    .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
-
-    .filter-section{ margin-bottom:1.5rem; }
-    .filter-section h3{ margin-bottom:.5rem; color:var(--secondary-color); font-size:1.2rem; }
-    .filter-section ul{ list-style:none; padding:0; }
-    .filter-section li{ margin-bottom:.5rem; }
-    .filter-section label{ display:flex; align-items:center; cursor:pointer; color:#555; transition:color .2s; }
-    .filter-section input[type="checkbox"]{ margin-right:.5rem; accent-color:var(--primary-color); }
-    .filter-section label:hover{ color:var(--primary-color); }
-    .filter-section input[type="checkbox"]:checked + label{ font-weight:bold; color:var(--secondary-color); }
-
-    .sidebar.partially-expanded{ width:80px; }
-    .sidebar-toggle{
-        background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:40px; height:40px;
-        display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color .3s ease, transform .3s ease; margin-right:1rem;
-    }
-    .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
-    .sidebar-toggle.active i{ color:var(--card-bg); }
-    .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
-    .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
-    .sidebar-toggle:hover i{ color:var(--card-bg); }
-
-    .sidebar-close{
-        display:none; background:none; border:none; font-size:1.5rem; color:var(--primary-color); cursor:pointer;
-        position:absolute; top:3px; right:3px; z-index:10; transition:background-color .3s ease, color .3s ease;
-        width:40px; height:40px; border-radius:50%;
-    }
-    .sidebar.expanded .sidebar-close{ display:block; }
-    .sidebar-close:hover{ background:var(--primary-color); color:var(--card-bg); transform:scale(1.1); }
-
-    .sidebar{
-        position:relative; width:50px; padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
-        margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
-        overflow:hidden; flex-shrink:0;
-    }
-    .sidebar:hover:not(.button-collapsed), .sidebar.expanded{ width:auto; padding:1rem; align-items:flex-start; }
-    .sidebar .filter-section{ display:none; }
-    .sidebar:hover .filter-section, .sidebar.expanded .filter-section{ display:block; }
-
-    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; }
-    .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:2rem; }
-    .sidebar:hover .sidebar-title .sidebar-title-text,
-    .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
-
-    .collapsed-title{
-        display:block; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
-        padding:15px 0; letter-spacing:1px; word-spacing:10px; font-family:'Orbitron', sans-serif;
-        background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
-        -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
-    }
-    .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
-    .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:100%; }
-    .sidebar-title{ margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color); display:flex; align-items:center; justify-content:left; border-bottom:2px solid var(--primary-color); }
-
-    .content{ flex-grow:1; transition:margin-left .3s ease; }
-    .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
-
-    .main-container{ display:flex; align-items:flex-start; }
+    .modal-badge-name .modal-badge-title{ display:block; font-weight:bold; }
+    .modal-badge-name .modal-badge-detail{ display:none; }
+    .modal-badge-item:hover .modal-badge-detail,
+    .modal-badge-item.expanded .modal-badge-detail{ display:block; }
+    .modal-badge-item:hover .modal-badge-name,
+    .modal-badge-item.expanded .modal-badge-name{ -webkit-line-clamp:unset; max-height:none; overflow:visible; }
 
     /* =========================
-       Links + animations
+       10) Modal
+       ========================= */
+    .modal{
+        display:none; position:fixed; z-index:3; left:0; top:0; width:100%; height:100%;
+        overflow:auto; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+    }
+    .modal-content{
+        background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
+        border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn .5s ease-out;
+    }
+    .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
+
+    #modalProfilePic{
+        width:70%; aspect-ratio:1/1; height:auto; cursor:pointer; transition:transform .3s ease, border-color .3s ease;
+        border-radius:50%; object-fit:cover;
+    }
+    #modalProfilePic:hover{ transform: scale(1.05); }
+
+    .athlete-info{ text-align:left; width:100%; max-width:600px; margin-bottom:1rem; }
+    .athlete-info p{ margin:.3rem 0; }
+
+    .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
+    .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
+    .athlete-links a:hover{ color:var(--secondary-color); }
+
+    /* =========================
+       11) Proofs & enlarged overlay
+       ========================= */
+    .proofs-gallery{ display:flex; flex-direction:column; align-items:center; flex-wrap:wrap; gap:1rem; justify-content:center; padding:0; }
+    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; }
+    .proof-item:hover{ transform: scale(1.05); }
+    .proof-item img{ width:100%; height:100%; object-fit:cover; }
+
+    .enlarged-portrait{
+        position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85);
+        display:flex; justify-content:center; align-items:center; z-index:1000; cursor:pointer;
+        opacity:0; transform:scale(.95); transition:opacity .5s ease, transform .5s ease;
+    }
+    .enlarged-portrait.show{ opacity:1; transform:scale(1); filter:blur(0); }
+    .enlarged-portrait .close-btn{
+        position:absolute; top:20px; left:20px; font-size:1.8rem; color:rgba(255,255,255,.85); background:rgba(0,0,0,.6);
+        width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
+        transition:color .3s, background-color .3s, transform .2s; padding:0;
+    }
+    .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
+    .enlarged-portrait img{ max-width:90%; max-height:90%; object-fit:contain; cursor:default; }
+
+    /* =========================
+       12) Links & animations / stamps
        ========================= */
     .league-link{ color:var(--primary-color); text-decoration:underline; transition:color .2s ease; }
     .league-link:hover{ color:var(--secondary-color); }
-
-    @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
-    .fade-in-element{ animation:fadeIn .6s ease-in-out; }
-
-    @keyframes expandCircle{ from{ transform:scale(.5); opacity:0;} to{ transform:scale(1); opacity:1;} }
-    #targetShootingVisualization{ animation:expandCircle 1s ease-in-out; }
 
     .modal-link{ display:flex; align-items:center; gap:.5rem; font-size:1.2rem; color:var(--primary-color); text-decoration:none; transition:color .3s ease; }
     .modal-link:hover{ color:var(--secondary-color); }
     .modal-link i{ font-size:1.8rem; line-height:1; }
 
-    @keyframes pop{ 0%{ transform:scale(0); opacity:0;} 100%{ transform:scale(1); opacity:1;} }
+    .fade-in-element{ animation:fadeIn .6s ease-in-out; }
+    #targetShootingVisualization{ animation:expandCircle 1s ease-in-out; }
+
+    /* Guess-My-Age stamps */
     .first-guess-stamp{
         display:inline-block; padding:.3rem .6rem; border:1px solid currentColor; border-radius:4px; background:transparent;
         letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease;
@@ -374,8 +352,18 @@
         letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease; color:#000;
     }
 
+    /* Keyframes */
+    @keyframes shadowPulse{
+        0%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
+        50%{ box-shadow:0 0 10px rgba(0,0,0,.6); }
+        100%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
+    }
+    @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+    @keyframes expandCircle{ from{ transform:scale(.5); opacity:0;} to{ transform:scale(1); opacity:1;} }
+    @keyframes pop{ 0%{ transform:scale(0); opacity:0;} 100%{ transform:scale(1); opacity:1;} }
+
     /* =========================
-       Mobile
+       13) Mobile
        ========================= */
     @media (max-width: 768px){
         #detailsModal .badge-class{ pointer-events:none; cursor:default; }
@@ -390,11 +378,12 @@
         .sidebar-toggle{ align-self:center; margin-top:1rem; height:40px; }
 
         .main-container{ flex-direction:column; }
-        .sidebar{ width:100%; margin-right:0; margin-bottom:1rem; position:fixed; top:0; left:0; width:70%; max-width:300px; height:100%;
+        .sidebar{
+            width:100%; margin-right:0; margin-bottom:1rem; position:fixed; top:0; left:0; width:70%; max-width:300px; height:100%;
             background:var(--card-bg); z-index:999; box-shadow:0 2px 10px rgba(0,0,0,.2); overflow-y:auto; transform:translateX(-100%);
-            transition:transform .3s ease-in-out; }
+            transition:transform .3s ease-in-out;
+        }
         .sidebar.expanded{ display:block; transform:translateX(0); }
-
         .content{ margin-left:0; }
 
         .podium{
@@ -415,6 +404,7 @@
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
     }
+
 </style>
 
 <div class="main-container">
@@ -598,19 +588,71 @@
         return values.every(Number.isFinite) && set.CrpMgL > 0;
     }
 
-    function applyRankUpUI(imgEl) {
-        const wrapper = document.createElement('span');
-        wrapper.className = 'rank-change rank-up';
-        imgEl.replaceWith(wrapper);
-        wrapper.appendChild(imgEl);
-
-        const arrow = document.createElement('span');
-        arrow.className = 'rank-arrow';
-        arrow.innerHTML = '<i class="fa fa-arrow-up" aria-hidden="true"></i>';
-        arrow.title = 'Ranking improved since last month';
-        arrow.setAttribute('aria-label', 'Ranking improved since last month');
-        wrapper.appendChild(arrow);
+    function ensureRankChangeWrapper(imgEl){
+        let wrapper = imgEl.closest('.rank-change');
+        if (!wrapper){
+            wrapper = document.createElement('span');
+            wrapper.className = 'rank-change';
+            imgEl.replaceWith(wrapper);
+            wrapper.appendChild(imgEl);
+        }
+        return wrapper;
     }
+
+    function applyRankUpUI(imgEl, placesUp){
+        const wrapper = ensureRankChangeWrapper(imgEl);
+
+        // If "new" is active, never show the green arrow
+        if (imgEl.classList.contains('is-new') || wrapper.querySelector('.new-bubble')) {
+            wrapper.classList.remove('rank-up');
+            const existing = wrapper.querySelector('.rank-arrow');
+            if (existing) existing.remove();
+            return;
+        }
+
+        // normalize placesUp → at least 1
+        const places = Math.max(1, Number(placesUp || 1));
+        const msg = places === 1
+            ? 'Ranked up 1 place since last month'
+            : `Ranked up ${places} places since last month`;
+
+        wrapper.classList.add('rank-up');
+
+        let arrow = wrapper.querySelector('.rank-arrow');
+        if (!arrow){
+            arrow = document.createElement('span');
+            arrow.className = 'rank-arrow';
+            arrow.innerHTML = '<i class="fa fa-arrow-up" aria-hidden="true"></i>';
+            wrapper.appendChild(arrow);
+        }
+
+        // Tooltip (on bubble *and* on the portrait for reliable hover)
+        arrow.title = msg;
+        arrow.setAttribute('aria-label', msg);
+        imgEl.title = msg; // hovering the portrait shows the same tooltip
+    }
+
+    function applyNewUI(imgEl){
+        const wrapper = ensureRankChangeWrapper(imgEl);
+
+        let bubble = wrapper.querySelector('.new-bubble');
+        if (!bubble){
+            bubble = document.createElement('span');
+            bubble.className = 'new-bubble';
+            bubble.innerHTML = '<i class="fa fa-star" aria-hidden="true"></i>';
+            wrapper.appendChild(bubble);
+        }
+        const msg = 'New athlete this month';
+        bubble.title = msg;
+        bubble.setAttribute('aria-label', msg);
+        imgEl.title = msg; // show tooltip when hovering the portrait
+
+        // Ensure any green bits are cleared
+        wrapper.classList.remove('rank-up');
+        const arrow = wrapper.querySelector('.rank-arrow');
+        if (arrow) arrow.remove();
+    }
+
 
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
         includePodiumGlobal = includePodium;
@@ -841,7 +883,8 @@
                         phenoAgeDifference: phenoAgeDifference,
                         podcastLink: athlete.PodcastLink,
                         lastMonthRank: lastMonthRank,
-                        rankImproved: rankImproved
+                        rankImproved: rankImproved,
+                        isNew: !!athlete.IsNew,
                     };
                 });
 
@@ -1043,7 +1086,15 @@
                     const portraitImg = athleteCell.querySelector('img.portrait');
                     portraitImg.src = athlete.profilePic;
                     portraitImg.alt = `${athlete.name} portrait`;
-                    if (athlete.rankImproved) applyRankUpUI(portraitImg);
+                    if (athlete.isNew) {
+                        portraitImg.classList.add('is-new');
+                        applyNewUI(portraitImg);
+                    }
+                    if (athlete.rankImproved) {
+                        const placesUp = athlete.lastMonthRank - athlete.rank; // e.g. 12 → 7  => 5 places up
+                        applyRankUpUI(portraitImg, placesUp);
+                    }
+
                     const athleteNameSpan = athleteCell.querySelector('.athlete-name');
                     athleteNameSpan.textContent = athlete.name;
                     athleteNameSpan.title = `View stats of ${athlete.name}`;
