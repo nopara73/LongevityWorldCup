@@ -252,7 +252,7 @@
     .personal-link-icon:first-of-type{ margin-left:0; }
     .personal-link-icon:hover{ color:var(--secondary-color); }
 
-    .leaderboard table tbody tr{scroll-margin-top:80px}
+    .leaderboard table tbody tr{scroll-margin-top:0}
     .leaderboard table tbody tr:target{background:rgba(255,255,0,.35);transition:background-color 1.2s ease}
 
     /* =========================
@@ -617,7 +617,7 @@
         // If *anything* flips the hash during the guard, re-center the intended target
         window.addEventListener('hashchange', () => {
             if (blocked() && anchorTarget) {
-                ORIG.elSIV.call(anchorTarget, { behavior: 'auto', block: 'center' });
+                ORIG.elSIV.call(anchorTarget, { behavior: 'auto', block: 'start' });
             }
         }, true);
     })();
@@ -1192,7 +1192,7 @@
                     if (el) {
                         ScrollGuard.setAnchorTarget(el);
                         // Do the trusted scroll *first*…
-                        ScrollGuard.trustedScrollIntoView(el, { behavior: 'smooth', block: 'center' });
+                        ScrollGuard.trustedScrollIntoView(el, { behavior: 'smooth', block: 'start' });
                         // …then block anything else from hijacking the viewport for ~1.6s
                         ScrollGuard.block(1600);
                     }
