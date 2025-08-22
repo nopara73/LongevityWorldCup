@@ -1,9 +1,10 @@
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Middleware;
 using LongevityWorldCup.Website.Tools;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using SQLitePCL;
 using System.Text.Json;
+using LongevityWorldCup.Website.Jobs;
+using Quartz;
 
 namespace LongevityWorldCup.Website
 {
@@ -31,9 +32,44 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
 
-            // Register the in-memory cached athlete data
             builder.Services.AddSingleton<AthleteDataService>();
+            builder.Services.AddSingleton<EventDataService>();
 
+            builder.Services.AddQuartz(q =>
+            {
+                q.UseMicrosoftDependencyInjectionJobFactory();
+
+                var dailyKey = new JobKey("DailyJob");
+                var weeklyKey = new JobKey("WeeklyJob");
+                var monthlyKey = new JobKey("MonthlyJob");
+                var yearlyKey = new JobKey("YearlyJob");
+
+                // Every day 00:00
+                q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
+                q.AddTrigger(t => t.ForJob(dailyKey)
+                    .WithIdentity("DailyTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+
+                // Every Monday 00:00
+                q.AddJob<WeeklyJob>(o => o.WithIdentity(weeklyKey));
+                q.AddTrigger(t => t.ForJob(weeklyKey)
+                    .WithIdentity("WeeklyTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 ? * MON").InTimeZone(TimeZoneInfo.Utc)));
+
+                // Every month first day 00:00
+                q.AddJob<MonthlyJob>(o => o.WithIdentity(monthlyKey));
+                q.AddTrigger(t => t.ForJob(monthlyKey)
+                    .WithIdentity("MonthlyTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 * ?").InTimeZone(TimeZoneInfo.Utc)));
+
+                // Every year first day 00:00
+                q.AddJob<YearlyJob>(o => o.WithIdentity(yearlyKey));
+                q.AddTrigger(t => t.ForJob(yearlyKey)
+                    .WithIdentity("YearlyTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 1 ?").InTimeZone(TimeZoneInfo.Utc)));
+            });
+            builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
+            
             // Add CORS policy
             builder.Services.AddCors(options =>
             {
