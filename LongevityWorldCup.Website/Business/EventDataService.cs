@@ -99,9 +99,10 @@ public sealed class EventDataService : IDisposable
 
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+            var exOcc  = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
@@ -127,6 +128,7 @@ public sealed class EventDataService : IDisposable
                 {
                     exType.Value = (int)EventType.NewRank;
                     exText.Value = text;
+                    exOcc.Value  = occurredAt;
                     shouldInsert = existsCmd.ExecuteScalar() == null;
                 }
                 if (!shouldInsert) continue;
@@ -167,9 +169,10 @@ public sealed class EventDataService : IDisposable
 
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+            var exOcc  = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
@@ -193,6 +196,7 @@ public sealed class EventDataService : IDisposable
                 {
                     exType.Value = (int)EventType.Joined;
                     exText.Value = joinedText;
+                    exOcc.Value  = occurredAt;
                     insertJoined = existsCmd.ExecuteScalar() == null;
                 }
                 if (insertJoined)
@@ -215,6 +219,7 @@ public sealed class EventDataService : IDisposable
                     {
                         exType.Value = (int)EventType.NewRank;
                         exText.Value = rankText;
+                        exOcc.Value  = occurredAt;
                         insertRank = existsCmd.ExecuteScalar() == null;
                     }
                     if (insertRank)
