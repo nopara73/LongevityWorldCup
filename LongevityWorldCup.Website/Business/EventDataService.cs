@@ -71,7 +71,7 @@ public sealed class EventDataService : IDisposable
     }
 
     public void CreateNewRankEvents(
-        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank)> items,
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = true,
         double defaultRelevance = DefaultRelevanceNewRank)
     {
@@ -99,13 +99,16 @@ public sealed class EventDataService : IDisposable
             var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
             var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
-            foreach (var (slug, occurredAtUtc, rank) in items)
+            foreach (var (slug, occurredAtUtc, rank, replacedSlug) in items)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
                 if (rank < 1 || rank > 10) continue;
 
                 var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
-                var text = $"slug[{slug}] rank[{rank}]";
+                var textBase = $"slug[{slug}] rank[{rank}]";
+                var text = string.IsNullOrWhiteSpace(replacedSlug)
+                    ? textBase
+                    : $"{textBase} prev[{replacedSlug}]";
 
                 var shouldInsert = true;
                 if (skipIfExists)

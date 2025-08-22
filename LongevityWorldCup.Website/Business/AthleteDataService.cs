@@ -903,7 +903,7 @@ public class AthleteDataService : IDisposable
 
     /// <summary>
     /// Compares current top-10 against the previously persisted snapshot in SQLite,
-    /// emits NewRank events for improvements (including entering top-10),
+    /// emits NewRank events for improvements (including entering top-10, carrying who was previously on that position),
     /// then persists the new snapshot (all placements).
     /// If there is NO previously persisted placement (all NULL) => first run: do NOT emit events, only persist.
     /// </summary>
@@ -924,24 +924,44 @@ public class AthleteDataService : IDisposable
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
                         ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        // Build reverse map of the previous snapshot: rank -> slug
+        var beforeByRank = new Dictionary<int, string>(capacity: before.Count);
+        foreach (var kv in before)
+        {
+            if (kv.Value is int rank && rank >= 1)
+                beforeByRank[rank] = kv.Key;
+        }
+
         var afterTop10 = BuildRankMap(limit: 10);
         var nowUtc = DateTime.UtcNow;
-        var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank)>();
+
+        // NEW: include ReplacedSlug in the payload
+        var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)>();
 
         foreach (var kv in afterTop10)
         {
             if (newcomers.Contains(kv.Key)) continue; // Joined path already handles initial rank event
 
+            var slug = kv.Key;
             var newRank = kv.Value; // 1..10
-            if (!before.TryGetValue(kv.Key, out var prev) || prev is null || prev > 10)
+
+            // Who previously held this exact rank (in the baseline)?
+            string? replacedSlug = null;
+            if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
+                !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
+            {
+                replacedSlug = prevHolder;
+            }
+
+            if (!before.TryGetValue(slug, out var prev) || prev is null || prev > 10)
             {
                 // newly entered top-10
-                changes.Add((kv.Key, nowUtc, newRank));
+                changes.Add((slug, nowUtc, newRank, replacedSlug));
             }
             else if (newRank < prev.Value)
             {
                 // improved within top-10
-                changes.Add((kv.Key, nowUtc, newRank));
+                changes.Add((slug, nowUtc, newRank, replacedSlug));
             }
         }
 
@@ -952,4 +972,5 @@ public class AthleteDataService : IDisposable
         var afterAll = BuildRankMap(); // full table
         PersistCurrentPlacementsSnapshot(afterAll);
     }
+
 }
