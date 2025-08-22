@@ -155,6 +155,10 @@
         transform: scale(1.15);
         box-shadow: 0 2px 6px rgba(0,0,0,.16);
     }
+    .event-message .rank-icon{ margin-left:.25rem; }
+    .event-message .rank-badge{ display:inline-flex; align-items:baseline; gap:.15rem; }
+    .event-message .rank-badge .rank-icon{ margin:0; }
+
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -246,7 +250,12 @@
             return d.getFullYear()===nowYear?base:`${base}${separator}${d.getFullYear()}`;
         }
         function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return `${n}${s[(v-20)%10]||s[v]||s[0]}`;}
-
+        function podiumIcon(n){
+            if(n===1) return '<i class="fa-solid fa-crown rank-icon" style="color: gold;" title="1st place" aria-label="1st place"></i>';
+            if(n===2) return '<i class="fa-solid fa-medal rank-icon" style="color: silver;" title="2nd place" aria-label="2nd place"></i>';
+            if(n===3) return '<i class="fa-solid fa-award rank-icon" style="color: #cd7f32;" title="3rd place" aria-label="3rd place"></i>';
+            return '';
+        }
         function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
         function parseLimit(val){ if(val===undefined||val===null||val==="")return null; const n=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(n)&&n>0?Math.floor(n):null; }
         function parseTimeVar(varName, fallbackMs){
@@ -431,7 +440,10 @@
                         `slug[${r.primarySlug}]`,linkNames,athletesIndex,afterNameWithCurrentRankFor(r.primarySlug)
                     );
                     const takenText=Number.isFinite(taken)?ordinal(taken):"?";
-                    const takenHtml=Number.isFinite(taken)?`<strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>`:esc(takenText);
+                    const iconHtml = Number.isFinite(taken) ? podiumIcon(taken) : '';
+                    const takenHtml = Number.isFinite(taken)
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
+                        : esc(takenText);
 
                     // NEW: previous owner (clickable name + clickable current rank)
                     let prevHtml="";
