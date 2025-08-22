@@ -2,6 +2,7 @@
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
+using System.Linq;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -28,6 +29,7 @@ public class AthleteDataService : IDisposable
 
     private const int MaxBackupFiles = 5;
     private readonly string _backupDir;
+
 
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
     {
@@ -84,23 +86,18 @@ public class AthleteDataService : IDisposable
 
         // Initial load
         LoadAthletesAsync().GetAwaiter().GetResult();
-            
-        foreach (var athleteJson in Athletes.OfType<JsonObject>())
-        {
-            var athleteKey = athleteJson["AthleteSlug"]!.GetValue<string>();
-            using var insertAthleteCmd = _sqliteConnection.CreateCommand();
-            insertAthleteCmd.CommandText =
-                "INSERT OR IGNORE INTO Athletes (Key, AgeGuesses) VALUES (@key, @ages)";
-            insertAthleteCmd.Parameters.AddWithValue("@key", athleteKey);
-            insertAthleteCmd.Parameters.AddWithValue("@ages", "[]");
-            insertAthleteCmd.ExecuteNonQuery();
-        }
+        
+        var newlyJoined = EnsureDbRowsForNewAthletes();
             
         // Finally, set JoinedAt=now for any that are still null
-        using (var fillNow = _sqliteConnection.CreateCommand())
+        if (newlyJoined.Count > 0)
         {
-            fillNow.CommandText = "UPDATE Athletes SET JoinedAt=@now WHERE JoinedAt IS NULL OR JoinedAt=''";
+            using var fillNow = _sqliteConnection.CreateCommand();
+            var keys = newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()).ToList();
+            var placeholders = string.Join(",", keys.Select((_, i) => $"@k{i}"));
+            fillNow.CommandText = $"UPDATE Athletes SET JoinedAt=@now WHERE (JoinedAt IS NULL OR JoinedAt='') AND Key IN ({placeholders})";
             fillNow.Parameters.AddWithValue("@now", _serviceStartUtc.ToString("o"));
+            for (int i = 0; i < keys.Count; i++) fillNow.Parameters.AddWithValue($"@k{i}", keys[i]);
             fillNow.ExecuteNonQuery();
         }
 
@@ -128,8 +125,19 @@ public class AthleteDataService : IDisposable
         _athleteWatcher.EnableRaisingEvents = true;
         _athleteWatcher.Error += OnWatcherError;
 
-        var payload = GetAthletesJoinedData().Select(x => (x.Athlete["AthleteSlug"]!.GetValue<string>(), x.JoinedAt));
-        eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+        // Build payload with current rank for each newcomer (after CurrentPlacement is hydrated)
+        if (newlyJoined.Count > 0)
+        {
+            var payload = newlyJoined.Select(x =>
+            {
+                var slug = x.Athlete["AthleteSlug"]!.GetValue<string>();
+                int? rank = null;
+                var rp = x.Athlete["CurrentPlacement"];
+                if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
+                return (slug, x.JoinedAt, rank);
+            });
+            eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+        }
         
         // Start a poll‐loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
@@ -161,7 +169,7 @@ public class AthleteDataService : IDisposable
             }
         });
     }
-    
+
     public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
     {
         var result = new List<(JsonObject, DateTime)>();
@@ -270,10 +278,27 @@ public class AthleteDataService : IDisposable
         try
         {
             await LoadAthletesAsync();
+            
+            var newlyJoined = EnsureDbRowsForNewAthletes();
+
             ReloadCrowdStats();
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
+            HydrateCurrentPlacementIntoAthletesJson();
+
+            if (newlyJoined.Count > 0)
+            {
+                var payload = newlyJoined.Select(x =>
+                {
+                    var slug = x.Athlete["AthleteSlug"]!.GetValue<string>();
+                    int? rank = null;
+                    var rp = x.Athlete["CurrentPlacement"];
+                    if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
+                    return (slug, x.JoinedAt, rank);
+                });
+                _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+            }
         }
         finally
         {
@@ -734,5 +759,26 @@ public class AthleteDataService : IDisposable
         _sqliteConnection.Close();
         _sqliteConnection.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private List<(JsonObject Athlete, DateTime JoinedAt)> EnsureDbRowsForNewAthletes()
+    {
+        var newlyJoined = new List<(JsonObject, DateTime)>();
+        foreach (var athleteJson in Athletes.OfType<JsonObject>())
+        {
+            var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "INSERT OR IGNORE INTO Athletes (Key, AgeGuesses, JoinedAt) VALUES (@k, @ages, @joined)";
+            cmd.Parameters.AddWithValue("@k", slug);
+            cmd.Parameters.AddWithValue("@ages", "[]");
+            cmd.Parameters.AddWithValue("@joined", _serviceStartUtc.ToString("o"));
+            var rows = cmd.ExecuteNonQuery();
+            if (rows == 1)
+            {
+                athleteJson["IsNew"] = true;
+                newlyJoined.Add((athleteJson, _serviceStartUtc));
+            }
+        }
+        return newlyJoined;
     }
 }
