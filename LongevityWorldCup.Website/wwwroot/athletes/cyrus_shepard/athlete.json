@@ -1,0 +1,27 @@
+{
+  "Name": "Cyrus Shepard",
+  "MediaContact": "rewindhorizon@proton.me",
+  "DateOfBirth": {
+    "Year": 1971,
+    "Month": 4,
+    "Day": 7
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-20",
+      "AlbGL": 47,
+      "CreatUmolL": 85.84070796460178,
+      "GluMmolL": 4.496003552397869,
+      "CrpMgL": 0.25,
+      "LymPc": 35,
+      "McvFL": 99,
+      "RdwPc": 13.2,
+      "AlpUL": 61,
+      "Wbc1000cellsuL": 4.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "I was not given a choice; I was compelled.",
+  "PersonalLink": "https://zyppy.com"
+}

@@ -1,0 +1,27 @@
+{
+  "Name": "Julie Jiang",
+  "MediaContact": "jujujiang@gmail.com",
+  "DateOfBirth": {
+    "Year": 1971,
+    "Month": 6,
+    "Day": 7
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-08",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 52.21238938053097,
+      "GluMmolL": 4.829040852575489,
+      "CrpMgL": 0.4,
+      "LymPc": 35,
+      "McvFL": 92,
+      "RdwPc": 12.2,
+      "AlpUL": 77,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "I enjoy helping people to be healthier and happier!",
+  "PersonalLink": "https://www.zhuzhuliving.com"
+}
