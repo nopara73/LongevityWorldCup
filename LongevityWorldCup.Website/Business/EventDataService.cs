@@ -26,6 +26,8 @@ public enum EventType
 public sealed class EventDataService : IDisposable
 {
     private const string DatabaseFileName = "LongevityWorldCup.db";
+    private const double DefaultRelevanceJoined = 5d;
+    private const double DefaultRelevanceNewRank = 10d;
     private readonly SqliteConnection _sqlite;
 
     public JsonArray Events { get; private set; } = [];
@@ -68,10 +70,72 @@ public sealed class EventDataService : IDisposable
         ReloadIntoCache();
     }
 
+    public void CreateNewRankEvents(
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank)> items,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceNewRank)
+    {
+        if (items is null) throw new ArgumentNullException(nameof(items));
+
+        int created = 0;
+
+        lock (_sqlite)
+        {
+            using var tx = _sqlite.BeginTransaction();
+
+            using var existsCmd = _sqlite.CreateCommand();
+            existsCmd.Transaction = tx;
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+
+            using var insertCmd = _sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var (slug, occurredAtUtc, rank) in items)
+            {
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+                if (rank < 1 || rank > 10) continue;
+
+                var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
+                var text = $"slug[{slug}] rank[{rank}]";
+
+                var shouldInsert = true;
+                if (skipIfExists)
+                {
+                    exType.Value = (int)EventType.NewRank;
+                    exText.Value = text;
+                    shouldInsert = existsCmd.ExecuteScalar() == null;
+                }
+                if (!shouldInsert) continue;
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pType.Value = (int)EventType.NewRank;
+                pText.Value = text;
+                pOcc.Value = occurredAt;
+                pRel.Value = defaultRelevance;
+                insertCmd.ExecuteNonQuery();
+                created++;
+            }
+
+            tx.Commit();
+        }
+
+        if (created > 0)
+            ReloadIntoCache();
+    }
+
     public void CreateJoinedEventsForAthletes(
-    IEnumerable<(string AthleteSlug, DateTime JoinedAtUtc, int? CurrentRank)> athletes,
-    bool skipIfExists = true,
-    double defaultRelevance = 0)
+        IEnumerable<(string AthleteSlug, DateTime JoinedAtUtc, int? CurrentRank)> athletes,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceJoined)
     {
         if (athletes is null) throw new ArgumentNullException(nameof(athletes));
 
@@ -123,7 +187,7 @@ public sealed class EventDataService : IDisposable
                     created++;
                 }
 
-                if (currentRank.HasValue)
+                if (currentRank.HasValue && currentRank.Value >= 1 && currentRank.Value <= 10)
                 {
                     var rankText = $"slug[{slug}] rank[{currentRank.Value}]";
                     var insertRank = true;
@@ -139,7 +203,7 @@ public sealed class EventDataService : IDisposable
                         pType.Value = (int)EventType.NewRank;
                         pText.Value = rankText;
                         pOcc.Value = occurredAt;
-                        pRel.Value = defaultRelevance;
+                        pRel.Value = DefaultRelevanceNewRank;
                         insertCmd.ExecuteNonQuery();
                         created++;
                     }
@@ -151,32 +215,6 @@ public sealed class EventDataService : IDisposable
 
         if (created > 0)
             ReloadIntoCache();
-    }
-
-
-    public EventItem AddEvent(EventType type, string text, DateTime occurredAtUtc, double relevance = 0)
-    {
-        var id = Guid.NewGuid().ToString("N");
-        var occurred = EnsureUtc(occurredAtUtc);
-
-        lock (_sqlite)
-        {
-            using var cmd = _sqlite.CreateCommand();
-            cmd.CommandText =
-                """
-                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance)
-                VALUES (@id, @type, @text, @occ, @rel);
-                """;
-            cmd.Parameters.AddWithValue("@id", id);
-            cmd.Parameters.AddWithValue("@type", (int)type);
-            cmd.Parameters.AddWithValue("@text", text ?? string.Empty);
-            cmd.Parameters.AddWithValue("@occ", occurred.ToString("o"));
-            cmd.Parameters.AddWithValue("@rel", relevance);
-            cmd.ExecuteNonQuery();
-        }
-
-        ReloadIntoCache();
-        return new EventItem(id, type, text ?? string.Empty, occurred, relevance);
     }
 
     public IReadOnlyList<EventItem> GetEvents(
