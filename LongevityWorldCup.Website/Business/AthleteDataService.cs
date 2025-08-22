@@ -30,6 +30,10 @@ public class AthleteDataService : IDisposable
     private const int MaxBackupFiles = 5;
     private readonly string _backupDir;
 
+    private readonly string _athletesRootDir;
+    private readonly object _pendingLock = new();
+    private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
+
 
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
     {
@@ -109,6 +113,7 @@ public class AthleteDataService : IDisposable
 
         // Watch the new per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
+        _athletesRootDir = athletesDir;
         _athleteWatcher = new FileSystemWatcher(athletesDir)
         {
             IncludeSubdirectories = true,
@@ -118,10 +123,10 @@ public class AthleteDataService : IDisposable
                            | NotifyFilters.LastWrite,
             Filter = "*.*"
         };
-        _athleteWatcher.Changed += (s, e) => DebounceReload();
-        _athleteWatcher.Created += (s, e) => DebounceReload();
-        _athleteWatcher.Deleted += (s, e) => DebounceReload();
-        _athleteWatcher.Renamed += (s, e) => DebounceReload();
+        _athleteWatcher.Changed += OnFsEvent;
+        _athleteWatcher.Created += OnFsEvent;
+        _athleteWatcher.Deleted += OnFsEvent;
+        _athleteWatcher.Renamed += OnFsRenamed;
         _athleteWatcher.EnableRaisingEvents = true;
         _athleteWatcher.Error += OnWatcherError;
 
@@ -277,8 +282,17 @@ public class AthleteDataService : IDisposable
         await _reloadLock.WaitAsync();
         try
         {
+            var beforeTop10 = BuildRankMap(limit: 10);
+
+            HashSet<string> changedSlugs;
+            lock (_pendingLock)
+            {
+                changedSlugs = new HashSet<string>(_pendingChangedSlugs, StringComparer.OrdinalIgnoreCase);
+                _pendingChangedSlugs.Clear();
+            }
+
             await LoadAthletesAsync();
-            
+        
             var newlyJoined = EnsureDbRowsForNewAthletes();
 
             ReloadCrowdStats();
@@ -299,6 +313,34 @@ public class AthleteDataService : IDisposable
                 });
                 _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
             }
+
+            var afterTop10 = BuildRankMap(limit: 10);
+            var newcomerSlugs = newlyJoined
+                .Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var nowUtc = DateTime.UtcNow;
+            var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank)>();
+
+            foreach (var slug in changedSlugs)
+            {
+                if (newcomerSlugs.Contains(slug)) continue;
+                if (afterTop10.TryGetValue(slug, out var newRank))
+                {
+                    if (beforeTop10.TryGetValue(slug, out var prevRank))
+                    {
+                        if (newRank < prevRank)
+                            changes.Add((slug, nowUtc, newRank));
+                    }
+                    else
+                    {
+                        changes.Add((slug, nowUtc, newRank));
+                    }
+                }
+            }
+
+            if (changes.Count > 0)
+                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
         }
         finally
         {
@@ -780,5 +822,58 @@ public class AthleteDataService : IDisposable
             }
         }
         return newlyJoined;
+    }
+
+    private Dictionary<string,int> BuildRankMap(int limit = int.MaxValue)
+    {
+        var map = new Dictionary<string,int>(StringComparer.OrdinalIgnoreCase);
+        var order = GetRankingsOrder();
+        for (int i = 0; i < order.Count && i < limit; i++)
+        {
+            if (order[i] is JsonObject o)
+            {
+                var slug = o["AthleteSlug"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(slug))
+                    map[slug] = i + 1;
+            }
+        }
+        return map;
+    }
+
+    private void OnFsEvent(object? sender, FileSystemEventArgs e)
+    {
+        TryRecordChangedSlug(e.FullPath);
+        DebounceReload();
+    }
+
+    private void OnFsRenamed(object? sender, RenamedEventArgs e)
+    {
+        TryRecordChangedSlug(e.OldFullPath);
+        TryRecordChangedSlug(e.FullPath);
+        DebounceReload();
+    }
+
+    private void TryRecordChangedSlug(string path)
+    {
+        if (IsAthleteJsonPath(path, out var slug))
+        {
+            lock (_pendingLock) _pendingChangedSlugs.Add(slug);
+        }
+    }
+
+    private bool IsAthleteJsonPath(string path, out string slug)
+    {
+        slug = "";
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var full = Path.GetFullPath(path);
+        var root = Path.GetFullPath(_athletesRootDir);
+        if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return false;
+        if (!string.Equals(Path.GetFileName(full), "athlete.json", StringComparison.OrdinalIgnoreCase)) return false;
+        var rel = Path.GetRelativePath(root, full);
+        var parts = rel.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2) return false;
+        var folder = parts[0];
+        slug = folder.Replace('-', '_');
+        return true;
     }
 }
