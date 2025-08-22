@@ -155,6 +155,10 @@
         transform: scale(1.15);
         box-shadow: 0 2px 6px rgba(0,0,0,.16);
     }
+    .event-message .rank-icon{ margin-left:.25rem; }
+    .event-message .rank-badge{ display:inline-flex; align-items:baseline; gap:.15rem; }
+    .event-message .rank-badge .rank-icon{ margin:0; }
+
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -203,7 +207,7 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2 };
 
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
         function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
@@ -217,16 +221,27 @@
             const today=startOfLocalDay(new Date());
             const thatDay=startOfLocalDay(dt);
             if(thatDay>today) return 'Today <i class="fa fa-rocket"></i>';
-            const years = today.getFullYear() - thatDay.getFullYear()
-                - ((today.getMonth()<thatDay.getMonth() || (today.getMonth()===thatDay.getMonth() && today.getDate()<thatDay.getDate())) ? 1 : 0);
-            if(years>=1) return years===1 ? '1 year ago <i class="fa fa-rocket"></i>' : `${years} years ago <i class="fa fa-rocket"></i>`;
-            const months = (today.getFullYear()*12 + today.getMonth()) - (thatDay.getFullYear()*12 + thatDay.getMonth())
-                - (today.getDate()<thatDay.getDate()?1:0);
-            if(months>=1) return months===1 ? '1 month ago <i class="fa fa-rocket"></i>' : `${months} months ago <i class="fa fa-rocket"></i>`;
+            const years=today.getFullYear()-thatDay.getFullYear()-((today.getMonth()<thatDay.getMonth()||(today.getMonth()===thatDay.getMonth()&&today.getDate()<thatDay.getDate()))?1:0);
+            if(years>=1) return years===1?'1 year ago <i class="fa fa-rocket"></i>':`${years} years ago <i class="fa fa-rocket"></i>`;
+            const months=(today.getFullYear()*12+today.getMonth())-(thatDay.getFullYear()*12+thatDay.getMonth())-(today.getDate()<thatDay.getDate()?1:0);
+            if(months>=1) return months===1?'1 month ago <i class="fa fa-rocket"></i>':`${months} months ago <i class="fa fa-rocket"></i>`;
             const diffDays=Math.round((today-thatDay)/86400000);
             if(diffDays<=0) return 'Today <i class="fa fa-rocket"></i>';
             if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
             return `${diffDays} days ago <i class="fa fa-rocket"></i>`;
+        }
+        function relativeDayLabelNoIcon(iso,{emptyIfToday=true}={}) {
+            const dt=new Date(iso); if(isNaN(dt)) return "";
+            const today=startOfLocalDay(new Date());
+            const thatDay=startOfLocalDay(dt);
+            if(thatDay>=today) return emptyIfToday?"" :"Today";
+            const years=today.getFullYear()-thatDay.getFullYear()-((today.getMonth()<thatDay.getMonth()||(today.getMonth()===thatDay.getMonth()&&today.getDate()<thatDay.getDate()))?1:0);
+            if(years>=1) return years===1?'1 year ago':`${years} years ago`;
+            const months=(today.getFullYear()*12+today.getMonth())-(thatDay.getFullYear()*12+thatDay.getMonth())-(today.getDate()<thatDay.getDate()?1:0);
+            if(months>=1) return months===1?'1 month ago':`${months} months ago`;
+            const diffDays=Math.round((today-thatDay)/86400000);
+            if(diffDays===1) return 'Yesterday';
+            return `${diffDays} days ago`;
         }
         function formatListDate(iso,{separator=', '}={}) {
             const d=new Date(iso); if(isNaN(d)) return '';
@@ -234,7 +249,13 @@
             const base=d.toLocaleDateString(undefined,{month:'short',day:'numeric'}).replace(/,/g,'');
             return d.getFullYear()===nowYear?base:`${base}${separator}${d.getFullYear()}`;
         }
-
+        function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return `${n}${s[(v-20)%10]||s[v]||s[0]}`;}
+        function podiumIcon(n){
+            if(n===1) return '<i class="fa-solid fa-crown rank-icon" style="color: gold;" title="1st place" aria-label="1st place"></i>';
+            if(n===2) return '<i class="fa-solid fa-medal rank-icon" style="color: silver;" title="2nd place" aria-label="2nd place"></i>';
+            if(n===3) return '<i class="fa-solid fa-award rank-icon" style="color: #cd7f32;" title="3rd place" aria-label="3rd place"></i>';
+            return '';
+        }
         function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
         function parseLimit(val){ if(val===undefined||val===null||val==="")return null; const n=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(n)&&n>0?Math.floor(n):null; }
         function parseTimeVar(varName, fallbackMs){
@@ -288,14 +309,22 @@
             return Math.max(1,Math.floor(v));
         }
 
+        // ── parsing helpers ───────────────────────────────────────────────────────
         function extractSlugs(text){
             const rx=/slug\[(.+?)\]/g;
-            const out=[];
-            let m;
-            while((m=rx.exec(String(text)))!==null){
-                out.push(m[1]);
-            }
+            const out=[]; let m;
+            while((m=rx.exec(String(text)))!==null){ out.push(m[1]); }
             return out;
+        }
+        function extractPrevSlug(text){
+            const m=/prev\[(.+?)\]/.exec(String(text||""));
+            return m?m[1]:null;
+        }
+        function extractRank(text){
+            const m=/rank\[(\d+)\]/.exec(String(text||""));
+            if(!m) return null;
+            const n=parseInt(m[1],10);
+            return Number.isFinite(n)&&n>0?n:null;
         }
 
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
@@ -304,17 +333,15 @@
             let out="", last=0, m;
             while((m=rx.exec(s))!==null){
                 out += esc(s.slice(last, m.index));
-                const raw = m[1];
-                const key = slugifyLocal(normalizeLinkId(raw));
-                const a   = athletesIndex.get(key);
-                const name = a ? athleteName(a) || raw : raw;
-                const href = a ? makeAthleteUrlFromSlug(raw) : "";
-                const piece = linkNames && href
-                    ? `<a href="${href}">${esc(name)}</a>`
-                    : `<span class="athlete-name-text">${esc(name)}</span>`;
-                const extra = typeof afterSlug==="function" ? afterSlug(key, a) : "";
+                const raw=m[1];
+                const key=slugifyLocal(normalizeLinkId(raw));
+                const a=athletesIndex.get(key);
+                const name=a?(athleteName(a)||raw):raw;
+                const href=a?makeAthleteUrlFromSlug(raw):"";
+                const piece=linkNames&&href?`<a href="${href}">${esc(name)}</a>`:`<span class="athlete-name-text">${esc(name)}</span>`;
+                const extra=typeof afterSlug==="function"?afterSlug(key,a):"";
                 out += `<span class="name-and-rank">${piece}${extra}</span>`;
-                last = rx.lastIndex;
+                last=rx.lastIndex;
             }
             out += esc(s.slice(last));
             return out;
@@ -323,28 +350,35 @@
         function toRows(rawEvents){
             return (rawEvents||[]).map(e=>{
                 const map=lowerKeyMap(e||{});
-                const type = Number(e[map["type"]] ?? 0);
-                const text = String(e[map["text"]] ?? "");
-                const occurredAt = e[map["occurredat"]] ?? e[map["occurredAt"]] ?? e["OccurredAt"] ?? null;
-                const slugs = extractSlugs(text).map(s=>slugifyLocal(normalizeLinkId(s)));
-                const primarySlug = slugs[0] || null;
-                return { type, text, occurredAt, slugs, primarySlug };
+                const type=Number(e[map["type"]]??0);
+                const text=String(e[map["text"]]??"");
+                const occurredAt=e[map["occurredat"]]??e[map["occurredAt"]]??e["OccurredAt"]??null;
+
+                const slugTokens=extractSlugs(text).map(s=>slugifyLocal(normalizeLinkId(s)));
+                const primarySlug=slugTokens[0]||null;
+
+                const prevRaw=extractPrevSlug(text);
+                const prevSlug=prevRaw?slugifyLocal(normalizeLinkId(prevRaw)):null;
+                if(prevSlug) slugTokens.push(prevSlug); // include for filtering
+
+                const rank=extractRank(text);
+                return { type,text,occurredAt,slugs:slugTokens,primarySlug,prevSlug,rank };
             });
         }
 
         let rowObserver=null;
         function ensureRowObserver(){
             if(rowObserver) return rowObserver;
-            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            rowObserver = new IntersectionObserver((entries, io)=>{
+            const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            rowObserver=new IntersectionObserver((entries,io)=>{
                 entries.forEach(entry=>{
                     const el=entry.target;
-                    if(entry.isIntersecting || entry.intersectionRatio>0){
+                    if(entry.isIntersecting||entry.intersectionRatio>0){
                         if(!prefersReduced){
                             const idx=Number(el.dataset.rowIndex||0);
                             const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
                             const stepMs=parseTimeVar('--row-stagger-step',40);
-                            el.style.setProperty('--row-delay',`${(idx % groupSize)*stepMs}ms`);
+                            el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}ms`);
                         }
                         el.classList.add('is-visible');
                         io.unobserve(el);
@@ -358,63 +392,82 @@
             const tbody=document.querySelector("#eventsTable tbody");
             tbody.innerHTML="";
             if(!Array.isArray(rows)||rows.length===0){
-                tbody.innerHTML=`<tr><td colspan="3">No events yet.</td></tr>`;
+                tbody.innerHTML=`<tr><td colspan="3">No events yet</td></tr>`;
                 return;
             }
             const frag=document.createDocumentFragment();
-            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            rows.forEach((r, idx)=>{
+            // factory to append "(#rank)" link after a name
+            const afterNameWithCurrentRankFor = (targetSlug) => (slug,aObj)=>{
+                if(!aObj) return "";
+                const placement=getCurrentPlacement(aObj);
+                if(!placement) return "";
+                const label=`(#${placement})`;
+                return linkNames
+                    ? `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`
+                    : `<span class="placement-link">${esc(label)}</span>`;
+            };
+
+            rows.forEach((r,idx)=>{
                 const dateLabel=r.occurredAt?formatListDate(r.occurredAt):"";
-                const rel=r.occurredAt?relativeDayLabel(r.occurredAt):"";
+                const rel=r.occurredAt
+                    ? (r.type===EVENT_TYPE.NewRank
+                        ? relativeDayLabelNoIcon(r.occurredAt,{emptyIfToday:true})
+                        : relativeDayLabel(r.occurredAt))
+                    : "";
+
+                const a=r.primarySlug?athletesIndex.get(r.primarySlug):null;
+                const name=a?(athleteName(a)||r.primarySlug):(r.primarySlug||"");
+                const url=r.primarySlug?makeAthleteUrlFromSlug(r.primarySlug):"";
+                const img=a?athletePic(a):"";
 
                 let avatarHtml="";
-                if(r.type===EVENT_TYPE.Joined && r.primarySlug){
-                    const a = athletesIndex.get(r.primarySlug);
-                    const name = a ? athleteName(a) || r.primarySlug : r.primarySlug;
-                    const url  = makeAthleteUrlFromSlug(r.primarySlug);
-                    const img  = a ? athletePic(a) : "";
+                if((r.type===EVENT_TYPE.Joined||r.type===EVENT_TYPE.NewRank)&&r.primarySlug){
                     if(img){
-                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">
-                                        <img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy">
-                                    </a>`;
+                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></a>`;
                     }else{
-                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">
-                                        <div class="avatar-fallback">${initialsFromName(name)}</div>
-                                    </a>`;
+                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><div class="avatar-fallback">${initialsFromName(name)}</div></a>`;
                     }
                 }else{
-                    avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
+                    avatarHtml=`<div class="avatar-fallback" title="Event">★</div>`;
                 }
 
-                const afterNameForJoined = (slug, a) => {
-                    if(r.type!==EVENT_TYPE.Joined) return "";
-                    if(!r.primarySlug || slug!==r.primarySlug) return "";
-                    const placement = getCurrentPlacement(a);
-                    if(!placement) return "";
-                    const label = `(#${placement})`;
-                    if(linkNames){
-                        return `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`;
-                    }else{
-                        return `<span class="placement-link">${esc(label)}</span>`;
+                let msgHtml="";
+                if(r.type===EVENT_TYPE.NewRank&&r.primarySlug){
+                    const taken=Number.isFinite(r.rank)?r.rank:getCurrentPlacement(a);
+                    const nameWithCurrentRank=renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,linkNames,athletesIndex,afterNameWithCurrentRankFor(r.primarySlug)
+                    );
+                    const takenText=Number.isFinite(taken)?ordinal(taken):"?";
+                    const iconHtml = Number.isFinite(taken) ? podiumIcon(taken) : '';
+                    const takenHtml = Number.isFinite(taken)
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
+                        : esc(takenText);
+
+                    // NEW: previous owner (clickable name + clickable current rank)
+                    let prevHtml="";
+                    if(r.prevSlug){
+                        prevHtml=renderTextWithSlugLinks(
+                            `slug[${r.prevSlug}]`,linkNames,athletesIndex,afterNameWithCurrentRankFor(r.prevSlug)
+                        );
                     }
-                };
 
-                const tokenHtml = renderTextWithSlugLinks(
-                    r.text,
-                    linkNames,
-                    athletesIndex,
-                    r.type===EVENT_TYPE.Joined ? afterNameForJoined : null
-                );
-
-                const msgHtml = r.type===EVENT_TYPE.Joined
-                    ? `${tokenHtml} joined ${rel}`
-                    : `${tokenHtml} ${rel}`;
+                    const suffix=rel?` ${rel}`:"";
+                    msgHtml = prevHtml
+                        ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}${suffix}`
+                        : `${nameWithCurrentRank} took the ${takenHtml} place${suffix}`;
+                }else{
+                    const tokenHtml=renderTextWithSlugLinks(
+                        r.text,linkNames,athletesIndex,r.type===EVENT_TYPE.Joined?afterNameWithCurrentRankFor(r.primarySlug):null
+                    );
+                    msgHtml=r.type===EVENT_TYPE.Joined?`${tokenHtml} joined ${rel}`:`${tokenHtml} ${rel}`;
+                }
 
                 const tr=document.createElement("tr");
                 tr.className='row-appear';
                 tr.dataset.rowIndex=String(idx);
-                tr.innerHTML =
+                tr.innerHTML=
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
                      <td class="athlete-td event-message">${msgHtml}</td>
                      <td class="col-date">${dateLabel}</td>`;
@@ -422,7 +475,7 @@
             });
 
             tbody.appendChild(frag);
-            if(!prefersReduced && rows.length){
+            if(!prefersReduced&&rows.length){
                 const io=ensureRowObserver();
                 tbody.querySelectorAll('.row-appear').forEach(r=>io.observe(r));
             }else{
@@ -434,41 +487,37 @@
             if(id==null) return '';
             let s=String(id).trim();
             if(!s) return '';
-            s = s.split('#')[0].split('?')[0];
-            if(s.includes('/')) s = s.split('/').filter(Boolean).pop();
+            s=s.split('#')[0].split('?')[0];
+            if(s.includes('/')) s=s.split('/').filter(Boolean).pop();
             return normalizeLinkId(slugifyLocal(s));
         }
 
-        window.loadEventsTable = function (maxRows = null, showViewAll = true, athleteId = null, linkNames = true) {
+        window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setViewAllVisible(!!showViewAll);
-
-            const eventsReq   = fetch("/api/events",        { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
-            const athletesReq = fetch("/api/data/athletes", { headers:{ "accept":"application/json" } }).then(r=>r.ok?r.json():Promise.reject(r.status));
-
-            Promise.all([eventsReq, athletesReq])
-                .then(([events, athletes])=>{
-                    const athletesIndex = buildAthleteIndex(athletes);
-                    let rows = toRows(Array.isArray(events)?events:[]);
-
-                    const target = normalizeIncomingAthleteId(athleteId);
-                    if(target){
-                        rows = rows.filter(r => r.slugs.includes(target));
-                    }
-
-                    const n=parseLimit(maxRows);
-                    if(n!==null) rows=rows.slice(0,n);
-
-                    renderRows(rows, athletesIndex, !!linkNames);
-                })
-                .catch(()=>{
-                    const tbody=document.querySelector("#eventsTable tbody");
-                    if(tbody) tbody.innerHTML=`<tr><td colspan="3">Failed to load events.</td></tr>`;
-                });
+            const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
+            const athletesReq=fetch("/api/data/athletes",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
+            Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
+                const athletesIndex=buildAthleteIndex(athletes);
+                let rows=toRows(Array.isArray(events)?events:[]);
+                const target=normalizeIncomingAthleteId(athleteId);
+                if(target){ rows=rows.filter(r=>r.slugs.includes(target)); }
+                const n=parseLimit(maxRows);
+                if(n!==null) rows=rows.slice(0,n);
+                renderRows(rows,athletesIndex,!!linkNames);
+            }).catch(()=>{
+                const tbody=document.querySelector("#eventsTable tbody");
+                if(tbody) tbody.innerHTML=`<tr><td colspan="3">Failed to load events</td></tr>`;
+            });
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const root = document.getElementById('events-root');
+        document.addEventListener('DOMContentLoaded',()=>{
+            const root=document.getElementById('events-root');
             if(root) root.classList.add('fade-in-board');
         });
     })();
 </script>
+
+
+
+
+
