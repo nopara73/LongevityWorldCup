@@ -63,18 +63,18 @@ public class AthleteDataService : IDisposable
             cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
             try { cmd.ExecuteNonQuery(); } catch { /* column already exists */ }
 
-            // Ensure Placements column exists (JSON array text)
+            // Ensure Placements & CurrentPlacement columns exist
             cmd.CommandText = "PRAGMA table_info(Athletes);";
             using var r = cmd.ExecuteReader();
             var hasPlacements = false;
+            var hasCurrentPlacement = false;
             while (r.Read())
             {
                 var colName = r.GetString(1);
                 if (string.Equals(colName, "Placements", StringComparison.OrdinalIgnoreCase))
-                {
                     hasPlacements = true;
-                    break;
-                }
+                if (string.Equals(colName, "CurrentPlacement", StringComparison.OrdinalIgnoreCase))
+                    hasCurrentPlacement = true;
             }
             if (!hasPlacements)
             {
@@ -85,6 +85,12 @@ public class AthleteDataService : IDisposable
                 using var backfill = _sqliteConnection.CreateCommand();
                 backfill.CommandText = "UPDATE Athletes SET Placements='[]' WHERE Placements IS NULL OR Placements='';";
                 backfill.ExecuteNonQuery();
+            }
+            if (!hasCurrentPlacement)
+            {
+                using var alter2 = _sqliteConnection.CreateCommand();
+                alter2.CommandText = "ALTER TABLE Athletes ADD COLUMN CurrentPlacement INTEGER NULL;";
+                alter2.ExecuteNonQuery();
             }
         }
 
@@ -109,7 +115,7 @@ public class AthleteDataService : IDisposable
         ReloadCrowdStats();
         HydratePlacementsIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
-        HydrateCurrentPlacementIntoAthletesJson();
+        HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
 
         // Watch the new per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
@@ -143,6 +149,9 @@ public class AthleteDataService : IDisposable
             });
             eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
         }
+
+        // ⬇⬇⬇ Detect rank-ups on startup against the LAST persisted snapshot, then persist the new snapshot
+        DetectAndEmitRankUpsAgainstDb(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
         
         // Start a poll‐loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
@@ -282,15 +291,6 @@ public class AthleteDataService : IDisposable
         await _reloadLock.WaitAsync();
         try
         {
-            var beforeTop10 = BuildRankMap(limit: 10);
-
-            HashSet<string> changedSlugs;
-            lock (_pendingLock)
-            {
-                changedSlugs = new HashSet<string>(_pendingChangedSlugs, StringComparer.OrdinalIgnoreCase);
-                _pendingChangedSlugs.Clear();
-            }
-
             await LoadAthletesAsync();
         
             var newlyJoined = EnsureDbRowsForNewAthletes();
@@ -299,7 +299,7 @@ public class AthleteDataService : IDisposable
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
-            HydrateCurrentPlacementIntoAthletesJson();
+            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
 
             if (newlyJoined.Count > 0)
             {
@@ -314,33 +314,8 @@ public class AthleteDataService : IDisposable
                 _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
             }
 
-            var afterTop10 = BuildRankMap(limit: 10);
-            var newcomerSlugs = newlyJoined
-                .Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var nowUtc = DateTime.UtcNow;
-            var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank)>();
-
-            foreach (var slug in changedSlugs)
-            {
-                if (newcomerSlugs.Contains(slug)) continue;
-                if (afterTop10.TryGetValue(slug, out var newRank))
-                {
-                    if (beforeTop10.TryGetValue(slug, out var prevRank))
-                    {
-                        if (newRank < prevRank)
-                            changes.Add((slug, nowUtc, newRank));
-                    }
-                    else
-                    {
-                        changes.Add((slug, nowUtc, newRank));
-                    }
-                }
-            }
-
-            if (changes.Count > 0)
-                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
+            // Compare against DB snapshot and emit rank-ups (athletes can only move up or hold)
+            DetectAndEmitRankUpsAgainstDb(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
         }
         finally
         {
@@ -791,6 +766,9 @@ public class AthleteDataService : IDisposable
             else
                 athlete["CurrentPlacement"] = null;
         }
+
+        // IMPORTANT: we DO NOT persist the snapshot here anymore.
+        // Persistence must only happen AFTER we compare and possibly emit events.
     }
 
     public void Dispose()
@@ -875,5 +853,103 @@ public class AthleteDataService : IDisposable
         var folder = parts[0];
         slug = folder.Replace('-', '_');
         return true;
+    }
+
+    private Dictionary<string, int?> LoadStoredCurrentPlacements()
+    {
+        var map = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
+        lock (_sqliteConnection)
+        {
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "SELECT Key, CurrentPlacement FROM Athletes";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var key = r.GetString(0);
+                int? cp = r.IsDBNull(1) ? (int?)null : r.GetInt32(1);
+                map[key] = cp;
+            }
+        }
+        return map;
+    }
+
+    private void PersistCurrentPlacementsSnapshot(Dictionary<string, int> current)
+    {
+        lock (_sqliteConnection)
+        {
+            using var tx = _sqliteConnection.BeginTransaction();
+            using (var clear = _sqliteConnection.CreateCommand())
+            {
+                clear.Transaction = tx;
+                clear.CommandText = "UPDATE Athletes SET CurrentPlacement=NULL";
+                clear.ExecuteNonQuery();
+            }
+            using (var upd = _sqliteConnection.CreateCommand())
+            {
+                upd.Transaction = tx;
+                upd.CommandText = "UPDATE Athletes SET CurrentPlacement=@p WHERE Key=@k";
+                var pP = upd.Parameters.Add("@p", SqliteType.Integer);
+                var pK = upd.Parameters.Add("@k", SqliteType.Text);
+                foreach (var kv in current)
+                {
+                    pP.Value = kv.Value;
+                    pK.Value = kv.Key;
+                    upd.ExecuteNonQuery();
+                }
+            }
+            tx.Commit();
+        }
+    }
+
+    /// <summary>
+    /// Compares current top-10 against the previously persisted snapshot in SQLite,
+    /// emits NewRank events for improvements (including entering top-10),
+    /// then persists the new snapshot (all placements).
+    /// If there is NO previously persisted placement (all NULL) => first run: do NOT emit events, only persist.
+    /// </summary>
+    private void DetectAndEmitRankUpsAgainstDb(IEnumerable<string>? newcomerSlugs)
+    {
+        var before = LoadStoredCurrentPlacements();
+
+        // FIRST RUN GUARD: if there's no non-null placement in DB, we have no baseline yet.
+        // In that case, don't emit any events — just persist the current snapshot and return.
+        var hasAnyBaseline = before.Values.Any(v => v.HasValue);
+        if (!hasAnyBaseline)
+        {
+            var initialSnapshot = BuildRankMap(); // full table
+            PersistCurrentPlacementsSnapshot(initialSnapshot);
+            return;
+        }
+
+        var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+                        ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var afterTop10 = BuildRankMap(limit: 10);
+        var nowUtc = DateTime.UtcNow;
+        var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank)>();
+
+        foreach (var kv in afterTop10)
+        {
+            if (newcomers.Contains(kv.Key)) continue; // Joined path already handles initial rank event
+
+            var newRank = kv.Value; // 1..10
+            if (!before.TryGetValue(kv.Key, out var prev) || prev is null || prev > 10)
+            {
+                // newly entered top-10
+                changes.Add((kv.Key, nowUtc, newRank));
+            }
+            else if (newRank < prev.Value)
+            {
+                // improved within top-10
+                changes.Add((kv.Key, nowUtc, newRank));
+            }
+        }
+
+        if (changes.Count > 0)
+            _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
+
+        // Persist full snapshot AFTER emitting events
+        var afterAll = BuildRankMap(); // full table
+        PersistCurrentPlacementsSnapshot(afterAll);
     }
 }
