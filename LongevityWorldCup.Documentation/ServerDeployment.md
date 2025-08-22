@@ -126,4 +126,11 @@ Copy google SMTP credentials into the config file:
 - Find the client ID and secret at https://console.cloud.google.com/apis/credentials
 - Generate refresh token at https://developers.google.com/oauthplayground/
 
+### Integrations
+#### Slack
+
+Add webhook entry to config file:
+```
+SlackWebhookUrl": ""
+```
 
