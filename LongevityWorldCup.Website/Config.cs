@@ -19,6 +19,7 @@ namespace LongevityWorldCup.Website
         public string? GmailClientId { get; set; }
         public string? GmailClientSecret { get; set; }
         public string? GmailRefreshToken { get; set; }
+        public string? SlackWebhookUrl { get; set; }
 
         // Load configuration from the file
         public static async Task<Config> LoadAsync()

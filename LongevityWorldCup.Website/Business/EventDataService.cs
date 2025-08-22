@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
@@ -29,12 +30,17 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceJoined = 5d;
     private const double DefaultRelevanceNewRank = 10d;
     private readonly SqliteConnection _sqlite;
+    private readonly SlackWebhookClient _slack;
+
+    private readonly object _athDirLock = new();
+    private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env)
+    public EventDataService(IWebHostEnvironment env, SlackWebhookClient slack)
     {
         _ = env;
+        _slack = slack;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -70,14 +76,22 @@ public sealed class EventDataService : IDisposable
         ReloadIntoCache();
     }
 
+    public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
+    {
+        var map = new Dictionary<string, (string Name, int? Rank)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items) map[i.Slug] = (i.Name, i.CurrentRank);
+        lock (_athDirLock) _athDir = map;
+    }
+
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
-        bool skipIfExists = true,
+        bool skipIfExists = false,
         double defaultRelevance = DefaultRelevanceNewRank)
     {
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
+        var notify = new List<(EventType Type, string RawText)>();
 
         lock (_sqlite)
         {
@@ -85,9 +99,10 @@ public sealed class EventDataService : IDisposable
 
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+            var exOcc  = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
@@ -106,15 +121,14 @@ public sealed class EventDataService : IDisposable
 
                 var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
                 var textBase = $"slug[{slug}] rank[{rank}]";
-                var text = string.IsNullOrWhiteSpace(replacedSlug)
-                    ? textBase
-                    : $"{textBase} prev[{replacedSlug}]";
+                var text = string.IsNullOrWhiteSpace(replacedSlug) ? textBase : $"{textBase} prev[{replacedSlug}]";
 
                 var shouldInsert = true;
                 if (skipIfExists)
                 {
                     exType.Value = (int)EventType.NewRank;
                     exText.Value = text;
+                    exOcc.Value  = occurredAt;
                     shouldInsert = existsCmd.ExecuteScalar() == null;
                 }
                 if (!shouldInsert) continue;
@@ -126,13 +140,17 @@ public sealed class EventDataService : IDisposable
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
+                notify.Add((EventType.NewRank, text));
             }
 
             tx.Commit();
         }
 
         if (created > 0)
+        {
             ReloadIntoCache();
+            foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
+        }
     }
 
     public void CreateJoinedEventsForAthletes(
@@ -143,6 +161,7 @@ public sealed class EventDataService : IDisposable
         if (athletes is null) throw new ArgumentNullException(nameof(athletes));
 
         int created = 0;
+        var notify = new List<(EventType Type, string RawText)>();
 
         lock (_sqlite)
         {
@@ -150,9 +169,10 @@ public sealed class EventDataService : IDisposable
 
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+            var exOcc  = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
@@ -166,8 +186,7 @@ public sealed class EventDataService : IDisposable
 
             foreach (var (slug, joinedAtUtc, currentRank) in athletes)
             {
-                if (string.IsNullOrWhiteSpace(slug))
-                    continue;
+                if (string.IsNullOrWhiteSpace(slug)) continue;
 
                 var occurredAt = EnsureUtc(joinedAtUtc).ToString("o");
                 var joinedText = $"slug[{slug}]";
@@ -177,6 +196,7 @@ public sealed class EventDataService : IDisposable
                 {
                     exType.Value = (int)EventType.Joined;
                     exText.Value = joinedText;
+                    exOcc.Value  = occurredAt;
                     insertJoined = existsCmd.ExecuteScalar() == null;
                 }
                 if (insertJoined)
@@ -188,6 +208,7 @@ public sealed class EventDataService : IDisposable
                     pRel.Value = defaultRelevance;
                     insertCmd.ExecuteNonQuery();
                     created++;
+                    notify.Add((EventType.Joined, joinedText));
                 }
 
                 if (currentRank.HasValue && currentRank.Value >= 1 && currentRank.Value <= 10)
@@ -198,6 +219,7 @@ public sealed class EventDataService : IDisposable
                     {
                         exType.Value = (int)EventType.NewRank;
                         exText.Value = rankText;
+                        exOcc.Value  = occurredAt;
                         insertRank = existsCmd.ExecuteScalar() == null;
                     }
                     if (insertRank)
@@ -209,6 +231,7 @@ public sealed class EventDataService : IDisposable
                         pRel.Value = DefaultRelevanceNewRank;
                         insertCmd.ExecuteNonQuery();
                         created++;
+                        notify.Add((EventType.NewRank, rankText));
                     }
                 }
             }
@@ -217,7 +240,10 @@ public sealed class EventDataService : IDisposable
         }
 
         if (created > 0)
+        {
             ReloadIntoCache();
+            foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
+        }
     }
 
     public IReadOnlyList<EventItem> GetEvents(
@@ -295,6 +321,30 @@ public sealed class EventDataService : IDisposable
 
     private static DateTime EnsureUtc(DateTime dt) =>
         dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+    private string SlugToNameResolve(string slug)
+    {
+        lock (_athDirLock)
+        {
+            if (_athDir.TryGetValue(slug, out var v) && !string.IsNullOrWhiteSpace(v.Name)) return v.Name;
+        }
+        var spaced = slug.Replace('_', '-').Replace('-', ' ');
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
+    }
+
+    private void FireAndForgetSlack(EventType type, string rawText)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                // getRankForSlug is no longer passed; messages don't include live rank links/text.
+                var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
+                await _slack.SendAsync(text);
+            }
+            catch { }
+        });
+    }
 
     public void Dispose()
     {
