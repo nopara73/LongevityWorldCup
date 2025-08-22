@@ -332,22 +332,14 @@ public sealed class EventDataService : IDisposable
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
     }
 
-    private int? GetRankForSlugResolve(string slug)
-    {
-        lock (_athDirLock)
-        {
-            if (_athDir.TryGetValue(slug, out var v)) return v.Rank;
-        }
-        return null;
-    }
-
     private void FireAndForgetSlack(EventType type, string rawText)
     {
         _ = Task.Run(async () =>
         {
             try
             {
-                var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve, GetRankForSlugResolve);
+                // getRankForSlug is no longer passed; messages don't include live rank links/text.
+                var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
                 await _slack.SendAsync(text);
             }
             catch { }

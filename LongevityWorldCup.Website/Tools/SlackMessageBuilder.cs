@@ -14,7 +14,7 @@ public static class SlackMessageBuilder
         var (slug, rank, prev) = ParseTokens(rawText);
         return type switch
         {
-            EventType.NewRank => BuildNewRank(slug, rank, prev, slugToName, getRankForSlug),
+            EventType.NewRank => BuildNewRank(slug, rank, prev, slugToName),
             EventType.Joined  => BuildJoined(slug, slugToName),
             _                 => Escape(rawText)
         };
@@ -44,51 +44,44 @@ public static class SlackMessageBuilder
         string? slug,
         int? rank,
         string? prev,
-        Func<string, string> slugToName,
-        Func<string, int?>? getRankForSlug)
+        Func<string, string> slugToName)
     {
         if (slug is null || !rank.HasValue) return Escape($"rank update: {slug} -> {rank}");
 
         var currName = slugToName(slug);
         var currNameLink = Link(AthleteUrl(slug), currName);
-        var currRankLink = Link(RankUrl(rank.Value), $"#{rank.Value}");
-        var currPair = $"{currNameLink} ({currRankLink})";
         var ord = Ordinal(rank.Value);
 
         if (prev is null)
         {
             return Pick(
-                $"{currPair} is now {ord}.",
-                $"{currPair} takes {ord} place.",
-                $"{currPair} climbs to {ord}.",
-                $"{currPair} moves up to {ord}.",
-                $"{currPair} rises to {ord}.",
-                $"{currPair} ascends to {ord}.",
-                $"{currPair} secures {ord}.",
-                $"{currPair} locks in {ord}.",
-                $"{currPair} vaults to {ord}.",
-                $"{currPair} jumps to {ord}."
+                $"{currNameLink} is now {ord}.",
+                $"{currNameLink} takes {ord} place.",
+                $"{currNameLink} climbs to {ord}.",
+                $"{currNameLink} moves up to {ord}.",
+                $"{currNameLink} rises to {ord}.",
+                $"{currNameLink} ascends to {ord}.",
+                $"{currNameLink} secures {ord}.",
+                $"{currNameLink} locks in {ord}.",
+                $"{currNameLink} vaults to {ord}.",
+                $"{currNameLink} jumps to {ord}."
             );
         }
 
         var prevName = slugToName(prev);
         var prevNameLink = Link(AthleteUrl(prev), prevName);
-        int? prevRank = getRankForSlug?.Invoke(prev);
-        if (!prevRank.HasValue) prevRank = rank.Value + 1;
-        var prevRankLink = prevRank.HasValue ? Link(RankUrl(prevRank.Value), $"#{prevRank.Value}") : null;
-        var prevPair = prevRankLink is null ? prevNameLink : $"{prevNameLink} ({prevRankLink})";
 
         return Pick(
-            $"{currPair} took {ord} from {prevPair}.",
-            $"{currPair} grabs {ord} from {prevPair}.",
-            $"{currPair} overtakes {prevPair} for {ord}.",
-            $"{currPair} edges past {prevPair} into {ord}.",
-            $"{currPair} passes {prevPair} for {ord}.",
-            $"{currPair} displaces {prevPair} at {ord}.",
-            $"{currPair} leaps ahead of {prevPair} to {ord}.",
-            $"{currPair} snatches {ord} from {prevPair}.",
-            $"{currPair} nudges ahead of {prevPair} for {ord}.",
-            $"{currPair} outpaces {prevPair} for {ord}."
+            $"{currNameLink} took {ord} from {prevNameLink}.",
+            $"{currNameLink} grabs {ord} from {prevNameLink}.",
+            $"{currNameLink} overtakes {prevNameLink} for {ord}.",
+            $"{currNameLink} edges past {prevNameLink} into {ord}.",
+            $"{currNameLink} passes {prevNameLink} for {ord}.",
+            $"{currNameLink} displaces {prevNameLink} at {ord}.",
+            $"{currNameLink} leaps ahead of {prevNameLink} to {ord}.",
+            $"{currNameLink} snatches {ord} from {prevNameLink}.",
+            $"{currNameLink} nudges ahead of {prevNameLink} for {ord}.",
+            $"{currNameLink} outpaces {prevNameLink} for {ord}."
         );
     }
 
@@ -112,9 +105,6 @@ public static class SlackMessageBuilder
 
     private static string AthleteUrl(string slug) =>
         $"https://longevityworldcup.com/athlete/{slug.Replace('_', '-')}";
-
-    private static string RankUrl(int rank) =>
-        $"https://longevityworldcup.com/leaderboard/leaderboard.html#rank-{rank}";
 
     private static string Link(string url, string text) => $"<{url}|{Escape(text)}>";
     private static string Escape(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
