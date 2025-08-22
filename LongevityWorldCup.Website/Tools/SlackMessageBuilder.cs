@@ -25,7 +25,19 @@ public static class SlackMessageBuilder
         if (slug is null) return "A new athlete joined the leaderboard.";
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
-        return $"{nameLink} joined the leaderboard.";
+
+        return Pick(
+            $"{nameLink} joined the leaderboard.",
+            $"Welcome {nameLink} to the leaderboard!",
+            $"New contender: {nameLink} just joined the leaderboard.",
+            $"{nameLink} has entered the leaderboard.",
+            $"Say hi to {nameLink} — new on the leaderboard.",
+            $"{nameLink} steps onto the leaderboard.",
+            $"{nameLink} appears on the leaderboard.",
+            $"{nameLink} is now on the leaderboard.",
+            $"{nameLink} just made the leaderboard.",
+            $"A warm welcome to {nameLink} on the leaderboard!"
+        );
     }
 
     private static string BuildNewRank(
@@ -40,20 +52,44 @@ public static class SlackMessageBuilder
         var currName = slugToName(slug);
         var currNameLink = Link(AthleteUrl(slug), currName);
         var currRankLink = Link(RankUrl(rank.Value), $"#{rank.Value}");
-        var currSegment = $"{currNameLink} ({currRankLink})";
+        var currPair = $"{currNameLink} ({currRankLink})";
+        var ord = Ordinal(rank.Value);
 
-        if (prev is null) return $"{currSegment} is now {Ordinal(rank.Value)}.";
+        if (prev is null)
+        {
+            return Pick(
+                $"{currPair} is now {ord}.",
+                $"{currPair} takes {ord} place.",
+                $"{currPair} climbs to {ord}.",
+                $"{currPair} moves up to {ord}.",
+                $"{currPair} rises to {ord}.",
+                $"{currPair} ascends to {ord}.",
+                $"{currPair} secures {ord}.",
+                $"{currPair} locks in {ord}.",
+                $"{currPair} vaults to {ord}.",
+                $"{currPair} jumps to {ord}."
+            );
+        }
 
         var prevName = slugToName(prev);
         var prevNameLink = Link(AthleteUrl(prev), prevName);
-
         int? prevRank = getRankForSlug?.Invoke(prev);
         if (!prevRank.HasValue) prevRank = rank.Value + 1;
+        var prevRankLink = prevRank.HasValue ? Link(RankUrl(prevRank.Value), $"#{prevRank.Value}") : null;
+        var prevPair = prevRankLink is null ? prevNameLink : $"{prevNameLink} ({prevRankLink})";
 
-        var prevRankText = prevRank.HasValue ? $"({Link(RankUrl(prevRank.Value), $"#{prevRank.Value}")})" : "";
-        var prevSegment = $"{prevNameLink} {prevRankText}".TrimEnd();
-
-        return $"{currSegment} took {Ordinal(rank.Value)} place from {prevSegment}.";
+        return Pick(
+            $"{currPair} took {ord} from {prevPair}.",
+            $"{currPair} grabs {ord} from {prevPair}.",
+            $"{currPair} overtakes {prevPair} for {ord}.",
+            $"{currPair} edges past {prevPair} into {ord}.",
+            $"{currPair} passes {prevPair} for {ord}.",
+            $"{currPair} displaces {prevPair} at {ord}.",
+            $"{currPair} leaps ahead of {prevPair} to {ord}.",
+            $"{currPair} snatches {ord} from {prevPair}.",
+            $"{currPair} nudges ahead of {prevPair} for {ord}.",
+            $"{currPair} outpaces {prevPair} for {ord}."
+        );
     }
 
     private static (string? slug, int? rank, string? prev) ParseTokens(string text)
@@ -88,4 +124,7 @@ public static class SlackMessageBuilder
         if (n % 100 is 11 or 12 or 13) return $"{n}th";
         return (n % 10) switch { 1 => $"{n}st", 2 => $"{n}nd", 3 => $"{n}rd", _ => $"{n}th" };
     }
+
+    private static string Pick(params string[] options) =>
+        options.Length == 0 ? "" : options[Random.Shared.Next(options.Length)];
 }
