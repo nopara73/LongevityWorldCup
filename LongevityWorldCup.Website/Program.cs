@@ -34,6 +34,10 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
+            
+            var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
+            builder.Services.AddSingleton(appConfig);
+            builder.Services.AddHttpClient<SlackWebhookClient>();
 
             builder.Services.AddQuartz(q =>
             {
