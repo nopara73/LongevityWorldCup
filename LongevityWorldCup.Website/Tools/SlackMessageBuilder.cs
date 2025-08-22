@@ -22,21 +22,21 @@ public static class SlackMessageBuilder
 
     private static string BuildJoined(string? slug, Func<string, string> slugToName)
     {
-        if (slug is null) return "A new athlete joined the leaderboard.";
+        if (slug is null) return "A new athlete joined the leaderboard";
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
 
         return Pick(
-            $"{nameLink} joined the leaderboard.",
-            $"Welcome {nameLink} to the leaderboard!",
-            $"New contender: {nameLink} just joined the leaderboard.",
-            $"{nameLink} has entered the leaderboard.",
-            $"Say hi to {nameLink} — new on the leaderboard.",
-            $"{nameLink} steps onto the leaderboard.",
-            $"{nameLink} appears on the leaderboard.",
-            $"{nameLink} is now on the leaderboard.",
-            $"{nameLink} just made the leaderboard.",
-            $"A warm welcome to {nameLink} on the leaderboard!"
+            $"{nameLink} joined the leaderboard",
+            $"Welcome {nameLink} to the leaderboard",
+            $"New contender: {nameLink} just joined the leaderboard",
+            $"{nameLink} has entered the leaderboard",
+            $"Say hi to {nameLink} — new on the leaderboard",
+            $"{nameLink} steps onto the leaderboard",
+            $"{nameLink} appears on the leaderboard",
+            $"{nameLink} is now on the leaderboard",
+            $"{nameLink} just made the leaderboard",
+            $"A warm welcome to {nameLink} on the leaderboard"
         );
     }
 
@@ -51,20 +51,21 @@ public static class SlackMessageBuilder
         var currName = slugToName(slug);
         var currNameLink = Link(AthleteUrl(slug), currName);
         var ord = Ordinal(rank.Value);
+        var medal = MedalOrTrend(rank.Value);
 
         if (prev is null)
         {
             return Pick(
-                $"{currNameLink} is now {ord}.",
-                $"{currNameLink} takes {ord} place.",
-                $"{currNameLink} climbs to {ord}.",
-                $"{currNameLink} moves up to {ord}.",
-                $"{currNameLink} rises to {ord}.",
-                $"{currNameLink} ascends to {ord}.",
-                $"{currNameLink} secures {ord}.",
-                $"{currNameLink} locks in {ord}.",
-                $"{currNameLink} vaults to {ord}.",
-                $"{currNameLink} jumps to {ord}."
+                $"{currNameLink} is now {ord}{medal}",
+                $"{currNameLink} takes {ord} place{medal}",
+                $"{currNameLink} climbs to {ord}{medal}",
+                $"{currNameLink} moves up to {ord}{medal}",
+                $"{currNameLink} rises to {ord}{medal}",
+                $"{currNameLink} ascends to {ord}{medal}",
+                $"{currNameLink} secures {ord}{medal}",
+                $"{currNameLink} locks in {ord}{medal}",
+                $"{currNameLink} vaults to {ord}{medal}",
+                $"{currNameLink} jumps to {ord}{medal}"
             );
         }
 
@@ -72,16 +73,16 @@ public static class SlackMessageBuilder
         var prevNameLink = Link(AthleteUrl(prev), prevName);
 
         return Pick(
-            $"{currNameLink} took {ord} from {prevNameLink}.",
-            $"{currNameLink} grabs {ord} from {prevNameLink}.",
-            $"{currNameLink} overtakes {prevNameLink} for {ord}.",
-            $"{currNameLink} edges past {prevNameLink} into {ord}.",
-            $"{currNameLink} passes {prevNameLink} for {ord}.",
-            $"{currNameLink} displaces {prevNameLink} at {ord}.",
-            $"{currNameLink} leaps ahead of {prevNameLink} to {ord}.",
-            $"{currNameLink} snatches {ord} from {prevNameLink}.",
-            $"{currNameLink} nudges ahead of {prevNameLink} for {ord}.",
-            $"{currNameLink} outpaces {prevNameLink} for {ord}."
+            $"{currNameLink} took {ord} from {prevNameLink}{medal}",
+            $"{currNameLink} grabs {ord} from {prevNameLink}{medal}",
+            $"{currNameLink} overtakes {prevNameLink} for {ord}{medal}",
+            $"{currNameLink} edges past {prevNameLink} into {ord}{medal}",
+            $"{currNameLink} passes {prevNameLink} for {ord}{medal}",
+            $"{currNameLink} displaces {prevNameLink} at {ord}{medal}",
+            $"{currNameLink} leaps ahead of {prevNameLink} to {ord}{medal}",
+            $"{currNameLink} snatches {ord} from {prevNameLink}{medal}",
+            $"{currNameLink} nudges ahead of {prevNameLink} for {ord}{medal}",
+            $"{currNameLink} outpaces {prevNameLink} for {ord}{medal}"
         );
     }
 
@@ -114,6 +115,9 @@ public static class SlackMessageBuilder
         if (n % 100 is 11 or 12 or 13) return $"{n}th";
         return (n % 10) switch { 1 => $"{n}st", 2 => $"{n}nd", 3 => $"{n}rd", _ => $"{n}th" };
     }
+
+    private static string MedalOrTrend(int n) =>
+        n switch { 1 => " 🥇", 2 => " 🥈", 3 => " 🥉", _ => "" };
 
     private static string Pick(params string[] options) =>
         options.Length == 0 ? "" : options[Random.Shared.Next(options.Length)];
