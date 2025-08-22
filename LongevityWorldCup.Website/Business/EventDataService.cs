@@ -20,6 +20,7 @@ public enum EventType
 {
     General = 0,
     Joined = 1,
+    NewRank = 2,
 }
 
 public sealed class EventDataService : IDisposable
@@ -68,9 +69,9 @@ public sealed class EventDataService : IDisposable
     }
 
     public void CreateJoinedEventsForAthletes(
-        IEnumerable<(string AthleteSlug, DateTime JoinedAtUtc)> athletes,
-        bool skipIfExists = true,
-        double defaultRelevance = 0)
+    IEnumerable<(string AthleteSlug, DateTime JoinedAtUtc, int? CurrentRank)> athletes,
+    bool skipIfExists = true,
+    double defaultRelevance = 0)
     {
         if (athletes is null) throw new ArgumentNullException(nameof(athletes));
 
@@ -96,31 +97,53 @@ public sealed class EventDataService : IDisposable
             var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
             var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
-            foreach (var (slug, joinedAtUtc) in athletes)
+            foreach (var (slug, joinedAtUtc, currentRank) in athletes)
             {
                 if (string.IsNullOrWhiteSpace(slug))
                     continue;
 
-                // Store slug token so frontend can resolve name/link: slug[XXXXX]
-                var text = $"slug[{slug}]";
+                var occurredAt = EnsureUtc(joinedAtUtc).ToString("o");
+                var joinedText = $"slug[{slug}]";
 
+                var insertJoined = true;
                 if (skipIfExists)
                 {
                     exType.Value = (int)EventType.Joined;
-                    exText.Value = text;
-                    var exists = existsCmd.ExecuteScalar();
-                    if (exists != null)
-                        continue;
+                    exText.Value = joinedText;
+                    insertJoined = existsCmd.ExecuteScalar() == null;
+                }
+                if (insertJoined)
+                {
+                    pId.Value = Guid.NewGuid().ToString("N");
+                    pType.Value = (int)EventType.Joined;
+                    pText.Value = joinedText;
+                    pOcc.Value = occurredAt;
+                    pRel.Value = defaultRelevance;
+                    insertCmd.ExecuteNonQuery();
+                    created++;
                 }
 
-                pId.Value = Guid.NewGuid().ToString("N");
-                pType.Value = (int)EventType.Joined;
-                pText.Value = text;
-                pOcc.Value = EnsureUtc(joinedAtUtc).ToString("o");
-                pRel.Value = defaultRelevance;
-
-                insertCmd.ExecuteNonQuery();
-                created++;
+                if (currentRank.HasValue)
+                {
+                    var rankText = $"slug[{slug}] rank[{currentRank.Value}]";
+                    var insertRank = true;
+                    if (skipIfExists)
+                    {
+                        exType.Value = (int)EventType.NewRank;
+                        exText.Value = rankText;
+                        insertRank = existsCmd.ExecuteScalar() == null;
+                    }
+                    if (insertRank)
+                    {
+                        pId.Value = Guid.NewGuid().ToString("N");
+                        pType.Value = (int)EventType.NewRank;
+                        pText.Value = rankText;
+                        pOcc.Value = occurredAt;
+                        pRel.Value = defaultRelevance;
+                        insertCmd.ExecuteNonQuery();
+                        created++;
+                    }
+                }
             }
 
             tx.Commit();
@@ -129,6 +152,7 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
             ReloadIntoCache();
     }
+
 
     public EventItem AddEvent(EventType type, string text, DateTime occurredAtUtc, double relevance = 0)
     {
