@@ -30,19 +30,4 @@ public class SlackWebhookClient
         var res = await _http.SendAsync(req);
         res.EnsureSuccessStatusCode();
     }
-
-    public async Task SendBlocksAsync(object[] blocks, string? fallbackText = null)
-    {
-        if (string.IsNullOrWhiteSpace(_webhookUrl))
-        {
-            _log.LogError("Slack webhook URL is not configured. Skipping blocks message.");
-            return;
-        }
-
-        var payload = JsonSerializer.Serialize(new { text = fallbackText, blocks });
-        using var req = new HttpRequestMessage(HttpMethod.Post, _webhookUrl);
-        req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
-        var res = await _http.SendAsync(req);
-        res.EnsureSuccessStatusCode();
-    }
 }

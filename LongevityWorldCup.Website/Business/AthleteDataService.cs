@@ -169,6 +169,8 @@ public class AthleteDataService : IDisposable
                     HydratePlacementsIntoAthletesJson();
                     HydrateNewFlagsIntoAthletesJson();
                     HydratePlacementsIntoAthletesJson();
+                    HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+                    PushAthleteDirectoryToEvents();
                 }
             }
         });
@@ -182,6 +184,8 @@ public class AthleteDataService : IDisposable
                 await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
             }
         });
+
+        PushAthleteDirectoryToEvents();
     }
 
     public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
@@ -316,6 +320,7 @@ public class AthleteDataService : IDisposable
 
             // Compare against DB snapshot and emit rank-ups (athletes can only move up or hold)
             DetectAndEmitRankUpsAgainstDb(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+            PushAthleteDirectoryToEvents();
         }
         finally
         {
@@ -410,6 +415,8 @@ public class AthleteDataService : IDisposable
                 athleteJson["CrowdAge"] = median;
             }
         }
+
+        PushAthleteDirectoryToEvents();
     }
 
     /// <summary>
@@ -681,6 +688,8 @@ public class AthleteDataService : IDisposable
             foreach (var v in placements) arr.Add(v is int x ? JsonValue.Create(x) : null);
             athleteJson["Placements"] = arr;
         }
+
+        PushAthleteDirectoryToEvents();
     }
 
     public void UpdatePlacements(string athleteSlug, int? yesterday = null, int? weekly = null, int? monthly = null, int? yearly = null)
@@ -973,4 +982,19 @@ public class AthleteDataService : IDisposable
         PersistCurrentPlacementsSnapshot(afterAll);
     }
 
+    private void PushAthleteDirectoryToEvents()
+    {
+        var list = new List<(string Slug, string Name, int? CurrentRank)>();
+        foreach (var o in Athletes.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            var name = o["Name"]?.GetValue<string>() ?? "";
+            int? rank = null;
+            var rp = o["CurrentPlacement"];
+            if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
+            list.Add((slug, name, rank));
+        }
+        _eventDataService.SetAthleteDirectory(list);
+    }
 }

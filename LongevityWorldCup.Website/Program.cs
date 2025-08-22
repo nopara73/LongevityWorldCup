@@ -31,7 +31,7 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
-
+            
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
             
