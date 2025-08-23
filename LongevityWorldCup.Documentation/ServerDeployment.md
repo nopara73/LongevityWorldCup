@@ -46,6 +46,33 @@ sqlite3 LongevityWorldCup.db "SELECT * FROM Athletes WHERE Key = 'your_key_here'
 sqlite3 LongevityWorldCup.db "DELETE FROM Athletes WHERE Key = 'your_key_here';"
 ```
 
+## Events
+
+### All events
+```sh
+sqlite3 LongevityWorldCup.db "SELECT * FROM Events ORDER BY OccurredAt DESC;"
+```
+
+### All Joined events
+```sh
+sqlite3 LongevityWorldCup.db "SELECT * FROM Events WHERE Type=1 ORDER BY OccurredAt DESC;"
+```
+
+### All New Rank events
+```sh
+sqlite3 LongevityWorldCup.db "SELECT * FROM Events WHERE Type=2 ORDER BY OccurredAt DESC;"
+```
+
+### Delete all events related to a specific slug
+```sh
+printf "Enter slug: " && read -r SLUG && sqlite3 LongevityWorldCup.db "DELETE FROM Events WHERE instr(Text,'slug['||'$SLUG'||']')>0 OR instr(Text,'prev['||'$SLUG'||']')>0;"
+```
+
+## Delete Test Athlete
+```sh
+printf "Enter slug: " && read -r SLUG && sqlite3 LongevityWorldCup.db "BEGIN; DELETE FROM Events WHERE instr(Text,'slug['||'$SLUG'||']')>0 OR instr(Text,'prev['||'$SLUG'||']')>0; DELETE FROM Athletes WHERE Key='$SLUG'; COMMIT;"
+```
+
 ## Subscriptions
 
 ### View
