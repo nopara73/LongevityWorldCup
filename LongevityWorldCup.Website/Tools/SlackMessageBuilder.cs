@@ -15,8 +15,7 @@ public static class SlackMessageBuilder
         return type switch
         {
             EventType.NewRank => BuildNewRank(slug, rank, prev, slugToName),
-            EventType.Joined  => BuildJoined(slug, slugToName),
-            _                 => Escape(rawText)
+            _ => Escape(rawText)
         };
     }
 
@@ -108,6 +107,7 @@ public static class SlackMessageBuilder
         $"https://longevityworldcup.com/athlete/{slug.Replace('_', '-')}";
 
     private static string Link(string url, string text) => $"<{url}|{Escape(text)}>";
+
     private static string Escape(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 
     private static string Ordinal(int n)
