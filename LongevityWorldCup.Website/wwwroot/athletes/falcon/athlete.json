@@ -1,0 +1,27 @@
+{
+  "Name": "Falcon",
+  "MediaContact": "https://www.linkedin.com/in/juan-falcon/",
+  "DateOfBirth": {
+    "Year": 2001,
+    "Month": 5,
+    "Day": 8
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-23",
+      "AlbGL": 50,
+      "CreatUmolL": 81.41592920353983,
+      "GluMmolL": 5.439609236234459,
+      "CrpMgL": 0.2,
+      "LymPc": 41,
+      "McvFL": 91.5,
+      "RdwPc": 12.1,
+      "AlpUL": 44,
+      "Wbc1000cellsuL": 4.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Puerto Rico",
+  "Why": "Feeling the best I possibly can to impact all other areas of my life positively.",
+  "PersonalLink": "https://www.linkedin.com/in/juan-falcon/"
+}
