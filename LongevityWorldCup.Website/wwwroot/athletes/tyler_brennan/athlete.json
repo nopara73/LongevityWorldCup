@@ -1,0 +1,27 @@
+{
+  "Name": "Tyler Brennan",
+  "MediaContact": "Tbren100@gmail.com",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 11,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-03",
+      "AlbGL": 47.99999999999999,
+      "CreatUmolL": 118.5840707964602,
+      "GluMmolL": 5.051065719360569,
+      "CrpMgL": 0.22999999999999998,
+      "LymPc": 36,
+      "McvFL": 93,
+      "RdwPc": 12.4,
+      "AlpUL": 79,
+      "Wbc1000cellsuL": 4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Living a long, happy, healthy life!",
+  "PersonalLink": null
+}

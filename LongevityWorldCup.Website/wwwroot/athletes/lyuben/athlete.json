@@ -1,0 +1,27 @@
+{
+  "Name": "Lyuben",
+  "MediaContact": "lyuben.ivanov@icloud.com",
+  "DateOfBirth": {
+    "Year": 1983,
+    "Month": 6,
+    "Day": 27
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-1",
+      "AlbGL": 48,
+      "CreatUmolL": 105,
+      "GluMmolL": 4.52,
+      "CrpMgL": 0.6,
+      "LymPc": 38.8,
+      "McvFL": 90.1,
+      "RdwPc": 12,
+      "AlpUL": 78,
+      "Wbc1000cellsuL": 4.17
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Bulgaria",
+  "Why": "To be independent at old age and watch the wonders of progress as long as possible.",
+  "PersonalLink": null
+}
