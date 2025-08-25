@@ -15,6 +15,7 @@ public static class SlackMessageBuilder
         return type switch
         {
             EventType.NewRank => BuildNewRank(slug, rank, prev, slugToName),
+            EventType.Joined => BuildJoined(slug, slugToName),
             _ => Escape(rawText)
         };
     }
