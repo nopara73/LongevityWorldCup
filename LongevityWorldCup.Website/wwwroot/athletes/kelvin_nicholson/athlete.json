@@ -1,0 +1,27 @@
+{
+  "Name": "Kelvin Nicholson",
+  "MediaContact": "kelvin@kelvinism.com",
+  "DateOfBirth": {
+    "Year": 1983,
+    "Month": 2,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-22",
+      "AlbGL": 40,
+      "CreatUmolL": 81,
+      "GluMmolL": 5.1,
+      "CrpMgL": 0.7,
+      "LymPc": 44,
+      "McvFL": 95,
+      "RdwPc": 12.8,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 4.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Australia",
+  "Why": "Spending life with those that I love.",
+  "PersonalLink": "https://www.kelvinism.com/"
+}
