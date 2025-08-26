@@ -501,7 +501,7 @@
 
         .top-rockets .rocket-icon:nth-child(2) {
             animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.2s; 
+            animation-delay: 0.2s;
         }
 
         .top-rockets .rocket-icon:nth-child(3) {
@@ -524,11 +524,15 @@
             animation-delay: 0.6s;
         }
 
-        .events-board { margin-bottom: 28px !important; }
-        @media (min-width: 992px) {
-            .events-board { margin-bottom: 36px !important; }
+        .events-board {
+            margin-bottom: 28px !important;
         }
-        
+
+        @media (min-width: 992px) {
+            .events-board {
+                margin-bottom: 36px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -633,19 +637,19 @@
     <script>
         window.bitcoinDonationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
 
-        if(!window.callScoped){
-            window.callScoped=function(root,fn){
-                var r=typeof root==='string'?document.getElementById(root):root; if(!r)return;
-                var g1=document.getElementById, g2=document.querySelector, g3=document.querySelectorAll;
-                document.getElementById=function(id){return r.querySelector('#'+(window.CSS&&CSS.escape?CSS.escape(id):id))}
-                document.querySelector=function(sel){return r.querySelector(sel)}
-                document.querySelectorAll=function(sel){return r.querySelectorAll(sel)}
-                try{ fn() } finally { document.getElementById=g1; document.querySelector=g2; document.querySelectorAll=g3 }
+        if (!window.callScoped) {
+            window.callScoped = function (root, fn) {
+                var r = typeof root === 'string' ? document.getElementById(root) : root; if (!r) return;
+                var g1 = document.getElementById, g2 = document.querySelector, g3 = document.querySelectorAll;
+                document.getElementById = function (id) { return r.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(id) : id)) }
+                document.querySelector = function (sel) { return r.querySelector(sel) }
+                document.querySelectorAll = function (sel) { return r.querySelectorAll(sel) }
+                try { fn() } finally { document.getElementById = g1; document.querySelector = g2; document.querySelectorAll = g3 }
             }
         }
-        
+
         document.addEventListener('DOMContentLoaded', function () {
-            callScoped('events-root-index', function(){ loadEventsTable(5, true); });
+            callScoped('events-root-index', function () { loadEventsTable(5, true); });
             LoadLeaderboard(true, 10);
         });
 
@@ -841,7 +845,7 @@
         // Countdown Timer Script
         (function () {
             const now = new Date();
-            const targetDate = new Date(2025, 8, 16, 0, 0, 0).getTime(); // September 16, 2025
+            const targetDate = new Date(2025, 8, 16, 0, 0, 0).getTime();
             const countdownElement = document.getElementById('countdown');
             const leaderboardButton = document.getElementById('viewAllAthletesBtn'); // Example element
             const leaderboardContent = document.querySelector('.leaderboard-content'); // Replace with actual leaderboard container class or id
@@ -865,19 +869,19 @@
                     // Countdown has finished
                     clearInterval(countdownInterval);
                     countdownElement.innerHTML = `
-                          <div class="launch-announcement">
-                            <div class="rocket-row top-rockets">
-                              <i class="fas fa-rocket rocket-icon rocket-top-1"></i>
-                              <i class="fas fa-rocket rocket-icon rocket-top-2"></i>
-                              <i class="fas fa-rocket rocket-icon rocket-top-3"></i>
-                            </div>
-                            <span class="launch-text">The competition has just STARTED</span>
-                            <div class="rocket-row bottom-rockets">
-                              <i class="fas fa-rocket rocket-icon rocket-bottom-1"></i>
-                              <i class="fas fa-rocket rocket-icon rocket-bottom-2"></i>
-                              <i class="fas fa-rocket rocket-icon rocket-bottom-3"></i>
-                            </div>
-                          </div>
+                                      <div class="launch-announcement">
+                                        <div class="rocket-row top-rockets">
+                                          <i class="fas fa-rocket rocket-icon rocket-top-1"></i>
+                                          <i class="fas fa-rocket rocket-icon rocket-top-2"></i>
+                                          <i class="fas fa-rocket rocket-icon rocket-top-3"></i>
+                                        </div>
+                                        <span class="launch-text">The competition has just STARTED</span>
+                                        <div class="rocket-row bottom-rockets">
+                                          <i class="fas fa-rocket rocket-icon rocket-bottom-1"></i>
+                                          <i class="fas fa-rocket rocket-icon rocket-bottom-2"></i>
+                                          <i class="fas fa-rocket rocket-icon rocket-bottom-3"></i>
+                                        </div>
+                                      </div>
 `;
 
                     setTimeout(() => {
@@ -896,14 +900,9 @@
                 }
 
                 // Time calculations for months, days, hours, minutes, and seconds
-                const nowDate = new Date();
-                const targetDateObj = new Date(targetDate);
-
-                const months =
-                    targetDateObj.getFullYear() * 12 +
-                    targetDateObj.getMonth() -
-                    (nowDate.getFullYear() * 12 + nowDate.getMonth());
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24)) % 30; // Approximate days excluding full months
+                const totalDays = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const months = Math.floor(totalDays / 30);   // 0 when < 30 days
+                const days = totalDays % 30;
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
