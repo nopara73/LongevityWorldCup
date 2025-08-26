@@ -1,0 +1,27 @@
+{
+  "Name": "Liina",
+  "MediaContact": "https://www.instagram.com/liinakumm_peakhealth/",
+  "DateOfBirth": {
+    "Year": 1985,
+    "Month": 1,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-25",
+      "AlbGL": 42.99999999999999,
+      "CreatUmolL": 61,
+      "GluMmolL": 4.8,
+      "CrpMgL": 0.4,
+      "LymPc": 35.5,
+      "McvFL": 88.1,
+      "RdwPc": 12.9,
+      "AlpUL": 57,
+      "Wbc1000cellsuL": 4
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "nature",
+  "Why": "Feeling strong and capable of doing any physical or mental activity I want.",
+  "PersonalLink": "https://www.instagram.com/liinakumm_peakhealth/"
+}
