@@ -1,0 +1,27 @@
+{
+  "Name": "deelicious",
+  "MediaContact": "i_am_deedee@hotmail.com",
+  "DateOfBirth": {
+    "Year": 1995,
+    "Month": 2,
+    "Day": 6
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-08",
+      "AlbGL": 47,
+      "CreatUmolL": 50,
+      "GluMmolL": 4.5,
+      "CrpMgL": 0.4,
+      "LymPc": 48,
+      "McvFL": 87,
+      "RdwPc": 12.3,
+      "AlpUL": 59,
+      "Wbc1000cellsuL": 4.5
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Australia",
+  "Why": "living a long time with people i love.",
+  "PersonalLink": null
+}
