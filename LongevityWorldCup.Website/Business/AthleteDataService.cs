@@ -14,7 +14,9 @@ public class AthleteDataService : IDisposable
 
     // NEW: rolling window for new-athlete detection (currently ~1 month)
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
-        
+
+    private const double RankEventScoreEpsilon = 0.0001;
+
     public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
 
     private readonly IWebHostEnvironment _env;
@@ -35,7 +37,6 @@ public class AthleteDataService : IDisposable
     private readonly string _athletesRootDir;
     private readonly object _pendingLock = new();
     private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
-
 
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
     {
@@ -70,6 +71,7 @@ public class AthleteDataService : IDisposable
             using var r = cmd.ExecuteReader();
             var hasPlacements = false;
             var hasCurrentPlacement = false;
+            var hasLastAgeDiff = false;
             while (r.Read())
             {
                 var colName = r.GetString(1);
@@ -77,7 +79,10 @@ public class AthleteDataService : IDisposable
                     hasPlacements = true;
                 if (string.Equals(colName, "CurrentPlacement", StringComparison.OrdinalIgnoreCase))
                     hasCurrentPlacement = true;
+                if (string.Equals(colName, "LastAgeDiff", StringComparison.OrdinalIgnoreCase))
+                    hasLastAgeDiff = true;
             }
+
             if (!hasPlacements)
             {
                 using var alter = _sqliteConnection.CreateCommand();
@@ -94,13 +99,19 @@ public class AthleteDataService : IDisposable
                 alter2.CommandText = "ALTER TABLE Athletes ADD COLUMN CurrentPlacement INTEGER NULL;";
                 alter2.ExecuteNonQuery();
             }
+            if (!hasLastAgeDiff)
+            {
+                using var alter3 = _sqliteConnection.CreateCommand();
+                alter3.CommandText = "ALTER TABLE Athletes ADD COLUMN LastAgeDiff REAL NULL;";
+                alter3.ExecuteNonQuery();
+            }
         }
 
         // Initial load
         LoadAthletesAsync().GetAwaiter().GetResult();
-        
+
         var newlyJoined = EnsureDbRowsForNewAthletes();
-            
+
         // Finally, set JoinedAt=now for any that are still null
         if (newlyJoined.Count > 0)
         {
@@ -154,7 +165,7 @@ public class AthleteDataService : IDisposable
 
         // ⬇⬇⬇ Detect rank-ups on startup against the LAST persisted snapshot, then persist the new snapshot
         DetectAndEmitRankUpsAgainstDb(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
-        
+
         // Start a poll‐loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
         {
@@ -213,7 +224,7 @@ public class AthleteDataService : IDisposable
 
         return result;
     }
-        
+
     private async Task LoadAthletesAsync()
     {
         // Build up a JsonArray by reading every athlete.json under wwwroot/athletes
@@ -298,7 +309,7 @@ public class AthleteDataService : IDisposable
         try
         {
             await LoadAthletesAsync();
-        
+
             var newlyJoined = EnsureDbRowsForNewAthletes();
 
             ReloadCrowdStats();
@@ -531,7 +542,7 @@ public class AthleteDataService : IDisposable
 
         return age;
     }
-    
+
     public JsonArray GetRankingsOrder(DateTime? asOfUtc = null)
     {
         var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
@@ -715,7 +726,7 @@ public class AthleteDataService : IDisposable
             athleteJson["Placements"] = arr;
         }
     }
-        
+
     // NEW: compute IsNew from SQLite JoinedAt using the NewAthleteWindow
     private void HydrateNewFlagsIntoAthletesJson()
     {
@@ -754,7 +765,7 @@ public class AthleteDataService : IDisposable
             }
         }
     }
-    
+
     private void HydrateCurrentPlacementIntoAthletesJson()
     {
         var order = GetRankingsOrder();
@@ -813,9 +824,9 @@ public class AthleteDataService : IDisposable
         return newlyJoined;
     }
 
-    private Dictionary<string,int> BuildRankMap(int limit = int.MaxValue)
+    private Dictionary<string, int> BuildRankMap(int limit = int.MaxValue)
     {
-        var map = new Dictionary<string,int>(StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var order = GetRankingsOrder();
         for (int i = 0; i < order.Count && i < limit; i++)
         {
@@ -884,7 +895,42 @@ public class AthleteDataService : IDisposable
         return map;
     }
 
-    private void PersistCurrentPlacementsSnapshot(Dictionary<string, int> current)
+    private Dictionary<string, double?> LoadStoredLastAgeDifferences()
+    {
+        var map = new Dictionary<string, double?>(StringComparer.OrdinalIgnoreCase);
+        lock (_sqliteConnection)
+        {
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "SELECT Key, LastAgeDiff FROM Athletes";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var key = r.GetString(0);
+                double? val = r.IsDBNull(1) ? (double?)null : r.GetDouble(1);
+                map[key] = val;
+            }
+        }
+        return map;
+    }
+
+    private Dictionary<string, double> BuildAgeDiffMap()
+    {
+        var map = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        var order = GetRankingsOrder();
+        for (int i = 0; i < order.Count; i++)
+        {
+            if (order[i] is JsonObject o)
+            {
+                var slug = o["AthleteSlug"]?.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+                if (o["AgeDifference"] is JsonValue jv && jv.TryGetValue<double>(out var diff) && !double.IsNaN(diff) && !double.IsInfinity(diff))
+                    map[slug] = diff;
+            }
+        }
+        return map;
+    }
+
+    private void PersistCurrentPlacementsSnapshot(Dictionary<string, int> current, Dictionary<string, double> currentAgeDiffs)
     {
         lock (_sqliteConnection)
         {
@@ -898,16 +944,22 @@ public class AthleteDataService : IDisposable
             using (var upd = _sqliteConnection.CreateCommand())
             {
                 upd.Transaction = tx;
-                upd.CommandText = "UPDATE Athletes SET CurrentPlacement=@p WHERE Key=@k";
+                upd.CommandText = "UPDATE Athletes SET CurrentPlacement=@p, LastAgeDiff=@d WHERE Key=@k";
                 var pP = upd.Parameters.Add("@p", SqliteType.Integer);
+                var pD = upd.Parameters.Add("@d", SqliteType.Real);
                 var pK = upd.Parameters.Add("@k", SqliteType.Text);
                 foreach (var kv in current)
                 {
                     pP.Value = kv.Value;
                     pK.Value = kv.Key;
+                    if (currentAgeDiffs.TryGetValue(kv.Key, out var diff))
+                        pD.Value = diff;
+                    else
+                        pD.Value = DBNull.Value;
                     upd.ExecuteNonQuery();
                 }
             }
+
             tx.Commit();
         }
     }
@@ -928,12 +980,16 @@ public class AthleteDataService : IDisposable
         if (!hasAnyBaseline)
         {
             var initialSnapshot = BuildRankMap(); // full table
-            PersistCurrentPlacementsSnapshot(initialSnapshot);
+            var initialDiffs = BuildAgeDiffMap();
+            PersistCurrentPlacementsSnapshot(initialSnapshot, initialDiffs);
             return;
         }
 
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
                         ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var beforeDiffs = LoadStoredLastAgeDifferences();
+        var nowDiffs = BuildAgeDiffMap();
 
         // Build reverse map of the previous snapshot: rank -> slug
         var beforeByRank = new Dictionary<int, string>(capacity: before.Count);
@@ -964,15 +1020,21 @@ public class AthleteDataService : IDisposable
                 replacedSlug = prevHolder;
             }
 
-            if (!before.TryGetValue(slug, out var prev) || prev is null || prev > 10)
+            var scoreImproved =
+    beforeDiffs.TryGetValue(slug, out var prevDiffNullable) &&
+    prevDiffNullable.HasValue &&
+    nowDiffs.TryGetValue(slug, out var currDiff) &&
+    currDiff < prevDiffNullable.Value - RankEventScoreEpsilon;
+
+            if ((!before.TryGetValue(slug, out var prev) || prev is null || prev > 10))
             {
-                // newly entered top-10
-                changes.Add((slug, nowUtc, newRank, replacedSlug));
+                if (scoreImproved)
+                    changes.Add((slug, nowUtc, newRank, replacedSlug));
             }
             else if (newRank < prev.Value)
             {
-                // improved within top-10
-                changes.Add((slug, nowUtc, newRank, replacedSlug));
+                if (scoreImproved)
+                    changes.Add((slug, nowUtc, newRank, replacedSlug));
             }
         }
 
@@ -981,7 +1043,8 @@ public class AthleteDataService : IDisposable
 
         // Persist full snapshot AFTER emitting events
         var afterAll = BuildRankMap(); // full table
-        PersistCurrentPlacementsSnapshot(afterAll);
+        var afterDiffs = BuildAgeDiffMap();
+        PersistCurrentPlacementsSnapshot(afterAll, afterDiffs);
     }
 
     private void PushAthleteDirectoryToEvents()
