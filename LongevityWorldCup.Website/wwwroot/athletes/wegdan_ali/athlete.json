@@ -1,0 +1,27 @@
+{
+  "Name": "Wegdan Ali",
+  "MediaContact": "Shahad95asd@gmail.com",
+  "DateOfBirth": {
+    "Year": 1968,
+    "Month": 2,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-29",
+      "AlbGL": 40.99999999999999,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 6.327708703374778,
+      "CrpMgL": 1.4,
+      "LymPc": 25.6,
+      "McvFL": 80.8,
+      "RdwPc": 13.6,
+      "AlpUL": 111,
+      "Wbc1000cellsuL": 6.03
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Iraq",
+  "Why": "My son has been challenging me",
+  "PersonalLink": null
+}
