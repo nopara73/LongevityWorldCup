@@ -58,14 +58,10 @@ public static class SlackMessageBuilder
             return Pick(
                 $"{currNameLink} is now {ord}{medal}",
                 $"{currNameLink} takes {ord} place{medal}",
-                $"{currNameLink} climbs to {ord}{medal}",
-                $"{currNameLink} moves up to {ord}{medal}",
-                $"{currNameLink} rises to {ord}{medal}",
-                $"{currNameLink} ascends to {ord}{medal}",
                 $"{currNameLink} secures {ord}{medal}",
                 $"{currNameLink} locks in {ord}{medal}",
-                $"{currNameLink} vaults to {ord}{medal}",
-                $"{currNameLink} jumps to {ord}{medal}"
+                $"{currNameLink} claims {ord}{medal}",
+                $"{currNameLink} secures {ord} spot{medal}"
             );
         }
 
