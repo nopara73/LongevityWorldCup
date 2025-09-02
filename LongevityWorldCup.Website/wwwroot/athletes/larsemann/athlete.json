@@ -1,0 +1,27 @@
+{
+  "Name": "Larsemann",
+  "MediaContact": "www.instagram.com/larse_mann",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 10,
+    "Day": 18
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-29",
+      "AlbGL": 46.1,
+      "CreatUmolL": 79.6,
+      "GluMmolL": 3.55,
+      "CrpMgL": 0.6,
+      "LymPc": 52.2,
+      "McvFL": 87.1,
+      "RdwPc": 12.3,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 4.54
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Germany",
+  "Why": "Freedom, Independence, Adventures",
+  "PersonalLink": null
+}
