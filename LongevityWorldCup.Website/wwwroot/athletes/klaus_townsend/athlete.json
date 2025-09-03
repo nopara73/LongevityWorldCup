@@ -1,0 +1,27 @@
+{
+  "Name": "Klaus Townsend",
+  "MediaContact": "media@klaustownsend.com",
+  "DateOfBirth": {
+    "Year": 1986,
+    "Month": 7,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-13",
+      "AlbGL": 46,
+      "CreatUmolL": 78,
+      "GluMmolL": 4.9,
+      "CrpMgL": 1,
+      "LymPc": 32.69,
+      "McvFL": 90,
+      "RdwPc": 11.9,
+      "AlpUL": 90,
+      "Wbc1000cellsuL": 5.2
+    }
+  ],
+  "Division": "Open",
+  "Flag": "New Zealand",
+  "Why": "Getting as much quality time with my son as I can",
+  "PersonalLink": "https://www.klaustownsend.com"
+}
