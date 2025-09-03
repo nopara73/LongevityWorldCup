@@ -31,10 +31,10 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
-            
+
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
-            
+
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
             builder.Services.AddHttpClient<SlackWebhookClient>();
@@ -73,7 +73,7 @@ namespace LongevityWorldCup.Website
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 1 ?").InTimeZone(TimeZoneInfo.Utc)));
             });
             builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
-            
+
             // Add CORS policy
             builder.Services.AddCors(options =>
             {
@@ -112,6 +112,9 @@ namespace LongevityWorldCup.Website
 
             // Register the custom HTML injection middleware
             app.UseMiddleware<HtmlInjectionMiddleware>();
+
+            // Register the tracking parameter stripper middleware
+            app.UseMiddleware<TrackingParamStripperMiddleware>();
 
             // Enable default file serving (index.html) and static file serving
             app.UseDefaultFiles();  // Serve default files like index.html
