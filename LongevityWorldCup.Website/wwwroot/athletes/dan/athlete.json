@@ -1,0 +1,27 @@
+{
+  "Name": "Dan",
+  "MediaContact": "https://www.instagram.com/dan.gallagher_soyinka/",
+  "DateOfBirth": {
+    "Year": 1996,
+    "Month": 4,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-02",
+      "AlbGL": 46,
+      "CreatUmolL": 125,
+      "GluMmolL": 6,
+      "CrpMgL": 0.15,
+      "LymPc": 46.7,
+      "McvFL": 93.1,
+      "RdwPc": 13.8,
+      "AlpUL": 52,
+      "Wbc1000cellsuL": 3.9
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United Kingdom",
+  "Why": "I'm competitive. This is a competition. Therefore I compete.",
+  "PersonalLink": null
+}
