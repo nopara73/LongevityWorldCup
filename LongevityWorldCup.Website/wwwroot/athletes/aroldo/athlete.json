@@ -1,0 +1,27 @@
+{
+  "Name": "Aroldo",
+  "MediaContact": "https://www.instagram.com/lasereyestothemoon",
+  "DateOfBirth": {
+    "Year": 1982,
+    "Month": 11,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-03",
+      "AlbGL": 47.5,
+      "CreatUmolL": 90.26548672566372,
+      "GluMmolL": 5.044404973357016,
+      "CrpMgL": 0.25,
+      "LymPc": 33,
+      "McvFL": 92.7,
+      "RdwPc": 12.9,
+      "AlpUL": 70.7,
+      "Wbc1000cellsuL": 3.81
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Thailand",
+  "Why": "Freedom, peace of mind, connection with nature",
+  "PersonalLink": null
+}
