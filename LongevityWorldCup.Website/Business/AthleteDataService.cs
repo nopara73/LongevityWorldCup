@@ -1007,12 +1007,9 @@ public class AthleteDataService : IDisposable
 
         foreach (var kv in afterTop10)
         {
-            if (newcomers.Contains(kv.Key)) continue; // Joined path already handles initial rank event
-
             var slug = kv.Key;
-            var newRank = kv.Value; // 1..10
+            var newRank = kv.Value;
 
-            // Who previously held this exact rank (in the baseline)?
             string? replacedSlug = null;
             if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
                 !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
@@ -1020,11 +1017,18 @@ public class AthleteDataService : IDisposable
                 replacedSlug = prevHolder;
             }
 
+            if (newcomers.Contains(slug))
+            {
+                if (replacedSlug != null)
+                    changes.Add((slug, nowUtc, newRank, replacedSlug));
+                continue;
+            }
+
             var scoreImproved =
-    beforeDiffs.TryGetValue(slug, out var prevDiffNullable) &&
-    prevDiffNullable.HasValue &&
-    nowDiffs.TryGetValue(slug, out var currDiff) &&
-    currDiff < prevDiffNullable.Value - RankEventScoreEpsilon;
+                beforeDiffs.TryGetValue(slug, out var prevDiffNullable) &&
+                prevDiffNullable.HasValue &&
+                nowDiffs.TryGetValue(slug, out var currDiff) &&
+                currDiff < prevDiffNullable.Value - RankEventScoreEpsilon;
 
             if ((!before.TryGetValue(slug, out var prev) || prev is null || prev > 10))
             {
@@ -1037,6 +1041,7 @@ public class AthleteDataService : IDisposable
                     changes.Add((slug, nowUtc, newRank, replacedSlug));
             }
         }
+
 
         if (changes.Count > 0)
             _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
