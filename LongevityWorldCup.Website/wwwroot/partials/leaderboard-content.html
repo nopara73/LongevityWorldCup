@@ -2049,6 +2049,7 @@
     function getAthletelessURL() {
         const url = new URL(window.location.href.replace(/\/athlete\/[^/]+\/?$/, ''));
         url.searchParams.delete('athlete');
+        url.searchParams.delete('guessmyage');
         return url;
     }
 
