@@ -12,7 +12,7 @@ public class AthleteDataService : IDisposable
 {
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
 
-    // NEW: rolling window for new-athlete detection (currently ~1 month)
+    // rolling window for new-athlete detection (currently ~1 month)
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
 
     private const double RankEventScoreEpsilon = 0.0001;
@@ -66,7 +66,7 @@ public class AthleteDataService : IDisposable
             cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
             try { cmd.ExecuteNonQuery(); } catch { /* column already exists */ }
 
-            // Ensure Placements & CurrentPlacement columns exist
+            // Ensure Placements, CurrentPlacement, LastAgeDiff columns exist
             cmd.CommandText = "PRAGMA table_info(Athletes);";
             using var r = cmd.ExecuteReader();
             var hasPlacements = false;
@@ -130,16 +130,13 @@ public class AthleteDataService : IDisposable
         HydrateNewFlagsIntoAthletesJson();
         HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
 
-        // Watch the new per-athlete folders recursively
+        // Watch the per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
         _athletesRootDir = athletesDir;
         _athleteWatcher = new FileSystemWatcher(athletesDir)
         {
             IncludeSubdirectories = true,
-            // watch for changes to file‐names, directory‐names, and writes
-            NotifyFilter = NotifyFilters.FileName
-                           | NotifyFilters.DirectoryName
-                           | NotifyFilters.LastWrite,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
             Filter = "*.*"
         };
         _athleteWatcher.Changed += OnFsEvent;
@@ -152,25 +149,18 @@ public class AthleteDataService : IDisposable
         // Build payload with current rank for each newcomer (after CurrentPlacement is hydrated)
         if (newlyJoined.Count > 0)
         {
-            var payload = newlyJoined.Select(x =>
-            {
-                var slug = x.Athlete["AthleteSlug"]!.GetValue<string>();
-                int? rank = null;
-                var rp = x.Athlete["CurrentPlacement"];
-                if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
-                return (slug, x.JoinedAt, rank);
-            });
+            var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
             eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
         }
 
-        // ⬇⬇⬇ Detect rank-ups on startup against the LAST persisted snapshot, then persist the new snapshot
+        // Detect rank-ups for existing athletes against the last persisted snapshot, then persist
         DetectAndEmitRankUpsAgainstDb(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
 
-        // Start a poll‐loop to detect external DB writes and reload stats
+        // Poll-loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
         {
             var lastWrite = File.GetLastWriteTimeUtc(dbPath);
-            while (true)   // you could wire this to a CancellationToken if you like
+            while (true)
             {
                 await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
 
@@ -188,7 +178,7 @@ public class AthleteDataService : IDisposable
             }
         });
 
-        // kick off a daily backup + retention
+        // daily backup + retention
         _ = Task.Run(async () =>
         {
             while (true)
@@ -256,7 +246,7 @@ public class AthleteDataService : IDisposable
             athlete["IsNew"] = false;
 
             var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/michelle_franz-montan"
-            var folderName = Path.GetFileName(folder);             // e.g. "michelle_franz-montan"
+            var folderName = Path.GetFileName(folder);         // e.g. "michelle_franz-montan"
 
             // so we can look up this JsonObject later by slug
             athlete["AthleteSlug"] = folderName.Replace('-', '_'); // e.g. "michelle_franz_montan"
@@ -320,14 +310,7 @@ public class AthleteDataService : IDisposable
 
             if (newlyJoined.Count > 0)
             {
-                var payload = newlyJoined.Select(x =>
-                {
-                    var slug = x.Athlete["AthleteSlug"]!.GetValue<string>();
-                    int? rank = null;
-                    var rp = x.Athlete["CurrentPlacement"];
-                    if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
-                    return (slug, x.JoinedAt, rank);
-                });
+                var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
                 _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
             }
 
@@ -343,14 +326,12 @@ public class AthleteDataService : IDisposable
 
     /// <summary>
     /// Fired if the FileSystemWatcher’s internal buffer overflows or another error occurs.
-    /// You can log it or recreate the watcher here.
     /// </summary>
     private void OnWatcherError(object sender, ErrorEventArgs e)
     {
         // Example: log and restart the watcher
         var watcher = (FileSystemWatcher)sender;
 
-        // temporarily disable and re-enable to clear the buffer
         watcher.EnableRaisingEvents = false;
         watcher.EnableRaisingEvents = true;
     }
@@ -450,8 +431,7 @@ public class AthleteDataService : IDisposable
     }
 
     /// <summary>
-    /// Creates a timestamped backup, then prunes old backups so only the newest
-    /// `MaxBackupFiles` remain.
+    /// Creates a timestamped backup, then prunes old backups so only the newest `MaxBackupFiles` remain.
     /// </summary>
     public void BackupDatabase()
     {
@@ -461,9 +441,7 @@ public class AthleteDataService : IDisposable
         chk.ExecuteNonQuery();
 
         // copy into a new file
-        var backupFile = Path.Combine(
-            _backupDir,
-            $"LongevityWC_{DateTime.UtcNow:yyyyMMdd_HHmmss}.db");
+        var backupFile = Path.Combine(_backupDir, $"LongevityWC_{DateTime.UtcNow:yyyyMMdd_HHmmss}.db");
         lock (_sqliteConnection)
         {
             using var dest = new SqliteConnection($"Data Source={backupFile}");
@@ -513,7 +491,6 @@ public class AthleteDataService : IDisposable
 
     public int GetActualAge(string athleteSlug)
     {
-        // find the athlete JSON by slug
         var athleteJson = Athletes
             .OfType<JsonObject>()
             .FirstOrDefault(o => string.Equals(
@@ -523,17 +500,14 @@ public class AthleteDataService : IDisposable
         if (athleteJson is null)
             return 0;
 
-        // read the DOB node
         var dobNode = athleteJson["DateOfBirth"]?.AsObject();
         if (dobNode is null)
             return 0;
 
-        // extract year/month/day
         int year = dobNode["Year"]!.GetValue<int>();
         int month = dobNode["Month"]!.GetValue<int>();
         int day = dobNode["Day"]!.GetValue<int>();
 
-        // compute age as of today (UTC)
         var dob = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
         var today = DateTime.UtcNow.Date;
         int age = today.Year - dob.Year;
@@ -727,7 +701,7 @@ public class AthleteDataService : IDisposable
         }
     }
 
-    // NEW: compute IsNew from SQLite JoinedAt using the NewAthleteWindow
+    // compute IsNew from SQLite JoinedAt using the NewAthleteWindow
     private void HydrateNewFlagsIntoAthletesJson()
     {
         lock (_sqliteConnection)
@@ -796,8 +770,8 @@ public class AthleteDataService : IDisposable
     public void Dispose()
     {
         _athleteWatcher.Dispose();
-        _reloadLock.Dispose();          // ← dispose the semaphore
-        _debounceCts?.Dispose();       // ← dispose the CTS
+        _reloadLock.Dispose();
+        _debounceCts?.Dispose();
         _sqliteConnection.Close();
         _sqliteConnection.Dispose();
         GC.SuppressFinalize(this);
@@ -923,8 +897,11 @@ public class AthleteDataService : IDisposable
             {
                 var slug = o["AthleteSlug"]?.GetValue<string>();
                 if (string.IsNullOrWhiteSpace(slug)) continue;
-                if (o["AgeDifference"] is JsonValue jv && jv.TryGetValue<double>(out var diff) && !double.IsNaN(diff) && !double.IsInfinity(diff))
+                if (o["AgeDifference"] is JsonValue jv && jv.TryGetValue<double>(out var diff) &&
+                    !double.IsNaN(diff) && !double.IsInfinity(diff))
+                {
                     map[slug] = diff;
+                }
             }
         }
         return map;
@@ -966,7 +943,7 @@ public class AthleteDataService : IDisposable
 
     /// <summary>
     /// Compares current top-10 against the previously persisted snapshot in SQLite,
-    /// emits NewRank events for improvements (including entering top-10, carrying who was previously on that position),
+    /// emits NewRank events for improvements (existing athletes only),
     /// then persists the new snapshot (all placements).
     /// If there is NO previously persisted placement (all NULL) => first run: do NOT emit events, only persist.
     /// </summary>
@@ -974,8 +951,7 @@ public class AthleteDataService : IDisposable
     {
         var before = LoadStoredCurrentPlacements();
 
-        // FIRST RUN GUARD: if there's no non-null placement in DB, we have no baseline yet.
-        // In that case, don't emit any events — just persist the current snapshot and return.
+        // FIRST RUN GUARD: no baseline => persist only
         var hasAnyBaseline = before.Values.Any(v => v.HasValue);
         if (!hasAnyBaseline)
         {
@@ -988,9 +964,6 @@ public class AthleteDataService : IDisposable
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
                         ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var beforeDiffs = LoadStoredLastAgeDifferences();
-        var nowDiffs = BuildAgeDiffMap();
-
         // Build reverse map of the previous snapshot: rank -> slug
         var beforeByRank = new Dictionary<int, string>(capacity: before.Count);
         foreach (var kv in before)
@@ -1000,51 +973,182 @@ public class AthleteDataService : IDisposable
         }
 
         var afterTop10 = BuildRankMap(limit: 10);
+        var afterAll = BuildRankMap();
+        var afterTop10ByRank = afterTop10.ToDictionary(kv => kv.Value, kv => kv.Key);
+
         var nowUtc = DateTime.UtcNow;
 
-        // NEW: include ReplacedSlug in the payload
+        // score maps for improvement checks
+        var beforeDiffs = LoadStoredLastAgeDifferences();
+        var nowDiffs = BuildAgeDiffMap();
+
+        // uniform-shift guard — pure deletion/shift => suppress events
+        var commonChanged = new List<(string slug, int prev, int curr)>();
+        foreach (var kv in afterAll)
+        {
+            if (before.TryGetValue(kv.Key, out var pr) && pr.HasValue)
+            {
+                var prev = pr.Value;
+                var curr = kv.Value;
+                if (prev != curr) commonChanged.Add((kv.Key, prev, curr));
+            }
+        }
+        if (commonChanged.Count > 0)
+        {
+            var distinctDeltas = commonChanged.Select(p => p.prev - p.curr).Distinct().ToList();
+            var uniformPositiveShift = distinctDeltas.Count == 1 && distinctDeltas[0] > 0;
+
+            bool anyScoreImproved = commonChanged.Any(p =>
+                beforeDiffs.TryGetValue(p.slug, out var prevDiffN) && prevDiffN.HasValue &&
+                nowDiffs.TryGetValue(p.slug, out var currDiff) &&
+                currDiff < prevDiffN.Value - RankEventScoreEpsilon);
+
+            if (uniformPositiveShift && !anyScoreImproved)
+            {
+                PersistCurrentPlacementsSnapshot(afterAll, nowDiffs);
+                return;
+            }
+        }
+
         var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)>();
 
         foreach (var kv in afterTop10)
         {
-            if (newcomers.Contains(kv.Key)) continue; // Joined path already handles initial rank event
-
             var slug = kv.Key;
-            var newRank = kv.Value; // 1..10
 
-            // Who previously held this exact rank (in the baseline)?
+            // single-source-of-truth: newcomers' NewRank is emitted by the Joined pipeline
+            if (newcomers.Contains(slug))
+                continue;
+
+            var newRank = kv.Value;
+            before.TryGetValue(slug, out var prevRank);
+
+            // require a real score improvement to emit an event
+            var scoreImproved =
+                beforeDiffs.TryGetValue(slug, out var prevDiffNullable) &&
+                prevDiffNullable.HasValue &&
+                nowDiffs.TryGetValue(slug, out var currDiff) &&
+                currDiff < prevDiffNullable.Value - RankEventScoreEpsilon;
+
+            var movedUpByRank = !prevRank.HasValue || prevRank.Value > 10 || newRank < prevRank.Value;
+            if (!movedUpByRank || !scoreImproved)
+                continue;
+
             string? replacedSlug = null;
             if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
                 !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
             {
                 replacedSlug = prevHolder;
             }
-
-            var scoreImproved =
-    beforeDiffs.TryGetValue(slug, out var prevDiffNullable) &&
-    prevDiffNullable.HasValue &&
-    nowDiffs.TryGetValue(slug, out var currDiff) &&
-    currDiff < prevDiffNullable.Value - RankEventScoreEpsilon;
-
-            if ((!before.TryGetValue(slug, out var prev) || prev is null || prev > 10))
+            if (replacedSlug is null)
             {
-                if (scoreImproved)
-                    changes.Add((slug, nowUtc, newRank, replacedSlug));
+                string? candidate = null;
+                var bestPrev = int.MaxValue;
+                foreach (var p in before)
+                {
+                    if (!p.Value.HasValue) continue;
+                    var pr = p.Value.Value;
+                    if (pr < newRank) continue;
+                    if (string.Equals(p.Key, slug, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!afterAll.TryGetValue(p.Key, out var ar) || ar > pr)
+                    {
+                        if (pr < bestPrev)
+                        {
+                            bestPrev = pr;
+                            candidate = p.Key;
+                        }
+                    }
+                }
+                replacedSlug = candidate;
             }
-            else if (newRank < prev.Value)
+            if (replacedSlug is null && afterTop10ByRank.TryGetValue(newRank + 1, out var afterNext))
             {
-                if (scoreImproved)
-                    changes.Add((slug, nowUtc, newRank, replacedSlug));
+                replacedSlug = afterNext;
             }
+
+            changes.Add((slug, nowUtc, newRank, replacedSlug));
         }
 
         if (changes.Count > 0)
             _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
 
         // Persist full snapshot AFTER emitting events
-        var afterAll = BuildRankMap(); // full table
+        var afterAllFinal = BuildRankMap(); // full table
         var afterDiffs = BuildAgeDiffMap();
-        PersistCurrentPlacementsSnapshot(afterAll, afterDiffs);
+        PersistCurrentPlacementsSnapshot(afterAllFinal, afterDiffs);
+    }
+
+    /// <summary>
+    /// Build the joined payload enriched with the previous holder of each newcomer's rank.
+    /// </summary>
+    private IEnumerable<(string Slug, DateTime JoinedAtUtc, int? Rank, string? ReplacedSlug)>
+        BuildJoinedPayloadWithReplaced(IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> newlyJoined)
+    {
+        // Snapshot BEFORE the join (what was persisted last time)
+        var before = LoadStoredCurrentPlacements();
+
+        // rank -> slug map for BEFORE
+        var beforeByRank = new Dictionary<int, string>();
+        foreach (var kv in before)
+            if (kv.Value is int r && r >= 1) beforeByRank[r] = kv.Key;
+
+        // AFTER maps (current in-memory ranking)
+        var afterTop10 = BuildRankMap(limit: 10);
+        var afterAll = BuildRankMap();
+        var afterTop10ByRank = afterTop10.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+        foreach (var x in newlyJoined)
+        {
+            var slug = x.Athlete["AthleteSlug"]!.GetValue<string>();
+            int? rank = null;
+            var rp = x.Athlete["CurrentPlacement"];
+            if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
+
+            string? replaced = null;
+
+            if (rank.HasValue)
+            {
+                var newRank = rank.Value;
+
+                // 1) whoever held that rank before
+                if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
+                    !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
+                {
+                    replaced = prevHolder;
+                }
+
+                // 2) fallback: find someone who was >= newRank and moved down/got pushed out
+                if (replaced is null)
+                {
+                    string? candidate = null;
+                    var bestPrev = int.MaxValue;
+                    foreach (var p in before)
+                    {
+                        if (!p.Value.HasValue) continue;
+                        var pr = p.Value.Value;
+                        if (pr < newRank) continue;
+                        if (string.Equals(p.Key, slug, StringComparison.OrdinalIgnoreCase)) continue;
+
+                        // moved down (or disappeared)
+                        if (!afterAll.TryGetValue(p.Key, out var ar) || ar > pr)
+                        {
+                            if (pr < bestPrev)
+                            {
+                                bestPrev = pr;
+                                candidate = p.Key;
+                            }
+                        }
+                    }
+                    replaced = candidate;
+                }
+
+                // 3) last-ditch: the person that sits right below newcomer now
+                if (replaced is null && afterTop10ByRank.TryGetValue(newRank + 1, out var afterNext))
+                    replaced = afterNext;
+            }
+
+            yield return (slug, x.JoinedAt, rank, replaced);
+        }
     }
 
     private void PushAthleteDirectoryToEvents()

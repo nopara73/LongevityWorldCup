@@ -154,7 +154,7 @@ public sealed class EventDataService : IDisposable
     }
 
     public void CreateJoinedEventsForAthletes(
-        IEnumerable<(string AthleteSlug, DateTime JoinedAtUtc, int? CurrentRank)> athletes,
+        IEnumerable<(string AthleteSlug, DateTime JoinedAtUtc, int? CurrentRank, string? ReplacedSlug)> athletes,
         bool skipIfExists = true,
         double defaultRelevance = DefaultRelevanceJoined)
     {
@@ -169,66 +169,72 @@ public sealed class EventDataService : IDisposable
 
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
-            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            existsCmd.CommandText =
+                "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t",   SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
-            var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
+            var exOcc  = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
-            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pId   = insertCmd.Parameters.Add("@id",   SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
             var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
-            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
-            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+            var pOcc  = insertCmd.Parameters.Add("@occ",  SqliteType.Text);
+            var pRel  = insertCmd.Parameters.Add("@rel",  SqliteType.Real);
 
-            foreach (var (slug, joinedAtUtc, currentRank) in athletes)
+            foreach (var (slug, joinedAtUtc, currentRank, replacedSlug) in athletes)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
 
                 var occurredAt = EnsureUtc(joinedAtUtc).ToString("o");
-                var joinedText = $"slug[{slug}]";
 
+                // Joined
+                var joinedText = $"slug[{slug}]";
                 var insertJoined = true;
                 if (skipIfExists)
                 {
                     exType.Value = (int)EventType.Joined;
                     exText.Value = joinedText;
-                    exOcc.Value = occurredAt;
+                    exOcc.Value  = occurredAt;
                     insertJoined = existsCmd.ExecuteScalar() == null;
                 }
                 if (insertJoined)
                 {
-                    pId.Value = Guid.NewGuid().ToString("N");
+                    pId.Value   = Guid.NewGuid().ToString("N");
                     pType.Value = (int)EventType.Joined;
                     pText.Value = joinedText;
-                    pOcc.Value = occurredAt;
-                    pRel.Value = defaultRelevance;
+                    pOcc.Value  = occurredAt;
+                    pRel.Value  = defaultRelevance;
                     insertCmd.ExecuteNonQuery();
                     created++;
                     notify.Add((EventType.Joined, joinedText));
                 }
 
-                if (currentRank.HasValue && currentRank.Value >= 1 && currentRank.Value <= 10)
+                // NewRank (only for newcomers on join)
+                if (currentRank is int r && r >= 1 && r <= 10)
                 {
-                    var rankText = $"slug[{slug}] rank[{currentRank.Value}]";
+                    var rankText = !string.IsNullOrWhiteSpace(replacedSlug)
+                        ? $"slug[{slug}] rank[{r}] prev[{replacedSlug}]"
+                        : $"slug[{slug}] rank[{r}]";
+
                     var insertRank = true;
                     if (skipIfExists)
                     {
                         exType.Value = (int)EventType.NewRank;
                         exText.Value = rankText;
-                        exOcc.Value = occurredAt;
-                        insertRank = existsCmd.ExecuteScalar() == null;
+                        exOcc.Value  = occurredAt;
+                        insertRank   = existsCmd.ExecuteScalar() == null;
                     }
                     if (insertRank)
                     {
-                        pId.Value = Guid.NewGuid().ToString("N");
+                        pId.Value   = Guid.NewGuid().ToString("N");
                         pType.Value = (int)EventType.NewRank;
                         pText.Value = rankText;
-                        pOcc.Value = occurredAt;
-                        pRel.Value = DefaultRelevanceNewRank;
+                        pOcc.Value  = occurredAt;
+                        pRel.Value  = DefaultRelevanceNewRank;
                         insertCmd.ExecuteNonQuery();
                         created++;
                         notify.Add((EventType.NewRank, rankText));
