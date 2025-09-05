@@ -1002,6 +1002,42 @@ public class AthleteDataService : IDisposable
 
         var nowUtc = DateTime.UtcNow;
 
+        // NEW: score maps for improvement checks
+        var beforeDiffs = LoadStoredLastAgeDifferences();
+        var nowDiffs = BuildAgeDiffMap();
+
+        // NEW: uniform-shift guard — handles deletion cascades even if the deleted row is already gone from DB.
+        // If every common athlete who changed rank moved up by the same positive delta
+        // AND nobody's score improved, treat as pure shift (suppressed events).
+        var commonChanged = new List<(string slug, int prev, int curr)>();
+        foreach (var kv in afterAll)
+        {
+            if (before.TryGetValue(kv.Key, out var pr) && pr.HasValue)
+            {
+                var prev = pr.Value;
+                var curr = kv.Value;
+                if (prev != curr) commonChanged.Add((kv.Key, prev, curr));
+            }
+        }
+        if (commonChanged.Count > 0)
+        {
+            var distinctDeltas = commonChanged.Select(p => p.prev - p.curr).Distinct().ToList();
+            var uniformPositiveShift = distinctDeltas.Count == 1 && distinctDeltas[0] > 0;
+
+            bool anyScoreImproved = commonChanged.Any(p =>
+                beforeDiffs.TryGetValue(p.slug, out var prevDiffN) && prevDiffN.HasValue &&
+                nowDiffs.TryGetValue(p.slug, out var currDiff) &&
+                currDiff < prevDiffN.Value - RankEventScoreEpsilon);
+
+            if (uniformPositiveShift && !anyScoreImproved)
+            {
+                // Pure deletion/shift -> no events; just persist snapshot.
+                PersistCurrentPlacementsSnapshot(afterAll, nowDiffs);
+                return;
+            }
+        }
+        // --- end uniform-shift guard
+
         // NEW: include ReplacedSlug in the payload
         var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)>();
 
@@ -1045,6 +1081,14 @@ public class AthleteDataService : IDisposable
             if (replacedSlug is null && afterTop10ByRank.TryGetValue(newRank + 1, out var afterNext))
             {
                 replacedSlug = afterNext;
+            }
+
+            // skip newcomer handled by Joined event (but still include 'from' if we keep it here)
+            if (newcomers.Contains(slug))
+            {
+                if (replacedSlug != null)
+                    changes.Add((slug, nowUtc, newRank, replacedSlug));
+                continue;
             }
 
             changes.Add((slug, nowUtc, newRank, replacedSlug));
