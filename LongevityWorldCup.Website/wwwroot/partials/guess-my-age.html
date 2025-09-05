@@ -778,6 +778,7 @@
                 mutation.attributeName === 'class' &&
                 modalContent.classList.contains('guess-mode')
             ) {
+                setGuessMyAgeParam(true);
                 // hide the chrono prompt again
                 chronoHeading.style.display = 'none';
                 chronoHeading.classList.remove('typing', 'chrono-age-heading--boom');
@@ -797,6 +798,9 @@
                 syncRange();
 
                 gmaCard.classList.remove('celebrate-exact');
+            }
+            if (mutation.attributeName === 'class' && !modalContent.classList.contains('guess-mode')) {
+                setGuessMyAgeParam(false);
             }
         });
     });
@@ -1202,5 +1206,11 @@
         emoji.style.left = `${rect.left + rect.width / 2 - ew / 2}px`;
         emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
         emoji.addEventListener('animationend', () => emoji.remove());
+    }
+    function setGuessMyAgeParam(active) {
+        const url = new URL(window.location.href);
+        if (active) url.searchParams.set('guessmyage', '1');
+        else url.searchParams.delete('guessmyage');
+        history.replaceState({}, "", url.toString());
     }
 </script>
