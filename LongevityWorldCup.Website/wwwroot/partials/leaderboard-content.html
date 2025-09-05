@@ -580,8 +580,32 @@
 <script>
     let athleteResults = [];
 
+    markAthleteSkippedIfInURL();
+
+    function markAthleteSkippedIfInURL() {
+        const params = new URLSearchParams(window.location.search);
+        let athleteSlug = null;
+
+        if (params.has('athlete')) {
+            athleteSlug = params.get('athlete');
+        } else if (/^\/athlete\//.test(window.location.pathname)) {
+            athleteSlug = window.location.pathname.split('/athlete/')[1].split('/')[0];
+        }
+
+        if (athleteSlug !== null) {
+            console.log(params.toString())
+            if (params.get('guessmyage') != '1')
+            {
+                const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                allGuesses[athleteSlug] = { value: null, skipped: true, first: false };
+                localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+            }
+        }
+    }
+
+
     // Prevent browser auto-restoring scroll on history nav (harmless if unsupported)
-    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch {}
+    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { }
 
     /* ------- ScrollGuard: block untrusted scrolls during anchor jump ------- */
     (function () {
@@ -634,9 +658,9 @@
         return values.every(Number.isFinite) && set.CrpMgL > 0;
     }
 
-    function ensureRankChangeWrapper(imgEl){
+    function ensureRankChangeWrapper(imgEl) {
         let wrapper = imgEl.closest('.rank-change');
-        if (!wrapper){
+        if (!wrapper) {
             wrapper = document.createElement('span');
             wrapper.className = 'rank-change';
             imgEl.replaceWith(wrapper);
@@ -645,7 +669,7 @@
         return wrapper;
     }
 
-    function applyRankUpUI(imgEl, placesUp){
+    function applyRankUpUI(imgEl, placesUp) {
         const wrapper = ensureRankChangeWrapper(imgEl);
 
         // If "new" is active, never show the green arrow
@@ -665,7 +689,7 @@
         wrapper.classList.add('rank-up');
 
         let arrow = wrapper.querySelector('.rank-arrow');
-        if (!arrow){
+        if (!arrow) {
             arrow = document.createElement('span');
             arrow.className = 'rank-arrow';
             arrow.innerHTML = '<i class="fa fa-arrow-up" aria-hidden="true"></i>';
@@ -678,11 +702,11 @@
         imgEl.title = msg; // hovering the portrait shows the same tooltip
     }
 
-    function applyNewUI(imgEl){
+    function applyNewUI(imgEl) {
         const wrapper = ensureRankChangeWrapper(imgEl);
 
         let bubble = wrapper.querySelector('.new-bubble');
-        if (!bubble){
+        if (!bubble) {
             bubble = document.createElement('span');
             bubble.className = 'new-bubble';
             bubble.innerHTML = '<i class="fa fa-star" aria-hidden="true"></i>';
@@ -1336,7 +1360,7 @@
                 : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
                 ${window.getIcon(contact)}
                </a>`
-            }`;
+                }`;
         }
         return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}" title="${tooltipText}">
@@ -1345,7 +1369,7 @@
             : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
             ${window.getIcon(contact)}
            </a>`
-        }`;
+            }`;
     }
 
     const modal = document.getElementById("detailsModal");
