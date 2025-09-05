@@ -988,9 +988,6 @@ public class AthleteDataService : IDisposable
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
                         ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var beforeDiffs = LoadStoredLastAgeDifferences();
-        var nowDiffs = BuildAgeDiffMap();
-
         // Build reverse map of the previous snapshot: rank -> slug
         var beforeByRank = new Dictionary<int, string>(capacity: before.Count);
         foreach (var kv in before)
@@ -1000,6 +997,9 @@ public class AthleteDataService : IDisposable
         }
 
         var afterTop10 = BuildRankMap(limit: 10);
+        var afterAll = BuildRankMap();
+        var afterTop10ByRank = afterTop10.ToDictionary(kv => kv.Value, kv => kv.Key);
+
         var nowUtc = DateTime.UtcNow;
 
         // NEW: include ReplacedSlug in the payload
@@ -1010,46 +1010,53 @@ public class AthleteDataService : IDisposable
             var slug = kv.Key;
             var newRank = kv.Value;
 
+            before.TryGetValue(slug, out var prevRank);
+
+            var improved = !prevRank.HasValue || prevRank.Value > 10 || newRank < prevRank.Value;
+            if (!improved) continue;
+
             string? replacedSlug = null;
             if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
                 !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
             {
                 replacedSlug = prevHolder;
             }
-
-            if (newcomers.Contains(slug))
+            if (replacedSlug is null)
             {
-                if (replacedSlug != null)
-                    changes.Add((slug, nowUtc, newRank, replacedSlug));
-                continue;
+                string? candidate = null;
+                var bestPrev = int.MaxValue;
+                foreach (var p in before)
+                {
+                    if (!p.Value.HasValue) continue;
+                    var pr = p.Value.Value;
+                    if (pr < newRank) continue;
+                    if (string.Equals(p.Key, slug, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!afterAll.TryGetValue(p.Key, out var ar) || ar > pr)
+                    {
+                        if (pr < bestPrev)
+                        {
+                            bestPrev = pr;
+                            candidate = p.Key;
+                        }
+                    }
+                }
+                replacedSlug = candidate;
+            }
+            if (replacedSlug is null && afterTop10ByRank.TryGetValue(newRank + 1, out var afterNext))
+            {
+                replacedSlug = afterNext;
             }
 
-            var scoreImproved =
-                beforeDiffs.TryGetValue(slug, out var prevDiffNullable) &&
-                prevDiffNullable.HasValue &&
-                nowDiffs.TryGetValue(slug, out var currDiff) &&
-                currDiff < prevDiffNullable.Value - RankEventScoreEpsilon;
-
-            if ((!before.TryGetValue(slug, out var prev) || prev is null || prev > 10))
-            {
-                if (scoreImproved)
-                    changes.Add((slug, nowUtc, newRank, replacedSlug));
-            }
-            else if (newRank < prev.Value)
-            {
-                if (scoreImproved)
-                    changes.Add((slug, nowUtc, newRank, replacedSlug));
-            }
+            changes.Add((slug, nowUtc, newRank, replacedSlug));
         }
-
 
         if (changes.Count > 0)
             _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
 
         // Persist full snapshot AFTER emitting events
-        var afterAll = BuildRankMap(); // full table
+        var afterAllFinal = BuildRankMap(); // full table
         var afterDiffs = BuildAgeDiffMap();
-        PersistCurrentPlacementsSnapshot(afterAll, afterDiffs);
+        PersistCurrentPlacementsSnapshot(afterAllFinal, afterDiffs);
     }
 
     private void PushAthleteDirectoryToEvents()
