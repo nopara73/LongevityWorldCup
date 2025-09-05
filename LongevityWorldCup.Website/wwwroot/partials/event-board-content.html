@@ -181,32 +181,6 @@
 
 <script>
     (function(){
-        function applyParentTheme(){
-            try{
-                if(window.parent&&window.parent!==window){
-                    var pdoc=window.parent.document;
-                    var pr=window.parent.getComputedStyle(pdoc.documentElement);
-                    var vars=['--primary-color','--secondary-color','--card-bg','--dark-text-color','--light-text-color','--body-bg'];
-                    vars.forEach(function(v){var val=pr.getPropertyValue(v).trim();if(val)document.documentElement.style.setProperty(v,val)});
-                    var bf=window.parent.getComputedStyle(pdoc.body).getPropertyValue('font-family');
-                    if(bf)document.body.style.fontFamily=bf;
-                    var bg=window.parent.getComputedStyle(pdoc.body).getPropertyValue('background-color');
-                    if(bg)document.body.style.backgroundColor=bg;
-                }
-            }catch(e){}
-        }
-        applyParentTheme();
-        window.addEventListener('message',function(e){
-            var d=e.data; if(!d||d.type!=='events-theme-vars')return;
-            Object.keys(d).forEach(function(k){ if(k.indexOf('--')===0){ document.documentElement.style.setProperty(k,String(d[k]).trim()) }});
-            if(d['font-family'])document.body.style.fontFamily=d['font-family'];
-            if(d['background-color'])document.body.style.backgroundColor=d['background-color'];
-        });
-    })();
-</script>
-
-<script>
-    (function(){
         const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2 };
 
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
@@ -243,7 +217,7 @@
             if(diffDays===1) return 'Yesterday';
             return `${diffDays} days ago`;
         }
-        function formatListDate(iso,{separator=', '}={}) {
+        function formatListDate(iso,{separator=', '}={}){
             const d=new Date(iso); if(isNaN(d)) return '';
             const nowYear=new Date().getFullYear();
             const base=d.toLocaleDateString(undefined,{month:'short',day:'numeric'}).replace(/,/g,'');
@@ -309,7 +283,6 @@
             return Math.max(1,Math.floor(v));
         }
 
-        // ── parsing helpers ───────────────────────────────────────────────────────
         function extractSlugs(text){
             const rx=/slug\[(.+?)\]/g;
             const out=[]; let m;
@@ -359,11 +332,29 @@
 
                 const prevRaw=extractPrevSlug(text);
                 const prevSlug=prevRaw?slugifyLocal(normalizeLinkId(prevRaw)):null;
-                if(prevSlug) slugTokens.push(prevSlug); // include for filtering
+                if(prevSlug) slugTokens.push(prevSlug);
 
                 const rank=extractRank(text);
                 return { type,text,occurredAt,slugs:slugTokens,primarySlug,prevSlug,rank };
             });
+        }
+
+        function applyVisibleNow(el){
+            const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const rect=el.getBoundingClientRect();
+            const vw=window.innerWidth||document.documentElement.clientWidth;
+            const vh=window.innerHeight||document.documentElement.clientHeight;
+            const inView = rect.bottom>=0 && rect.right>=0 && rect.top<=vh && rect.left<=vw;
+            if(inView){
+                if(!prefersReduced){
+                    const idx=Number(el.dataset.rowIndex||0);
+                    const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
+                    const stepMs=parseTimeVar('--row-stagger-step',40);
+                    el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}ms`);
+                }
+                el.classList.add('is-visible');
+                if(rowObserver) rowObserver.unobserve(el);
+            }
         }
 
         let rowObserver=null;
@@ -373,7 +364,7 @@
             rowObserver=new IntersectionObserver((entries,io)=>{
                 entries.forEach(entry=>{
                     const el=entry.target;
-                    if(entry.isIntersecting||entry.intersectionRatio>0){
+                    if(entry.isIntersecting){
                         if(!prefersReduced){
                             const idx=Number(el.dataset.rowIndex||0);
                             const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
@@ -384,8 +375,16 @@
                         io.unobserve(el);
                     }
                 });
-            },{root:null,rootMargin:'0px 0px -10% 0px',threshold:0.01});
+            },{
+                root:null,
+                rootMargin:'0px',
+                threshold:0
+            });
             return rowObserver;
+        }
+
+        function revealVisibleRowsImmediately(container){
+            container.querySelectorAll('.row-appear:not(.is-visible)').forEach(applyVisibleNow);
         }
 
         function renderRows(rows, athletesIndex, linkNames){
@@ -398,7 +397,6 @@
             const frag=document.createDocumentFragment();
             const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            // factory to append "(#rank)" link after a name
             const afterNameWithCurrentRankFor = (targetSlug) => (slug,aObj)=>{
                 if(!aObj) return "";
                 const placement=getCurrentPlacement(aObj);
@@ -445,7 +443,6 @@
                         ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
                         : esc(takenText);
 
-                    // NEW: previous owner (clickable name + clickable current rank)
                     let prevHtml="";
                     if(r.prevSlug){
                         prevHtml=renderTextWithSlugLinks(
@@ -469,15 +466,18 @@
                 tr.dataset.rowIndex=String(idx);
                 tr.innerHTML=
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                     <td class="athlete-td event-message">${msgHtml}</td>
-                     <td class="col-date">${dateLabel}</td>`;
+                 <td class="athlete-td event-message">${msgHtml}</td>
+                 <td class="col-date">${dateLabel}</td>`;
                 frag.appendChild(tr);
             });
 
             tbody.appendChild(frag);
+
             if(!prefersReduced&&rows.length){
                 const io=ensureRowObserver();
                 tbody.querySelectorAll('.row-appear').forEach(r=>io.observe(r));
+                requestAnimationFrame(()=>revealVisibleRowsImmediately(tbody));
+                window.addEventListener('resize',()=>revealVisibleRowsImmediately(tbody),{passive:true});
             }else{
                 tbody.querySelectorAll('.row-appear').forEach(r=>r.classList.add('is-visible'));
             }
@@ -516,8 +516,3 @@
         });
     })();
 </script>
-
-
-
-
-
