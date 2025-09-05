@@ -1,0 +1,27 @@
+{
+  "Name": "Zsuzsi",
+  "MediaContact": "https://www.facebook.com/zsuzsanna.tonainepapp",
+  "DateOfBirth": {
+    "Year": 1982,
+    "Month": 8,
+    "Day": 13
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-04",
+      "AlbGL": 45,
+      "CreatUmolL": 58,
+      "GluMmolL": 4.8,
+      "CrpMgL": 0.1,
+      "LymPc": 33.5,
+      "McvFL": 84,
+      "RdwPc": 13.8,
+      "AlpUL": 86,
+      "Wbc1000cellsuL": 5.6
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Szeretnék hosszú egészséges életet élni.",
+  "PersonalLink": null
+}
