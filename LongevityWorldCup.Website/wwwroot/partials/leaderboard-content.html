@@ -155,6 +155,21 @@
     }
     .podium-item .rank-change img.podium-portrait:hover{ transform: scale(1.1); }
 
+    .podium .name-row {
+        display: flex;
+        align-items: center;
+        gap: .25rem;
+        max-width: 100%
+    }
+
+        .podium .name-row .athlete-name {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            line-height: 1.1
+        }
+
+
     /* Rank-change wrapper */
     .rank-change{ position: relative; display: inline-block; z-index: 0; }
     .rank-change img{ display:block; position:relative; z-index:1; }
@@ -594,8 +609,7 @@
 
         if (athleteSlug !== null) {
             console.log(params.toString())
-            if (params.get('guessmyage') != '1')
-            {
+            if (params.get('guessmyage') != '1') {
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
                 allGuesses[athleteSlug] = { value: null, skipped: true, first: false };
                 localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
@@ -1082,8 +1096,10 @@
                                                 ${rankEmoji}
                                             </div>
                                             <img src="${athlete.profilePic}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
-                                            <div>
+                                            <div class="name-row">
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
+                                            </div>
+                                            <div>
                                                 ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.displayName}">
                                                 <i class="fa fa-link"></i>
                                                 </a>` : ''}
@@ -1123,6 +1139,7 @@
                                     });
 
                                     applyCamelCaseNewlines();
+                                    autoshrinkPodiumNames();
 
                                     addClickListenerToImages('.portrait, #modalProfilePic', function () {
                                         openEnlargedView(this);
@@ -1993,6 +2010,7 @@
     function applyCamelCaseNewlines() {
         if (window.innerWidth < 480) { // Only apply on mobile
             document.querySelectorAll('.athlete-name').forEach(el => {
+                if (el.closest('.podium')) return; // do NOT break podium names
                 const originalText = el.textContent;
                 // Insert a <br> between a lowercase and an uppercase letter
                 const formattedText = originalText.replace(/([a-z])([A-Z])/g, '$1<br>$2');
@@ -2000,7 +2018,28 @@
             });
         }
     }
+    function fitTextToWidth(el, minPx = 12, maxPx = null) {
+        // reset to CSS default first
+        el.style.fontSize = '';
+        const max = maxPx || parseFloat(getComputedStyle(el).fontSize) || 18;
+        let lo = minPx, hi = Math.round(max), best = minPx;
+        // binary search for largest size that fits
+        while (lo <= hi) {
+            const mid = Math.floor((lo + hi) / 2);
+            el.style.fontSize = mid + 'px';
+            if (el.scrollWidth <= el.clientWidth) { best = mid; lo = mid + 1; }
+            else { hi = mid - 1; }
+        }
+        el.style.fontSize = best + 'px';
+    }
 
+    function autoshrinkPodiumNames() {
+        document.querySelectorAll('.podium .athlete-name').forEach(el => fitTextToWidth(el, 12));
+    }
+
+    // run after podium render and on resize
+    window.addEventListener('resize', debounce(autoshrinkPodiumNames, 150));
+    window.addEventListener('load', autoshrinkPodiumNames);
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' || event.key === 'Esc') {
             closeOpenComponents();
