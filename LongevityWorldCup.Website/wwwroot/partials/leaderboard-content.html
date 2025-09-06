@@ -2008,16 +2008,15 @@
     });
 
     function applyCamelCaseNewlines() {
-        if (window.innerWidth < 480) { // Only apply on mobile
+        if (window.innerWidth < 480) {
             document.querySelectorAll('.athlete-name').forEach(el => {
-                if (el.closest('.podium')) return; // do NOT break podium names
-                const originalText = el.textContent;
-                // Insert a <br> between a lowercase and an uppercase letter
-                const formattedText = originalText.replace(/([a-z])([A-Z])/g, '$1<br>$2');
-                el.innerHTML = formattedText;
+                if (el.closest('.podium')) return;
+                const txt = el.textContent;
+                el.innerHTML = txt.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
             });
         }
     }
+
     function fitTextToWidth(el, minPx = 12, maxPx = null) {
         // reset to CSS default first
         el.style.fontSize = '';
