@@ -661,6 +661,13 @@
     })();
 
 
+    function canAutoScroll() {
+        if (window.ScrollGuard?.isBlocked?.()) return false;
+        if (document.body.classList.contains('no-scroll')) return false;
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
+        return true;
+    }
+
     let includePodiumGlobal = true
     let maxAthletesGlobal = Infinity;
 
