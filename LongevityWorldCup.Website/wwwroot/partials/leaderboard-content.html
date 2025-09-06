@@ -752,6 +752,8 @@
                     // Get birth year and generation
                     const birthYear = athlete.DateOfBirth.Year;
                     const generation = window.getGeneration(birthYear);
+                    const displayName = (athlete.DisplayName && athlete.DisplayName.trim()) ? athlete.DisplayName.trim() : athlete.Name;
+
 
                     // Create an object to store the best biomarker values from all sets
                     let bestBiomarkers = {
@@ -936,6 +938,7 @@
 
                     return {
                         name: athlete.Name,
+                        displayName: displayName,
                         mediaContact: athlete.MediaContact,
                         dateOfBirth: dob,
                         chronologicalAge: chronologicalAge,
@@ -1078,13 +1081,13 @@
                                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                                 ${rankEmoji}
                                             </div>
-                                            <img src="${athlete.profilePic}" alt="${athlete.name} portrait" class="podium-portrait" loading="lazy">
+                                            <img src="${athlete.profilePic}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
                                             <div>
-                                                <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.name}">${athlete.name}</span>
-                                                ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.name}">
+                                                <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
+                                                ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.displayName}">
                                                 <i class="fa fa-link"></i>
                                                 </a>` : ''}
-                                                ${renderMediaContact(athlete.mediaContact, true, athlete.name)}
+                                                ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
                                             <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
                                             <div class="podium-item-lower">
@@ -1155,7 +1158,7 @@
                     const athleteCell = row.querySelector('.athlete-td');
                     const portraitImg = athleteCell.querySelector('img.portrait');
                     portraitImg.src = athlete.profilePic;
-                    portraitImg.alt = `${athlete.name} portrait`;
+                    portraitImg.alt = `${athlete.displayName} portrait`;
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
                         applyNewUI(portraitImg);
@@ -1166,8 +1169,8 @@
                     }
 
                     const athleteNameSpan = athleteCell.querySelector('.athlete-name');
-                    athleteNameSpan.textContent = athlete.name;
-                    athleteNameSpan.title = `View stats of ${athlete.name}`;
+                    athleteNameSpan.textContent = athlete.displayName;
+                    athleteNameSpan.title = `View stats of ${athlete.displayName}`;
 
                     window.setBadges(athlete, athleteCell);
 
@@ -1175,7 +1178,7 @@
                     ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years';
 
                     const mediaContactCell = row.querySelector('.media-contact-td');
-                    mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.name);
+                    mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
 
                     row.setAttribute('data-division', athlete.division.toLowerCase().trim());
                     row.setAttribute('data-generation', athlete.generation.trim());
@@ -2076,7 +2079,7 @@
                 // Populate the modal with athlete data
                 populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType);
 
-                updatePageTitleForAthlete(fullAthleteData.Name, ultimateRank);
+                updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, ultimateRank);
 
                 // Generate age visualization
                 const bioAge = athleteData.lowestPhenoAge;
@@ -2191,10 +2194,11 @@
     }
 
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
-        document.getElementById('athleteName').textContent = `${fullAthleteData.Name}${window.getRankText(ultimateRank)}`;
+        const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
+        document.getElementById('athleteName').textContent = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
         const profilePic = document.getElementById('modalProfilePic');
         profilePic.src = fullAthleteData.ProfilePic;
-        profilePic.alt = `${fullAthleteData.Name} Profile Picture`;
+        profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
@@ -2229,7 +2233,7 @@
         if (athleteData.personalLink) {
             personalLinkElement.href = athleteData.personalLink.startsWith('http') ? athleteData.personalLink : 'https://' + athleteData.personalLink;
             personalLinkElement.style.display = 'flex';
-            personalLinkElement.title = `Visit personal page of ${athleteData.name}`;
+            personalLinkElement.title = `Visit personal page of ${modalDisplayName}`;
         } else {
             personalLinkElement.style.display = 'none';
         }
@@ -2241,7 +2245,7 @@
             mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : (athleteData.mediaContact.startsWith('http') ? athleteData.mediaContact : 'https://' + athleteData.mediaContact);
             mediaContactElement.innerHTML = `${window.getIcon(athleteData.mediaContact)} Media Contact`;
             mediaContactElement.style.display = 'flex';
-            mediaContactElement.title = isEmail ? `Email ${athleteData.name}` : `Contact ${athleteData.name}`;
+            mediaContactElement.title = isEmail ? `Email ${modalDisplayName}` : `Contact ${modalDisplayName}`;
         } else {
             mediaContactElement.style.display = 'none';
         }
