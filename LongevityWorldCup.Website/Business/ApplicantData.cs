@@ -5,6 +5,7 @@ namespace LongevityWorldCup.Website.Business
     public class ApplicantData
     {
         public string? Name { get; set; }
+        public string? DisplayName { get; set; }
         public string? Division { get; set; }
         public string? Flag { get; set; }
         public string? Why { get; set; }
