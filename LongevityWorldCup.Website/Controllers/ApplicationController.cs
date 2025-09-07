@@ -166,6 +166,8 @@ namespace LongevityWorldCup.Website.Controllers
                     : (correctedPersonalLink.StartsWith("www.")
                         ? "https://" + correctedPersonalLink
                         : correctedPersonalLink);
+            var trimmedDisplayName = string.IsNullOrWhiteSpace(applicantData.DisplayName) ? null : applicantData.DisplayName.Trim();
+            var displayNameOrName = trimmedDisplayName ?? applicantData.Name?.Trim();
 
             // 1) Build a temp folder with profile + proofs + athlete.json
             var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
@@ -178,13 +180,14 @@ namespace LongevityWorldCup.Website.Controllers
             object? athleteJsonObject;
             if (isResultSubmissionOnly)
             {
-                athleteJsonObject = new { applicantData.Name, applicantData.Biomarkers };
+                athleteJsonObject = new { applicantData.Name, DisplayName = trimmedDisplayName, applicantData.Biomarkers };
             }
             else if (isEditSubmissionOnly)
             {
                 athleteJsonObject = new
                 {
                     applicantData.Name,
+                    DisplayName = trimmedDisplayName,
                     applicantData.MediaContact,
                     applicantData.Division,
                     applicantData.Flag,
@@ -197,6 +200,7 @@ namespace LongevityWorldCup.Website.Controllers
                 athleteJsonObject = (new
                 {
                     applicantData.Name,
+                    DisplayName = trimmedDisplayName,
                     applicantData.MediaContact,
                     applicantData.DateOfBirth,
                     applicantData.Biomarkers,
