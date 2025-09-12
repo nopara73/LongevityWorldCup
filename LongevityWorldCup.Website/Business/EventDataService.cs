@@ -117,7 +117,7 @@ public sealed class EventDataService : IDisposable
             foreach (var (slug, occurredAtUtc, rank, replacedSlug) in items)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
-                if (rank < 1 || rank > 10) continue;
+                if (rank < 1) continue; // allow any positive rank (no top-10 gating)
 
                 var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
                 var textBase = $"slug[{slug}] rank[{rank}]";
@@ -214,7 +214,7 @@ public sealed class EventDataService : IDisposable
                 }
 
                 // NewRank (only for newcomers on join)
-                if (currentRank is int r && r >= 1 && r <= 10)
+                if (currentRank is int r && r >= 1) // allow any positive rank (no top-10 gating)
                 {
                     var rankText = !string.IsNullOrWhiteSpace(replacedSlug)
                         ? $"slug[{slug}] rank[{r}] prev[{replacedSlug}]"
