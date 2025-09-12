@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
+using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -338,11 +339,27 @@ public sealed class EventDataService : IDisposable
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
     }
 
+    private static bool TryExtractRankFromRawText(string rawText, out int rank)
+    {
+        rank = 0;
+        if (string.IsNullOrWhiteSpace(rawText)) return false;
+        var m = Regex.Match(rawText, @"\brank\[(\d+)\]", RegexOptions.CultureInvariant);
+        if (!m.Success) return false;
+        return int.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out rank);
+    }
+
     private void FireAndForgetSlack(EventType type, string rawText)
     {
+        // Only NewRank events are candidates for Slack.
         if (type != EventType.NewRank)
         {
-            return; // Opt in for event types of events instead of out.
+            return;
+        }
+
+        // Gate Slack notifications to top 10 only (10th included).
+        if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
+        {
+            return;
         }
 
         _ = Task.Run(async () =>
