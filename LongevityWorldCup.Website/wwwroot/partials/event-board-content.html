@@ -159,6 +159,10 @@
     .event-message .rank-badge{ display:inline-flex; align-items:baseline; gap:.15rem; }
     .event-message .rank-badge .rank-icon{ margin:0; }
 
+    .avatar-disabled{display:inline-flex;align-items:center;justify-content:center;cursor:default}
+    .avatar-disabled .avatar,.avatar-disabled .avatar-fallback{transition:none;transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+    .avatar-disabled:hover .avatar,.avatar-disabled:focus .avatar,
+    .avatar-disabled:hover .avatar-fallback,.avatar-disabled:focus .avatar-fallback{transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -421,11 +425,16 @@
                 const img=a?athletePic(a):"";
 
                 let avatarHtml="";
+                const makeClickable=(r.type===EVENT_TYPE.Joined||r.type===EVENT_TYPE.NewRank)&&r.primarySlug&&linkNames;
                 if((r.type===EVENT_TYPE.Joined||r.type===EVENT_TYPE.NewRank)&&r.primarySlug){
                     if(img){
-                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></a>`;
+                        avatarHtml = makeClickable
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></a>`
+                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></span>`;
                     }else{
-                        avatarHtml=`<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><div class="avatar-fallback">${initialsFromName(name)}</div></a>`;
+                        avatarHtml = makeClickable
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><div class="avatar-fallback">${initialsFromName(name)}</div></a>`
+                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><div class="avatar-fallback">${initialsFromName(name)}</div></span>`;
                     }
                 }else{
                     avatarHtml=`<div class="avatar-fallback" title="Event">★</div>`;
