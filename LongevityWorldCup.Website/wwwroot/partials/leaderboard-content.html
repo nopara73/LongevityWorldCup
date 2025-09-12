@@ -33,18 +33,29 @@
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
     }
     table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
-    .leaderboard td{ text-align:center; }
 
+    .leaderboard td{ text-align:center; }
     th{
         padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
         color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
     }
-    .leaderboard table th:nth-child(1){ width:15px; }
     .leaderboard table th:nth-child(2){ text-align:left; }
     .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
 
     .leaderboard table tbody tr{ cursor:pointer; }
     .leaderboard table tbody tr:hover{ transform: scale(1.02); box-shadow:0 4px 10px rgba(0,0,0,.1); }
+
+    /* Let the Rank column auto-size (override old 15px rule) */
+    .leaderboard table th:nth-child(1){ width:auto; }
+
+    /* Inner spacing: 17px left/right on all Rank cells while keeping text centered */
+    .leaderboard table td.rank-td,
+    .leaderboard table th:nth-child(1){
+        padding-left:17px;
+        padding-right:17px;
+        text-align:center;
+        white-space:nowrap;
+    }
 
     /* =========================
        4) Sidebar & filters
@@ -161,14 +172,12 @@
         gap: .25rem;
         max-width: 100%
     }
-
-        .podium .name-row .athlete-name {
-            flex: 1;
-            min-width: 0;
-            white-space: nowrap;
-            line-height: 1.1
-        }
-
+    .podium .name-row .athlete-name {
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        line-height: 1.1
+    }
 
     /* Rank-change wrapper */
     .rank-change{ position: relative; display: inline-block; z-index: 0; }
@@ -267,8 +276,8 @@
     .personal-link-icon:first-of-type{ margin-left:0; }
     .personal-link-icon:hover{ color:var(--secondary-color); }
 
-    .leaderboard table tbody tr{scroll-margin-top:0}
-    .leaderboard table tbody tr:target{background:rgba(255,255,0,.35);transition:background-color 1.2s ease}
+    .leaderboard table tbody tr{ scroll-margin-top:0; }
+    .leaderboard table tbody tr:target{ background:rgba(255,255,0,.35); transition:background-color 1.2s ease; }
 
     /* =========================
        9) Badges (table + modal strip)
@@ -422,7 +431,6 @@
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
     }
-
 </style>
 
 <div class="main-container">
