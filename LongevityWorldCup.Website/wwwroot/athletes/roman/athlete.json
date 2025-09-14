@@ -1,0 +1,28 @@
+{
+  "Name": "Roman",
+  "DisplayName": null,
+  "MediaContact": "35lipi@gmail.com",
+  "DateOfBirth": {
+    "Year": 1969,
+    "Month": 10,
+    "Day": 27
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-02-03",
+      "AlbGL": 44.4,
+      "CreatUmolL": 86.2,
+      "GluMmolL": 3.65,
+      "CrpMgL": 5,
+      "LymPc": 39.9,
+      "McvFL": 85.2,
+      "RdwPc": 12.6,
+      "AlpUL": 97,
+      "Wbc1000cellsuL": 6.55
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "SVK",
+  "Why": "Don't die is just a start. I'd like to see what humanity accomplish next fifty+ years.",
+  "PersonalLink": null
+}
