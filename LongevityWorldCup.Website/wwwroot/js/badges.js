@@ -19,6 +19,8 @@ let crowdAgeMapping = {};
 let perfectGuessMapping = {};
 let bestGuessMapping = {};
 let bestGuessDiffMapping = {};
+let perfectApplicationMapping = {};
+
 
 window.computeBadges = function (athleteResults) {
     // Compute the three chronologically oldest athletes
@@ -522,6 +524,18 @@ window.setBadges = function (athlete, athleteCell) {
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
+
+    // Perfect Application badge for Cornee
+    if (athlete.name === "Cornee") {
+        const tooltipText = "Perfect Application: Most Flawless Entry Form Ever Submitted";
+        const iconClass = "fa-ruler";
+        const badgeHtml = `
+            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
+        badgeElements.push({ order: 1, html: badgeHtml });
+    }
+
 
     // Ultimate League ranking badge (colored backgrounds)
     if (ultimateLeagueMapping[athlete.name]) {
