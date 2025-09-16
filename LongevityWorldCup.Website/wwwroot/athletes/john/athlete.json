@@ -1,0 +1,40 @@
+{
+  "Name": "John",
+  "DisplayName": null,
+  "MediaContact": "venture.geotag_3c@icloud.com",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 9,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-25",
+      "AlbGL": 49,
+      "CreatUmolL": 91.15044247787611,
+      "GluMmolL": 4.72,
+      "CrpMgL": 0.3,
+      "LymPc": 37.5,
+      "McvFL": 95.9,
+      "RdwPc": 12.1,
+      "AlpUL": 63,
+      "Wbc1000cellsuL": 5.4
+    },
+    {
+      "Date": "2025-08-25",
+      "AlbGL": 48,
+      "CreatUmolL": 91.15044247787611,
+      "GluMmolL": 4.61,
+      "CrpMgL": 0.4,
+      "LymPc": 48.7,
+      "McvFL": 95,
+      "RdwPc": 11.2,
+      "AlpUL": 64,
+      "Wbc1000cellsuL": 4.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Cyberspace",
+  "Why": "If God will allow me to live, I can't imagine ever not wanting that. I plan to do my best, to live as long as humanly possible.",
+  "PersonalLink": null
+}
