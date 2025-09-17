@@ -1,0 +1,28 @@
+{
+  "Name": "Magnus Sigurdsson",
+  "DisplayName": null,
+  "MediaContact": "https://x.com/MagnusSigurdss",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 9,
+    "Day": 28
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-16",
+      "AlbGL": 45,
+      "CreatUmolL": 81.41592920353983,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 1.3,
+      "LymPc": 24.3,
+      "McvFL": 91.9,
+      "RdwPc": 12.3,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 6.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Iceland",
+  "Why": "Reaching longevity escape velocity",
+  "PersonalLink": "https://x.com/MagnusSigurdss"
+}
