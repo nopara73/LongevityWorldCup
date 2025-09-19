@@ -1,0 +1,28 @@
+{
+  "Name": "Cornee",
+  "DisplayName": null,
+  "MediaContact": "cornee2525@proton.me",
+  "DateOfBirth": {
+    "Year": 1983,
+    "Month": 8,
+    "Day": 4
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-25",
+      "AlbGL": 49,
+      "CreatUmolL": 80.4,
+      "GluMmolL": 4.73,
+      "CrpMgL": 0.16,
+      "LymPc": 47.5,
+      "McvFL": 93.4,
+      "RdwPc": 12.3,
+      "AlpUL": 63,
+      "Wbc1000cellsuL": 4.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Europe",
+  "Why": "\"hard\" decisions = easy life!!",
+  "PersonalLink": null
+}

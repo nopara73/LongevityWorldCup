@@ -18,10 +18,23 @@
       "RdwPc": 12.2,
       "AlpUL": 120,
       "Wbc1000cellsuL": 3.73
+    },
+    {
+      "Date": "2025-09-12",
+      "AlbGL": 46,
+      "CreatUmolL": 77,
+      "GluMmolL": 4.8,
+      "CrpMgL": 0.4,
+      "LymPc": 36.9,
+      "McvFL": 94.8,
+      "RdwPc": 12,
+      "AlpUL": 118,
+      "Wbc1000cellsuL": 4.33
     }
   ],
   "Division": "Open",
   "Flag": "Biomarker Optimizers",
   "Why": "Immortality, challenges, compassion.",
-  "PersonalLink": "https://biomarkeroptimizers.com/members/2/profile"
+  "PersonalLink": "https://biomarkeroptimizers.com/members/2/profile",
+  "DisplayName": null
 }

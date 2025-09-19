@@ -33,10 +33,13 @@ Simply visit our [website](https://www.longevityworldcup.com/) and follow the re
 
 ![image](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
 
+Want someone to hold your hand while doing your application? Watch [this seven minute video tutorial](https://www.youtube.com/watch?v=0mCIbqgfqq8) or [this one minute video tutorial.](https://www.youtube.com/shorts/yhMFZMPAoKQ)
+
 #### Can I withdraw from the competition?
 Yes, just send us an email to `longevityworldcup@gmail.com`.
 
 ### About PhenoAge and Testing
+
 #### What is PhenoAge? 
 [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) is a biological age measure based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
 
@@ -100,5 +103,7 @@ Sponsorships are planned for future seasons, allowing companies to sponsor athle
 
 #### What happens if Bitcoin's value fluctuates significantly?
 [1 BTC = 1 BTC](https://old.reddit.com/r/Bitcoin/comments/w1di0k/please_understand_what_1_btc_1_btc_really_means/)
+
+
 
 

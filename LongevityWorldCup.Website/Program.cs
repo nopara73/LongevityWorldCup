@@ -110,6 +110,8 @@ namespace LongevityWorldCup.Website
 
             app.UseRouting();
 
+            app.UseMiddleware<EventBoardRedirectMiddleware>();
+
             // Register the custom HTML injection middleware
             app.UseMiddleware<HtmlInjectionMiddleware>();
 
