@@ -543,6 +543,12 @@
                         </p>
 
                         <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
+                        <p id="averagePaceOfAgingContainer" style="display: none;">
+                            <strong>Pace of aging (all time):</strong> <span id="averagePaceOfAging"></span> years per year
+                        </p>
+                        <p id="seasonPaceOfAgingContainer" style="display: none;">
+                            <strong>Pace of aging (season):</strong> <span id="seasonPaceOfAging"></span> years per year
+                        </p>
                         <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
                     </div>
                     <div class="athlete-links">
@@ -602,6 +608,8 @@
 
 <script>
     let athleteResults = [];
+
+    const currentSeasonStartDate = new Date('2025-01-01');
 
     markAthleteSkippedIfInURL();
 
@@ -2209,6 +2217,21 @@
                     sessionStorage.setItem('gmaSeen', 'true');
                 }
 
+                const averagePaceOfAgingContainer = document.getElementById('averagePaceOfAgingContainer');
+                if (window.averagePaceOfAging) {
+                    document.getElementById('averagePaceOfAging').textContent = window.averagePaceOfAging.toFixed(2);
+                    averagePaceOfAgingContainer.style.display = 'inline-block';
+                } else {
+                    averagePaceOfAgingContainer.style.display = 'none';
+                }
+
+                const seasonPaceOfAgingContainer = document.getElementById('seasonPaceOfAgingContainer');
+                if (window.seasonPaceOfAging) {
+                    document.getElementById('seasonPaceOfAging').textContent = window.seasonPaceOfAging.toFixed(2);
+                    seasonPaceOfAgingContainer.style.display = 'inline-block';
+                } else {
+                    seasonPaceOfAgingContainer.style.display = 'none';
+                }
             })
             .catch(error => {
                 console.error('Error fetching full athlete data:', error);
@@ -2377,8 +2400,16 @@
         const labels = completeData.map(entry => entry.Date);
         const phenoAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
+        let previousEntryPhenoAge;
+        let previousEntryChronoAge;
+        const allTimeAgingPaces = [];
+        const seasonAgingPaces = [];
 
-        completeData.forEach(entry => {
+        const completeDataByYear = Object.groupBy(completeData, (entry) => {
+            return entry.Date.substr(0, 4);
+        });
+
+        completeData.forEach((entry, entryIndex) => {
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
@@ -2395,7 +2426,68 @@
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
             phenoAges.push(phenoAge.toFixed(1));
+
+            const now = new Date();
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(now.getFullYear() - 2);
+            const isEntryFromThisSeason = entryDate >= currentSeasonStartDate && entryDate <= now;
+            const isEntryFromTheLastYear = entryDate >= oneYearAgo && entryDate <= now;
+
+            // pad the pace arrays with estimates based on the first blood test
+            if (entryIndex === 0) {
+                const initialPace = phenoAge / chronoAgeAtEntry;
+                const ageInCompleteYears = parseInt(chronoAgeAtEntry);
+                for (let index = 0; index < ageInCompleteYears; index++) {
+                    allTimeAgingPaces.push(initialPace);
+                }
+
+                if (isEntryFromTheLastYear) {
+                    // the first entry is under 1 year ago, so estimate the pace for the previous year
+                    seasonAgingPaces.push(initialPace);
+                }
+
+                previousEntryPhenoAge = phenoAge - initialPace;
+                previousEntryChronoAge = chronoAgeAtEntry - 1;
+            } else {
+                const isThereAnotherEntry = Boolean(completeData[entryIndex + 1]);
+                const entryYear = entryDate.getFullYear().toString();
+                if (isThereAnotherEntry && completeData[entryIndex + 1].Date.startsWith(entryYear)) {
+                    // The next entry is from the same year, skip this so we can deal with them in a mini loop
+                } else {
+                    // This is either the only entry for a year, or the last one for that year
+                    const entriesForTheYear = completeDataByYear[entryYear];
+                    const countEntriesForTheYear = entriesForTheYear.length;
+                    const pacesForTheYear = [];
+                    entriesForTheYear.forEach((entryForTheYear, entryForTheYearIndex) => {
+                        const entryDate = new Date(entryForTheYear.Date);
+                        const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
+                        const biomarkerValues = prepareBiomarkerValues(entryForTheYear, chronoAgeAtEntry);
+                        const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
+
+                        if (previousEntryPhenoAge) {
+                            const phenoAgeDifference = phenoAge - previousEntryPhenoAge;
+                            const timePassed = chronoAgeAtEntry - previousEntryChronoAge;
+                            const timePassedProportionOfYear = 1 / timePassed;
+                            pacesForTheYear.push(timePassedProportionOfYear * phenoAgeDifference);
+                        }
+
+                        previousEntryPhenoAge = phenoAge;
+                        previousEntryChronoAge = chronoAgeAtEntry;
+                    });
+
+
+                    const averagePaceForTheYear = pacesForTheYear.reduce((a, b) => (a + b)) / pacesForTheYear.length;
+                    allTimeAgingPaces.push(averagePaceForTheYear);
+
+                    if (isEntryFromThisSeason) {
+                        seasonAgingPaces.push(averagePaceForTheYear);
+                    }
+                }
+            }
         });
+
+        window.averagePaceOfAging = allTimeAgingPaces.reduce((a, b) => (a + b)) / allTimeAgingPaces.length;
+        window.seasonPaceOfAging = seasonAgingPaces.reduce((a, b) => (a + b)) / seasonAgingPaces.length;
 
         const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
         const datasets = prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores);
