@@ -5,6 +5,10 @@ using System.Text.Json;
 using System.Linq;
 using System.Threading;
 using System.IO;
+// added for biomarker signature
+using System.Text;
+using System.Security.Cryptography;
+using System.Globalization;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -38,6 +42,9 @@ public class AthleteDataService : IDisposable
     private readonly object _pendingLock = new();
     private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
 
+    // single-column biomarker/test signature to detect new/changed test submissions
+    private const string TestSigColumn = "TestSig";
+
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
     {
         _env = env;
@@ -64,7 +71,14 @@ public class AthleteDataService : IDisposable
 
             // Try to add column (ignore if exists)
             cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
-            try { cmd.ExecuteNonQuery(); } catch { /* column already exists */ }
+            try
+            {
+                cmd.ExecuteNonQuery();
+            }
+            catch
+            {
+                /* column already exists */
+            }
 
             // Ensure Placements, CurrentPlacement, LastAgeDiff columns exist
             cmd.CommandText = "PRAGMA table_info(Athletes);";
@@ -72,6 +86,7 @@ public class AthleteDataService : IDisposable
             var hasPlacements = false;
             var hasCurrentPlacement = false;
             var hasLastAgeDiff = false;
+            var hasTestSig = false; // track if our signature column exists
             while (r.Read())
             {
                 var colName = r.GetString(1);
@@ -81,6 +96,8 @@ public class AthleteDataService : IDisposable
                     hasCurrentPlacement = true;
                 if (string.Equals(colName, "LastAgeDiff", StringComparison.OrdinalIgnoreCase))
                     hasLastAgeDiff = true;
+                if (string.Equals(colName, TestSigColumn, StringComparison.OrdinalIgnoreCase))
+                    hasTestSig = true;
             }
 
             if (!hasPlacements)
@@ -93,17 +110,27 @@ public class AthleteDataService : IDisposable
                 backfill.CommandText = "UPDATE Athletes SET Placements='[]' WHERE Placements IS NULL OR Placements='';";
                 backfill.ExecuteNonQuery();
             }
+
             if (!hasCurrentPlacement)
             {
                 using var alter2 = _sqliteConnection.CreateCommand();
                 alter2.CommandText = "ALTER TABLE Athletes ADD COLUMN CurrentPlacement INTEGER NULL;";
                 alter2.ExecuteNonQuery();
             }
+
             if (!hasLastAgeDiff)
             {
                 using var alter3 = _sqliteConnection.CreateCommand();
                 alter3.CommandText = "ALTER TABLE Athletes ADD COLUMN LastAgeDiff REAL NULL;";
                 alter3.ExecuteNonQuery();
+            }
+
+            // add single signature column (one-time)
+            if (!hasTestSig)
+            {
+                using var alter4 = _sqliteConnection.CreateCommand();
+                alter4.CommandText = $"ALTER TABLE Athletes ADD COLUMN {TestSigColumn} TEXT NULL;";
+                alter4.ExecuteNonQuery();
             }
         }
 
@@ -130,6 +157,9 @@ public class AthleteDataService : IDisposable
         HydrateNewFlagsIntoAthletesJson();
         HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
 
+        // persist biomarker/test signature for all athletes (so we can detect new/changed tests later)
+        var changedSigsAtStartup = SyncBiomarkerSignatures(); // returns slugs whose signatures changed
+
         // Watch the per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
         _athletesRootDir = athletesDir;
@@ -153,8 +183,10 @@ public class AthleteDataService : IDisposable
             eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
         }
 
-        // Detect rank-ups for existing athletes against the last persisted snapshot, then persist
-        DetectAndEmitRankUpsAgainstDb(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+        DetectAndEmitRankUpsForSlugs(
+            changedSlugs: changedSigsAtStartup,
+            newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
+        );
 
         // Poll-loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
@@ -226,7 +258,7 @@ public class AthleteDataService : IDisposable
         {
             // retry read in case the file is mid-write
             string text = "";
-            for (int i = 0; ; i++)
+            for (int i = 0;; i++)
             {
                 try
                 {
@@ -245,8 +277,8 @@ public class AthleteDataService : IDisposable
             athlete["CrowdCount"] = 0;
             athlete["IsNew"] = false;
 
-            var folder = Path.GetDirectoryName(file)!;         // e.g. "/.../wwwroot/athletes/michelle_franz-montan"
-            var folderName = Path.GetFileName(folder);         // e.g. "michelle_franz-montan"
+            var folder = Path.GetDirectoryName(file)!; // e.g. "/.../wwwroot/athletes/michelle_franz-montan"
+            var folderName = Path.GetFileName(folder); // e.g. "michelle_franz-montan"
 
             // so we can look up this JsonObject later by slug
             athlete["AthleteSlug"] = folderName.Replace('-', '_'); // e.g. "michelle_franz_montan"
@@ -289,7 +321,9 @@ public class AthleteDataService : IDisposable
                 if (!token.IsCancellationRequested)
                     await OnSourceChangedAsync(this, null);
             }
-            catch (TaskCanceledException) { }
+            catch (TaskCanceledException)
+            {
+            }
         }, CancellationToken.None);
     }
 
@@ -308,14 +342,20 @@ public class AthleteDataService : IDisposable
             HydratePlacementsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
 
+            // recompute and persist biomarker/test signatures after reload
+            var changedSigs = SyncBiomarkerSignatures();
+
             if (newlyJoined.Count > 0)
             {
                 var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
                 _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
             }
 
-            // Compare against DB snapshot and emit rank-ups (athletes can only move up or hold)
-            DetectAndEmitRankUpsAgainstDb(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+            DetectAndEmitRankUpsForSlugs(
+                changedSlugs: changedSigs,
+                newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
+            );
+
             PushAthleteDirectoryToEvents();
         }
         finally
@@ -485,6 +525,7 @@ public class AthleteDataService : IDisposable
                     ? ages[cnt / 2]
                     : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
             }
+
             return (median, cnt);
         }
     }
@@ -608,7 +649,10 @@ public class AthleteDataService : IDisposable
                 v = n.GetValue<double>();
                 return !double.IsNaN(v) && !double.IsInfinity(v);
             }
-            catch { return false; }
+            catch
+            {
+                return false;
+            }
         }
     }
 
@@ -616,8 +660,8 @@ public class AthleteDataService : IDisposable
         SortByCompetitionRules(IEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
     {
         return rows
-            .OrderBy(t => t.AgeReduction)                 // 1) more negative is better
-            .ThenBy(t => t.DobUtc)                        // 2) older (earlier DOB) wins
+            .OrderBy(t => t.AgeReduction) // 1) more negative is better
+            .ThenBy(t => t.DobUtc) // 2) older (earlier DOB) wins
             .ThenBy(t => t.Name, StringComparer.Ordinal); // 3) alphabetical
     }
 
@@ -642,6 +686,7 @@ public class AthleteDataService : IDisposable
             {
                 result = new int?[4];
             }
+
             return result;
         }
     }
@@ -795,6 +840,7 @@ public class AthleteDataService : IDisposable
                 newlyJoined.Add((athleteJson, _serviceStartUtc));
             }
         }
+
         return newlyJoined;
     }
 
@@ -811,6 +857,7 @@ public class AthleteDataService : IDisposable
                     map[slug] = i + 1;
             }
         }
+
         return map;
     }
 
@@ -866,6 +913,7 @@ public class AthleteDataService : IDisposable
                 map[key] = cp;
             }
         }
+
         return map;
     }
 
@@ -884,6 +932,7 @@ public class AthleteDataService : IDisposable
                 map[key] = val;
             }
         }
+
         return map;
     }
 
@@ -904,6 +953,7 @@ public class AthleteDataService : IDisposable
                 }
             }
         }
+
         return map;
     }
 
@@ -918,6 +968,7 @@ public class AthleteDataService : IDisposable
                 clear.CommandText = "UPDATE Athletes SET CurrentPlacement=NULL";
                 clear.ExecuteNonQuery();
             }
+
             using (var upd = _sqliteConnection.CreateCommand())
             {
                 upd.Transaction = tx;
@@ -942,12 +993,13 @@ public class AthleteDataService : IDisposable
     }
 
     /// <summary>
-    /// Compares current top-10 against the previously persisted snapshot in SQLite,
-    /// emits NewRank events for improvements (existing athletes only),
-    /// then persists the new snapshot (all placements).
-    /// If there is NO previously persisted placement (all NULL) => first run: do NOT emit events, only persist.
+    /// For the given set of slugs (whose biomarker signatures changed),
+    /// compare current full-table ranks against the last persisted snapshot and
+    /// emit NewRank events for any numeric improvement (smaller number is better).
+    /// Newcomers are excluded (handled by Join pipeline). Then persist the new snapshot.
+    /// If there is no baseline (all NULL) => first run: persist only, do not emit.
     /// </summary>
-    private void DetectAndEmitRankUpsAgainstDb(IEnumerable<string>? newcomerSlugs)
+    private void DetectAndEmitRankUpsForSlugs(IEnumerable<string> changedSlugs, IEnumerable<string>? newcomerSlugs)
     {
         var before = LoadStoredCurrentPlacements();
 
@@ -961,95 +1013,64 @@ public class AthleteDataService : IDisposable
             return;
         }
 
-        var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
-                        ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var changed = new HashSet<string>(changedSlugs ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        if (changed.Count == 0) return;
 
-        // Build reverse map of the previous snapshot: rank -> slug
+        var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+                       ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // AFTER: full ranking (slug -> rank) and helper (rank -> slug)
+        var afterAll = BuildRankMap();
+        var afterAllByRank = afterAll.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+        // BEFORE: rank -> slug (used to try to find the previous holder at a given rank)
         var beforeByRank = new Dictionary<int, string>(capacity: before.Count);
         foreach (var kv in before)
         {
-            if (kv.Value is int rank && rank >= 1)
-                beforeByRank[rank] = kv.Key;
+            if (kv.Value is int r && r >= 1) beforeByRank[r] = kv.Key;
         }
-
-        var afterTop10 = BuildRankMap(limit: 10);
-        var afterAll = BuildRankMap();
-        var afterTop10ByRank = afterTop10.ToDictionary(kv => kv.Value, kv => kv.Key);
 
         var nowUtc = DateTime.UtcNow;
-
-        // score maps for improvement checks
-        var beforeDiffs = LoadStoredLastAgeDifferences();
-        var nowDiffs = BuildAgeDiffMap();
-
-        // uniform-shift guard — pure deletion/shift => suppress events
-        var commonChanged = new List<(string slug, int prev, int curr)>();
-        foreach (var kv in afterAll)
-        {
-            if (before.TryGetValue(kv.Key, out var pr) && pr.HasValue)
-            {
-                var prev = pr.Value;
-                var curr = kv.Value;
-                if (prev != curr) commonChanged.Add((kv.Key, prev, curr));
-            }
-        }
-        if (commonChanged.Count > 0)
-        {
-            var distinctDeltas = commonChanged.Select(p => p.prev - p.curr).Distinct().ToList();
-            var uniformPositiveShift = distinctDeltas.Count == 1 && distinctDeltas[0] > 0;
-
-            bool anyScoreImproved = commonChanged.Any(p =>
-                beforeDiffs.TryGetValue(p.slug, out var prevDiffN) && prevDiffN.HasValue &&
-                nowDiffs.TryGetValue(p.slug, out var currDiff) &&
-                currDiff < prevDiffN.Value - RankEventScoreEpsilon);
-
-            if (uniformPositiveShift && !anyScoreImproved)
-            {
-                PersistCurrentPlacementsSnapshot(afterAll, nowDiffs);
-                return;
-            }
-        }
-
         var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)>();
 
-        foreach (var kv in afterTop10)
+        foreach (var slug in changed)
         {
-            var slug = kv.Key;
+            // skip if this athlete isn't ranked now (shouldn't happen, but be defensive)
+            if (!afterAll.TryGetValue(slug, out var newRank)) continue;
 
-            // single-source-of-truth: newcomers' NewRank is emitted by the Joined pipeline
-            if (newcomers.Contains(slug))
-                continue;
+            // newcomers handled elsewhere
+            if (newcomers.Contains(slug)) continue;
 
-            var newRank = kv.Value;
-            before.TryGetValue(slug, out var prevRank);
+            // need a baseline rank to compare
+            if (!before.TryGetValue(slug, out var prevRankNullable) || !prevRankNullable.HasValue) continue;
 
-            // require a real score improvement to emit an event
-            var scoreImproved =
-                beforeDiffs.TryGetValue(slug, out var prevDiffNullable) &&
-                prevDiffNullable.HasValue &&
-                nowDiffs.TryGetValue(slug, out var currDiff) &&
-                currDiff < prevDiffNullable.Value - RankEventScoreEpsilon;
+            var prevRank = prevRankNullable.Value;
+            if (newRank >= prevRank) continue; // no numeric improvement
 
-            var movedUpByRank = !prevRank.HasValue || prevRank.Value > 10 || newRank < prevRank.Value;
-            if (!movedUpByRank || !scoreImproved)
-                continue;
-
+            // try to identify who was replaced at this new rank (best effort)
             string? replacedSlug = null;
+
+            // 1) exact previous holder of the new rank
             if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
                 !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
             {
                 replacedSlug = prevHolder;
             }
+
+            // 2) fallback: somebody who was >= newRank and moved down (or disappeared)
             if (replacedSlug is null)
             {
                 string? candidate = null;
                 var bestPrev = int.MaxValue;
+
                 foreach (var p in before)
                 {
                     if (!p.Value.HasValue) continue;
                     var pr = p.Value.Value;
                     if (pr < newRank) continue;
                     if (string.Equals(p.Key, slug, StringComparison.OrdinalIgnoreCase)) continue;
+
+                    // moved down or disappeared
                     if (!afterAll.TryGetValue(p.Key, out var ar) || ar > pr)
                     {
                         if (pr < bestPrev)
@@ -1061,10 +1082,10 @@ public class AthleteDataService : IDisposable
                 }
                 replacedSlug = candidate;
             }
-            if (replacedSlug is null && afterTop10ByRank.TryGetValue(newRank + 1, out var afterNext))
-            {
+
+            // 3) last-ditch: the athlete that sits right below the new rank now
+            if (replacedSlug is null && afterAllByRank.TryGetValue(newRank + 1, out var afterNext))
                 replacedSlug = afterNext;
-            }
 
             changes.Add((slug, nowUtc, newRank, replacedSlug));
         }
@@ -1073,10 +1094,11 @@ public class AthleteDataService : IDisposable
             _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
 
         // Persist full snapshot AFTER emitting events
-        var afterAllFinal = BuildRankMap(); // full table
-        var afterDiffs = BuildAgeDiffMap();
+        var afterAllFinal = BuildRankMap();    // full table
+        var afterDiffs = BuildAgeDiffMap();    // persisted for visibility/debug
         PersistCurrentPlacementsSnapshot(afterAllFinal, afterDiffs);
     }
+
 
     /// <summary>
     /// Build the joined payload enriched with the previous holder of each newcomer's rank.
@@ -1090,7 +1112,8 @@ public class AthleteDataService : IDisposable
         // rank -> slug map for BEFORE
         var beforeByRank = new Dictionary<int, string>();
         foreach (var kv in before)
-            if (kv.Value is int r && r >= 1) beforeByRank[r] = kv.Key;
+            if (kv.Value is int r && r >= 1)
+                beforeByRank[r] = kv.Key;
 
         // AFTER maps (current in-memory ranking)
         var afterTop10 = BuildRankMap(limit: 10);
@@ -1139,6 +1162,7 @@ public class AthleteDataService : IDisposable
                             }
                         }
                     }
+
                     replaced = candidate;
                 }
 
@@ -1164,6 +1188,119 @@ public class AthleteDataService : IDisposable
             if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
             list.Add((slug, name, rank));
         }
+
         _eventDataService.SetAthleteDirectory(list);
+    }
+
+    // ===== biomarker/test signature helpers (single-column persistence) =====
+
+    private List<string> SyncBiomarkerSignatures()
+    {
+        // Computes a deterministic signature from Biomarkers and stores it in Athletes.TestSig.
+        // If nothing changed, no write occurs. This is called on startup and after reloads.
+        var changed = new List<string>();
+        lock (_sqliteConnection)
+        {
+            using var tx = _sqliteConnection.BeginTransaction();
+
+            foreach (var athlete in Athletes.OfType<JsonObject>())
+            {
+                var slug = athlete["AthleteSlug"]?.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+
+                var newSig = ComputeBiomarkerSignature(athlete);
+                string? oldSig;
+
+                using (var sel = _sqliteConnection.CreateCommand())
+                {
+                    sel.Transaction = tx;
+                    sel.CommandText = $"SELECT {TestSigColumn} FROM Athletes WHERE Key=@k";
+                    sel.Parameters.AddWithValue("@k", slug);
+                    var o = sel.ExecuteScalar();
+                    oldSig = o is DBNull or null ? null : (string)o;
+                }
+
+                if (!string.Equals(oldSig, newSig, StringComparison.Ordinal))
+                {
+                    using var upd = _sqliteConnection.CreateCommand();
+                    upd.Transaction = tx;
+                    upd.CommandText = $"UPDATE Athletes SET {TestSigColumn}=@s WHERE Key=@k";
+                    upd.Parameters.AddWithValue("@s", (object?)newSig ?? DBNull.Value);
+                    upd.Parameters.AddWithValue("@k", slug);
+                    upd.ExecuteNonQuery();
+
+                    changed.Add(slug);
+                }
+            }
+
+            tx.Commit();
+        }
+
+        return changed;
+    }
+
+    private static string ComputeBiomarkerSignature(JsonObject athlete)
+    {
+        // Canonicalize each biomarker record to "yyyy-MM-dd|AlbGL|CreatUmolL|GluMmolL|CrpMgL|Wbc1000cellsuL|LymPc|McvFL|RdwPc|AlpUL"
+        // Sort all lines and SHA-256 hash the result. Missing values are empty strings.
+        if (athlete["Biomarkers"] is not JsonArray arr || arr.Count == 0)
+            return Sha256Hex(string.Empty);
+
+        var lines = new List<string>(arr.Count);
+
+        foreach (var node in arr.OfType<JsonObject>())
+        {
+            string dateStr = "";
+            var ds = node["Date"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(ds) &&
+                DateTime.TryParse(ds, null, DateTimeStyles.RoundtripKind, out var parsed))
+            {
+                var d = DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc);
+                dateStr = d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            }
+
+            string V(string key)
+            {
+                try
+                {
+                    var v = node[key];
+                    if (v is null) return "";
+                    var dval = v.GetValue<double>();
+                    // round-trip, invariant string for stable hashing
+                    return dval.ToString("R", CultureInfo.InvariantCulture);
+                }
+                catch
+                {
+                    return "";
+                }
+            }
+
+            var alb = V("AlbGL");
+            var creat = V("CreatUmolL");
+            var glu = V("GluMmolL");
+            var crp = V("CrpMgL");
+            var wbc = V("Wbc1000cellsuL");
+            var lym = V("LymPc");
+            var mcv = V("McvFL");
+            var rdw = V("RdwPc");
+            var alp = V("AlpUL");
+
+            var line = string.Join("|", new[] { dateStr, alb, creat, glu, crp, wbc, lym, mcv, rdw, alp });
+            lines.Add(line);
+        }
+
+        lines.Sort(StringComparer.Ordinal);
+        var canonical = string.Join("\n", lines);
+        return Sha256Hex(canonical);
+    }
+
+    private static string Sha256Hex(string input)
+    {
+        using var sha = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(input ?? "");
+        var hash = sha.ComputeHash(bytes);
+        var sb = new StringBuilder(hash.Length * 2);
+        foreach (var b in hash) sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+        return sb.ToString();
     }
 }
