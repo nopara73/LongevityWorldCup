@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
+using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -117,7 +118,7 @@ public sealed class EventDataService : IDisposable
             foreach (var (slug, occurredAtUtc, rank, replacedSlug) in items)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
-                if (rank < 1 || rank > 10) continue;
+                if (rank < 1) continue; // allow any positive rank (no top-10 gating)
 
                 var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
                 var textBase = $"slug[{slug}] rank[{rank}]";
@@ -214,7 +215,7 @@ public sealed class EventDataService : IDisposable
                 }
 
                 // NewRank (only for newcomers on join)
-                if (currentRank is int r && r >= 1 && r <= 10)
+                if (currentRank is int r && r >= 1) // allow any positive rank (no top-10 gating)
                 {
                     var rankText = !string.IsNullOrWhiteSpace(replacedSlug)
                         ? $"slug[{slug}] rank[{r}] prev[{replacedSlug}]"
@@ -338,11 +339,27 @@ public sealed class EventDataService : IDisposable
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
     }
 
+    private static bool TryExtractRankFromRawText(string rawText, out int rank)
+    {
+        rank = 0;
+        if (string.IsNullOrWhiteSpace(rawText)) return false;
+        var m = Regex.Match(rawText, @"\brank\[(\d+)\]", RegexOptions.CultureInvariant);
+        if (!m.Success) return false;
+        return int.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out rank);
+    }
+
     private void FireAndForgetSlack(EventType type, string rawText)
     {
+        // Only NewRank events are candidates for Slack.
         if (type != EventType.NewRank)
         {
-            return; // Opt in for event types of events instead of out.
+            return;
+        }
+
+        // Gate Slack notifications to top 10 only (10th included).
+        if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
+        {
+            return;
         }
 
         _ = Task.Run(async () =>
