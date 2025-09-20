@@ -1,5 +1,5 @@
 # Longevity World Cup
-[![noqr](https://github.com/user-attachments/assets/7054d592-c478-429b-a767-d1d293a26b02)](https://www.longevityworldcup.com/)
+[![Watch the video](https://img.youtube.com/vi/Kq0VkLF3Z4Q/0.jpg)](https://www.youtube.com/shorts/Kq0VkLF3Z4Q)
 
 ## Website
 
@@ -9,7 +9,7 @@ https://www.longevityworldcup.com/
 - [x] 2024 Sept: Inception
 - [x] 2024 Oct: Design
 - [x] 2024 Nov-Dec: Code
-- [ ] 2025 Jan - Sept: Beta Testing
+- [x] 2025 Jan - Sept: Beta Testing
 - [ ] 2025 Sept 16st: Launch
 
 ## Build From Source Code
