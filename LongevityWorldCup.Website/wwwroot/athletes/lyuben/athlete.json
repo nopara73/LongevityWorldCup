@@ -30,10 +30,23 @@
       "RdwPc": 12,
       "AlpUL": 66,
       "Wbc1000cellsuL": 4.86
+    },
+    {
+      "Date": "2025-09-19",
+      "AlbGL": 46.4,
+      "CreatUmolL": 86,
+      "GluMmolL": 4.35,
+      "CrpMgL": 0.24,
+      "LymPc": 36.7,
+      "McvFL": 84.9,
+      "RdwPc": 12.3,
+      "AlpUL": 63,
+      "Wbc1000cellsuL": 5.25
     }
   ],
   "Division": "Men's",
   "Flag": "Bulgaria",
   "Why": "To be independent at old age and watch the wonders of progress as long as possible.",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "DisplayName": null
 }
