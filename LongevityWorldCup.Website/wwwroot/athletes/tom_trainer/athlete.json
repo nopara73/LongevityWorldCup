@@ -1,0 +1,28 @@
+{
+  "Name": "Tom Trainer",
+  "DisplayName": null,
+  "MediaContact": "ttrain4086@gmail.com",
+  "DateOfBirth": {
+    "Year": 1962,
+    "Month": 3,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-19",
+      "AlbGL": 42,
+      "CreatUmolL": 88.49557522123894,
+      "GluMmolL": 5.273090586145649,
+      "CrpMgL": 0.41999999999999993,
+      "LymPc": 34,
+      "McvFL": 94,
+      "RdwPc": 13.4,
+      "AlpUL": 86,
+      "Wbc1000cellsuL": 4.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Japan",
+  "Why": "Family, Love and challenges,",
+  "PersonalLink": "https://x.com/ttrain4086"
+}
