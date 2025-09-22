@@ -1,0 +1,29 @@
+{
+  "Name": "Cher",
+  "DisplayName": null,
+  "MediaContact": "chereffect75@gmail.com",
+  "DateOfBirth": {
+    "Year": 1961,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-04-04",
+      "AlbGL": 45,
+      "CreatUmolL": 82.30088495575222,
+      "GluMmolL": 4.940053285968029,
+      "CrpMgL": 0.15,
+      "LymPc": 29,
+      "McvFL": 91,
+      "RdwPc": 12.7,
+      "AlpUL": 37,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "Trying to be the best version of myself :)",
+  "PersonalLink": "https://www.youtube.com/channel/UCDszADWxRhTn6HNvbhZfjMg",
+  "PodcastLink": "https://youtu.be/H0kWwC_z2v0"
+}

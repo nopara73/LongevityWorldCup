@@ -1,0 +1,28 @@
+{
+  "Name": "Ben Pen",
+  "DisplayName": null,
+  "MediaContact": "mellowmorpho@protonmail.com",
+  "DateOfBirth": {
+    "Year": 1991,
+    "Month": 3,
+    "Day": 6
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-16",
+      "AlbGL": 47,
+      "CreatUmolL": 77.87610619469027,
+      "GluMmolL": 4.773534635879219,
+      "CrpMgL": 0.2,
+      "LymPc": 33,
+      "McvFL": 95.5,
+      "RdwPc": 11.8,
+      "AlpUL": 43,
+      "Wbc1000cellsuL": 6.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Having pristine health = Top mental & physical performance = Best quality of life = Living life to the fullest = Happiness",
+  "PersonalLink": null
+}

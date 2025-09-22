@@ -343,6 +343,16 @@
             });
         }
 
+        // ---- NEW: helper to gate NewRank items to top-10 in the normal list
+        function isTop10Rank(row, athletesIndex){
+            if(row.type !== EVENT_TYPE.NewRank) return true;
+            if (Number.isFinite(row.rank)) return row.rank <= 10;
+            const a = row.primarySlug ? athletesIndex.get(row.primarySlug) : null;
+            const placement = getCurrentPlacement(a);
+            return Number.isFinite(placement) && placement <= 10;
+        }
+        // ----
+
         function applyVisibleNow(el){
             const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             const rect=el.getBoundingClientRect();
@@ -392,105 +402,119 @@
         }
 
         function renderRows(rows, athletesIndex, linkNames){
-            const tbody=document.querySelector("#eventsTable tbody");
-            tbody.innerHTML="";
-            if(!Array.isArray(rows)||rows.length===0){
-                tbody.innerHTML=`<tr><td colspan="3">No events yet</td></tr>`;
+            const tbody = document.querySelector("#eventsTable tbody");
+            tbody.innerHTML = "";
+
+            if (!Array.isArray(rows) || rows.length === 0){
+                tbody.innerHTML = `<tr><td colspan="3">No events yet</td></tr>`;
                 return;
             }
-            const frag=document.createDocumentFragment();
-            const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            const afterNameWithCurrentRankFor = (targetSlug) => (slug,aObj)=>{
-                if(!aObj) return "";
-                const placement=getCurrentPlacement(aObj);
-                if(!placement) return "";
-                const label=`(#${placement})`;
+            const frag = document.createDocumentFragment();
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            const afterNameWithCurrentRankFor = () => (slug, aObj) => {
+                if (!aObj) return "";
+                const placement = getCurrentPlacement(aObj);
+                if (!placement) return "";
+                const label = `(#${placement})`;
                 return linkNames
                     ? `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`
                     : `<span class="placement-link">${esc(label)}</span>`;
             };
 
-            rows.forEach((r,idx)=>{
-                const dateLabel=r.occurredAt?formatListDate(r.occurredAt):"";
-                const rel=r.occurredAt
-                    ? (r.type===EVENT_TYPE.NewRank
-                        ? relativeDayLabelNoIcon(r.occurredAt,{emptyIfToday:true})
+            rows.forEach((r, idx) => {
+                const dateLabel = r.occurredAt ? formatListDate(r.occurredAt) : "";
+                const rel = r.occurredAt
+                    ? (r.type === EVENT_TYPE.NewRank
+                        ? relativeDayLabelNoIcon(r.occurredAt, { emptyIfToday: true })
                         : relativeDayLabel(r.occurredAt))
                     : "";
 
-                const a=r.primarySlug?athletesIndex.get(r.primarySlug):null;
-                const name=a?(athleteName(a)||r.primarySlug):(r.primarySlug||"");
-                const url=r.primarySlug?makeAthleteUrlFromSlug(r.primarySlug):"";
-                const img=a?athletePic(a):"";
+                const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
+                const name = a ? (athleteName(a) || r.primarySlug) : (r.primarySlug || "");
+                const url = r.primarySlug ? makeAthleteUrlFromSlug(r.primarySlug) : "";
+                const img = a ? athletePic(a) : "";
 
-                let avatarHtml="";
-                const makeClickable=(r.type===EVENT_TYPE.Joined||r.type===EVENT_TYPE.NewRank)&&r.primarySlug&&linkNames;
-                if((r.type===EVENT_TYPE.Joined||r.type===EVENT_TYPE.NewRank)&&r.primarySlug){
-                    if(img){
-                        avatarHtml = makeClickable
+                let avatarHtml = "";
+                const clickableNewRankOrJoined = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank) && r.primarySlug && linkNames;
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank) {
+                    if (img) {
+                        avatarHtml = clickableNewRankOrJoined
                             ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></span>`;
-                    }else{
-                        avatarHtml = makeClickable
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><div class="avatar-fallback">${initialsFromName(name)}</div></a>`
-                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><div class="avatar-fallback">${initialsFromName(name)}</div></span>`;
+                    } else {
+                        const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
+                        avatarHtml = clickableNewRankOrJoined
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">${fallback}</a>`
+                            : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
-                }else{
-                    avatarHtml=`<div class="avatar-fallback" title="Event">★</div>`;
+                } else {
+                    avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
 
-                let msgHtml="";
-                if(r.type===EVENT_TYPE.NewRank&&r.primarySlug){
-                    const taken=Number.isFinite(r.rank)?r.rank:getCurrentPlacement(a);
-                    const nameWithCurrentRank=renderTextWithSlugLinks(
-                        `slug[${r.primarySlug}]`,linkNames,athletesIndex,afterNameWithCurrentRankFor(r.primarySlug)
+                let msgHtml = "";
+                if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
+                    const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
+                    const nameWithCurrentRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
                     );
-                    const takenText=Number.isFinite(taken)?ordinal(taken):"?";
-                    const iconHtml = Number.isFinite(taken) ? podiumIcon(taken) : '';
+
+                    const takenText = Number.isFinite(taken) ? ordinal(taken) : "?";
+                    const iconHtml  = Number.isFinite(taken) ? podiumIcon(taken) : "";
                     const takenHtml = Number.isFinite(taken)
                         ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
                         : esc(takenText);
 
-                    let prevHtml="";
-                    if(r.prevSlug){
-                        prevHtml=renderTextWithSlugLinks(
-                            `slug[${r.prevSlug}]`,linkNames,athletesIndex,afterNameWithCurrentRankFor(r.prevSlug)
+                    let prevHtml = "";
+                    if (r.prevSlug) {
+                        prevHtml = renderTextWithSlugLinks(
+                            `slug[${r.prevSlug}]`,
+                            linkNames,
+                            athletesIndex,
+                            afterNameWithCurrentRankFor()
                         );
                     }
 
-                    const suffix=rel?` ${rel}`:"";
+                    const suffix = rel ? ` ${rel}` : "";
                     msgHtml = prevHtml
                         ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}${suffix}`
                         : `${nameWithCurrentRank} took the ${takenHtml} place${suffix}`;
-                }else{
-                    const tokenHtml=renderTextWithSlugLinks(
-                        r.text,linkNames,athletesIndex,r.type===EVENT_TYPE.Joined?afterNameWithCurrentRankFor(r.primarySlug):null
+                } else {
+                    const tokenHtml = renderTextWithSlugLinks(
+                        r.text,
+                        linkNames,
+                        athletesIndex,
+                        r.type === EVENT_TYPE.Joined ? afterNameWithCurrentRankFor() : null
                     );
-                    msgHtml=r.type===EVENT_TYPE.Joined?`${tokenHtml} joined ${rel}`:`${tokenHtml} ${rel}`;
+                    msgHtml = r.type === EVENT_TYPE.Joined ? `${tokenHtml} joined ${rel}` : `${tokenHtml} ${rel}`;
                 }
 
-                const tr=document.createElement("tr");
-                tr.className='row-appear';
-                tr.dataset.rowIndex=String(idx);
-                tr.innerHTML=
+                const tr = document.createElement("tr");
+                tr.className = "row-appear";
+                tr.dataset.rowIndex = String(idx);
+                tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                 <td class="athlete-td event-message">${msgHtml}</td>
-                 <td class="col-date">${dateLabel}</td>`;
+             <td class="athlete-td event-message">${msgHtml}</td>
+             <td class="col-date">${dateLabel}</td>`;
                 frag.appendChild(tr);
             });
 
             tbody.appendChild(frag);
 
-            if(!prefersReduced&&rows.length){
-                const io=ensureRowObserver();
-                tbody.querySelectorAll('.row-appear').forEach(r=>io.observe(r));
-                requestAnimationFrame(()=>revealVisibleRowsImmediately(tbody));
-                window.addEventListener('resize',()=>revealVisibleRowsImmediately(tbody),{passive:true});
-            }else{
-                tbody.querySelectorAll('.row-appear').forEach(r=>r.classList.add('is-visible'));
+            if (!prefersReduced && rows.length){
+                const io = ensureRowObserver();
+                tbody.querySelectorAll(".row-appear").forEach(r => io.observe(r));
+                requestAnimationFrame(() => revealVisibleRowsImmediately(tbody));
+                window.addEventListener("resize", () => revealVisibleRowsImmediately(tbody), { passive: true });
+            } else {
+                tbody.querySelectorAll(".row-appear").forEach(r => r.classList.add("is-visible"));
             }
         }
+
 
         function normalizeIncomingAthleteId(id){
             if(id==null) return '';
@@ -501,17 +525,32 @@
             return normalizeLinkId(slugifyLocal(s));
         }
 
+        // call signature: loadEventsTable(maxRows=null, showViewAll=true, athleteId=null, linkNames=true)
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setViewAllVisible(!!showViewAll);
+
             const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
             const athletesReq=fetch("/api/data/athletes",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
+
             Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
                 const athletesIndex=buildAthleteIndex(athletes);
                 let rows=toRows(Array.isArray(events)?events:[]);
+
+                // Are we in athlete modal context?
                 const target=normalizeIncomingAthleteId(athleteId);
-                if(target){ rows=rows.filter(r=>r.slugs.includes(target)); }
+                if(target){
+                    // Athlete modal: keep only events related to this athlete (already done),
+                    // and DO NOT gate NewRank by top-10.
+                    rows=rows.filter(r=>r.slugs.includes(target));
+                }else{
+                    // Normal list: show all Joined, but gate NewRank to top-10 only.
+                    rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
+                }
+
+                // apply optional limit after filtering
                 const n=parseLimit(maxRows);
                 if(n!==null) rows=rows.slice(0,n);
+
                 renderRows(rows,athletesIndex,!!linkNames);
             }).catch(()=>{
                 const tbody=document.querySelector("#eventsTable tbody");

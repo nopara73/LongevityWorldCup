@@ -8,22 +8,36 @@
         .join-game {
             display: none;
         }
+
+        .img-crop {
+            height: clamp(240px, 60vh, 720px);
+            overflow: hidden;
+            display: inline-block; /* keeps same width as before */
+        }
+
+            .img-crop .illustration {
+                width: 100%; /* same width behavior */
+                height: auto;
+                display: block;
+                position: relative;
+                top: 50%;
+                transform: translateY(-50%); /* equal crop top/bottom */
+            }
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main>
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Longevity Arena</h1>
+        <h1></h1>
         <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="../assets/content-images/phoenix.webp" type="image/webp">
-                <source srcset="../assets/content-images/phoenix.jpg" type="image/jpeg">
-                <img src="../assets/content-images/phoenix.jpg" alt="Phoenix" class="illustration" loading="lazy">
-            </picture>
+            <div class="img-crop">
+                <img src="../assets/content-images/JustTrackIt.jpg"
+                     alt="Just Track It"
+                     class="illustration"
+                     loading="lazy">
+            </div>
         </div>
-        <p style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            Time fears the committed
-        </p>
+
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/onboarding/join-game.html'">
                 Start Competing
