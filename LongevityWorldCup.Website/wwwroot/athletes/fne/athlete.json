@@ -1,0 +1,28 @@
+{
+  "Name": "Fné",
+  "DisplayName": null,
+  "MediaContact": "fekete.daniel99@gmail.com",
+  "DateOfBirth": {
+    "Year": 1966,
+    "Month": 8,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-23",
+      "AlbGL": 46,
+      "CreatUmolL": 64,
+      "GluMmolL": 5,
+      "CrpMgL": 2.1,
+      "LymPc": 34.3,
+      "McvFL": 99,
+      "RdwPc": 13.2,
+      "AlpUL": 118,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Teacher",
+  "Why": "Staying active to spend time with my children and keep teaching as long as possible.",
+  "PersonalLink": null
+}
