@@ -549,7 +549,7 @@
                         <p id="seasonPaceOfAgingContainer" style="display: none;">
                             <strong>Pace of aging (season):</strong> <span id="seasonPaceOfAging"></span> years per year
                         </p>
-                        <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years</p>
+                        <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years (<span id="ageReductionPercent"></span>%)</p>
                     </div>
                     <div class="athlete-links">
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
@@ -959,6 +959,8 @@
 
                     // Calculate the age reduction
                     const ageReduction = lowestPhenoAge - chronologicalAge;
+                    const biologicalAgePercent = lowestPhenoAge / chronologicalAge;
+                    const ageReductionPercent = (1 - biologicalAgePercent) * 100;
 
                     // Placements: [yesterday, last week, last month, last year]
                     // Store last month's rank (index 2). If missing or not a number, use null.
@@ -983,6 +985,7 @@
                         crowdCount: crowdCount,
                         lowestPhenoAge: lowestPhenoAge,
                         ageReduction: ageReduction,
+                        ageReductionPercent: ageReductionPercent,
                         bestBiomarkerValues: bestBiomarkerValues,
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
@@ -1128,7 +1131,7 @@
                                                 </a>` : ''}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
-                                            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
+                                            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> (<span class="age-reduction-percent">${Math.abs(athlete.ageReductionPercent.toFixed(1))}</span>%) reduced</div>
                                             <div class="podium-item-lower">
                                                 <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
                                                 <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
@@ -1215,7 +1218,7 @@
                     window.setBadges(athlete, athleteCell);
 
                     const ageReductionSpan = row.querySelector('.age-reduction');
-                    ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years';
+                    ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years (' + athlete.ageReductionPercent.toFixed(1) + '%)';
 
                     const mediaContactCell = row.querySelector('.media-contact-td');
                     mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
@@ -2303,6 +2306,7 @@
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
         document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
+        document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
 
         // Personal Link
         const personalLinkElement = document.getElementById('personalLink');
