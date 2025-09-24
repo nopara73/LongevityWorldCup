@@ -1,0 +1,28 @@
+{
+  "Name": "Andrew Mackintosh",
+  "DisplayName": null,
+  "MediaContact": "amackintosh20@gmail.com",
+  "DateOfBirth": {
+    "Year": 1963,
+    "Month": 11,
+    "Day": 25
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-23",
+      "AlbGL": 46.5,
+      "CreatUmolL": 80,
+      "GluMmolL": 5.4,
+      "CrpMgL": 0.34,
+      "LymPc": 44,
+      "McvFL": 95.2,
+      "RdwPc": 11.7,
+      "AlpUL": 57,
+      "Wbc1000cellsuL": 6.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "New Zealand",
+  "Why": "Be the best I can be. My body, my health, my opportunity \uD83D\uDE0E",
+  "PersonalLink": null
+}
