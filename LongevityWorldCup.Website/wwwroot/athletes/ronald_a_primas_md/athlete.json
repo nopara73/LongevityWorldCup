@@ -1,0 +1,28 @@
+{
+  "Name": "Ronald A Primas MD",
+  "DisplayName": null,
+  "MediaContact": "DrPrimas@proton.me",
+  "DateOfBirth": {
+    "Year": 1960,
+    "Month": 7,
+    "Day": 9
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-09",
+      "AlbGL": 47,
+      "CreatUmolL": 99.1,
+      "GluMmolL": 5.4,
+      "CrpMgL": 3,
+      "LymPc": 38.3,
+      "McvFL": 97.6,
+      "RdwPc": 13,
+      "AlpUL": 49,
+      "Wbc1000cellsuL": 4.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "USA",
+  "Why": "I live this science for my patients and the longevity mission space — proving aging can be slowed, healthspan extended, and resilience built. My why is to lead by example and help humanity reach escape velocity together.",
+  "PersonalLink": "https://www.DrPrimas.com"
+}
