@@ -288,7 +288,27 @@
         width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:bold; color:#fff;
         margin-left:.3rem; box-shadow:0 2px 4px rgba(0,0,0,.3); transition:transform .2s ease;
     }
-    .badge-class:hover{ transform: scale(1.2); animation: shadowPulse 1s ease-in-out 1 forwards; }
+    .badge-class:hover{
+        transform: scale(1.08);
+        animation: none;
+    }
+
+    a.badge-class:hover,
+    .badge-class.badge-clickable:hover,
+    .badge-class[data-clickable="true"]:hover,
+    .modal-badge-item > a.badge-class:hover{
+        transform: scale(1.2);
+        animation: shadowPulse 1s ease-in-out 1 forwards;
+    }
+
+    a.badge-class:focus-visible,
+    .badge-class.badge-clickable:focus-visible,
+    .badge-class[data-clickable="true"]:focus-visible,
+    .modal-badge-item > a.badge-class:focus-visible{
+        transform: scale(1.2);
+        animation: shadowPulse 1s ease-in-out 1 forwards;
+        outline: none;
+    }
 
     .modal-badge-strip{ display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; margin:.5rem 0 1rem; }
     .modal-badge-strip .badge-class{ width:70px; height:70px; font-size:2rem; margin:.4rem; }
