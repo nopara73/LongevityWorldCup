@@ -304,6 +304,18 @@
     .modal-badge-item:hover .modal-badge-name,
     .modal-badge-item.expanded .modal-badge-name{ -webkit-line-clamp:unset; max-height:none; overflow:visible; }
 
+    /* Badges: only clickable ones get the hand cursor. Others stay default. */
+    /* Do not inherit the row's cursor. */
+    .badge-class { cursor: default !important; }
+
+    /* Preserve pointer for anchors, and for spans marked clickable. */
+    a.badge-class,
+    .badge-class.badge-clickable,
+    .badge-class[data-clickable="true"],
+    .modal-badge-item > a.badge-class {
+        cursor: pointer !important;
+    }
+
     /* =========================
        10) Modal
        ========================= */
@@ -431,6 +443,7 @@
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
     }
+
 </style>
 
 <div class="main-container">
