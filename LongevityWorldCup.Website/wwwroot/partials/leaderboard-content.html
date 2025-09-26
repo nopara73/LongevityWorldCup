@@ -288,7 +288,27 @@
         width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:bold; color:#fff;
         margin-left:.3rem; box-shadow:0 2px 4px rgba(0,0,0,.3); transition:transform .2s ease;
     }
-    .badge-class:hover{ transform: scale(1.2); animation: shadowPulse 1s ease-in-out 1 forwards; }
+    .badge-class:hover{
+        transform: scale(1.08);
+        animation: none;
+    }
+
+    a.badge-class:hover,
+    .badge-class.badge-clickable:hover,
+    .badge-class[data-clickable="true"]:hover,
+    .modal-badge-item > a.badge-class:hover{
+        transform: scale(1.2);
+        animation: shadowPulse 1s ease-in-out 1 forwards;
+    }
+
+    a.badge-class:focus-visible,
+    .badge-class.badge-clickable:focus-visible,
+    .badge-class[data-clickable="true"]:focus-visible,
+    .modal-badge-item > a.badge-class:focus-visible{
+        transform: scale(1.2);
+        animation: shadowPulse 1s ease-in-out 1 forwards;
+        outline: none;
+    }
 
     .modal-badge-strip{ display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; margin:.5rem 0 1rem; }
     .modal-badge-strip .badge-class{ width:70px; height:70px; font-size:2rem; margin:.4rem; }
@@ -303,6 +323,18 @@
     .modal-badge-item.expanded .modal-badge-detail{ display:block; }
     .modal-badge-item:hover .modal-badge-name,
     .modal-badge-item.expanded .modal-badge-name{ -webkit-line-clamp:unset; max-height:none; overflow:visible; }
+
+    /* Badges: only clickable ones get the hand cursor. Others stay default. */
+    /* Do not inherit the row's cursor. */
+    .badge-class { cursor: default !important; }
+
+    /* Preserve pointer for anchors, and for spans marked clickable. */
+    a.badge-class,
+    .badge-class.badge-clickable,
+    .badge-class[data-clickable="true"],
+    .modal-badge-item > a.badge-class {
+        cursor: pointer !important;
+    }
 
     /* =========================
        10) Modal
@@ -431,6 +463,7 @@
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
     }
+
 </style>
 
 <div class="main-container">
@@ -1146,9 +1179,17 @@
 
                                     document.querySelectorAll('.podium-item').forEach(item => {
                                         item.addEventListener('click', function (e) {
-                                            // don’t interfere with existing link or prize-area clicks
+                                            // Let links and the prize area do their own thing
                                             if (e.target.closest('a') || e.target.closest('.podium-item-lower')) return;
-                                            // forward to the same handler as clicking the name
+
+                                            // Don’t open the modal when clicking badges
+                                            const badge = e.target.closest('.badge-class');
+                                            if (badge) {
+                                                const isPointer = getComputedStyle(badge).cursor === 'pointer';
+                                                if (!isPointer) e.preventDefault();
+                                                return; // never trigger the modal from a badge click
+                                            }
+
                                             handleAthleteNameClick(e);
                                         });
                                     });
@@ -1238,9 +1279,21 @@
 
                     row.style.cursor = 'pointer';
                     row.addEventListener('click', function (e) {
+                        // Let real links work
                         if (e.target.closest('a')) return;
+
+                        // If the click was on a badge, never open the modal via the row
+                        const badge = e.target.closest('.badge-class');
+                        if (badge) {
+                            // Only disable if it’s a “default” cursor badge (non-navigable)
+                            const isPointer = getComputedStyle(badge).cursor === 'pointer';
+                            if (!isPointer) e.preventDefault(); // does nothing for spans, but safe for anchors
+                            return; // stop the row from opening the modal on any badge click
+                        }
+
                         handleAthleteNameClick(e);
                     });
+
                     row.id = `rank-${athlete.rank}`;
                     tableBody.appendChild(row);
                 });
