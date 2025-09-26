@@ -74,17 +74,15 @@ namespace LongevityWorldCup.Website
                     .WithIdentity("YearlyTrigger")
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 1 ?").InTimeZone(TimeZoneInfo.Utc)));
 
-                // Every 10 minutes
+                // Every on start and 10 minutes
                 q.AddJob<BitcoinDonationCheckJob>(o => o.WithIdentity(donationKey));
                 q.AddTrigger(t => t.ForJob(donationKey)
                     .WithIdentity("BitcoinDonationCheckTrigger")
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
-                
-                // // FOR TESTING
-                // q.AddTrigger(t => t.ForJob(donationKey)
-                //     .WithIdentity("BitcoinDonationCheckTrigger_Immediate")
-                //     .StartNow()
-                //     .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+                q.AddTrigger(t => t.ForJob(donationKey) // on start
+                    .WithIdentity("BitcoinDonationCheckTrigger_Immediate")
+                    .StartNow()
+                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
             });
             builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
 

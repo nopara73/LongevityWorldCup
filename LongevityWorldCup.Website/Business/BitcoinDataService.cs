@@ -39,6 +39,7 @@ namespace LongevityWorldCup.Website.Business
                     _cache.Set(cacheKey, usd, TimeSpan.FromMinutes(1));
                     return usd;
                 }
+
                 throw new HttpRequestException($"Primary API returned status {response.StatusCode}");
             }
             catch
@@ -55,14 +56,22 @@ namespace LongevityWorldCup.Website.Business
                         return usd;
                     }
                 }
-                catch { }
+                catch
+                {
+                }
             }
 
             throw new InvalidOperationException("Both primary and fallback APIs failed for BTC to USD rate.");
         }
 
-        public async Task<long> GetTotalReceivedSatoshisAsync(string address)
+        public string GetDonationAddress() => _config.DonationBitcoinAddress ?? string.Empty;
+
+        public async Task<long> GetTotalReceivedSatoshisAsync()
         {
+            var address = _config.DonationBitcoinAddress;
+            if (string.IsNullOrWhiteSpace(address))
+                return 0;
+
             var cacheExpiration = TimeSpan.FromMinutes(3);
             var cacheKey = $"totalReceived_{address}";
             if (_cache.TryGetValue(cacheKey, out long cachedTotal))
@@ -113,7 +122,7 @@ namespace LongevityWorldCup.Website.Business
             if (string.IsNullOrWhiteSpace(address))
                 return 0;
 
-            var txs = await FetchAddressDonationTransactionsAsync(address, ct);
+            var txs = await FetchAddressDonationTransactionsAsync(ct);
             if (txs.Count == 0) return 0;
 
             var items = txs
@@ -126,8 +135,12 @@ namespace LongevityWorldCup.Website.Business
             return items.Count;
         }
 
-        private async Task<IReadOnlyList<DonationTx>> FetchAddressDonationTransactionsAsync(string address, CancellationToken ct)
+        private async Task<IReadOnlyList<DonationTx>> FetchAddressDonationTransactionsAsync(CancellationToken ct)
         {
+            var address = _config.DonationBitcoinAddress;
+            if (string.IsNullOrWhiteSpace(address))
+                return Array.Empty<DonationTx>();
+
             var client = _httpClientFactory.CreateClient();
 
             try
@@ -189,6 +202,7 @@ namespace LongevityWorldCup.Website.Business
                 if (amountToAddress > 0)
                     list.Add(new DonationTx(hash, amountToAddress, dt));
             }
+
             return list;
         }
 
@@ -226,6 +240,7 @@ namespace LongevityWorldCup.Website.Business
                 if (amountToAddress > 0)
                     list.Add(new DonationTx(hash, amountToAddress, occurredUtc));
             }
+
             return list;
         }
 

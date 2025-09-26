@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using System.Threading.Tasks;
 using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Controllers
@@ -24,20 +22,18 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpGet("total-received")]
-        public async Task<IActionResult> GetTotalReceived(string address)
+        public async Task<IActionResult> GetTotalReceived()
         {
-            if (string.IsNullOrWhiteSpace(address))
-                return BadRequest("address is required");
-
-            var totalReceivedSatoshis = await _btc.GetTotalReceivedSatoshisAsync(address);
+            var totalReceivedSatoshis = await _btc.GetTotalReceivedSatoshisAsync();
             return Ok(new { totalReceivedSatoshis });
         }
 
-        [HttpPost("check-donations")]
-        public async Task<IActionResult> CheckDonations()
+        [HttpGet("donation-address")]
+        public IActionResult GetDonationAddress()
         {
-            var created = await _btc.CheckDonationAddressAndCreateEventsAsync();
-            return Ok(new { created });
+            var address = _btc.GetDonationAddress();
+            if (string.IsNullOrWhiteSpace(address)) return NoContent();
+            return Ok(new { address });
         }
     }
 }
