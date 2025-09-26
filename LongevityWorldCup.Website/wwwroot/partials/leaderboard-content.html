@@ -1159,9 +1159,17 @@
 
                                     document.querySelectorAll('.podium-item').forEach(item => {
                                         item.addEventListener('click', function (e) {
-                                            // don’t interfere with existing link or prize-area clicks
+                                            // Let links and the prize area do their own thing
                                             if (e.target.closest('a') || e.target.closest('.podium-item-lower')) return;
-                                            // forward to the same handler as clicking the name
+
+                                            // Don’t open the modal when clicking badges
+                                            const badge = e.target.closest('.badge-class');
+                                            if (badge) {
+                                                const isPointer = getComputedStyle(badge).cursor === 'pointer';
+                                                if (!isPointer) e.preventDefault();
+                                                return; // never trigger the modal from a badge click
+                                            }
+
                                             handleAthleteNameClick(e);
                                         });
                                     });
@@ -1251,9 +1259,21 @@
 
                     row.style.cursor = 'pointer';
                     row.addEventListener('click', function (e) {
+                        // Let real links work
                         if (e.target.closest('a')) return;
+
+                        // If the click was on a badge, never open the modal via the row
+                        const badge = e.target.closest('.badge-class');
+                        if (badge) {
+                            // Only disable if it’s a “default” cursor badge (non-navigable)
+                            const isPointer = getComputedStyle(badge).cursor === 'pointer';
+                            if (!isPointer) e.preventDefault(); // does nothing for spans, but safe for anchors
+                            return; // stop the row from opening the modal on any badge click
+                        }
+
                         handleAthleteNameClick(e);
                     });
+
                     row.id = `rank-${athlete.rank}`;
                     tableBody.appendChild(row);
                 });
