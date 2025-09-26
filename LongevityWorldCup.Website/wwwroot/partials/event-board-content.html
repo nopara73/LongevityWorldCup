@@ -4,6 +4,9 @@
         --row-stagger-step:40ms;
         --row-stagger-group-size:8;
         --row-delay: 0ms;
+        --btc-orange: #f7931a;
+        --donation-icon: var(--btc-orange);
+        --donation-bg: #fff4e8; /* light BTC orange wash */
     }
     @keyframes fadeInBoard{
         from{opacity:0; transform:translateY(10px)}
@@ -163,6 +166,31 @@
     .avatar-disabled .avatar,.avatar-disabled .avatar-fallback{transition:none;transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
     .avatar-disabled:hover .avatar,.avatar-disabled:focus .avatar,
     .avatar-disabled:hover .avatar-fallback,.avatar-disabled:focus .avatar-fallback{transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+    .celebrate-icon{ margin-left:.35rem; color:var(--secondary-color,#ff4f87); }
+    .donation-amount{ color: var(--secondary-color, #ff4f87); }
+    /* Full BTC-orange disk, no ring */
+    .donation-avatar{
+        --btc-orange: #f7931a;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--btc-orange);
+        border: 2px solid var(--btc-orange) !important; /* same size as others */
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: content-box;
+    }
+
+    /* White glyph, slightly larger, tilted like the official BTC mark */
+    .donation-avatar .btc-tilt{
+        color: #fff !important;
+        font-size: 1.05rem;     /* tweak 1.0–1.1rem as you like */
+        line-height: 1;
+        transform: rotate(14deg);
+    }
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -449,7 +477,7 @@
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
-                    avatarHtml = `<div class="avatar-fallback" title="Donation">₿</div>`;
+                    avatarHtml = `<div class="avatar-fallback donation-avatar" title="Donation" aria-label="Donation"><i class="fa-brands fa-btc btc-tilt" aria-hidden="true"></i></div>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
@@ -486,8 +514,8 @@
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
                     const amount = Number.isFinite(r.sats) ? r.sats : 0;
                     const btc = amount / 100000000;
-                    const amountText = new Intl.NumberFormat(undefined, { maximumFractionDigits: 8 }).format(btc) + ' BTC';
-                    msgHtml = `${esc(amountText)} donation received`;
+                    const amountFormatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 8 }).format(btc);
+                    msgHtml = `Donation of <strong class="donation-amount">${esc(amountFormatted)} BTC</strong> received`;
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
