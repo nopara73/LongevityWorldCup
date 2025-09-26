@@ -609,7 +609,7 @@
 <script>
     let athleteResults = [];
 
-    const currentSeasonStartDate = new Date('2025-01-01');
+    const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
     markAthleteSkippedIfInURL();
 
@@ -2433,7 +2433,7 @@
 
             const now = new Date();
             const oneYearAgo = new Date();
-            oneYearAgo.setFullYear(now.getFullYear() - 2);
+            oneYearAgo.setFullYear(now.getFullYear() - 1);
             const isEntryFromThisSeason = entryDate >= currentSeasonStartDate && entryDate <= now;
             const isEntryFromTheLastYear = entryDate >= oneYearAgo && entryDate <= now;
 
@@ -2490,8 +2490,8 @@
             }
         });
 
-        window.averagePaceOfAging = allTimeAgingPaces.reduce((a, b) => (a + b)) / allTimeAgingPaces.length;
-        window.seasonPaceOfAging = seasonAgingPaces.reduce((a, b) => (a + b)) / seasonAgingPaces.length;
+        window.averagePaceOfAging = allTimeAgingPaces.length > 0 ? allTimeAgingPaces.reduce((a, b) => (a + b)) / allTimeAgingPaces.length : null;
+        window.seasonPaceOfAging = seasonAgingPaces.length > 0 ? seasonAgingPaces.reduce((a, b) => (a + b)) / seasonAgingPaces.length : null;
 
         const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
         const datasets = prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores);
