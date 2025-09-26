@@ -23,6 +23,7 @@ public enum EventType
     General = 0,
     Joined = 1,
     NewRank = 2,
+    DonationReceived = 3
 }
 
 public sealed class EventDataService : IDisposable
@@ -30,6 +31,7 @@ public sealed class EventDataService : IDisposable
     private const string DatabaseFileName = "LongevityWorldCup.db";
     private const double DefaultRelevanceJoined = 5d;
     private const double DefaultRelevanceNewRank = 10d;
+    private const double DefaultRelevanceDonation = 9d;
     private readonly SqliteConnection _sqlite;
     private readonly SlackWebhookClient _slack;
 
@@ -118,7 +120,7 @@ public sealed class EventDataService : IDisposable
             foreach (var (slug, occurredAtUtc, rank, replacedSlug) in items)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
-                if (rank < 1) continue; // allow any positive rank (no top-10 gating)
+                if (rank < 1) continue;
 
                 var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
                 var textBase = $"slug[{slug}] rank[{rank}]";
@@ -192,7 +194,6 @@ public sealed class EventDataService : IDisposable
 
                 var occurredAt = EnsureUtc(joinedAtUtc).ToString("o");
 
-                // Joined
                 var joinedText = $"slug[{slug}]";
                 var insertJoined = true;
                 if (skipIfExists)
@@ -214,8 +215,7 @@ public sealed class EventDataService : IDisposable
                     notify.Add((EventType.Joined, joinedText));
                 }
 
-                // NewRank (only for newcomers on join)
-                if (currentRank is int r && r >= 1) // allow any positive rank (no top-10 gating)
+                if (currentRank is int r && r >= 1)
                 {
                     var rankText = !string.IsNullOrWhiteSpace(replacedSlug)
                         ? $"slug[{slug}] rank[{r}] prev[{replacedSlug}]"
@@ -250,6 +250,72 @@ public sealed class EventDataService : IDisposable
         {
             ReloadIntoCache();
             foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
+        }
+    }
+
+    public void CreateDonationReceivedEvents(
+        IEnumerable<(string TxId, DateTime OccurredAtUtc, long AmountSatoshis)> items,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceDonation)
+    {
+        if (items is null) throw new ArgumentNullException(nameof(items));
+
+        int created = 0;
+
+        lock (_sqlite)
+        {
+            using var tx = _sqlite.BeginTransaction();
+
+            using var existsCmd = _sqlite.CreateCommand();
+            existsCmd.Transaction = tx;
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+            var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
+
+            using var insertCmd = _sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var (txId, occurredAtUtc, amount) in items)
+            {
+                if (string.IsNullOrWhiteSpace(txId)) continue;
+                if (amount <= 0) continue;
+
+                var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
+                var text = $"tx[{txId}] sats[{amount}]";
+
+                var shouldInsert = true;
+                if (skipIfExists)
+                {
+                    exType.Value = (int)EventType.DonationReceived;
+                    exText.Value = text;
+                    exOcc.Value = occurredAt;
+                    shouldInsert = existsCmd.ExecuteScalar() == null;
+                }
+                if (!shouldInsert) continue;
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pType.Value = (int)EventType.DonationReceived;
+                pText.Value = text;
+                pOcc.Value = occurredAt;
+                pRel.Value = defaultRelevance;
+                insertCmd.ExecuteNonQuery();
+                created++;
+            }
+
+            tx.Commit();
+        }
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
         }
     }
 
@@ -350,23 +416,15 @@ public sealed class EventDataService : IDisposable
 
     private void FireAndForgetSlack(EventType type, string rawText)
     {
-        // Only NewRank events are candidates for Slack.
-        if (type != EventType.NewRank)
-        {
-            return;
-        }
+        if (type != EventType.NewRank) return;
 
-        // Gate Slack notifications to top 10 only (10th included).
         if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
-        {
             return;
-        }
 
         _ = Task.Run(async () =>
         {
             try
             {
-                // getRankForSlug is no longer passed; messages don't include live rank links/text.
                 var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
                 await _slack.SendAsync(text);
             }
