@@ -185,7 +185,7 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3 };
 
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
         function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
@@ -338,8 +338,9 @@
                 const prevSlug=prevRaw?slugifyLocal(normalizeLinkId(prevRaw)):null;
                 if(prevSlug) slugTokens.push(prevSlug);
 
-                const rank=extractRank(text);
-                return { type,text,occurredAt,slugs:slugTokens,primarySlug,prevSlug,rank };
+                const rank = extractRank(text);
+                const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats };
             });
         }
 
@@ -425,10 +426,8 @@
 
             rows.forEach((r, idx) => {
                 const dateLabel = r.occurredAt ? formatListDate(r.occurredAt) : "";
-                const rel = r.occurredAt
-                    ? (r.type === EVENT_TYPE.NewRank
-                        ? relativeDayLabelNoIcon(r.occurredAt, { emptyIfToday: true })
-                        : relativeDayLabel(r.occurredAt))
+                const rel = (r.type === EVENT_TYPE.Joined && r.occurredAt)
+                    ? relativeDayLabel(r.occurredAt)
                     : "";
 
                 const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
@@ -449,6 +448,8 @@
                             ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">${fallback}</a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
+                } else if (r.type === EVENT_TYPE.DonationReceived) {
+                    avatarHtml = `<div class="avatar-fallback" title="Donation">₿</div>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
@@ -479,10 +480,14 @@
                         );
                     }
 
-                    const suffix = rel ? ` ${rel}` : "";
                     msgHtml = prevHtml
-                        ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}${suffix}`
-                        : `${nameWithCurrentRank} took the ${takenHtml} place${suffix}`;
+                        ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}`
+                        : `${nameWithCurrentRank} took the ${takenHtml} place`;
+                } else if (r.type === EVENT_TYPE.DonationReceived) {
+                    const amount = Number.isFinite(r.sats) ? r.sats : 0;
+                    const btc = amount / 100000000;
+                    const amountText = new Intl.NumberFormat(undefined, { maximumFractionDigits: 8 }).format(btc) + ' BTC';
+                    msgHtml = `${esc(amountText)} donation received`;
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
@@ -490,7 +495,7 @@
                         athletesIndex,
                         r.type === EVENT_TYPE.Joined ? afterNameWithCurrentRankFor() : null
                     );
-                    msgHtml = r.type === EVENT_TYPE.Joined ? `${tokenHtml} joined ${rel}` : `${tokenHtml} ${rel}`;
+                    msgHtml = r.type === EVENT_TYPE.Joined ? `${tokenHtml} joined ${rel}` : `${tokenHtml}`;
                 }
 
                 const tr = document.createElement("tr");
@@ -514,7 +519,6 @@
                 tbody.querySelectorAll(".row-appear").forEach(r => r.classList.add("is-visible"));
             }
         }
-
 
         function normalizeIncomingAthleteId(id){
             if(id==null) return '';
