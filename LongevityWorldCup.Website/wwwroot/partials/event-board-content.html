@@ -7,6 +7,7 @@
         --btc-orange: #f7931a;
         --donation-icon: var(--btc-orange);
         --donation-bg: #fff4e8; /* light BTC orange wash */
+        --donation-gift: #10b981;
     }
     @keyframes fadeInBoard{
         from{opacity:0; transform:translateY(10px)}
@@ -169,27 +170,25 @@
 
     .celebrate-icon{ margin-left:.35rem; color:var(--secondary-color,#ff4f87); }
     .donation-amount{ color: var(--secondary-color, #ff4f87); }
-    /* Full BTC-orange disk, no ring */
-    .donation-avatar{
-        --btc-orange: #f7931a;
-        width: 24px;
-        height: 24px;
+    .donation-gift-avatar{
+        --gift: var(--donation-gift, #10b981);
+        width: 24px; height: 24px;
         border-radius: 50%;
-        background: var(--btc-orange);
-        border: 2px solid var(--btc-orange) !important; /* same size as others */
+        background: var(--gift);
+        border: 2px solid var(--gift) !important;
         box-shadow: 0 1px 2px rgba(0,0,0,.06);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        display: grid;                 /* perfectly center contents */
+        place-items: center;
+        line-height: 0;                /* kill baseline alignment */
         box-sizing: content-box;
     }
 
-    /* White glyph, slightly larger, tilted like the official BTC mark */
-    .donation-avatar .btc-tilt{
+    .donation-gift-avatar i{
         color: #fff !important;
-        font-size: 1.05rem;     /* tweak 1.0–1.1rem as you like */
+        display: block;                /* avoids inline font metrics */
+        font-size: .95rem;
         line-height: 1;
-        transform: rotate(14deg);
+        transform: translateY(var(--icon-nudge-y));
     }
 </style>
 
@@ -477,7 +476,7 @@
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
-                    avatarHtml = `<div class="avatar-fallback donation-avatar" title="Donation" aria-label="Donation"><i class="fa-brands fa-btc btc-tilt" aria-hidden="true"></i></div>`;
+                    avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
