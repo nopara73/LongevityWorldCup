@@ -515,7 +515,7 @@
                     const amount = Number.isFinite(r.sats) ? r.sats : 0;
                     const btc = amount / 100000000;
                     const amountFormatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 8 }).format(btc);
-                    msgHtml = `Donation of <strong class="donation-amount">${esc(amountFormatted)} BTC</strong> received`;
+                    msgHtml = `Donation of <strong class="donation-amount">${esc(amountFormatted)} BTC</strong> added to the prize pool`;
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
