@@ -1,0 +1,28 @@
+{
+  "Name": "scomer",
+  "DisplayName": null,
+  "MediaContact": "scomer9@yahoo.com",
+  "DateOfBirth": {
+    "Year": 1941,
+    "Month": 5,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-25",
+      "AlbGL": 45,
+      "CreatUmolL": 94.69026548672568,
+      "GluMmolL": 0.48290408525754885,
+      "CrpMgL": 0.26,
+      "LymPc": 26,
+      "McvFL": 98,
+      "RdwPc": 12.3,
+      "AlpUL": 75,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "sdc",
+  "Why": "Remain healthy for as long as I can",
+  "PersonalLink": "scomer.net"
+}

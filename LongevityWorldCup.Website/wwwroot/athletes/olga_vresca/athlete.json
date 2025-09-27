@@ -30,10 +30,23 @@
       "RdwPc": 11.5,
       "AlpUL": 85.56,
       "Wbc1000cellsuL": 5.46
+    },
+    {
+      "Date": "2025-09-25",
+      "AlbGL": 48.49999999999999,
+      "CreatUmolL": 64.60176991150443,
+      "GluMmolL": 4.662522202486679,
+      "CrpMgL": 1.16,
+      "LymPc": 50.9,
+      "McvFL": 97,
+      "RdwPc": 11.1,
+      "AlpUL": 93.2,
+      "Wbc1000cellsuL": 5.68
     }
   ],
   "Division": "Women's",
   "Flag": "Latvia",
   "Why": "To age as slow as my taste buds allow. That is all.",
-  "PersonalLink": "https://www.instagram.com/ololelya/"
+  "PersonalLink": "https://www.instagram.com/ololelya/",
+  "DisplayName": null
 }
