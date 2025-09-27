@@ -635,7 +635,21 @@
     <!--FOOTER-->
 
     <script>
-        window.bitcoinDonationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
+        let bitcoinDonationAddress = '';
+
+        fetch('/api/bitcoin/donation-address')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(({ address }) => {
+                bitcoinDonationAddress = address || '';
+                const link = document.getElementById('btcAddressLink');
+                if (link && bitcoinDonationAddress) {
+                    link.href = `https://mempool.space/address/${bitcoinDonationAddress}`;
+                    adjustBitcoinAddressDisplay();
+                }
+            })
+            .catch(() => {
+                // If address cannot be loaded, we simply skip rendering it.
+            });
 
         if (!window.callScoped) {
             window.callScoped = function (root, fn) {
@@ -784,7 +798,7 @@
         }
 
         // Fetch actual BTC data and update the progress
-        fetch(`/api/bitcoin/total-received?address=${bitcoinDonationAddress}`)
+        fetch('/api/bitcoin/total-received')
             .then(response => response.json())
             .then(data => {
                 const totalReceivedSatoshis = data.totalReceivedSatoshis;
