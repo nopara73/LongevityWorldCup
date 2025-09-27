@@ -125,8 +125,10 @@ namespace LongevityWorldCup.Website.Business
             var txs = await FetchAddressDonationTransactionsAsync(ct);
             if (txs.Count == 0) return 0;
 
+            // Only confirmed donations with >= 3 confirmations
+            const int MinConfs = 3;
             var items = txs
-                .Where(t => t.AmountSatoshis > 0)
+                .Where(t => t.AmountSatoshis > 0 && t.Confirmations >= MinConfs)
                 .Select(t => (t.TxId, t.OccurredAtUtc, t.AmountSatoshis))
                 .OrderBy(t => t.OccurredAtUtc)
                 .ToList();
@@ -143,13 +145,30 @@ namespace LongevityWorldCup.Website.Business
 
             var client = _httpClientFactory.CreateClient();
 
+            // --- Primary: blockchain.info ---
             try
             {
+                // Get current height to compute confirmations from block_height
+                long currentHeight = 0;
+                try
+                {
+                    var hResp = await client.GetAsync("https://blockchain.info/q/getblockcount", ct);
+                    if (hResp.IsSuccessStatusCode)
+                    {
+                        var hStr = await hResp.Content.ReadAsStringAsync(ct);
+                        long.TryParse(hStr.Trim(), out currentHeight);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.LogDebug(ex, "Failed to fetch blockchain.info current height");
+                }
+
                 var resp = await client.GetAsync($"https://blockchain.info/rawaddr/{address}?limit=50", ct);
                 if (resp.IsSuccessStatusCode)
                 {
                     var json = await resp.Content.ReadAsStringAsync(ct);
-                    return ParseBlockchainInfoRawAddr(json, address);
+                    return ParseBlockchainInfoRawAddr(json, address, currentHeight);
                 }
             }
             catch (Exception ex)
@@ -157,6 +176,7 @@ namespace LongevityWorldCup.Website.Business
                 _log.LogDebug(ex, "Blockchain.info primary failed");
             }
 
+            // --- Fallback: BlockCypher ---
             try
             {
                 var resp = await client.GetAsync($"https://api.blockcypher.com/v1/btc/main/addrs/{address}/full?limit=50&txlimit=50", ct);
@@ -174,7 +194,7 @@ namespace LongevityWorldCup.Website.Business
             return Array.Empty<DonationTx>();
         }
 
-        private static IReadOnlyList<DonationTx> ParseBlockchainInfoRawAddr(string json, string address)
+        private static IReadOnlyList<DonationTx> ParseBlockchainInfoRawAddr(string json, string address, long currentHeight)
         {
             var list = new List<DonationTx>();
             using var doc = JsonDocument.Parse(json);
@@ -199,8 +219,19 @@ namespace LongevityWorldCup.Website.Business
                     }
                 }
 
+                int confirmations = 0;
+                long blockHeight = tx.TryGetProperty("block_height", out var bh) && bh.ValueKind is JsonValueKind.Number
+                    ? bh.GetInt64()
+                    : 0;
+                if (blockHeight > 0 && currentHeight > 0)
+                {
+                    // confirmations = currentHeight - blockHeight + 1
+                    var diff = currentHeight - blockHeight + 1;
+                    if (diff > 0 && diff < int.MaxValue) confirmations = (int)diff;
+                }
+
                 if (amountToAddress > 0)
-                    list.Add(new DonationTx(hash, amountToAddress, dt));
+                    list.Add(new DonationTx(hash, amountToAddress, dt, confirmations));
             }
 
             return list;
@@ -215,6 +246,7 @@ namespace LongevityWorldCup.Website.Business
             foreach (var tx in txs.EnumerateArray())
             {
                 var hash = tx.GetProperty("hash").GetString() ?? "";
+
                 DateTime occurredUtc;
                 if (tx.TryGetProperty("confirmed", out var conf) && conf.ValueKind == JsonValueKind.String && DateTime.TryParse(conf.GetString(), out var confDt))
                     occurredUtc = DateTime.SpecifyKind(confDt, DateTimeKind.Utc);
@@ -222,6 +254,10 @@ namespace LongevityWorldCup.Website.Business
                     occurredUtc = DateTime.SpecifyKind(recDt, DateTimeKind.Utc);
                 else
                     occurredUtc = DateTime.UtcNow;
+
+                int confirmations = tx.TryGetProperty("confirmations", out var c) && c.ValueKind is JsonValueKind.Number
+                    ? c.GetInt32()
+                    : 0;
 
                 long amountToAddress = 0;
                 if (tx.TryGetProperty("outputs", out var outputs))
@@ -238,12 +274,12 @@ namespace LongevityWorldCup.Website.Business
                 }
 
                 if (amountToAddress > 0)
-                    list.Add(new DonationTx(hash, amountToAddress, occurredUtc));
+                    list.Add(new DonationTx(hash, amountToAddress, occurredUtc, confirmations));
             }
 
             return list;
         }
 
-        private readonly record struct DonationTx(string TxId, long AmountSatoshis, DateTime OccurredAtUtc);
+        private readonly record struct DonationTx(string TxId, long AmountSatoshis, DateTime OccurredAtUtc, int Confirmations);
     }
 }
