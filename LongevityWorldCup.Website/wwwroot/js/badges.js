@@ -327,14 +327,9 @@ window.computeBadges = function (athleteResults) {
 window.setBadges = function (athlete, athleteCell) {
     const badgeSection = athleteCell.querySelector('.badge-section');
 
-    // Create an array to collect computed badge elements
     let badgeElements = [];
 
-    // Define the badge backgrounds and their ordering:
-    // defaultBadgeBackground is black (order = 1)
-    // badgeBackgrounds[0] is gold (order = 2)
-    // badgeBackgrounds[1] is silver (order = 3)
-    // badgeBackgrounds[2] is bronze (order = 4)
+    // Medal backgrounds (gold/silver/bronze) + default black
     const defaultBadgeBackground = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;";
     const badgeBackgrounds = [
         "background: linear-gradient(135deg, #ffd700, #8b8000); border: 2px solid #8a6f00;", // Gold
@@ -342,519 +337,371 @@ window.setBadges = function (athlete, athleteCell) {
         "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Bronze
     ];
 
-    // Magenta → Burgundy, with deep wine border
-    const liverBackground = "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;";
-
-    // Teal → Deep cyan, with dark marine border
-    const kidneyBackground = "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;";
-
-    // Bright orange → burnt amber, with dark roast border
-    const metabolicBackground = "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;";
-
-    // Blood red → dark crimson, with deep crimson border
+    // Thematic backgrounds
+    const liverBackground        = "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;";
+    const kidneyBackground       = "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;";
+    const metabolicBackground    = "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;";
     const inflammationBackground = "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;";
+    const immuneBackground       = "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;";
+    const personalLinkColor      = "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;";
 
-    // Lush green → deep forest, with pine-dark border
-    const immuneBackground = "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;";
+    // small helper for keyboard accessibility on clickable <span>
+    const spanA11y = `role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){this.click();}"`;
 
-    const personalLinkColor = "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;";
-
-    // If a personal link exists, add its badge first
+    // — Personal link (clickable <a>)
     if (athlete.personalLink) {
-        const linkHref = athlete.personalLink.startsWith('http')
-            ? athlete.personalLink
-            : 'https://' + athlete.personalLink;
-
+        const linkHref = athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink;
         const badgeHtml = `
-            <a class="badge-class"
-               href="${linkHref}"
-               target="_blank"
-               rel="noopener"
-               title="Personal Page"
-               aria-label="Visit athlete's personal page"
-               style="cursor: pointer; ${personalLinkColor}">
+            <a class="badge-class badge-clickable"
+               href="${linkHref}" target="_blank" rel="noopener"
+               title="Personal Page" aria-label="Visit athlete's personal page"
+               style="${personalLinkColor}">
                 <i class="fa fa-link"></i>
             </a>`;
-
         badgeElements.push({ order: 0, html: badgeHtml });
     }
 
-    // Podcast badge for athletes with a podcast link (black background, mic icon)
+    // — Podcast (clickable <a>)
     if (athlete.podcastLink) {
-        const linkHref = athlete.podcastLink.startsWith('http')
-            ? athlete.podcastLink
-            : 'https://' + athlete.podcastLink;
+        const linkHref = athlete.podcastLink.startsWith('http') ? athlete.podcastLink : 'https://' + athlete.podcastLink;
         const podcastBadgeHtml = `
-        <a class="badge-class badge-podcast"
-           href="${linkHref}"
-           target="_blank"
-           rel="noopener"
-           title="Podcast: hear to this athlete's story in depth"
-           style="cursor: pointer; ${defaultBadgeBackground}">
-            <i class="fa fa-microphone"></i>
-        </a>`;
+            <a class="badge-class badge-clickable badge-podcast"
+               href="${linkHref}" target="_blank" rel="noopener"
+               title="Podcast: hear to this athlete's story in depth"
+               style="${defaultBadgeBackground}">
+                <i class="fa fa-microphone"></i>
+            </a>`;
         badgeElements.push({ order: 1, html: podcastBadgeHtml });
     }
 
-    // Chronologically Oldest badge (uses black)
+    // — Chronologically Oldest
     if (oldestMapping[athlete.name]) {
         const rank = oldestMapping[athlete.name];
-        let tooltipText = "";
-        let iconClass = "";
         const ageText = athlete.chronologicalAge.toFixed(1);
-        if (rank === 1) {
-            tooltipText = `Yoda: Chronologically Oldest (Age: ${ageText} years)`;
-            iconClass = "fa-infinity";
-        } else if (rank === 2) {
-            tooltipText = `Master Roshi: Chronologically 2nd Oldest (Age: ${ageText} years)`;
-            iconClass = "fa-scroll";
-        } else if (rank === 3) {
-            tooltipText = `Mr. Miyagi: Chronologically 3rd Oldest (Age: ${ageText} years)`;
-            iconClass = "fa-leaf";
-        }
+        let tooltipText = "", iconClass = "";
+        if (rank === 1)      { tooltipText = `Yoda: Chronologically Oldest (Age: ${ageText} years)`;        iconClass = "fa-infinity"; }
+        else if (rank === 2) { tooltipText = `Master Roshi: Chronologically 2nd Oldest (Age: ${ageText})`; iconClass = "fa-scroll"; }
+        else if (rank === 3) { tooltipText = `Mr. Miyagi: Chronologically 3rd Oldest (Age: ${ageText})`;   iconClass = "fa-leaf"; }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
+            <span class="badge-class"
+                  title="${tooltipText}" style="${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Chronologically Youngest badge (uses black)
+    // — Chronologically Youngest
     if (youngestMapping[athlete.name]) {
         const rank = youngestMapping[athlete.name];
-        let tooltipText = "";
-        let iconClass = "";
         const ageText = athlete.chronologicalAge.toFixed(1);
-        if (rank === 1) {
-            tooltipText = `Son Goten: Chronologically Youngest (Age: ${ageText} years)`;
-            iconClass = "fa-baby";
-        } else if (rank === 2) {
-            tooltipText = `Son Gohan: Chronologically 2nd Youngest (Age: ${ageText} years)`;
-            iconClass = "fa-child";
-        } else if (rank === 3) {
-            tooltipText = `Son Goku: Chronologically 3rd Youngest (Age: ${ageText} years)`;
-            iconClass = "fa-running";
-        }
+        let tooltipText = "", iconClass = "";
+        if (rank === 1)      { tooltipText = `Son Goten: Chronologically Youngest (Age: ${ageText} years)`; iconClass = "fa-baby"; }
+        else if (rank === 2) { tooltipText = `Son Gohan: Chronologically 2nd Youngest (Age: ${ageText})`;   iconClass = "fa-child"; }
+        else if (rank === 3) { tooltipText = `Son Goku: Chronologically 3rd Youngest (Age: ${ageText})`;    iconClass = "fa-running"; }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
+            <span class="badge-class"
+                  title="${tooltipText}" style="${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Biologically Youngest badge (uses black)
+    // — Biologically Youngest
     if (biologicallyYoungestMapping[athlete.name]) {
         const rank = biologicallyYoungestMapping[athlete.name];
-        let tooltipText = "";
-        let iconClass = "";
         const ageText = athlete.lowestPhenoAge.toFixed(1);
-        if (rank === 1) {
-            tooltipText = `Peter Pan: Biologically Youngest (Pheno Age: ${ageText} years)`;
-            iconClass = "fa-feather";
-        } else if (rank === 2) {
-            tooltipText = `Dorian Gray: Biologically 2nd Youngest (Pheno Age: ${ageText} years)`;
-            iconClass = "fa-portrait";
-        } else if (rank === 3) {
-            tooltipText = `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${ageText} years)`;
-            iconClass = "fa-hourglass-start";
-        }
+        let tooltipText = "", iconClass = "";
+        if (rank === 1)      { tooltipText = `Peter Pan: Biologically Youngest (Pheno Age: ${ageText} years)`; iconClass = "fa-feather"; }
+        else if (rank === 2) { tooltipText = `Dorian Gray: Biologically 2nd Youngest (Pheno Age: ${ageText})`; iconClass = "fa-portrait"; }
+        else if (rank === 3) { tooltipText = `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${ageText})`; iconClass = "fa-hourglass-start"; }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
+            <span class="badge-class"
+                  title="${tooltipText}" style="${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // First Applicants badge (uses black)
+    // — First Applicants
     const firstApplicantsMapping = {
-        "Alan V": 1,
-        "Cody Hergenroeder": 2,
-        "Spiderius": 3,
-        "Jesse": 4,
-        "Tone Vays": 5,
-        "Stellar Madic": 6,
-        "RichLee": 7,
-        "ScottBrylow": 8,
-        "Mind4u2cn": 9,
-        "Dave Pascoe": 10
+        "Alan V": 1, "Cody Hergenroeder": 2, "Spiderius": 3, "Jesse": 4, "Tone Vays": 5,
+        "Stellar Madic": 6, "RichLee": 7, "ScottBrylow": 8, "Mind4u2cn": 9, "Dave Pascoe": 10
     };
     if (firstApplicantsMapping[athlete.name]) {
         const rank = firstApplicantsMapping[athlete.name];
-        let tooltipText = "";
-        let iconClass = "";
-        if (rank === 1) {
-            tooltipText = "Athlete Zero: 1st Athlete to Join the Longevity World Cup";
-            iconClass = "fa-circle-notch";
-        } else if (rank === 2) {
-            tooltipText = "Athlete Beta: 2nd Athlete to Join the Longevity World Cup";
-            iconClass = "fa-star";
-        } else if (rank === 3) {
-            tooltipText = "Athlete Gamma: 3rd Athlete to Join the Longevity World Cup";
-            iconClass = "fa-bolt";
-        } else {
-            tooltipText = "Early Bird: Among the First 10 Athletes to Join the Longevity World Cup";
-            iconClass = "fa-dove";
-        }
+        let tooltipText = "", iconClass = "";
+        if (rank === 1)      { tooltipText = "Athlete Zero: 1st Athlete to Join the Longevity World Cup"; iconClass = "fa-circle-notch"; }
+        else if (rank === 2) { tooltipText = "Athlete Beta: 2nd Athlete to Join the Longevity World Cup";  iconClass = "fa-star"; }
+        else if (rank === 3) { tooltipText = "Athlete Gamma: 3rd Athlete to Join the Longevity World Cup"; iconClass = "fa-bolt"; }
+        else                 { tooltipText = "Early Bird: Among the First 10 Athletes to Join the Longevity World Cup"; iconClass = "fa-dove"; }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Pregnancy badge (uses black)
+    // — Pregnancy
     const pregnancyMapping = ["Olga Vresca"];
     if (pregnancyMapping.includes(athlete.name)) {
-        const tooltipText = "Baby on Board! Delivering in 2025";
-        const iconClass = "fa-baby-carriage"; // Alternatively, "fa-baby" can be used
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="Baby on Board! Delivering in 2025" style="${defaultBadgeBackground}">
+                <i class="fa fa-baby-carriage"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Host badge for "nopara73" (uses black)
+    // — Host
     if (athlete.name === "nopara73") {
-        const tooltipText = "Host: Organizer of the Longevity World Cup";
-        const iconClass = "fa-house";
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
-                <i class="fa ${iconClass}"></i>
+            <span class="badge-class" title="Host: Organizer of the Longevity World Cup" style="${defaultBadgeBackground}">
+                <i class="fa fa-house"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Perfect Application badge for Cornee
+    // — Perfect Application
     if (athlete.name === "Cornee") {
-        const tooltipText = "Perfect Application: Most Flawless Entry Form Ever Submitted";
-        const iconClass = "fa-ruler";
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
-                <i class="fa ${iconClass}"></i>
+            <span class="badge-class" title="Perfect Application: Most Flawless Entry Form Ever Submitted" style="${defaultBadgeBackground}">
+                <i class="fa fa-ruler"></i>
             </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-
-    // Ultimate League ranking badge (colored backgrounds)
+    // — Ultimate League (clickable <span>)
     if (ultimateLeagueMapping[athlete.name]) {
         const rank = ultimateLeagueMapping[athlete.name];
-        let tooltipText = "";
-        let iconClass = "";
-        if (rank === 1) {
-            tooltipText = "Ultimate Lifeform: #1 in the Ultimate League";
-            iconClass = "fa-crown";
-        } else if (rank === 2) {
-            tooltipText = "Near Immortal: #2 in the Ultimate League";
-            iconClass = "fa-medal";
-        } else if (rank === 3) {
-            tooltipText = "Third and Threatening: #3 in the Ultimate League";
-            iconClass = "fa-award";
-        }
-        // Use badgeBackgrounds[0] for rank 1 (gold), [1] for rank 2 (silver), [2] for rank 3 (bronze)
+        let tooltipText = "", iconClass = "";
+        if (rank === 1)      { tooltipText = "Ultimate Lifeform: #1 in the Ultimate League"; iconClass = "fa-crown"; }
+        else if (rank === 2) { tooltipText = "Near Immortal: #2 in the Ultimate League";     iconClass = "fa-medal"; }
+        else if (rank === 3) { tooltipText = "Third and Threatening: #3 in the Ultimate League"; iconClass = "fa-award"; }
         const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/leaderboard/leaderboard.html';">
+            <span class="badge-class badge-clickable"
+                  ${spanA11y}
+                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
+                  onclick="window.location.href='/leaderboard/leaderboard.html';">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Division ranking badge (only cool name for rank 1, colored backgrounds)
+    // — Division rank (clickable <span>)
     if (divisionMapping[athlete.name]) {
         const { rank, division } = divisionMapping[athlete.name];
         let tooltipText;
         if (rank === 1) {
-            if (division.toLowerCase() === "men's") {
-                tooltipText = "The Alpha Male: #1 in Men's League";
-            } else if (division.toLowerCase() === "women's") {
-                tooltipText = "The Empress: #1 in Women's League";
-            } else if (division.toLowerCase() === "open") {
-                tooltipText = "The Machine: #1 in Open League";
-            }
+            if (division.toLowerCase() === "men's")      tooltipText = "The Alpha Male: #1 in Men's League";
+            else if (division.toLowerCase() === "women's") tooltipText = "The Empress: #1 in Women's League";
+            else if (division.toLowerCase() === "open")    tooltipText = "The Machine: #1 in Open League";
         } else {
             tooltipText = `#${rank} in ${division} League`;
         }
         const iconClass = window.TryGetDivisionFaIcon(division);
         const leagueSlug = window.slugifyName(division, true);
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // Generation ranking badge (only cool name for rank 1, colored backgrounds)
-    if (generationMapping[athlete.name]) {
-        const { rank, generation } = generationMapping[athlete.name];
-        let tooltipText;
-        if (rank === 1) {
-            const gen = generation.toLowerCase();
-            if (gen === "silent generation") {
-                tooltipText = "The Grandmaster: #1 in Silent Generation League";
-            } else if (gen === "baby boomers") {
-                tooltipText = "The Iron Throne: #1 in Baby Boomers League";
-            } else if (gen === "gen x") {
-                tooltipText = "The Last Ronin: #1 in Gen X League";
-            } else if (gen === "millennials") {
-                tooltipText = "The Chosen One: #1 in Millennials League";
-            } else if (gen === "gen z") {
-                tooltipText = "The Meme Lord: #1 in Gen Z League";
-            } else if (gen === "gen alpha") {
-                tooltipText = "The Singularity: #1 in Gen Alpha League";
-            }
-        } else {
-            tooltipText = `#${rank} in ${generation} League`;
-        }
-        const iconClass = window.TryGetGenerationFaIcon(generation);
-        const leagueSlug = window.slugifyName(generation, true);
-        const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // Exclusive league ranking badge (colored backgrounds)
-    if (exclusiveLeagueMapping[athlete.name]) {
-        const { rank, exclusiveLeague } = exclusiveLeagueMapping[athlete.name];
-        const tooltipText = `#${rank} in ${exclusiveLeague} League`;
-        let iconClass = "fa-umbrella-beach";
-        const leagueSlug = window.slugifyName(exclusiveLeague, true);
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="cursor: pointer; ${badgeBackgrounds[rank - 1]}" onclick="window.location.href='/league/${leagueSlug}';">
+            <span class="badge-class badge-clickable"
+                  ${spanA11y}
+                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
+                  onclick="window.location.href='/league/${leagueSlug}';">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Submission Count badges
+    // — Generation rank (clickable <span>)
+    if (generationMapping[athlete.name]) {
+        const { rank, generation } = generationMapping[athlete.name];
+        let tooltipText;
+        if (rank === 1) {
+            const gen = generation.toLowerCase();
+            if (gen === "silent generation")      tooltipText = "The Grandmaster: #1 in Silent Generation League";
+            else if (gen === "baby boomers")      tooltipText = "The Iron Throne: #1 in Baby Boomers League";
+            else if (gen === "gen x")             tooltipText = "The Last Ronin: #1 in Gen X League";
+            else if (gen === "millennials")       tooltipText = "The Chosen One: #1 in Millennials League";
+            else if (gen === "gen z")             tooltipText = "The Meme Lord: #1 in Gen Z League";
+            else if (gen === "gen alpha")         tooltipText = "The Singularity: #1 in Gen Alpha League";
+        } else {
+            tooltipText = `#${rank} in ${generation} League`;
+        }
+        const iconClass = window.TryGetGenerationFaIcon(generation);
+        const leagueSlug = window.slugifyName(generation, true);
+        const badgeHtml = `
+            <span class="badge-class badge-clickable"
+                  ${spanA11y}
+                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
+                  onclick="window.location.href='/league/${leagueSlug}';">
+                <i class="fa ${iconClass}"></i>
+            </span>`;
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
+    }
+
+    // — Exclusive league (clickable <span>)
+    if (exclusiveLeagueMapping[athlete.name]) {
+        const { rank, exclusiveLeague } = exclusiveLeagueMapping[athlete.name];
+        const tooltipText = `#${rank} in ${exclusiveLeague} League`;
+        const leagueSlug = window.slugifyName(exclusiveLeague, true);
+        const badgeHtml = `
+            <span class="badge-class badge-clickable"
+                  ${spanA11y}
+                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
+                  onclick="window.location.href='/league/${leagueSlug}';">
+                <i class="fa fa-umbrella-beach"></i>
+            </span>`;
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+        badgeElements.push({ order: colorOrder, html: badgeHtml });
+    }
+
+    // — Submission Counts (non-clickable)
     if (mostSubmissionMapping[athlete.name]) {
         const tooltipText = mostSubmissionMapping[athlete.name];
-        const iconClass = "fa-skull-crossbones";  // choose your preferred icon for submissions
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa fa-skull-crossbones"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
     if (submissionOverTwoMapping[athlete.name]) {
         const tooltipText = submissionOverTwoMapping[athlete.name];
-        const iconClass = "fa-calendar-check";  // choose your preferred icon for submissions
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa fa-calendar-check"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Crowd-Guessed ranking badges (gold / silver / bronze)
+    // — Most Guessed (medals)
     if (mostGuessedMapping[athlete.name]) {
         const rank = mostGuessedMapping[athlete.name];
         const count = athlete.crowdCount;
-        const iconClass = "fa-users";
-
         let tooltipText;
-        if (rank === 1) {
-            tooltipText = `Popular AF: Most Age Guesses Received (${count})`;
-        } else if (rank === 2) {
-            tooltipText = `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
-        } else if (rank === 3) {
-            tooltipText = `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
-        }
-
-        // apply gold/silver/bronze bg
-        const bgStyle = badgeBackgrounds[rank - 1];
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
+        if (rank === 1)      tooltipText = `Popular AF: Most Age Guesses Received (${count})`;
+        else if (rank === 2) tooltipText = `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
+        else                 tooltipText = `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
         const badgeHtml = `
-    <span class="badge-class"
-          title="${tooltipText}"
-          style="cursor: none; ${bgStyle}">
-      <i class="fa ${iconClass}"></i>
-    </span>`;
-
+            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
+                <i class="fa fa-users"></i>
+            </span>`;
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // Age-Gap ranking badges (gold / silver / bronze)
+    // — Age-Gap (medals)
     if (ageGapMapping[athlete.name]) {
         const rank = ageGapMapping[athlete.name];
         const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge).toFixed(1);
-        // singular/plural
         const yearWord = (gap === '1.0') ? 'year' : 'years';
-        const iconClass = "fa-user-ninja";
-
         let tooltipText;
-        if (rank === 1) {
-            tooltipText = `Skin Trafficker: Perceived ${gap} ${yearWord} younger`;
-        } else if (rank === 2) {
-            tooltipText = `Wrinkle Launderer: Perceived ${gap} ${yearWord} younger`;
-        } else {
-            tooltipText = `Collagen Smuggler: Perceived ${gap} ${yearWord} younger`;
-        }
-
-        // gold/silver/bronze bg from badgeBackgrounds[0..2]
-        const bgStyle = badgeBackgrounds[rank - 1];
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-
+        if (rank === 1)      tooltipText = `Skin Trafficker: Perceived ${gap} ${yearWord} younger`;
+        else if (rank === 2) tooltipText = `Wrinkle Launderer: Perceived ${gap} ${yearWord} younger`;
+        else                 tooltipText = `Collagen Smuggler: Perceived ${gap} ${yearWord} younger`;
         const badgeHtml = `
-    <span class="badge-class"
-          title="${tooltipText}"
-          style="cursor: none; ${bgStyle}">
-      <i class="fa ${iconClass}"></i>
-    </span>`;
-
+            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
+                <i class="fa fa-user-ninja"></i>
+            </span>`;
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // — Lowest crowd-guessed age badges (gold/silver/bronze) —
+    // — Lowest crowd-guessed age (medals)
     if (crowdAgeMapping[athlete.name]) {
         const rank = crowdAgeMapping[athlete.name];
         const age = athlete.crowdAge.toFixed(1);
         const yearWord = age === '1.0' ? 'year' : 'years';
-        const iconClass = "fa-baby";
-
         let tooltip;
-        if (rank === 1) {
-            tooltip = `Baby Boss: Youngest Looking (Crowd Age: ${age} ${yearWord})`;
-        } else if (rank === 2) {
-            tooltip = `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
-        } else {
-            tooltip = `Diaper Don: 3rd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
-        }
-
-        // reuse your medal backgrounds
-        const bgStyle = badgeBackgrounds[rank - 1];
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-
+        if (rank === 1)      tooltip = `Baby Boss: Youngest Looking (Crowd Age: ${age} ${yearWord})`;
+        else if (rank === 2) tooltip = `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
+        else                 tooltip = `Diaper Don: 3rd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
         const badgeHtml = `
-    <span class="badge-class"
-          title="${tooltip}"
-          style="cursor: none; ${bgStyle}">
-      <i class="fa ${iconClass}"></i>
-    </span>`;
-
+            <span class="badge-class" title="${tooltip}" style="${badgeBackgrounds[rank - 1]}">
+                <i class="fa fa-baby"></i>
+            </span>`;
+        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
         badgeElements.push({ order: colorOrder, html: badgeHtml });
     }
 
-    // PhenoAge Difference badge (using default blackish background)
+    // — PhenoAge Difference (non-clickable)
     if (phenoAgeDiffMapping[athlete.name]) {
         const tooltipText = phenoAgeDiffMapping[athlete.name];
-        const iconClass = "fa-clock";  // choose your preferred icon for time/difference
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${defaultBadgeBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
+                <i class="fa fa-clock"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // — Perfect Guess badge (exact match) —
+    // — Perfect Guess (non-clickable)
     if (perfectGuessMapping[athlete.name]) {
-        const tooltip = `Bullseye: You Guessed Their Age Perfectly!`;
-        const icon = "fa-bullseye";
         const html = `
-        <span class="badge-class"
-              title="${tooltip}"
-              style="cursor: none; ${defaultBadgeBackground}">
-          <i class="fa ${icon}"></i>
-        </span>`;
+            <span class="badge-class" title="Bullseye: You Guessed Their Age Perfectly!" style="${defaultBadgeBackground}">
+                <i class="fa fa-bullseye"></i>
+            </span>`;
         badgeElements.push({ order: 1, html });
     }
 
-    // — Best Guess badge (closest when no perfects exist) —
+    // — Best Guess (non-clickable)
     if (bestGuessMapping[athlete.name]) {
         const diff = bestGuessDiffMapping[athlete.name];
         const yearWord = diff === 1 ? 'year' : 'years';
-        const tooltip = `Your Best Age Guess: Only ${diff} ${yearWord} Off!`;
-        const icon = "fa-crosshairs";
         const html = `
-        <span class="badge-class"
-              title="${tooltip}"
-              style="cursor: none; ${defaultBadgeBackground}">
-          <i class="fa ${icon}"></i>
-        </span>`;
+            <span class="badge-class" title="Your Best Age Guess: Only ${diff} ${yearWord} Off!" style="${defaultBadgeBackground}">
+                <i class="fa fa-crosshairs"></i>
+            </span>`;
         badgeElements.push({ order: 1, html });
     }
 
-    // Liver Biomarker Contribution badge (colored backgrounds)
+    // — Biomarker contributions (non-clickable)
     if (liverMapping[athlete.name]) {
-        const tooltipText = liverMapping[athlete.name];
-        const iconClass = "fa-droplet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${liverBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${liverMapping[athlete.name]}" style="${liverBackground}">
+                <i class="fa fa-droplet"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
-
-    // Kidney Biomarker Contribution badge (colored backgrounds)
     if (kidneyMapping[athlete.name]) {
-        const tooltipText = kidneyMapping[athlete.name];
-        const iconClass = "fa-toilet";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${kidneyBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${kidneyMapping[athlete.name]}" style="${kidneyBackground}">
+                <i class="fa fa-toilet"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
-
-    // Metabolic Biomarker Contribution badge (colored backgrounds)
     if (metabolicMapping[athlete.name]) {
-        const tooltipText = metabolicMapping[athlete.name];
-        const iconClass = "fa-fire";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${metabolicBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${metabolicMapping[athlete.name]}" style="${metabolicBackground}">
+                <i class="fa fa-fire"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
-
-    // Inflammation Biomarker Contribution badge (colored backgrounds)
     if (inflammationMapping[athlete.name]) {
-        const tooltipText = inflammationMapping[athlete.name];
-        const iconClass = "fa-temperature-three-quarters";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${inflammationBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${inflammationMapping[athlete.name]}" style="${inflammationBackground}">
+                <i class="fa fa-temperature-three-quarters"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
-
-    // Immune Biomarker Contribution badge (colored backgrounds)
     if (immuneMapping[athlete.name]) {
-        const tooltipText = immuneMapping[athlete.name];
-        const iconClass = "fa-virus";
         const badgeHtml = `
-        <span class="badge-class" title="${tooltipText}" style="cursor: none; ${immuneBackground}">
-            <i class="fa ${iconClass}"></i>
-        </span>`;
+            <span class="badge-class" title="${immuneMapping[athlete.name]}" style="${immuneBackground}">
+                <i class="fa fa-virus"></i>
+            </span>`;
         badgeElements.push({ order: 1, html: badgeHtml });
     }
 
-    // Sort the badge elements by the color order: black (1) first, then gold (2), silver (3), and bronze (4)
+    // Sort by color order then render
     badgeElements.sort((a, b) => a.order - b.order);
+    badgeElements.forEach(badge => { badgeSection.innerHTML += badge.html; });
 
-    // Append the sorted badges to the badge section
-    badgeElements.forEach(badge => {
-        badgeSection.innerHTML += badge.html;
-    });
-
-    // — Apply pop animation to leaderboard badges —
+    // Pop animation (unchanged)
     if (badgeSection.classList.contains('badge-section')) {
-        // — Apply pop animation to leaderboard badges —
-        if (badgeSection.classList.contains('badge-section')) {
-            Array.from(badgeSection.children).forEach((badge, i) => {
-                badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
-                badge.addEventListener('animationend', function handler() {
-                    // Clear the animation so CSS hover-transform can take over
-                    badge.style.animation = '';
-                    badge.removeEventListener('animationend', handler);
-                });
+        Array.from(badgeSection.children).forEach((badge, i) => {
+            badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
+            badge.addEventListener('animationend', function handler() {
+                badge.style.animation = '';
+                badge.removeEventListener('animationend', handler);
             });
-        }
+        });
     }
-}
+};
