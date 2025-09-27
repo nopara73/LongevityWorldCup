@@ -134,6 +134,7 @@ public sealed class EventDataService : IDisposable
                     exOcc.Value = occurredAt;
                     shouldInsert = existsCmd.ExecuteScalar() == null;
                 }
+
                 if (!shouldInsert) continue;
 
                 pId.Value = Guid.NewGuid().ToString("N");
@@ -174,19 +175,19 @@ public sealed class EventDataService : IDisposable
             existsCmd.Transaction = tx;
             existsCmd.CommandText =
                 "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
-            var exType = existsCmd.Parameters.Add("@t",   SqliteType.Integer);
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
-            var exOcc  = existsCmd.Parameters.Add("@occ", SqliteType.Text);
+            var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
-            var pId   = insertCmd.Parameters.Add("@id",   SqliteType.Text);
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
             var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
-            var pOcc  = insertCmd.Parameters.Add("@occ",  SqliteType.Text);
-            var pRel  = insertCmd.Parameters.Add("@rel",  SqliteType.Real);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
             foreach (var (slug, joinedAtUtc, currentRank, replacedSlug) in athletes)
             {
@@ -200,16 +201,17 @@ public sealed class EventDataService : IDisposable
                 {
                     exType.Value = (int)EventType.Joined;
                     exText.Value = joinedText;
-                    exOcc.Value  = occurredAt;
+                    exOcc.Value = occurredAt;
                     insertJoined = existsCmd.ExecuteScalar() == null;
                 }
+
                 if (insertJoined)
                 {
-                    pId.Value   = Guid.NewGuid().ToString("N");
+                    pId.Value = Guid.NewGuid().ToString("N");
                     pType.Value = (int)EventType.Joined;
                     pText.Value = joinedText;
-                    pOcc.Value  = occurredAt;
-                    pRel.Value  = defaultRelevance;
+                    pOcc.Value = occurredAt;
+                    pRel.Value = defaultRelevance;
                     insertCmd.ExecuteNonQuery();
                     created++;
                     notify.Add((EventType.Joined, joinedText));
@@ -226,16 +228,17 @@ public sealed class EventDataService : IDisposable
                     {
                         exType.Value = (int)EventType.NewRank;
                         exText.Value = rankText;
-                        exOcc.Value  = occurredAt;
-                        insertRank   = existsCmd.ExecuteScalar() == null;
+                        exOcc.Value = occurredAt;
+                        insertRank = existsCmd.ExecuteScalar() == null;
                     }
+
                     if (insertRank)
                     {
-                        pId.Value   = Guid.NewGuid().ToString("N");
+                        pId.Value = Guid.NewGuid().ToString("N");
                         pType.Value = (int)EventType.NewRank;
                         pText.Value = rankText;
-                        pOcc.Value  = occurredAt;
-                        pRel.Value  = DefaultRelevanceNewRank;
+                        pOcc.Value = occurredAt;
+                        pRel.Value = DefaultRelevanceNewRank;
                         insertCmd.ExecuteNonQuery();
                         created++;
                         notify.Add((EventType.NewRank, rankText));
@@ -266,20 +269,21 @@ public sealed class EventDataService : IDisposable
         {
             using var tx = _sqlite.BeginTransaction();
 
+            // NOTE: remove OccurredAt from the existence check
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
-            var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = _sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) " +
+                "VALUES (@id, @type, @text, @occ, @rel);";
             var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
-            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
-            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pTyp = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pTxt = insertCmd.Parameters.Add("@text", SqliteType.Text);
             var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
             var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
@@ -295,17 +299,18 @@ public sealed class EventDataService : IDisposable
                 if (skipIfExists)
                 {
                     exType.Value = (int)EventType.DonationReceived;
-                    exText.Value = text;
-                    exOcc.Value = occurredAt;
+                    exText.Value = text; // <-- only Text, no OccurredAt
                     shouldInsert = existsCmd.ExecuteScalar() == null;
                 }
+
                 if (!shouldInsert) continue;
 
                 pId.Value = Guid.NewGuid().ToString("N");
-                pType.Value = (int)EventType.DonationReceived;
-                pText.Value = text;
+                pTyp.Value = (int)EventType.DonationReceived;
+                pTxt.Value = text;
                 pOcc.Value = occurredAt;
                 pRel.Value = defaultRelevance;
+
                 insertCmd.ExecuteNonQuery();
                 created++;
             }
@@ -401,6 +406,7 @@ public sealed class EventDataService : IDisposable
         {
             if (_athDir.TryGetValue(slug, out var v) && !string.IsNullOrWhiteSpace(v.Name)) return v.Name;
         }
+
         var spaced = slug.Replace('_', '-').Replace('-', ' ');
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
     }
@@ -428,7 +434,9 @@ public sealed class EventDataService : IDisposable
                 var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
                 await _slack.SendAsync(text);
             }
-            catch { }
+            catch
+            {
+            }
         });
     }
 

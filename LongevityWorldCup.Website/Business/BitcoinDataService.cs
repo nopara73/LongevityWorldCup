@@ -125,10 +125,12 @@ namespace LongevityWorldCup.Website.Business
             var txs = await FetchAddressDonationTransactionsAsync(ct);
             if (txs.Count == 0) return 0;
 
-            // Only confirmed donations with >= 3 confirmations
             const int MinConfs = 3;
+
             var items = txs
                 .Where(t => t.AmountSatoshis > 0 && t.Confirmations >= MinConfs)
+                .GroupBy(t => t.TxId)                                // <-- de-dupe by TxId
+                .Select(g => g.OrderBy(t => t.OccurredAtUtc).First())// pick a stable canonical timestamp
                 .Select(t => (t.TxId, t.OccurredAtUtc, t.AmountSatoshis))
                 .OrderBy(t => t.OccurredAtUtc)
                 .ToList();
@@ -247,13 +249,24 @@ namespace LongevityWorldCup.Website.Business
             {
                 var hash = tx.GetProperty("hash").GetString() ?? "";
 
+                // Prefer first-seen time for OccurredAtUtc to be consistent with blockchain.info's "time"
                 DateTime occurredUtc;
-                if (tx.TryGetProperty("confirmed", out var conf) && conf.ValueKind == JsonValueKind.String && DateTime.TryParse(conf.GetString(), out var confDt))
-                    occurredUtc = DateTime.SpecifyKind(confDt, DateTimeKind.Utc);
-                else if (tx.TryGetProperty("received", out var rec) && rec.ValueKind == JsonValueKind.String && DateTime.TryParse(rec.GetString(), out var recDt))
+                if (tx.TryGetProperty("received", out var rec) &&
+                    rec.ValueKind == JsonValueKind.String &&
+                    DateTime.TryParse(rec.GetString(), out var recDt))
+                {
                     occurredUtc = DateTime.SpecifyKind(recDt, DateTimeKind.Utc);
+                }
+                else if (tx.TryGetProperty("confirmed", out var conf) &&
+                         conf.ValueKind == JsonValueKind.String &&
+                         DateTime.TryParse(conf.GetString(), out var confDt))
+                {
+                    occurredUtc = DateTime.SpecifyKind(confDt, DateTimeKind.Utc);
+                }
                 else
+                {
                     occurredUtc = DateTime.UtcNow;
+                }
 
                 int confirmations = tx.TryGetProperty("confirmations", out var c) && c.ValueKind is JsonValueKind.Number
                     ? c.GetInt32()
