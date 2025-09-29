@@ -1,0 +1,28 @@
+{
+  "Name": "Dora K",
+  "DisplayName": null,
+  "MediaContact": "dk.deti@gmail.com",
+  "DateOfBirth": {
+    "Year": 1956,
+    "Month": 7,
+    "Day": 4
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-26",
+      "AlbGL": 45.7,
+      "CreatUmolL": 73,
+      "GluMmolL": 5.28,
+      "CrpMgL": 0.52,
+      "LymPc": 28.1,
+      "McvFL": 91.6,
+      "RdwPc": 13.1,
+      "AlpUL": 79,
+      "Wbc1000cellsuL": 6.29
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Bulgaria",
+  "Why": "My son made me participate in the Longevity World Cup, because he sees participation as an extra motivation to take care of myself.",
+  "PersonalLink": null
+}
