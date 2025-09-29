@@ -21,21 +21,23 @@ namespace LongevityWorldCup.Website
         public string? GmailRefreshToken { get; set; }
         public string? SlackWebhookUrl { get; set; }
 
-        public string? DonationBitcoinAddress { get; set; }
-
+        // Load configuration from the file
         public static async Task<Config> LoadAsync()
         {
             if (!File.Exists(ConfigFilePath))
                 throw new FileNotFoundException("Configuration file not found.");
 
             string json = await File.ReadAllTextAsync(ConfigFilePath);
+
+            // Ensure deserialization doesn't return null
             var config = JsonSerializer.Deserialize<Config>(json);
             return config ?? throw new InvalidDataException("Configuration file content is invalid.");
         }
 
+        // Save configuration to the file
         public async Task SaveAsync()
         {
-            string json = JsonSerializer.Serialize(this, JsonOptions);
+            string json = JsonSerializer.Serialize(this, JsonOptions); // Use cached options
             await File.WriteAllTextAsync(ConfigFilePath, json);
         }
     }

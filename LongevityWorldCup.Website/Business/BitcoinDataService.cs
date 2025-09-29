@@ -6,18 +6,19 @@ namespace LongevityWorldCup.Website.Business
 {
     public sealed class BitcoinDataService
     {
+        private const string DonationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
+        private const int MinConfirmations = 3;
+        
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IMemoryCache _cache;
         private readonly EventDataService _events;
-        private readonly Config _config;
         private readonly ILogger<BitcoinDataService> _log;
 
-        public BitcoinDataService(IHttpClientFactory httpClientFactory, IMemoryCache cache, EventDataService events, Config config, ILogger<BitcoinDataService> log)
+        public BitcoinDataService(IHttpClientFactory httpClientFactory, IMemoryCache cache, EventDataService events, ILogger<BitcoinDataService> log)
         {
             _httpClientFactory = httpClientFactory;
             _cache = cache;
             _events = events;
-            _config = config;
             _log = log;
         }
 
@@ -64,71 +65,153 @@ namespace LongevityWorldCup.Website.Business
             throw new InvalidOperationException("Both primary and fallback APIs failed for BTC to USD rate.");
         }
 
-        public string GetDonationAddress() => _config.DonationBitcoinAddress ?? string.Empty;
+        public string GetDonationAddress() => DonationAddress;
 
         public async Task<long> GetTotalReceivedSatoshisAsync()
         {
-            var address = _config.DonationBitcoinAddress;
-            if (string.IsNullOrWhiteSpace(address))
-                return 0;
-
             var cacheExpiration = TimeSpan.FromMinutes(3);
-            var cacheKey = $"totalReceived_{address}";
+            var cacheKey = $"balance_{MinConfirmations}conf_{DonationAddress}";
             if (_cache.TryGetValue(cacheKey, out long cachedTotal))
                 return cachedTotal;
 
             var client = _httpClientFactory.CreateClient();
 
-            async Task<long?> TryFallbackAsync()
+            async Task<long?> TryPrimaryAsync()
             {
-                var resp = await client.GetAsync($"https://blockchain.info/rawaddr/{address}");
+                long currentHeight = 0;
+                try
+                {
+                    var hResp = await client.GetAsync("https://blockchain.info/q/getblockcount");
+                    if (hResp.IsSuccessStatusCode)
+                    {
+                        var hStr = await hResp.Content.ReadAsStringAsync();
+                        long.TryParse(hStr.Trim(), out currentHeight);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.LogDebug(ex, "Failed to fetch blockchain.info current height");
+                }
+
+                var resp = await client.GetAsync($"https://blockchain.info/rawaddr/{DonationAddress}?limit=100");
                 if (!resp.IsSuccessStatusCode) return null;
+
                 var jsonString = await resp.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(jsonString);
-                return doc.RootElement.GetProperty("total_received").GetInt64();
+                if (!doc.RootElement.TryGetProperty("txs", out var txs)) return 0;
+
+                long sum = 0;
+                foreach (var tx in txs.EnumerateArray())
+                {
+                    int confirmations = 0;
+                    long blockHeight = tx.TryGetProperty("block_height", out var bh) && bh.ValueKind is JsonValueKind.Number ? bh.GetInt64() : 0;
+                    if (blockHeight > 0 && currentHeight > 0)
+                    {
+                        var diff = currentHeight - blockHeight + 1;
+                        if (diff > 0 && diff < int.MaxValue) confirmations = (int)diff;
+                    }
+                    if (confirmations < MinConfirmations) continue;
+
+                    if (tx.TryGetProperty("out", out var outputs))
+                    {
+                        foreach (var o in outputs.EnumerateArray())
+                        {
+                            var addr = o.TryGetProperty("addr", out var a) ? a.GetString() : null;
+                            if (!string.Equals(addr, DonationAddress, StringComparison.OrdinalIgnoreCase)) continue;
+
+                            var spent = o.TryGetProperty("spent", out var sp) && sp.ValueKind == JsonValueKind.True;
+                            if (spent) continue;
+
+                            sum += o.GetProperty("value").GetInt64();
+                        }
+                    }
+                }
+
+                return sum;
+            }
+
+            async Task<long?> TryFallbackAsync()
+            {
+                var resp = await client.GetAsync($"https://api.blockcypher.com/v1/btc/main/addrs/{DonationAddress}/full?limit=50&txlimit=50");
+                if (!resp.IsSuccessStatusCode) return null;
+
+                var jsonString = await resp.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(jsonString);
+                if (!doc.RootElement.TryGetProperty("txs", out var txs)) return 0;
+
+                long sum = 0;
+                foreach (var tx in txs.EnumerateArray())
+                {
+                    var confs = tx.TryGetProperty("confirmations", out var c) && c.ValueKind is JsonValueKind.Number ? c.GetInt32() : 0;
+                    if (confs < MinConfirmations) continue;
+
+                    if (tx.TryGetProperty("outputs", out var outputs))
+                    {
+                        foreach (var o in outputs.EnumerateArray())
+                        {
+                            bool hasAddr = false;
+                            if (o.TryGetProperty("addresses", out var addrs))
+                            {
+                                foreach (var a in addrs.EnumerateArray())
+                                {
+                                    if (string.Equals(a.GetString(), DonationAddress, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        hasAddr = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!hasAddr) continue;
+
+                            var isSpent = o.TryGetProperty("spent_by", out var sb) &&
+                                          sb.ValueKind == JsonValueKind.String &&
+                                          !string.IsNullOrEmpty(sb.GetString());
+                            if (isSpent) continue;
+
+                            sum += o.GetProperty("value").GetInt64();
+                        }
+                    }
+                }
+
+                return sum;
             }
 
             try
             {
-                var response = await client.GetAsync($"https://api.blockcypher.com/v1/btc/main/addrs/{address}");
-                if (response.IsSuccessStatusCode)
+                var primary = await TryPrimaryAsync();
+                if (primary is long p)
                 {
-                    var jsonString = await response.Content.ReadAsStringAsync();
-                    using var doc = JsonDocument.Parse(jsonString);
-                    var total = doc.RootElement.GetProperty("total_received").GetInt64();
-                    _cache.Set(cacheKey, total, cacheExpiration);
-                    return total;
+                    _cache.Set(cacheKey, p, cacheExpiration);
+                    return p;
                 }
-                else
+
+                var fb = await TryFallbackAsync();
+                if (fb is long f)
                 {
-                    var fb = await TryFallbackAsync();
-                    if (fb is null) throw new InvalidOperationException();
-                    _cache.Set(cacheKey, fb.Value, cacheExpiration);
-                    return fb.Value;
+                    _cache.Set(cacheKey, f, cacheExpiration);
+                    return f;
                 }
             }
             catch
             {
                 var fb = await TryFallbackAsync();
-                if (fb is null) throw new InvalidOperationException("Both primary and fallback APIs failed for total received.");
-                _cache.Set(cacheKey, fb.Value, cacheExpiration);
-                return fb.Value;
+                if (fb is long f)
+                {
+                    _cache.Set(cacheKey, f, cacheExpiration);
+                    return f;
+                }
             }
+
+            throw new InvalidOperationException("Both primary and fallback APIs failed for confirmed balance.");
         }
 
         public async Task<int> CheckDonationAddressAndCreateEventsAsync(CancellationToken ct = default)
         {
-            var address = _config.DonationBitcoinAddress;
-            if (string.IsNullOrWhiteSpace(address))
-                return 0;
-
-            var txs = await FetchAddressDonationTransactionsAsync(ct);
+           var txs = await FetchAddressDonationTransactionsAsync(ct);
             if (txs.Count == 0) return 0;
 
-            const int MinConfs = 3;
-
             var items = txs
-                .Where(t => t.AmountSatoshis > 0 && t.Confirmations >= MinConfs)
+                .Where(t => t.AmountSatoshis > 0 && t.Confirmations >= MinConfirmations)
                 .GroupBy(t => t.TxId)                                // <-- de-dupe by TxId
                 .Select(g => g.OrderBy(t => t.OccurredAtUtc).First())// pick a stable canonical timestamp
                 .Select(t => (t.TxId, t.OccurredAtUtc, t.AmountSatoshis))
@@ -141,11 +224,7 @@ namespace LongevityWorldCup.Website.Business
 
         private async Task<IReadOnlyList<DonationTx>> FetchAddressDonationTransactionsAsync(CancellationToken ct)
         {
-            var address = _config.DonationBitcoinAddress;
-            if (string.IsNullOrWhiteSpace(address))
-                return Array.Empty<DonationTx>();
-
-            var client = _httpClientFactory.CreateClient();
+           var client = _httpClientFactory.CreateClient();
 
             // --- Primary: blockchain.info ---
             try
@@ -166,11 +245,11 @@ namespace LongevityWorldCup.Website.Business
                     _log.LogDebug(ex, "Failed to fetch blockchain.info current height");
                 }
 
-                var resp = await client.GetAsync($"https://blockchain.info/rawaddr/{address}?limit=50", ct);
+                var resp = await client.GetAsync($"https://blockchain.info/rawaddr/{DonationAddress}?limit=50", ct);
                 if (resp.IsSuccessStatusCode)
                 {
                     var json = await resp.Content.ReadAsStringAsync(ct);
-                    return ParseBlockchainInfoRawAddr(json, address, currentHeight);
+                    return ParseBlockchainInfoRawAddr(json, DonationAddress, currentHeight);
                 }
             }
             catch (Exception ex)
@@ -181,11 +260,11 @@ namespace LongevityWorldCup.Website.Business
             // --- Fallback: BlockCypher ---
             try
             {
-                var resp = await client.GetAsync($"https://api.blockcypher.com/v1/btc/main/addrs/{address}/full?limit=50&txlimit=50", ct);
+                var resp = await client.GetAsync($"https://api.blockcypher.com/v1/btc/main/addrs/{DonationAddress}/full?limit=50&txlimit=50", ct);
                 if (resp.IsSuccessStatusCode)
                 {
                     var json = await resp.Content.ReadAsStringAsync(ct);
-                    return ParseBlockCypherFull(json, address);
+                    return ParseBlockCypherFull(json, DonationAddress);
                 }
             }
             catch (Exception ex)
@@ -227,7 +306,7 @@ namespace LongevityWorldCup.Website.Business
                     : 0;
                 if (blockHeight > 0 && currentHeight > 0)
                 {
-                    // confirmations = currentHeight - blockHeight + 1
+                    // confirmations = currentHeight - block_height + 1
                     var diff = currentHeight - blockHeight + 1;
                     if (diff > 0 && diff < int.MaxValue) confirmations = (int)diff;
                 }
