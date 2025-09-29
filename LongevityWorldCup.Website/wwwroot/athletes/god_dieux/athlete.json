@@ -18,53 +18,6 @@
       "RdwPc": 11.5,
       "AlpUL": 88,
       "Wbc1000cellsuL": 6.6
-    },
-    {
-      "Date": "2025-03-29",
-      "AlbGL": 50,
-      "CreatUmolL": 65.48672566371681,
-      "GluMmolL": 5.772646536412079,
-      "CrpMgL": 0.6,
-      "LymPc": 34,
-      "McvFL": 91.4,
-      "RdwPc": 12,
-      "AlpUL": 110,
-      "Wbc1000cellsuL": 5.616
-    },
-    {
-      "Date": "2025-05-22",
-      "AlbGL": 43.49999999999999,
-      "CreatUmolL": 71.68141592920355,
-      "GluMmolL": 4.829040852575489,
-      "CrpMgL": 0.4,
-      "LymPc": 38.1,
-      "McvFL": 90.4,
-      "AlpUL": 274,
-      "Wbc1000cellsuL": 7.1
-    },
-    {
-      "Date": "2025-07-14",
-      "AlbGL": 44,
-      "CreatUmolL": 70.79646017699116,
-      "GluMmolL": 5.717140319715809,
-      "CrpMgL": 0.4,
-      "LymPc": 35,
-      "McvFL": 91,
-      "RdwPc": 10.6,
-      "AlpUL": 75,
-      "Wbc1000cellsuL": 6.9
-    },
-    {
-      "Date": "2025-09-08",
-      "AlbGL": 42.99999999999999,
-      "CreatUmolL": 70.79646017699116,
-      "GluMmolL": 5.162078152753109,
-      "CrpMgL": 0.4,
-      "LymPc": 39,
-      "McvFL": 91,
-      "RdwPc": 10.3,
-      "AlpUL": 70,
-      "Wbc1000cellsuL": 7.3
     }
   ],
   "Division": "Open",
