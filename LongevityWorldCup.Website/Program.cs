@@ -34,6 +34,7 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
+            builder.Services.AddSingleton<BitcoinDataService>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
@@ -47,6 +48,7 @@ namespace LongevityWorldCup.Website
                 var weeklyKey = new JobKey("WeeklyJob");
                 var monthlyKey = new JobKey("MonthlyJob");
                 var yearlyKey = new JobKey("YearlyJob");
+                var donationKey = new JobKey("BitcoinDonationCheckJob");
 
                 // Every day 00:00
                 q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
@@ -71,6 +73,16 @@ namespace LongevityWorldCup.Website
                 q.AddTrigger(t => t.ForJob(yearlyKey)
                     .WithIdentity("YearlyTrigger")
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 1 ?").InTimeZone(TimeZoneInfo.Utc)));
+
+                // Every on start and 10 minutes
+                q.AddJob<BitcoinDonationCheckJob>(o => o.WithIdentity(donationKey));
+                q.AddTrigger(t => t.ForJob(donationKey)
+                    .WithIdentity("BitcoinDonationCheckTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                q.AddTrigger(t => t.ForJob(donationKey) // on start
+                    .WithIdentity("BitcoinDonationCheckTrigger_Immediate")
+                    .StartNow()
+                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
             });
             builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
 
@@ -153,7 +165,8 @@ namespace LongevityWorldCup.Website
                 EmailTo = "longevityworldcup@gmail.com",
                 SmtpServer = "smtp.gmail.com",
                 SmtpPort = 587,
-                SmtpUser = "longevityworldcup@gmail.com"
+                SmtpUser = "longevityworldcup@gmail.com",
+                DonationBitcoinAddress = ""
             };
 
             // Serialize to JSON and save to file
