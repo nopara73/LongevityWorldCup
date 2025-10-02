@@ -336,7 +336,7 @@ public class AthleteDataService : IDisposable
             return;
 
         // Adjust thresholds as needed.
-        int[] thresholds = new[] { 10, 25, 50, 100, 150, 200, 250, 300, 400, 500, 750, 1000 };
+        int[] thresholds = new[] { 10, 50, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000, 5000, 10000 };
 
         var payload = new List<(int Count, DateTime OccurredAtUtc)>();
         foreach (var t in thresholds)
