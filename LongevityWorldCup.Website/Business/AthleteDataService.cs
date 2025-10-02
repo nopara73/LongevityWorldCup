@@ -2,10 +2,6 @@
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
-using System.Linq;
-using System.Threading;
-using System.IO;
-// added for biomarker signature
 using System.Text;
 using System.Security.Cryptography;
 using System.Globalization;
@@ -18,8 +14,6 @@ public class AthleteDataService : IDisposable
 
     // rolling window for new-athlete detection (currently ~1 month)
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
-
-    private const double RankEventScoreEpsilon = 0.0001;
 
     public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
 
@@ -188,6 +182,9 @@ public class AthleteDataService : IDisposable
             newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
         );
 
+        DetectAndEmitAthleteCountMilestones(); // emit milestones retroactively and at startup
+
+
         // Poll-loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
         {
@@ -326,7 +323,37 @@ public class AthleteDataService : IDisposable
         }, CancellationToken.None);
     }
 
-    private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
+    
+    // Detect and emit athlete-count milestones (retroactive + ongoing).
+    // Uses the N-th athlete's JoinedAt timestamp as the event time.
+    private void DetectAndEmitAthleteCountMilestones()
+    {
+        var joined = GetAthletesJoinedData()
+            .OrderBy(x => x.JoinedAt)
+            .ToList();
+
+        if (joined.Count == 0)
+            return;
+
+        // Adjust thresholds as needed.
+        int[] thresholds = new[] { 10, 25, 50, 100, 150, 200, 250, 300, 400, 500, 750, 1000 };
+
+        var payload = new List<(int Count, DateTime OccurredAtUtc)>();
+        foreach (var t in thresholds)
+        {
+            if (joined.Count >= t)
+            {
+                var when = DateTime.SpecifyKind(joined[t - 1].JoinedAt, DateTimeKind.Utc);
+                payload.Add((t, when));
+            }
+        }
+
+        if (payload.Count > 0)
+        {
+            _eventDataService.CreateAthleteCountMilestoneEvents(payload, skipIfExists: true);
+        }
+    }
+private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
     {
         await _reloadLock.WaitAsync();
         try
@@ -353,6 +380,9 @@ public class AthleteDataService : IDisposable
                 changedSlugs: changedSigs,
                 newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
             );
+
+            DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
+
 
             PushAthleteDirectoryToEvents();
         }
