@@ -55,15 +55,17 @@ public static class SlackMessageBuilder
         var ord = Ordinal(rank.Value);
         var medal = MedalOrTrend(rank.Value);
 
+        var rankWithMedal = $"{ord}{medal}";
+
         if (prev is null)
         {
             return Pick(
-                $"{currNameLink} is now {ord}{medal}",
-                $"{currNameLink} takes {ord} place{medal}",
-                $"{currNameLink} secures {ord}{medal}",
-                $"{currNameLink} locks in {ord}{medal}",
-                $"{currNameLink} claims {ord}{medal}",
-                $"{currNameLink} secures {ord} spot{medal}"
+                $"{currNameLink} is now {rankWithMedal}",
+                $"{currNameLink} takes {rankWithMedal}",
+                $"{currNameLink} secures {rankWithMedal}",
+                $"{currNameLink} locks in {rankWithMedal}",
+                $"{currNameLink} claims {rankWithMedal}",
+                $"{currNameLink} now at {rankWithMedal}"
             );
         }
 
@@ -71,16 +73,16 @@ public static class SlackMessageBuilder
         var prevNameLink = Link(AthleteUrl(prev), prevName);
 
         return Pick(
-            $"{currNameLink} took {ord} from {prevNameLink}{medal}",
-            $"{currNameLink} grabs {ord} from {prevNameLink}{medal}",
-            $"{currNameLink} overtakes {prevNameLink} for {ord}{medal}",
-            $"{currNameLink} edges past {prevNameLink} into {ord}{medal}",
-            $"{currNameLink} passes {prevNameLink} for {ord}{medal}",
-            $"{currNameLink} displaces {prevNameLink} at {ord}{medal}",
-            $"{currNameLink} leaps ahead of {prevNameLink} to {ord}{medal}",
-            $"{currNameLink} snatches {ord} from {prevNameLink}{medal}",
-            $"{currNameLink} nudges ahead of {prevNameLink} for {ord}{medal}",
-            $"{currNameLink} outpaces {prevNameLink} for {ord}{medal}"
+            $"{currNameLink} took {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} grabs {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} overtakes {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} edges past {prevNameLink} into {rankWithMedal}",
+            $"{currNameLink} passes {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} displaces {prevNameLink} at {rankWithMedal}",
+            $"{currNameLink} leaps ahead of {prevNameLink} to {rankWithMedal}",
+            $"{currNameLink} snatches {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} nudges ahead of {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} outpaces {prevNameLink} for {rankWithMedal}"
         );
     }
 
