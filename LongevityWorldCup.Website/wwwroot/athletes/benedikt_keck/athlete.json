@@ -1,0 +1,28 @@
+{
+  "Name": "Benedikt Keck",
+  "DisplayName": null,
+  "MediaContact": "benediktkeck@freenet.de",
+  "DateOfBirth": {
+    "Year": 1991,
+    "Month": 2,
+    "Day": 25
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-30",
+      "AlbGL": 46,
+      "CreatUmolL": 87,
+      "GluMmolL": 5.3,
+      "CrpMgL": 0.6,
+      "LymPc": 42,
+      "McvFL": 84,
+      "RdwPc": 11.2,
+      "AlpUL": 92,
+      "Wbc1000cellsuL": 4.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Germany",
+  "Why": "The desire to stay healthy and strong for my family, and to inspire others to take control of their longevity.",
+  "PersonalLink": "https://youtube.com/@bene_von_blkswn"
+}
