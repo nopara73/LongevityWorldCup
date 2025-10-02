@@ -264,12 +264,12 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
+        var notify = new List<string>();
 
         lock (_sqlite)
         {
             using var tx = _sqlite.BeginTransaction();
 
-            // NOTE: remove OccurredAt from the existence check
             using var existsCmd = _sqlite.CreateCommand();
             existsCmd.Transaction = tx;
             existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
@@ -299,7 +299,7 @@ public sealed class EventDataService : IDisposable
                 if (skipIfExists)
                 {
                     exType.Value = (int)EventType.DonationReceived;
-                    exText.Value = text; // <-- only Text, no OccurredAt
+                    exText.Value = text;
                     shouldInsert = existsCmd.ExecuteScalar() == null;
                 }
 
@@ -313,6 +313,7 @@ public sealed class EventDataService : IDisposable
 
                 insertCmd.ExecuteNonQuery();
                 created++;
+                notify.Add(text);
             }
 
             tx.Commit();
@@ -321,6 +322,8 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
+            foreach (var raw in notify)
+                FireAndForgetSlack(EventType.DonationReceived, raw);
         }
     }
 
@@ -422,10 +425,17 @@ public sealed class EventDataService : IDisposable
 
     private void FireAndForgetSlack(EventType type, string rawText)
     {
-        if (type != EventType.NewRank) return;
-
-        if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
+        // Keep the top-10 gate for rank events.
+        if (type == EventType.NewRank)
+        {
+            if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
+                return;
+        }
+        else if (type != EventType.DonationReceived)
+        {
+            // Not sending other types for now (Joined/General).
             return;
+        }
 
         _ = Task.Run(async () =>
         {
