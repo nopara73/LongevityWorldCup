@@ -203,7 +203,6 @@ public class AthleteDataService : IDisposable
                     ReloadCrowdStats();
                     HydratePlacementsIntoAthletesJson();
                     HydrateNewFlagsIntoAthletesJson();
-                    HydratePlacementsIntoAthletesJson();
                     HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
                     PushAthleteDirectoryToEvents();
                 }
@@ -339,7 +338,6 @@ public class AthleteDataService : IDisposable
             ReloadCrowdStats();
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
-            HydratePlacementsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
 
             // recompute and persist biomarker/test signatures after reload
@@ -1014,7 +1012,6 @@ public class AthleteDataService : IDisposable
         }
 
         var changed = new HashSet<string>(changedSlugs ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-        if (changed.Count == 0) return;
 
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
                        ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1033,67 +1030,70 @@ public class AthleteDataService : IDisposable
         var nowUtc = DateTime.UtcNow;
         var changes = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)>();
 
-        foreach (var slug in changed)
+        if (changed.Count > 0)
         {
-            // skip if this athlete isn't ranked now (shouldn't happen, but be defensive)
-            if (!afterAll.TryGetValue(slug, out var newRank)) continue;
-
-            // newcomers handled elsewhere
-            if (newcomers.Contains(slug)) continue;
-
-            // need a baseline rank to compare
-            if (!before.TryGetValue(slug, out var prevRankNullable) || !prevRankNullable.HasValue) continue;
-
-            var prevRank = prevRankNullable.Value;
-            if (newRank >= prevRank) continue; // no numeric improvement
-
-            // try to identify who was replaced at this new rank (best effort)
-            string? replacedSlug = null;
-
-            // 1) exact previous holder of the new rank
-            if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
-                !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
+            foreach (var slug in changed)
             {
-                replacedSlug = prevHolder;
-            }
+                // skip if this athlete isn't ranked now (shouldn't happen, but be defensive)
+                if (!afterAll.TryGetValue(slug, out var newRank)) continue;
 
-            // 2) fallback: somebody who was >= newRank and moved down (or disappeared)
-            if (replacedSlug is null)
-            {
-                string? candidate = null;
-                var bestPrev = int.MaxValue;
+                // newcomers handled elsewhere
+                if (newcomers.Contains(slug)) continue;
 
-                foreach (var p in before)
+                // need a baseline rank to compare
+                if (!before.TryGetValue(slug, out var prevRankNullable) || !prevRankNullable.HasValue) continue;
+
+                var prevRank = prevRankNullable.Value;
+                if (newRank >= prevRank) continue; // no numeric improvement
+
+                // try to identify who was replaced at this new rank (best effort)
+                string? replacedSlug = null;
+
+                // 1) exact previous holder of the new rank
+                if (beforeByRank.TryGetValue(newRank, out var prevHolder) &&
+                    !string.Equals(prevHolder, slug, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!p.Value.HasValue) continue;
-                    var pr = p.Value.Value;
-                    if (pr < newRank) continue;
-                    if (string.Equals(p.Key, slug, StringComparison.OrdinalIgnoreCase)) continue;
+                    replacedSlug = prevHolder;
+                }
 
-                    // moved down or disappeared
-                    if (!afterAll.TryGetValue(p.Key, out var ar) || ar > pr)
+                // 2) fallback: somebody who was >= newRank and moved down (or disappeared)
+                if (replacedSlug is null)
+                {
+                    string? candidate = null;
+                    var bestPrev = int.MaxValue;
+
+                    foreach (var p in before)
                     {
-                        if (pr < bestPrev)
+                        if (!p.Value.HasValue) continue;
+                        var pr = p.Value.Value;
+                        if (pr < newRank) continue;
+                        if (string.Equals(p.Key, slug, StringComparison.OrdinalIgnoreCase)) continue;
+
+                        // moved down or disappeared
+                        if (!afterAll.TryGetValue(p.Key, out var ar) || ar > pr)
                         {
-                            bestPrev = pr;
-                            candidate = p.Key;
+                            if (pr < bestPrev)
+                            {
+                                bestPrev = pr;
+                                candidate = p.Key;
+                            }
                         }
                     }
+                    replacedSlug = candidate;
                 }
-                replacedSlug = candidate;
+
+                // 3) last-ditch: the athlete that sits right below the new rank now
+                if (replacedSlug is null && afterAllByRank.TryGetValue(newRank + 1, out var afterNext))
+                    replacedSlug = afterNext;
+
+                changes.Add((slug, nowUtc, newRank, replacedSlug));
             }
 
-            // 3) last-ditch: the athlete that sits right below the new rank now
-            if (replacedSlug is null && afterAllByRank.TryGetValue(newRank + 1, out var afterNext))
-                replacedSlug = afterNext;
-
-            changes.Add((slug, nowUtc, newRank, replacedSlug));
+            if (changes.Count > 0)
+                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
         }
 
-        if (changes.Count > 0)
-            _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
-
-        // Persist full snapshot AFTER emitting events
+        // Persist full snapshot AFTER emitting events (always, even if no changes)
         var afterAllFinal = BuildRankMap();    // full table
         var afterDiffs = BuildAgeDiffMap();    // persisted for visibility/debug
         PersistCurrentPlacementsSnapshot(afterAllFinal, afterDiffs);
@@ -1116,9 +1116,12 @@ public class AthleteDataService : IDisposable
                 beforeByRank[r] = kv.Key;
 
         // AFTER maps (current in-memory ranking)
-        var afterTop10 = BuildRankMap(limit: 10);
         var afterAll = BuildRankMap();
-        var afterTop10ByRank = afterTop10.ToDictionary(kv => kv.Value, kv => kv.Key);
+        var afterAllByRank = afterAll.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+        var newcomerSet = newlyJoined
+            .Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var x in newlyJoined)
         {
@@ -1166,8 +1169,8 @@ public class AthleteDataService : IDisposable
                     replaced = candidate;
                 }
 
-                // 3) last-ditch: the person that sits right below newcomer now
-                if (replaced is null && afterTop10ByRank.TryGetValue(newRank + 1, out var afterNext))
+                // 3) last-ditch: the person that sits right below newcomer now (but exclude newcomers)
+                if (replaced is null && afterAllByRank.TryGetValue(newRank + 1, out var afterNext) && !newcomerSet.Contains(afterNext))
                     replaced = afterNext;
             }
 
