@@ -184,7 +184,6 @@ public class AthleteDataService : IDisposable
 
         DetectAndEmitAthleteCountMilestones(); // emit milestones retroactively and at startup
 
-
         // Poll-loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
         {
@@ -323,7 +322,7 @@ public class AthleteDataService : IDisposable
         }, CancellationToken.None);
     }
 
-    
+
     // Detect and emit athlete-count milestones (retroactive + ongoing).
     // Uses the N-th athlete's JoinedAt timestamp as the event time.
     private void DetectAndEmitAthleteCountMilestones()
@@ -353,7 +352,8 @@ public class AthleteDataService : IDisposable
             _eventDataService.CreateAthleteCountMilestoneEvents(payload, skipIfExists: true);
         }
     }
-private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
+
+    private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
     {
         await _reloadLock.WaitAsync();
         try
@@ -382,7 +382,6 @@ private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
             );
 
             DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
-
 
             PushAthleteDirectoryToEvents();
         }
@@ -1044,7 +1043,7 @@ private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
         var changed = new HashSet<string>(changedSlugs ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
-                       ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // AFTER: full ranking (slug -> rank) and helper (rank -> slug)
         var afterAll = BuildRankMap();
@@ -1109,6 +1108,7 @@ private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
                             }
                         }
                     }
+
                     replacedSlug = candidate;
                 }
 
@@ -1124,8 +1124,8 @@ private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
         }
 
         // Persist full snapshot AFTER emitting events (always, even if no changes)
-        var afterAllFinal = BuildRankMap();    // full table
-        var afterDiffs = BuildAgeDiffMap();    // persisted for visibility/debug
+        var afterAllFinal = BuildRankMap(); // full table
+        var afterDiffs = BuildAgeDiffMap(); // persisted for visibility/debug
         PersistCurrentPlacementsSnapshot(afterAllFinal, afterDiffs);
     }
 
