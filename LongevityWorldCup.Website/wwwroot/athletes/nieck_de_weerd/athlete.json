@@ -1,0 +1,28 @@
+{
+  "Name": "Nieck de Weerd",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/nieckdeweerd/",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 7,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-29",
+      "AlbGL": 51,
+      "CreatUmolL": 83.1,
+      "GluMmolL": 4.78,
+      "CrpMgL": 1.1,
+      "LymPc": 32,
+      "McvFL": 92.4,
+      "RdwPc": 13.7,
+      "AlpUL": 64,
+      "Wbc1000cellsuL": 5.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "NLD",
+  "Why": "The organism is an expression of life itself. So, to answer the question: life itself.",
+  "PersonalLink": null
+}
