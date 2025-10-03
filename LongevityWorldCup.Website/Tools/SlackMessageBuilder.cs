@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Business;
 
@@ -14,9 +15,10 @@ public static class SlackMessageBuilder
         var (slug, rank, prev) = ParseTokens(rawText);
         return type switch
         {
-            EventType.NewRank => BuildNewRank(slug, rank, prev, slugToName),
-            EventType.Joined => BuildJoined(slug, slugToName),
-            _ => Escape(rawText)
+            EventType.NewRank          => BuildNewRank(slug, rank, prev, slugToName),
+            EventType.Joined           => BuildJoined(slug, slugToName),
+            EventType.DonationReceived => BuildDonation(rawText),
+            _                          => Escape(rawText)
         };
     }
 
@@ -53,15 +55,17 @@ public static class SlackMessageBuilder
         var ord = Ordinal(rank.Value);
         var medal = MedalOrTrend(rank.Value);
 
+        var rankWithMedal = $"{ord}{medal}";
+
         if (prev is null)
         {
             return Pick(
-                $"{currNameLink} is now {ord}{medal}",
-                $"{currNameLink} takes {ord} place{medal}",
-                $"{currNameLink} secures {ord}{medal}",
-                $"{currNameLink} locks in {ord}{medal}",
-                $"{currNameLink} claims {ord}{medal}",
-                $"{currNameLink} secures {ord} spot{medal}"
+                $"{currNameLink} is now {rankWithMedal}",
+                $"{currNameLink} takes {rankWithMedal}",
+                $"{currNameLink} secures {rankWithMedal}",
+                $"{currNameLink} locks in {rankWithMedal}",
+                $"{currNameLink} claims {rankWithMedal}",
+                $"{currNameLink} now at {rankWithMedal}"
             );
         }
 
@@ -69,18 +73,69 @@ public static class SlackMessageBuilder
         var prevNameLink = Link(AthleteUrl(prev), prevName);
 
         return Pick(
-            $"{currNameLink} took {ord} from {prevNameLink}{medal}",
-            $"{currNameLink} grabs {ord} from {prevNameLink}{medal}",
-            $"{currNameLink} overtakes {prevNameLink} for {ord}{medal}",
-            $"{currNameLink} edges past {prevNameLink} into {ord}{medal}",
-            $"{currNameLink} passes {prevNameLink} for {ord}{medal}",
-            $"{currNameLink} displaces {prevNameLink} at {ord}{medal}",
-            $"{currNameLink} leaps ahead of {prevNameLink} to {ord}{medal}",
-            $"{currNameLink} snatches {ord} from {prevNameLink}{medal}",
-            $"{currNameLink} nudges ahead of {prevNameLink} for {ord}{medal}",
-            $"{currNameLink} outpaces {prevNameLink} for {ord}{medal}"
+            $"{currNameLink} took {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} grabs {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} overtakes {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} edges past {prevNameLink} into {rankWithMedal}",
+            $"{currNameLink} passes {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} displaces {prevNameLink} at {rankWithMedal}",
+            $"{currNameLink} leaps ahead of {prevNameLink} to {rankWithMedal}",
+            $"{currNameLink} snatches {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} nudges ahead of {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} outpaces {prevNameLink} for {rankWithMedal}"
         );
     }
+
+    private static string BuildDonation(string rawText)
+    {
+        var (tx, sats) = ParseDonationTokens(rawText);
+        if (sats is null || sats <= 0) return Escape(rawText);
+
+        var btc = SatsToBtc(sats.Value);
+        var btcFormatted = btc.ToString("0.########", CultureInfo.InvariantCulture);
+
+        // Build Slack-styled link: <url|label>. Do NOT HTML-encode this string for Slack.
+        // (Redirect to the donation section instead of mempool.)
+        string donationUrl = "https://longevityworldcup.com/#donation-section";
+        string amountMd = $"<{donationUrl}|{btcFormatted} BTC>";
+
+        // Extra visual space before emoji (thin no-break spaces). If too subtle, use "\u2003".
+        const string GapBeforeEmoji = "  ";
+
+        return Pick(
+            $"Someone has donated {amountMd}{GapBeforeEmoji}:tada:",
+            $"Donation of {amountMd} received{GapBeforeEmoji}:tada:",
+            $"A generous donor contributed {amountMd}{GapBeforeEmoji}:raised_hands:",
+            $"We just received {amountMd} — thank you{GapBeforeEmoji}:yellow_heart:",
+            $"Support just came in: {amountMd}{GapBeforeEmoji}:rocket:",
+            $"{amountMd} donated — much appreciated{GapBeforeEmoji}:sparkles:",
+            $"New donation: {amountMd}{GapBeforeEmoji}:dizzy:",
+            $"Thanks for the {amountMd} gift{GapBeforeEmoji}:pray:",
+            $"A kind supporter sent {amountMd}{GapBeforeEmoji}:gift:",
+            $"Donation confirmed: {amountMd}{GapBeforeEmoji}:white_check_mark:",
+            $"Appreciate your support — {amountMd}{GapBeforeEmoji}:star2:",
+            $"Your generosity fuels us: {amountMd}{GapBeforeEmoji}:fire:"
+        );
+    }
+
+    private static (string? tx, long? sats) ParseDonationTokens(string text)
+    {
+        string? tx = null;
+        long? sats = null;
+
+        var mTx = Regex.Match(text, @"\btx\[(?<v>[^\]]+)\]");
+        if (mTx.Success) tx = mTx.Groups["v"].Value;
+
+        var mSats = Regex.Match(text, @"\bsats\[(?<v>\d+)\]");
+        if (mSats.Success && long.TryParse(mSats.Groups["v"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var s))
+            sats = s;
+
+        return (tx, sats);
+    }
+
+    private static decimal SatsToBtc(long sats) => sats / 100_000_000m;
+
+    // --- existing helpers below ---
 
     private static (string? slug, int? rank, string? prev) ParseTokens(string text)
     {
