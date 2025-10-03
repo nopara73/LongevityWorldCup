@@ -1,0 +1,28 @@
+{
+  "Name": "Dawid",
+  "DisplayName": null,
+  "MediaContact": "dawid.debeer@protonmail.com",
+  "DateOfBirth": {
+    "Year": 1976,
+    "Month": 1,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-10-02",
+      "AlbGL": 44,
+      "CreatUmolL": 104,
+      "GluMmolL": 3.6,
+      "CrpMgL": 1.3,
+      "LymPc": 34.4,
+      "McvFL": 95,
+      "RdwPc": 11.8,
+      "AlpUL": 68,
+      "Wbc1000cellsuL": 4
+    }
+  ],
+  "Division": "Open",
+  "Flag": "South Africa",
+  "Why": "The challenge of beating the game.",
+  "PersonalLink": null
+}
