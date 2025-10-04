@@ -2,10 +2,6 @@
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
-using System.Linq;
-using System.Threading;
-using System.IO;
-// added for biomarker signature
 using System.Text;
 using System.Security.Cryptography;
 using System.Globalization;
@@ -18,8 +14,6 @@ public class AthleteDataService : IDisposable
 
     // rolling window for new-athlete detection (currently ~1 month)
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
-
-    private const double RankEventScoreEpsilon = 0.0001;
 
     public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
 
@@ -188,6 +182,8 @@ public class AthleteDataService : IDisposable
             newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
         );
 
+        DetectAndEmitAthleteCountMilestones(); // emit milestones retroactively and at startup
+
         // Poll-loop to detect external DB writes and reload stats
         _ = Task.Run(async () =>
         {
@@ -326,6 +322,45 @@ public class AthleteDataService : IDisposable
         }, CancellationToken.None);
     }
 
+
+    // Detect and emit athlete-count milestones (retroactive + ongoing).
+    // Uses the N-th athlete's JoinedAt timestamp as the event time.
+    private void DetectAndEmitAthleteCountMilestones()
+    {
+        var joined = GetAthletesJoinedData()
+            .OrderBy(x => x.JoinedAt)
+            .ToList();
+
+        if (joined.Count == 0)
+            return;
+
+        // Fun-first, spaced milestones (marketing-friendly, not too dense)
+        int[] thresholds = new[]
+        {
+            10,
+            42, 69, 100, 123,
+            256, 300, 404, 500, 666, 777,
+            1000, 1337, 1618,
+            2000, 3141,
+            5000, 6969, 9001, 10000
+        };
+
+        var payload = new List<(int Count, DateTime OccurredAtUtc)>();
+        foreach (var t in thresholds)
+        {
+            if (joined.Count >= t)
+            {
+                var when = DateTime.SpecifyKind(joined[t - 1].JoinedAt, DateTimeKind.Utc);
+                payload.Add((t, when));
+            }
+        }
+
+        if (payload.Count > 0)
+        {
+            _eventDataService.CreateAthleteCountMilestoneEvents(payload, skipIfExists: true);
+        }
+    }
+
     private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
     {
         await _reloadLock.WaitAsync();
@@ -353,6 +388,8 @@ public class AthleteDataService : IDisposable
                 changedSlugs: changedSigs,
                 newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
             );
+
+            DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
 
             PushAthleteDirectoryToEvents();
         }
@@ -1014,7 +1051,7 @@ public class AthleteDataService : IDisposable
         var changed = new HashSet<string>(changedSlugs ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
-                       ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // AFTER: full ranking (slug -> rank) and helper (rank -> slug)
         var afterAll = BuildRankMap();
@@ -1079,6 +1116,7 @@ public class AthleteDataService : IDisposable
                             }
                         }
                     }
+
                     replacedSlug = candidate;
                 }
 
@@ -1094,8 +1132,8 @@ public class AthleteDataService : IDisposable
         }
 
         // Persist full snapshot AFTER emitting events (always, even if no changes)
-        var afterAllFinal = BuildRankMap();    // full table
-        var afterDiffs = BuildAgeDiffMap();    // persisted for visibility/debug
+        var afterAllFinal = BuildRankMap(); // full table
+        var afterDiffs = BuildAgeDiffMap(); // persisted for visibility/debug
         PersistCurrentPlacementsSnapshot(afterAllFinal, afterDiffs);
     }
 
