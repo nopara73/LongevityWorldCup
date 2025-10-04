@@ -23,15 +23,19 @@ public enum EventType
     General = 0,
     Joined = 1,
     NewRank = 2,
-    DonationReceived = 3
+    DonationReceived = 3,
+    AthleteCountMilestone = 4
 }
 
 public sealed class EventDataService : IDisposable
 {
     private const string DatabaseFileName = "LongevityWorldCup.db";
+    
     private const double DefaultRelevanceJoined = 5d;
     private const double DefaultRelevanceNewRank = 10d;
     private const double DefaultRelevanceDonation = 9d;
+    private const double DefaultRelevanceAthleteMilestone = 8d;
+    
     private readonly SqliteConnection _sqlite;
     private readonly SlackWebhookClient _slack;
 
@@ -324,6 +328,77 @@ public sealed class EventDataService : IDisposable
             ReloadIntoCache();
             foreach (var raw in notify)
                 FireAndForgetSlack(EventType.DonationReceived, raw);
+        }
+    }
+
+
+    public void CreateAthleteCountMilestoneEvents(
+        IEnumerable<(int Count, DateTime OccurredAtUtc)> items,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceAthleteMilestone)
+    {
+        if (items is null) throw new ArgumentNullException(nameof(items));
+
+        int created = 0;
+        var notify = new List<(EventType Type, string RawText)>();
+
+        lock (_sqlite)
+        {
+            using var tx = _sqlite.BeginTransaction();
+
+            using var existsCmd = _sqlite.CreateCommand();
+            existsCmd.Transaction = tx;
+            // For milestones we dedupe by Type + Text (one event per threshold)
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+
+            using var insertCmd = _sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pTyp = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pTxt = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var (count, occurredAtUtc) in items)
+            {
+                if (count <= 0) continue;
+
+                var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
+                var text = $"athletes[{count}]";
+
+                var shouldInsert = true;
+                if (skipIfExists)
+                {
+                    exType.Value = (int)EventType.AthleteCountMilestone;
+                    exText.Value = text;
+                    shouldInsert = existsCmd.ExecuteScalar() == null;
+                }
+
+                if (!shouldInsert) continue;
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pTyp.Value = (int)EventType.AthleteCountMilestone;
+                pTxt.Value = text;
+                pOcc.Value = occurredAt;
+                pRel.Value = defaultRelevance;
+
+                insertCmd.ExecuteNonQuery();
+                created++;
+                notify.Add((EventType.AthleteCountMilestone, text));
+            }
+
+            tx.Commit();
+        }
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
+            // TODO: will be implemented later
+            // foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
         }
     }
 

@@ -179,11 +179,36 @@
         box-sizing: content-box;
     }
 
-    .donation-gift-avatar i{    
+    .donation-gift-avatar i{
         color: #fff !important;
         display: block;                /* avoids inline font metrics */
         font-size: .95rem;
         line-height: 1;
+    }
+
+    /* --- Milestone visuals (same spirit as donation) --- */
+    :root{ --milestone-people:#6366f1; }
+    .milestone-people-avatar{
+        --people: var(--milestone-people, #6366f1);
+        width: 24px; height: 24px;
+        border-radius: 50%;
+        background: var(--people);
+        border: 2px solid var(--people) !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+        display: grid;
+        place-items: center;
+        line-height: 0;
+        box-sizing: content-box;
+    }
+    .milestone-people-avatar i{
+        color: #fff !important;
+        display: block;
+        font-size: .95rem;
+        line-height: 1;
+    }
+    .milestone-count{
+        color: var(--secondary-color, #ff4f87);
+        font-weight: 700;
     }
 </style>
 
@@ -207,12 +232,42 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4 };
 
+        const MILESTONE_COPY = {
+            42:    'Answer unlocked — the competition reached <strong class="milestone-count">42</strong> athletes',
+            69:    'Nice — the competition reached <strong class="milestone-count">69</strong> athletes',
+            100:   'The competition reached <strong class="milestone-count">100</strong> athletes',
+            123:   'Counting up, the competition reached <strong class="milestone-count">123</strong> athletes',
+            256:   'Power of two — the competition reached <strong class="milestone-count">256</strong> athletes',
+            300:   'This is Sparta! The competition reached <strong class="milestone-count">300</strong> athletes',
+            404:   'Athlete not found — the competition reached <strong class="milestone-count">404</strong> athletes',
+            500:   'Halfway to a thousand — the competition reached <strong class="milestone-count">500</strong> athletes',
+            666:   'Beast mode — the competition reached <strong class="milestone-count">666</strong> athletes',
+            777:   'Lucky roll — the competition reached <strong class="milestone-count">777</strong> athletes',
+            1000:  'Four digits — the competition reached <strong class="milestone-count">1,000</strong> athletes',
+            1337:  'Leet status — the competition reached <strong class="milestone-count">1,337</strong> athletes',
+            1618:  'Golden ratio vibes — the competition reached <strong class="milestone-count">1,618</strong> athletes',
+            2000:  'New bracket — the competition reached <strong class="milestone-count">2,000</strong> athletes',
+            3141:  'Pi energy — the competition reached <strong class="milestone-count">3,141</strong> athletes',
+            5000:  'Serious crowd — the competition reached <strong class="milestone-count">5,000</strong> athletes',
+            6969:  'Double nice — the competition reached <strong class="milestone-count">6,969</strong> athletes',
+            9000:  'Over nine thousand — the competition reached <strong class="milestone-count">9,000</strong> athletes',
+            10000: 'Established tier — the competition reached <strong class="milestone-count">10,000</strong> athletes',
+        };
+
+        function milestoneMessage(n){
+            const preset = MILESTONE_COPY[n];
+            if (preset) return preset;
+
+            const num = new Intl.NumberFormat().format(n);
+            return `The competition reached <strong class="milestone-count">${num}</strong> athletes`;
+        }
+        
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
         function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
         function normalizeLinkId(id){return String(id||"").replace(/_/g,"-");}
-        function esc(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
+        function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
         function initialsFromName(n){const parts=String(n||"").trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
 
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
@@ -362,11 +417,13 @@
 
                 const rank = extractRank(text);
                 const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats };
+                const milestoneCount = (() => { const m = /athletes\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : null; })();
+
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount };
             });
         }
 
-        // ---- NEW: helper to gate NewRank items to top-10 in the normal list
+        // ---- helper to gate NewRank items to top-10 in the normal list
         function isTop10Rank(row, athletesIndex){
             if(row.type !== EVENT_TYPE.NewRank) return true;
             if (Number.isFinite(row.rank)) return row.rank <= 10;
@@ -471,7 +528,9 @@
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
-                    avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`
+                    avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
+                } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
+                    avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
@@ -510,6 +569,9 @@
                     const btc = amount / 100000000;
                     const amountFormatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 8 }).format(btc);
                     msgHtml = `Someone has donated <strong class="donation-amount">${esc(amountFormatted)} BTC</strong>`;
+                } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
+                    const n = Number.isFinite(r.milestoneCount) ? r.milestoneCount : null;
+                    msgHtml = n ? milestoneMessage(n) : esc(r.text);
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
@@ -525,8 +587,8 @@
                 tr.dataset.rowIndex = String(idx);
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-             <td class="athlete-td event-message">${msgHtml}</td>
-             <td class="col-date">${dateLabel}</td>`;
+                     <td class="athlete-td event-message">${msgHtml}</td>
+                     <td class="col-date">${dateLabel}</td>`;
                 frag.appendChild(tr);
             });
 
@@ -565,9 +627,8 @@
                 // Are we in athlete modal context?
                 const target=normalizeIncomingAthleteId(athleteId);
                 if(target){
-                    // Athlete modal: keep only events related to this athlete (already done),
-                    // and DO NOT gate NewRank by top-10.
-                    rows=rows.filter(r=>r.slugs.includes(target));
+                    // Athlete modal: keep only events related to this athlete and hide milestones
+                    rows=rows.filter(r=>r.slugs.includes(target) && r.type !== EVENT_TYPE.AthleteCountMilestone);
                 }else{
                     // Normal list: show all Joined, but gate NewRank to top-10 only.
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
