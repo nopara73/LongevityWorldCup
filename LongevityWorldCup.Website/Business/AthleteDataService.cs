@@ -334,8 +334,16 @@ public class AthleteDataService : IDisposable
         if (joined.Count == 0)
             return;
 
-        // Adjust thresholds as needed.
-        int[] thresholds = new[] { 10, 50, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000, 5000, 10000 };
+        // Fun-first, spaced milestones (marketing-friendly, not too dense)
+        int[] thresholds = new[]
+        {
+            10,
+            42, 69, 100, 123,
+            256, 300, 404, 500, 666, 777,
+            1000, 1337, 1618,
+            2000, 3141,
+            5000, 6969, 9001, 10000
+        };
 
         var payload = new List<(int Count, DateTime OccurredAtUtc)>();
         foreach (var t in thresholds)
