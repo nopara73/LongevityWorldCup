@@ -32,10 +32,12 @@
         display:flex; align-items:stretch; background-color:var(--card-bg);
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
     }
-    table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
+    .leaderboard > table{
+        flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start;
+    }
 
     .leaderboard td{ text-align:center; }
-    th{
+    .leaderboard table th{
         padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
         color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
     }
@@ -355,8 +357,55 @@
     }
     #modalProfilePic:hover{ transform: scale(1.05); }
 
-    .athlete-info{ text-align:left; width:100%; max-width:600px; margin-bottom:1rem; }
-    .athlete-info p{ margin:.3rem 0; }
+    /* Keep only ONE block for the modal info table */
+    .athlete-info-table{
+        border-collapse: separate;
+        border-spacing: 0 .12rem;
+        margin-block: 1.25rem;
+    }
+
+    .athlete-info-table th,
+    .athlete-info-table td{
+        vertical-align: top;        /* align multi-line values nicely */
+    }
+
+    .athlete-info-table th{
+        text-align: right;          /* line up the labels/colons */
+        white-space: nowrap;        /* keep labels on one line */
+        padding: .10rem .75rem .10rem 0;
+    }
+
+    .athlete-info-table td{
+        text-align: left;
+        padding: .10rem 0 .10rem .25rem;  /* small left gutter for values */
+        min-width: 0;
+        overflow-wrap: anywhere;    /* safe wrapping for long links/text */
+    }
+
+    /* Neutralize earlier ::after unit hacks so we can write the units in HTML */
+    .athlete-info-table #chronologicalAge::after,
+    .athlete-info-table #lowestPhenoAge::after,
+    .athlete-info-table #averagePaceOfAging::after,
+    .athlete-info-table #seasonPaceOfAging::after,
+    .athlete-info-table #ageReduction::after,
+    .athlete-info-table #ageReductionPercent::after,
+    .athlete-info-table #crowdAge::after,
+    .athlete-info-table #crowdCount::after{ content:none !important; }
+
+    /* Stamp styles apply nicely to the value span too */
+    #yourGuess.first-guess-stamp,
+    #yourGuess.primary-stamp,
+    #yourGuess.golden-stamp{
+        display:inline-block;
+        padding:.3rem .6rem;
+        border:1px solid currentColor;
+        border-radius:4px;
+        background:transparent;
+        letter-spacing:.5px;
+        margin:.25rem 0;
+        box-shadow:0 1px 2px rgba(0,0,0,.1);
+    }
+
 
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
@@ -436,6 +485,8 @@
 
         .sidebar-toggle{ align-self:center; margin-top:1rem; height:40px; }
 
+        .athlete-info-table{ margin-block: .9rem; }
+        
         .main-container{ flex-direction:column; }
         .sidebar{
             width:100%; margin-right:0; margin-bottom:1rem; position:fixed; top:0; left:0; width:70%; max-width:300px; height:100%;
@@ -462,6 +513,14 @@
 
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
+    }
+
+    /* mobile-only: slightly smaller text + a touch tighter padding */
+    @media (max-width:480px){
+        #detailsModal .athlete-info-table th{ font-size:.95rem; }
+        #detailsModal .athlete-info-table td{ font-size:1rem; }
+        #detailsModal .athlete-info-table th,
+        #detailsModal .athlete-info-table td{ padding:.22rem .2rem; }
     }
 
 </style>
@@ -562,27 +621,59 @@
                         </div>
                     </div>
                     <div class="athlete-info">
-                        <p><strong>Best Rank:</strong> <span id="athleteRank"></span></p>
-                        <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
-                        <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
-                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
-                        <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
-                        <p id="crowdAgeContainer">
-                            <span id="emptyCrowdAgeContainer"><strong>Crowd Age:</strong> Crickets...</span>
-                            <span id="notEmptyCrowdAgeContainer" style="display: none;"><strong>Crowd Age:</strong> <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses</span>
-                        </p>
-                        <p id="yourGuessContainer" style="display: none;">
-                            <strong>Your Guess:</strong> <span id="yourGuess"></span>
-                        </p>
-
-                        <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
-                        <p id="averagePaceOfAgingContainer" style="display: none;">
-                            <strong>Pace of aging (all time):</strong> <span id="averagePaceOfAging"></span> years per year
-                        </p>
-                        <p id="seasonPaceOfAgingContainer" style="display: none;">
-                            <strong>Pace of aging (season):</strong> <span id="seasonPaceOfAging"></span> years per year
-                        </p>
-                        <p><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years (<span id="ageReductionPercent"></span>%)</p>
+                        <table class="athlete-info-table">
+                            <tbody>
+                            <tr>
+                                <th scope="row">Best Rank:</th>
+                                <td><span id="athleteRank"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Division:</th>
+                                <td><span id="athleteDivision"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Generation:</th>
+                                <td><span id="athleteGeneration"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Flag:</th>
+                                <td><span id="athleteFlag"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Chronological Age:</th>
+                                <td><span id="chronologicalAge"></span> years</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Crowd Age:</th>
+                                <td>
+                                    <span id="emptyCrowdAgeContainer">Crickets...</span>
+                                    <span id="notEmptyCrowdAgeContainer" style="display:none;">
+            <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses
+          </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Lowest PhenoAge:</th>
+                                <td><span id="lowestPhenoAge"></span> years</td>
+                            </tr>
+                            <tr id="averagePaceOfAgingContainer" style="display:none;">
+                                <th scope="row">Pace of aging (all time):</th>
+                                <td><span id="averagePaceOfAging"></span> years per year</td>
+                            </tr>
+                            <tr id="seasonPaceOfAgingContainer" style="display:none;">
+                                <th scope="row">Pace of aging (season):</th>
+                                <td><span id="seasonPaceOfAging"></span> years per year</td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></th>
+                                <td><span id="ageReduction"></span> years (<span id="ageReductionPercent"></span>%)</td>
+                            </tr>
+                            <tr id="yourGuessContainer" style="display:none;">
+                                <th scope="row">Your Guess:</th>
+                                <td><span id="yourGuess"></span></td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div class="athlete-links">
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
@@ -2276,7 +2367,7 @@
                 const averagePaceOfAgingContainer = document.getElementById('averagePaceOfAgingContainer');
                 if (window.averagePaceOfAging) {
                     document.getElementById('averagePaceOfAging').textContent = window.averagePaceOfAging.toFixed(2);
-                    averagePaceOfAgingContainer.style.display = 'block';
+                    averagePaceOfAgingContainer.style.display = 'table-row';
                 } else {
                     averagePaceOfAgingContainer.style.display = 'none';
                 }
@@ -2284,7 +2375,7 @@
                 const seasonPaceOfAgingContainer = document.getElementById('seasonPaceOfAgingContainer');
                 if (window.seasonPaceOfAging) {
                     document.getElementById('seasonPaceOfAging').textContent = window.seasonPaceOfAging.toFixed(2);
-                    seasonPaceOfAgingContainer.style.display = 'block';
+                    seasonPaceOfAgingContainer.style.display = 'table-row';
                 } else {
                     seasonPaceOfAgingContainer.style.display = 'none';
                 }
@@ -2962,7 +3053,7 @@
 
         if (guessData && guessData.value != null) {
             // show the container
-            yourGuessContainer.style.display = 'inline-block';
+            yourGuessContainer.style.display = 'table-row';
 
             // convert guess to a number
             const guess = Number(guessData.value);
@@ -2985,19 +3076,13 @@
             const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
             yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
 
-            // remove any existing stamp classes
-            yourGuessContainer.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
-            // exact match → golden stamp
+            yourGuessSpan.classList.remove('first-guess-stamp','primary-stamp','golden-stamp');
             if (diffYou === 0) {
-                yourGuessContainer.classList.add('golden-stamp');
-            }
-            // better than crowd → primary-color stamp
-            else if (diffYou < diffCrowd) {
-                yourGuessContainer.classList.add('primary-stamp');
-            }
-            // first-to-guess (fallback) → default black stamp
-            else if (guessData.first) {
-                yourGuessContainer.classList.add('first-guess-stamp');
+                yourGuessSpan.classList.add('golden-stamp');
+            } else if (diffYou < diffCrowd) {
+                yourGuessSpan.classList.add('primary-stamp');
+            } else if (guessData.first) {
+                yourGuessSpan.classList.add('first-guess-stamp');
             }
 
         } else {
