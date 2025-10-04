@@ -168,32 +168,31 @@ public static class SlackMessageBuilder
     {
         switch (n)
         {
-            case 42:   return $"{C} athletes — the answer to life, the universe, and everything";
-            case 69:   return $"{C} athletes — nice";
-            case 100:  return $"Hit {C} athletes, triple digits";
-            case 123:  return $"Counted up to {C} athletes";
-            case 256:  return $"Powered up to {C} athletes";
-            case 300:  return $"{C} athletes — This is Sparta!";
-            case 404:  return $"Logged {C} athletes — athlete not found? Found";
-            case 500:  return $"Crossed {C} athletes — half-K";
-            case 666:  return $"Hit {C} athletes — beast mode";
-            case 777:  return $"Landed on {C} athletes, lucky sevens";
-            case 1000: return $"Reached {C} athletes — the big 1K";
-            case 1337: return $"Achieved {C} athletes — leet";
-            case 1500: return $"Passed {C} athletes — strong base";
-            case 1618: return $"Touched {C} athletes — golden-ratio vibes";
-            case 2000: return $"Cleared {C} athletes — 2K";
-            case 3141: return $"Logged {C} athletes, a slice of π";
-            case 5000: return $"Hit {C} athletes, press-worthy";
-            case 6969: return $"Unlocked {C} athletes, meme tier";
-            case 10000:return $"Clocked {C} athletes — five digits strong";
+            case 42:   return $"{C} athletes — the answer to life, the universe & everything ✨";
+            case 69:   return $"{C} athletes — nice 😏";
+            case 100:  return $"Hit {C} on the leaderboard, triple digits 🏁";
+            case 123:  return $"Counted up to {C} contenders in the tournament 🔢";
+            case 256:  return $"Power of two — {C} competitors in the bracket 💻";
+            case 300:  return $"{C} in the tournament — This is Sparta! 🛡️";
+            case 404:  return $"Logged {C} in the competition — athlete not found? found 🔎";
+            case 500:  return $"Crossed {C}, half-K competing 🚀";
+            case 666:  return $"Hit {C} athletes — beast mode 😈";
+            case 777:  return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
+            case 1000: return $"Reached {C}, the big 1K competing 🏆";
+            case 1337: return $"Leet level — {C} contenders in play 🕹️";
+            case 1500: return $"Passed {C}, a solid field in the tournament 🧱";
+            case 1618: return $"Golden-ratio vibes at {C} in the competition 🌀";
+            case 2000: return $"Cleared {C} — 2K participants in contention 🎯";
+            case 3141: return $"Slice of π, {C} now on the board 🥧";
+            case 5000: return $"Press-worthy surge — {C} athletes in the tournament 📰";
+            case 6969: return $"Meme tier unlocked, {C} competitors 🔓";
+            case 10000:return $"Five digits strong — {C} in the competition 💪";
         }
 
-        // Over 9000 gag (but under 10K)
         if (n > 9000 && n < 10000)
-            return $"Went over nine thousand — {C} athletes!";
+            return $"Over nine thousand, {C} in the tournament 🔥";
 
-        // Fallback for all other numbers (as requested, exact phrasing)
+        // exact fallback phrasing as requested
         return $"The compatation reach {C} athletes";
     }
 
