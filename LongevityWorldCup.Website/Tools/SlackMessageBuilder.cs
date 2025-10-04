@@ -15,12 +15,15 @@ public static class SlackMessageBuilder
         var (slug, rank, prev) = ParseTokens(rawText);
         return type switch
         {
-            EventType.NewRank          => BuildNewRank(slug, rank, prev, slugToName),
-            EventType.Joined           => BuildJoined(slug, slugToName),
+            EventType.NewRank => BuildNewRank(slug, rank, prev, slugToName),
+            EventType.Joined => BuildJoined(slug, slugToName),
             EventType.DonationReceived => BuildDonation(rawText),
-            _                          => Escape(rawText)
+            EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
+            _ => Escape(rawText)
         };
     }
+
+    // ------------------ Joined ------------------
 
     private static string BuildJoined(string? slug, Func<string, string> slugToName)
     {
@@ -41,6 +44,8 @@ public static class SlackMessageBuilder
             $"A warm welcome to {nameLink} on the leaderboard"
         );
     }
+
+    // ------------------ NewRank ------------------
 
     private static string BuildNewRank(
         string? slug,
@@ -74,17 +79,19 @@ public static class SlackMessageBuilder
 
         return Pick(
             $"{currNameLink} took {rankWithMedal} from {prevNameLink}",
-            $"{currNameLink} grabs {rankWithMedal} from {prevNameLink}",
-            $"{currNameLink} overtakes {prevNameLink} for {rankWithMedal}",
-            $"{currNameLink} edges past {prevNameLink} into {rankWithMedal}",
-            $"{currNameLink} passes {prevNameLink} for {rankWithMedal}",
-            $"{currNameLink} displaces {prevNameLink} at {rankWithMedal}",
-            $"{currNameLink} leaps ahead of {prevNameLink} to {rankWithMedal}",
-            $"{currNameLink} snatches {rankWithMedal} from {prevNameLink}",
-            $"{currNameLink} nudges ahead of {prevNameLink} for {rankWithMedal}",
-            $"{currNameLink} outpaces {prevNameLink} for {rankWithMedal}"
+            $"{currNameLink} grabbed {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} overtook {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} edged past {prevNameLink} into {rankWithMedal}",
+            $"{currNameLink} passed {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} displaced {prevNameLink} at {rankWithMedal}",
+            $"{currNameLink} leapt ahead of {prevNameLink} to {rankWithMedal}",
+            $"{currNameLink} snatched {rankWithMedal} from {prevNameLink}",
+            $"{currNameLink} nudged ahead of {prevNameLink} for {rankWithMedal}",
+            $"{currNameLink} outpaced {prevNameLink} for {rankWithMedal}"
         );
     }
+
+    // ------------------ Donation ------------------
 
     private static string BuildDonation(string rawText)
     {
@@ -94,27 +101,24 @@ public static class SlackMessageBuilder
         var btc = SatsToBtc(sats.Value);
         var btcFormatted = btc.ToString("0.########", CultureInfo.InvariantCulture);
 
-        // Build Slack-styled link: <url|label>. Do NOT HTML-encode this string for Slack.
-        // (Redirect to the donation section instead of mempool.)
+        // Slack link: <url|label>
         string donationUrl = "https://longevityworldcup.com/#donation-section";
         string amountMd = $"<{donationUrl}|{btcFormatted} BTC>";
 
-        // Extra visual space before emoji (thin no-break spaces). If too subtle, use "\u2003".
-        const string GapBeforeEmoji = "  ";
-
+        const string Gap = "  ";
         return Pick(
-            $"Someone has donated {amountMd}{GapBeforeEmoji}:tada:",
-            $"Donation of {amountMd} received{GapBeforeEmoji}:tada:",
-            $"A generous donor contributed {amountMd}{GapBeforeEmoji}:raised_hands:",
-            $"We just received {amountMd} — thank you{GapBeforeEmoji}:yellow_heart:",
-            $"Support just came in: {amountMd}{GapBeforeEmoji}:rocket:",
-            $"{amountMd} donated — much appreciated{GapBeforeEmoji}:sparkles:",
-            $"New donation: {amountMd}{GapBeforeEmoji}:dizzy:",
-            $"Thanks for the {amountMd} gift{GapBeforeEmoji}:pray:",
-            $"A kind supporter sent {amountMd}{GapBeforeEmoji}:gift:",
-            $"Donation confirmed: {amountMd}{GapBeforeEmoji}:white_check_mark:",
-            $"Appreciate your support — {amountMd}{GapBeforeEmoji}:star2:",
-            $"Your generosity fuels us: {amountMd}{GapBeforeEmoji}:fire:"
+            $"Someone has donated {amountMd}{Gap}:tada:",
+            $"Donation of {amountMd} received{Gap}:tada:",
+            $"A generous donor contributed {amountMd}{Gap}:raised_hands:",
+            $"We just received {amountMd} — thank you{Gap}:yellow_heart:",
+            $"Support came in: {amountMd}{Gap}:rocket:",
+            $"{amountMd} donated — much appreciated{Gap}:sparkles:",
+            $"New donation: {amountMd}{Gap}:dizzy:",
+            $"Thanks for the {amountMd} gift{Gap}:pray:",
+            $"A kind supporter sent {amountMd}{Gap}:gift:",
+            $"Donation confirmed: {amountMd}{Gap}:white_check_mark:",
+            $"Appreciate your support — {amountMd}{Gap}:star2:",
+            $"Your generosity fueled us: {amountMd}{Gap}:fire:"
         );
     }
 
@@ -135,7 +139,68 @@ public static class SlackMessageBuilder
 
     private static decimal SatsToBtc(long sats) => sats / 100_000_000m;
 
-    // --- existing helpers below ---
+    // ------------------ Athlete Count Milestone (Slack) ------------------
+    // One distinct line per special number. Avoid sentence-ending periods.
+    // Count is a clickable link to the leaderboard.
+
+    private static string BuildAthleteCountMilestone(string rawText)
+    {
+        var count = ParseAthleteCount(rawText);
+        if (count is null || count <= 0)
+            return Escape(rawText);
+
+        var countLabel = count.Value.ToString("N0", CultureInfo.InvariantCulture); // e.g., "1,337"
+        var countLink = Link(LeaderboardUrl(), countLabel);
+
+        return MilestoneMessage(count.Value, countLink);
+    }
+
+    private static int? ParseAthleteCount(string text)
+    {
+        var m = Regex.Match(text, @"\bathletes\[(?<v>\d+)\]");
+        if (!m.Success) return null;
+        if (int.TryParse(m.Groups["v"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+            return n;
+        return null;
+    }
+
+    private static string MilestoneMessage(int n, string C)
+    {
+        switch (n)
+        {
+            case 42:   return $"{C} athletes — the answer to life, the universe, and everything";
+            case 69:   return $"{C} athletes — nice";
+            case 100:  return $"Hit {C} athletes, triple digits";
+            case 123:  return $"Counted up to {C} athletes";
+            case 256:  return $"Powered up to {C} athletes";
+            case 300:  return $"{C} athletes — This is Sparta!";
+            case 404:  return $"Logged {C} athletes — athlete not found? Found";
+            case 500:  return $"Crossed {C} athletes — half-K";
+            case 666:  return $"Hit {C} athletes — beast mode";
+            case 777:  return $"Landed on {C} athletes, lucky sevens";
+            case 1000: return $"Reached {C} athletes — the big 1K";
+            case 1337: return $"Achieved {C} athletes — leet";
+            case 1500: return $"Passed {C} athletes — strong base";
+            case 1618: return $"Touched {C} athletes — golden-ratio vibes";
+            case 2000: return $"Cleared {C} athletes — 2K";
+            case 3141: return $"Logged {C} athletes, a slice of π";
+            case 5000: return $"Hit {C} athletes, press-worthy";
+            case 6969: return $"Unlocked {C} athletes, meme tier";
+            case 10000:return $"Clocked {C} athletes — five digits strong";
+        }
+
+        // Over 9000 gag (but under 10K)
+        if (n > 9000 && n < 10000)
+            return $"Went over nine thousand — {C} athletes!";
+
+        // Fallback for all other numbers (as requested, exact phrasing)
+        return $"The compatation reach {C} athletes";
+    }
+
+    private static string LeaderboardUrl() =>
+        "https://longevityworldcup.com/leaderboard/leaderboard.html";
+
+    // ------------------ helpers ------------------
 
     private static (string? slug, int? rank, string? prev) ParseTokens(string text)
     {

@@ -397,8 +397,7 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
-            // TODO: will be implemented later
-            // foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
+            foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
         }
     }
 
@@ -500,15 +499,20 @@ public sealed class EventDataService : IDisposable
 
     private void FireAndForgetSlack(EventType type, string rawText)
     {
-        // Keep the top-10 gate for rank events.
+        // NewRank: only top 10 go to Slack (to avoid noise)
         if (type == EventType.NewRank)
         {
             if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
                 return;
         }
-        else if (type != EventType.DonationReceived)
+        // Donation & AthleteCountMilestone: always send
+        else if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
         {
-            // Not sending other types for now (Joined/General).
+            // proceed
+        }
+        // Keep Joined/General quiet for Slack
+        else
+        {
             return;
         }
 
@@ -517,10 +521,12 @@ public sealed class EventDataService : IDisposable
             try
             {
                 var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
-                await _slack.SendAsync(text);
+                if (!string.IsNullOrWhiteSpace(text))
+                    await _slack.SendAsync(text);
             }
             catch
             {
+                // swallow (fire-and-forget)
             }
         });
     }
