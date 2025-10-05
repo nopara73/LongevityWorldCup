@@ -69,14 +69,14 @@ namespace LongevityWorldCup.Website.Business
 
         public async Task<long> GetTotalReceivedSatoshisAsync()
         {
-            var cacheExpiration = TimeSpan.FromMinutes(3);
+           var cacheExpiration = TimeSpan.FromMinutes(3);
             var cacheKey = $"balance_{MinConfirmations}conf_{DonationAddress}";
             if (_cache.TryGetValue(cacheKey, out long cachedTotal))
                 return cachedTotal;
 
             var client = _httpClientFactory.CreateClient();
 
-            // Primary: direct confirmed UTXO balance (satoshis) with confirmations filter
+            // Primary: blockchain.info one-shot confirmed balance with confirmations filter
             async Task<long?> TryPrimaryAsync()
             {
                 try
@@ -86,60 +86,39 @@ namespace LongevityWorldCup.Website.Business
                     if (!resp.IsSuccessStatusCode) return null;
 
                     var s = (await resp.Content.ReadAsStringAsync()).Trim();
-                    if (long.TryParse(s, out var sats))
-                        return sats;
+                    return long.TryParse(s, out var sats) ? sats : null;
                 }
                 catch (Exception ex)
                 {
                     _log.LogDebug(ex, "addressbalance primary failed");
+                    return null;
                 }
-
-                return null;
             }
 
-            // Fallback: Blockstream Esplora UTXOs filtered by confirmations
+            // Fallback: BlockCypher one-shot confirmed balance with confirmations filter
             async Task<long?> TryFallbackAsync()
             {
                 try
                 {
-                    using var h = await client.GetAsync("https://blockstream.info/api/blocks/tip/height");
-                    if (!h.IsSuccessStatusCode) return null;
-                    var heightStr = (await h.Content.ReadAsStringAsync()).Trim();
-                    if (!long.TryParse(heightStr, out var currentHeight)) return null;
+                    // If you have a BlockCypher token, append &token=YOURTOKEN
+                    var url = $"https://api.blockcypher.com/v1/btc/main/addrs/{DonationAddress}/balance?confirmations={MinConfirmations}";
+                    using var resp = await client.GetAsync(url);
+                    if (!resp.IsSuccessStatusCode) return null;
 
-                    using var r = await client.GetAsync($"https://blockstream.info/api/address/{DonationAddress}/utxo");
-                    if (!r.IsSuccessStatusCode) return null;
-
-                    var json = await r.Content.ReadAsStringAsync();
+                    var json = await resp.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(json);
 
-                    long sum = 0;
-                    foreach (var utxo in doc.RootElement.EnumerateArray())
+                    if (doc.RootElement.TryGetProperty("balance", out var balEl) &&
+                        balEl.ValueKind == JsonValueKind.Number)
                     {
-                        var value = utxo.GetProperty("value").GetInt64();
-
-                        int confs = 0;
-                        if (utxo.TryGetProperty("status", out var status))
-                        {
-                            var confirmed = status.TryGetProperty("confirmed", out var confEl) && confEl.GetBoolean();
-                            var bh = status.TryGetProperty("block_height", out var bhEl) && bhEl.ValueKind == JsonValueKind.Number ? bhEl.GetInt64() : 0;
-
-                            if (confirmed && bh > 0 && currentHeight > 0)
-                            {
-                                var diff = currentHeight - bh + 1; // confirmations = tip - block_height + 1
-                                if (diff > 0 && diff < int.MaxValue) confs = (int)diff;
-                            }
-                        }
-
-                        if (confs >= MinConfirmations)
-                            sum += value;
+                        return balEl.GetInt64();
                     }
 
-                    return sum;
+                    return null;
                 }
                 catch (Exception ex)
                 {
-                    _log.LogDebug(ex, "Esplora UTXO fallback failed");
+                    _log.LogDebug(ex, "BlockCypher balance fallback failed");
                     return null;
                 }
             }
