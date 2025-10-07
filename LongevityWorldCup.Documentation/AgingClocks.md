@@ -22,7 +22,7 @@
 |2020|Viome Biological Age|microbiome + transcriptomics|Momo Vuyisich, Vinay Gopu|[Viome](https://www.viome.com/products/full-body-intelligence)|USA + selected international|
 |2021|InnerAge 2.0|blood|Gil Blander|[InsideTracker](https://store.insidetracker.com/products/innerage)|USA, Canada|
 |2021|DunedinPACE|methylation|Daniel W. Belsky (Columbia), Avshalom Caspi, Terrie E. Moffitt|[TruDiagnostic](https://shop.trudiagnostic.com/products/truage-complete-epigenetic-collection), [Blueprint](https://blueprint.bryanjohnson.com/products/speed-of-aging)|all US territories and most countries|
-|2021|StrideAge|methylation (blood)||[StrideBioAge]([https://www.getstride.com/shop/stride-bioage/](https://www.getstride.com/us/shop/strideone/))|USA|
+|2021|StrideAge|methylation (blood)||[Stride](https://www.getstride.com/us/shop/strideone/)|USA|
 |2021|Thorne Biological Age Health Panel|blood biomarkers||[Thorne](https://www.thorne.com/products/dp/biological-age)|USA|
 |2022|DNAmFitAge|methylation|S. McCartney, Morgan Levine et al.|[neotes](https://neotes.com/en/produkt/neotes-bioage-test/)|Germany|
 |2023|TallyAge|methylation||[Tally Health](https://tallyhealth.com/products/test-kit)|USA|

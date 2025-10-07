@@ -648,22 +648,21 @@
                                 <td>
                                     <span id="emptyCrowdAgeContainer">Crickets...</span>
                                     <span id="notEmptyCrowdAgeContainer" style="display:none;">
-            <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses
-          </span>
+          <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses
+        </span>
                                 </td>
                             </tr>
                             <tr>
                                 <th scope="row">Lowest PhenoAge:</th>
                                 <td><span id="lowestPhenoAge"></span> years</td>
                             </tr>
-                            <tr id="averagePaceOfAgingContainer" style="display:none;">
-                                <th scope="row">Pace of aging (all time):</th>
-                                <td><span id="averagePaceOfAging"></span> years per year</td>
+
+                            <!-- NEW: single pace-of-aging row (season-based) -->
+                            <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
+                                <th scope="row">Pace of Aging:</th>
+                                <td><span id="paceOfAging"></span> years per year</td>
                             </tr>
-                            <tr id="seasonPaceOfAgingContainer" style="display:none;">
-                                <th scope="row">Pace of aging (season):</th>
-                                <td><span id="seasonPaceOfAging"></span> years per year</td>
-                            </tr>
+
                             <tr>
                                 <th scope="row"><span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></th>
                                 <td><span id="ageReduction"></span> years (<span id="ageReductionPercent"></span>%)</td>
@@ -2364,20 +2363,21 @@
                     sessionStorage.setItem('gmaSeen', 'true');
                 }
 
-                const averagePaceOfAgingContainer = document.getElementById('averagePaceOfAgingContainer');
-                if (window.averagePaceOfAging) {
-                    document.getElementById('averagePaceOfAging').textContent = window.averagePaceOfAging.toFixed(2);
-                    averagePaceOfAgingContainer.style.display = 'table-row';
-                } else {
-                    averagePaceOfAgingContainer.style.display = 'none';
-                }
+                const paceOfAgingContainer = document.getElementById('paceOfAgingContainer');
 
-                const seasonPaceOfAgingContainer = document.getElementById('seasonPaceOfAgingContainer');
-                if (window.seasonPaceOfAging) {
-                    document.getElementById('seasonPaceOfAging').textContent = window.seasonPaceOfAging.toFixed(2);
-                    seasonPaceOfAgingContainer.style.display = 'table-row';
+                const pheno = Number(athleteData.lowestPhenoAge);
+                const chrono = Number(athleteData.chronologicalAge);
+                const paceOfAgingValue =
+                    (Number.isFinite(pheno) && Number.isFinite(chrono) && chrono > 0)
+                        ? (pheno / chrono)
+                        : null;
+
+                if (Number.isFinite(paceOfAgingValue)) {
+                    document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
+                    // table row → use table-row (or '' if nem inline rejtetted)
+                    paceOfAgingContainer.style.display = 'table-row';
                 } else {
-                    seasonPaceOfAgingContainer.style.display = 'none';
+                    paceOfAgingContainer.style.display = 'none';
                 }
             })
             .catch(error => {
@@ -3053,7 +3053,7 @@
 
         if (guessData && guessData.value != null) {
             // show the container
-            yourGuessContainer.style.display = 'table-row';
+            yourGuessContainer.style.display = 'inline-block';
 
             // convert guess to a number
             const guess = Number(guessData.value);
@@ -3076,13 +3076,19 @@
             const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
             yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
 
-            yourGuessSpan.classList.remove('first-guess-stamp','primary-stamp','golden-stamp');
+            // remove any existing stamp classes
+            yourGuessContainer.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
+            // exact match → golden stamp
             if (diffYou === 0) {
-                yourGuessSpan.classList.add('golden-stamp');
-            } else if (diffYou < diffCrowd) {
-                yourGuessSpan.classList.add('primary-stamp');
-            } else if (guessData.first) {
-                yourGuessSpan.classList.add('first-guess-stamp');
+                yourGuessContainer.classList.add('golden-stamp');
+            }
+            // better than crowd → primary-color stamp
+            else if (diffYou < diffCrowd) {
+                yourGuessContainer.classList.add('primary-stamp');
+            }
+            // first-to-guess (fallback) → default black stamp
+            else if (guessData.first) {
+                yourGuessContainer.classList.add('first-guess-stamp');
             }
 
         } else {
