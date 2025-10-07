@@ -32,10 +32,12 @@
         display:flex; align-items:stretch; background-color:var(--card-bg);
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
     }
-    table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
+    .leaderboard > table{
+        flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start;
+    }
 
     .leaderboard td{ text-align:center; }
-    th{
+    .leaderboard table th{
         padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
         color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
     }
@@ -355,8 +357,55 @@
     }
     #modalProfilePic:hover{ transform: scale(1.05); }
 
-    .athlete-info{ text-align:left; width:100%; max-width:600px; margin-bottom:1rem; }
-    .athlete-info p{ margin:.3rem 0; }
+    /* Keep only ONE block for the modal info table */
+    .athlete-info-table{
+        border-collapse: separate;
+        border-spacing: 0 .12rem;
+        margin-block: 1.25rem;
+    }
+
+    .athlete-info-table th,
+    .athlete-info-table td{
+        vertical-align: top;        /* align multi-line values nicely */
+    }
+
+    .athlete-info-table th{
+        text-align: right;          /* line up the labels/colons */
+        white-space: nowrap;        /* keep labels on one line */
+        padding: .10rem .75rem .10rem 0;
+    }
+
+    .athlete-info-table td{
+        text-align: left;
+        padding: .10rem 0 .10rem .25rem;  /* small left gutter for values */
+        min-width: 0;
+        overflow-wrap: anywhere;    /* safe wrapping for long links/text */
+    }
+
+    /* Neutralize earlier ::after unit hacks so we can write the units in HTML */
+    .athlete-info-table #chronologicalAge::after,
+    .athlete-info-table #lowestPhenoAge::after,
+    .athlete-info-table #averagePaceOfAging::after,
+    .athlete-info-table #seasonPaceOfAging::after,
+    .athlete-info-table #ageReduction::after,
+    .athlete-info-table #ageReductionPercent::after,
+    .athlete-info-table #crowdAge::after,
+    .athlete-info-table #crowdCount::after{ content:none !important; }
+
+    /* Stamp styles apply nicely to the value span too */
+    #yourGuess.first-guess-stamp,
+    #yourGuess.primary-stamp,
+    #yourGuess.golden-stamp{
+        display:inline-block;
+        padding:.3rem .6rem;
+        border:1px solid currentColor;
+        border-radius:4px;
+        background:transparent;
+        letter-spacing:.5px;
+        margin:.25rem 0;
+        box-shadow:0 1px 2px rgba(0,0,0,.1);
+    }
+
 
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
@@ -436,6 +485,8 @@
 
         .sidebar-toggle{ align-self:center; margin-top:1rem; height:40px; }
 
+        .athlete-info-table{ margin-block: .9rem; }
+        
         .main-container{ flex-direction:column; }
         .sidebar{
             width:100%; margin-right:0; margin-bottom:1rem; position:fixed; top:0; left:0; width:70%; max-width:300px; height:100%;
@@ -462,6 +513,14 @@
 
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
+    }
+
+    /* mobile-only: slightly smaller text + a touch tighter padding */
+    @media (max-width:480px){
+        #detailsModal .athlete-info-table th{ font-size:.95rem; }
+        #detailsModal .athlete-info-table td{ font-size:1rem; }
+        #detailsModal .athlete-info-table th,
+        #detailsModal .athlete-info-table td{ padding:.22rem .2rem; }
     }
 
 </style>
@@ -562,24 +621,58 @@
                         </div>
                     </div>
                     <div class="athlete-info">
-                        <p><strong>Best Rank:</strong> <span id="athleteRank"></span></p>
-                        <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
-                        <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
-                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
-                        <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
-                        <p id="crowdAgeContainer">
-                            <span id="emptyCrowdAgeContainer"><strong>Crowd Age:</strong> Crickets...</span>
-                            <span id="notEmptyCrowdAgeContainer" style="display: none;"><strong>Crowd Age:</strong> <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses</span>
-                        </p>
-                        <p id="yourGuessContainer" style="display: none;">
-                            <strong>Your Guess:</strong> <span id="yourGuess"></span>
-                        </p>
+                        <table class="athlete-info-table">
+                            <tbody>
+                            <tr>
+                                <th scope="row">Best Rank:</th>
+                                <td><span id="athleteRank"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Division:</th>
+                                <td><span id="athleteDivision"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Generation:</th>
+                                <td><span id="athleteGeneration"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Flag:</th>
+                                <td><span id="athleteFlag"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Chronological Age:</th>
+                                <td><span id="chronologicalAge"></span> years</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Crowd Age:</th>
+                                <td>
+                                    <span id="emptyCrowdAgeContainer">Crickets...</span>
+                                    <span id="notEmptyCrowdAgeContainer" style="display:none;">
+          <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses
+        </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Lowest PhenoAge:</th>
+                                <td><span id="lowestPhenoAge"></span> years</td>
+                            </tr>
 
-                        <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
-                        <p id="paceOfAgingContainer"  title="Derived from the lowest biological age of the season" style="display: none;">
-                            <strong>Pace of Aging:</strong> <span id="paceOfAging"></span> years per year
-                        </p>
-                        <p title="Derived from the lowest biological age of the season"><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years (<span id="ageReductionPercent"></span>%)</p>
+                            <!-- NEW: single pace-of-aging row (season-based) -->
+                            <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
+                                <th scope="row">Pace of Aging:</th>
+                                <td><span id="paceOfAging"></span> years per year</td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row"><span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></th>
+                                <td><span id="ageReduction"></span> years (<span id="ageReductionPercent"></span>%)</td>
+                            </tr>
+                            <tr id="yourGuessContainer" style="display:none;">
+                                <th scope="row">Your Guess:</th>
+                                <td><span id="yourGuess"></span></td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div class="athlete-links">
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
@@ -2271,16 +2364,21 @@
                 }
 
                 const paceOfAgingContainer = document.getElementById('paceOfAgingContainer');
-                const paceOfAgingValue = (athleteData.lowestPhenoAge && athleteData.chronologicalAge)
-                    ? (athleteData.lowestPhenoAge / athleteData.chronologicalAge)
-                    : null;
+
+                const pheno = Number(athleteData.lowestPhenoAge);
+                const chrono = Number(athleteData.chronologicalAge);
+                const paceOfAgingValue =
+                    (Number.isFinite(pheno) && Number.isFinite(chrono) && chrono > 0)
+                        ? (pheno / chrono)
+                        : null;
+
                 if (Number.isFinite(paceOfAgingValue)) {
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
-                    paceOfAgingContainer.style.display = 'block';
+                    // table row → use table-row (or '' if nem inline rejtetted)
+                    paceOfAgingContainer.style.display = 'table-row';
                 } else {
                     paceOfAgingContainer.style.display = 'none';
                 }
-
             })
             .catch(error => {
                 console.error('Error fetching full athlete data:', error);
@@ -2450,7 +2548,15 @@
         const labels = completeData.map(entry => entry.Date);
         const phenoAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
-        
+        let previousEntryPhenoAge;
+        let previousEntryChronoAge;
+        const allTimeAgingPaces = [];
+        const seasonAgingPaces = [];
+
+        const completeDataByYear = Object.groupBy(completeData, (entry) => {
+            return entry.Date.substr(0, 4);
+        });
+
         completeData.forEach((entry, entryIndex) => {
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
@@ -2468,7 +2574,68 @@
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
             phenoAges.push(phenoAge.toFixed(1));
+
+            const now = new Date();
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(now.getFullYear() - 1);
+            const isEntryFromThisSeason = entryDate >= currentSeasonStartDate && entryDate <= now;
+            const isEntryFromTheLastYear = entryDate >= oneYearAgo && entryDate <= now;
+
+            // pad the pace arrays with estimates based on the first blood test
+            if (entryIndex === 0) {
+                const initialPace = phenoAge / chronoAgeAtEntry;
+                const ageInCompleteYears = parseInt(chronoAgeAtEntry);
+                for (let index = 0; index < ageInCompleteYears; index++) {
+                    allTimeAgingPaces.push(initialPace);
+                }
+
+                if (isEntryFromTheLastYear) {
+                    // the first entry is under 1 year ago, so estimate the pace for the previous year
+                    seasonAgingPaces.push(initialPace);
+                }
+
+                previousEntryPhenoAge = phenoAge - initialPace;
+                previousEntryChronoAge = chronoAgeAtEntry - 1;
+            } else {
+                const isThereAnotherEntry = Boolean(completeData[entryIndex + 1]);
+                const entryYear = entryDate.getFullYear().toString();
+                if (isThereAnotherEntry && completeData[entryIndex + 1].Date.startsWith(entryYear)) {
+                    // The next entry is from the same year, skip this so we can deal with them in a mini loop
+                } else {
+                    // This is either the only entry for a year, or the last one for that year
+                    const entriesForTheYear = completeDataByYear[entryYear];
+                    const countEntriesForTheYear = entriesForTheYear.length;
+                    const pacesForTheYear = [];
+                    entriesForTheYear.forEach((entryForTheYear, entryForTheYearIndex) => {
+                        const entryDate = new Date(entryForTheYear.Date);
+                        const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
+                        const biomarkerValues = prepareBiomarkerValues(entryForTheYear, chronoAgeAtEntry);
+                        const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
+
+                        if (previousEntryPhenoAge) {
+                            const phenoAgeDifference = phenoAge - previousEntryPhenoAge;
+                            const timePassed = chronoAgeAtEntry - previousEntryChronoAge;
+                            const timePassedProportionOfYear = 1 / timePassed;
+                            pacesForTheYear.push(timePassedProportionOfYear * phenoAgeDifference);
+                        }
+
+                        previousEntryPhenoAge = phenoAge;
+                        previousEntryChronoAge = chronoAgeAtEntry;
+                    });
+
+
+                    const averagePaceForTheYear = pacesForTheYear.reduce((a, b) => (a + b)) / pacesForTheYear.length;
+                    allTimeAgingPaces.push(averagePaceForTheYear);
+
+                    if (isEntryFromThisSeason) {
+                        seasonAgingPaces.push(averagePaceForTheYear);
+                    }
+                }
+            }
         });
+
+        window.averagePaceOfAging = allTimeAgingPaces.length > 0 ? allTimeAgingPaces.reduce((a, b) => (a + b)) / allTimeAgingPaces.length : null;
+        window.seasonPaceOfAging = seasonAgingPaces.length > 0 ? seasonAgingPaces.reduce((a, b) => (a + b)) / seasonAgingPaces.length : null;
 
         const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
         const datasets = prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores);
