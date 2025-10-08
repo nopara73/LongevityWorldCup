@@ -32,8 +32,8 @@
 |2023|Bortz Age|blood|Jordan Bortz, Andrea Guariglia, Lucija Klaric, David Tang, Peter Ward, Michael Geer, Marc Chadeau-Hyam, Dragana Vuckovic & Peter K. Joshi |many labs, [longevity-tools Bortz calculator](https://www.longevity-tools.com/humanitys-bortz-blood-age)|global|
 |2024|NOVOS Age|methylation (saliva)||[NOVOS](https://novoslabs.com/product/novos-age/)|USA, Canada|
 |2024|BioAge DNA Test (DNA Labs India)|methylation (saliva)||[DNA Labs India](https://dnalabsindia.com/test/longevity-biological-age-bioage-dna-test)|India, international shipping|
-|2024|Aeternum DNA Biological Age Test|methylation (saliva)||[Aeternum](https://eu.aeternum.site/product/aeternum-biological-age-test-kit/)|USA, UK, Europe, Canada, Japan|
 |2024|WHOOP Age|wearable||[WHOOP](https://www.whoop.com/)|global|
+|2025|Aeternum DNA Biological Age Test|methylation (saliva)|Oliver Foster|[Aeternum](https://aeternum.site/products/aeternum-biological-age-test-kit), [Aeternum EU](https://eu.aeternum.site/product/aeternum-biological-age-test-kit/)|global (domestic stock in USA, Canada, UK, Australia, Singapore, Hong Kong, & Europe)|
 |2025|SYMPHONYAge|methylation||[TruDiagnostic](https://shop.trudiagnostic.com/products/truage-complete-epigenetic-collection), [Life Extension](https://www.lifeextension.com/lab-testing/itemlc900003/truage-complete-epigenetic-age-profile-finger-stick-test)|all US territories and most countries|
 |2025|Medipredict Biological Age Test|methylation||[Medipredict](https://medipredict.com/en/products/biologiai-eletkor)|Hungary, EU|
 |2025|AgeRate|methylation (blood)|Cole Kirschner, Guillaume Paré, Kevin Peters, Nathan Cawte|[AgeRate](https://agerate.com/), [Jinfinity](https://www.jinfiniti.com/product/biological-age-agerate-epigenetic-age/)|USA, Canada|
