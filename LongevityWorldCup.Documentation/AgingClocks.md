@@ -11,7 +11,7 @@
 |2016|Aging.AI|blood (deep learning model)|Polina Mamoshina, Kirill Kochetov, Evgeny Putin, Franco Cortese, Alexander Aliper, Won-Suk Lee, Sung-Min Ahn, Lee Uhn, Neil Skjodt, Olga Kovalchuk, Morten Scheibye-Knudsen, Alex Zhavoronkov|[Aging.AI](https://www.unhooked.co.uk/diversity-ai/aging/index.html)|global (online)|
 |2016|TruMe|methylation (saliva)||[prohealth](https://www.prohealth.com/products/trume-at-home-dna-biological-age-test-tst100), [agelessrx](https://agelessrx.com/trume/), [EasyDNA](https://easydna.co.uk/knowyourbioage-test/)|Canada, US, UK|
 |2017|EpiAge|methylation||[Life Extension Europe](https://www.lifeextensioneurope.com/epiage-epigenetic-age-test), [BrainMarket](https://www.brainmarket.hu/hansen-epiage-biological-age-test-kits--test-k-urceni-biologickeho-veku/)|Europe|
-|2017|Muhdo v1|methylation (saliva)||[DoNotAge](https://donotage.org/biological-age-test-kit)|global|
+|2017|Muhdo v1|methylation (saliva)|Chris Collins et al.|[DoNotAge](https://donotage.org/biological-age-test-kit)|global|
 |2018|PhenoAge|blood|Morgan E. Levine|any lab, [Longevity World Cup Pheno Age Calculator](https://www.longevityworldcup.com/onboarding/pheno-age.html)|gobal|
 |2018|AgeMeter Functional Age Test|functional biomarkers|Elliott Small|[AgeMeter](https://agemeter.com/)|global|
 |2019|Elysium Index|methylation (saliva)||[Elysium Health](https://www.elysiumhealth.com/products/index)|US|
@@ -33,7 +33,7 @@
 |2024|NOVOS Age|methylation (saliva)||[NOVOS](https://novoslabs.com/product/novos-age/)|USA, Canada|
 |2024|BioAge DNA Test (DNA Labs India)|methylation (saliva)||[DNA Labs India](https://dnalabsindia.com/test/longevity-biological-age-bioage-dna-test)|India, international shipping|
 |2024|WHOOP Age|wearable||[WHOOP](https://www.whoop.com/)|global|
-|2017|Muhdo v2|methylation (saliva)|Chris Collins et al.|[muhdohub](https://muhdohub.com/products/dna-epigenetic-kit)|global|
+|2025|Muhdo v2|methylation (saliva)|Chris Collins et al.|[muhdohub](https://muhdohub.com/products/dna-epigenetic-kit)|global|
 |2025|Aeternum DNA Biological Age Test|methylation (saliva)|Oliver Foster|[Aeternum](https://aeternum.site/products/aeternum-biological-age-test-kit), [Aeternum EU](https://eu.aeternum.site/product/aeternum-biological-age-test-kit/)|global (domestic stock in USA, Canada, UK, Australia, Singapore, Hong Kong, & Europe)|
 |2025|SYMPHONYAge|methylation||[TruDiagnostic](https://shop.trudiagnostic.com/products/truage-complete-epigenetic-collection), [Life Extension](https://www.lifeextension.com/lab-testing/itemlc900003/truage-complete-epigenetic-age-profile-finger-stick-test)|all US territories and most countries|
 |2025|Medipredict Biological Age Test|methylation||[Medipredict](https://medipredict.com/en/products/biologiai-eletkor)|Hungary, EU|
