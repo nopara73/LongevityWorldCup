@@ -16,7 +16,7 @@
 |2018|AgeMeter Functional Age Test|functional biomarkers|Elliott Small|[AgeMeter](https://agemeter.com/)|global|
 |2019|Elysium Index|methylation (saliva)||[Elysium Health](https://www.elysiumhealth.com/products/index)|US|
 |2019|GrimAge|methylation|Lu AT, Quach A, Wilson JG, Reiner AP, Aviv A, Raj K, et al.|[Clock Foundation](https://clockfoundation.org/product/grimage-epigenetic-age-test-promo/)|United States, UK and Europe|
-|2019|Chronomics|methylation||[Amazon](https://www.amazon.com/Chronomics-Epigenetic-Biological-Age-Test/dp/B0CSHHKZJP),[OneADay](https://shop.oneaday.com/products/biological-age)|UK|
+|2019|Chronomics|methylation (saliva)||[Amazon](https://www.amazon.com/Chronomics-Epigenetic-Biological-Age-Test/dp/B0CSHHKZJP),[OneADay](https://shop.oneaday.com/products/biological-age)|UK|
 |2020|AnthropoAge|anthropometrics|Enrique F. Velázquez-Palacio, Omar Yaxmehen Bello-Chavolla|[BelloLab AnthropoAge Calculator](https://bellolab.shinyapps.io/anthropoage/)|global (online)|
 |2020|ProHealth Biological Age Test|methylation (saliva)||[ProHealth](https://www.prohealth.com/collections/testing/products/prohealth-biological-age-test-tst101), [Ubuy](https://www.ubuy.fr/en/product/MC3YCU42G-at-home-biological-age-test-most-advanced-test-to-reveal-your-true-age-telomere-length-rate-of-aging-clinically-researched-epigenetic-markers)|USA|
 |2020|Viome Biological Age|microbiome + transcriptomics|Momo Vuyisich, Vinay Gopu|[Viome](https://www.viome.com/products/full-body-intelligence)|USA + selected international|
