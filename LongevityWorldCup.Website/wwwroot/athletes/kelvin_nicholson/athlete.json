@@ -18,10 +18,23 @@
       "RdwPc": 12.8,
       "AlpUL": 60,
       "Wbc1000cellsuL": 4.1
+    },
+    {
+      "Date": "2025-10-10",
+      "AlbGL": 43,
+      "CreatUmolL": 74,
+      "GluMmolL": 5.1,
+      "CrpMgL": 0.2,
+      "LymPc": 21,
+      "McvFL": 94,
+      "RdwPc": 12.6,
+      "AlpUL": 65,
+      "Wbc1000cellsuL": 5.5
     }
   ],
   "Division": "Men's",
   "Flag": "Australia",
-  "Why": "Spending life with those that I love.",
-  "PersonalLink": "https://www.kelvinism.com/"
+  "Why": "Trying to catch-up with @deelicious (https://longevityworldcup.com/athlete/deelicious) so I can spend life with those I love.",
+  "PersonalLink": "https://www.kelvinism.com/tags/longevity/",
+  "DisplayName": null
 }
