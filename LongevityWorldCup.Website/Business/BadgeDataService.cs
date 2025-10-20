@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS {TableName} (
 
         // Compute: BadgeId -> ScopeKey -> List<slug>
         var snapshot = new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.OrdinalIgnoreCase);
+
+        // 1) Top-N style badges (global/division/generation/exclusive)
         foreach (var def in defs)
         {
             if (def.Scope == BadgeScope.Global)
@@ -79,8 +81,14 @@ CREATE TABLE IF NOT EXISTS {TableName} (
             }
         }
 
+        // 2) Additional badges (ties allowed, tiers, multi-holder etc.)
+        AddDomainBadges(stats, snapshot);         // Liver/Kidney/Metabolic/Inflammation/Immune winners
+        AddSubmissionBadges(stats, snapshot);     // The Regular (>=2), The Submittinator (max)
+        AddPhenoDiffBadge(stats, snapshot);       // Redemption Arc (best improvement)
+        AddCrowdBadges(stats, snapshot);          // Most Guessed / Age-Gap / Lowest Crowd Age (gold/silver/bronze)
+
         // Persist (replace all rows)
-        var defHash = ComputeDefinitionHash(defs);
+        var defHash = ComputeDefinitionHash(defs); // definition set for Top-N badges
         var now = DateTime.UtcNow.ToString("o");
 
         using var tx = _sqlite.BeginTransaction();
@@ -148,13 +156,23 @@ VALUES (@b, @s, @h, @dh, @u);";
         public required string Slug { get; init; }
         public required string Name { get; init; }
         public DateTime? DobUtc { get; init; }
-        public double? ChronoAge { get; init; }          // years
-        public double? LowestPhenoAge { get; init; }     // years
-        public double? AgeReduction { get; init; }       // pheno - chrono (lower is better)
+        public double? ChronoAge { get; init; }               // years
+        public double? LowestPhenoAge { get; init; }          // years
+        public double? AgeReduction { get; init; }            // pheno - chrono (lower is better)
         public int SubmissionCount { get; init; }
+
+        // Grouping
         public string? Division { get; init; }
         public string? Generation { get; init; }
         public string? Exclusive { get; init; }
+
+        // For domain badges and redemption arc
+        public double[]? BestMarkerValues { get; init; }      // [ageYears, Alb, Creat, Glu, ln(CRP/10), WBC, Lymph, MCV, RDW, ALP]
+        public double? PhenoAgeDiffFromBaseline { get; init; } // bestPheno - firstSubmissionPheno
+
+        // Crowd stats (for crowd badges)
+        public double? CrowdAge { get; init; }
+        public int CrowdCount { get; init; }
     }
 
     private enum BadgeScope { Global, Division, Generation, Exclusive }
@@ -193,9 +211,9 @@ VALUES (@b, @s, @h, @dh, @u);";
 
         return new[]
         {
-            // Mirrors badges.js: top3 oldest chronologically. :contentReference[oaicite:1]{index=1}
+            // Global Top3 by chronological age (oldest)
             new BadgeDefinition(
-                Id: "oldest_global",
+                Id: "oldest",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.ChronoAge.HasValue,
@@ -203,9 +221,9 @@ VALUES (@b, @s, @h, @dh, @u);";
                 SortDirection: SortDir.Desc,
                 TieBreaker: compTie),
 
-            // top3 youngest chronologically. :contentReference[oaicite:2]{index=2}
+            // Global Top3 by chronological age (youngest)
             new BadgeDefinition(
-                Id: "youngest_global",
+                Id: "youngest",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.ChronoAge.HasValue,
@@ -213,9 +231,9 @@ VALUES (@b, @s, @h, @dh, @u);";
                 SortDirection: SortDir.Asc,
                 TieBreaker: compTie),
 
-            // top3 biologically youngest (lowest pheno age). :contentReference[oaicite:3]{index=3}
+            // Global Top3 by lowest PhenoAge (biologically youngest)
             new BadgeDefinition(
-                Id: "bio_youngest_global",
+                Id: "bio_youngest",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.LowestPhenoAge.HasValue,
@@ -223,9 +241,9 @@ VALUES (@b, @s, @h, @dh, @u);";
                 SortDirection: SortDir.Asc,
                 TieBreaker: compTie),
 
-            // Ultimate League: top3 smallest age reduction (pheno - chrono). :contentReference[oaicite:4]{index=4}
+            // Global Top3 by competition metric: AgeReduction (pheno - chrono), lower is better
             new BadgeDefinition(
-                Id: "ultimate_league_global",
+                Id: "ultimate_league",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.AgeReduction.HasValue,
@@ -233,7 +251,7 @@ VALUES (@b, @s, @h, @dh, @u);";
                 SortDirection: SortDir.Asc,
                 TieBreaker: compTie),
 
-            // Per-division top3 by competition metric (fixes the FE "slice without sort"). :contentReference[oaicite:5]{index=5}
+            // Per-division Top3 by AgeReduction
             new BadgeDefinition(
                 Id: "top3_by_division",
                 Scope: BadgeScope.Division,
@@ -243,7 +261,7 @@ VALUES (@b, @s, @h, @dh, @u);";
                 SortDirection: SortDir.Asc,
                 TieBreaker: compTie),
 
-            // Per-generation top3 by competition metric. :contentReference[oaicite:6]{index=6}
+            // Per-generation Top3 by AgeReduction
             new BadgeDefinition(
                 Id: "top3_by_generation",
                 Scope: BadgeScope.Generation,
@@ -253,7 +271,7 @@ VALUES (@b, @s, @h, @dh, @u);";
                 SortDirection: SortDir.Asc,
                 TieBreaker: compTie),
 
-            // Per-exclusive league top3 (if `Exclusive` exists). :contentReference[oaicite:7]{index=7}
+            // Per-exclusive league Top3 by AgeReduction
             new BadgeDefinition(
                 Id: "top3_by_exclusive",
                 Scope: BadgeScope.Exclusive,
@@ -296,9 +314,12 @@ VALUES (@b, @s, @h, @dh, @u);";
             if (dob.HasValue)
                 chrono = Math.Round((asOf - dob.Value.Date).TotalDays / 365.2425, 2);
 
-            // Lowest pheno-age across Biomarkers (age-at-entry aware), same as ranking code. :contentReference[oaicite:8]{index=8}
+            // Build best marker-values and baseline/best PhenoAge from Biomarkers
             int submissionCount = 0;
             double lowestPheno = double.PositiveInfinity;
+            double earliestPheno = double.PositiveInfinity;
+            DateTime? earliestDate = null;
+            double[]? bestMarkerValues = null;
 
             if (o["Biomarkers"] is JsonArray biomArr)
             {
@@ -306,6 +327,7 @@ VALUES (@b, @s, @h, @dh, @u);";
                 {
                     submissionCount++;
 
+                    // Parse entry date (roundtrip if present)
                     var entryDate = asOf;
                     var ds = entry["Date"]?.GetValue<string>();
                     if (!string.IsNullOrWhiteSpace(ds) &&
@@ -314,8 +336,10 @@ VALUES (@b, @s, @h, @dh, @u);";
                         entryDate = DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc);
                     }
 
+                    // Age at the date of the test
                     double AgeAt(DateTime d) => dob.HasValue ? (d.Date - dob.Value.Date).TotalDays / 365.2425 : double.NaN;
 
+                    // Read raw biomarkers; require positive CRP to compute
                     if (TryGet(entry, "AlbGL", out var alb) &&
                         TryGet(entry, "CreatUmolL", out var creat) &&
                         TryGet(entry, "GluMmolL", out var glu) &&
@@ -330,8 +354,26 @@ VALUES (@b, @s, @h, @dh, @u);";
                         var ph = PhenoAgeHelper.CalculatePhenoAgeFromRaw(
                             AgeAt(entryDate), alb, creat, glu, crpMgL, wbc, lym, mcv, rdw, alp);
 
-                        if (!double.IsNaN(ph) && !double.IsInfinity(ph) && ph < lowestPheno)
-                            lowestPheno = ph;
+                        if (!double.IsNaN(ph) && !double.IsInfinity(ph))
+                        {
+                            // track earliest valid pheno as "baseline"
+                            if (!earliestDate.HasValue || entryDate < earliestDate.Value)
+                            {
+                                earliestDate = entryDate;
+                                earliestPheno = ph;
+                            }
+
+                            // best = minimum pheno; also capture markerValues for domain contributors
+                            if (ph < lowestPheno)
+                            {
+                                lowestPheno = ph;
+                                var lnCrpOver10 = Math.Log(crpMgL / 10.0);
+                                bestMarkerValues = new[]
+                                {
+                                    AgeAt(entryDate), alb, creat, glu, lnCrpOver10, wbc, lym, mcv, rdw, alp
+                                };
+                            }
+                        }
                     }
                 }
             }
@@ -343,18 +385,42 @@ VALUES (@b, @s, @h, @dh, @u);";
                 ? Math.Round(lowestPheno - chrono.Value, 2)
                 : (double?)null;
 
+            double? lowestPhenoRounded = double.IsInfinity(lowestPheno) ? null : Math.Round(lowestPheno, 2);
+
+            double? phenoDiffFromBaseline = null;
+            if (!double.IsInfinity(earliestPheno) && !double.IsInfinity(lowestPheno))
+            {
+                phenoDiffFromBaseline = Math.Round(lowestPheno - earliestPheno, 2);
+            }
+
+            // Crowd stats come hydrated by AthleteDataService into the JSON (CrowdAge, CrowdCount).
+            double? crowdAge = null;
+            int crowdCount = 0;
+            try
+            {
+                if (o["CrowdAge"] is JsonValue jvAge && jvAge.TryGetValue<double>(out var ca))
+                    crowdAge = ca;
+                if (o["CrowdCount"] is JsonValue jvCnt && jvCnt.TryGetValue<int>(out var cc))
+                    crowdCount = cc;
+            }
+            catch { /* ignore */ }
+
             result[slug] = new AthleteStats
             {
                 Slug = slug,
                 Name = name,
                 DobUtc = dob,
                 ChronoAge = chrono,
-                LowestPhenoAge = double.IsInfinity(lowestPheno) ? null : Math.Round(lowestPheno, 2),
+                LowestPhenoAge = lowestPhenoRounded,
                 AgeReduction = ageReduction,
                 SubmissionCount = submissionCount,
                 Division = TryGetString(o, "Division"),
                 Generation = TryGetString(o, "Generation"),
-                Exclusive = TryGetString(o, "ExclusiveLeague")
+                Exclusive = TryGetString(o, "ExclusiveLeague"),
+                BestMarkerValues = bestMarkerValues,
+                PhenoAgeDiffFromBaseline = phenoDiffFromBaseline,
+                CrowdAge = crowdAge,
+                CrowdCount = crowdCount
             };
         }
 
@@ -441,6 +507,167 @@ VALUES (@b, @s, @h, @dh, @u);";
         if (ha && !hb) return -1;      // value < null
         if (!ha && hb) return 1;       // null > value
         return 0;                       // both null
+    }
+
+    // ===== Additional badge calculators ====================================
+
+    private static void AddDomainBadges(
+        Dictionary<string, AthleteStats> stats,
+        Dictionary<string, Dictionary<string, List<string>>> snapshot)
+    {
+        // We use PhenoAgeHelper domain contributor functions exactly like FE does in pheno-age.js.
+        const double EPS = 1e-9;
+
+        (string Id, Func<double[], double> Score)[] domains =
+        {
+            ("liver_best",         PhenoAgeHelper.CalculateLiverPhenoAgeContributor),
+            ("kidney_best",        PhenoAgeHelper.CalculateKidneyPhenoAgeContributor),
+            ("metabolic_best",     PhenoAgeHelper.CalculateMetabolicPhenoAgeContributor),
+            ("inflammation_best",  PhenoAgeHelper.CalculateInflammationPhenoAgeContributor),
+            ("immune_best",        PhenoAgeHelper.CalculateImmunePhenoAgeContributor),
+        };
+
+        foreach (var (id, scorer) in domains)
+        {
+            var candidates = stats.Values
+                .Where(s => s.BestMarkerValues is not null)
+                .Select(s => new { s.Slug, s.Name, Score = scorer(s.BestMarkerValues!) })
+                .ToList();
+
+            if (candidates.Count == 0) continue;
+
+            var best = candidates.Min(x => x.Score);
+            var holders = candidates
+                .Where(x => Math.Abs(x.Score - best) <= EPS)
+                .OrderBy(x => x.Name, StringComparer.Ordinal)
+                .Select(x => x.Slug)
+                .ToList();
+
+            if (holders.Count > 0)
+                Add(snapshot, id, "global", holders);
+        }
+    }
+
+    private static void AddSubmissionBadges(
+        Dictionary<string, AthleteStats> stats,
+        Dictionary<string, Dictionary<string, List<string>>> snapshot)
+    {
+        // The Regular: everyone with >= 2 submissions (non-exclusive, many holders).
+        var regulars = stats.Values
+            .Where(s => s.SubmissionCount >= 2)
+            .OrderBy(s => s.Name, StringComparer.Ordinal)
+            .Select(s => s.Slug)
+            .ToList();
+
+        if (regulars.Count > 0)
+            Add(snapshot, "submission_over_two", "global", regulars);
+
+        // The Submittinator: max submission count (ties allowed).
+        var maxCount = stats.Values.Max(s => s.SubmissionCount);
+        if (maxCount > 0)
+        {
+            var most = stats.Values
+                .Where(s => s.SubmissionCount == maxCount)
+                .OrderBy(s => s.Name, StringComparer.Ordinal)
+                .Select(s => s.Slug)
+                .ToList();
+
+            if (most.Count > 0)
+                Add(snapshot, "most_submissions", "global", most);
+        }
+    }
+
+    private static void AddPhenoDiffBadge(
+        Dictionary<string, AthleteStats> stats,
+        Dictionary<string, Dictionary<string, List<string>>> snapshot)
+    {
+        // Redemption Arc: lowest (most negative) PhenoAge difference from the first submission (baseline). Ties allowed.
+        var candidates = stats.Values
+            .Where(s => s.PhenoAgeDiffFromBaseline.HasValue && s.SubmissionCount >= 2)
+            .Select(s => new { s.Slug, s.Name, Diff = s.PhenoAgeDiffFromBaseline!.Value })
+            .ToList();
+
+        if (candidates.Count == 0) return;
+
+        var best = candidates.Min(x => x.Diff);
+        var holders = candidates
+            .Where(x => x.Diff == best) // numbers are rounded to 2 decimals at build time
+            .OrderBy(x => x.Name, StringComparer.Ordinal)
+            .Select(x => x.Slug)
+            .ToList();
+
+        if (holders.Count > 0)
+            Add(snapshot, "pheno_age_diff_best", "global", holders);
+    }
+
+    private static void AddCrowdBadges(
+        Dictionary<string, AthleteStats> stats,
+        Dictionary<string, Dictionary<string, List<string>>> snapshot)
+    {
+        // We mirror FE logic in badges.js for crowd tiers (distinct values, ties allowed).
+        var withGuesses = stats.Values
+            .Where(s => s.CrowdCount > 0 && s.CrowdAge.HasValue)
+            .ToList();
+
+        if (withGuesses.Count == 0) return;
+
+        // --- Most Guessed: top-3 distinct counts (desc) ---
+        var topCounts = withGuesses
+            .Select(s => s.CrowdCount)
+            .Where(c => c > 0)
+            .Distinct()
+            .OrderByDescending(c => c)
+            .Take(3)
+            .ToList();
+
+        AddTier(snapshot, "crowd_most_guessed", withGuesses, topCounts, s => s.CrowdCount);
+
+        // --- Age-Gap: top-3 distinct positive (ChronoAge - CrowdAge), desc ---
+        var positiveGaps = withGuesses
+            .Where(s => s.ChronoAge.HasValue && s.CrowdAge.HasValue)
+            .Select(s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2))
+            .Where(g => g > 0)
+            .Distinct()
+            .OrderByDescending(g => g)
+            .Take(3)
+            .ToList();
+
+        AddTier(snapshot, "crowd_age_gap", withGuesses, positiveGaps, s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2));
+
+        // --- Lowest Crowd Age: top-3 distinct crowd ages (asc) ---
+        var lowestAges = withGuesses
+            .Select(s => Math.Round(s.CrowdAge!.Value, 2))
+            .Distinct()
+            .OrderBy(a => a)
+            .Take(3)
+            .ToList();
+
+        AddTier(snapshot, "crowd_lowest_age", withGuesses, lowestAges, s => Math.Round(s.CrowdAge!.Value, 2));
+
+        // local helper for tiered (gold/silver/bronze) assignment
+        static void AddTier<T>(
+            Dictionary<string, Dictionary<string, List<string>>> snap,
+            string badgeId,
+            List<AthleteStats> pool,
+            List<T> top3Values,
+            Func<AthleteStats, T> selector)
+            where T : notnull, IEquatable<T>
+        {
+            if (top3Values.Count == 0) return;
+            string[] tiers = { "gold", "silver", "bronze" };
+            for (int i = 0; i < top3Values.Count && i < tiers.Length; i++)
+            {
+                var v = top3Values[i];
+                var slugs = pool
+                    .Where(s => selector(s).Equals(v))
+                    .OrderBy(s => s.Name, StringComparer.Ordinal)
+                    .Select(s => s.Slug)
+                    .ToList();
+
+                if (slugs.Count > 0)
+                    Add(snap, badgeId, tiers[i], slugs); // BadgeId stays the same, ScopeKey is the tier
+            }
+        }
     }
 
     public void Dispose()
