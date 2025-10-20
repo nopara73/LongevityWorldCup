@@ -405,6 +405,12 @@ VALUES (@b, @s, @h, @dh, @u);";
             }
             catch { /* ignore */ }
 
+            var generation = TryGetString(o, "Generation");
+            if (string.IsNullOrWhiteSpace(generation) && dob.HasValue)
+            {
+                generation = GetGenerationFromBirthYear(dob.Value.Year);
+            }
+            
             result[slug] = new AthleteStats
             {
                 Slug = slug,
@@ -415,7 +421,7 @@ VALUES (@b, @s, @h, @dh, @u);";
                 AgeReduction = ageReduction,
                 SubmissionCount = submissionCount,
                 Division = TryGetString(o, "Division"),
-                Generation = TryGetString(o, "Generation"),
+                Generation = generation,
                 Exclusive = TryGetString(o, "ExclusiveLeague"),
                 BestMarkerValues = bestMarkerValues,
                 PhenoAgeDiffFromBaseline = phenoDiffFromBaseline,
@@ -546,6 +552,19 @@ VALUES (@b, @s, @h, @dh, @u);";
             if (holders.Count > 0)
                 Add(snapshot, id, "global", holders);
         }
+    }
+    
+    // Mirrors frontend window.getGeneration(birthYear) from misc.js.
+    // Silent(1928–1945), Boomers(1946–1964), Gen X(1965–1980), Millennials(1981–1996), Gen Z(1997–2012), Gen Alpha(2013+).
+    private static string? GetGenerationFromBirthYear(int birthYear)
+    {
+        if (birthYear >= 1928 && birthYear <= 1945) return "Silent Generation";
+        if (birthYear >= 1946 && birthYear <= 1964) return "Baby Boomers";
+        if (birthYear >= 1965 && birthYear <= 1980) return "Gen X";
+        if (birthYear >= 1981 && birthYear <= 1996) return "Millennials";
+        if (birthYear >= 1997 && birthYear <= 2012) return "Gen Z";
+        if (birthYear >= 2013) return "Gen Alpha";
+        return null; // unknown/edge years
     }
 
     private static void AddSubmissionBadges(
