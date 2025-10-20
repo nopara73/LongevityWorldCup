@@ -41,12 +41,12 @@ public sealed class BadgeDataService : IDisposable
         using var cmd = _sqlite.CreateCommand();
         cmd.CommandText = $@"
 CREATE TABLE IF NOT EXISTS {TableName} (
-    BadgeId        TEXT NOT NULL,
+    BadgeCode      TEXT NOT NULL,
     ScopeKey       TEXT NOT NULL,
-    HoldersJson    TEXT NOT NULL,
+    HolderSlugs    TEXT NOT NULL,
     DefinitionHash TEXT NULL,
     UpdatedAt      TEXT NOT NULL,
-    PRIMARY KEY (BadgeId, ScopeKey)
+    PRIMARY KEY (BadgeCode, ScopeKey)
 );";
         cmd.ExecuteNonQuery();
     }
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS {TableName} (
         var stats = BuildAthleteStats(_asOfUtc);
         var defs  = BuildBadgeDefinitions();
 
-        // Compute: BadgeId -> ScopeKey -> List<slug>
+        // Compute: BadgeCode -> ScopeKey -> List<slug>
         var snapshot = new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.OrdinalIgnoreCase);
 
         // 1) Top-N style badges (global/division/generation/exclusive)
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS {TableName} (
         {
             ins.Transaction = tx;
             ins.CommandText = $@"
-INSERT INTO {TableName} (BadgeId, ScopeKey, HoldersJson, DefinitionHash, UpdatedAt)
+INSERT INTO {TableName} (BadgeCode, ScopeKey, HolderSlugs, DefinitionHash, UpdatedAt)
 VALUES (@b, @s, @h, @dh, @u);";
             var pB = ins.Parameters.Add("@b", SqliteType.Text);
             var pS = ins.Parameters.Add("@s", SqliteType.Text);
@@ -112,13 +112,13 @@ VALUES (@b, @s, @h, @dh, @u);";
             var pD = ins.Parameters.Add("@dh", SqliteType.Text);
             var pU = ins.Parameters.Add("@u", SqliteType.Text);
 
-            foreach (var (badgeId, scopes) in snapshot)
+            foreach (var (badgeCode, scopes) in snapshot)
             {
                 foreach (var (scopeKey, holders) in scopes)
                 {
-                    pB.Value = badgeId;
+                    pB.Value = badgeCode;
                     pS.Value = scopeKey;
-                    pH.Value = JsonSerializer.Serialize(holders);
+                    pH.Value = JsonSerializer.Serialize(holders); // JSON array of slugs, order = rank order
                     pD.Value = defHash;
                     pU.Value = now;
                     ins.ExecuteNonQuery();
@@ -131,12 +131,12 @@ VALUES (@b, @s, @h, @dh, @u);";
 
     private static void Add(
         Dictionary<string, Dictionary<string, List<string>>> map,
-        string badgeId, string scopeKey, IEnumerable<string> slugs)
+        string badgeCode, string scopeKey, IEnumerable<string> slugs)
     {
-        if (!map.TryGetValue(badgeId, out var scopes))
+        if (!map.TryGetValue(badgeCode, out var scopes))
         {
             scopes = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            map[badgeId] = scopes;
+            map[badgeCode] = scopes;
         }
         if (!scopes.TryGetValue(scopeKey, out var list))
         {
@@ -179,7 +179,7 @@ VALUES (@b, @s, @h, @dh, @u);";
     private enum SortDir { Asc, Desc }
 
     private sealed record BadgeDefinition(
-        string Id,
+        string Id,                      // BadgeCode
         BadgeScope Scope,
         int TopN,
         Func<AthleteStats, bool> Eligibility,
@@ -647,7 +647,7 @@ VALUES (@b, @s, @h, @dh, @u);";
         // local helper for tiered (gold/silver/bronze) assignment
         static void AddTier<T>(
             Dictionary<string, Dictionary<string, List<string>>> snap,
-            string badgeId,
+            string badgeCode,
             List<AthleteStats> pool,
             List<T> top3Values,
             Func<AthleteStats, T> selector)
@@ -665,7 +665,7 @@ VALUES (@b, @s, @h, @dh, @u);";
                     .ToList();
 
                 if (slugs.Count > 0)
-                    Add(snap, badgeId, tiers[i], slugs); // BadgeId stays the same, ScopeKey is the tier
+                    Add(snap, badgeCode, tiers[i], slugs); // BadgeCode stays the same, ScopeKey is the tier
             }
         }
     }
