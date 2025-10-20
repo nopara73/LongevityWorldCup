@@ -943,6 +943,9 @@
 
             updateDays(); // Added line
 
+            // Apply preferences on page load
+            applyLanguagePreferences();
+
             if (isFake) {
                 fillFakeData();
             }
@@ -968,9 +971,6 @@
             else {
                 updateMainProgress(2);
             }
-
-            // Apply preferences on page load
-            applyLanguagePreferences();
 
             // Initialize collapsability based on current values (handles programmatic fills)
             ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc']

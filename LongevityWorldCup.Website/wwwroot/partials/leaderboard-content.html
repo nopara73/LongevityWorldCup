@@ -470,6 +470,16 @@
     @keyframes expandCircle{ from{ transform:scale(.5); opacity:0;} to{ transform:scale(1); opacity:1;} }
     @keyframes pop{ 0%{ transform:scale(0); opacity:0;} 100%{ transform:scale(1); opacity:1;} }
 
+    /* Fail-safe: if AOS doesn't initialize, don't hide critical UI */
+    .leaderboard [data-aos]:not(.aos-animate),
+    .podium [data-aos]:not(.aos-animate),
+    .search-wrapper [data-aos]:not(.aos-animate),
+    .sidebar [data-aos]:not(.aos-animate) {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+
     /* =========================
        13) Mobile
        ========================= */
@@ -1459,6 +1469,13 @@
                             }
                         }, 1000);
                     }
+                }
+
+                // Pick up dynamically inserted [data-aos] nodes
+                if (window.AOS && typeof AOS.refreshHard === 'function') {
+                    AOS.refreshHard();
+                } else if (window.AOS && typeof AOS.refresh === 'function') {
+                    AOS.refresh();
                 }
             })
             .catch(error => {
