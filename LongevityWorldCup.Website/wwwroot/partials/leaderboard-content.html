@@ -364,18 +364,18 @@
     .athlete-info-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 .12rem;
+        border-spacing: 1.25rem .12rem;
         table-layout: auto;
         margin: 0 auto;
-    }
+        table-layout: fixed;}
     .athlete-info-table th,
-    .athlete-info-table td{ vertical-align:top; }
+    .athlete-info-table td{ vertical-align:top; width: 50%; }
 
     .athlete-info-table th{
-        width:48%;
+        width: 50%;
         text-align:right;          /* left column right-aligned */
         white-space:nowrap;
-        padding:.10rem .75rem .10rem 0;
+        padding:.10rem 0 .10rem 0;
         font-weight:700;
         color:inherit !important;
         background:none !important;        /* ensure no blue boxes */
@@ -386,7 +386,7 @@
     }
     .athlete-info-table td{
         text-align:left;           /* right column left-aligned */
-        padding:.10rem 0 .10rem .25rem;
+        padding:.10rem 0 .10rem 0;
         min-width:0;
         overflow-wrap:anywhere;
         background:none !important;
