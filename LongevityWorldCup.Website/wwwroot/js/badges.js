@@ -200,9 +200,12 @@ function pickIconForServerBadge(b) {
     const cat = getCat(b).toLowerCase();
     const place = getPlace(b);
 
-    // #1 in Ultimate League → crown (legacy cue)
-    if (label === 'Age Reduction' && cat === 'global' && place === 1) {
-        return 'fa-crown';
+    // Ultimate League (global Age Reduction): legacy icons per place
+    // 1st → crown, 2nd → medal, 3rd → award
+    if (label === 'Age Reduction' && cat === 'global' && place) {
+        if (place === 1) return 'fa-crown';
+        if (place === 2) return 'fa-medal';
+        if (place === 3) return 'fa-award';
     }
 
     // division/generation icons (use site helpers if present)
@@ -214,6 +217,12 @@ function pickIconForServerBadge(b) {
             return window.TryGetGenerationFaIcon(b.LeagueValue) || (BASE_ICONS[label] || 'fa-award');
         }
     }
+
+    // exclusive league: legacy umbrella icon (optional but matches old FE)
+    if (label === 'Age Reduction' && cat === 'exclusive') {
+        return 'fa-umbrella-beach';
+    }
+
     return BASE_ICONS[label] || 'fa-award';
 }
 
