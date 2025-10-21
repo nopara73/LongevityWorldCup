@@ -33,6 +33,7 @@ public sealed class BadgeDataService : IDisposable
 
         EnsureTables();
         ComputeAndPersistAwards();
+        _athletes.RefreshBadgesFromDatabase();
     }
 
     /// <summary>
