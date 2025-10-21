@@ -1,0 +1,28 @@
+{
+  "Name": "David Lo",
+  "DisplayName": null,
+  "MediaContact": "524686185@qq.com",
+  "DateOfBirth": {
+    "Year": 1991,
+    "Month": 1,
+    "Day": 9
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-17",
+      "AlbGL": 46,
+      "CreatUmolL": 73.45132743362832,
+      "GluMmolL": 4.773534635879219,
+      "CrpMgL": 0.2,
+      "LymPc": 51,
+      "McvFL": 95.3,
+      "RdwPc": 12,
+      "AlpUL": 33,
+      "Wbc1000cellsuL": 3.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "MiMiMiMiMi",
+  "Why": "Being young from within, besides look young & act young from outside.",
+  "PersonalLink": "https://www.instagram.com/davidlo91/"
+}
