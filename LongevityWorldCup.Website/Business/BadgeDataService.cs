@@ -34,6 +34,17 @@ public sealed class BadgeDataService : IDisposable
         EnsureTables();
         ComputeAndPersistAwards();
         _athletes.RefreshBadgesFromDatabase();
+
+        // NEW: when athlete files change at runtime, recompute and refresh badges
+        _athletes.AthletesChanged += OnAthletesChanged;
+    }
+
+    private void OnAthletesChanged()
+    {
+        // Recompute awards based on the latest athlete data,
+        // then hydrate the latest awards back into athlete JSONs.
+        ComputeAndPersistAwards();
+        _athletes.RefreshBadgesFromDatabase();
     }
 
     /// <summary>
@@ -826,6 +837,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     public void Dispose()
     {
+        _athletes.AthletesChanged -= OnAthletesChanged; // NEW: unsubscribe
         _sqlite.Close();
         _sqlite.Dispose();
         GC.SuppressFinalize(this);

@@ -39,6 +39,9 @@ public class AthleteDataService : IDisposable
     // single-column biomarker/test signature to detect new/changed test submissions
     private const string TestSigColumn = "TestSig";
 
+    // NEW: notify listeners (e.g., BadgeDataService) after reloads
+    public event Action? AthletesChanged;
+
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
     {
         _env = env;
@@ -156,7 +159,7 @@ public class AthleteDataService : IDisposable
         HydratePlacementsIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
         HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-        HydrateBadgesIntoAthletesJson();           // NEW: badges into athlete JSON
+        HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
 
         // persist biomarker/test signature for all athletes (so we can detect new/changed tests later)
         var changedSigsAtStartup = SyncBiomarkerSignatures(); // returns slugs whose signatures changed
@@ -207,7 +210,7 @@ public class AthleteDataService : IDisposable
                     HydratePlacementsIntoAthletesJson();
                     HydrateNewFlagsIntoAthletesJson();
                     HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-                    HydrateBadgesIntoAthletesJson();           // NEW: badges refresh when DB changed
+                    HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
                     PushAthleteDirectoryToEvents();
                 }
             }
@@ -385,7 +388,7 @@ public class AthleteDataService : IDisposable
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-            HydrateBadgesIntoAthletesJson();           // NEW: badges into athlete JSON
+            HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
 
             // recompute and persist biomarker/test signatures after reload
             var changedSigs = SyncBiomarkerSignatures();
@@ -404,6 +407,9 @@ public class AthleteDataService : IDisposable
             DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
 
             PushAthleteDirectoryToEvents();
+
+            // NEW: notify subscribers that athletes changed (e.g., recompute badges)
+            AthletesChanged?.Invoke();
         }
         finally
         {
@@ -865,7 +871,7 @@ public class AthleteDataService : IDisposable
         HydrateBadgesIntoAthletesJson();
     }
     
-    // NEW: badges from BadgeAwards -> injected into athlete JSON objects
+    // badges from BadgeAwards -> injected into athlete JSON objects
     private void HydrateBadgesIntoAthletesJson()
     {
         // Schema (BadgeAwards): BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt
