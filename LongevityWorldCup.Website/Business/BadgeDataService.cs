@@ -445,6 +445,17 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             DateTime? earliestDate = null;
             double[]? bestMarkerValues = null;
 
+// NEW: track per-marker bests (mix-and-match across complete sets)
+            double? bestAlb = null,
+                bestCreat = null,
+                bestGlu = null,
+                bestCrp = null,
+                bestWbc = null,
+                bestLym = null,
+                bestMcv = null,
+                bestRdw = null,
+                bestAlp = null;
+
             if (o["Biomarkers"] is JsonArray biomArr)
             {
                 foreach (var entry in biomArr.OfType<JsonObject>())
@@ -461,29 +472,22 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                     // Age at the date of the test
                     double AgeAt(DateTime d) => dob.HasValue ? (d.Date - dob.Value.Date).TotalDays / 365.2425 : double.NaN;
 
-                    // Read raw biomarkers; require positive CRP to compute
-                    // (Locals are initialized to keep the compiler happy; real values only used when haveAll==true.)
-                    double alb = 0, creat = 0, glu = 0, crpMgL = 0, wbc = 0, lym = 0, mcv = 0, rdw = 0, alp = 0;
-
-                    bool haveAll =
-                        TryGet(entry, "AlbGL", out alb) &&
-                        TryGet(entry, "CreatUmolL", out creat) &&
-                        TryGet(entry, "GluMmolL", out glu) &&
-                        TryGet(entry, "CrpMgL", out crpMgL) &&
-                        TryGet(entry, "Wbc1000cellsuL", out wbc) &&
-                        TryGet(entry, "LymPc", out lym) &&
-                        TryGet(entry, "McvFL", out mcv) &&
-                        TryGet(entry, "RdwPc", out rdw) &&
-                        TryGet(entry, "AlpUL", out alp);
-
-                    // FE-vel azonos logika: csak a "complete biomarker set" számít submission-nek
-                    bool isComplete = haveAll && crpMgL > 0;
-
-                    if (isComplete)
-                        submissionCount++; // now matches FE submissionCount
-
-                    if (isComplete && !double.IsNaN(AgeAt(entryDate)))
+                    // Read raw biomarkers; require positive CRP to compute (== "complete set")
+                    if (TryGet(entry, "AlbGL", out var alb) &&
+                        TryGet(entry, "CreatUmolL", out var creat) &&
+                        TryGet(entry, "GluMmolL", out var glu) &&
+                        TryGet(entry, "CrpMgL", out var crpMgL) &&
+                        TryGet(entry, "Wbc1000cellsuL", out var wbc) &&
+                        TryGet(entry, "LymPc", out var lym) &&
+                        TryGet(entry, "McvFL", out var mcv) &&
+                        TryGet(entry, "RdwPc", out var rdw) &&
+                        TryGet(entry, "AlpUL", out var alp) &&
+                        crpMgL > 0 && !double.IsNaN(AgeAt(entryDate)))
                     {
+                        // Count only complete biomarker sets (matches FE)
+                        submissionCount++;
+
+                        // PhenoAge for baseline/lowest calculations
                         var ph = PhenoAgeHelper.CalculatePhenoAgeFromRaw(
                             AgeAt(entryDate), alb, creat, glu, crpMgL, wbc, lym, mcv, rdw, alp);
 
@@ -496,18 +500,49 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                                 earliestPheno = ph;
                             }
 
-                            // best = minimum pheno; also capture markerValues for domain contributors
+                            // best (minimum) PhenoAge across real submissions
                             if (ph < lowestPheno)
                             {
                                 lowestPheno = ph;
-                                var lnCrpOver10 = Math.Log(crpMgL / 10.0);
-                                bestMarkerValues = new[]
-                                {
-                                    AgeAt(entryDate), alb, creat, glu, lnCrpOver10, wbc, lym, mcv, rdw, alp
-                                };
                             }
                         }
+
+                        // --- NEW: update per-marker bests (mirrors old FE rules) ---
+                        // Albumin & Lymphocytes: higher is better
+                        if (!bestAlb.HasValue || alb > bestAlb.Value) bestAlb = alb;
+                        if (!bestLym.HasValue || lym > bestLym.Value) bestLym = lym;
+
+                        // Everything else: lower is better
+                        if (!bestCreat.HasValue || creat < bestCreat.Value) bestCreat = creat;
+                        if (!bestGlu.HasValue || glu < bestGlu.Value) bestGlu = glu;
+                        if (!bestCrp.HasValue || crpMgL < bestCrp.Value) bestCrp = crpMgL;
+                        if (!bestWbc.HasValue || wbc < bestWbc.Value) bestWbc = wbc;
+                        if (!bestMcv.HasValue || mcv < bestMcv.Value) bestMcv = mcv;
+                        if (!bestRdw.HasValue || rdw < bestRdw.Value) bestRdw = rdw;
+                        if (!bestAlp.HasValue || alp < bestAlp.Value) bestAlp = alp;
                     }
+                }
+
+                // Build BestMarkerValues exactly like the legacy FE did:
+                // use "today's" chronological age + per-marker bests (mix-and-match), and ln(CRP/10).
+                if (bestAlb.HasValue && bestCreat.HasValue && bestGlu.HasValue && bestCrp.HasValue &&
+                    bestWbc.HasValue && bestLym.HasValue && bestMcv.HasValue && bestRdw.HasValue && bestAlp.HasValue &&
+                    bestCrp.Value > 0 && chrono.HasValue)
+                {
+                    var lnCrpOver10 = Math.Log(bestCrp.Value / 10.0);
+                    bestMarkerValues = new[]
+                    {
+                        chrono.Value, // <-- FE used current chronological age here
+                        bestAlb.Value,
+                        bestCreat.Value,
+                        bestGlu.Value,
+                        lnCrpOver10,
+                        bestWbc.Value,
+                        bestLym.Value,
+                        bestMcv.Value,
+                        bestRdw.Value,
+                        bestAlp.Value
+                    };
                 }
             }
 
