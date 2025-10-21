@@ -1,428 +1,364 @@
-﻿let oldestMapping = {};
-let youngestMapping = {};
-let biologicallyYoungestMapping = {};
-let ultimateLeagueMapping = {};
-let generationMapping = {};
-let divisionMapping = {};
-let exclusiveLeagueMapping = {};
-let liverMapping = {};
-let kidneyMapping = {};
-let metabolicMapping = {};
-let inflammationMapping = {};
-let immuneMapping = {};
-let submissionOverTwoMapping = {};
-let mostSubmissionMapping = {};
-let phenoAgeDiffMapping = {};
-let mostGuessedMapping = {};
-let ageGapMapping = {};
-let crowdAgeMapping = {};
-let perfectGuessMapping = {};
-let bestGuessMapping = {};
-let bestGuessDiffMapping = {};
-let perfectApplicationMapping = {};
+﻿/* badges.js
+   Server-driven badge rendering.
+   We no longer compute competitive badges on the client; we only render what the server embedded
+   into athlete.Badges. Local/novelty badges (host, podcast, pregnancy, first applicants, etc.)
+   remain client-only visuals by design.
+*/
 
+/* =========================
+   Shared UI helpers
+   ========================= */
+const spanA11y = 'role="button" tabindex="0" aria-label="Open league"';
 
-window.computeBadges = function (athleteResults) {
-    // Compute the three chronologically oldest athletes
-    const oldestAthletes = athleteResults.slice().sort((a, b) => b.chronologicalAge - a.chronologicalAge);
-    oldestAthletes.slice(0, 3).forEach((athlete, index) => {
-        oldestMapping[athlete.name] = index + 1; // 1 for oldest, 2 for second, 3 for third
-    });
-
-    // Compute the three chronologically youngest athletes
-    const youngestAthletes = athleteResults.slice().sort((a, b) => a.chronologicalAge - b.chronologicalAge);
-    youngestAthletes.slice(0, 3).forEach((athlete, index) => {
-        youngestMapping[athlete.name] = index + 1; // 1 for youngest, 2 for 2nd youngest, 3 for 3rd youngest
-    });
-
-    // Compute the three biologically youngest athletes
-    const biologicallyYoungestAthletes = athleteResults.slice().sort((a, b) => a.lowestPhenoAge - b.lowestPhenoAge);
-    biologicallyYoungestAthletes.slice(0, 3).forEach((athlete, index) => {
-        biologicallyYoungestMapping[athlete.name] = index + 1; // 1 for youngest, 2 for 2nd youngest, 3 for 3rd youngest
-    });
-
-    // Compute the three athletes with the smallest age reduction (Ultimate League)
-    const ultimateLeagueAthletes = athleteResults.slice().sort((a, b) => a.ageReduction - b.ageReduction);
-    ultimateLeagueAthletes.slice(0, 3).forEach((athlete, index) => {
-        ultimateLeagueMapping[athlete.name] = index + 1; // 1 for 1st, 2 for 2nd, 3 for 3rd
-    });
-
-    // Compute generation badges: top 3 athletes per generation
-    const generationGroups = {};
-    athleteResults.forEach(athlete => {
-        const gen = athlete.generation;
-        if (!generationGroups[gen]) {
-            generationGroups[gen] = [];
-        }
-        generationGroups[gen].push(athlete);
-    });
-    Object.keys(generationGroups).forEach(gen => {
-        generationGroups[gen].slice(0, 3).forEach((athlete, index) => {
-            generationMapping[athlete.name] = { rank: index + 1, generation: gen };
-        });
-    });
-
-    // Compute division badges: top 3 athletes per division
-    const divisionGroups = {};
-    athleteResults.forEach(athlete => {
-        const div = athlete.division;
-        if (!divisionGroups[div]) {
-            divisionGroups[div] = [];
-        }
-        divisionGroups[div].push(athlete);
-    });
-    Object.keys(divisionGroups).forEach(div => {
-        divisionGroups[div].slice(0, 3).forEach((athlete, index) => {
-            divisionMapping[athlete.name] = { rank: index + 1, division: div };
-        });
-    });
-
-    // Compute exclusive league badges: top 3 athletes per exclusive league
-    const exclusiveLeagueGroups = {};
-    athleteResults.forEach(athlete => {
-        const league = athlete.exclusiveLeague;
-        if (!league) return;
-        if (!exclusiveLeagueGroups[league]) {
-            exclusiveLeagueGroups[league] = [];
-        }
-        exclusiveLeagueGroups[league].push(athlete);
-    });
-    Object.keys(exclusiveLeagueGroups).forEach(league => {
-        exclusiveLeagueGroups[league].slice(0, 3).forEach((athlete, index) => {
-            exclusiveLeagueMapping[athlete.name] = { rank: index + 1, exclusiveLeague: league };
-        });
-    });
-
-    // Compute the best Liver biomarker profile (lowest Liver contribution); if ties, assign badge to all
-    let bestLiverScore = Infinity;
-    athleteResults.forEach(athlete => {
-        const liverScore = window.PhenoAge.calculateLiverPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (liverScore < bestLiverScore) {
-            bestLiverScore = liverScore;
-        }
-    });
-    athleteResults.forEach(athlete => {
-        const liverScore = window.PhenoAge.calculateLiverPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (liverScore === bestLiverScore) {
-            // For liver, we use Albumin (index 1) and Alkaline phosphatase (index 9)
-            const albumin = athlete.bestBiomarkerValues[1].toFixed(1);
-            const ap = athlete.bestBiomarkerValues[9].toFixed(1);
-            const tooltipText = `Liver King: Top Liver Profile (Albumin ${albumin} g/L, ALP ${ap} U/L)`;
-            liverMapping[athlete.name] = tooltipText;
-        }
-    });
-
-    // Compute the best Kidney biomarker profile (lowest Kidney contribution); if ties, assign badge to all
-    let bestKidneyScore = Infinity;
-    athleteResults.forEach(athlete => {
-        const kidneyScore = window.PhenoAge.calculateKidneyPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (kidneyScore < bestKidneyScore) {
-            bestKidneyScore = kidneyScore;
-        }
-    });
-    athleteResults.forEach(athlete => {
-        const kidneyScore = window.PhenoAge.calculateKidneyPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (kidneyScore === bestKidneyScore) {
-            // For kidney, we use Creatinine (index 2)
-            const creatinine = athlete.bestBiomarkerValues[2].toFixed(1);
-            const tooltipText = `Kidney Overlord: Top Kidney Profile (Creatinine ${creatinine} µmol/L)`;
-            kidneyMapping[athlete.name] = tooltipText;
-        }
-    });
-
-    // Compute the best Metabolic biomarker profile (lowest Metabolic contribution); if ties, assign badge to all
-    let bestMetabolicScore = Infinity;
-    athleteResults.forEach(athlete => {
-        const metabolicScore = window.PhenoAge.calculateMetabolicPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (metabolicScore < bestMetabolicScore) {
-            bestMetabolicScore = metabolicScore;
-        }
-    });
-    athleteResults.forEach(athlete => {
-        const metabolicScore = window.PhenoAge.calculateMetabolicPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (metabolicScore === bestMetabolicScore) {
-            // For metabolic, we use Glucose (index 3)
-            const glucose = athlete.bestBiomarkerValues[3].toFixed(1);
-            const tooltipText = `Glucose Gladiator: Top Metabolic Profile (Glucose ${glucose} mmol/L)`;
-            metabolicMapping[athlete.name] = tooltipText;
-        }
-    });
-
-    // Compute the best Inflammation biomarker profile (lowest Inflammation contribution); if ties, assign badge to all
-    let bestInflammationScore = Infinity;
-    athleteResults.forEach(athlete => {
-        const inflammationScore = window.PhenoAge.calculateInflammationPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (inflammationScore < bestInflammationScore) {
-            bestInflammationScore = inflammationScore;
-        }
-    });
-    athleteResults.forEach(athlete => {
-        const inflammationScore = window.PhenoAge.calculateInflammationPhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (inflammationScore === bestInflammationScore) {
-            // For inflammation, we use C-reactive protein (CRP at index 4)
-            const crp = (Math.exp(athlete.bestBiomarkerValues[4]) * 10).toFixed(2);
-            const tooltipText = `Inflammation Whisperer: Top Inflammation Profile (CRP ${crp} mg/L)`;
-            inflammationMapping[athlete.name] = tooltipText;
-        }
-    });
-
-    // Compute the best Immune biomarker profile (lowest Immune contribution); if ties, assign badge to all
-    let bestImmuneScore = Infinity;
-    athleteResults.forEach(athlete => {
-        const immuneScore = window.PhenoAge.calculateImmunePhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (immuneScore < bestImmuneScore) {
-            bestImmuneScore = immuneScore;
-        }
-    });
-    athleteResults.forEach(athlete => {
-        const immuneScore = window.PhenoAge.calculateImmunePhenoAgeContributor(athlete.bestBiomarkerValues);
-        if (immuneScore === bestImmuneScore) {
-            // For immune, display all four markers:
-            // White blood cell count (index 5), Lymphocytes (index 6), Mean corpuscular volume (index 7) and Red cell distribution width (index 8)
-            const wbc = athlete.bestBiomarkerValues[5].toFixed(1);
-            const lymphocyte = athlete.bestBiomarkerValues[6].toFixed(1);
-            const mcv = athlete.bestBiomarkerValues[7].toFixed(1);
-            const rcdw = athlete.bestBiomarkerValues[8].toFixed(1);
-            const tooltipText = `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lymphocyte}%, MCV ${mcv} fL, RDW ${rcdw}%)`;
-            immuneMapping[athlete.name] = tooltipText;
-        }
-    });
-
-    // Compute the best Submission Count badge (highest number of submissions); if ties, assign badge to all
-    let bestSubmissionCount = 0;
-    athleteResults.forEach(athlete => {
-        if (athlete.submissionCount > bestSubmissionCount) {
-            bestSubmissionCount = athlete.submissionCount;
-        }
-    });
-    athleteResults.forEach(athlete => {
-        if (athlete.submissionCount >= 2) {
-            const tooltipText = `The Regular: Two or More Tests Submitted`;
-            submissionOverTwoMapping[athlete.name] = tooltipText;
-        }
-        if (athlete.submissionCount === bestSubmissionCount) {
-            const tooltipText = `The Submittinator: Most Tests Submitted: ${athlete.submissionCount}`;
-            mostSubmissionMapping[athlete.name] = tooltipText;
-        }
-    });
-
-    // Compute the best PhenoAge Difference badge (biggest improvement = lowest phenoAgeDifference); if ties, assign badge to all
-    let bestPhenoAgeDiff = Infinity;
-    athleteResults.forEach(athlete => {
-        if (athlete.phenoAgeDifference < bestPhenoAgeDiff) {
-            bestPhenoAgeDiff = athlete.phenoAgeDifference;
-        }
-    });
-    athleteResults.forEach(athlete => {
-        if (athlete.phenoAgeDifference === bestPhenoAgeDiff) {
-            const tooltipText = `Redemption Arc: Greatest Age Reversal from Frist Submission (Baseline) (${athlete.phenoAgeDifference.toFixed(1)} years)`;
-            phenoAgeDiffMapping[athlete.name] = tooltipText;
-        }
-    });
-
-    // — Compute the three crowd-guess tiers (gold/silver/bronze), allowing ties —
-    // 1) build a list of all positive counts
-    const positiveCounts = athleteResults
-        .map(a => a.crowdCount)
-        .filter(c => c > 0);
-
-    // 2) dedupe and sort descending
-    const uniqueCounts = [...new Set(positiveCounts)].sort((a, b) => b - a);
-
-    // 3) take the top-3 distinct values
-    const topThree = uniqueCounts.slice(0, 3);
-
-    // 4) assign everyone whose crowdCount matches one of those topThree
-    athleteResults.forEach(athlete => {
-        const rank = topThree.indexOf(athlete.crowdCount);
-        if (rank !== -1) {
-            // rank === 0 → gold, 1 → silver, 2 → bronze
-            mostGuessedMapping[athlete.name] = rank + 1;
-        }
-    });
-
-    // — Compute the three biggest age-guess gaps (real age vs crowd age), allowing ties —
-    //    but only for athletes who have at least one guess
-    const guessedAthletes = athleteResults.filter(a => a.crowdCount > 0);
-
-    if (guessedAthletes.length > 0) {
-        // 1) build a list of all positive gaps
-        const allGaps = guessedAthletes
-            .map(a => a.chronologicalAge - a.crowdAge) // no Math.abs()
-            .filter(diff => diff > 0) // only when crowd guessed younger
-
-        // 2) dedupe and sort descending
-        const topGaps = [...new Set(allGaps)]
-            .sort((a, b) => b - a)
-            .slice(0, 3);
-
-        // 3) assign everyone whose gap matches one of those top three
-        guessedAthletes.forEach(athlete => {
-            const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge);
-            const rank = topGaps.indexOf(gap);
-            if (rank !== -1) {
-                // 0 → gold, 1 → silver, 2 → bronze
-                ageGapMapping[athlete.name] = rank + 1;
-            }
-        });
-    }
-
-    // — Compute the three lowest crowd-guessed ages (gold/silver/bronze), allowing ties —
-    //    only consider athletes who actually have at least one guess
-    const crowdGuessers = athleteResults.filter(a => a.crowdCount > 0);
-    if (crowdGuessers.length) {
-        // 1) collect and dedupe all crowdAge values
-        const uniqueAges = [...new Set(crowdGuessers.map(a => a.crowdAge))]
-            .sort((a, b) => a - b)   // ascending = lowest first
-            .slice(0, 3);            // take the top-3 distinct
-
-        // 2) assign each athlete whose crowdAge matches one of those
-        crowdGuessers.forEach(a => {
-            const rank = uniqueAges.indexOf(a.crowdAge);
-            if (rank !== -1) {
-                // 0 → gold, 1 → silver, 2 → bronze
-                crowdAgeMapping[a.name] = rank + 1;
-            }
-        });
-    }
-
-    // — User‐Guess‐Based badges —
-    // 1) Load your guesses from localStorage
-    const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-
-    // 2) Build an array of { name, diff, isExact } for athletes you actually guessed
-    const guessEntries = athleteResults
-        .map(a => {
-            const slug = window.slugifyName(a.name, true);
-            const g = allGuesses[slug];
-            if (g && g.value != null) {
-                const guessInt = parseInt(g.value, 10);
-                const actualInt = parseInt(a.chronologicalAge, 10);
-                const diff = Math.abs(guessInt - actualInt);
-                return { name: a.name, diff, isExact: diff === 0 };
-            }
-            return null;
-        })
-        .filter(x => x !== null);
-
-    // 3a) If you have any perfect (zero-error) guesses, badge them:
-    const perfects = guessEntries.filter(x => x.isExact);
-    if (perfects.length > 0) {
-        perfects.forEach(x => {
-            perfectGuessMapping[x.name] = true;
-        });
-    }
-    // 3b) Otherwise, if you have guesses but none perfect, find the closest (min-diff)
-    else if (guessEntries.length > 0) {
-        const minDiff = Math.min(...guessEntries.map(x => x.diff));
-        guessEntries
-            .filter(x => x.diff === minDiff)
-            .forEach(x => {
-                bestGuessMapping[x.name] = true;
-                bestGuessDiffMapping[x.name] = minDiff;
-            });
-    }
-}
-
-window.setBadges = function (athlete, athleteCell) {
-    const badgeSection = athleteCell.querySelector('.badge-section');
-
-    let badgeElements = [];
-
-    // Medal backgrounds (gold/silver/bronze) + default black
-    const defaultBadgeBackground = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;";
-    const badgeBackgrounds = [
+/* =========================
+   LEGACY LOOK & FEEL (exact gradients + borders)
+   ========================= */
+const LEGACY_BG = {
+    // same order and appearance as the old file
+    default: "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;",
+    medal: [
         "background: linear-gradient(135deg, #ffd700, #8b8000); border: 2px solid #8a6f00;", // Gold
         "background: linear-gradient(135deg, #c0c0c0, #696969); border: 2px solid #6e6e6e;", // Silver
         "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Bronze
-    ];
+    ],
+    // thematic backgrounds (identical to legacy)
+    liver:        "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;",
+    kidney:       "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;",
+    metabolic:    "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;",
+    inflammation: "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;",
+    immune:       "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;",
+    personal:     "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;",
+    black:        "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;" // used for podcast/submission
+};
 
-    // Thematic backgrounds
-    const liverBackground        = "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;";
-    const kidneyBackground       = "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;";
-    const metabolicBackground    = "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;";
-    const inflammationBackground = "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;";
-    const immuneBackground       = "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;";
-    const personalLinkColor      = "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;";
+// Base icons keyed by exact server labels (supports server naming)
+const BASE_ICONS = {
+    'Age Reduction': 'fa-bolt',
+    'Chronological Age – Oldest': 'fa-infinity',
+    'Chronological Age – Youngest': 'fa-baby',
+    'PhenoAge – Lowest': 'fa-feather',
+    'Most Submissions': 'fa-skull-crossbones',
+    '≥2 Submissions': 'fa-calendar-check',
+    'Crowd – Most Guessed': 'fa-users',
+    'Crowd – Age Gap (Chrono−Crowd)': 'fa-user-ninja',
+    'Crowd – Lowest Crowd Age': 'fa-baby',
+    'PhenoAge Best Improvement': 'fa-clock',
+    // Domain winners (match backend labels)
+    'Best Domain – Liver': 'fa-droplet',
+    'Best Domain – Kidney': 'fa-toilet',
+    'Best Domain – Metabolic': 'fa-fire',
+    'Best Domain – Inflammation': 'fa-temperature-three-quarters',
+    'Best Domain – Immune': 'fa-virus'
+};
 
-    // small helper for keyboard accessibility on clickable <span>
-    const spanA11y = `role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){this.click();}"`;
+// Helpers to read both PascalCase (server) and camelCase (legacy FE) fields
+function getLabel(b){ return b.Label || b.BadgeLabel || ''; }
+function getCat(b){ return (b.LeagueCategory || '').toString(); }
+function getVal(b){ return b.LeagueValue || ''; }
+function getPlace(b){ return typeof b.Place === 'number' ? b.Place : null; }
 
-    // — Personal link (clickable <a>)
-    if (athlete.personalLink) {
-        const linkHref = athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink;
-        const badgeHtml = `
-            <a class="badge-class badge-clickable"
-               href="${linkHref}" target="_blank" rel="noopener"
-               title="Personal Page" aria-label="Visit athlete's personal page"
-               style="${personalLinkColor}">
-                <i class="fa fa-link"></i>
-            </a>`;
-        badgeElements.push({ order: 0, html: badgeHtml });
+// Legacy tooltip builders (frontend-owned, not from server)
+function makeTooltipFromServerBadge(b, athlete) {
+    const label = getLabel(b);
+    const cat = getCat(b).toLowerCase();
+    const val = getVal(b);
+    const place = getPlace(b);
+
+    // Age Reduction family (global/division/generation/exclusive)
+    if (label === 'Age Reduction') {
+        if (cat === 'global') {
+            if (place === 1) return 'Ultimate Lifeform: #1 in the Ultimate League';
+            if (place === 2) return 'Near Immortal: #2 in the Ultimate League';
+            if (place === 3) return 'Third and Threatening: #3 in the Ultimate League';
+            return 'Age Reduction';
+        }
+        if (cat === 'division') {
+            if (place === 1) {
+                const v = val.toLowerCase();
+                if (v === "men's") return "The Alpha Male: #1 in Men's League";
+                if (v === "women's") return "The Empress: #1 in Women's League";
+                if (v === "open") return 'The Machine: #1 in Open League';
+            }
+            return `#${place} in ${val} League`;
+        }
+        if (cat === 'generation') {
+            if (place === 1) {
+                const g = val.toLowerCase();
+                if (g === 'silent generation') return 'The Grandmaster: #1 in Silent Generation League';
+                if (g === 'baby boomers')      return 'The Iron Throne: #1 in Baby Boomers League';
+                if (g === 'gen x')             return 'The Last Ronin: #1 in Gen X League';
+                if (g === 'millennials')       return 'The Chosen One: #1 in Millennials League';
+                if (g === 'gen z')             return 'The Meme Lord: #1 in Gen Z League';
+                if (g === 'gen alpha')         return 'The Singularity: #1 in Gen Alpha League';
+            }
+            return `#${place} in ${val} League`;
+        }
+        if (cat === 'exclusive') {
+            return `#${place} in ${val} League`;
+        }
     }
 
-    // — Podcast (clickable <a>)
-    if (athlete.podcastLink) {
-        const linkHref = athlete.podcastLink.startsWith('http') ? athlete.podcastLink : 'https://' + athlete.podcastLink;
-        const podcastBadgeHtml = `
-            <a class="badge-class badge-clickable badge-podcast"
-               href="${linkHref}" target="_blank" rel="noopener"
-               title="Podcast: hear to this athlete's story in depth"
-               style="${defaultBadgeBackground}">
+    // Chronological Age – Oldest
+    if (label === 'Chronological Age – Oldest' && place) {
+        const age = (athlete.chronologicalAge ?? athlete.ChronoAge ?? athlete.chronological_age);
+        const ageText = isFinite(age) ? Number(age).toFixed(1) : '';
+        if (place === 1) return `Yoda: Chronologically Oldest (Age: ${ageText} years)`;
+        if (place === 2) return `Master Roshi: Chronologically 2nd Oldest (Age: ${ageText})`;
+        if (place === 3) return `Mr. Miyagi: Chronologically 3rd Oldest (Age: ${ageText})`;
+    }
+
+    // Chronological Age – Youngest
+    if (label === 'Chronological Age – Youngest' && place) {
+        const age = (athlete.chronologicalAge ?? athlete.ChronoAge ?? athlete.chronological_age);
+        const ageText = isFinite(age) ? Number(age).toFixed(1) : '';
+        if (place === 1) return `Son Goten: Chronologically Youngest (Age: ${ageText} years)`;
+        if (place === 2) return `Son Gohan: Chronologically 2nd Youngest (Age: ${ageText})`;
+        if (place === 3) return `Son Goku: Chronologically 3rd Youngest (Age: ${ageText})`;
+    }
+
+    // PhenoAge – Lowest
+    if (label === 'PhenoAge – Lowest' && place) {
+        const ph = (athlete.lowestPhenoAge ?? athlete.LowestPhenoAge);
+        const phText = isFinite(ph) ? Number(ph).toFixed(1) : '';
+        if (place === 1) return `Peter Pan: Biologically Youngest (Pheno Age: ${phText} years)`;
+        if (place === 2) return `Dorian Gray: Biologically 2nd Youngest (Pheno Age: ${phText})`;
+        if (place === 3) return `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${phText})`;
+    }
+
+    // Submissions
+    if (label === 'Most Submissions') {
+        const c = (athlete.submissionCount ?? athlete.SubmissionCount ?? 0);
+        return `The Submittinator: Most Tests Submitted: ${c}`;
+    }
+    if (label === '≥2 Submissions') {
+        return 'The Regular: Two or More Tests Submitted';
+    }
+
+    // Crowd badges (need crowdCount / crowdAge from athlete)
+    if (label === 'Crowd – Most Guessed' && place) {
+        const count = (athlete.crowdCount ?? athlete.CrowdCount ?? 0);
+        if (place === 1) return `Popular AF: Most Age Guesses Received (${count})`;
+        if (place === 2) return `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
+        if (place === 3) return `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
+    }
+    if (label === 'Crowd – Age Gap (Chrono−Crowd)' && place) {
+        const ch = (athlete.chronologicalAge ?? athlete.ChronoAge ?? 0);
+        const cr = (athlete.crowdAge ?? athlete.CrowdAge ?? 0);
+        const gap = Math.abs(Number(ch) - Number(cr));
+        const gapText = isFinite(gap) ? gap.toFixed(1) : '';
+        const yearWord = gapText === '1.0' ? 'year' : 'years';
+        if (place === 1) return `Skin Trafficker: Perceived ${gapText} ${yearWord} younger`;
+        if (place === 2) return `Wrinkle Launderer: Perceived ${gapText} ${yearWord} younger`;
+        if (place === 3) return `Collagen Smuggler: Perceived ${gapText} ${yearWord} younger`;
+    }
+    if (label === 'Crowd – Lowest Crowd Age' && place) {
+        const cr = (athlete.crowdAge ?? athlete.CrowdAge ?? 0);
+        const ageText = isFinite(cr) ? Number(cr).toFixed(1) : '';
+        const yearWord = ageText === '1.0' ? 'year' : 'years';
+        if (place === 1) return `Baby Boss: Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
+        if (place === 2) return `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
+        if (place === 3) return `Diaper Don: 3rd Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
+    }
+
+    // PhenoAge Best Improvement (a.k.a. Redemption Arc)
+    if (label === 'PhenoAge Best Improvement') {
+        // Server doesn’t push the delta value; show generic legacy label
+        return 'Redemption Arc: Greatest Age Reversal from First Submission (Baseline)';
+    }
+
+    // Domain winners: rebuild legacy informative tooltips if BestMarkerValues present
+    if (label.startsWith('Best Domain')) {
+        const best = athlete.bestBiomarkerValues || athlete.BestMarkerValues;
+        if (Array.isArray(best) && best.length >= 10) {
+            // [0]=AgeAtTest, [1]=Alb g/L, [2]=Creat umol/L, [3]=Glu mmol/L, [4]=ln(CRP/10), [5]=WBC,
+            // [6]=Lymph %, [7]=MCV fL, [8]=RDW %, [9]=ALP U/L
+            const alb = Number(best[1]).toFixed(1);
+            const creat = Number(best[2]).toFixed(1);
+            const glu = Number(best[3]).toFixed(1);
+            const crp = (Math.exp(Number(best[4])) * 10).toFixed(2);
+            const wbc = Number(best[5]).toFixed(1);
+            const lym = Number(best[6]).toFixed(1);
+            const mcv = Number(best[7]).toFixed(1);
+            const rdw = Number(best[8]).toFixed(1);
+            const alp = Number(best[9]).toFixed(1);
+
+            if (label === 'Best Domain – Liver')        return `Liver King: Top Liver Profile (Albumin ${alb} g/L, ALP ${alp} U/L)`;
+            if (label === 'Best Domain – Kidney')       return `Kidney Overlord: Top Kidney Profile (Creatinine ${creat} µmol/L)`;
+            if (label === 'Best Domain – Metabolic')    return `Glucose Gladiator: Top Metabolic Profile (Glucose ${glu} mmol/L)`;
+            if (label === 'Best Domain – Inflammation') return `Inflammation Whisperer: Top Inflammation Profile (CRP ${crp} mg/L)`;
+            if (label === 'Best Domain – Immune')       return `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lym}%, MCV ${mcv} fL, RDW ${rdw}%)`;
+        }
+    }
+
+    // Fallback
+    return place ? `${label}: #${place}` : `${label}`;
+}
+
+// Choose proper icon; override special cases
+function pickIconForServerBadge(b) {
+    const label = getLabel(b);
+    const cat = getCat(b).toLowerCase();
+    const place = getPlace(b);
+
+    // #1 in Ultimate League → crown (legacy cue)
+    if (label === 'Age Reduction' && cat === 'global' && place === 1) {
+        return 'fa-crown';
+    }
+
+    // division/generation icons (use site helpers if present)
+    if (label === 'Age Reduction' && (cat === 'division' || cat === 'generation') && b.LeagueValue) {
+        if (cat === 'division' && typeof window.TryGetDivisionFaIcon === 'function') {
+            return window.TryGetDivisionFaIcon(b.LeagueValue) || (BASE_ICONS[label] || 'fa-award');
+        }
+        if (cat === 'generation' && typeof window.TryGetGenerationFaIcon === 'function') {
+            return window.TryGetGenerationFaIcon(b.LeagueValue) || (BASE_ICONS[label] || 'fa-award');
+        }
+    }
+    return BASE_ICONS[label] || 'fa-award';
+}
+
+// Background to exactly mimic old palette
+function pickBackgroundForServerBadge(b) {
+    const label = getLabel(b);
+    const place = getPlace(b);
+
+    // Medal backgrounds for ranked items
+    const medalLike = (
+        label === 'Age Reduction' ||
+        label === 'Chronological Age – Oldest' ||
+        label === 'Chronological Age – Youngest' ||
+        label === 'PhenoAge – Lowest' ||
+        label === 'Crowd – Most Guessed' ||
+        label === 'Crowd – Age Gap (Chrono−Crowd)' ||
+        label === 'Crowd – Lowest Crowd Age'
+    );
+
+    if (medalLike && place && [1,2,3].includes(place)) {
+        return LEGACY_BG.medal[place - 1];
+    }
+
+    // Submissions → legacy black bubble
+    if (label === 'Most Submissions' || label === '≥2 Submissions') {
+        return LEGACY_BG.black;
+    }
+
+    // Domains → thematic
+    if (label === 'Best Domain – Liver')        return LEGACY_BG.liver;
+    if (label === 'Best Domain – Kidney')       return LEGACY_BG.kidney;
+    if (label === 'Best Domain – Metabolic')    return LEGACY_BG.metabolic;
+    if (label === 'Best Domain – Inflammation') return LEGACY_BG.inflammation;
+    if (label === 'Best Domain – Immune')       return LEGACY_BG.immune;
+
+    // PhenoAge Best Improvement, etc. → default black
+    if (label === 'PhenoAge Best Improvement')  return LEGACY_BG.default;
+
+    // fallback
+    return LEGACY_BG.default;
+}
+
+// Optional link target (when clicking a medal/badge)
+function pickClickUrl(b) {
+    const label = getLabel(b);
+    const cat = getCat(b).toLowerCase();
+    const val = getVal(b);
+
+    if (label === 'Age Reduction') {
+        if (cat === 'global') return '/leaderboard/leaderboard.html';
+        if ((cat === 'division' || cat === 'generation' || cat === 'exclusive') && val) {
+            const slug = window.slugifyName ? window.slugifyName(val, true) : null;
+            return slug ? `/league/${slug}` : null;
+        }
+    }
+    return null;
+}
+
+// Order: personal link (0), podcast (1), medals (2..4), neutrals (1) — match legacy behavior
+function computeOrder(b) {
+    const label = getLabel(b);
+    const place = getPlace(b);
+
+    const isMedal = (
+        label === 'Age Reduction' ||
+        label === 'Chronological Age – Oldest' ||
+        label === 'Chronological Age – Youngest' ||
+        label === 'PhenoAge – Lowest' ||
+        label.startsWith('Crowd – ')
+    ) && place && [1,2,3].includes(place);
+
+    if (isMedal) return place === 1 ? 2 : (place === 2 ? 3 : 4);
+
+    // neutral/black stuff used to sit before medals in the old code (order 1)
+    return 1;
+}
+
+// Build one server badge bubble HTML
+function buildServerBadgeHtml(b, athlete) {
+    const icon = pickIconForServerBadge(b);
+    const tooltip = makeTooltipFromServerBadge(b, athlete);
+    const style = pickBackgroundForServerBadge(b);
+    const url = pickClickUrl(b);
+    const order = computeOrder(b);
+
+    const clickableAttrs = url
+        ? `class="badge-class badge-clickable" ${spanA11y} onclick="window.location.href='${url}';"`
+        : `class="badge-class"`;
+
+    return {
+        order,
+        html: `<span ${clickableAttrs} title="${tooltip}" style="${style}"><i class="fa ${icon}"></i></span>`
+    };
+}
+
+/* =========================
+   Public API: window.setBadges
+   ========================= */
+window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal shim) */) {
+    let badgeContainer = null;
+    if (athleteCell && athleteCell.classList && athleteCell.classList.contains('badge-section')) {
+        badgeContainer = athleteCell;
+    } else if (athleteCell && typeof athleteCell.querySelector === 'function') {
+        badgeContainer = athleteCell.querySelector('.badge-section') || athleteCell.querySelector('.badges');
+    }
+    if (!badgeContainer) return;
+
+    const items = [];
+
+    // 0) --- PERSONAL LINK (legacy teal bubble, clickable) ---
+    const personalLink = athlete.personalLink || athlete.PersonalLink;
+    if (personalLink) {
+        const href = personalLink.startsWith('http') ? personalLink : `https://${personalLink}`;
+        items.push({
+            order: 0,
+            html: `<a class="badge-class badge-clickable" ${spanA11y} href="${href}" target="_blank" rel="noopener"
+               title="Personal Page" style="${LEGACY_BG.personal}">
+               <i class="fa fa-link"></i>
+             </a>`
+        });
+    }
+
+    // 1) --- SERVER-DRIVEN BADGES ---
+    // Expecting athlete.Badges = [{ BadgeLabel/Label, LeagueCategory, LeagueValue, Place }, ...]
+    const serverBadges =
+        Array.isArray(athlete.Badges) ? athlete.Badges :
+            Array.isArray(athlete.badges) ? athlete.badges : [];
+
+    serverBadges.forEach(b => items.push(buildServerBadgeHtml(b, athlete)));
+
+    // 2) --- CLIENT-ONLY BADGES (novelty) ---
+    // Podcast (legacy black bubble, clickable)
+    const podcastLink = athlete.podcastLink || athlete.PodcastLink;
+    if (podcastLink) {
+        items.push({
+            order: 1,
+            html: `<a class="badge-class badge-clickable badge-podcast" ${spanA11y}
+                href="${podcastLink.startsWith('http') ? podcastLink : 'https://' + podcastLink}"
+                target="_blank" rel="noopener" title="Podcast: hear to this athlete's story in depth" style="${LEGACY_BG.black}">
                 <i class="fa fa-microphone"></i>
-            </a>`;
-        badgeElements.push({ order: 1, html: podcastBadgeHtml });
+             </a>`
+        });
     }
 
-    // — Chronologically Oldest
-    if (oldestMapping[athlete.name]) {
-        const rank = oldestMapping[athlete.name];
-        const ageText = athlete.chronologicalAge.toFixed(1);
-        let tooltipText = "", iconClass = "";
-        if (rank === 1)      { tooltipText = `Yoda: Chronologically Oldest (Age: ${ageText} years)`;        iconClass = "fa-infinity"; }
-        else if (rank === 2) { tooltipText = `Master Roshi: Chronologically 2nd Oldest (Age: ${ageText})`; iconClass = "fa-scroll"; }
-        else if (rank === 3) { tooltipText = `Mr. Miyagi: Chronologically 3rd Oldest (Age: ${ageText})`;   iconClass = "fa-leaf"; }
-        const badgeHtml = `
-            <span class="badge-class"
-                  title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Chronologically Youngest
-    if (youngestMapping[athlete.name]) {
-        const rank = youngestMapping[athlete.name];
-        const ageText = athlete.chronologicalAge.toFixed(1);
-        let tooltipText = "", iconClass = "";
-        if (rank === 1)      { tooltipText = `Son Goten: Chronologically Youngest (Age: ${ageText} years)`; iconClass = "fa-baby"; }
-        else if (rank === 2) { tooltipText = `Son Gohan: Chronologically 2nd Youngest (Age: ${ageText})`;   iconClass = "fa-child"; }
-        else if (rank === 3) { tooltipText = `Son Goku: Chronologically 3rd Youngest (Age: ${ageText})`;    iconClass = "fa-running"; }
-        const badgeHtml = `
-            <span class="badge-class"
-                  title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Biologically Youngest
-    if (biologicallyYoungestMapping[athlete.name]) {
-        const rank = biologicallyYoungestMapping[athlete.name];
-        const ageText = athlete.lowestPhenoAge.toFixed(1);
-        let tooltipText = "", iconClass = "";
-        if (rank === 1)      { tooltipText = `Peter Pan: Biologically Youngest (Pheno Age: ${ageText} years)`; iconClass = "fa-feather"; }
-        else if (rank === 2) { tooltipText = `Dorian Gray: Biologically 2nd Youngest (Pheno Age: ${ageText})`; iconClass = "fa-portrait"; }
-        else if (rank === 3) { tooltipText = `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${ageText})`; iconClass = "fa-hourglass-start"; }
-        const badgeHtml = `
-            <span class="badge-class"
-                  title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — First Applicants
+    // First Applicants (same as before)
     const firstApplicantsMapping = {
         "Alan V": 1, "Cody Hergenroeder": 2, "Spiderius": 3, "Jesse": 4, "Tone Vays": 5,
         "Stellar Madic": 6, "RichLee": 7, "ScottBrylow": 8, "Mind4u2cn": 9, "Dave Pascoe": 10
@@ -434,274 +370,58 @@ window.setBadges = function (athlete, athleteCell) {
         else if (rank === 2) { tooltipText = "Athlete Beta: 2nd Athlete to Join the Longevity World Cup";  iconClass = "fa-star"; }
         else if (rank === 3) { tooltipText = "Athlete Gamma: 3rd Athlete to Join the Longevity World Cup"; iconClass = "fa-bolt"; }
         else                 { tooltipText = "Early Bird: Among the First 10 Athletes to Join the Longevity World Cup"; iconClass = "fa-dove"; }
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Pregnancy
-    const pregnancyMapping = ["Olga Vresca"];
-    if (pregnancyMapping.includes(athlete.name)) {
-        const badgeHtml = `
-            <span class="badge-class" title="Baby on Board! Delivering in 2025" style="${defaultBadgeBackground}">
-                <i class="fa fa-baby-carriage"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Host
-    if (athlete.name === "nopara73") {
-        const badgeHtml = `
-            <span class="badge-class" title="Host: Organizer of the Longevity World Cup" style="${defaultBadgeBackground}">
-                <i class="fa fa-house"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Perfect Application
-    if (athlete.name === "Cornee") {
-        const badgeHtml = `
-            <span class="badge-class" title="Perfect Application: Most Flawless Entry Form Ever Submitted" style="${defaultBadgeBackground}">
-                <i class="fa fa-ruler"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Ultimate League (clickable <span>)
-    if (ultimateLeagueMapping[athlete.name]) {
-        const rank = ultimateLeagueMapping[athlete.name];
-        let tooltipText = "", iconClass = "";
-        if (rank === 1)      { tooltipText = "Ultimate Lifeform: #1 in the Ultimate League"; iconClass = "fa-crown"; }
-        else if (rank === 2) { tooltipText = "Near Immortal: #2 in the Ultimate League";     iconClass = "fa-medal"; }
-        else if (rank === 3) { tooltipText = "Third and Threatening: #3 in the Ultimate League"; iconClass = "fa-award"; }
-        const badgeHtml = `
-            <span class="badge-class badge-clickable"
-                  ${spanA11y}
-                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
-                  onclick="window.location.href='/leaderboard/leaderboard.html';">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // — Division rank (clickable <span>)
-    if (divisionMapping[athlete.name]) {
-        const { rank, division } = divisionMapping[athlete.name];
-        let tooltipText;
-        if (rank === 1) {
-            if (division.toLowerCase() === "men's")      tooltipText = "The Alpha Male: #1 in Men's League";
-            else if (division.toLowerCase() === "women's") tooltipText = "The Empress: #1 in Women's League";
-            else if (division.toLowerCase() === "open")    tooltipText = "The Machine: #1 in Open League";
-        } else {
-            tooltipText = `#${rank} in ${division} League`;
-        }
-        const iconClass = window.TryGetDivisionFaIcon(division);
-        const leagueSlug = window.slugifyName(division, true);
-        const badgeHtml = `
-            <span class="badge-class badge-clickable"
-                  ${spanA11y}
-                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
-                  onclick="window.location.href='/league/${leagueSlug}';">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // — Generation rank (clickable <span>)
-    if (generationMapping[athlete.name]) {
-        const { rank, generation } = generationMapping[athlete.name];
-        let tooltipText;
-        if (rank === 1) {
-            const gen = generation.toLowerCase();
-            if (gen === "silent generation")      tooltipText = "The Grandmaster: #1 in Silent Generation League";
-            else if (gen === "baby boomers")      tooltipText = "The Iron Throne: #1 in Baby Boomers League";
-            else if (gen === "gen x")             tooltipText = "The Last Ronin: #1 in Gen X League";
-            else if (gen === "millennials")       tooltipText = "The Chosen One: #1 in Millennials League";
-            else if (gen === "gen z")             tooltipText = "The Meme Lord: #1 in Gen Z League";
-            else if (gen === "gen alpha")         tooltipText = "The Singularity: #1 in Gen Alpha League";
-        } else {
-            tooltipText = `#${rank} in ${generation} League`;
-        }
-        const iconClass = window.TryGetGenerationFaIcon(generation);
-        const leagueSlug = window.slugifyName(generation, true);
-        const badgeHtml = `
-            <span class="badge-class badge-clickable"
-                  ${spanA11y}
-                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
-                  onclick="window.location.href='/league/${leagueSlug}';">
-                <i class="fa ${iconClass}"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // — Exclusive league (clickable <span>)
-    if (exclusiveLeagueMapping[athlete.name]) {
-        const { rank, exclusiveLeague } = exclusiveLeagueMapping[athlete.name];
-        const tooltipText = `#${rank} in ${exclusiveLeague} League`;
-        const leagueSlug = window.slugifyName(exclusiveLeague, true);
-        const badgeHtml = `
-            <span class="badge-class badge-clickable"
-                  ${spanA11y}
-                  title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
-                  onclick="window.location.href='/league/${leagueSlug}';">
-                <i class="fa fa-umbrella-beach"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // — Submission Counts (non-clickable)
-    if (mostSubmissionMapping[athlete.name]) {
-        const tooltipText = mostSubmissionMapping[athlete.name];
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa fa-skull-crossbones"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-    if (submissionOverTwoMapping[athlete.name]) {
-        const tooltipText = submissionOverTwoMapping[athlete.name];
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa fa-calendar-check"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Most Guessed (medals)
-    if (mostGuessedMapping[athlete.name]) {
-        const rank = mostGuessedMapping[athlete.name];
-        const count = athlete.crowdCount;
-        let tooltipText;
-        if (rank === 1)      tooltipText = `Popular AF: Most Age Guesses Received (${count})`;
-        else if (rank === 2) tooltipText = `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
-        else                 tooltipText = `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa fa-users"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // — Age-Gap (medals)
-    if (ageGapMapping[athlete.name]) {
-        const rank = ageGapMapping[athlete.name];
-        const gap = Math.abs(athlete.chronologicalAge - athlete.crowdAge).toFixed(1);
-        const yearWord = (gap === '1.0') ? 'year' : 'years';
-        let tooltipText;
-        if (rank === 1)      tooltipText = `Skin Trafficker: Perceived ${gap} ${yearWord} younger`;
-        else if (rank === 2) tooltipText = `Wrinkle Launderer: Perceived ${gap} ${yearWord} younger`;
-        else                 tooltipText = `Collagen Smuggler: Perceived ${gap} ${yearWord} younger`;
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa fa-user-ninja"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // — Lowest crowd-guessed age (medals)
-    if (crowdAgeMapping[athlete.name]) {
-        const rank = crowdAgeMapping[athlete.name];
-        const age = athlete.crowdAge.toFixed(1);
-        const yearWord = age === '1.0' ? 'year' : 'years';
-        let tooltip;
-        if (rank === 1)      tooltip = `Baby Boss: Youngest Looking (Crowd Age: ${age} ${yearWord})`;
-        else if (rank === 2) tooltip = `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
-        else                 tooltip = `Diaper Don: 3rd Youngest Looking (Crowd Age: ${age} ${yearWord})`;
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltip}" style="${badgeBackgrounds[rank - 1]}">
-                <i class="fa fa-baby"></i>
-            </span>`;
-        const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;
-        badgeElements.push({ order: colorOrder, html: badgeHtml });
-    }
-
-    // — PhenoAge Difference (non-clickable)
-    if (phenoAgeDiffMapping[athlete.name]) {
-        const tooltipText = phenoAgeDiffMapping[athlete.name];
-        const badgeHtml = `
-            <span class="badge-class" title="${tooltipText}" style="${defaultBadgeBackground}">
-                <i class="fa fa-clock"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // — Perfect Guess (non-clickable)
-    if (perfectGuessMapping[athlete.name]) {
-        const html = `
-            <span class="badge-class" title="Bullseye: You Guessed Their Age Perfectly!" style="${defaultBadgeBackground}">
-                <i class="fa fa-bullseye"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html });
-    }
-
-    // — Best Guess (non-clickable)
-    if (bestGuessMapping[athlete.name]) {
-        const diff = bestGuessDiffMapping[athlete.name];
-        const yearWord = diff === 1 ? 'year' : 'years';
-        const html = `
-            <span class="badge-class" title="Your Best Age Guess: Only ${diff} ${yearWord} Off!" style="${defaultBadgeBackground}">
-                <i class="fa fa-crosshairs"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html });
-    }
-
-    // — Biomarker contributions (non-clickable)
-    if (liverMapping[athlete.name]) {
-        const badgeHtml = `
-            <span class="badge-class" title="${liverMapping[athlete.name]}" style="${liverBackground}">
-                <i class="fa fa-droplet"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-    if (kidneyMapping[athlete.name]) {
-        const badgeHtml = `
-            <span class="badge-class" title="${kidneyMapping[athlete.name]}" style="${kidneyBackground}">
-                <i class="fa fa-toilet"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-    if (metabolicMapping[athlete.name]) {
-        const badgeHtml = `
-            <span class="badge-class" title="${metabolicMapping[athlete.name]}" style="${metabolicBackground}">
-                <i class="fa fa-fire"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-    if (inflammationMapping[athlete.name]) {
-        const badgeHtml = `
-            <span class="badge-class" title="${inflammationMapping[athlete.name]}" style="${inflammationBackground}">
-                <i class="fa fa-temperature-three-quarters"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-    if (immuneMapping[athlete.name]) {
-        const badgeHtml = `
-            <span class="badge-class" title="${immuneMapping[athlete.name]}" style="${immuneBackground}">
-                <i class="fa fa-virus"></i>
-            </span>`;
-        badgeElements.push({ order: 1, html: badgeHtml });
-    }
-
-    // Sort by color order then render
-    badgeElements.sort((a, b) => a.order - b.order);
-    badgeElements.forEach(badge => { badgeSection.innerHTML += badge.html; });
-
-    // Pop animation (unchanged)
-    if (badgeSection.classList.contains('badge-section')) {
-        Array.from(badgeSection.children).forEach((badge, i) => {
-            badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
-            badge.addEventListener('animationend', function handler() {
-                badge.style.animation = '';
-                badge.removeEventListener('animationend', handler);
-            });
+        items.push({
+            order: 6,
+            html: `<span class="badge-class" title="${tooltipText}" style="${LEGACY_BG.default}">
+               <i class="fa ${iconClass}"></i>
+             </span>`
         });
     }
+
+    // Pregnancy (legacy)
+    const pregnancyMapping = ["Olga Vresca"];
+    if (pregnancyMapping.includes(athlete.name)) {
+        items.push({
+            order: 6,
+            html: `<span class="badge-class" title="Baby on Board! Delivering in 2025" style="${LEGACY_BG.default}">
+               <i class="fa fa-baby-carriage"></i>
+             </span>`
+        });
+    }
+
+    // Host (legacy)
+    if (athlete.name === "nopara73") {
+        items.push({
+            order: 6,
+            html: `<span class="badge-class" title="Host: Organizer of the Longevity World Cup" style="${LEGACY_BG.default}">
+               <i class="fa fa-house"></i>
+             </span>`
+        });
+    }
+
+    // Perfect Application (legacy)
+    if (athlete.name === "Cornee") {
+        items.push({
+            order: 6,
+            html: `<span class="badge-class" title="Perfect Application: Most Flawless Entry Form Ever Submitted" style="${LEGACY_BG.default}">
+               <i class="fa fa-ruler"></i>
+             </span>`
+        });
+    }
+
+    // 3) --- RENDER to DOM (ordered: link/podcast → medals → neutrals) ---
+    items.sort((a, b) => a.order - b.order);
+    badgeContainer.innerHTML = items.map(x => x.html).join('');
 };
+
+// keep a no-op for any legacy calls
+window.computeBadges = window.computeBadges || function () {};
+
+/* =========================
+   LEGACY (disabled): client-side computation of competitive badges
+   =========================
+   Historically, we computed league ranks, biomarker MVPs, and crowd medals here on the client.
+   That code is now superseded by the backend (BadgeDataService → AthleteDataService embedding),
+   because we need authoritative state, ties, and event generation on the server.
+   Keeping this section documented for posterity; implementation removed on purpose.
+*/
