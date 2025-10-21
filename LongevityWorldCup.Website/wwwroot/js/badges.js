@@ -423,7 +423,7 @@ window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal
         else if (rank === 3) { tooltipText = "Athlete Gamma: 3rd Athlete to Join the Longevity World Cup"; iconClass = "fa-bolt"; }
         else                 { tooltipText = "Early Bird: Among the First 10 Athletes to Join the Longevity World Cup"; iconClass = "fa-dove"; }
         items.push({
-            order: 6,
+            order: 1.19,
             html: `<span class="badge-class" title="${tooltipText}" style="${LEGACY_BG.default}">
                <i class="fa ${iconClass}"></i>
              </span>`
@@ -434,7 +434,7 @@ window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal
     const pregnancyMapping = ["Olga Vresca"];
     if (pregnancyMapping.includes(athlete.name)) {
         items.push({
-            order: 6,
+            order: 1.191,
             html: `<span class="badge-class" title="Baby on Board! Delivering in 2025" style="${LEGACY_BG.default}">
                <i class="fa fa-baby-carriage"></i>
              </span>`
@@ -444,7 +444,7 @@ window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal
     // Host (legacy)
     if (athlete.name === "nopara73") {
         items.push({
-            order: 6,
+            order: 1.192,
             html: `<span class="badge-class" title="Host: Organizer of the Longevity World Cup" style="${LEGACY_BG.default}">
                <i class="fa fa-house"></i>
              </span>`
@@ -454,7 +454,7 @@ window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal
     // Perfect Application (legacy)
     if (athlete.name === "Cornee") {
         items.push({
-            order: 6,
+            order: 1.193,
             html: `<span class="badge-class" title="Perfect Application: Most Flawless Entry Form Ever Submitted" style="${LEGACY_BG.default}">
                <i class="fa fa-ruler"></i>
              </span>`
