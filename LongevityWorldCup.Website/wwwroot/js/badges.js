@@ -200,15 +200,14 @@ function pickIconForServerBadge(b) {
     const cat = getCat(b).toLowerCase();
     const place = getPlace(b);
 
-    // Ultimate League (global Age Reduction): legacy icons per place
-    // 1st → crown, 2nd → medal, 3rd → award
+    // Ultimate League (global Age Reduction): 1=crown, 2=medal, 3=award
     if (label === 'Age Reduction' && cat === 'global' && place) {
         if (place === 1) return 'fa-crown';
         if (place === 2) return 'fa-medal';
         if (place === 3) return 'fa-award';
     }
 
-    // division/generation icons (use site helpers if present)
+    // Division / Generation ikonok
     if (label === 'Age Reduction' && (cat === 'division' || cat === 'generation') && b.LeagueValue) {
         if (cat === 'division' && typeof window.TryGetDivisionFaIcon === 'function') {
             return window.TryGetDivisionFaIcon(b.LeagueValue) || (BASE_ICONS[label] || 'fa-award');
@@ -218,9 +217,24 @@ function pickIconForServerBadge(b) {
         }
     }
 
-    // exclusive league: legacy umbrella icon (optional but matches old FE)
-    if (label === 'Age Reduction' && cat === 'exclusive') {
-        return 'fa-umbrella-beach';
+    // Exclusive league ikon
+    if (label === 'Age Reduction' && cat === 'exclusive') return 'fa-umbrella-beach';
+
+    // LEGACY: rangonként eltérő ikonok ezeknél a badge-eknél
+    if (label === 'Chronological Age – Oldest' && place) {
+        if (place === 1) return 'fa-infinity';
+        if (place === 2) return 'fa-scroll';
+        if (place === 3) return 'fa-leaf';
+    }
+    if (label === 'Chronological Age – Youngest' && place) {
+        if (place === 1) return 'fa-baby';
+        if (place === 2) return 'fa-child';
+        if (place === 3) return 'fa-running';       // ← Son Goku
+    }
+    if (label === 'PhenoAge – Lowest' && place) {
+        if (place === 1) return 'fa-feather';
+        if (place === 2) return 'fa-portrait';      // ← Dorian Gray
+        if (place === 3) return 'fa-hourglass-start';
     }
 
     return BASE_ICONS[label] || 'fa-award';
@@ -231,37 +245,34 @@ function pickBackgroundForServerBadge(b) {
     const label = getLabel(b);
     const place = getPlace(b);
 
-    // Medal backgrounds for ranked items
-    const medalLike = (
-        label === 'Age Reduction' ||
+    // LEGACY: ezek mindig fekete buborékok voltak
+    if (
         label === 'Chronological Age – Oldest' ||
         label === 'Chronological Age – Youngest' ||
-        label === 'PhenoAge – Lowest' ||
-        label === 'Crowd – Most Guessed' ||
-        label === 'Crowd – Age Gap (Chrono−Crowd)' ||
-        label === 'Crowd – Lowest Crowd Age'
-    );
+        label === 'PhenoAge – Lowest'
+    ) {
+        return LEGACY_BG.default;
+    }
 
-    if (medalLike && place && [1,2,3].includes(place)) {
+    // Medal háttér csak azokra, amik tényleg érmek
+    const medalLike =
+        label === 'Age Reduction' ||
+        label.startsWith('Crowd – ');
+
+    if (medalLike && place && [1, 2, 3].includes(place)) {
         return LEGACY_BG.medal[place - 1];
     }
 
-    // Submissions → legacy black bubble
-    if (label === 'Most Submissions' || label === '≥2 Submissions') {
-        return LEGACY_BG.black;
-    }
+    if (label === 'Most Submissions' || label === '≥2 Submissions') return LEGACY_BG.black;
 
-    // Domains → thematic
     if (label === 'Best Domain – Liver')        return LEGACY_BG.liver;
     if (label === 'Best Domain – Kidney')       return LEGACY_BG.kidney;
     if (label === 'Best Domain – Metabolic')    return LEGACY_BG.metabolic;
     if (label === 'Best Domain – Inflammation') return LEGACY_BG.inflammation;
     if (label === 'Best Domain – Immune')       return LEGACY_BG.immune;
 
-    // PhenoAge Best Improvement, etc. → default black
     if (label === 'PhenoAge Best Improvement')  return LEGACY_BG.default;
 
-    // fallback
     return LEGACY_BG.default;
 }
 
@@ -288,58 +299,44 @@ function computeOrder(b) {
     const cat = getCat(b).toLowerCase();
     const place = getPlace(b);
 
-    // --- medals (ranked) get base 2/3/4 and then tiny offsets to match old file's sequence ---
+    // Érmes család csak: Age Reduction + Crowd
     const isMedalFamily =
         label === 'Age Reduction' ||
-        label === 'Chronological Age – Oldest' ||
-        label === 'Chronological Age – Youngest' ||
-        label === 'PhenoAge – Lowest' ||
         label.startsWith('Crowd – ');
 
     if (isMedalFamily && place && [1, 2, 3].includes(place)) {
         const base = place === 1 ? 2 : (place === 2 ? 3 : 4);
         let micro = 0;
 
-        // Old push-order among medals:
-        // 1) Age Reduction (global) → 2) Age Reduction (division) → 3) Age Reduction (generation) → 4) Age Reduction (exclusive)
-        // 5) Chrono Oldest → 6) Chrono Youngest → 7) PhenoAge Lowest → 8) Crowd medals
         if (label === 'Age Reduction') {
             if (cat === 'global')      micro = 0.01;
             else if (cat === 'division')   micro = 0.02;
             else if (cat === 'generation') micro = 0.03;
             else if (cat === 'exclusive')  micro = 0.04;
-        } else if (label === 'Chronological Age – Oldest') {
-            micro = 0.10;
-        } else if (label === 'Chronological Age – Youngest') {
-            micro = 0.11;
-        } else if (label === 'PhenoAge – Lowest') {
-            micro = 0.12;
-        } else if (label.startsWith('Crowd – ')) {
-            // keep crowd medals after the core medals
-            if (label === 'Crowd – Most Guessed')                micro = 0.20;
-            else if (label === 'Crowd – Age Gap (Chrono−Crowd)') micro = 0.21;
-            else if (label === 'Crowd – Lowest Crowd Age')       micro = 0.22;
-            else                                                 micro = 0.29;
-        }
+        } else if (label === 'Crowd – Most Guessed')             micro = 0.20;
+        else if (label === 'Crowd – Age Gap (Chrono−Crowd)')   micro = 0.21;
+        else if (label === 'Crowd – Lowest Crowd Age')         micro = 0.22;
+
         return base + micro;
     }
 
-    // --- neutrals (non-medal) get 1.xx with a fixed inner order identical to legacy ---
-    // Podcast will be 1.10 (set where we push it), so neutrals start from 1.20
-    if (label === 'Most Submissions') return 1.20;   // skull before calendar
+    // LEGACY: ezek a neutrál blokkon belül, a podcast után jönnek
+    if (label === 'Chronological Age – Oldest')   return 1.12;
+    if (label === 'Chronological Age – Youngest') return 1.13; // ← Son Goku ide kerül
+    if (label === 'PhenoAge – Lowest')            return 1.14; // ← Dorian Gray ide kerül
+
+    // Neutrálak
+    if (label === 'Most Submissions') return 1.20;
     if (label === '≥2 Submissions')   return 1.21;
 
-    // Domains in fixed legacy order (droplet → kidney → metabolic → inflammation → immune)
     if (label === 'Best Domain – Liver')        return 1.30;
     if (label === 'Best Domain – Kidney')       return 1.31;
     if (label === 'Best Domain – Metabolic')    return 1.32;
     if (label === 'Best Domain – Inflammation') return 1.33;
     if (label === 'Best Domain – Immune')       return 1.34;
 
-    // Other neutral stuff after domains
     if (label === 'PhenoAge Best Improvement')  return 1.40;
 
-    // fallback neutral
     return 1.50;
 }
 
