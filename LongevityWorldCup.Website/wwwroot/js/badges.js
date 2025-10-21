@@ -272,23 +272,66 @@ function pickClickUrl(b) {
     return null;
 }
 
-// Order: personal link (0), podcast (1), medals (2..4), neutrals (1) — match legacy behavior
+/// Order: personal link (0) → podcast (1.10) → neutrals (1.2x) → medals (2/3/4 + micro)
+// This matches the legacy visual order exactly.
 function computeOrder(b) {
     const label = getLabel(b);
+    const cat = getCat(b).toLowerCase();
     const place = getPlace(b);
 
-    const isMedal = (
+    // --- medals (ranked) get base 2/3/4 and then tiny offsets to match old file's sequence ---
+    const isMedalFamily =
         label === 'Age Reduction' ||
         label === 'Chronological Age – Oldest' ||
         label === 'Chronological Age – Youngest' ||
         label === 'PhenoAge – Lowest' ||
-        label.startsWith('Crowd – ')
-    ) && place && [1,2,3].includes(place);
+        label.startsWith('Crowd – ');
 
-    if (isMedal) return place === 1 ? 2 : (place === 2 ? 3 : 4);
+    if (isMedalFamily && place && [1, 2, 3].includes(place)) {
+        const base = place === 1 ? 2 : (place === 2 ? 3 : 4);
+        let micro = 0;
 
-    // neutral/black stuff used to sit before medals in the old code (order 1)
-    return 1;
+        // Old push-order among medals:
+        // 1) Age Reduction (global) → 2) Age Reduction (division) → 3) Age Reduction (generation) → 4) Age Reduction (exclusive)
+        // 5) Chrono Oldest → 6) Chrono Youngest → 7) PhenoAge Lowest → 8) Crowd medals
+        if (label === 'Age Reduction') {
+            if (cat === 'global')      micro = 0.01;
+            else if (cat === 'division')   micro = 0.02;
+            else if (cat === 'generation') micro = 0.03;
+            else if (cat === 'exclusive')  micro = 0.04;
+        } else if (label === 'Chronological Age – Oldest') {
+            micro = 0.10;
+        } else if (label === 'Chronological Age – Youngest') {
+            micro = 0.11;
+        } else if (label === 'PhenoAge – Lowest') {
+            micro = 0.12;
+        } else if (label.startsWith('Crowd – ')) {
+            // keep crowd medals after the core medals
+            if (label === 'Crowd – Most Guessed')                micro = 0.20;
+            else if (label === 'Crowd – Age Gap (Chrono−Crowd)') micro = 0.21;
+            else if (label === 'Crowd – Lowest Crowd Age')       micro = 0.22;
+            else                                                 micro = 0.29;
+        }
+        return base + micro;
+    }
+
+    // --- neutrals (non-medal) get 1.xx with a fixed inner order identical to legacy ---
+    // Podcast will be 1.10 (set where we push it), so neutrals start from 1.20
+    if (label === 'Most Submissions') return 1.20;   // skull before calendar
+    if (label === '≥2 Submissions')   return 1.21;
+
+    // Domains in fixed legacy order (droplet → kidney → metabolic → inflammation → immune)
+    if (label === 'Best Domain – Liver')        return 1.30;
+    if (label === 'Best Domain – Kidney')       return 1.31;
+    if (label === 'Best Domain – Metabolic')    return 1.32;
+    if (label === 'Best Domain – Inflammation') return 1.33;
+    if (label === 'Best Domain – Immune')       return 1.34;
+
+    // Other neutral stuff after domains
+    if (label === 'PhenoAge Best Improvement')  return 1.40;
+
+    // fallback neutral
+    return 1.50;
 }
 
 // Build one server badge bubble HTML
@@ -349,12 +392,12 @@ window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal
     const podcastLink = athlete.podcastLink || athlete.PodcastLink;
     if (podcastLink) {
         items.push({
-            order: 1,
+            order: 1.10, // ensure podcast comes before other 1.2x neutrals (matches old order)
             html: `<a class="badge-class badge-clickable badge-podcast" ${spanA11y}
-                href="${podcastLink.startsWith('http') ? podcastLink : 'https://' + podcastLink}"
-                target="_blank" rel="noopener" title="Podcast: hear to this athlete's story in depth" style="${LEGACY_BG.black}">
-                <i class="fa fa-microphone"></i>
-             </a>`
+            href="${podcastLink.startsWith('http') ? podcastLink : 'https://' + podcastLink}"
+            target="_blank" rel="noopener" title="Podcast: hear to this athlete's story in depth" style="${LEGACY_BG.black}">
+            <i class="fa fa-microphone"></i>
+         </a>`
         });
     }
 
