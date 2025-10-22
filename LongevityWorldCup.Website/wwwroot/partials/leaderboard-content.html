@@ -32,10 +32,14 @@
         display:flex; align-items:stretch; background-color:var(--card-bg);
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
     }
-    table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
+
+    /* Scope table styles to the leaderboard table only */
+    .leaderboard > table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
 
     .leaderboard td{ text-align:center; }
-    th{
+
+    /* Scoped header styles – do NOT affect the modal info table */
+    .leaderboard table th{
         padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
         color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
     }
@@ -198,10 +202,7 @@
         font-size:12px; pointer-events:none; transition:left .3s ease;
     }
     /* Star icon size only (bubble size unchanged) */
-    .rank-change .new-bubble {
-        font-size: 10px;   /* ← tweak this */
-        line-height: 1;    /* keeps the glyph snug */
-    }
+    .rank-change .new-bubble { font-size: 10px; line-height: 1; }
     /* Individual colors */
     .rank-change .rank-arrow{ background:#2ecc71; }  /* green up arrow */
     .rank-change .new-bubble{ background:#3B82F6; }  /* blue star */
@@ -288,10 +289,7 @@
         width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:bold; color:#fff;
         margin-left:.3rem; box-shadow:0 2px 4px rgba(0,0,0,.3); transition:transform .2s ease;
     }
-    .badge-class:hover{
-        transform: scale(1.08);
-        animation: none;
-    }
+    .badge-class:hover{ transform: scale(1.08); animation: none; }
 
     a.badge-class:hover,
     .badge-class.badge-clickable:hover,
@@ -325,7 +323,6 @@
     .modal-badge-item.expanded .modal-badge-name{ -webkit-line-clamp:unset; max-height:none; overflow:visible; }
 
     /* Badges: only clickable ones get the hand cursor. Others stay default. */
-    /* Do not inherit the row's cursor. */
     .badge-class { cursor: default !important; }
 
     /* Preserve pointer for anchors, and for spans marked clickable. */
@@ -355,8 +352,74 @@
     }
     #modalProfilePic:hover{ transform: scale(1.05); }
 
-    .athlete-info{ text-align:left; width:100%; max-width:600px; margin-bottom:1rem; }
+    .athlete-info {
+        text-align: left;
+        width: 100%;
+        max-width: 600px;
+        margin: 1.5rem auto;
+    }
     .athlete-info p{ margin:.3rem 0; }
+
+    /* Athlete info — clean two-column table (labels right, values left) */
+    .athlete-info-table {
+        width: auto;
+        margin: 0 auto;
+        border-collapse: separate;
+        border-spacing: 0.3rem .12rem;
+        table-layout: auto;
+    }
+    .athlete-info-table th,
+    .athlete-info-table td{
+        text-align:left;
+        padding:.10rem 0 .10rem .5rem;
+        min-width:0;
+        overflow-wrap:anywhere;
+        background:none !important;
+        border:0;
+        font-weight:400;
+        color: inherit !important;
+        opacity: 1 !important;
+        line-height: 1.25;
+    }
+
+    .athlete-info-table th{
+        text-align:left;
+        white-space:nowrap;
+        padding:.10rem .5rem .10rem 0;
+        font-weight:700;
+        color:inherit !important;
+        background:none !important;
+        text-transform:none !important;
+        letter-spacing:normal !important;
+        border:0 !important;
+        box-shadow:none !important;
+    }
+    .athlete-info-table td{
+        text-align:left;
+        padding:.10rem 0 .10rem .5rem;
+        min-width:0;
+        overflow-wrap:anywhere;
+        background:none !important;
+        border:0;
+        font-weight:400;
+        color: inherit !important;
+        opacity: 1 !important;
+        line-height: 1.25;
+    }
+
+
+    .athlete-info-table .unit{
+        opacity: 1 !important;
+        white-space: nowrap;
+        margin-left: .25ch;
+    }
+
+    /* === FIX: Pace of Aging sor biztosan egy sorban === */
+    #paceOfAgingContainer td{ white-space: nowrap; }
+
+
+    #ageReduction,
+    #ageReductionPercent{ white-space: nowrap; }
 
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
@@ -430,7 +493,6 @@
         transform: none !important;
     }
 
-
     /* =========================
        13) Mobile
        ========================= */
@@ -472,6 +534,25 @@
 
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
+
+        /* =========================
+           Athlete info table tweaks
+           ========================= */
+        .athlete-info-table {
+            font-size: 0.9rem;
+            border-spacing: 0.2rem .08rem;
+        }
+        .athlete-info-table th {
+            padding-right: 0.1rem;
+        }
+        .athlete-info-table td {
+            padding-left: 0.4rem;
+        }
+    }
+
+    .athlete-info-table th > strong{
+        display:inline-block;
+        text-align:left;
     }
 
 </style>
@@ -572,24 +653,69 @@
                         </div>
                     </div>
                     <div class="athlete-info">
-                        <p><strong>Best Rank:</strong> <span id="athleteRank"></span></p>
-                        <p><strong>Division:</strong> <span id="athleteDivision"></span></p>
-                        <p><strong>Generation:</strong> <span id="athleteGeneration"></span></p>
-                        <p><strong>Flag:</strong> <span id="athleteFlag"></span></p>
-                        <p><strong>Chronological Age:</strong> <span id="chronologicalAge"></span> years</p>
-                        <p id="crowdAgeContainer">
-                            <span id="emptyCrowdAgeContainer"><strong>Crowd Age:</strong> Crickets...</span>
-                            <span id="notEmptyCrowdAgeContainer" style="display: none;"><strong>Crowd Age:</strong> <span id="crowdAge">0</span> years, <span id="crowdCount">0</span> guesses</span>
-                        </p>
-                        <p id="yourGuessContainer" style="display: none;">
-                            <strong>Your Guess:</strong> <span id="yourGuess"></span>
-                        </p>
+                        <table class="athlete-info-table">
+                            <tbody>
+                            <tr>
+                                <th scope="row"><strong>Best Rank:</strong></th>
+                                <td><span id="athleteRank"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><strong>Division:</strong></th>
+                                <td><span id="athleteDivision"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><strong>Generation:</strong></th>
+                                <td><span id="athleteGeneration"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><strong>Flag:</strong></th>
+                                <td><span id="athleteFlag"></span></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><strong>Chronological Age:</strong></th>
+                                <td><span id="chronologicalAge"></span> <span class="unit">years</span></td>
+                            </tr>
 
-                        <p><strong>Lowest PhenoAge:</strong> <span id="lowestPhenoAge"></span> years</p>
-                        <p id="paceOfAgingContainer"  title="Derived from the lowest biological age of the season" style="display: none;">
-                            <strong>Pace of Aging:</strong> <span id="paceOfAging"></span> years per year
-                        </p>
-                        <p title="Derived from the lowest biological age of the season"><strong> <span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong> <span id="ageReduction"></span> years (<span id="ageReductionPercent"></span>%)</p>
+
+                            <tr id="crowdAgeContainer">
+                                <th scope="row"><strong>Crowd Age:</strong></th>
+                                <td>
+                                    <span id="emptyCrowdAgeContainer">Crickets...</span>
+                                    <span id="notEmptyCrowdAgeContainer" style="display:none;">
+            <span id="crowdAge">0</span> <span class="unit">years</span>,
+            <span id="crowdCount">0</span> guesses
+          </span>
+                                </td>
+                            </tr>
+
+
+                            <tr id="yourGuessContainer" style="display:none;">
+                                <th scope="row"><strong>Your Guess:</strong></th>
+                                <td><span id="yourGuess"></span></td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row"><strong>Lowest PhenoAge:</strong></th>
+                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
+                            </tr>
+
+
+                            <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
+                                <th scope="row"><strong>Pace of Aging:</strong></th>
+                                <td><span id="paceOfAging"></span> <span class="unit">years per year</span></td>
+                            </tr>
+
+                            <tr title="Derived from the lowest biological age of the season">
+                                <th scope="row">
+                                    <strong><span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong>
+                                </th>
+                                <td>
+                                    <span id="ageReduction"></span> <span class="unit">years</span>
+                                    (<span id="ageReductionPercent"></span><span class="unit">%</span>)
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div class="athlete-links">
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
@@ -1479,7 +1605,7 @@
                 : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
                 ${window.getIcon(contact)}
                </a>`
-                }`;
+            }`;
         }
         return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}" title="${tooltipText}">
@@ -1488,7 +1614,7 @@
             : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
             ${window.getIcon(contact)}
            </a>`
-            }`;
+        }`;
     }
 
     const modal = document.getElementById("detailsModal");
@@ -2300,7 +2426,7 @@
                         : null;
                 if (Number.isFinite(paceOfAgingValue)) {
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
-                    paceOfAgingContainer.style.display = 'block';
+                    paceOfAgingContainer.style.display = 'table-row';
                 } else {
                     paceOfAgingContainer.style.display = 'none';
                 }
@@ -2474,7 +2600,7 @@
         const labels = completeData.map(entry => entry.Date);
         const phenoAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
-        
+
         completeData.forEach((entry, entryIndex) => {
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
