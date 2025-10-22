@@ -362,38 +362,46 @@
 
     /* Athlete info — clean two-column table (labels right, values left) */
     .athlete-info-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 1.25rem .12rem;
-        table-layout: auto;
+        width: auto;
         margin: 0 auto;
-        table-layout: fixed;}
+        border-collapse: separate;
+        border-spacing: 0.3rem .12rem;
+        table-layout: auto;
+    }
     .athlete-info-table th,
-    .athlete-info-table td{ vertical-align:top; width: 50%; }
+    .athlete-info-table td{
+        text-align:left;
+        padding:.10rem 0 .10rem .5rem;
+        min-width:0;
+        overflow-wrap:anywhere;
+        background:none !important;
+        border:0;
+        font-weight:400;
+        color: inherit !important;
+        opacity: 1 !important;
+        line-height: 1.25;
+    }
 
     .athlete-info-table th{
-        width: 50%;
-        text-align:right;          /* left column right-aligned */
+        text-align:left;
         white-space:nowrap;
-        padding:.10rem 0 .10rem 0;
+        padding:.10rem .5rem .10rem 0;
         font-weight:700;
         color:inherit !important;
-        background:none !important;        /* ensure no blue boxes */
+        background:none !important;
         text-transform:none !important;
         letter-spacing:normal !important;
         border:0 !important;
         box-shadow:none !important;
     }
     .athlete-info-table td{
-        text-align:left;           /* right column left-aligned */
-        padding:.10rem 0 .10rem 0;
+        text-align:left;
+        padding:.10rem 0 .10rem .5rem;
         min-width:0;
         overflow-wrap:anywhere;
         background:none !important;
         border:0;
         font-weight:400;
-
-
         color: inherit !important;
         opacity: 1 !important;
         line-height: 1.25;
@@ -526,6 +534,12 @@
 
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
+    }
+
+
+    .athlete-info-table th > strong{
+        display:inline-block;
+        text-align:left;
     }
 
 </style>
