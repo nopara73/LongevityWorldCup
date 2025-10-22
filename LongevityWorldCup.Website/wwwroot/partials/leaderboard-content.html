@@ -1073,6 +1073,11 @@
                         }
                     });
 
+                    const chronoAtLowestPhenoAge =
+                        Number.isFinite(lowestPhenoAge) && valuesForLowestPhenoAge
+                            ? valuesForLowestPhenoAge[0]
+                            : chronologicalAge;
+
                     // Fallback: if nothing valid (should be rare), use the last submission
                     if (!Number.isFinite(lowestPhenoAge)) {
                         if (completeBiomarkerSets.length > 0) {
@@ -1113,7 +1118,7 @@
                         Number.isFinite(lastMonthRank) && typeof lastMonthRank === 'number'
                             ? (/* current rank is set a bit later */ true) // placeholder; we’ll re-evaluate after rank assignment
                             : false;
-
+                                        
                     return {
                         name: athlete.Name,
                         displayName: displayName,
@@ -1123,6 +1128,7 @@
                         crowdAge: crowdAge,
                         crowdCount: crowdCount,
                         lowestPhenoAge: lowestPhenoAge,
+                        chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                         ageReduction: ageReduction,
                         ageReductionPercent: ageReductionPercent,
                         bestBiomarkerValues: bestBiomarkerValues,
@@ -2387,9 +2393,10 @@
                 }
 
                 const paceOfAgingContainer = document.getElementById('paceOfAgingContainer');
-                const paceOfAgingValue = (athleteData.lowestPhenoAge && athleteData.chronologicalAge)
-                    ? (athleteData.lowestPhenoAge / athleteData.chronologicalAge)
-                    : null;
+                const paceOfAgingValue =
+                    (athleteData.lowestPhenoAge && athleteData.chronoAtLowestPhenoAge)
+                        ? (athleteData.lowestPhenoAge / athleteData.chronoAtLowestPhenoAge)
+                        : null;
                 if (Number.isFinite(paceOfAgingValue)) {
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
                     paceOfAgingContainer.style.display = 'table-row';
