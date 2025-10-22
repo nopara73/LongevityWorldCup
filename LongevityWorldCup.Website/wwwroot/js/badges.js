@@ -461,6 +461,22 @@ window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal
     // 3) --- RENDER to DOM (ordered: link/podcast → medals → neutrals) ---
     items.sort((a, b) => a.order - b.order);
     badgeContainer.innerHTML = items.map(x => x.html).join('');
+
+    try {
+        const isModalStrip =
+            (badgeContainer.id && badgeContainer.id === 'modalBadgeStrip') ||
+            (typeof badgeContainer.closest === 'function' && !!badgeContainer.closest('#detailsModal'));
+
+        if (!isModalStrip) {
+            Array.from(badgeContainer.children).forEach((badge, i) => {
+                badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
+                badge.addEventListener('animationend', function handler() {
+                    badge.style.animation = '';
+                    badge.removeEventListener('animationend', handler);
+                });
+            });
+        }
+    } catch { /* no-op */ }
 };
 
 // keep a no-op for any legacy calls
