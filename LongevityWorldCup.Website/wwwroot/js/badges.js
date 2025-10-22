@@ -220,7 +220,7 @@ function pickIconForServerBadge(b) {
     // Exclusive league ikon
     if (label === 'Age Reduction' && cat === 'exclusive') return 'fa-umbrella-beach';
 
-    // LEGACY: rangonként eltérő ikonok ezeknél a badge-eknél
+    // LEGACY: rank-specific icons for these badges
     if (label === 'Chronological Age – Oldest' && place) {
         if (place === 1) return 'fa-infinity';
         if (place === 2) return 'fa-scroll';
@@ -245,7 +245,7 @@ function pickBackgroundForServerBadge(b) {
     const label = getLabel(b);
     const place = getPlace(b);
 
-    // LEGACY: ezek mindig fekete buborékok voltak
+    // LEGACY: these have always been black bubbles
     if (
         label === 'Chronological Age – Oldest' ||
         label === 'Chronological Age – Youngest' ||
@@ -254,7 +254,7 @@ function pickBackgroundForServerBadge(b) {
         return LEGACY_BG.default;
     }
 
-    // Medal háttér csak azokra, amik tényleg érmek
+    // Apply medal background only to real medal badges
     const medalLike =
         label === 'Age Reduction' ||
         label.startsWith('Crowd – ');
@@ -299,7 +299,7 @@ function computeOrder(b) {
     const cat = getCat(b).toLowerCase();
     const place = getPlace(b);
 
-    // Érmes család csak: Age Reduction + Crowd
+    // Medal family only: Age Reduction + Crowd
     const isMedalFamily =
         label === 'Age Reduction' ||
         label.startsWith('Crowd – ');
@@ -320,12 +320,12 @@ function computeOrder(b) {
         return base + micro;
     }
 
-    // LEGACY: ezek a neutrál blokkon belül, a podcast után jönnek
+    // LEGACY: within the neutral block, these come after the podcast
     if (label === 'Chronological Age – Oldest')   return 1.12;
-    if (label === 'Chronological Age – Youngest') return 1.13; // ← Son Goku ide kerül
-    if (label === 'PhenoAge – Lowest')            return 1.14; // ← Dorian Gray ide kerül
+    if (label === 'Chronological Age – Youngest') return 1.13; // ← Son Goku goes here
+    if (label === 'PhenoAge – Lowest')            return 1.14; // ← Dorian Gray goes here
 
-    // Neutrálak
+    // Neutrals
     if (label === 'Most Submissions') return 1.20;
     if (label === '≥2 Submissions')   return 1.21;
 
