@@ -210,6 +210,48 @@
         color: var(--secondary-color, #ff4f87);
         font-weight: 700;
     }
+
+    /* Keep natural wrapping + vertical centering */
+    .events-board tbody tr {
+        display: table-row; /* default behavior */
+    }
+
+    .events-board td.event-message {
+        display: flex;              /* allow vertical centering */
+        align-items: center;        /* center vertically within the row */
+        flex-wrap: wrap;            /* keep wrapping */
+        gap: 0.25rem;
+        line-height: 1.35;
+        text-wrap: pretty;
+    }
+
+    /* Keep inline flow for text elements */
+    .event-message .name-and-rank,
+    .event-message .rank-badge,
+    .event-message a,
+    .event-message .athlete-name-text {
+        display: inline;
+        vertical-align: baseline;
+    }
+
+    /* Prevent long URLs from breaking layout */
+    .event-message a {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* Keep rank and icon together */
+    .event-message .rank-badge { white-space: nowrap; }
+    .event-message .rank-icon { margin-left: .2rem; }
+
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+        .events-board tbody td.event-message {
+            line-height: 1.3;
+            align-items: flex-start; /* better flow on very small screens */
+        }
+    }
+    
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
