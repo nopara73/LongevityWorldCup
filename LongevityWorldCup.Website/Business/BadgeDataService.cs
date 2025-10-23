@@ -214,7 +214,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
         // For domain badges and redemption arc
         public double[]? BestMarkerValues { get; init; } // [ageYears, Alb, Creat, Glu, ln(CRP/10), WBC, Lymph, MCV, RDW, ALP]
-        public double? PhenoAgeDiffFromBaseline { get; init; } // bestPheno - firstSubmissionPheno
+        public double? PhenoAgeDiffFromBaseline { get; init; } // lastPheno - firstSubmissionPheno
 
         // Crowd stats (for crowd badges)
         public double? CrowdAge { get; init; }
@@ -299,8 +299,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string BuildPhenoDiffRuleHash(string label)
     {
-        // Best improvement: min (bestPheno - baselinePheno), requires >=2 subs, ties allowed, global
-        var sig = $"label={label}|category=Global|metric=pheno_best_minus_baseline|agg=min|requires_subs>=2|ties=allowed|place=1";
+        // Best improvement: min (lastPheno - baselinePheno), ties allowed, global
+        var sig = $"label={label}|category=Global|metric=pheno_last_minus_baseline|agg=min|requires_subs>=2|ties=allowed|place=1";
         return ComputeRuleHash(sig);
     }
 
@@ -436,13 +436,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
             double? chrono = null;
             if (dob.HasValue)
-                chrono = Math.Round((asOf - dob.Value.Date).TotalDays / 365.2425, 2);
+                chrono = (asOf - dob.Value.Date).TotalDays / 365.2425;
 
             // Build best marker-values and baseline/best PhenoAge from Biomarkers
             int submissionCount = 0;
             double lowestPheno = double.PositiveInfinity;
-            double earliestPheno = double.PositiveInfinity;
-            DateTime? earliestDate = null;
+            double? firstPheno = null;
+            double? lastPheno = null;
             double[]? bestMarkerValues = null;
 
 // NEW: track per-marker bests (mix-and-match across complete sets)
@@ -493,12 +493,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
                         if (!double.IsNaN(ph) && !double.IsInfinity(ph))
                         {
-                            // track earliest valid pheno as "baseline"
-                            if (!earliestDate.HasValue || entryDate < earliestDate.Value)
+                            // track first valid PhenoAge in array order as "baseline" (FE behavior)
+                            if (!firstPheno.HasValue)
                             {
-                                earliestDate = entryDate;
-                                earliestPheno = ph;
+                                firstPheno = ph;
                             }
+                            // always update lastPheno when we see a complete set
+                            lastPheno = ph;
 
                             // best (minimum) PhenoAge across real submissions
                             if (ph < lowestPheno)
@@ -550,15 +551,15 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 lowestPheno = chrono ?? double.PositiveInfinity;
 
             double? ageReduction = (chrono.HasValue && !double.IsInfinity(lowestPheno))
-                ? Math.Round(lowestPheno - chrono.Value, 2)
+                ? (lowestPheno - chrono.Value)
                 : (double?)null;
 
             double? lowestPhenoRounded = double.IsInfinity(lowestPheno) ? null : Math.Round(lowestPheno, 2);
-
-            double? phenoDiffFromBaseline = null;
-            if (!double.IsInfinity(earliestPheno) && !double.IsInfinity(lowestPheno))
+double? phenoDiffFromBaseline = null;
+            if (firstPheno.HasValue && lastPheno.HasValue)
             {
-                phenoDiffFromBaseline = Math.Round(lowestPheno - earliestPheno, 2);
+                // Use LAST - FIRST (FE baseline vs most recent), keep raw for ranking
+                phenoDiffFromBaseline = (lastPheno.Value - firstPheno.Value);
             }
 
             // Crowd stats hydrated by AthleteDataService (CrowdAge, CrowdCount)
@@ -589,7 +590,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 Name = name,
                 DobUtc = dob,
                 ChronoAge = chrono,
-                LowestPhenoAge = lowestPhenoRounded,
+                LowestPhenoAge = double.IsInfinity(lowestPheno) ? (double?)null : lowestPheno,
                 AgeReduction = ageReduction,
                 SubmissionCount = submissionCount,
                 Division = TryGetString(o, "Division"),
