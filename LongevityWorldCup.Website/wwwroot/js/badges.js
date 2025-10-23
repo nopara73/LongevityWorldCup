@@ -1,4 +1,4 @@
-﻿/* badges.js
+﻿﻿/* badges.js
    Server-driven badge rendering.
    We no longer compute competitive badges on the client; we only render what the server embedded
    into athlete.Badges. Local/novelty badges (host, podcast, pregnancy, first applicants, etc.)
@@ -207,7 +207,7 @@ function pickIconForServerBadge(b) {
         if (place === 3) return 'fa-award';
     }
 
-    // Division / Generation ikonok
+    // Division / Generation icons
     if (label === 'Age Reduction' && (cat === 'division' || cat === 'generation') && b.LeagueValue) {
         if (cat === 'division' && typeof window.TryGetDivisionFaIcon === 'function') {
             return window.TryGetDivisionFaIcon(b.LeagueValue) || (BASE_ICONS[label] || 'fa-award');
@@ -217,7 +217,7 @@ function pickIconForServerBadge(b) {
         }
     }
 
-    // Exclusive league ikon
+    // Exclusive league icon
     if (label === 'Age Reduction' && cat === 'exclusive') return 'fa-umbrella-beach';
 
     // LEGACY: rank-specific icons for these badges
@@ -457,6 +457,38 @@ window.setBadges = function (athlete, athleteCell /* table row wrapper (or modal
              </span>`
         });
     }
+
+    // Perfect Guess (user-local; based on localStorage, legacy behavior)
+    try {
+        const rawName = athlete.name || athlete.Name || athlete.displayName || athlete.DisplayName || '';
+        if (rawName) {
+            let slug;
+            if (typeof window.slugifyName === 'function') {
+                slug = window.slugifyName(rawName, true);
+            } else {
+                let s = String(rawName).toLowerCase();
+                try { s = s.normalize('NFKD'); } catch (_) { /* ignore */ }
+                slug = s.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
+            }
+
+            const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+            const g = allGuesses && allGuesses[slug];
+            const guessed = (g && g.value != null) ? parseInt(g.value, 10) : null;
+
+            // Legacy: compare integer ages (parseInt on the actual chronological age)
+            const chrono = athlete.chronologicalAge ?? athlete.ChronoAge ?? null;
+            const actualInt = Number.isFinite(chrono) ? parseInt(chrono, 10) : null;
+
+            if (Number.isInteger(guessed) && Number.isInteger(actualInt) && (guessed - actualInt === 0)) {
+                items.push({
+                    order: 1.194,
+                    html: `<span class="badge-class" title="Bullseye: You Guessed Their Age Perfectly!" style="${LEGACY_BG.black}">
+                               <i class="fa fa-bullseye"></i>
+                           </span>`
+                });
+            }
+        }
+    } catch { /* no-op: localStorage unavailable or malformed */ }
 
     // 3) --- RENDER to DOM (ordered: link/podcast → medals → neutrals) ---
     items.sort((a, b) => a.order - b.order);
