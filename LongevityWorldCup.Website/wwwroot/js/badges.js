@@ -1,4 +1,4 @@
-﻿﻿/* badges.js
+﻿/* badges.js
    Server-driven badge rendering.
    We no longer compute competitive badges on the client; we only render what the server embedded
    into athlete.Badges. Local/novelty badges (host, podcast, pregnancy, first applicants, etc.)
@@ -162,7 +162,19 @@ function makeTooltipFromServerBadge(b, athlete) {
 
     // PhenoAge Best Improvement (a.k.a. Redemption Arc)
     if (label === 'PhenoAge Best Improvement') {
-        // Server doesn’t push the delta value; show generic legacy label
+        // Prefer FE-computed delta from LoadLeaderboard; fallback to a possible BE-projected field
+        var delta = null;
+        if (athlete && typeof athlete.phenoAgeDifference === 'number') {
+            delta = athlete.phenoAgeDifference; // legacy FE field from LoadLeaderboard
+        } else if (athlete && typeof athlete.PhenoAgeDiffFromBaseline === 'number') {
+            delta = athlete.PhenoAgeDiffFromBaseline; // optional BE field if ever exposed
+        }
+
+        if (Number.isFinite(delta)) {
+            var years = Number(delta).toFixed(1);
+            return 'Redemption Arc: Greatest Age Reversal from First Submission (Baseline) (' + years + ' years)';
+        }
+        // Fallback if value is not available on this view
         return 'Redemption Arc: Greatest Age Reversal from First Submission (Baseline)';
     }
 
