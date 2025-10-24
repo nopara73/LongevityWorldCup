@@ -1014,10 +1014,13 @@
                     // Only proceed if there are submissions.
                     if (completeBiomarkerSets.length > 0) {
                         const firstSubmission = completeBiomarkerSets[0];
-                        const lastSubmission = completeBiomarkerSets[completeBiomarkerSets.length - 1];
+                        const lastSubmission  = completeBiomarkerSets[completeBiomarkerSets.length - 1];
+
+                        const ageAtFirst = window.calculateAgeAtDate(dob, new Date(firstSubmission.Date));
+                        const ageAtLast  = window.calculateAgeAtDate(dob, new Date(lastSubmission.Date));
 
                         const firstSubmissionValues = [
-                            chronologicalAge,
+                            ageAtFirst,
                             firstSubmission.AlbGL,
                             firstSubmission.CreatUmolL,
                             firstSubmission.GluMmolL,
@@ -1030,7 +1033,7 @@
                         ];
 
                         const lastSubmissionValues = [
-                            chronologicalAge,
+                            ageAtLast,
                             lastSubmission.AlbGL,
                             lastSubmission.CreatUmolL,
                             lastSubmission.GluMmolL,
