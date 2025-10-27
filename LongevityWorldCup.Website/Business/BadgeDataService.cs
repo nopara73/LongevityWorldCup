@@ -706,9 +706,6 @@ double? phenoDiffFromBaseline = null;
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        // Domain contributors same as FE pheno-age.js (use helpers)
-        const double EPS = 1e-9;
-
         (string Label, string Key, Func<double[], double> Score)[] domains =
         {
             ("Best Domain – Liver", "liver", PhenoAgeHelper.CalculateLiverPhenoAgeContributor),
@@ -718,6 +715,7 @@ double? phenoDiffFromBaseline = null;
             ("Best Domain – Immune", "immune", PhenoAgeHelper.CalculateImmunePhenoAgeContributor),
         };
 
+
         foreach (var (label, key, scorer) in domains)
         {
             var candidates = stats.Values
@@ -725,13 +723,17 @@ double? phenoDiffFromBaseline = null;
                 .Select(s => new { s.Slug, Score = scorer(s.BestMarkerValues!) })
                 .ToList();
 
+
             if (candidates.Count == 0) continue;
 
+
             var best = candidates.Min(x => x.Score);
-            var holders = candidates.Where(x => Math.Abs(x.Score - best) <= EPS)
+            var holders = candidates.Where(x => x.Score == best)
                 .Select(x => x.Slug);
 
+
             var ruleHash = BuildDomainRuleHash(label, key);
+
 
             foreach (var slug in holders)
             {
@@ -740,7 +742,7 @@ double? phenoDiffFromBaseline = null;
                     BadgeLabel = label,
                     LeagueCategory = "Global",
                     LeagueValue = null,
-                    Place = 1, // winners share place #1
+                    Place = 1,
                     AthleteSlug = slug,
                     DefinitionHash = ruleHash
                 });
@@ -822,44 +824,45 @@ double? phenoDiffFromBaseline = null;
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        // Distinct values; top-3; ties allowed. Place=1/2/3, Global.
         var withGuesses = stats.Values
             .Where(s => s.CrowdCount > 0 && s.CrowdAge.HasValue)
             .ToList();
 
+
         if (withGuesses.Count == 0) return;
 
-        // Crowd – Most Guessed (by CrowdCount) - top-3 distinct desc
+
         var topCounts = withGuesses.Select(s => s.CrowdCount)
             .Where(c => c > 0)
             .Distinct()
             .OrderByDescending(c => c)
             .Take(3)
             .ToList();
-        var mostGuessedHash = BuildCrowdRuleHash("Crowd – Most Guessed", metricKey: "CrowdCount", order: "desc", distinctValues: true, decimals: 0);
+        var mostGuessedHash = BuildCrowdRuleHash("Crowd – Most Guessed", "CrowdCount", "desc", true, 0);
         AddTier(withGuesses, topCounts, s => s.CrowdCount, "Crowd – Most Guessed", mostGuessedHash, awards);
 
-        // Crowd – Age Gap (Chrono−Crowd) positive gaps - top-3 distinct desc
+
         var positiveGaps = withGuesses
             .Where(s => s.ChronoAge.HasValue && s.CrowdAge.HasValue)
-            .Select(s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2))
+            .Select(s => s.ChronoAge!.Value - s.CrowdAge!.Value)
             .Where(g => g > 0)
             .Distinct()
             .OrderByDescending(g => g)
             .Take(3)
             .ToList();
-        var ageGapHash = BuildCrowdRuleHash("Crowd – Age Gap (Chrono−Crowd)", metricKey: "ChronoMinusCrowdAge", order: "desc", distinctValues: true, decimals: 2);
-        AddTier(withGuesses, positiveGaps, s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2), "Crowd – Age Gap (Chrono−Crowd)", ageGapHash, awards);
+        var ageGapHash = BuildCrowdRuleHash("Crowd – Age Gap (Chrono−Crowd)", "ChronoMinusCrowdAge", "desc", true, 2);
+        AddTier(withGuesses, positiveGaps, s => s.ChronoAge!.Value - s.CrowdAge!.Value, "Crowd – Age Gap (Chrono−Crowd)", ageGapHash, awards);
 
-        // Crowd – Lowest Crowd Age - top-3 distinct asc
+
         var lowestAges = withGuesses
-            .Select(s => Math.Round(s.CrowdAge!.Value, 2))
+            .Select(s => s.CrowdAge!.Value)
             .Distinct()
             .OrderBy(a => a)
             .Take(3)
             .ToList();
-        var lowestAgeHash = BuildCrowdRuleHash("Crowd – Lowest Crowd Age", metricKey: "CrowdAge", order: "asc", distinctValues: true, decimals: 2);
-        AddTier(withGuesses, lowestAges, s => Math.Round(s.CrowdAge!.Value, 2), "Crowd – Lowest Crowd Age", lowestAgeHash, awards);
+        var lowestAgeHash = BuildCrowdRuleHash("Crowd – Lowest Crowd Age", "CrowdAge", "asc", true, 2);
+        AddTier(withGuesses, lowestAges, s => s.CrowdAge!.Value, "Crowd – Lowest Crowd Age", lowestAgeHash, awards);
+
 
         static void AddTier<T>(
             List<AthleteStats> pool,
@@ -872,7 +875,7 @@ double? phenoDiffFromBaseline = null;
         {
             for (int i = 0; i < top3Values.Count; i++)
             {
-                int place = i + 1; // 1=gold, 2=silver, 3=bronze
+                int place = i + 1;
                 var v = top3Values[i];
                 foreach (var s in pool.Where(s => selector(s).Equals(v)))
                 {
