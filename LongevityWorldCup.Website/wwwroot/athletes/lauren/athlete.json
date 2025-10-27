@@ -1,0 +1,28 @@
+{
+  "Name": "Lauren",
+  "DisplayName": null,
+  "MediaContact": "info@biohackerbabes.com",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 7,
+    "Day": 9
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-10-22",
+      "AlbGL": 47,
+      "CreatUmolL": 68.14159292035399,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 0.3,
+      "LymPc": 41.5,
+      "McvFL": 92.7,
+      "RdwPc": 11.6,
+      "AlpUL": 36,
+      "Wbc1000cellsuL": 5.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Cyberspace",
+  "Why": "empowering others to self-advocate, to play, and to create",
+  "PersonalLink": "https://www.instagram.com/lauren_sambataro"
+}
