@@ -1,4 +1,4 @@
-﻿﻿/* badges.js
+﻿/* badges.js
    Server-driven badge rendering only.
    IMPORTANT:
    - Competitive + editorial badges are rendered ONLY if the server includes them in athlete.Badges.
