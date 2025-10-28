@@ -74,7 +74,7 @@ function pickIconForServerBadge(b) {
         if (place === 3) return 'fa-award';
     }
 
-    // Division / Generation icons via FE helpers (if available) — use getVal(b)!
+    // Division / Generation icons via FE helpers — use getVal(b)!
     if (label === 'Age Reduction' && (cat === 'division' || cat === 'generation') && val) {
         if (cat === 'division' && typeof window.TryGetDivisionFaIcon === 'function') {
             return window.TryGetDivisionFaIcon(val) || (BASE_ICONS[label] || 'fa-award');
@@ -87,7 +87,7 @@ function pickIconForServerBadge(b) {
     // Exclusive league icon
     if (label === 'Age Reduction' && cat === 'exclusive') return 'fa-umbrella-beach';
 
-    // Rank-specific icons for these badges
+    // Rank-specific icons
     if (label === 'Chronological Age – Oldest' && place) {
         if (place === 1) return 'fa-infinity';
         if (place === 2) return 'fa-scroll';
@@ -116,12 +116,11 @@ function pickIconForServerBadge(b) {
     return BASE_ICONS[label] || 'fa-award';
 }
 
-// Background to exactly mimic old palette
+// Backgrounds to mimic the old palette
 function pickBackgroundForServerBadge(b) {
     const label = getLabel(b);
     const place = getPlace(b);
 
-    // Always neutral background for these
     if (
         label === 'Chronological Age – Oldest' ||
         label === 'Chronological Age – Youngest' ||
@@ -130,7 +129,6 @@ function pickBackgroundForServerBadge(b) {
         return LEGACY_BG.default;
     }
 
-    // Medal backgrounds for real medal badges only
     const medalLike =
         label === 'Age Reduction' ||
         (typeof label === 'string' && label.startsWith('Crowd – '));
@@ -174,59 +172,148 @@ function pickClickUrl(b, athlete) {
     return null;
 }
 
-// Legacy tooltip builders (frontend-owned, not from server)
+// Legacy tooltip builders (exact old copy)
 function makeTooltipFromServerBadge(b, athlete) {
     const label = getLabel(b);
     const place = getPlace(b);
-    const cat = getCat(b);
+    const cat = (getCat(b) || '').toLowerCase();
     const val = getVal(b);
 
+    // --- Ultimate / Division / Generation / Exclusive ---
     if (label === 'Age Reduction') {
-        if ((cat || '').toLowerCase() === 'global') {
+        if (cat === 'global') {
             if (place === 1) return 'Ultimate Lifeform: #1 in the Ultimate League';
             if (place === 2) return 'Near Immortal: #2 in the Ultimate League';
             if (place === 3) return 'Third and Threatening: #3 in the Ultimate League';
             return 'Age Reduction';
         }
-        if ((cat || '').toLowerCase() === 'division') {
+        if (cat === 'division') {
             if (place === 1) {
                 const v = String(val || '').toLowerCase();
-                if (v === "men's") return "The Alpha Male: #1 in Men's League";
+                if (v === "men's")   return "The Alpha Male: #1 in Men's League";
                 if (v === "women's") return "The Empress: #1 in Women's League";
-                if (v === "open") return 'The Machine: #1 in Open League';
+                if (v === "open")    return 'The Machine: #1 in Open League';
             }
             return `#${place} in ${val} League`;
         }
-        if ((cat || '').toLowerCase() === 'generation') return `#${place} in ${val}`;
-        if ((cat || '').toLowerCase() === 'exclusive')  return `#${place} in ${val}`;
+        if (cat === 'generation') {
+            if (place === 1) {
+                const g = String(val || '').toLowerCase();
+                if (g === 'silent generation') return 'The Grandmaster: #1 in Silent Generation League';
+                if (g === 'baby boomers')      return 'The Iron Throne: #1 in Baby Boomers League';
+                if (g === 'gen x')             return 'The Last Ronin: #1 in Gen X League';
+                if (g === 'millennials')       return 'The Chosen One: #1 in Millennials League';
+                if (g === 'gen z')             return 'The Meme Lord: #1 in Gen Z League';
+                if (g === 'gen alpha')         return 'The Singularity: #1 in Gen Alpha League';
+            }
+            return `#${place} in ${val} League`;
+        }
+        if (cat === 'exclusive') {
+            return `#${place} in ${val} League`;
+        }
     }
 
+    // --- Chronological Age (Oldest / Youngest) ---
+    if (label === 'Chronological Age – Oldest' && place) {
+        const age = (athlete?.chronologicalAge ?? athlete?.ChronoAge ?? athlete?.chronological_age);
+        const ageText = Number.isFinite(Number(age)) ? Number(age).toFixed(1) : '';
+        if (place === 1) return `Yoda: Chronologically Oldest (Age: ${ageText} years)`;
+        if (place === 2) return `Master Roshi: Chronologically 2nd Oldest (Age: ${ageText})`;
+        if (place === 3) return `Mr. Miyagi: Chronologically 3rd Oldest (Age: ${ageText})`;
+    }
+
+    if (label === 'Chronological Age – Youngest' && place) {
+        const age = (athlete?.chronologicalAge ?? athlete?.ChronoAge ?? athlete?.chronological_age);
+        const ageText = Number.isFinite(Number(age)) ? Number(age).toFixed(1) : '';
+        if (place === 1) return `Son Goten: Chronologically Youngest (Age: ${ageText} years)`;
+        if (place === 2) return `Son Gohan: Chronologically 2nd Youngest (Age: ${ageText})`;
+        if (place === 3) return `Son Goku: Chronologically 3rd Youngest (Age: ${ageText})`;
+    }
+
+    // --- PhenoAge – Lowest (Biologically Youngest) ---
     if (label === 'PhenoAge – Lowest' && place) {
-        const ph =
-            (athlete && (athlete.lowestPhenoAge ?? athlete.LowestPhenoAge ?? athlete.phenoAge)) != null
-                ? Number(athlete.lowestPhenoAge ?? athlete.LowestPhenoAge ?? athlete.phenoAge).toFixed(1)
-                : undefined;
-
-        if (place === 1) return `Eternal Youth: Lowest PhenoAge${ph ? ` (${ph})` : ''}`;
-        if (place === 2) return `Ageless Wonder: 2nd Lowest PhenoAge${ph ? ` (${ph})` : ''}`;
-        if (place === 3) return `Timeless Spirit: 3rd Lowest PhenoAge${ph ? ` (${ph})` : ''}`;
+        const ph = (athlete?.lowestPhenoAge ?? athlete?.LowestPhenoAge);
+        const phText = Number.isFinite(Number(ph)) ? Number(ph).toFixed(1) : '';
+        if (place === 1) return `Peter Pan: Biologically Youngest (Pheno Age: ${phText} years)`;
+        if (place === 2) return `Dorian Gray: Biologically 2nd Youngest (Pheno Age: ${phText})`;
+        if (place === 3) return `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${phText})`;
     }
 
-    if (label === 'Most Submissions') return 'Most submissions';
-    if (label === '≥2 Submissions') return '≥ 2 submissions';
+    // --- Submissions ---
+    if (label === 'Most Submissions') {
+        const c = (athlete?.submissionCount ?? athlete?.SubmissionCount ?? 0);
+        return `The Submittinator: Most Tests Submitted: ${c}`;
+    }
+    if (label === '≥2 Submissions') {
+        return 'The Regular: Two or More Tests Submitted';
+    }
 
+    // --- Crowd badges ---
     if (typeof label === 'string' && label.startsWith('Crowd – ')) {
-        if (label.endsWith('Most Guessed')) return 'Crowd favorite: most guessed';
-        if (label.endsWith('Lowest Crowd Age')) return 'Lowest crowd-sourced age';
-        if (label.includes('Age Gap')) return 'Largest gap between Chrono and Crowd';
+        if (label.endsWith('Most Guessed') && place) {
+            const count = (athlete?.crowdCount ?? athlete?.CrowdCount ?? 0);
+            if (place === 1) return `Popular AF: Most Age Guesses Received (${count})`;
+            if (place === 2) return `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
+            if (place === 3) return `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
+        }
+        if (label.includes('Age Gap') && place) {
+            const ch = Number(athlete?.chronologicalAge ?? athlete?.ChronoAge ?? 0);
+            const cr = Number(athlete?.crowdAge ?? athlete?.CrowdAge ?? 0);
+            const gap = Math.max(0, ch - cr); // legacy considered only "younger"
+            const gapText = Number.isFinite(gap) ? gap.toFixed(1) : '';
+            const yearWord = gapText === '1.0' ? 'year' : 'years';
+            if (place === 1) return `Skin Trafficker: Perceived ${gapText} ${yearWord} younger`;
+            if (place === 2) return `Wrinkle Launderer: Perceived ${gapText} ${yearWord} younger`;
+            if (place === 3) return `Collagen Smuggler: Perceived ${gapText} ${yearWord} younger`;
+        }
+        if (label.endsWith('Lowest Crowd Age') && place) {
+            const cr = Number(athlete?.crowdAge ?? athlete?.CrowdAge ?? 0);
+            const ageText = Number.isFinite(cr) ? cr.toFixed(1) : '';
+            const yearWord = ageText === '1.0' ? 'year' : 'years';
+            if (place === 1) return `Baby Boss: Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
+            if (place === 2) return `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
+            if (place === 3) return `Diaper Don: 3rd Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
+        }
     }
 
-    if (typeof label === 'string' && label.startsWith('Best Domain – ')) {
-        const raw = label.replace('Best Domain – ', '');
-        return `Best ${raw} markers`;
+    // --- PhenoAge Best Improvement ---
+    if (label === 'PhenoAge Best Improvement') {
+        let delta = null;
+        if (athlete && typeof athlete.phenoAgeDifference === 'number') {
+            delta = athlete.phenoAgeDifference;
+        } else if (athlete && typeof athlete.PhenoAgeDiffFromBaseline === 'number') {
+            delta = athlete.PhenoAgeDiffFromBaseline;
+        }
+        if (Number.isFinite(delta)) {
+            const years = Number(delta).toFixed(1);
+            return `Redemption Arc: Greatest Age Reversal from First Submission (Baseline) (${years} years)`;
+        }
+        return 'Redemption Arc: Greatest Age Reversal from First Submission (Baseline)';
     }
 
-    // First Applicants — legacy tooltips by place
+    // --- Domain winners (needs biomarker values on athlete) ---
+    if (typeof label === 'string' && label.startsWith('Best Domain')) {
+        const best = athlete?.bestBiomarkerValues || athlete?.BestMarkerValues;
+        if (Array.isArray(best) && best.length >= 10) {
+            const alb = Number(best[1]).toFixed(1);
+            const creat = Number(best[2]).toFixed(1);
+            const glu = Number(best[3]).toFixed(1);
+            const crp = (Math.exp(Number(best[4])) * 10).toFixed(2);
+            const wbc = Number(best[5]).toFixed(1);
+            const lym = Number(best[6]).toFixed(1);
+            const mcv = Number(best[7]).toFixed(1);
+            const rdw = Number(best[8]).toFixed(1);
+            const alp = Number(best[9]).toFixed(1);
+
+            if (label === 'Best Domain – Liver')        return `Liver King: Top Liver Profile (Albumin ${alb} g/L, ALP ${alp} U/L)`;
+            if (label === 'Best Domain – Kidney')       return `Kidney Overlord: Top Kidney Profile (Creatinine ${creat} µmol/L)`;
+            if (label === 'Best Domain – Metabolic')    return `Glucose Gladiator: Top Metabolic Profile (Glucose ${glu} mmol/L)`;
+            if (label === 'Best Domain – Inflammation') return `Inflammation Whisperer: Top Inflammation Profile (CRP ${crp} mg/L)`;
+            if (label === 'Best Domain – Immune')       return `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lym}%, MCV ${mcv} fL, RDW ${rdw}%)`;
+        }
+    }
+
+    // --- First Applicants ---
     if (label === 'First Applicants') {
         if (place === 1) return 'Athlete Zero: 1st Athlete to Join the Longevity World Cup';
         if (place === 2) return 'Athlete Beta: 2nd Athlete to Join the Longevity World Cup';
@@ -235,7 +322,8 @@ function makeTooltipFromServerBadge(b, athlete) {
         return 'First Applicants';
     }
 
-    if (label === 'Podcast') return 'Podcast: hear this athlete\'s story in depth';
+    // --- Editorial neutrals ---
+    if (label === 'Podcast') return 'Podcast: hear to this athlete\'s story in depth';
     if (label === 'Pregnancy') return 'Baby on Board';
     if (label === 'Host') return 'Host: Organizer of the Longevity World Cup';
     if (label === 'Perfect Application') return 'Perfect Application';
@@ -251,7 +339,6 @@ function computeOrder(b) {
     const cat = (getCat(b) || '').toLowerCase();
     const place = getPlace(b);
 
-    // Medal family only: Age Reduction + Crowd
     const isMedalFamily =
         label === 'Age Reduction' ||
         (typeof label === 'string' && label.startsWith('Crowd – '));
@@ -272,7 +359,6 @@ function computeOrder(b) {
         return base + micro;
     }
 
-    // Neutrals (come after podcast but before medals)
     if (label === 'Podcast') return 1.10;
 
     if (label === 'Chronological Age – Oldest')   return 1.12;
@@ -290,10 +376,9 @@ function computeOrder(b) {
 
     if (label === 'PhenoAge Best Improvement')  return 1.40;
 
-    // Editorial neutrals (when server actually sends them)
     if (label === 'First Applicants') return 1.19;
-    if (label === 'Pregnancy') return 1.191;
-    if (label === 'Host') return 1.192;
+    if (label === 'Pregnancy')        return 1.191;
+    if (label === 'Host')             return 1.192;
     if (label === 'Perfect Application') return 1.193;
 
     return 1.50;
@@ -331,7 +416,7 @@ window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
 
     const items = [];
 
-    // 0) Personal link bubble (teal, clickable) — not a badge fallback
+    // 0) Personal link bubble (teal, clickable)
     const personalLink = athlete.personalLink || athlete.PersonalLink;
     if (personalLink) {
         const href = personalLink.startsWith('http') ? personalLink : `https://${personalLink}`;
@@ -380,7 +465,7 @@ window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
                 });
             }
         }
-    } catch { /* no-op: localStorage unavailable or malformed */ }
+    } catch { /* no-op */ }
 
     // Render
     items.sort((a, b) => a.order - b.order);
