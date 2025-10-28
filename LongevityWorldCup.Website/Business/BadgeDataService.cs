@@ -138,6 +138,9 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         // 5) Crowd badges (tiers) => Place = 1/2/3, Global
         AddCrowdAwards(stats, awards);
 
+        // 6) Editorial (server-driven novelty) badges (flag / small ranked)
+        AddEditorialAwards(stats, awards);
+        
         // Persist (replace all rows)
         var now = DateTime.UtcNow.ToString("o");
 
@@ -178,6 +181,145 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
 
         tx.Commit();
+    }
+
+    private static string? TryGetStringNode(System.Text.Json.Nodes.JsonObject o, string key)
+    {
+        try
+        {
+            if (o.TryGetPropertyValue(key, out System.Text.Json.Nodes.JsonNode? node) && node is not null)
+                return node.GetValue<string?>();
+        }
+        catch
+        {
+            /* ignore */
+        }
+
+        return null;
+    }
+
+    private static string BuildEditorialRuleHash(string label, string? note = null)
+    {
+        // Stable hash to make editorial rules identifiable in DB diffs
+        string sig = $"label={label}|category=Global|type=editorial|note={note ?? "n/a"}";
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sig));
+        var sb = new System.Text.StringBuilder(bytes.Length * 2);
+        foreach (var b in bytes) sb.Append(b.ToString("x2", System.Globalization.CultureInfo.InvariantCulture));
+        return sb.ToString();
+    }
+
+    private void AddEditorialAwards(
+        Dictionary<string, AthleteStats> stats,
+        List<AwardRow> awards)
+    {
+        // Build Name->Slug and Slug->JsonObject lookups from current athletes
+        var nameToSlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var slugToObj = new Dictionary<string, System.Text.Json.Nodes.JsonObject>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var node in _athletes.Athletes)
+        {
+            if (node is not System.Text.Json.Nodes.JsonObject o) continue;
+
+            var slug =
+                TryGetStringNode(o, "AthleteSlug") ??
+                TryGetStringNode(o, "athleteSlug") ??
+                TryGetStringNode(o, "Slug") ??
+                TryGetStringNode(o, "slug");
+
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+
+            var name =
+                TryGetStringNode(o, "Name") ??
+                TryGetStringNode(o, "name") ??
+                slug;
+
+            nameToSlug[name] = slug;
+            slugToObj[slug] = o;
+        }
+
+        // 1) Podcast: flag badge for anyone who has PodcastLink
+        foreach (var (name, slug) in nameToSlug)
+        {
+            if (!slugToObj.TryGetValue(slug, out var obj)) continue;
+            var link = TryGetStringNode(obj, "PodcastLink") ?? TryGetStringNode(obj, "podcastLink");
+            if (!string.IsNullOrWhiteSpace(link))
+            {
+                awards.Add(new AwardRow
+                {
+                    BadgeLabel = "Podcast",
+                    LeagueCategory = "Global",
+                    LeagueValue = null,
+                    Place = null,
+                    AthleteSlug = slug,
+                    DefinitionHash = BuildEditorialRuleHash("Podcast", "has_podcast_link")
+                });
+            }
+        }
+
+        // 2) First Applicants: preserve legacy top-10 by name
+        var firstApplicants = new (string Name, int Place)[]
+        {
+            ("Alan V", 1), ("Cody Hergenroeder", 2), ("Spiderius", 3), ("Jesse", 4), ("Tone Vays", 5),
+            ("Stellar Madic", 6), ("RichLee", 7), ("ScottBrylow", 8), ("Mind4u2cn", 9), ("Dave Pascoe", 10),
+        };
+        foreach (var (name, place) in firstApplicants)
+        {
+            if (!nameToSlug.TryGetValue(name, out var slug)) continue;
+            awards.Add(new AwardRow
+            {
+                BadgeLabel = "First Applicants",
+                LeagueCategory = "Global",
+                LeagueValue = null,
+                Place = place,
+                AthleteSlug = slug,
+                DefinitionHash = BuildEditorialRuleHash("First Applicants", $"rank={place}")
+            });
+        }
+
+        // 3) Pregnancy: legacy single-name mapping (flag)
+        var pregnancyNames = new[] { "Olga Vresca" };
+        foreach (var name in pregnancyNames)
+        {
+            if (!nameToSlug.TryGetValue(name, out var slug)) continue;
+            awards.Add(new AwardRow
+            {
+                BadgeLabel = "Pregnancy",
+                LeagueCategory = "Global",
+                LeagueValue = null,
+                Place = null,
+                AthleteSlug = slug,
+                DefinitionHash = BuildEditorialRuleHash("Pregnancy", "legacy_flag")
+            });
+        }
+
+        // 4) Host: organizer (flag)
+        if (nameToSlug.TryGetValue("nopara73", out var hostSlug))
+        {
+            awards.Add(new AwardRow
+            {
+                BadgeLabel = "Host",
+                LeagueCategory = "Global",
+                LeagueValue = null,
+                Place = null,
+                AthleteSlug = hostSlug,
+                DefinitionHash = BuildEditorialRuleHash("Host", "organizer")
+            });
+        }
+
+        // 5) Perfect Application: legacy single-name mapping (flag)
+        if (nameToSlug.TryGetValue("Cornee", out var paSlug))
+        {
+            awards.Add(new AwardRow
+            {
+                BadgeLabel = "Perfect Application",
+                LeagueCategory = "Global",
+                LeagueValue = null,
+                Place = null,
+                AthleteSlug = paSlug,
+                DefinitionHash = BuildEditorialRuleHash("Perfect Application", "legacy_flag")
+            });
+        }
     }
 
     private sealed class AwardRow
@@ -498,6 +640,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                             {
                                 firstPheno = ph;
                             }
+
                             // always update lastPheno when we see a complete set
                             lastPheno = ph;
 
@@ -555,7 +698,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 : (double?)null;
 
             double? lowestPhenoRounded = double.IsInfinity(lowestPheno) ? null : Math.Round(lowestPheno, 2);
-double? phenoDiffFromBaseline = null;
+            double? phenoDiffFromBaseline = null;
             if (firstPheno.HasValue && lastPheno.HasValue)
             {
                 // Use LAST - FIRST (FE baseline vs most recent), keep raw for ranking
