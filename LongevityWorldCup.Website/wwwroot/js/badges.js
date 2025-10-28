@@ -326,7 +326,7 @@ function makeTooltipFromServerBadge(b, athlete) {
     if (label === 'Podcast') return 'Podcast: hear to this athlete\'s story in depth';
     if (label === 'Pregnancy') return 'Baby on Board';
     if (label === 'Host') return 'Host: Organizer of the Longevity World Cup';
-    if (label === 'Perfect Application') return 'Perfect Application';
+    if (label === 'Perfect Application') return 'Perfect Application: Most Flawless Entry Form Ever Submitted';
 
     return place ? `${label}: #${place}` : `${label}`;
 }
