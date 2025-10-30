@@ -1,0 +1,28 @@
+{
+  "Name": "Danc",
+  "DisplayName": null,
+  "MediaContact": "dani.major01@gmail.com",
+  "DateOfBirth": {
+    "Year": 1994,
+    "Month": 10,
+    "Day": 24
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-10-30",
+      "AlbGL": 47.5,
+      "CreatUmolL": 80,
+      "GluMmolL": 4.5,
+      "CrpMgL": 0.1,
+      "LymPc": 2.1,
+      "McvFL": 91,
+      "RdwPc": 12.2,
+      "AlpUL": 57,
+      "Wbc1000cellsuL": 4.75
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Dan",
+  "Why": "I am driven by a strong sense of purpose and the desire to continuously grow, contribute, and make a meaningful impact. I find motivation in building lasting value, supporting others, and striving for personal and professional excellence.",
+  "PersonalLink": null
+}
