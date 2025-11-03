@@ -1,0 +1,28 @@
+{
+  "Name": "Benjamin Woosley",
+  "DisplayName": null,
+  "MediaContact": "ben.woosley@gmail.com",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 5,
+    "Day": 13
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-03",
+      "AlbGL": 45.99999999999999,
+      "CreatUmolL": 107.07964601769912,
+      "GluMmolL": 5.550621669626999,
+      "CrpMgL": 0.6,
+      "LymPc": 35.3,
+      "McvFL": 96,
+      "RdwPc": 12,
+      "AlpUL": 53,
+      "Wbc1000cellsuL": 4.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Longevity escape velocity, and the prospect of witnessing and participating in our sci-fi future.",
+  "PersonalLink": "https://linktr.ee/benwoosley"
+}
