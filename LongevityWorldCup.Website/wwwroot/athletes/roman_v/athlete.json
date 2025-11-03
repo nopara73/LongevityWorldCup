@@ -1,0 +1,28 @@
+{
+  "Name": "Roman V",
+  "DisplayName": null,
+  "MediaContact": "romanphangan@gmail.com",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 6,
+    "Day": 25
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-01",
+      "AlbGL": 47.1,
+      "CreatUmolL": 80.53097345132744,
+      "GluMmolL": 4.273978685612789,
+      "CrpMgL": 2.3,
+      "LymPc": 35,
+      "McvFL": 89.3,
+      "RdwPc": 11.8,
+      "AlpUL": 144,
+      "Wbc1000cellsuL": 8.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Cyberspace",
+  "Why": "curiousity, inspiration and love",
+  "PersonalLink": null
+}
