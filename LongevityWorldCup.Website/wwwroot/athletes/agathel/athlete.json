@@ -1,0 +1,28 @@
+{
+  "Name": "AgatheL",
+  "DisplayName": null,
+  "MediaContact": "https://x.com/AgatheL_22",
+  "DateOfBirth": {
+    "Year": 1996,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-10-30",
+      "AlbGL": 42.5,
+      "CreatUmolL": 69.91150442477877,
+      "GluMmolL": 4.107460035523979,
+      "CrpMgL": 1.3,
+      "LymPc": 33,
+      "McvFL": 91.1,
+      "RdwPc": 12.7,
+      "AlpUL": 101,
+      "Wbc1000cellsuL": 7.9
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Italy",
+  "Why": "I just like data a lot, I want to know",
+  "PersonalLink": null
+}
