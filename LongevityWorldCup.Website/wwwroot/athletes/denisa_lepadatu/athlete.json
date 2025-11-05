@@ -1,0 +1,28 @@
+{
+  "Name": "Denisa Lepadatu",
+  "DisplayName": null,
+  "MediaContact": "https://x.com/denisalepadatu_",
+  "DateOfBirth": {
+    "Year": 2002,
+    "Month": 9,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-04",
+      "AlbGL": 41.1,
+      "CreatUmolL": 66.3716814159292,
+      "GluMmolL": 5.162078152753109,
+      "CrpMgL": 1.3,
+      "LymPc": 33,
+      "McvFL": 93.7,
+      "RdwPc": 12.5,
+      "AlpUL": 100,
+      "Wbc1000cellsuL": 7.2
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Romania",
+  "Why": "Deeply wanting to understand the universe",
+  "PersonalLink": "https://x.com/denisalepadatu_"
+}
