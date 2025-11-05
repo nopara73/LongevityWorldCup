@@ -1,0 +1,28 @@
+{
+  "Name": "Redfloyd",
+  "DisplayName": null,
+  "MediaContact": "redfloydrr@proton.me",
+  "DateOfBirth": {
+    "Year": 1972,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-02",
+      "AlbGL": 48.099999999999994,
+      "CreatUmolL": 82.3,
+      "GluMmolL": 6.0,
+      "CrpMgL": 2.9,
+      "LymPc": 33,
+      "McvFL": 92,
+      "RdwPc": 12.6,
+      "AlpUL": 140,
+      "Wbc1000cellsuL": 8.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Argentina",
+  "Why": "The quest for transhuman organicity",
+  "PersonalLink": null
+}
