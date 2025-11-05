@@ -30,11 +30,24 @@
       "RdwPc": 14.3,
       "AlpUL": 60,
       "Wbc1000cellsuL": 5.2
+    },
+    {
+      "Date": "2025-11-04",
+      "AlbGL": 45,
+      "CreatUmolL": 91,
+      "GluMmolL": 4.75,
+      "CrpMgL": 1.6,
+      "LymPc": 42,
+      "McvFL": 87.5,
+      "RdwPc": 13.2,
+      "AlpUL": 61,
+      "Wbc1000cellsuL": 5.78
     }
   ],
   "Division": "Men's",
   "Flag": "Cyberspace",
   "Why": "I don't have anything better to do",
   "PersonalLink": "https://www.youtube.com/nopara73",
-  "ExclusiveLeague": "Prosperan"
+  "ExclusiveLeague": "Prosperan",
+  "DisplayName": null
 }
