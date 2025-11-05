@@ -1,0 +1,28 @@
+{
+  "Name": "Victoria Cichero",
+  "DisplayName": null,
+  "MediaContact": "vickycichero@hotmail.com",
+  "DateOfBirth": {
+    "Year": 1989,
+    "Month": 11,
+    "Day": 6
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-02",
+      "AlbGL": 40.49999999999999,
+      "CreatUmolL": 75.2212389380531,
+      "GluMmolL": 5.3841030195381885,
+      "CrpMgL": 2.5,
+      "LymPc": 37,
+      "McvFL": 90.5,
+      "RdwPc": 11.8,
+      "AlpUL": 100,
+      "Wbc1000cellsuL": 7.3
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Argentina",
+  "Why": "This existence is the greatest adventure imaginable",
+  "PersonalLink": null
+}
