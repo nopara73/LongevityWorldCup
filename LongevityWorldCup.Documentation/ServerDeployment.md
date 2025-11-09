@@ -30,6 +30,13 @@ https://www.longevityworldcup.com/
 
 ## Athletes
 
+### Get Into Position
+
+```sh
+sudo su
+/var/www/.longevityworldcup
+```
+
 ### List Athlete Keys
 ```sh
 sqlite3 LongevityWorldCup.db "SELECT Key FROM Athletes;"
@@ -38,12 +45,22 @@ sqlite3 LongevityWorldCup.db "SELECT Key FROM Athletes;"
 ### Show Athlete Record
 
 ```sh
-sqlite3 LongevityWorldCup.db "SELECT * FROM Athletes WHERE Key = 'your_key_here';"
+sqlite3 LongevityWorldCup.db "SELECT * FROM Athletes WHERE Key = 'athlete_key';"
 ```
 
 ### Delete Athlete Record
 ```sh
-sqlite3 LongevityWorldCup.db "DELETE FROM Athletes WHERE Key = 'your_key_here';"
+sqlite3 LongevityWorldCup.db "DELETE FROM Athletes WHERE Key = 'athlete_key';"
+```
+
+### Age Guesses
+#### Check Age Guesses
+```sh
+sqlite3 LongevityWorldCup.db "SELECT Key, AgeGuesses FROM Athletes WHERE Key = 'athlete_key';"
+```
+#### Reset Age Guesses
+```sh
+sqlite3 LongevityWorldCup.db "UPDATE Athletes SET AgeGuesses = '[]' WHERE Key = 'athlete_key';"
 ```
 
 ## Events
