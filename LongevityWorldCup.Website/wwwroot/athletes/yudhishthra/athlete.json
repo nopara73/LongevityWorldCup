@@ -1,0 +1,28 @@
+{
+  "Name": "Yudhishthra",
+  "DisplayName": null,
+  "MediaContact": "yudhishthra.m@gmail.com",
+  "DateOfBirth": {
+    "Year": 2001,
+    "Month": 12,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-08",
+      "AlbGL": 43.3,
+      "CreatUmolL": 49.5,
+      "GluMmolL": 5.55,
+      "CrpMgL": 2.1,
+      "LymPc": 33,
+      "McvFL": 88.2,
+      "RdwPc": 13.1,
+      "AlpUL": 95,
+      "Wbc1000cellsuL": 6.9
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Cyberpunk",
+  "Why": "Building products that matter.",
+  "PersonalLink": "https://x.com/0xYudhishthra"
+}
