@@ -1,0 +1,28 @@
+{
+  "Name": "Alexander",
+  "DisplayName": null,
+  "MediaContact": "ax.strasser@gmail.com",
+  "DateOfBirth": {
+    "Year": 1995,
+    "Month": 1,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-10",
+      "AlbGL": 47.099999999999994,
+      "CreatUmolL": 80.53097345132744,
+      "GluMmolL": 4.995559502664299,
+      "CrpMgL": 2.1,
+      "LymPc": 33,
+      "McvFL": 90.9,
+      "RdwPc": 12.8,
+      "AlpUL": 90,
+      "Wbc1000cellsuL": 6.1
+    }
+  ],
+  "Division": "Open",
+  "Flag": "mom",
+  "Why": "life. hedonism. the air. a car.",
+  "PersonalLink": null
+}
