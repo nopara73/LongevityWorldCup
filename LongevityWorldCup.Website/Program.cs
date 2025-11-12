@@ -35,6 +35,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
             builder.Services.AddSingleton<BitcoinDataService>();
+            builder.Services.AddSingleton<BadgeDataService>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
@@ -103,6 +104,9 @@ namespace LongevityWorldCup.Website
 
             var app = builder.Build();
 
+            // TODO: remove later
+            app.Services.GetRequiredService<BadgeDataService>();
+            
             var lf = app.Services.GetRequiredService<ILoggerFactory>();
             EnvironmentHelpers.Log = lf.CreateLogger(nameof(EnvironmentHelpers));
 
