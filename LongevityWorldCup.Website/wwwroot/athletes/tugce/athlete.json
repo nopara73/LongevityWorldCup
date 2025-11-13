@@ -1,0 +1,28 @@
+{
+  "Name": "Tugce",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/tuuce_",
+  "DateOfBirth": {
+    "Year": 1990,
+    "Month": 7,
+    "Day": 29
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-12",
+      "AlbGL": 41.1,
+      "CreatUmolL": 71.68141592920355,
+      "GluMmolL": 5.217584369449379,
+      "CrpMgL": 3.1,
+      "LymPc": 22,
+      "McvFL": 89,
+      "RdwPc": 12.4,
+      "AlpUL": 109,
+      "Wbc1000cellsuL": 9.1
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "TGC",
+  "Why": "excitement for future and longevity",
+  "PersonalLink": "https://www.x.com/tuuce_"
+}
