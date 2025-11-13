@@ -1,0 +1,28 @@
+{
+  "Name": "leaheujo",
+  "DisplayName": null,
+  "MediaContact": "Leaheusinger@yahoo.com",
+  "DateOfBirth": {
+    "Year": 1995,
+    "Month": 9,
+    "Day": 8
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-12",
+      "AlbGL": 43.3,
+      "CreatUmolL": 84.070796460177,
+      "GluMmolL": 4.829040852575489,
+      "CrpMgL": 2.4,
+      "LymPc": 33,
+      "McvFL": 87.8,
+      "RdwPc": 12.7,
+      "AlpUL": 153,
+      "Wbc1000cellsuL": 5.8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Germany",
+  "Why": "love for life, for the people I share it with, and for the chance to experience more beautiful moments",
+  "PersonalLink": null
+}
