@@ -1,0 +1,28 @@
+{
+  "Name": "Ilhui",
+  "DisplayName": null,
+  "MediaContact": "hello@ilhui.com",
+  "DateOfBirth": {
+    "Year": 1994,
+    "Month": 8,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-14",
+      "AlbGL": 48.6,
+      "CreatUmolL": 59.2920353982301,
+      "GluMmolL": 4.770204262877443,
+      "CrpMgL": 60,
+      "LymPc": 35,
+      "McvFL": 91.26,
+      "RdwPc": 11.12,
+      "AlpUL": 69.54,
+      "Wbc1000cellsuL": 4.155
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Natural longevity",
+  "Why": "A sustainable future where longevity, biotechnology, and nature coexist",
+  "PersonalLink": "https://ilhui.com/"
+}
