@@ -46,16 +46,19 @@
         align-self: flex-start;
         padding-bottom:5px;
     }
-    .events-board thead th {
-        background: rgba(0, 188, 212, 0.12);
-        color: var(--primary-color);
-        text-transform: uppercase;
-        font-weight: 800;
-        font-size: 0.95rem;
-        letter-spacing: 1px;
-        text-align: left;
-        padding: 15px 20px;
-    }
+        .events-board thead th {
+            background: rgba(0, 188, 212, 0.12);
+            color: var(--primary-color);
+            text-transform: uppercase;
+            font-weight: 800;
+            font-size: 0.85rem; /* smaller, like countdown */
+            letter-spacing: 1px;
+            text-align: left;
+            padding: 15px 20px; /* tighter, like countdown */
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+            /* IMPORTANT: no display:flex here */
+        }
+
     .events-board td.col-avatar { padding-right: 8px; }
     .events-board td.event-message { padding-left: 0px; }
     .header-bar {
