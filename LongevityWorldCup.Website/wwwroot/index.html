@@ -550,6 +550,46 @@
             display: inline-block;
             opacity: 0.85;
         }
+        .lwc-countdown-rulebook-link-wrapper {
+            margin-top: 0.85rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .lwc-countdown-rulebook-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.95rem;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 188, 212, 0.5);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            text-decoration: none;
+            color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+            .lwc-countdown-rulebook-link i {
+                font-size: 0.95rem;
+                opacity: 0.9;
+            }
+
+            .lwc-countdown-rulebook-link:hover {
+                background: #ffffff;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+                border-color: var(--primary-color);
+            }
+
+            .lwc-countdown-rulebook-link:focus-visible {
+                outline: 2px solid var(--primary-color);
+                outline-offset: 2px;
+            }
 
         /* mobile: stack the cards */
         @media (max-width: 991px) {
@@ -615,7 +655,17 @@
                                 Blood draw deadline: <strong>December&nbsp;31</strong>.
                             </span>
                         </p>
+
+                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md"
+                           class="lwc-countdown-rulebook-link"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="View the full 2025 Longevity World Cup rulebook on GitHub">
+                            <i class="fas fa-book-open" aria-hidden="true"></i>
+                            <span>View Rulebook</span>
+                        </a>
                     </div>
+
                 </div>
             </div>
         </div>
