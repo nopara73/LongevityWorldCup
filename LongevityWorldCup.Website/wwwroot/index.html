@@ -565,18 +565,42 @@
         }
 
         .lwc-countdown-body {
-            padding: 1rem 1.5rem 1.25rem;
+            padding: 1.25rem 1.75rem 1.5rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            gap: 0.5rem;
+            align-items: center;
+            gap: 0.25rem;
             text-align: center;
         }
 
+
         .lwc-highlights-countdown-timer {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             font-weight: 700;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.5rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
+        .lwc-countdown-details-text {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .lwc-countdown-primary-deadline {
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .lwc-countdown-secondary-deadline {
+            display: inline-block;
+            opacity: 0.85;
+        }
+
 
         @media (max-width: 991px) {
             .lwc-highlights-countdown-wrapper {
@@ -625,10 +649,15 @@
                         <div id="lwcHighlightsCountdownTimer" class="lwc-highlights-countdown-timer"></div>
                         <div class="lwc-countdown-body">
                             <div id="lwcHighlightsCountdownTimer" class="lwc-highlights-countdown-timer"></div>
-                            <p class="smaller-text">
-                                Countdown is to the <strong>final submission deadline: January&nbsp;15</strong>.<br>
-                                Blood draw deadline: <strong>December&nbsp;31</strong>
+                            <p class="smaller-text lwc-countdown-details-text">
+                                <span class="lwc-countdown-primary-deadline">
+                                    Countdown is to the <strong>final submission deadline: January&nbsp;15</strong>.
+                                </span><br>
+                                <span class="lwc-countdown-secondary-deadline">
+                                    Blood draw deadline: <strong>December&nbsp;31</strong>
+                                </span>
                             </p>
+
                         </div>
 
                     </div>
