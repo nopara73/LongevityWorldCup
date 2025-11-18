@@ -533,6 +533,65 @@
                 margin-bottom: 36px !important;
             }
         }
+
+        .lwc-highlights-countdown-wrapper {
+            max-width: 1250px;
+            margin: 2rem auto;
+            display: flex;
+            gap: 1.5rem;
+            align-items: stretch;
+        }
+
+            .lwc-highlights-countdown-wrapper > #events-root-index,
+            .lwc-highlights-countdown-wrapper > #lwc-countdown-box {
+                flex: 1 1 0;
+            }
+
+        .lwc-countdown-inner {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lwc-countdown-header-row {
+            padding: 0.75rem 1.5rem;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .lwc-countdown-title {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .lwc-countdown-body {
+            padding: 1rem 1.5rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.5rem;
+            text-align: center;
+        }
+
+        .lwc-highlights-countdown-timer {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        @media (max-width: 991px) {
+            .lwc-highlights-countdown-wrapper {
+                flex-direction: column;
+                margin-top: 1.5rem;
+            }
+
+                .lwc-highlights-countdown-wrapper > #events-root-index,
+                .lwc-highlights-countdown-wrapper > #lwc-countdown-box {
+                    flex: 0 0 auto; /* prevent collapsing to zero height */
+                    width: 100%; /* full width stacked */
+                }
+        }
+
+
     </style>
 </head>
 <body>
@@ -554,7 +613,28 @@
             </p>
         </div>
 
-        <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
+        <div class="lwc-highlights-countdown-wrapper">
+            <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
+            <div id="lwc-countdown-box" class="events-board">
+                <div class="lwc-countdown-inner">
+                    <div class="lwc-countdown-header-row">
+                        <span class="lwc-countdown-title">2025 Season Ends In</span>
+                    </div>
+
+                    <div class="lwc-countdown-body">
+                        <div id="lwcHighlightsCountdownTimer" class="lwc-highlights-countdown-timer"></div>
+                        <div class="lwc-countdown-body">
+                            <div id="lwcHighlightsCountdownTimer" class="lwc-highlights-countdown-timer"></div>
+                            <p class="smaller-text">
+                                Countdown is to the <strong>final submission deadline: January&nbsp;15</strong>.<br>
+                                Blood draw deadline: <strong>December&nbsp;31</strong>
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
@@ -665,7 +745,9 @@
         document.addEventListener('DOMContentLoaded', function () {
             callScoped('events-root-index', function () { loadEventsTable(5, true); });
             LoadLeaderboard(true, 10);
+            initHighlightsCountdown();
         });
+
 
         document.getElementById("closeNewsletterBtn1").onclick = function () {
             closeNewsletterModal();
@@ -937,6 +1019,49 @@
             updateCountdown();
             countdownInterval = setInterval(updateCountdown, 1000); // Assign the interval here
         })();
+        function initHighlightsCountdown() {
+            const countdownElement = document.getElementById('lwcHighlightsCountdownTimer');
+            if (!countdownElement) return;
+
+            const getNextJanuary15 = () => {
+                const now = new Date();
+                let year = now.getFullYear();
+                const jan15ThisYear = new Date(year, 0, 15, 0, 0, 0);
+                if (now > jan15ThisYear) {
+                    year += 1;
+                }
+                return new Date(year, 0, 15, 0, 0, 0).getTime();
+            };
+
+            let targetTime = getNextJanuary15();
+
+            const pad = (value) => String(value).padStart(2, '0');
+
+            const update = () => {
+                const nowMs = Date.now();
+                let distance = targetTime - nowMs;
+
+                if (distance <= 0) {
+                    // Recompute for the next year once we hit/past Jan 15
+                    targetTime = getNextJanuary15();
+                    distance = targetTime - nowMs;
+                }
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                countdownElement.textContent =
+                    pad(days) + 'd ' +
+                    pad(hours) + 'h ' +
+                    pad(minutes) + 'm ' +
+                    pad(seconds) + 's';
+            };
+
+            update();
+            setInterval(update, 1000);
+        }
 
         window.addEventListener('DOMContentLoaded', adjustBitcoinAddressDisplay);
         window.addEventListener('resize', adjustBitcoinAddressDisplay);
