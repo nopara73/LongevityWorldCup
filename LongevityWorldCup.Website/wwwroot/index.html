@@ -399,140 +399,52 @@
             }
         }
 
-        /* Countdown Section Styles */
+        /* Countdown Section Styles (beta box) */
         .countdown-section {
             position: relative;
             overflow: hidden;
             color: var(--dark-text-color);
-            padding: 2rem;
-            border-radius: 15px;
+            padding: 1.75rem 2rem;
+            border-radius: 16px;
             margin-top: 2rem;
             text-align: center;
-            background: var(--card-bg);
+            background: linear-gradient( 135deg, rgba(79, 163, 232, 0.12), rgba(79, 232, 163, 0.08) );
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
         }
 
-            .countdown-section h3 {
-                font-size: 1.5rem;
-                color: var(--dark-text-color);
-                margin-bottom: 1rem;
+            .countdown-section h2 {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.6rem;
+                font-size: 1.4rem;
+                margin-bottom: 0.75rem;
             }
 
+                .countdown-section h2 i {
+                    font-size: 1.4rem;
+                    opacity: 0.9;
+                }
+
         #countdown {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
+            font-size: 2.1rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.6rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
 
         .countdown-section p {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: var(--dark-text-color);
             line-height: 1.6;
+            max-width: 520px;
+            margin: 0.25rem auto 0;
+            opacity: 0.9;
         }
 
-        .launch-announcement {
-            display: flex;
-            flex-direction: column; /* stack vertically */
-            justify-content: center;
-            align-items: center;
-            gap: 1rem; /* vertical spacing between rows/text */
-            min-height: 150px;
-            font-size: 2rem;
-            color: var(--primary-color);
-            position: relative;
-        }
-
-        .rocket-icon {
-            font-size: 2.5rem;
-            opacity: 0;
-            transform: translateY(20px) scale(0.5) rotate(-45deg);
-            animation: rocketLaunch 0.8s ease forwards;
-        }
-
-        .left-rocket {
-            animation-delay: 0.1s;
-        }
-
-        .right-rocket {
-            transform: translateY(20px) scale(0.5) rotate(45deg);
-            animation-delay: 0.2s;
-        }
-
-        .launch-text {
-            animation: fadeIn 0.6s ease 0.4s forwards;
-            opacity: 0;
-        }
-
-        @keyframes rocketLaunch {
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1) rotate(0deg);
-            }
-        }
-
-        @keyframes rocketExit {
-            from {
-                opacity: 1;
-                transform: translateY(0) scale(1) rotate(0deg);
-            }
-
-            to {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.5) rotate(-45deg);
-            }
-        }
-
-        .rocket-row {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin: 0.5rem 0;
-        }
-
-            .rocket-row .rocket-icon {
-                opacity: 0;
-                transform: translateY(20px) scale(0.5);
-            }
-
-        .top-rockets .rocket-icon:nth-child(1) {
-            animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.1s;
-        }
-
-        .top-rockets .rocket-icon:nth-child(2) {
-            animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.2s;
-        }
-
-        .top-rockets .rocket-icon:nth-child(3) {
-            animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.3s;
-        }
-
-        .bottom-rockets .rocket-icon:nth-child(1) {
-            animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.4s;
-        }
-
-        .bottom-rockets .rocket-icon:nth-child(2) {
-            animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.5s;
-        }
-
-        .bottom-rockets .rocket-icon:nth-child(3) {
-            animation: rocketLaunch 0.8s ease forwards;
-            animation-delay: 0.6s;
-        }
-
-        .events-board {
-            margin-bottom: 28px !important;
-        }
-
-        @media (min-width: 992px) {
-            .events-board {
-                margin-bottom: 36px !important;
-            }
-        }
+        /* ===== Season countdown next to events board ===== */
 
         .lwc-highlights-countdown-wrapper {
             max-width: 1250px;
@@ -542,58 +454,96 @@
             align-items: stretch;
         }
 
+            /* let both cards share the row nicely */
             .lwc-highlights-countdown-wrapper > #events-root-index,
             .lwc-highlights-countdown-wrapper > #lwc-countdown-box {
                 flex: 1 1 0;
             }
 
-        .lwc-countdown-inner {
-            height: 100%;
+        /* modifier so we don't mess with the table board */
+        .events-board--timer {
             display: flex;
-            flex-direction: column;
+            align-items: stretch;
+            padding: 0; /* spacing handled inside */
+            margin-bottom: 28px; /* same visual rhythm as board */
         }
 
+        @media (min-width: 992px) {
+            .events-board--timer {
+                margin-bottom: 36px;
+            }
+        }
+
+        .lwc-countdown-inner {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        /* header matches HIGHLIGHTS header bar */
         .lwc-countdown-header-row {
-            padding: 0.75rem 1.5rem;
-            font-weight: 700;
-            text-align: left;
+            background: rgba(0, 188, 212, 0.12);
+            color: var(--primary-color);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            font-weight: 800;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
         }
 
         .lwc-countdown-title {
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            white-space: nowrap;
         }
 
+        .lwc-countdown-chip {
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid rgba(0, 188, 212, 0.4);
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--primary-color);
+            white-space: nowrap;
+        }
+
+        /* body styling */
         .lwc-countdown-body {
-            padding: 1.25rem 1.75rem 1.5rem;
+            padding: 16px 24px 18px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            gap: 0.25rem;
             text-align: center;
+            gap: 0.5rem;
         }
-
 
         .lwc-highlights-countdown-timer {
             font-size: 1.8rem;
             font-weight: 700;
             letter-spacing: 0.06em;
-            margin-bottom: 0.5rem;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
+
         .lwc-countdown-details-text {
-            margin-top: 0.5rem;
+            margin-top: 0.25rem;
             font-size: 0.9rem;
             line-height: 1.5;
             max-width: 360px;
             margin-left: auto;
             margin-right: auto;
+            color: var(--dark-text-color);
+            opacity: 0.9;
         }
 
         .lwc-countdown-primary-deadline {
             display: inline-block;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.15rem;
+            font-weight: 600;
         }
 
         .lwc-countdown-secondary-deadline {
@@ -601,7 +551,7 @@
             opacity: 0.85;
         }
 
-
+        /* mobile: stack the cards */
         @media (max-width: 991px) {
             .lwc-highlights-countdown-wrapper {
                 flex-direction: column;
@@ -610,11 +560,18 @@
 
                 .lwc-highlights-countdown-wrapper > #events-root-index,
                 .lwc-highlights-countdown-wrapper > #lwc-countdown-box {
-                    flex: 0 0 auto; /* prevent collapsing to zero height */
-                    width: 100%; /* full width stacked */
+                    flex: 0 0 auto;
+                    width: 100%;
                 }
-        }
 
+            .lwc-highlights-countdown-timer {
+                font-size: 1.6rem;
+            }
+
+            .lwc-countdown-body {
+                padding: 14px 16px 16px;
+            }
+        }
 
     </style>
 </head>
@@ -639,31 +596,30 @@
 
         <div class="lwc-highlights-countdown-wrapper">
             <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
-            <div id="lwc-countdown-box" class="events-board">
+
+            <div id="lwc-countdown-box" class="events-board events-board--timer">
                 <div class="lwc-countdown-inner">
                     <div class="lwc-countdown-header-row">
-                        <span class="lwc-countdown-title">2025 Season Ends In</span>
+                        <span class="lwc-countdown-title">2025 Season</span>
+                        <span class="lwc-countdown-chip">Ends in</span>
                     </div>
 
                     <div class="lwc-countdown-body">
                         <div id="lwcHighlightsCountdownTimer" class="lwc-highlights-countdown-timer"></div>
-                        <div class="lwc-countdown-body">
-                            <div id="lwcHighlightsCountdownTimer" class="lwc-highlights-countdown-timer"></div>
-                            <p class="smaller-text lwc-countdown-details-text">
-                                <span class="lwc-countdown-primary-deadline">
-                                    Countdown is to the <strong>final submission deadline: January&nbsp;15</strong>.
-                                </span><br>
-                                <span class="lwc-countdown-secondary-deadline">
-                                    Blood draw deadline: <strong>December&nbsp;31</strong>
-                                </span>
-                            </p>
 
-                        </div>
-
+                        <p class="smaller-text lwc-countdown-details-text">
+                            <span class="lwc-countdown-primary-deadline">
+                                Countdown is to the <strong>final submission deadline: January&nbsp;15</strong>.
+                            </span><br>
+                            <span class="lwc-countdown-secondary-deadline">
+                                Blood draw deadline: <strong>December&nbsp;31</strong>.
+                            </span>
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
+
 
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
