@@ -1,0 +1,28 @@
+{
+  "Name": "Teodor Katrandjiev 'Okoto'",
+  "DisplayName": null,
+  "MediaContact": "okotog@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 4,
+    "Day": 13
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-18",
+      "AlbGL": 43.5,
+      "CreatUmolL": 89,
+      "GluMmolL": 5.77,
+      "CrpMgL": 1,
+      "LymPc": 35.2,
+      "McvFL": 90.4,
+      "RdwPc": 12.6,
+      "AlpUL": 76.3,
+      "Wbc1000cellsuL": 7.76
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Get better",
+  "Why": "If I can, everyone can. Leading, by example.",
+  "PersonalLink": "https://cellshield.eu/"
+}

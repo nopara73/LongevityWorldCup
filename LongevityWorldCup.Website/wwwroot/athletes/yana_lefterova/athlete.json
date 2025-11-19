@@ -1,0 +1,28 @@
+{
+  "Name": "Yana Lefterova",
+  "DisplayName": null,
+  "MediaContact": "qna.lefterovva@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 9,
+    "Day": 7
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-18",
+      "AlbGL": 44.3,
+      "CreatUmolL": 58.6,
+      "GluMmolL": 4.53,
+      "CrpMgL": 0.78,
+      "LymPc": 35.1,
+      "McvFL": 91.4,
+      "RdwPc": 12.1,
+      "AlpUL": 40.1,
+      "Wbc1000cellsuL": 5.87
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Vive in harmonia, diu vive...",
+  "Why": "The belief that every day is a new beginning.",
+  "PersonalLink": null
+}
