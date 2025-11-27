@@ -662,7 +662,7 @@
             const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
             let chronologicalAgeAtTimeOfTest;
             try {
-                chronologicalAgeAtTimeOfTest = window.PhenoAge.CalculateAgeFromDOBAndBloodDrawDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
+                chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
                 if (chronologicalAgeAtTimeOfTest < 0) {
                     throw new Error("Invalid Date of Birth: You cannot be born in the future.");
                 }
@@ -1187,7 +1187,7 @@
             };
 
             // Store the data in sessionStorage
-            const chronoAgeAtTimeOfTest = window.PhenoAge.CalculateAgeFromDOBAndBloodDrawDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
+            const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
             const bioAge = parseFloat(document.getElementById('animatedAge').innerText);
             const chronoBioDifference = bioAge - chronoAgeAtTimeOfTest;
             sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
