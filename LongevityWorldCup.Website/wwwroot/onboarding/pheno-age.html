@@ -257,6 +257,14 @@
                 <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
             </fieldset>
 
+            <!-- Blood Draw Details -->
+            <fieldset>
+                <legend>Blood Draw:</legend>
+                <label for="blood-draw-date">Blood draw date <span style="font-weight: normal;">(required)</span></label>
+                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;">
+                <p class="privacy-note">Use the exact date your blood was drawn so we can keep your biomarkers in sync.</p>
+            </fieldset>
+
             <!-- Biomarker Fieldset -->
             <fieldset>
                 <legend>Biomarkers:</legend>
@@ -482,6 +490,13 @@
         const isFake = urlParams.get('fake') === '1';
         const isUpdate = urlParams.get('update') === '1';
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        const bloodDrawDateInput = document.getElementById('blood-draw-date');
+
+        if (bloodDrawDateInput) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            bloodDrawDateInput.max = today.toISOString().split('T')[0];
+        }
 
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
@@ -512,6 +527,9 @@
         const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
         if (stored?.Biomarkers?.[0]) {
             const latest = stored.Biomarkers[0];
+            if (latest.Date && bloodDrawDateInput) {
+                bloodDrawDateInput.value = latest.Date;
+            }
             const propMap = {
                 albumin: 'AlbGL',
                 creatinine: 'CreatUmolL',
@@ -528,6 +546,28 @@
                     touchedBiomarkers.add(id);
                 }
             });
+        }
+
+        function getValidatedBloodDrawDate() {
+            if (!bloodDrawDateInput) return null;
+
+            const rawValue = bloodDrawDateInput.value;
+            if (!rawValue) {
+                customAlert('Please enter the date when your blood was drawn.');
+                bloodDrawDateInput.focus();
+                return null;
+            }
+
+            const selectedDate = new Date(`${rawValue}T00:00:00`);
+            const maxDate = bloodDrawDateInput.max ? new Date(`${bloodDrawDateInput.max}T00:00:00`) : null;
+
+            if (maxDate && selectedDate > maxDate) {
+                customAlert('Blood draw date cannot be in the future.');
+                bloodDrawDateInput.focus();
+                return null;
+            }
+
+            return rawValue;
         }
 
         function updateCalculateButton() {
@@ -592,12 +632,24 @@
                 }
             }
 
+            const bloodDrawDate = getValidatedBloodDrawDate();
+            if (!bloodDrawDate) {
+                document.getElementById('continueButton').classList.remove('show');
+                updateCalculateButton();
+                return;
+            }
+
             const markerValues = [];
 
             // Get age from separate Date of Birth inputs
             const yearInput = document.getElementById('dob-year').value;
             const monthInput = document.getElementById('dob-month').value;
             const dayInput = document.getElementById('dob-day').value;
+
+            const bloodDrawDate = getValidatedBloodDrawDate();
+            if (!bloodDrawDate) {
+                return;
+            }
 
             const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
@@ -994,6 +1046,10 @@
         function updateModeFormInitializerUnique() {
             if (!isUpdate) return;
 
+            if (bloodDrawDateInput) {
+                bloodDrawDateInput.value = '';
+            }
+
             const idMapUnique = {
                 AlbGL: 'albumin',
                 CreatUmolL: 'creatinine',
@@ -1031,6 +1087,9 @@
             const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
             const entry = stored?.Biomarkers?.[0];
             if (entry) {
+                if (bloodDrawDateInput) {
+                    bloodDrawDateInput.value = entry.Date || '';
+                }
                 Object.keys(entry).forEach(prop => {
                     const id = idMapUnique[prop];
                     if (id) {
@@ -1073,13 +1132,18 @@
             const monthInput = document.getElementById('dob-month').value;
             const dayInput = document.getElementById('dob-day').value;
 
+            const bloodDrawDate = getValidatedBloodDrawDate();
+            if (!bloodDrawDate) {
+                return;
+            }
+
             const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
             // Collect only biomarkers the user actually touched
             const entry = {
-                Date: new Date().toISOString().split('T')[0] // Current date in YYYY-MM-DD format
+                Date: bloodDrawDate
             };
             // only assign if the user actually touched that field:
             if (touchedBiomarkers.has('albumin')) {
@@ -1142,6 +1206,10 @@
             document.getElementById('dob-year').value = 1966;
             document.getElementById('dob-month').value = 7;
             document.getElementById('dob-day').value = 12;
+
+            if (bloodDrawDateInput) {
+                bloodDrawDateInput.value = bloodDrawDateInput.max || new Date().toISOString().split('T')[0];
+            }
 
             // Set fake values for all input fields
             document.getElementById('albumin').value = 45; // g/L
