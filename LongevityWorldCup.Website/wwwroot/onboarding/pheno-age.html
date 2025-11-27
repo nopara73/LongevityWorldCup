@@ -492,10 +492,14 @@
         const bloodDrawDateInput = document.getElementById('blood-draw-date');
 
         if (bloodDrawDateInput) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            bloodDrawDateInput.max = today.toISOString().split('T')[0];
+            const todayLocal = new Date();
+            todayLocal.setHours(0, 0, 0, 0);
+            const y = todayLocal.getFullYear();
+            const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
+            const d = String(todayLocal.getDate()).padStart(2, '0');
+            bloodDrawDateInput.max = `${y}-${m}-${d}`;
         }
+
 
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
@@ -1202,8 +1206,13 @@
             document.getElementById('dob-day').value = 12;
 
             if (bloodDrawDateInput) {
-                bloodDrawDateInput.value = bloodDrawDateInput.max || new Date().toISOString().split('T')[0];
+                const nowLocalForFake = new Date();
+                const y2 = nowLocalForFake.getFullYear();
+                const m2 = String(nowLocalForFake.getMonth() + 1).padStart(2, '0');
+                const d2 = String(nowLocalForFake.getDate()).padStart(2, '0');
+                bloodDrawDateInput.value = bloodDrawDateInput.max || `${y2}-${m2}-${d2}`;
             }
+
 
             // Set fake values for all input fields
             document.getElementById('albumin').value = 45; // g/L
