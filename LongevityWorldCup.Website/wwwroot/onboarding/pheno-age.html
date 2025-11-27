@@ -497,9 +497,10 @@
             const y = todayLocal.getFullYear();
             const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
             const d = String(todayLocal.getDate()).padStart(2, '0');
-            bloodDrawDateInput.max = `${y}-${m}-${d}`;
+            const todayStr = `${y}-${m}-${d}`;
+            bloodDrawDateInput.max = todayStr;
+            bloodDrawDateInput.value = todayStr;
         }
-
 
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
