@@ -57,7 +57,7 @@ namespace LongevityWorldCup.Website.Tools
             return CalculatePhenoAge(values);
         }
 
-        public static double CalculateAgeFromDOB(DateTime birthDate, DateTime bloodDrawDate)
+        public static double CalculateAgeFromDOBAndBloodDrawDate(DateTime birthDate, DateTime bloodDrawDate)
         {
             if (birthDate > bloodDrawDate) throw new ArgumentException("Date of birth cannot be in the future.");
             var utc1 = new DateTime(birthDate.Year, birthDate.Month, birthDate.Day, 0, 0, 0, DateTimeKind.Utc);
