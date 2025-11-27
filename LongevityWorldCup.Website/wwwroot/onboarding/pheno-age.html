@@ -261,7 +261,7 @@
             <fieldset>
                 <legend>Blood Draw Date:</legend>
                 <p class="privacy-note">When did you get your blood test done?</p>
-                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;">
+                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;" onchange="calculateResultIfResultAlreadyCalculated()">
             </fieldset>
 
             <!-- Biomarker Fieldset -->
@@ -660,10 +660,10 @@
             }
 
             const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
-            let chronologicalAge;
+            let chronologicalAgeAtTimeOfTest;
             try {
-                chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dobValue);
-                if (chronologicalAge < 0) {
+                chronologicalAgeAtTimeOfTest = window.PhenoAge.calculateAgeFromDOB(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
+                if (chronologicalAgeAtTimeOfTest < 0) {
                     throw new Error("Invalid Date of Birth: You cannot be born in the future.");
                 }
             } catch (error) {
@@ -672,7 +672,7 @@
             }
 
             // Add age as the first marker value
-            markerValues.push(chronologicalAge);
+            markerValues.push(chronologicalAgeAtTimeOfTest);
 
             // Fill missing biomarker fields on update
             if (isUpdate) {
@@ -787,7 +787,7 @@
                             clearInterval(ageCounter);
                             document.getElementById('animatedAge').innerText = phenoAge.toFixed(1); // Set final age value
 
-                            if (phenoAge < chronologicalAge) {
+                            if (phenoAge < chronologicalAgeAtTimeOfTest) {
                                 // Add the celebratory emoji to the "years" line
                                 document.getElementById('yearsText').innerHTML = `years 🚀`;
                             }
@@ -803,7 +803,7 @@
                     resultElement.style.opacity = 1; // Fade-in effect
                     // Direct update without animation
                     document.getElementById('animatedAge').innerText = phenoAge.toFixed(1);
-                    document.getElementById('yearsText').innerHTML = phenoAge < chronologicalAge ? `years 🚀` : `years`;
+                    document.getElementById('yearsText').innerHTML = phenoAge < chronologicalAgeAtTimeOfTest ? `years 🚀` : `years`;
 
                     document.getElementById('continueButton').classList.add('show');
                     updateCalculateButton();
@@ -1187,9 +1187,9 @@
             };
 
             // Store the data in sessionStorage
-            const chronoAge = window.PhenoAge.calculateAgeFromDOB(new Date(year, month, day));
+            const chronoAgeAtTimeOfTest = window.PhenoAge.calculateAgeFromDOB(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
             const bioAge = parseFloat(document.getElementById('animatedAge').innerText);
-            const chronoBioDifference = bioAge - chronoAge;
+            const chronoBioDifference = bioAge - chronoAgeAtTimeOfTest;
             sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
 
             sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
