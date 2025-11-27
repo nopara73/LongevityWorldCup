@@ -645,11 +645,6 @@
             const monthInput = document.getElementById('dob-month').value;
             const dayInput = document.getElementById('dob-day').value;
 
-            const bloodDrawDate = getValidatedBloodDrawDate();
-            if (!bloodDrawDate) {
-                return;
-            }
-
             const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
