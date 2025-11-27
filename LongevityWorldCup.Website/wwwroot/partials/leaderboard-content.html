@@ -1059,7 +1059,7 @@
                         bestBiomarkers.McvFL, bestBiomarkers.RdwPc, bestBiomarkers.AlpUL
                     ].every(Number.isFinite) && bestBiomarkers.CrpMgL > 0
                         ? [
-                            chronologicalAge,
+                            chronologicalAgeNow,
                             bestBiomarkers.AlbGL,
                             bestBiomarkers.CreatUmolL,
                             bestBiomarkers.GluMmolL,
@@ -1127,7 +1127,7 @@
                             ];
                             lowestPhenoAge = window.PhenoAge.calculatePhenoAge(valuesForLowestPhenoAge);
                         } else {
-                            lowestPhenoAge = chronologicalAge; // no complete data → neutral (no reduction/acceleration)
+                            lowestPhenoAge = chronologicalAgeNow; // no complete data → neutral (no reduction/acceleration)
                         }
                     }
 
