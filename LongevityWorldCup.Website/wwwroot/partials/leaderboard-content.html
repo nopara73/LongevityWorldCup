@@ -2349,7 +2349,7 @@
 
                 // Generate age visualization
                 const bioAge = athleteData.lowestPhenoAge;
-                const chronoAge = athleteData.chronologicalAge;
+                const chronoAge = athleteData.chronoAtLowestPhenoAge ?? athleteData.chronologicalAge;
                 generateAgeVisualization(bioAge, chronoAge);
 
                 // Generate biomarker chart
