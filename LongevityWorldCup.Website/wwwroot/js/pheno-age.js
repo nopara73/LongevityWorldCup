@@ -22,7 +22,7 @@ window.PhenoAge.parseInput = function (value) {
 };
 
 // Helper function to calculate age from date of birth remains unchanged
-window.PhenoAge.calculateAgeFromDOB = function (birthDate, bloodDrawDate) {
+window.PhenoAge.CalculateAgeFromDOBAndBloodDrawDate = function (birthDate, bloodDrawDate) {
     if (!(birthDate instanceof Date)) throw new Error("Invalid input: birthDate must be a Date object");
     if (!(bloodDrawDate instanceof Date)) throw new Error("Invalid input: bloodDrawDate must be a Date object");
     if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
