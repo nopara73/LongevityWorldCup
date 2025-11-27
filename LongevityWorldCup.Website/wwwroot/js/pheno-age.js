@@ -22,19 +22,18 @@ window.PhenoAge.parseInput = function (value) {
 };
 
 // Helper function to calculate age from date of birth remains unchanged
-window.PhenoAge.calculateAgeFromDOB = function (birthDate) {
-    if (!(birthDate instanceof Date)) {
-        throw new Error("Invalid input: dob must be a Date object");
-    }
+window.PhenoAge.calculateAgeFromDOB = function (birthDate, bloodDrawDate) {
+    if (!(birthDate instanceof Date)) throw new Error("Invalid input: birthDate must be a Date object");
+    if (!(bloodDrawDate instanceof Date)) throw new Error("Invalid input: bloodDrawDate must be a Date object");
     if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
+    if (isNaN(bloodDrawDate)) throw new Error("Invalid blood draw date.");
 
-    const today = new Date();
-    if (birthDate > today) throw new Error("Date of birth cannot be in the future.");
+    if (birthDate > bloodDrawDate) throw new Error("Date of birth cannot be in the future.");
 
     // Calculate total days lived
     const msPerDay = 1000 * 60 * 60 * 24;
     const utc1 = Date.UTC(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
-    const utc2 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const utc2 = Date.UTC(bloodDrawDate.getFullYear(), bloodDrawDate.getMonth(), bloodDrawDate.getDate());
     const totalDays = (utc2 - utc1) / msPerDay;
 
     // Convert days to years with improved precision

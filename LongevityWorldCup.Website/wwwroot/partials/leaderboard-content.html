@@ -946,7 +946,7 @@
                         athlete.DateOfBirth.Month - 1, // Months are zero-indexed in JavaScript Date
                         athlete.DateOfBirth.Day
                     );
-                    const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dob);
+                    const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dob, new Date());
 
                     const crowdAge = athlete.CrowdAge;
                     const crowdCount = athlete.CrowdCount;

@@ -57,12 +57,11 @@ namespace LongevityWorldCup.Website.Tools
             return CalculatePhenoAge(values);
         }
 
-        public static double CalculateAgeFromDOB(DateTime birthDate)
+        public static double CalculateAgeFromDOB(DateTime birthDate, DateTime bloodDrawDate)
         {
-            var todayUtc = DateTime.UtcNow;
-            if (birthDate > todayUtc) throw new ArgumentException("Date of birth cannot be in the future.");
+            if (birthDate > bloodDrawDate) throw new ArgumentException("Date of birth cannot be in the future.");
             var utc1 = new DateTime(birthDate.Year, birthDate.Month, birthDate.Day, 0, 0, 0, DateTimeKind.Utc);
-            var utc2 = new DateTime(todayUtc.Year, todayUtc.Month, todayUtc.Day, 0, 0, 0, DateTimeKind.Utc);
+            var utc2 = new DateTime(bloodDrawDate.Year, bloodDrawDate.Month, bloodDrawDate.Day, 0, 0, 0, DateTimeKind.Utc);
             var totalDays = (utc2 - utc1).TotalDays;
             return Math.Round(totalDays / 365.2425, 2);
         }
