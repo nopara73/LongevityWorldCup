@@ -946,7 +946,7 @@
                         athlete.DateOfBirth.Month - 1, // Months are zero-indexed in JavaScript Date
                         athlete.DateOfBirth.Day
                     );
-                    const chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dob, new Date());
+                    const chronologicalAgeNow = window.PhenoAge.calculateAgeFromDOB(dob, new Date());
 
                     const crowdAge = athlete.CrowdAge;
                     const crowdCount = athlete.CrowdCount;
@@ -1106,7 +1106,7 @@
                     const chronoAtLowestPhenoAge =
                         Number.isFinite(lowestPhenoAge) && valuesForLowestPhenoAge
                             ? valuesForLowestPhenoAge[0]
-                            : chronologicalAge;
+                            : chronologicalAgeNow;
 
                     // Fallback: if nothing valid (should be rare), use the last submission
                     if (!Number.isFinite(lowestPhenoAge)) {
@@ -1132,8 +1132,8 @@
                     }
 
                     // Calculate the age reduction
-                    const ageReduction = lowestPhenoAge - chronologicalAge;
-                    const biologicalAgePercent = lowestPhenoAge / chronologicalAge;
+                    const ageReduction = lowestPhenoAge - chronoAtLowestPhenoAge;
+                    const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
                     const ageReductionPercent = (1 - biologicalAgePercent) * 100;
 
                     // Placements: [yesterday, last week, last month, last year]
@@ -1154,7 +1154,7 @@
                         displayName: displayName,
                         mediaContact: athlete.MediaContact,
                         dateOfBirth: dob,
-                        chronologicalAge: chronologicalAge,
+                        chronologicalAge: chronologicalAgeNow,
                         crowdAge: crowdAge,
                         crowdCount: crowdCount,
                         lowestPhenoAge: lowestPhenoAge,
