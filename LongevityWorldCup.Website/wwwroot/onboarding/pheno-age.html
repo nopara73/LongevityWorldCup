@@ -261,7 +261,7 @@
             <fieldset>
                 <legend>Blood Draw Date:</legend>
                 <p class="privacy-note">When did you get your blood test done?</p>
-                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;" onchange="calculateResultIfResultAlreadyCalculated()">
+                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
             </fieldset>
 
             <!-- Biomarker Fieldset -->
@@ -500,6 +500,24 @@
             const todayStr = `${y}-${m}-${d}`;
             bloodDrawDateInput.max = todayStr;
             bloodDrawDateInput.value = todayStr;
+
+            // Open the native picker on focus/click (only when supported)
+            const lwcOpenDatePickerGuarded = () => {
+                if (typeof bloodDrawDateInput.showPicker === 'function' && !bloodDrawDateInput.disabled) {
+                    try { bloodDrawDateInput.showPicker(); } catch (_) { /* ignore */ }
+                }
+            };
+            bloodDrawDateInput.addEventListener('focus', lwcOpenDatePickerGuarded);
+            bloodDrawDateInput.addEventListener('click', lwcOpenDatePickerGuarded);
+
+            // Block manual edits (typing/paste/drop), but keep control mutable so showPicker works
+            ['keypress', 'keydown', 'keyup', 'paste', 'drop'].forEach(evt =>
+                bloodDrawDateInput.addEventListener(evt, e => e.preventDefault())
+            );
+            bloodDrawDateInput.addEventListener('beforeinput', e => {
+                // Allow programmatic changes only
+                if (!e.inputType || e.inputType !== 'insertReplacementText') e.preventDefault();
+            });
         }
 
         //–– keep track of which fields the user actually edits (or clears)
