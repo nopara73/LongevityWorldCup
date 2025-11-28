@@ -1063,6 +1063,17 @@
         function updateModeFormInitializerUnique() {
             if (!isUpdate) return;
 
+            if (bloodDrawDateInput) {
+                // In update mode, default the blood draw date to today instead of leaving it blank
+                const todayLocal = new Date();
+                todayLocal.setHours(0, 0, 0, 0);
+                const y = todayLocal.getFullYear();
+                const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
+                const d = String(todayLocal.getDate()).padStart(2, '0');
+                bloodDrawDateInput.value = `${y}-${m}-${d}`;
+            }
+
+
             const idMapUnique = {
                 AlbGL: 'albumin',
                 CreatUmolL: 'creatinine',
