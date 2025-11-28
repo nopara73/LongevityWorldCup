@@ -173,14 +173,24 @@ window.showWithDelay = function (element) {
         element.classList.remove('fade-in'); // Clean up fade-in class after transition
     }, 300); // Match the fade-out delay for smoothness
 }
-window.calculateAgeBetweenDates = function (startDate, endDate) {
-    const diffInMs = endDate - startDate;
-    const diffInYears = diffInMs / (1000 * 60 * 60 * 24 * 365.25);
-    return diffInYears;
-}
 
-window.calculateAgeAtDate = function (dob, currentDate) {
-    return window.calculateAgeBetweenDates(dob, currentDate);
+// Helper function to calculate age from date of birth at a specific date
+window.calculateAgeAtDate = function (birthDate, atDate) {
+    if (!(birthDate instanceof Date)) throw new Error("Invalid input: birthDate must be a Date object");
+    if (!(atDate instanceof Date)) throw new Error("Invalid input: atDate must be a Date object");
+    if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
+    if (isNaN(atDate)) throw new Error("Invalid blood draw date.");
+
+    if (birthDate > atDate) throw new Error("Date of birth cannot be in the future.");
+
+    // Calculate total days lived
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const utc1 = Date.UTC(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+    const utc2 = Date.UTC(atDate.getFullYear(), atDate.getMonth(), atDate.getDate());
+    const totalDays = (utc2 - utc1) / msPerDay;
+
+    // Convert days to years with improved precision
+    return Math.round((totalDays / 365.2425) * 100) / 100;
 }
 
 window.removeAllHighlights = function () {
