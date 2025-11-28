@@ -257,6 +257,13 @@
                 <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
             </fieldset>
 
+            <!-- Blood Draw Details -->
+            <fieldset>
+                <legend>Blood Draw Date:</legend>
+                <p class="privacy-note">When did you get your blood test done?</p>
+                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+            </fieldset>
+
             <!-- Biomarker Fieldset -->
             <fieldset>
                 <legend>Biomarkers:</legend>
@@ -482,6 +489,36 @@
         const isFake = urlParams.get('fake') === '1';
         const isUpdate = urlParams.get('update') === '1';
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        const bloodDrawDateInput = document.getElementById('blood-draw-date');
+
+        if (bloodDrawDateInput) {
+            const todayLocal = new Date();
+            todayLocal.setHours(0, 0, 0, 0);
+            const y = todayLocal.getFullYear();
+            const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
+            const d = String(todayLocal.getDate()).padStart(2, '0');
+            const todayStr = `${y}-${m}-${d}`;
+            bloodDrawDateInput.max = todayStr;
+            bloodDrawDateInput.value = todayStr;
+
+            // Open the native picker on focus/click (only when supported)
+            const lwcOpenDatePickerGuarded = () => {
+                if (typeof bloodDrawDateInput.showPicker === 'function' && !bloodDrawDateInput.disabled) {
+                    try { bloodDrawDateInput.showPicker(); } catch (_) { /* ignore */ }
+                }
+            };
+            bloodDrawDateInput.addEventListener('focus', lwcOpenDatePickerGuarded);
+            bloodDrawDateInput.addEventListener('click', lwcOpenDatePickerGuarded);
+
+            // Block manual edits (typing/paste/drop), but keep control mutable so showPicker works
+            ['keypress', 'keydown', 'keyup', 'paste', 'drop'].forEach(evt =>
+                bloodDrawDateInput.addEventListener(evt, e => e.preventDefault())
+            );
+            bloodDrawDateInput.addEventListener('beforeinput', e => {
+                // Allow programmatic changes only
+                if (!e.inputType || e.inputType !== 'insertReplacementText') e.preventDefault();
+            });
+        }
 
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
@@ -512,6 +549,9 @@
         const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
         if (stored?.Biomarkers?.[0]) {
             const latest = stored.Biomarkers[0];
+            if (latest.Date && bloodDrawDateInput) {
+                bloodDrawDateInput.value = latest.Date;
+            }
             const propMap = {
                 albumin: 'AlbGL',
                 creatinine: 'CreatUmolL',
@@ -528,6 +568,28 @@
                     touchedBiomarkers.add(id);
                 }
             });
+        }
+
+        function getValidatedBloodDrawDate() {
+            if (!bloodDrawDateInput) return null;
+
+            const rawValue = bloodDrawDateInput.value;
+            if (!rawValue) {
+                customAlert('Please enter the date when your blood was drawn.');
+                bloodDrawDateInput.focus();
+                return null;
+            }
+
+            const selectedDate = new Date(`${rawValue}T00:00:00`);
+            const maxDate = bloodDrawDateInput.max ? new Date(`${bloodDrawDateInput.max}T00:00:00`) : null;
+
+            if (maxDate && selectedDate > maxDate) {
+                customAlert('Blood draw date cannot be in the future.');
+                bloodDrawDateInput.focus();
+                return null;
+            }
+
+            return rawValue;
         }
 
         function updateCalculateButton() {
@@ -592,6 +654,13 @@
                 }
             }
 
+            const bloodDrawDate = getValidatedBloodDrawDate();
+            if (!bloodDrawDate) {
+                document.getElementById('continueButton').classList.remove('show');
+                updateCalculateButton();
+                return;
+            }
+
             const markerValues = [];
 
             // Get age from separate Date of Birth inputs
@@ -609,10 +678,10 @@
             }
 
             const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
-            let chronologicalAge;
+            let chronologicalAgeAtTimeOfTest;
             try {
-                chronologicalAge = window.PhenoAge.calculateAgeFromDOB(dobValue);
-                if (chronologicalAge < 0) {
+                chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
+                if (chronologicalAgeAtTimeOfTest < 0) {
                     throw new Error("Invalid Date of Birth: You cannot be born in the future.");
                 }
             } catch (error) {
@@ -621,7 +690,7 @@
             }
 
             // Add age as the first marker value
-            markerValues.push(chronologicalAge);
+            markerValues.push(chronologicalAgeAtTimeOfTest);
 
             // Fill missing biomarker fields on update
             if (isUpdate) {
@@ -736,7 +805,7 @@
                             clearInterval(ageCounter);
                             document.getElementById('animatedAge').innerText = phenoAge.toFixed(1); // Set final age value
 
-                            if (phenoAge < chronologicalAge) {
+                            if (phenoAge < chronologicalAgeAtTimeOfTest) {
                                 // Add the celebratory emoji to the "years" line
                                 document.getElementById('yearsText').innerHTML = `years 🚀`;
                             }
@@ -752,7 +821,7 @@
                     resultElement.style.opacity = 1; // Fade-in effect
                     // Direct update without animation
                     document.getElementById('animatedAge').innerText = phenoAge.toFixed(1);
-                    document.getElementById('yearsText').innerHTML = phenoAge < chronologicalAge ? `years 🚀` : `years`;
+                    document.getElementById('yearsText').innerHTML = phenoAge < chronologicalAgeAtTimeOfTest ? `years 🚀` : `years`;
 
                     document.getElementById('continueButton').classList.add('show');
                     updateCalculateButton();
@@ -994,6 +1063,17 @@
         function updateModeFormInitializerUnique() {
             if (!isUpdate) return;
 
+            if (bloodDrawDateInput) {
+                // In update mode, default the blood draw date to today instead of leaving it blank
+                const todayLocal = new Date();
+                todayLocal.setHours(0, 0, 0, 0);
+                const y = todayLocal.getFullYear();
+                const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
+                const d = String(todayLocal.getDate()).padStart(2, '0');
+                bloodDrawDateInput.value = `${y}-${m}-${d}`;
+            }
+
+
             const idMapUnique = {
                 AlbGL: 'albumin',
                 CreatUmolL: 'creatinine',
@@ -1031,6 +1111,9 @@
             const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
             const entry = stored?.Biomarkers?.[0];
             if (entry) {
+                if (bloodDrawDateInput) {
+                    bloodDrawDateInput.value = entry.Date || '';
+                }
                 Object.keys(entry).forEach(prop => {
                     const id = idMapUnique[prop];
                     if (id) {
@@ -1073,13 +1156,18 @@
             const monthInput = document.getElementById('dob-month').value;
             const dayInput = document.getElementById('dob-day').value;
 
+            const bloodDrawDate = getValidatedBloodDrawDate();
+            if (!bloodDrawDate) {
+                return;
+            }
+
             const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
             // Collect only biomarkers the user actually touched
             const entry = {
-                Date: new Date().toISOString().split('T')[0] // Current date in YYYY-MM-DD format
+                Date: bloodDrawDate
             };
             // only assign if the user actually touched that field:
             if (touchedBiomarkers.has('albumin')) {
@@ -1124,9 +1212,9 @@
             };
 
             // Store the data in sessionStorage
-            const chronoAge = window.PhenoAge.calculateAgeFromDOB(new Date(year, month, day));
+            const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
             const bioAge = parseFloat(document.getElementById('animatedAge').innerText);
-            const chronoBioDifference = bioAge - chronoAge;
+            const chronoBioDifference = bioAge - chronoAgeAtTimeOfTest;
             sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
 
             sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
@@ -1142,6 +1230,15 @@
             document.getElementById('dob-year').value = 1966;
             document.getElementById('dob-month').value = 7;
             document.getElementById('dob-day').value = 12;
+
+            if (bloodDrawDateInput) {
+                const nowLocalForFake = new Date();
+                const y2 = nowLocalForFake.getFullYear();
+                const m2 = String(nowLocalForFake.getMonth() + 1).padStart(2, '0');
+                const d2 = String(nowLocalForFake.getDate()).padStart(2, '0');
+                bloodDrawDateInput.value = bloodDrawDateInput.max || `${y2}-${m2}-${d2}`;
+            }
+
 
             // Set fake values for all input fields
             document.getElementById('albumin').value = 45; // g/L
