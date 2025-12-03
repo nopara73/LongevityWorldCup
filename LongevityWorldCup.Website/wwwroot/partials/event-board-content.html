@@ -5,6 +5,9 @@
         --row-stagger-group-size:8;
         --row-delay: 0ms;
         --donation-gift: #10b981;
+        --details-bg: rgba(0,188,212,.08);
+        --zebra-even: rgba(240,244,248,.5);
+        --zebra-odd: transparent;
     }
     @keyframes fadeInBoard{
         from{opacity:0; transform:translateY(10px)}
@@ -80,12 +83,14 @@
         height: 40px;
         line-height: 30px;
     }
-    .events-board table tr:nth-child(even) { background-color: rgba(240, 244, 248, 0.5); }
     .events-board table tbody tr {
         height: 30px;
         transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
         cursor: default;
+        background-color: var(--zebra-odd);
     }
+    .events-board table tbody tr.zebra-even{ background-color: var(--zebra-even) }
+    .events-board table tbody tr.zebra-odd{ background-color: var(--zebra-odd) }
     .events-board table tbody tr:hover {
         transform: scale(1.01);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
@@ -213,10 +218,6 @@
         font-weight: 700;
     }
 
-    .events-board tbody tr {
-        display: table-row;
-    }
-
     .events-board td.event-message {
         display: flex;
         align-items: center;
@@ -249,6 +250,37 @@
         }
     }
 
+    .expand-toggle{
+        appearance:none;
+        background:transparent;
+        border:0;
+        cursor:pointer;
+        padding:.15rem .35rem;
+        line-height:1;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:8px;
+    }
+    .expand-toggle:focus{ outline:2px solid rgba(0,0,0,.15); outline-offset:2px }
+    .expand-toggle.is-open i{ transform:rotate(180deg) }
+    .expand-toggle i{
+        transition: transform .15s ease;
+        font-size:.85rem;
+    }
+    .events-board tbody tr.details-row{ display:none }
+    .events-board tbody tr.details-row.open{ display:table-row }
+    .details-cell{ padding:10px 20px; background: var(--details-bg); border-top:1px solid rgba(0,0,0,.06) }
+    .badge-list{ display:flex; flex-wrap:wrap; gap:.35rem }
+    .badge-chip{
+        background: rgba(0, 188, 212, 0.12);
+        color: var(--primary-color);
+        border-radius:999px;
+        padding:.15rem .55rem;
+        font-weight:700;
+        font-size:.85rem;
+        white-space:nowrap;
+    }
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -307,8 +339,8 @@
         function normalizeLinkId(id){return String(id||"").replace(/_/g,"-");}
         function esc(s){
             return String(s).replace(/[&<>"']/g, c => (
-                {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
-            ));
+                {"&":"&amp;","<":"&lt;","~":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+            ).replace("~",">"));
         }
         function initialsFromName(n){const parts=String(n||"").trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
 
@@ -354,7 +386,6 @@
             return '';
         }
         function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
-        function parseLimit(val){ if(val===undefined||val===null||val==="")return null; const n=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(n)&&n>0?Math.floor(n):null; }
         function parseTimeVar(varName, fallbackMs){
             const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
             if(!v) return fallbackMs;
@@ -508,7 +539,7 @@
                             const idx=Number(el.dataset.rowIndex||0);
                             const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
                             const stepMs=parseTimeVar('--row-stagger-step',40);
-                            el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}ms`);
+                            el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}`);
                         }
                         el.classList.add('is-visible');
                         io.unobserve(el);
@@ -527,59 +558,92 @@
         }
 
         function applyArrivalOrderEpsilon(rows, stepMs=1){
-            const seen=new Map()
+            const seen=new Map();
             for(const r of rows){
-                if(!r.occurredAt) continue
-                const t=+new Date(r.occurredAt)
-                if(!Number.isFinite(t)) continue
-                const c=seen.get(t)||0
-                if(c>0) r.occurredAt=new Date(t+c*stepMs).toISOString()
-                seen.set(t,c+1)
+                if(!r.occurredAt) continue;
+                const t=+new Date(r.occurredAt);
+                if(!Number.isFinite(t)) continue;
+                const c=seen.get(t)||0;
+                if(c>0) r.occurredAt=new Date(t+c*stepMs).toISOString();
+                seen.set(t,c+1);
             }
-            return rows
+            return rows;
         }
 
         function groupBadgeBursts(rows, windowMs=60000){
-            const out=[]
-            const removed=new Set()
+            const out=[];
+            const removed=new Set();
             for(let i=0;i<rows.length;i++){
-                if(removed.has(i)) continue
-                const r=rows[i]
+                if(removed.has(i)) continue;
+                const r=rows[i];
                 if(!(r && r.type===EVENT_TYPE.BadgeAward && r.primarySlug && r.occurredAt)){
-                    out.push(r)
-                    continue
+                    out.push(r);
+                    continue;
                 }
-                const t0=+new Date(r.occurredAt)
-                if(!Number.isFinite(t0)){ out.push(r); continue }
-                const end=t0+windowMs
+                const t0=+new Date(r.occurredAt);
+                if(!Number.isFinite(t0)){ out.push(r); continue; }
+                const end=t0+windowMs;
 
-                const idxs=[i]
-                const labels=[]
-                if(r.badgeLabel) labels.push(r.badgeLabel)
+                const idxs=[i];
+                const items=[];
+                if(r.badgeLabel || r.prevSlug){
+                    items.push({ label:r.badgeLabel||"badge", prevSlug:r.prevSlug||null });
+                }
 
                 for(let j=i+1;j<rows.length;j++){
-                    if(removed.has(j)) continue
-                    const x=rows[j]
-                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue
-                    const tj=+new Date(x.occurredAt)
-                    if(!Number.isFinite(tj)) continue
+                    if(removed.has(j)) continue;
+                    const x=rows[j];
+                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue;
+                    const tj=+new Date(x.occurredAt);
+                    if(!Number.isFinite(tj)) continue;
                     if(tj>=t0 && tj<end){
-                        idxs.push(j)
-                        if(x.badgeLabel) labels.push(x.badgeLabel)
+                        idxs.push(j);
+                        items.push({ label:x.badgeLabel||"badge", prevSlug:x.prevSlug||null });
                     }
-                    if(tj>=end) break
+                    if(tj>=end) break;
                 }
 
                 if(idxs.length>1){
-                    const uniqueLabels=[...new Set(labels)]
-                    const groupRow={...rows[i], isGroup:true, badgeCount:idxs.length, badges:uniqueLabels, occurredAt: rows[i].occurredAt}
-                    out.push(groupRow)
-                    for(let k=1;k<idxs.length;k++) removed.add(idxs[k])
+                    const uniqueLabels=[...new Set(items.map(it=>it.label).filter(Boolean))];
+                    const groupRow={...rows[i], isGroup:true, badgeCount:idxs.length, badges:uniqueLabels, items, occurredAt: rows[i].occurredAt};
+                    out.push(groupRow);
+                    for(let k=1;k<idxs.length;k++) removed.add(idxs[k]);
                 }else{
-                    out.push(r)
+                    out.push(r);
                 }
             }
-            return out
+            return out;
+        }
+
+        let expandClickBound=false;
+        function ensureExpandHandler(){
+            if(expandClickBound) return;
+            expandClickBound=true;
+            document.addEventListener('click',function(e){
+                const btn=e.target.closest('.expand-toggle');
+                if(!btn) return;
+                const id=btn.getAttribute('aria-controls');
+                if(!id) return;
+                const row=document.getElementById(id);
+                if(!row) return;
+                const open=btn.getAttribute('aria-expanded')==='true';
+                btn.setAttribute('aria-expanded', open?'false':'true');
+                btn.classList.toggle('is-open', !open);
+                row.classList.toggle('open', !open);
+                row.setAttribute('aria-hidden', open?'true':'false');
+            });
+        }
+
+        function applyZebraStriping(tbody){
+            let idx=0;
+            const rows=[...tbody.querySelectorAll('tr')];
+            rows.forEach(r=>{
+                if(r.classList.contains('details-row')) return;
+                r.classList.remove('zebra-even','zebra-odd');
+                const cls=(idx%2===0)?'zebra-even':'zebra-odd';
+                r.classList.add(cls);
+                idx++;
+            });
         }
 
         function renderRows(rows, athletesIndex, linkNames){
@@ -637,6 +701,9 @@
                 }
 
                 let msgHtml = "";
+                let addExpander = false;
+                let detailId = `details-${idx}`;
+
                 if (r.type === EVENT_TYPE.BadgeAward && r.primarySlug) {
                     const nameWithRank = renderTextWithSlugLinks(
                         `slug[${r.primarySlug}]`,
@@ -646,7 +713,9 @@
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const title = Array.isArray(r.badges) && r.badges.length ? ` title="${esc(r.badges.join(', '))}"` : "";
-                        msgHtml = `${nameWithRank} earned <strong${title}>${esc(String(r.badgeCount))}</strong> badges`;
+                        const toggle = `<button class="expand-toggle" type="button" aria-expanded="false" aria-controls="${detailId}" title="Details"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>`;
+                        msgHtml = `${nameWithRank} earned <strong${title}>${esc(String(r.badgeCount))}</strong> badges ${toggle}`;
+                        addExpander = true;
                     } else {
                         const badge = r.badgeLabel ? esc(r.badgeLabel) : "badge";
                         let prevHtml = "";
@@ -709,7 +778,7 @@
                 }
 
                 const tr = document.createElement("tr");
-                tr.className = "row-appear";
+                tr.className = "row-appear main-row";
                 tr.dataset.rowIndex = String(idx);
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
@@ -724,9 +793,34 @@
                     }, { once: true });
                 }
                 frag.appendChild(tr);
+
+                if(addExpander){
+                    const detailsTr = document.createElement("tr");
+                    detailsTr.className = "details-row";
+                    detailsTr.id = detailId;
+                    detailsTr.setAttribute("aria-hidden","true");
+                    const items = Array.isArray(r.items) ? r.items : [];
+                    const chips = items.map(it=>{
+                        const badge = esc(String(it.label||"badge"));
+                        if(it.prevSlug){
+                            const prevHtml = renderTextWithSlugLinks(
+                                `slug[${it.prevSlug}]`,
+                                linkNames,
+                                athletesIndex,
+                                afterNameWithCurrentRankFor()
+                            );
+                            return `<span class="badge-chip"><strong>${badge}</strong> from ${prevHtml}</span>`;
+                        }
+                        return `<span class="badge-chip"><strong>${badge}</strong></span>`;
+                    }).join(" ");
+                    detailsTr.innerHTML = `<td class="details-cell" colspan="3"><div class="badge-list">${chips}</div></td>`;
+                    frag.appendChild(detailsTr);
+                }
             });
 
             tbody.appendChild(frag);
+
+            applyZebraStriping(tbody);
 
             if (!prefersReduced && rows.length){
                 const io = ensureRowObserver();
@@ -748,6 +842,7 @@
         }
 
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
+            ensureExpandHandler();
             setViewAllVisible(!!showViewAll);
 
             const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
@@ -764,17 +859,17 @@
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
                 }
 
-                rows = applyArrivalOrderEpsilon(rows, 1)
-                rows = groupBadgeBursts(rows, 60_000)
+                rows = applyArrivalOrderEpsilon(rows, 1);
+                rows = groupBadgeBursts(rows, 60_000);
                 rows.sort((a,b)=>{
-                    const ta=+new Date(a.occurredAt||0)
-                    const tb=+new Date(b.occurredAt||0)
-                    if(!Number.isFinite(ta) && !Number.isFinite(tb)) return 0
-                    if(!Number.isFinite(ta)) return -1
-                    if(!Number.isFinite(tb)) return 1
-                    return tb - ta
-                })
-                
+                    const ta=+new Date(a.occurredAt||0);
+                    const tb=+new Date(b.occurredAt||0);
+                    if(!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
+                    if(!Number.isFinite(ta)) return -1;
+                    if(!Number.isFinite(tb)) return 1;
+                    return tb - ta;
+                });
+
                 const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
                 if(n!==null) rows=rows.slice(0,n);
 
@@ -791,4 +886,3 @@
         });
     })();
 </script>
-
