@@ -96,6 +96,12 @@
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
         background-color: rgba(240, 244, 248, 0.8);
     }
+    .events-board table tbody tr.group-hover{
+        transform: scale(1.01);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        background-color: rgba(240,244,248,0.8);
+        transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease;
+    }
     .col-avatar { width: 36px; }
     .avatar,.avatar-fallback {
         width: 24px;
@@ -184,7 +190,6 @@
         display: grid;
         place-items: center;
         line-height: 0;
-        box-sizing: content-box;
     }
 
     .donation-gift-avatar i{
@@ -205,7 +210,6 @@
         display: grid;
         place-items: center;
         line-height: 0;
-        box-sizing: content-box;
     }
     .milestone-people-avatar i{
         color: #fff !important;
@@ -250,18 +254,6 @@
         }
     }
 
-    .expand-toggle{
-        appearance:none;
-        background:transparent;
-        border:0;
-        cursor:pointer;
-        padding:.15rem .35rem;
-        line-height:1;
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        border-radius:8px;
-    }
     .expand-toggle{
         appearance:none;
         background:transparent;
@@ -541,7 +533,7 @@
                     const idx=Number(el.dataset.rowIndex||0);
                     const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
                     const stepMs=parseTimeVar('--row-stagger-step',40);
-                    el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}ms`);
+                    el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}`);
                 }
                 el.classList.add('is-visible');
                 if(rowObserver) rowObserver.unobserve(el);
@@ -653,6 +645,28 @@
                 row.classList.toggle('open', !open);
                 row.setAttribute('aria-hidden', open?'true':'false');
             });
+        }
+
+        function ensureGroupHoverDelegation(tbody){
+            if(tbody.dataset.groupHoverInstalled === '1') return;
+            const q = gid => tbody.querySelectorAll(`tr[data-group-id="${gid}"]`);
+            const getGid = el => {
+                const tr = el && el.closest ? el.closest('tr') : null;
+                return tr ? tr.getAttribute('data-group-id') : null;
+            };
+            tbody.addEventListener('pointerover', e => {
+                const gid = getGid(e.target);
+                if(!gid) return;
+                q(gid).forEach(x => x.classList.add('group-hover'));
+            });
+            tbody.addEventListener('pointerout', e => {
+                const fromGid = getGid(e.target);
+                if(!fromGid) return;
+                const toGid = getGid(e.relatedTarget);
+                if(toGid === fromGid) return;
+                q(fromGid).forEach(x => x.classList.remove('group-hover'));
+            });
+            tbody.dataset.groupHoverInstalled = '1';
         }
 
         function applyZebraStriping(tbody){
@@ -801,6 +815,7 @@
                 const tr = document.createElement("tr");
                 tr.className = "row-appear main-row";
                 tr.dataset.rowIndex = String(idx);
+                tr.dataset.groupId = `g_${idx}`;
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
                      <td class="athlete-td event-message">${msgHtml}</td>
@@ -820,6 +835,7 @@
                     detailsTr.className = "details-row";
                     detailsTr.id = detailId;
                     detailsTr.setAttribute("aria-hidden","true");
+                    detailsTr.dataset.groupId = `g_${idx}`;
                     const items = Array.isArray(r.items) ? r.items : [];
                     const chips = items.map(it=>{
                         const badge = esc(String(it.label||"badge"));
@@ -842,14 +858,16 @@
             tbody.appendChild(frag);
 
             applyZebraStriping(tbody);
+            ensureGroupHoverDelegation(tbody);
 
-            if (!prefersReduced && rows.length){
+            const rowsNow = tbody.querySelectorAll(".row-appear");
+            if (!prefersReduced && rowsNow.length){
                 const io = ensureRowObserver();
-                tbody.querySelectorAll(".row-appear").forEach(r => io.observe(r));
+                rowsNow.forEach(r => io.observe(r));
                 requestAnimationFrame(() => revealVisibleRowsImmediately(tbody));
                 window.addEventListener("resize", () => revealVisibleRowsImmediately(tbody), { passive: true });
             } else {
-                tbody.querySelectorAll(".row-appear").forEach(r => r.classList.add("is-visible"));
+                rowsNow.forEach(r => r.classList.add("is-visible"));
             }
         }
 
