@@ -19,12 +19,14 @@ public sealed class BadgeDataService : IDisposable
     private readonly AthleteDataService _athletes;
     private readonly SqliteConnection _sqlite;
     private readonly DateTime _asOfUtc;
+    private readonly EventDataService _events; // NEW: event sink for BadgeAward events via DI
 
     private const string AwardsTable = "BadgeAwards";
 
-    public BadgeDataService(AthleteDataService athletes)
+    public BadgeDataService(AthleteDataService athletes, EventDataService events)
     {
         _athletes = athletes ?? throw new ArgumentNullException(nameof(athletes));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
         _asOfUtc = DateTime.UtcNow.Date;
 
         var dbPath = Path.Combine(EnvironmentHelpers.GetDataDir(), "LongevityWorldCup.db");
@@ -140,7 +142,14 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
 
         // 6) Editorial (server-driven novelty) badges (flag / small ranked)
         AddEditorialAwards(stats, awards);
-        
+
+        // NEW: compute diff vs previous snapshot before replacing table and emit BadgeAward events via EventDataService
+        var previous = ReadCurrentAwardsSnapshot();
+        if (previous.Count > 0)
+        {
+            EmitBadgeAwardEvents(previous, awards, DateTime.UtcNow);
+        }
+
         // Persist (replace all rows)
         var now = DateTime.UtcNow.ToString("o");
 
@@ -181,6 +190,101 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
 
         tx.Commit();
+    }
+
+    // NEW: current awards snapshot reader (no writes)
+    private List<AwardRow> ReadCurrentAwardsSnapshot()
+    {
+        var list = new List<AwardRow>(1024);
+        try
+        {
+            using var cmd = _sqlite.CreateCommand();
+            cmd.CommandText = $"SELECT BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash FROM {AwardsTable};";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                list.Add(new AwardRow
+                {
+                    BadgeLabel = r.GetString(0),
+                    LeagueCategory = r.GetString(1),
+                    LeagueValue = r.IsDBNull(2) ? null : r.GetString(2),
+                    Place = r.IsDBNull(3) ? (int?)null : r.GetInt32(3),
+                    AthleteSlug = r.GetString(4),
+                    DefinitionHash = r.IsDBNull(5) ? null : r.GetString(5)
+                });
+            }
+        }
+        catch
+        {
+            // table may not exist on first run; ignore
+        }
+        return list;
+    }
+
+    // NEW: diff builder and event forwarder to EventDataService
+    private void EmitBadgeAwardEvents(
+        IReadOnlyList<AwardRow> before,
+        IReadOnlyList<AwardRow> after,
+        DateTime occurredAtUtc)
+    {
+        static string SlotKey(string label, string cat, string? val, int? place)
+            => $"{label}|{cat}|{val ?? ""}|{(place.HasValue ? place.Value.ToString(CultureInfo.InvariantCulture) : "")}";
+
+        var beforeMap = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var x in before)
+        {
+            var k = SlotKey(x.BadgeLabel, x.LeagueCategory, x.LeagueValue, x.Place);
+            if (!beforeMap.TryGetValue(k, out var set))
+            {
+                set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                beforeMap[k] = set;
+            }
+            set.Add(x.AthleteSlug);
+        }
+
+        var afterMap = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var x in after)
+        {
+            var k = SlotKey(x.BadgeLabel, x.LeagueCategory, x.LeagueValue, x.Place);
+            if (!afterMap.TryGetValue(k, out var set))
+            {
+                set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                afterMap[k] = set;
+            }
+            set.Add(x.AthleteSlug);
+        }
+
+        var items = new List<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string? ReplacedSlug)>(); // NEW: no preset capacity
+
+        foreach (var kv in afterMap)
+        {
+            var key = kv.Key;
+            var nextSet = kv.Value;
+            beforeMap.TryGetValue(key, out var prevSet);
+            prevSet ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // new awardees in this slot
+            var adds = nextSet.Except(prevSet, StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            if (adds.Count == 0) continue;
+
+            // who lost the slot compared to before
+            var removes = prevSet.Except(nextSet, StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
+
+            // label is the first part of the composite key
+            var label = key.Split('|')[0];
+
+            // stable pairing: zip by index, overflow adds get null prev
+            for (int i = 0; i < adds.Count; i++)
+            {
+                var replaced = i < removes.Count ? removes[i] : null;
+                items.Add((adds[i], occurredAtUtc, label, replaced));
+            }
+        }
+
+        if (items.Count > 0)
+        {
+            _events.CreateBadgeAwardEvents(items, skipIfExists: true);
+        }
     }
 
     private static string? TryGetStringNode(System.Text.Json.Nodes.JsonObject o, string key)
