@@ -543,7 +543,7 @@
             const out=[]
             const removed=new Set()
             for(let i=0;i<rows.length;i++){
-                if(removed.has(i)){ continue }
+                if(removed.has(i)) continue
                 const r=rows[i]
                 if(!(r && r.type===EVENT_TYPE.BadgeAward && r.primarySlug && r.occurredAt)){
                     out.push(r)
@@ -563,10 +563,11 @@
                     if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue
                     const tj=+new Date(x.occurredAt)
                     if(!Number.isFinite(tj)) continue
-                    if(tj<=end){
+                    if(tj>=t0 && tj<end){
                         idxs.push(j)
                         if(x.badgeLabel) labels.push(x.badgeLabel)
                     }
+                    if(tj>=end) break
                 }
 
                 if(idxs.length>1){
