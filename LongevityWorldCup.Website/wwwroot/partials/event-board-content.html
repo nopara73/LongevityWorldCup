@@ -526,61 +526,59 @@
             container.querySelectorAll('.row-appear:not(.is-visible)').forEach(applyVisibleNow);
         }
 
-        function groupBadgeBursts(rows, windowMs=60000){
-            const perAth=new Map();
-            for(let i=0;i<rows.length;i++){
-                const r=rows[i];
-                if(!r.primarySlug||!r.occurredAt) continue;
-                const t=+new Date(r.occurredAt);
-                if(!Number.isFinite(t)) continue;
-                let arr=perAth.get(r.primarySlug);
-                if(!arr){ arr=[]; perAth.set(r.primarySlug,arr); }
-                arr.push({ i, t, isBadge: r.type===EVENT_TYPE.BadgeAward, isNewRank: r.type===EVENT_TYPE.NewRank });
+        function applyArrivalOrderEpsilon(rows, stepMs=1){
+            const seen=new Map()
+            for(const r of rows){
+                if(!r.occurredAt) continue
+                const t=+new Date(r.occurredAt)
+                if(!Number.isFinite(t)) continue
+                const c=seen.get(t)||0
+                if(c>0) r.occurredAt=new Date(t+c*stepMs).toISOString()
+                seen.set(t,c+1)
             }
+            return rows
+        }
 
-            const skip=new Set();
-            const replaceAt=new Map();
-            const insertAfter=new Map();
+        function groupBadgeBursts(rows, windowMs=60000){
+            const out=[]
+            const removed=new Set()
+            for(let i=0;i<rows.length;i++){
+                if(removed.has(i)){ continue }
+                const r=rows[i]
+                if(!(r && r.type===EVENT_TYPE.BadgeAward && r.primarySlug && r.occurredAt)){
+                    out.push(r)
+                    continue
+                }
+                const t0=+new Date(r.occurredAt)
+                if(!Number.isFinite(t0)){ out.push(r); continue }
+                const end=t0+windowMs
 
-            for(const arr of perAth.values()){
-                arr.sort((a,b)=>a.t-b.t);
-                let k=0;
-                while(k<arr.length){
-                    const anchorT=arr[k].t;
-                    let j=k;
-                    while(j<arr.length && (arr[j].t - anchorT)<=windowMs) j++;
-                    const bucket=arr.slice(k,j);
+                const idxs=[i]
+                const labels=[]
+                if(r.badgeLabel) labels.push(r.badgeLabel)
 
-                    const badgeEvents=bucket.filter(e=>e.isBadge && !skip.has(e.i));
-                    if(badgeEvents.length>1){
-                        const newRankEvents=bucket.filter(e=>e.isNewRank);
-                        const labels=[...new Set(badgeEvents.map(e=>rows[e.i].badgeLabel).filter(Boolean))];
-                        const count=badgeEvents.length;
-
-                        if(newRankEvents.length){
-                            const anchorIdx=Math.min(...newRankEvents.map(e=>e.i));
-                            const base={...rows[anchorIdx], type: EVENT_TYPE.BadgeAward, isGroup:true, badgeCount:count, badges:labels};
-                            insertAfter.set(anchorIdx, base);
-                            for(const e of badgeEvents) skip.add(e.i);
-                        }else{
-                            const anchorIdx=Math.min(...badgeEvents.map(e=>e.i));
-                            const base={...rows[anchorIdx], isGroup:true, badgeCount:count, badges:labels};
-                            replaceAt.set(anchorIdx, base);
-                            for(const e of badgeEvents){ if(e.i!==anchorIdx) skip.add(e.i); }
-                        }
+                for(let j=i+1;j<rows.length;j++){
+                    if(removed.has(j)) continue
+                    const x=rows[j]
+                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue
+                    const tj=+new Date(x.occurredAt)
+                    if(!Number.isFinite(tj)) continue
+                    if(tj<=end){
+                        idxs.push(j)
+                        if(x.badgeLabel) labels.push(x.badgeLabel)
                     }
-                    k=j;
+                }
+
+                if(idxs.length>1){
+                    const uniqueLabels=[...new Set(labels)]
+                    const groupRow={...rows[i], isGroup:true, badgeCount:idxs.length, badges:uniqueLabels, occurredAt: rows[i].occurredAt}
+                    out.push(groupRow)
+                    for(let k=1;k<idxs.length;k++) removed.add(idxs[k])
+                }else{
+                    out.push(r)
                 }
             }
-
-            const out=[];
-            for(let i=0;i<rows.length;i++){
-                if(skip.has(i)) continue;
-                if(replaceAt.has(i)){ out.push(replaceAt.get(i)); }
-                else{ out.push(rows[i]); }
-                if(insertAfter.has(i)) out.push(insertAfter.get(i));
-            }
-            return out;
+            return out
         }
 
         function renderRows(rows, athletesIndex, linkNames){
@@ -765,8 +763,17 @@
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
                 }
 
-                rows = groupBadgeBursts(rows, 60_000);
-
+                rows = applyArrivalOrderEpsilon(rows, 1)
+                rows = groupBadgeBursts(rows, 60_000)
+                rows.sort((a,b)=>{
+                    const ta=+new Date(a.occurredAt||0)
+                    const tb=+new Date(b.occurredAt||0)
+                    if(!Number.isFinite(ta) && !Number.isFinite(tb)) return 0
+                    if(!Number.isFinite(ta)) return -1
+                    if(!Number.isFinite(tb)) return 1
+                    return tb - ta
+                })
+                
                 const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
                 if(n!==null) rows=rows.slice(0,n);
 
