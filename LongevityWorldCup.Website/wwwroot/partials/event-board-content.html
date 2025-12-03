@@ -46,18 +46,17 @@
         align-self: flex-start;
         padding-bottom:5px;
     }
-        .events-board thead th {
-            background: rgba(0, 188, 212, 0.12);
-            color: var(--primary-color);
-            text-transform: uppercase;
-            font-weight: 800;
-            font-size: 0.85rem; /* smaller, like countdown */
-            letter-spacing: 1px;
-            text-align: left;
-            padding: 15px 20px; /* tighter, like countdown */
-            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-            /* IMPORTANT: no display:flex here */
-        }
+    .events-board thead th {
+        background: rgba(0, 188, 212, 0.12);
+        color: var(--primary-color);
+        text-transform: uppercase;
+        font-weight: 800;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        text-align: left;
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    }
 
     .events-board td.col-avatar { padding-right: 8px; }
     .events-board td.event-message { padding-left: 0px; }
@@ -96,13 +95,14 @@
     .avatar,.avatar-fallback {
         width: 24px;
         height: 24px;
+        aspect-ratio: 1 / 1;
         border-radius: 50%;
         overflow: hidden;
         border: 2px solid var(--secondary-color, #ff4f87);
         box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        background: none;
+        background: #eef3f7;
     }
-    .avatar { object-fit: cover; display: block; }
+    .avatar { object-fit: cover; display: block; image-rendering: auto; }
     .avatar-fallback {
         display: inline-flex;
         align-items: center;
@@ -176,20 +176,19 @@
         background: var(--gift);
         border: 2px solid var(--gift) !important;
         box-shadow: 0 1px 2px rgba(0,0,0,.06);
-        display: grid;                 /* perfectly center contents */
+        display: grid;
         place-items: center;
-        line-height: 0;                /* kill baseline alignment */
+        line-height: 0;
         box-sizing: content-box;
     }
 
     .donation-gift-avatar i{
         color: #fff !important;
-        display: block;                /* avoids inline font metrics */
+        display: block;
         font-size: .95rem;
         line-height: 1;
     }
 
-    /* --- Milestone visuals (same spirit as donation) --- */
     :root{ --milestone-people:#6366f1; }
     .milestone-people-avatar{
         --people: var(--milestone-people, #6366f1);
@@ -214,21 +213,19 @@
         font-weight: 700;
     }
 
-    /* Keep natural wrapping + vertical centering */
     .events-board tbody tr {
-        display: table-row; /* default behavior */
+        display: table-row;
     }
 
     .events-board td.event-message {
-        display: flex;              /* allow vertical centering */
-        align-items: center;        /* center vertically within the row */
-        flex-wrap: wrap;            /* keep wrapping */
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
         gap: 0.25rem;
         line-height: 1.35;
         text-wrap: pretty;
     }
 
-    /* Keep inline flow for text elements */
     .event-message .name-and-rank,
     .event-message .rank-badge,
     .event-message a,
@@ -237,24 +234,21 @@
         vertical-align: baseline;
     }
 
-    /* Prevent long URLs from breaking layout */
     .event-message a {
         overflow-wrap: anywhere;
         word-break: break-word;
     }
 
-    /* Keep rank and icon together */
     .event-message .rank-badge { white-space: nowrap; }
     .event-message .rank-icon { margin-left: .2rem; }
 
-    /* Mobile adjustments */
     @media (max-width: 600px) {
         .events-board tbody td.event-message {
             line-height: 1.3;
-            align-items: flex-start; /* better flow on very small screens */
+            align-items: flex-start;
         }
     }
-    
+
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -277,42 +271,41 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5 };
 
         const MILESTONE_COPY = {
-            42:    'Answer unlocked — the competition reached <strong class="milestone-count">42</strong> athletes',
-            69:    'Nice — the competition reached <strong class="milestone-count">69</strong> athletes',
+            42:    'Answer unlocked - the competition reached <strong class="milestone-count">42</strong> athletes',
+            69:    'Nice - the competition reached <strong class="milestone-count">69</strong> athletes',
             100:   'The competition reached <strong class="milestone-count">100</strong> athletes',
             123:   'Counting up, the competition reached <strong class="milestone-count">123</strong> athletes',
-            256:   'Power of two — the competition reached <strong class="milestone-count">256</strong> athletes',
+            256:   'Power of two - the competition reached <strong class="milestone-count">256</strong> athletes',
             300:   'This is Sparta! The competition reached <strong class="milestone-count">300</strong> athletes',
-            404:   'Athlete not found — the competition reached <strong class="milestone-count">404</strong> athletes',
-            500:   'Halfway to a thousand — the competition reached <strong class="milestone-count">500</strong> athletes',
-            666:   'Beast mode — the competition reached <strong class="milestone-count">666</strong> athletes',
-            777:   'Lucky roll — the competition reached <strong class="milestone-count">777</strong> athletes',
-            1000:  'Four digits — the competition reached <strong class="milestone-count">1,000</strong> athletes',
-            1337:  'Leet status — the competition reached <strong class="milestone-count">1,337</strong> athletes',
-            1618:  'Golden ratio vibes — the competition reached <strong class="milestone-count">1,618</strong> athletes',
-            2000:  'New bracket — the competition reached <strong class="milestone-count">2,000</strong> athletes',
-            3141:  'Pi energy — the competition reached <strong class="milestone-count">3,141</strong> athletes',
-            5000:  'Serious crowd — the competition reached <strong class="milestone-count">5,000</strong> athletes',
-            6969:  'Double nice — the competition reached <strong class="milestone-count">6,969</strong> athletes',
-            9000:  'Over nine thousand — the competition reached <strong class="milestone-count">9,000</strong> athletes',
-            10000: 'Established tier — the competition reached <strong class="milestone-count">10,000</strong> athletes',
+            404:   'Athlete not found - the competition reached <strong class="milestone-count">404</strong> athletes',
+            500:   'Halfway to a thousand - the competition reached <strong class="milestone-count">500</strong> athletes',
+            666:   'Beast mode - the competition reached <strong class="milestone-count">666</strong> athletes',
+            777:   'Lucky roll - the competition reached <strong class="milestone-count">777</strong> athletes',
+            1000:  'Four digits - the competition reached <strong class="milestone-count">1,000</strong> athletes',
+            1337:  'Leet status - the competition reached <strong class="milestone-count">1,337</strong> athletes',
+            1618:  'Golden ratio vibes - the competition reached <strong class="milestone-count">1,618</strong> athletes',
+            2000:  'New bracket - the competition reached <strong class="milestone-count">2,000</strong> athletes',
+            3141:  'Pi energy - the competition reached <strong class="milestone-count">3,141</strong> athletes',
+            5000:  'Serious crowd - the competition reached <strong class="milestone-count">5,000</strong> athletes',
+            6969:  'Double nice - the competition reached <strong class="milestone-count">6,969</strong> athletes',
+            9000:  'Over nine thousand - the competition reached <strong class="milestone-count">9,000</strong> athletes',
+            10000: 'Established tier - the competition reached <strong class="milestone-count">10,000</strong> athletes',
         };
 
         function milestoneMessage(n){
             const preset = MILESTONE_COPY[n];
             if (preset) return preset;
-
             const num = new Intl.NumberFormat().format(n);
             return `The competition reached <strong class="milestone-count">${num}</strong> athletes`;
         }
-        
+
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
         function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
         function normalizeLinkId(id){return String(id||"").replace(/_/g,"-");}
-        function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+        function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;","<": "&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
         function initialsFromName(n){const parts=String(n||"").trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
 
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
@@ -395,7 +388,7 @@
         function athletePic(a){
             if(!a) return "";
             const map=lowerKeyMap(a);
-            const keys=["profilepic","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl"];
+            const keys=["profilepic","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl","pictureurl","avatarurl","imgurl","profile_img","profile_pic_url"];
             for(const k of keys){ if(map[k]){ const v=String(a[map[k]]).trim(); if(v) return v; } }
             return "";
         }
@@ -424,6 +417,10 @@
             if(!m) return null;
             const n=parseInt(m[1],10);
             return Number.isFinite(n)&&n>0?n:null;
+        }
+        function extractBadge(text){
+            const m=/badge\[(.+?)\]/.exec(String(text||""));
+            return m?m[1]:null;
         }
 
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
@@ -463,12 +460,12 @@
                 const rank = extractRank(text);
                 const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
                 const milestoneCount = (() => { const m = /athletes\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : null; })();
+                const badgeLabel = extractBadge(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount };
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount, badgeLabel };
             });
         }
 
-        // ---- helper to gate NewRank items to top-10 in the normal list
         function isTop10Rank(row, athletesIndex){
             if(row.type !== EVENT_TYPE.NewRank) return true;
             if (Number.isFinite(row.rank)) return row.rank <= 10;
@@ -476,7 +473,6 @@
             const placement = getCurrentPlacement(a);
             return Number.isFinite(placement) && placement <= 10;
         }
-        // ----
 
         function applyVisibleNow(el){
             const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -560,15 +556,15 @@
                 const img = a ? athletePic(a) : "";
 
                 let avatarHtml = "";
-                const clickableNewRankOrJoined = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank) && r.primarySlug && linkNames;
-                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank) {
+                const clickableProfileable = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) && r.primarySlug && linkNames;
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) {
                     if (img) {
-                        avatarHtml = clickableNewRankOrJoined
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></a>`
-                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></span>`;
+                        avatarHtml = clickableProfileable
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
+                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
                     } else {
                         const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
-                        avatarHtml = clickableNewRankOrJoined
+                        avatarHtml = clickableProfileable
                             ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">${fallback}</a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
@@ -581,7 +577,27 @@
                 }
 
                 let msgHtml = "";
-                if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
+                if (r.type === EVENT_TYPE.BadgeAward && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+                    const badge = r.badgeLabel ? esc(r.badgeLabel) : "badge";
+                    let prevHtml = "";
+                    if (r.prevSlug) {
+                        prevHtml = renderTextWithSlugLinks(
+                            `slug[${r.prevSlug}]`,
+                            linkNames,
+                            athletesIndex,
+                            afterNameWithCurrentRankFor()
+                        );
+                    }
+                    msgHtml = prevHtml
+                        ? `${nameWithRank} earned the <strong>${badge}</strong> badge from ${prevHtml}`
+                        : `${nameWithRank} earned the <strong>${badge}</strong> badge`;
+                } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
                     const nameWithCurrentRank = renderTextWithSlugLinks(
                         `slug[${r.primarySlug}]`,
@@ -634,6 +650,14 @@
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
                      <td class="athlete-td event-message">${msgHtml}</td>
                      <td class="col-date">${dateLabel}</td>`;
+                const imgEl = tr.querySelector("img.avatar");
+                if (imgEl) {
+                    const initials = initialsFromName(name);
+                    imgEl.addEventListener("error", () => {
+                        const parent = imgEl.closest(".avatar-link, .avatar-disabled");
+                        if (parent) parent.innerHTML = `<div class="avatar-fallback">${initials}</div>`;
+                    }, { once: true });
+                }
                 frag.appendChild(tr);
             });
 
@@ -658,7 +682,6 @@
             return normalizeLinkId(slugifyLocal(s));
         }
 
-        // call signature: loadEventsTable(maxRows=null, showViewAll=true, athleteId=null, linkNames=true)
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setViewAllVisible(!!showViewAll);
 
@@ -669,18 +692,14 @@
                 const athletesIndex=buildAthleteIndex(athletes);
                 let rows=toRows(Array.isArray(events)?events:[]);
 
-                // Are we in athlete modal context?
                 const target=normalizeIncomingAthleteId(athleteId);
                 if(target){
-                    // Athlete modal: keep only events related to this athlete and hide milestones
                     rows=rows.filter(r=>r.slugs.includes(target) && r.type !== EVENT_TYPE.AthleteCountMilestone);
                 }else{
-                    // Normal list: show all Joined, but gate NewRank to top-10 only.
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
                 }
 
-                // apply optional limit after filtering
-                const n=parseLimit(maxRows);
+                const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
                 if(n!==null) rows=rows.slice(0,n);
 
                 renderRows(rows,athletesIndex,!!linkNames);
@@ -696,3 +715,4 @@
         });
     })();
 </script>
+
