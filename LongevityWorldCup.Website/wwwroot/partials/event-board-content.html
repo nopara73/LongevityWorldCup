@@ -262,7 +262,28 @@
         justify-content:center;
         border-radius:8px;
     }
-    .expand-toggle:focus{ outline:2px solid rgba(0,0,0,.15); outline-offset:2px }
+    .expand-toggle{
+        appearance:none;
+        background:transparent;
+        border:0;
+        cursor:pointer;
+        padding:.15rem .35rem;
+        line-height:1;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:8px;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .expand-toggle:focus,
+    .expand-toggle:focus-visible,
+    .expand-toggle:active{
+        outline: none;
+        box-shadow: none;
+    }
+    .expand-toggle::-moz-focus-inner{
+        border: 0;
+    }
     .expand-toggle.is-open i{ transform:rotate(180deg) }
     .expand-toggle i{
         transition: transform .15s ease;
