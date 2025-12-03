@@ -633,6 +633,7 @@ public class AthleteDataService : IDisposable
 
             var chronoToday = Math.Round(AgeYears(asOf), 2);
             double lowestPheno = double.PositiveInfinity;
+            double chronoAtLowest = chronoToday;
 
             if (athlete["Biomarkers"] is JsonArray biomArr)
             {
@@ -664,15 +665,21 @@ public class AthleteDataService : IDisposable
                             ageAtEntry, alb, creat, glu, crpMgL, wbc, lym, mcv, rdw, alp);
 
                         if (!double.IsNaN(ph) && !double.IsInfinity(ph) && ph < lowestPheno)
+                        {
                             lowestPheno = ph;
+                            chronoAtLowest = ageAtEntry;
+                        }
                     }
                 }
             }
 
             if (double.IsNaN(lowestPheno) || double.IsInfinity(lowestPheno))
-                lowestPheno = chronoToday;
+            {
+                lowestPheno = chronoToday; 
+                chronoAtLowest = chronoToday; 
+            }
 
-            var ageDiff = Math.Round(lowestPheno - chronoToday, 2);
+            var ageDiff = Math.Round(lowestPheno - chronoAtLowest, 2);
 
             var obj = new JsonObject
             {

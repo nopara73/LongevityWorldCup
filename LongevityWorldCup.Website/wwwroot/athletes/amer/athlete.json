@@ -1,0 +1,28 @@
+{
+  "Name": "amer",
+  "DisplayName": null,
+  "MediaContact": "edgecity@amer.cc",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 6,
+    "Day": 8
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-8-13",
+      "AlbGL": 49,
+      "CreatUmolL": 88.49557522123894,
+      "GluMmolL": 4.162966252220249,
+      "CrpMgL": 0.27,
+      "LymPc": 41,
+      "McvFL": 88,
+      "RdwPc": 12.5,
+      "AlpUL": 75,
+      "Wbc1000cellsuL": 5.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "edge city patagonia",
+  "Why": "love, health, community, adventure",
+  "PersonalLink": null
+}

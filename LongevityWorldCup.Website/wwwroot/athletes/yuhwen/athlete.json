@@ -1,0 +1,28 @@
+{
+  "Name": "Yuhwen",
+  "DisplayName": null,
+  "MediaContact": "yuhwenfoong@gmail.com",
+  "DateOfBirth": {
+    "Year": 1985,
+    "Month": 4,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-04",
+      "AlbGL": 42.5,
+      "CreatUmolL": 79.64601769911505,
+      "GluMmolL": 4.940053285968029,
+      "CrpMgL": 3.2,
+      "LymPc": 38,
+      "McvFL": 88.5,
+      "RdwPc": 12.5,
+      "AlpUL": 97,
+      "Wbc1000cellsuL": 5.6
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Malaysia",
+  "Why": "A good long self-sustainable life filled with joy and happiness",
+  "PersonalLink": "https://www.instagram.com/yuhwenfoong"
+}

@@ -1,0 +1,28 @@
+{
+  "Name": "Reditel",
+  "DisplayName": null,
+  "MediaContact": "fiserjiri@centrum.cz",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 5,
+    "Day": 19
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-14",
+      "AlbGL": 45,
+      "CreatUmolL": 72,
+      "GluMmolL": 4.95,
+      "CrpMgL": 1.3,
+      "LymPc": 37.4,
+      "McvFL": 94.4,
+      "RdwPc": 12.4,
+      "AlpUL": 75.6,
+      "Wbc1000cellsuL": 4.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Czech Republic",
+  "Why": "Longevity master Zdeněk Šípek.",
+  "PersonalLink": null
+}

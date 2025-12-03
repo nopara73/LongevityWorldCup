@@ -1,0 +1,28 @@
+{
+  "Name": "The raddest of them all",
+  "DisplayName": null,
+  "MediaContact": "radlong@proton.me",
+  "DateOfBirth": {
+    "Year": 1985,
+    "Month": 5,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-04",
+      "AlbGL": 47.99999999999999,
+      "CreatUmolL": 80.53097345132744,
+      "GluMmolL": 4.8845470692717585,
+      "CrpMgL": 1.7999999999999998,
+      "LymPc": 44,
+      "McvFL": 91.2,
+      "RdwPc": 13.4,
+      "AlpUL": 146,
+      "Wbc1000cellsuL": 6.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Global Country of World Peace",
+  "Why": "Solving interesting problems while enjoying life to the fullest",
+  "PersonalLink": null
+}

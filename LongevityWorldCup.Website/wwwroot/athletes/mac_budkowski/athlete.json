@@ -1,0 +1,28 @@
+{
+  "Name": "Mac Budkowski",
+  "DisplayName": null,
+  "MediaContact": "https://x.com/MacBudkowski",
+  "DateOfBirth": {
+    "Year": 1990,
+    "Month": 11,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-12",
+      "AlbGL": 42.199999999999996,
+      "CreatUmolL": 82.30088495575222,
+      "GluMmolL": 5.217584369449379,
+      "CrpMgL": 1.6999999999999997,
+      "LymPc": 35,
+      "McvFL": 89.2,
+      "RdwPc": 11.2,
+      "AlpUL": 157,
+      "Wbc1000cellsuL": 5.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Poland",
+  "Why": "Having an impact and changing things for the better",
+  "PersonalLink": "https://macbudkowski.com/"
+}

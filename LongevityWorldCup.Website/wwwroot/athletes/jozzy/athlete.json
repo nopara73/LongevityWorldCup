@@ -1,0 +1,28 @@
+{
+  "Name": "jozzy",
+  "DisplayName": null,
+  "MediaContact": "slab.spruce8453@eagereverest.com",
+  "DateOfBirth": {
+    "Year": 1999,
+    "Month": 9,
+    "Day": 30
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-23",
+      "AlbGL": 42.099999999999994,
+      "CreatUmolL": 61.94690265486726,
+      "GluMmolL": 5.162078152753109,
+      "CrpMgL": 1.9,
+      "LymPc": 33,
+      "McvFL": 92.6,
+      "RdwPc": 12.9,
+      "AlpUL": 152,
+      "Wbc1000cellsuL": 5.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "Trying to push my limits. Becoming the best version of myself.",
+  "PersonalLink": null
+}

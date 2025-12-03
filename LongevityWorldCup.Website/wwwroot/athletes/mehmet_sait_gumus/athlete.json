@@ -1,0 +1,28 @@
+{
+  "Name": "Mehmet Sait Gumus",
+  "DisplayName": null,
+  "MediaContact": "said.mehmet@gmail.com",
+  "DateOfBirth": {
+    "Year": 1989,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-10",
+      "AlbGL": 46.6,
+      "CreatUmolL": 69.02654867256638,
+      "GluMmolL": 5.28,
+      "CrpMgL": 1.6,
+      "LymPc": 40,
+      "McvFL": 89.6,
+      "RdwPc": 12.6,
+      "AlpUL": 87,
+      "Wbc1000cellsuL": 8.6
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Türkiye",
+  "Why": "to reach to the future :))))))",
+  "PersonalLink": "https://www.instagram.com/msaidgumus/"
+}

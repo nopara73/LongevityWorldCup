@@ -1,0 +1,28 @@
+{
+  "Name": "MysticalM",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/mysticallymary/",
+  "DateOfBirth": {
+    "Year": 1977,
+    "Month": 9,
+    "Day": 7
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-11",
+      "AlbGL": 43.099999999999994,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 4.607015985790409,
+      "CrpMgL": 1.5,
+      "LymPc": 40,
+      "McvFL": 92.8,
+      "RdwPc": 14.1,
+      "AlpUL": 112,
+      "Wbc1000cellsuL": 6.6
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "Freedom and Purpose and wanting to see what this world looks like decades from now",
+  "PersonalLink": null
+}

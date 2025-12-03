@@ -1,0 +1,28 @@
+{
+  "Name": "Cyber Baker",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/emmanuel_geylang",
+  "DateOfBirth": {
+    "Year": 1970,
+    "Month": 10,
+    "Day": 17
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-14",
+      "AlbGL": 47,
+      "CreatUmolL": 118,
+      "GluMmolL": 5.4,
+      "CrpMgL": 0.61,
+      "LymPc": 30.6,
+      "McvFL": 90,
+      "RdwPc": 12.2,
+      "AlpUL": 93,
+      "Wbc1000cellsuL": 7.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "French in Singapore",
+  "Why": "Interested about how old I am",
+  "PersonalLink": null
+}

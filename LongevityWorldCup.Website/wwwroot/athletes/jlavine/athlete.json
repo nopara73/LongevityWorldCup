@@ -1,0 +1,28 @@
+{
+  "Name": "jlavine",
+  "DisplayName": null,
+  "MediaContact": "@lavinejosh",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 3,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-17",
+      "AlbGL": 47,
+      "CreatUmolL": 67.2566371681416,
+      "GluMmolL": 5.162078152753109,
+      "CrpMgL": 2.5,
+      "LymPc": 33,
+      "McvFL": 95.2,
+      "RdwPc": 12.5,
+      "AlpUL": 142,
+      "Wbc1000cellsuL": 8.61
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Cyberspace",
+  "Why": "feel good be healthy be active",
+  "PersonalLink": "https://www.joshlavine.com/"
+}

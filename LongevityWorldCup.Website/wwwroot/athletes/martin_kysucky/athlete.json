@@ -1,0 +1,28 @@
+{
+  "Name": "Martin Kysucky",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/martinkysucky",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 11,
+    "Day": 26
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-10-27",
+      "AlbGL": 43.6,
+      "CreatUmolL": 106,
+      "GluMmolL": 4.7,
+      "CrpMgL": 0.19,
+      "LymPc": 63.9,
+      "McvFL": 80.8,
+      "RdwPc": 13.4,
+      "AlpUL": 92.4,
+      "Wbc1000cellsuL": 4.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Slovakia",
+  "Why": "Growth is one of values I consider as a quite important and that include physical growth (body cultivation).",
+  "PersonalLink": null
+}

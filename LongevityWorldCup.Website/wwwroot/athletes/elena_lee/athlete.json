@@ -1,0 +1,28 @@
+{
+  "Name": "Elena Lee",
+  "DisplayName": null,
+  "MediaContact": "h-h-s1@hotmail.com",
+  "DateOfBirth": {
+    "Year": 1969,
+    "Month": 2,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-10-27",
+      "AlbGL": 45,
+      "CreatUmolL": 54.86725663716815,
+      "GluMmolL": 4.551509769094139,
+      "CrpMgL": 0.3,
+      "LymPc": 40,
+      "McvFL": 99.3,
+      "RdwPc": 12.3,
+      "AlpUL": 62,
+      "Wbc1000cellsuL": 4.8
+    }
+  ],
+  "Division": "Open",
+  "Flag": "USA",
+  "Why": "Seeing the World a Better Place for Everyone  \uD83C\uDF0E",
+  "PersonalLink": "https://www.instagram.com/agelesswithelenalee"
+}

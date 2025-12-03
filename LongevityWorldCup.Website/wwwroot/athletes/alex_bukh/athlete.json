@@ -1,0 +1,28 @@
+{
+  "Name": "Alex Bukh",
+  "DisplayName": null,
+  "MediaContact": "baleks.ads@gmail.com",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 5,
+    "Day": 21
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-01",
+      "AlbGL": 47.8,
+      "CreatUmolL": 82.30088495575222,
+      "GluMmolL": 5.051065719360569,
+      "CrpMgL": 2.1,
+      "LymPc": 33,
+      "McvFL": 87.7,
+      "RdwPc": 12.1,
+      "AlpUL": 146,
+      "Wbc1000cellsuL": 8.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Koh Phangan",
+  "Why": "New experiences, feeling LIFE, recognition",
+  "PersonalLink": null
+}

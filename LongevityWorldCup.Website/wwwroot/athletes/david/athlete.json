@@ -1,0 +1,28 @@
+{
+  "Name": "David",
+  "DisplayName": null,
+  "MediaContact": "www.linkedin.com/in/schneidavid",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 2,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-17",
+      "AlbGL": 44.8,
+      "CreatUmolL": 83,
+      "GluMmolL": 4.29,
+      "CrpMgL": 9.76,
+      "LymPc": 1.09,
+      "McvFL": 94.7,
+      "RdwPc": 12.4,
+      "AlpUL": 77,
+      "Wbc1000cellsuL": 4.97
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Germany",
+  "Why": "A long and fulfilled life - in peace",
+  "PersonalLink": null
+}

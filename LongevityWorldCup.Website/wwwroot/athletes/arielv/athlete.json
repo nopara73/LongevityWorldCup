@@ -1,0 +1,28 @@
+{
+  "Name": "ArielV",
+  "DisplayName": null,
+  "MediaContact": "arielvila@hotmail.com",
+  "DateOfBirth": {
+    "Year": 1976,
+    "Month": 9,
+    "Day": 6
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-11",
+      "AlbGL": 46.6,
+      "CreatUmolL": 107.07964601769912,
+      "GluMmolL": 4.995559502664299,
+      "CrpMgL": 0.1,
+      "LymPc": 49,
+      "McvFL": 88.2,
+      "RdwPc": 11.9,
+      "AlpUL": 57,
+      "Wbc1000cellsuL": 5.55
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Argentina",
+  "Why": "Continuous self-improvement and autonomy",
+  "PersonalLink": null
+}
