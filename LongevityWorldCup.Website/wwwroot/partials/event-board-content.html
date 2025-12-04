@@ -844,8 +844,8 @@
                             );
                         }
                         msgHtml = prevHtml
-                            ? `${nameWithRank} earned ${bubble} from ${prevHtml}`
-                            : `${nameWithRank} earned ${bubble}`;
+                            ? `${nameWithRank} claimed ${bubble} badge from ${prevHtml}`
+                            : `${nameWithRank} earned ${bubble} badge`;
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
