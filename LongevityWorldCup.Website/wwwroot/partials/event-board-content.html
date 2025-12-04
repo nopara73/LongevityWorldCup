@@ -256,29 +256,6 @@
             align-items: flex-start;
         }
     }
-
-    .expand-toggle{
-        appearance:none;
-        background:transparent;
-        border:0;
-        cursor:pointer;
-        padding:.15rem .35rem;
-        line-height:1;
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        border-radius:8px;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .expand-toggle:focus,
-    .expand-toggle:focus-visible,
-    .expand-toggle:active{
-        outline: none;
-        box-shadow: none;
-    }
-    .expand-toggle::-moz-focus-inner{
-        border: 0;
-    }
     .expand-toggle.is-open i{ transform:rotate(180deg) }
     .expand-toggle i{
         transition: transform .15s ease;
@@ -709,25 +686,6 @@
             return out;
         }
 
-        let expandClickBound=false;
-        function ensureExpandHandler(){
-            if(expandClickBound) return;
-            expandClickBound=true;
-            document.addEventListener('click',function(e){
-                const btn=e.target.closest('.expand-toggle');
-                if(!btn) return;
-                const id=btn.getAttribute('aria-controls');
-                if(!id) return;
-                const row=document.getElementById(id);
-                if(!row) return;
-                const open=btn.getAttribute('aria-expanded')==='true';
-                btn.setAttribute('aria-expanded', open?'false':'true');
-                btn.classList.toggle('is-open', !open);
-                row.classList.toggle('open', !open);
-                row.setAttribute('aria-hidden', open?'true':'false');
-            });
-        }
-
         function ensureGroupHoverDelegation(tbody){
             if(tbody.dataset.groupHoverInstalled === '1') return;
             const q = gid => tbody.querySelectorAll(`tr[data-group-id="${gid}"]`);
@@ -817,8 +775,6 @@
                 }
 
                 let msgHtml = "";
-                let addExpander = false;
-                let detailId = `details-${idx}`;
 
                 if (r.type === EVENT_TYPE.BadgeAward && r.primarySlug) {
                     const nameWithRank = renderTextWithSlugLinks(
@@ -828,10 +784,9 @@
                         afterNameWithCurrentRankFor()
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
-                        const title = Array.isArray(r.badges) && r.badges.length ? ` title="${esc(r.badges.join(', '))}"` : "";
-                        const toggle = `<button class="expand-toggle" type="button" aria-expanded="false" aria-controls="${detailId}" title="Details"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>`;
-                        msgHtml = `${nameWithRank} earned <strong${title}>${esc(String(r.badgeCount))}</strong> badges ${toggle}`;
-                        addExpander = true;
+                        const items = Array.isArray(r.items) ? r.items : [];
+                        const icons = items.map(it=>renderBadgeBubbleForLabel(String(it.label||"badge"), a)).join(" ");
+                        msgHtml = `${nameWithRank} claimed ${icons} badges`;
                     } else {
                         const bubble = r.badgeLabel ? renderBadgeBubbleForLabel(r.badgeLabel, a) : `<span class="badge-chip"><strong>badge</strong></span>`;
                         let prevHtml = "";
@@ -910,20 +865,6 @@
                     }, { once: true });
                 }
                 frag.appendChild(tr);
-
-                if(addExpander){
-                    const detailsTr = document.createElement("tr");
-                    detailsTr.className = "details-row";
-                    detailsTr.id = detailId;
-                    detailsTr.setAttribute("aria-hidden","true");
-                    detailsTr.dataset.groupId = `g_${idx}`;
-                    const items = Array.isArray(r.items) ? r.items : [];
-                    const icons = items.map(it=>{
-                        return renderBadgeBubbleForLabel(String(it.label||"badge"), a);
-                    }).join(" ");
-                    detailsTr.innerHTML = `<td class="details-cell" colspan="3"><div class="badge-section">${icons}</div></td>`;
-                    frag.appendChild(detailsTr);
-                }
             });
 
             tbody.appendChild(frag);
@@ -952,7 +893,6 @@
         }
 
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
-            ensureExpandHandler();
             setViewAllVisible(!!showViewAll);
 
             const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
@@ -996,3 +936,4 @@
         });
     })();
 </script>
+
