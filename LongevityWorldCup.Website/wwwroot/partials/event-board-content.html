@@ -1,4 +1,7 @@
-﻿<style>
+﻿<link rel="stylesheet" href="/css/badges.css">
+<script src="/js/badges.js"></script>
+
+<style>
     :root{
         --row-fade-duration:.35s;
         --row-stagger-step:40ms;
@@ -491,6 +494,37 @@
             return out;
         }
 
+        function findServerBadgeOnAthlete(athlete, label){
+            if(!athlete || !label) return null;
+            const map=lowerKeyMap(athlete);
+            const listKey=map["badges"]||map["athletebadges"]||map["awards"]||map["badge"];
+            const list=listKey?athlete[listKey]:null;
+            if(!Array.isArray(list)) return null;
+            const norm=s=>String(s||"").trim().toLowerCase();
+            const want=norm(label);
+            for(const b of list){
+                const bm=lowerKeyMap(b);
+                const labKey=bm["badgelabel"]||bm["label"]||bm["name"];
+                if(labKey && norm(b[labKey])===want) return b;
+            }
+            return null;
+        }
+
+        function renderBadgeBubbleForLabel(label, athlete){
+            try{
+                const full=findServerBadgeOnAthlete(athlete, label);
+                const b=full??{ BadgeLabel:String(label) };
+                const icon=typeof window.pickIconForServerBadge==='function'?window.pickIconForServerBadge(b):'fa-award';
+                const style=typeof window.pickBackgroundForServerBadge==='function'?window.pickBackgroundForServerBadge(b):'';
+                const tip=typeof window.makeTooltipFromServerBadge==='function'?window.makeTooltipFromServerBadge(b, athlete||null):String(label);
+                const url=typeof window.pickClickUrl==='function'?window.pickClickUrl(b, athlete||null):'';
+                const attrs=url?`class="badge-class badge-clickable" role="button" tabindex="0" onclick="window.location.href='${url}'"`:`class="badge-class"`;
+                return `<span ${attrs} title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
+            }catch(e){
+                return `<span class="badge-chip"><strong>${esc(String(label))}</strong></span>`;
+            }
+        }
+
         function toRows(rawEvents){
             return (rawEvents||[]).map(e=>{
                 const map=lowerKeyMap(e||{});
@@ -752,7 +786,7 @@
                         msgHtml = `${nameWithRank} earned <strong${title}>${esc(String(r.badgeCount))}</strong> badges ${toggle}`;
                         addExpander = true;
                     } else {
-                        const badge = r.badgeLabel ? esc(r.badgeLabel) : "badge";
+                        const bubble = r.badgeLabel ? renderBadgeBubbleForLabel(r.badgeLabel, a) : `<span class="badge-chip"><strong>badge</strong></span>`;
                         let prevHtml = "";
                         if (r.prevSlug) {
                             prevHtml = renderTextWithSlugLinks(
@@ -763,8 +797,8 @@
                             );
                         }
                         msgHtml = prevHtml
-                            ? `${nameWithRank} earned the <strong>${badge}</strong> badge from ${prevHtml}`
-                            : `${nameWithRank} earned the <strong>${badge}</strong> badge`;
+                            ? `${nameWithRank} earned ${bubble} from ${prevHtml}`
+                            : `${nameWithRank} earned ${bubble}`;
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
@@ -837,20 +871,10 @@
                     detailsTr.setAttribute("aria-hidden","true");
                     detailsTr.dataset.groupId = `g_${idx}`;
                     const items = Array.isArray(r.items) ? r.items : [];
-                    const chips = items.map(it=>{
-                        const badge = esc(String(it.label||"badge"));
-                        if(it.prevSlug){
-                            const prevHtml = renderTextWithSlugLinks(
-                                `slug[${it.prevSlug}]`,
-                                linkNames,
-                                athletesIndex,
-                                afterNameWithCurrentRankFor()
-                            );
-                            return `<span class="badge-chip"><strong>${badge}</strong> from ${prevHtml}</span>`;
-                        }
-                        return `<span class="badge-chip"><strong>${badge}</strong></span>`;
+                    const icons = items.map(it=>{
+                        return renderBadgeBubbleForLabel(String(it.label||"badge"), a);
                     }).join(" ");
-                    detailsTr.innerHTML = `<td class="details-cell" colspan="3"><div class="badge-list">${chips}</div></td>`;
+                    detailsTr.innerHTML = `<td class="details-cell" colspan="3"><div class="badge-section">${icons}</div></td>`;
                     frag.appendChild(detailsTr);
                 }
             });
