@@ -297,6 +297,53 @@
         font-size:.85rem;
         white-space:nowrap;
     }
+    
+    .events-board{
+        --badge-size: 24px;         
+        --badge-icon-size: .75rem;   
+        --badge-chip-font: .75rem;  
+        --badge-chip-pad-y: .1rem;
+        --badge-chip-pad-x: .45rem;
+        --badge-gap: .25rem;        
+    }
+    .events-board .event-message{ gap: var(--badge-gap) }
+    .events-board .badge-class{
+        display: inline-grid;
+        place-items: center;
+        width: var(--badge-size);
+        height: var(--badge-size);
+        border-radius: 999px;
+        line-height: 1;
+        box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    }
+    .events-board .badge-class i{
+        font-size: var(--badge-icon-size);
+        line-height: 1;
+    }
+    .events-board .badge-chip{
+        font-size: var(--badge-chip-font);
+        padding: var(--badge-chip-pad-y) var(--badge-chip-pad-x);
+    }
+    .events-board .details-cell .badge-section{
+        display:flex; flex-wrap:wrap; gap: var(--badge-gap);
+    }
+    .events-board{
+        --badge-inline-gap: .2rem;
+    }
+
+    .events-board .event-message{
+        gap: 0;
+    }
+    .events-board .event-message .badge-class,
+    .events-board .event-message .badge-chip{
+        margin-inline: var(--badge-inline-gap);
+        vertical-align: middle;
+    }
+
+    .events-board .details-cell .badge-section .badge-class,
+    .events-board .details-cell .badge-section .badge-chip{
+        margin: 0 .25rem .25rem 0;
+    }
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
