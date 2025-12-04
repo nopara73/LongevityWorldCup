@@ -336,6 +336,11 @@
         opacity:1;
         margin-left:.35rem;
     }
+    .events-board .badge-with-from.show-from .badge-from{
+        max-width:260px;
+        opacity:1;
+        margin-left:.35rem;
+    }
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -564,11 +569,12 @@
             }
         }
 
-        function renderBadgeWithFrom(label, prevSlug, athletesIndex, linkNames, afterSlugFn, athlete){
+        function renderBadgeWithFrom(label, prevSlug, athletesIndex, linkNames, afterSlugFn, athlete, forceOpen=false){
             const iconHtml = renderBadgeBubbleForLabel(String(label||"badge"), athlete);
-            if(!prevSlug) return `<span class="badge-with-from">${iconHtml}</span>`;
+            const cls = forceOpen ? "badge-with-from show-from" : "badge-with-from";
+            if(!prevSlug) return `<span class="${cls}">${iconHtml}</span>`;
             const donorHtml = renderTextWithSlugLinks(`slug[${prevSlug}]`, linkNames, athletesIndex, afterSlugFn);
-            return `<span class="badge-with-from">${iconHtml}<span class="badge-from"> from ${donorHtml}</span></span>`;
+            return `<span class="${cls}">${iconHtml}<span class="badge-from"> from ${donorHtml}</span></span>`;
         }
 
         function toRows(rawEvents){
@@ -785,12 +791,10 @@
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
-                        const hasDonor = items.some(it => !!it.prevSlug);
-                        const icons = items.map(it => renderBadgeWithFrom(it.label, it.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a)).join(" ");
-                        const verb = hasDonor ? "claimed" : "earned";
-                        msgHtml = `${nameWithRank} ${verb} ${icons}`;
+                        const icons = items.map(it => renderBadgeWithFrom(it.label, it.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, false)).join(" ");
+                        msgHtml = `${nameWithRank} claimed ${items.length} badges: ${icons}`;
                     } else {
-                        const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a);
+                        const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true);
                         const verb = r.prevSlug ? "claimed" : "earned";
                         msgHtml = `${nameWithRank} ${verb} ${bubbleWithFrom}`;
                     }
