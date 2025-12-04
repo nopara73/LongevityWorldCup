@@ -315,12 +315,27 @@
     .events-board .details-cell .badge-section .badge-chip{
         margin: 0 .25rem .25rem 0;
     }
+
     .events-board .others-wrapper{position:relative;display:inline-block}
     .events-board .others-link{color:var(--primary-color);text-decoration:underline;cursor:pointer}
     .events-board .others-flyout{position:absolute;top:1.3em;left:0;display:none;background:var(--card-bg,#fff);padding:.35rem .5rem;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.06);z-index:3;white-space:nowrap}
     .events-board .others-wrapper:hover .others-flyout{display:block}
     .events-board .others-flyout a{color:var(--primary-color);text-decoration:underline}
 
+    .events-board .badge-with-from{display:inline-flex;align-items:center;position:relative}
+    .events-board .badge-with-from .badge-from{
+        max-width:0;
+        opacity:0;
+        overflow:hidden;
+        white-space:nowrap;
+        margin-left:0;
+        transition:max-width .25s ease, opacity .25s ease, margin-left .25s ease;
+    }
+    .events-board .badge-with-from:hover .badge-from{
+        max-width:260px;
+        opacity:1;
+        margin-left:.35rem;
+    }
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -549,6 +564,13 @@
             }
         }
 
+        function renderBadgeWithFrom(label, prevSlug, athletesIndex, linkNames, afterSlugFn, athlete){
+            const iconHtml = renderBadgeBubbleForLabel(String(label||"badge"), athlete);
+            if(!prevSlug) return `<span class="badge-with-from">${iconHtml}</span>`;
+            const donorHtml = renderTextWithSlugLinks(`slug[${prevSlug}]`, linkNames, athletesIndex, afterSlugFn);
+            return `<span class="badge-with-from">${iconHtml}<span class="badge-from"> from ${donorHtml}</span></span>`;
+        }
+
         function toRows(rawEvents){
             return (rawEvents||[]).map(e=>{
                 const map=lowerKeyMap(e||{});
@@ -763,40 +785,14 @@
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
-                        const icons = items.map(it => renderBadgeBubbleForLabel(String(it.label||"badge"), a)).join(" ");
-                        const donors = [...new Set(items.map(it => it.prevSlug).filter(Boolean))];
-                        let fromHtml = "";
-                        if (donors.length === 1) {
-                            const onlyOne = renderTextWithSlugLinks(`slug[${donors[0]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
-                            fromHtml = ` from ${onlyOne}`;
-                        } else if (donors.length === 2) {
-                            const d1 = renderTextWithSlugLinks(`slug[${donors[0]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
-                            const d2 = renderTextWithSlugLinks(`slug[${donors[1]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
-                            fromHtml = ` from ${d1} and ${d2}`;
-                        } else if (donors.length > 2) {
-                            const first = renderTextWithSlugLinks(`slug[${donors[0]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
-                            const rest = donors.slice(1);
-                            const restCount = rest.length;
-                            const restLinks = rest.map(s => renderTextWithSlugLinks(`slug[${s}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())).join(", ");
-                            const others = `<span class="others-wrapper"><a class="others-link">${restCount} others</a><span class="others-flyout">${restLinks}</span></span>`;
-                            fromHtml = ` from ${first} and ${others}`;
-                        }
-                        const verb = donors.length > 0 ? "claimed" : "earned";
-                        msgHtml = `${nameWithRank} ${verb} ${icons} badges${fromHtml}`;
+                        const hasDonor = items.some(it => !!it.prevSlug);
+                        const icons = items.map(it => renderBadgeWithFrom(it.label, it.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a)).join(" ");
+                        const verb = hasDonor ? "claimed" : "earned";
+                        msgHtml = `${nameWithRank} ${verb} ${icons}`;
                     } else {
-                        const bubble = r.badgeLabel ? renderBadgeBubbleForLabel(r.badgeLabel, a) : `<span class="badge-chip"><strong>badge</strong></span>`;
-                        let prevHtml = "";
-                        if (r.prevSlug) {
-                            prevHtml = renderTextWithSlugLinks(
-                                `slug[${r.prevSlug}]`,
-                                linkNames,
-                                athletesIndex,
-                                afterNameWithCurrentRankFor()
-                            );
-                        }
-                        msgHtml = prevHtml
-                            ? `${nameWithRank} claimed ${bubble} badge from ${prevHtml}`
-                            : `${nameWithRank} earned ${bubble} badge`;
+                        const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a);
+                        const verb = r.prevSlug ? "claimed" : "earned";
+                        msgHtml = `${nameWithRank} ${verb} ${bubbleWithFrom}`;
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
