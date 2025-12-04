@@ -256,13 +256,7 @@
             align-items: flex-start;
         }
     }
-    .expand-toggle.is-open i{ transform:rotate(180deg) }
-    .expand-toggle i{
-        transition: transform .15s ease;
-        font-size:.85rem;
-    }
     .events-board tbody tr.details-row{ display:none }
-    .events-board tbody tr.details-row.open{ display:table-row }
     .details-cell{ padding:10px 20px; background: var(--details-bg); border-top:1px solid rgba(0,0,0,.06) }
     .badge-list{ display:flex; flex-wrap:wrap; gap:.35rem }
     .badge-chip{
@@ -274,14 +268,14 @@
         font-size:.85rem;
         white-space:nowrap;
     }
-    
+
     .events-board{
-        --badge-size: 24px;         
-        --badge-icon-size: .75rem;   
-        --badge-chip-font: .75rem;  
+        --badge-size: 24px;
+        --badge-icon-size: .75rem;
+        --badge-chip-font: .75rem;
         --badge-chip-pad-y: .1rem;
         --badge-chip-pad-x: .45rem;
-        --badge-gap: .25rem;        
+        --badge-gap: .25rem;
     }
     .events-board .event-message{ gap: var(--badge-gap) }
     .events-board .badge-class{
@@ -321,6 +315,12 @@
     .events-board .details-cell .badge-section .badge-chip{
         margin: 0 .25rem .25rem 0;
     }
+    .events-board .others-wrapper{position:relative;display:inline-block}
+    .events-board .others-link{color:var(--primary-color);text-decoration:underline;cursor:pointer}
+    .events-board .others-flyout{position:absolute;top:1.3em;left:0;display:none;background:var(--card-bg,#fff);padding:.35rem .5rem;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.06);z-index:3;white-space:nowrap}
+    .events-board .others-wrapper:hover .others-flyout{display:block}
+    .events-board .others-flyout a{color:var(--primary-color);text-decoration:underline}
+
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -376,13 +376,13 @@
 
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
         function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
-        function normalizeLinkId(id){return String(id||"").replace(/_/g,"-");}
+        function normalizeLinkId(id){return String(id).replace(/_/g,"-");}
         function esc(s){
             return String(s).replace(/[&<>"']/g, c => (
                 {"&":"&amp;","<":"&lt;","~":"&gt;",'"':"&quot;","'":"&#39;"}[c]
             ).replace("~",">"));
         }
-        function initialsFromName(n){const parts=String(n||"").trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
+        function initialsFromName(n){const parts=String(n).trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
 
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
@@ -484,22 +484,22 @@
             return out;
         }
         function extractPrevSlug(text){
-            const m=/prev\[(.+?)\]/.exec(String(text||""));
+            const m=/prev\[(.+?)\]/.exec(String(text));
             return m?m[1]:null;
         }
         function extractRank(text){
-            const m=/rank\[(\d+)\]/.exec(String(text||""));
+            const m=/rank\[(\d+)\]/.exec(String(text));
             if(!m) return null;
             const n=parseInt(m[1],10);
             return Number.isFinite(n)&&n>0?n:null;
         }
         function extractBadge(text){
-            const m=/badge\[(.+?)\]/.exec(String(text||""));
+            const m=/badge\[(.+?)\]/.exec(String(text));
             return m?m[1]:null;
         }
 
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
-            const s=String(text||"");
+            const s=String(text);
             const rx=/slug\[(.+?)\]/g;
             let out="", last=0, m;
             while((m=rx.exec(s))!==null){
@@ -524,7 +524,7 @@
             const listKey=map["badges"]||map["athletebadges"]||map["awards"]||map["badge"];
             const list=listKey?athlete[listKey]:null;
             if(!Array.isArray(list)) return null;
-            const norm=s=>String(s||"").trim().toLowerCase();
+            const norm=s=>String(s).trim().toLowerCase();
             const want=norm(label);
             for(const b of list){
                 const bm=lowerKeyMap(b);
@@ -686,28 +686,6 @@
             return out;
         }
 
-        function ensureGroupHoverDelegation(tbody){
-            if(tbody.dataset.groupHoverInstalled === '1') return;
-            const q = gid => tbody.querySelectorAll(`tr[data-group-id="${gid}"]`);
-            const getGid = el => {
-                const tr = el && el.closest ? el.closest('tr') : null;
-                return tr ? tr.getAttribute('data-group-id') : null;
-            };
-            tbody.addEventListener('pointerover', e => {
-                const gid = getGid(e.target);
-                if(!gid) return;
-                q(gid).forEach(x => x.classList.add('group-hover'));
-            });
-            tbody.addEventListener('pointerout', e => {
-                const fromGid = getGid(e.target);
-                if(!fromGid) return;
-                const toGid = getGid(e.relatedTarget);
-                if(toGid === fromGid) return;
-                q(fromGid).forEach(x => x.classList.remove('group-hover'));
-            });
-            tbody.dataset.groupHoverInstalled = '1';
-        }
-
         function applyZebraStriping(tbody){
             let idx=0;
             const rows=[...tbody.querySelectorAll('tr')];
@@ -785,8 +763,26 @@
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
-                        const icons = items.map(it=>renderBadgeBubbleForLabel(String(it.label||"badge"), a)).join(" ");
-                        msgHtml = `${nameWithRank} claimed ${icons} badges`;
+                        const icons = items.map(it => renderBadgeBubbleForLabel(String(it.label||"badge"), a)).join(" ");
+                        const donors = [...new Set(items.map(it => it.prevSlug).filter(Boolean))];
+                        let fromHtml = "";
+                        if (donors.length === 1) {
+                            const onlyOne = renderTextWithSlugLinks(`slug[${donors[0]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
+                            fromHtml = ` from ${onlyOne}`;
+                        } else if (donors.length === 2) {
+                            const d1 = renderTextWithSlugLinks(`slug[${donors[0]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
+                            const d2 = renderTextWithSlugLinks(`slug[${donors[1]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
+                            fromHtml = ` from ${d1} and ${d2}`;
+                        } else if (donors.length > 2) {
+                            const first = renderTextWithSlugLinks(`slug[${donors[0]}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor());
+                            const rest = donors.slice(1);
+                            const restCount = rest.length;
+                            const restLinks = rest.map(s => renderTextWithSlugLinks(`slug[${s}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())).join(", ");
+                            const others = `<span class="others-wrapper"><a class="others-link">${restCount} others</a><span class="others-flyout">${restLinks}</span></span>`;
+                            fromHtml = ` from ${first} and ${others}`;
+                        }
+                        const verb = donors.length > 0 ? "claimed" : "earned";
+                        msgHtml = `${nameWithRank} ${verb} ${icons} badges${fromHtml}`;
                     } else {
                         const bubble = r.badgeLabel ? renderBadgeBubbleForLabel(r.badgeLabel, a) : `<span class="badge-chip"><strong>badge</strong></span>`;
                         let prevHtml = "";
@@ -870,7 +866,6 @@
             tbody.appendChild(frag);
 
             applyZebraStriping(tbody);
-            ensureGroupHoverDelegation(tbody);
 
             const rowsNow = tbody.querySelectorAll(".row-appear");
             if (!prefersReduced && rowsNow.length){
@@ -936,4 +931,3 @@
         });
     })();
 </script>
-
