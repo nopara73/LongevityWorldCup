@@ -1,0 +1,26 @@
+.badge-section{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem}
+.badge-class{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;width:32px;height:32px;border-radius:50%;font-size:1rem;font-weight:bold;color:#fff;margin-left:.3rem;box-shadow:0 2px 4px rgba(0,0,0,.3);transition:transform .2s ease}
+.badge-class:hover{transform:scale(1.08)}
+a.badge-class:hover,.badge-class.badge-clickable:hover,.badge-class[data-clickable="true"]:hover,.modal-badge-item>a.badge-class:hover{transform:scale(1.2);animation:shadowPulse 1s ease-in-out 1 forwards}
+a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-class[data-clickable="true"]:focus-visible,.modal-badge-item>a.badge-class:focus-visible{transform:scale(1.2);animation:shadowPulse 1s ease-in-out 1 forwards;outline:none}
+.modal-badge-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:.25rem;margin:.5rem 0 1rem}
+.modal-badge-strip .badge-class{width:70px;height:70px;font-size:2rem;margin:.4rem}
+.modal-badge-strip .modal-badge-item{display:inline-flex;flex-direction:column;align-items:center;margin:.4rem}
+.modal-badge-strip .modal-badge-name{font-size:.75rem;margin-top:.2rem;color:var(--primary-color);text-align:center;width:100px;white-space:normal;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.modal-badge-name .modal-badge-title{display:block;font-weight:bold}
+.modal-badge-name .modal-badge-detail{display:none}
+.modal-badge-item:hover .modal-badge-detail,.modal-badge-item.expanded .modal-badge-detail{display:block}
+.modal-badge-item:hover .modal-badge-name,.modal-badge-item.expanded .modal-badge-name{-webkit-line-clamp:unset;max-height:none;overflow:visible}
+.badge-class{cursor:default!important}
+a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.modal-badge-item>a.badge-class{cursor:pointer!important}
+
+@keyframes shadowPulse{
+    0%{box-shadow:0 0 4px rgba(0,0,0,.3)}
+    50%{box-shadow:0 0 10px rgba(0,0,0,.6)}
+    100%{box-shadow:0 0 4px rgba(0,0,0,.3)}
+}
+
+@media (max-width:768px){
+    #detailsModal .badge-class{pointer-events:none;cursor:default}
+    #detailsModal .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}
+}
