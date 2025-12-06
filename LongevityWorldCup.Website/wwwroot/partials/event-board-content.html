@@ -445,7 +445,7 @@
             if(n===3) return '<i class="fa-solid fa-award rank-icon" style="color: #cd7f32;" title="3rd place" aria-label="3rd place"></i>';
             return '';
         }
-        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
+        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"";}
         function parseTimeVar(varName, fallbackMs){
             const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
             if(!v) return fallbackMs;
@@ -593,6 +593,8 @@
             return fallback;
         }
 
+        let allowBadgeClicks = true;
+
         function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
             try{
                 const full=findServerBadgeOnAthleteEx(athlete,label,leagueCategory,leagueValue,place)??{ BadgeLabel:String(label), LeagueCategory:leagueCategory, LeagueValue:leagueValue, Place:place };
@@ -600,7 +602,7 @@
                 const icon=typeof window.pickIconForServerBadge==='function'?window.pickIconForServerBadge(b):'fa-award';
                 const style=typeof window.pickBackgroundForServerBadge==='function'?window.pickBackgroundForServerBadge(b):'';
                 const tip=typeof window.makeTooltipFromServerBadge==='function'?window.makeTooltipFromServerBadge(b, athlete||null):String(label);
-                const url=typeof window.pickClickUrl==='function'?window.pickClickUrl(b, athlete||null):'';
+                const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
                 const attrs=url?`class="badge-class badge-clickable" role="button" tabindex="0" onclick="window.location.href='${url}'"`:`class="badge-class"`;
                 return `<span ${attrs} title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
             }catch(e){
@@ -940,8 +942,14 @@
                 let rows=toRows(Array.isArray(events)?events:[]);
 
                 const target=normalizeIncomingAthleteId(athleteId);
+                allowBadgeClicks = !target;
+
                 if(target){
-                    rows=rows.filter(r=>r.slugs.includes(target) && r.type !== EVENT_TYPE.AthleteCountMilestone);
+                    rows=rows.filter(r=>{
+                        if(r.type===EVENT_TYPE.AthleteCountMilestone) return false;
+                        if(r.type===EVENT_TYPE.BadgeAward) return r.primarySlug===target;
+                        return r.slugs.includes(target);
+                    });
                 }else{
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
                 }
