@@ -1,0 +1,28 @@
+{
+  "Name": "dorisG",
+  "DisplayName": null,
+  "MediaContact": "https://x.com/dorisG_xyz",
+  "DateOfBirth": {
+    "Year": 1991,
+    "Month": 7,
+    "Day": 9
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-11",
+      "AlbGL": 43.2,
+      "CreatUmolL": 59.2920353982301,
+      "GluMmolL": 5.217584369449379,
+      "CrpMgL": 7.800000000000001,
+      "LymPc": 40,
+      "McvFL": 93.5,
+      "RdwPc": 12.2,
+      "AlpUL": 87,
+      "Wbc1000cellsuL": 7.8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Honduras",
+  "Why": "Have a better quality of life",
+  "PersonalLink": "https://x.com/dorisG_xyz"
+}
