@@ -218,10 +218,10 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         {
             // table may not exist on first run; ignore
         }
+
         return list;
     }
 
-    // NEW: diff builder and event forwarder to EventDataService
     private void EmitBadgeAwardEvents(
         IReadOnlyList<AwardRow> before,
         IReadOnlyList<AwardRow> after,
@@ -229,6 +229,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     {
         static string SlotKey(string label, string cat, string? val, int? place)
             => $"{label}|{cat}|{val ?? ""}|{(place.HasValue ? place.Value.ToString(CultureInfo.InvariantCulture) : "")}";
+
+        static string AbKey(string athleteSlug, string label, string cat, string? val)
+            => $"{athleteSlug}|{label}|{cat}|{val ?? ""}";
 
         var beforeMap = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         foreach (var x in before)
@@ -239,6 +242,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 beforeMap[k] = set;
             }
+
             set.Add(x.AthleteSlug);
         }
 
@@ -251,10 +255,20 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 afterMap[k] = set;
             }
+
             set.Add(x.AthleteSlug);
         }
 
-        var items = new List<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string? ReplacedSlug)>(); // NEW: no preset capacity
+        var prevBest = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var x in before)
+        {
+            if (!x.Place.HasValue) continue;
+            var k = AbKey(x.AthleteSlug, x.BadgeLabel, x.LeagueCategory, x.LeagueValue);
+            if (!prevBest.TryGetValue(k, out var best) || x.Place.Value < best)
+                prevBest[k] = x.Place.Value;
+        }
+
+        var items = new List<BadgeEventItem>();
 
         foreach (var kv in afterMap)
         {
@@ -263,29 +277,68 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             beforeMap.TryGetValue(key, out var prevSet);
             prevSet ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // new awardees in this slot
+            var parts = key.Split('|');
+            var label = parts.Length > 0 ? parts[0] : "";
+            var cat = parts.Length > 1 ? parts[1] : "";
+            var valStr = parts.Length > 2 ? parts[2] : "";
+            int placeParsed;
+            int? place = parts.Length > 3 && int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out placeParsed) ? placeParsed : (int?)null;
+
             var adds = nextSet.Except(prevSet, StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
             if (adds.Count == 0) continue;
 
-            // who lost the slot compared to before
             var removes = prevSet.Except(nextSet, StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
 
-            // label is the first part of the composite key
-            var label = key.Split('|')[0];
-
-            // stable pairing: zip by index, overflow adds get null prev
-            for (int i = 0; i < adds.Count; i++)
+            if (place.HasValue)
             {
-                var replaced = i < removes.Count ? removes[i] : null;
-                items.Add((adds[i], occurredAtUtc, label, replaced));
+                var addsForward = new List<string>();
+                foreach (var slug in adds)
+                {
+                    var abKey = AbKey(slug, label, cat, string.IsNullOrEmpty(valStr) ? null : valStr);
+                    var forward = !prevBest.TryGetValue(abKey, out var prevPlace) || place.Value < prevPlace;
+                    if (forward) addsForward.Add(slug);
+                }
+
+                for (int i = 0; i < addsForward.Count; i++)
+                {
+                    var replaced = i < removes.Count ? removes[i] : null;
+                    items.Add(new BadgeEventItem
+                    {
+                        AthleteSlug = addsForward[i],
+                        OccurredAtUtc = occurredAtUtc,
+                        BadgeLabel = label,
+                        LeagueCategory = cat,
+                        LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
+                        Place = place,
+                        ReplacedSlug = replaced
+                    });
+                }
+            }
+            else
+            {
+                for (int i = 0; i < adds.Count; i++)
+                {
+                    var replaced = i < removes.Count ? removes[i] : null;
+                    items.Add(new BadgeEventItem
+                    {
+                        AthleteSlug = adds[i],
+                        OccurredAtUtc = occurredAtUtc,
+                        BadgeLabel = label,
+                        LeagueCategory = cat,
+                        LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
+                        Place = null,
+                        ReplacedSlug = replaced
+                    });
+                }
             }
         }
 
         if (items.Count > 0)
-        {
-            _events.CreateBadgeAwardEvents(items, skipIfExists: true);
-        }
+            _events.CreateBadgeAwardEvents(
+                items.Select(i => (i.AthleteSlug, i.OccurredAtUtc, i.BadgeLabel, i.LeagueCategory, i.LeagueValue, i.Place, i.ReplacedSlug)),
+                skipIfExists: true);
     }
+
 
     private static string? TryGetStringNode(System.Text.Json.Nodes.JsonObject o, string key)
     {
@@ -434,6 +487,17 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public int? Place { get; init; } // 1/2/3 or null
         public required string AthleteSlug { get; init; }
         public string? DefinitionHash { get; init; } // per-rule hash
+    }
+
+    private sealed class BadgeEventItem
+    {
+        public required string AthleteSlug { get; init; }
+        public required DateTime OccurredAtUtc { get; init; }
+        public required string BadgeLabel { get; init; }
+        public required string LeagueCategory { get; init; }
+        public string? LeagueValue { get; init; }
+        public int? Place { get; init; }
+        public string? ReplacedSlug { get; init; }
     }
 
     private static void AddRange(List<AwardRow> sink, IEnumerable<AwardRow> rows)

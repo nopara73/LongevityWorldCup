@@ -31,13 +31,13 @@ public enum EventType
 public sealed class EventDataService : IDisposable
 {
     private const string DatabaseFileName = "LongevityWorldCup.db";
-    
+
     private const double DefaultRelevanceJoined = 5d;
     private const double DefaultRelevanceNewRank = 10d;
     private const double DefaultRelevanceDonation = 9d;
     private const double DefaultRelevanceAthleteMilestone = 8d;
     private const double DefaultRelevanceBadgeAward = 8d;
-    
+
     private readonly SqliteConnection _sqlite;
     private readonly SlackWebhookClient _slack;
 
@@ -403,7 +403,7 @@ public sealed class EventDataService : IDisposable
     }
 
     public void CreateBadgeAwardEvents(
-        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string? ReplacedSlug)> items,
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string LeagueCategory, string? LeagueValue, int? Place, string? ReplacedSlug)> items,
         bool skipIfExists = true,
         double defaultRelevance = DefaultRelevanceBadgeAward)
     {
@@ -432,13 +432,15 @@ public sealed class EventDataService : IDisposable
             var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
             var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
-            foreach (var (slug, occurredAtUtc, badgeLabel, replacedSlug) in items)
+            foreach (var (slug, occurredAtUtc, badgeLabel, leagueCategory, leagueValue, place, replacedSlug) in items)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
                 if (string.IsNullOrWhiteSpace(badgeLabel)) continue;
+                if (string.IsNullOrWhiteSpace(leagueCategory)) continue;
 
                 var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
-                var baseText = $"slug[{slug}] badge[{badgeLabel}]";
+                var placeStr = place.HasValue ? place.Value.ToString(CultureInfo.InvariantCulture) : "";
+                var baseText = $"slug[{slug}] badge[{badgeLabel}] cat[{leagueCategory}] val[{leagueValue ?? ""}] place[{placeStr}]";
                 var text = string.IsNullOrWhiteSpace(replacedSlug) ? baseText : $"{baseText} prev[{replacedSlug}]";
 
                 var shouldInsert = true;

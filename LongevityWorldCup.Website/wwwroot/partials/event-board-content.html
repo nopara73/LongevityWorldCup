@@ -419,7 +419,7 @@
             if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
             return `${diffDays} days ago <i class="fa fa-rocket"></i>`;
         }
-        function relativeDayLabelNoIcon(iso,{emptyIfToday=true}={}) {
+        function relativeDayLabelNoIcon(iso,{emptyIfToday=true}={}){
             const dt=new Date(iso); if(isNaN(dt)) return "";
             const today=startOfLocalDay(new Date());
             const thatDay=startOfLocalDay(dt);
@@ -517,6 +517,20 @@
             const m=/badge\[(.+?)\]/.exec(String(text));
             return m?m[1]:null;
         }
+        function extractLeagueCategory(text){
+            const m=/cat\[(.+?)\]/.exec(String(text));
+            return m?m[1]:null;
+        }
+        function extractLeagueValue(text){
+            const m=/val\[(.*?)\]/.exec(String(text));
+            return m?m[1]:null;
+        }
+        function extractPlace(text){
+            const m=/place\[(\d*)\]/.exec(String(text));
+            if(!m) return null;
+            const n=parseInt(m[1],10);
+            return Number.isFinite(n)?n:null;
+        }
 
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
             const s=String(text);
@@ -554,10 +568,35 @@
             return null;
         }
 
-        function renderBadgeBubbleForLabel(label, athlete){
+        function findServerBadgeOnAthleteEx(athlete,label,cat,val,place){
+            if(!athlete) return null;
+            const map=lowerKeyMap(athlete);
+            const listKey=map["badges"]||map["athletebadges"]||map["awards"]||map["badge"];
+            const list=listKey?athlete[listKey]:null;
+            if(!Array.isArray(list)) return null;
+            const norm=s=>String(s||"").trim().toLowerCase();
+            const wantL=norm(label),wantC=norm(cat),wantV=norm(val),wantP=place==null?null:Number(place);
+            let fallback=null;
+            for(const b of list){
+                const bm=lowerKeyMap(b);
+                const labKey=bm["badgelabel"]||bm["label"]||bm["name"];
+                const catKey=bm["leaguecategory"]||bm["category"]||bm["categoryname"]||bm["cat"];
+                const valKey=bm["leaguevalue"]||bm["league"]||bm["value"]||bm["val"];
+                const plcKey=bm["place"]||bm["rank"]||bm["position"];
+                const labOk=labKey?norm(b[labKey])===wantL:false;
+                const catOk=wantC?catKey&&norm(b[catKey])===wantC:true;
+                const valOk=wantV?valKey&&norm(b[valKey])===wantV:true;
+                const plcOk=wantP!=null?plcKey&&Number(b[plcKey])===wantP:true;
+                if(labOk&&catOk&&valOk&&plcOk) return b;
+                if(labOk&&!fallback) fallback=b;
+            }
+            return fallback;
+        }
+
+        function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
             try{
-                const full=findServerBadgeOnAthlete(athlete, label);
-                const b=full??{ BadgeLabel:String(label) };
+                const full=findServerBadgeOnAthleteEx(athlete,label,leagueCategory,leagueValue,place)??{ BadgeLabel:String(label), LeagueCategory:leagueCategory, LeagueValue:leagueValue, Place:place };
+                const b=full;
                 const icon=typeof window.pickIconForServerBadge==='function'?window.pickIconForServerBadge(b):'fa-award';
                 const style=typeof window.pickBackgroundForServerBadge==='function'?window.pickBackgroundForServerBadge(b):'';
                 const tip=typeof window.makeTooltipFromServerBadge==='function'?window.makeTooltipFromServerBadge(b, athlete||null):String(label);
@@ -569,8 +608,8 @@
             }
         }
 
-        function renderBadgeWithFrom(label, prevSlug, athletesIndex, linkNames, afterSlugFn, athlete, forceOpen=false){
-            const iconHtml = renderBadgeBubbleForLabel(String(label||"badge"), athlete);
+        function renderBadgeWithFrom(label, prevSlug, athletesIndex, linkNames, afterSlugFn, athlete, forceOpen=false, leagueCategory=null, leagueValue=null, place=null){
+            const iconHtml = renderBadgeBubbleForLabel(String(label||"badge"), athlete, leagueCategory, leagueValue, place);
             const cls = forceOpen ? "badge-with-from show-from" : "badge-with-from";
             if(!prevSlug) return `<span class="${cls}">${iconHtml}</span>`;
             const donorHtml = renderTextWithSlugLinks(`slug[${prevSlug}]`, linkNames, athletesIndex, afterSlugFn);
@@ -595,8 +634,11 @@
                 const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
                 const milestoneCount = (() => { const m = /athletes\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : null; })();
                 const badgeLabel = extractBadge(text);
+                const leagueCategory = extractLeagueCategory(text);
+                const leagueValue = extractLeagueValue(text);
+                const place = extractPlace(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount, badgeLabel };
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
             });
         }
 
@@ -686,7 +728,7 @@
                 const idxs=[i];
                 const items=[];
                 if(r.badgeLabel || r.prevSlug){
-                    items.push({ label:r.badgeLabel||"badge", prevSlug:r.prevSlug||null });
+                    items.push({ label:r.badgeLabel||"badge", prevSlug:r.prevSlug||null, leagueCategory:r.leagueCategory||null, leagueValue:r.leagueValue||null, place:r.place??null });
                 }
 
                 for(let j=i+1;j<rows.length;j++){
@@ -697,7 +739,7 @@
                     if(!Number.isFinite(tj)) continue;
                     if(tj>=t0 && tj<end){
                         idxs.push(j);
-                        items.push({ label:x.badgeLabel||"badge", prevSlug:x.prevSlug||null });
+                        items.push({ label:x.badgeLabel||"badge", prevSlug:x.prevSlug||null, leagueCategory:x.leagueCategory||null, leagueValue:x.leagueValue||null, place:x.place??null });
                     }
                     if(tj>=end) break;
                 }
@@ -791,10 +833,10 @@
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
-                        const icons = items.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a)).join(" ");
+                        const icons = items.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
                         msgHtml = `${nameWithRank} claimed ${items.length} badges: ${icons}`;
                     } else {
-                        const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true);
+                        const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
                         const verb = r.prevSlug ? "claimed" : "earned";
                         msgHtml = `${nameWithRank} ${verb} ${bubbleWithFrom}`;
                     }
@@ -905,7 +947,7 @@
                 }
 
                 rows = applyArrivalOrderEpsilon(rows, 1);
-                rows = groupBadgeBursts(rows, 60_000);
+                rows = groupBadgeBursts(rows, 60000);
                 rows.sort((a,b)=>{
                     const ta=+new Date(a.occurredAt||0);
                     const tb=+new Date(b.occurredAt||0);
