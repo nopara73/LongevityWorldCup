@@ -341,6 +341,11 @@
         opacity:1;
         margin-left:.35rem;
     }
+
+    .count-accent{
+        color: var(--secondary-color, #ff4f87);
+        font-weight: 700;
+    }
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -836,11 +841,15 @@
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
                         const icons = items.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
-                        msgHtml = `${nameWithRank} claimed ${items.length} badges: ${icons}`;
+                        msgHtml = `${nameWithRank} bagged <strong class="count-accent">${items.length}</strong> new badges: ${icons}`;
                     } else {
-                        const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
-                        const verb = r.prevSlug ? "claimed" : "earned";
-                        msgHtml = `${nameWithRank} ${verb} ${bubbleWithFrom}`;
+                        if (r.prevSlug) {
+                            const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                            msgHtml = `${nameWithRank} claims ${bubbleWithFrom}`;
+                        } else {
+                            const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                            msgHtml = `${nameWithRank} adds ${bubble} to the collection`;
+                        }
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
