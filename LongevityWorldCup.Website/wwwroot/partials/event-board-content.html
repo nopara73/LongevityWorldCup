@@ -791,7 +791,7 @@
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
-                        const icons = items.map(it => renderBadgeWithFrom(it.label, it.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, false)).join(" ");
+                        const icons = items.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a)).join(" ");
                         msgHtml = `${nameWithRank} claimed ${items.length} badges: ${icons}`;
                     } else {
                         const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true);
