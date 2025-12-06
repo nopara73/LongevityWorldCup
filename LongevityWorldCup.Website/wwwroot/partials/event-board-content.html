@@ -840,8 +840,16 @@
                     );
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
-                        const icons = items.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
-                        msgHtml = `${nameWithRank} bagged <strong class="count-accent">${items.length}</strong> new badges: ${icons}`;
+                        const orderFn = typeof window.computeOrder === 'function' ? window.computeOrder : null;
+                        const orderedItems = orderFn
+                            ? items.slice().sort((a,b)=>{
+                                const oa = orderFn({ BadgeLabel:a.label, LeagueCategory:a.leagueCategory, LeagueValue:a.leagueValue, Place:a.place });
+                                const ob = orderFn({ BadgeLabel:b.label, LeagueCategory:b.leagueCategory, LeagueValue:b.leagueValue, Place:b.place });
+                                return oa - ob;
+                            })
+                            : items;
+                        const icons = orderedItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
+                        msgHtml = `${nameWithRank} bagged <strong class="count-accent">${orderedItems.length}</strong> new badges: ${icons}`;
                     } else {
                         if (r.prevSlug) {
                             const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);

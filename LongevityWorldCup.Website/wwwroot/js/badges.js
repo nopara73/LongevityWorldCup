@@ -67,14 +67,12 @@ function pickIconForServerBadge(b) {
     const place = getPlace(b);
     const val = getVal(b);
 
-    // Ultimate League (global Age Reduction): 1=crown, 2=medal, 3=award
     if (label === 'Age Reduction' && cat === 'global' && place) {
         if (place === 1) return 'fa-crown';
         if (place === 2) return 'fa-medal';
         if (place === 3) return 'fa-award';
     }
 
-    // Division / Generation icons via FE helpers — use getVal(b)!
     if (label === 'Age Reduction' && (cat === 'division' || cat === 'generation') && val) {
         if (cat === 'division' && typeof window.TryGetDivisionFaIcon === 'function') {
             return window.TryGetDivisionFaIcon(val) || (BASE_ICONS[label] || 'fa-award');
@@ -84,10 +82,8 @@ function pickIconForServerBadge(b) {
         }
     }
 
-    // Exclusive league icon
     if (label === 'Age Reduction' && cat === 'exclusive') return 'fa-umbrella-beach';
 
-    // Rank-specific icons
     if (label === 'Chronological Age – Oldest' && place) {
         if (place === 1) return 'fa-infinity';
         if (place === 2) return 'fa-scroll';
@@ -104,12 +100,11 @@ function pickIconForServerBadge(b) {
         if (place === 3) return 'fa-hourglass-start';
     }
 
-    // First Applicants — legacy icon mapping by place
     if (label === 'First Applicants') {
-        if (place === 1) return 'fa-circle-notch'; // Athlete Zero
-        if (place === 2) return 'fa-star';         // Athlete Beta
-        if (place === 3) return 'fa-bolt';         // Athlete Gamma
-        if (place && place >= 4 && place <= 10) return 'fa-dove'; // Early Bird
+        if (place === 1) return 'fa-circle-notch';
+        if (place === 2) return 'fa-star';
+        if (place === 3) return 'fa-bolt';
+        if (place && place >= 4 && place <= 10) return 'fa-dove';
         return 'fa-dove';
     }
 
@@ -179,7 +174,6 @@ function makeTooltipFromServerBadge(b, athlete) {
     const cat = (getCat(b) || '').toLowerCase();
     const val = getVal(b);
 
-    // --- Ultimate / Division / Generation / Exclusive ---
     if (label === 'Age Reduction') {
         if (cat === 'global') {
             if (place === 1) return 'Ultimate Lifeform: #1 in the Ultimate League';
@@ -213,7 +207,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         }
     }
 
-    // --- Chronological Age (Oldest / Youngest) ---
     if (label === 'Chronological Age – Oldest' && place) {
         const age = (athlete?.chronologicalAge ?? athlete?.ChronoAge ?? athlete?.chronological_age);
         const ageText = Number.isFinite(Number(age)) ? Number(age).toFixed(1) : '';
@@ -230,7 +223,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         if (place === 3) return `Son Goku: Chronologically 3rd Youngest (Age: ${ageText})`;
     }
 
-    // --- PhenoAge – Lowest (Biologically Youngest) ---
     if (label === 'PhenoAge – Lowest' && place) {
         const ph = (athlete?.lowestPhenoAge ?? athlete?.LowestPhenoAge);
         const phText = Number.isFinite(Number(ph)) ? Number(ph).toFixed(1) : '';
@@ -239,7 +231,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         if (place === 3) return `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${phText})`;
     }
 
-    // --- Submissions ---
     if (label === 'Most Submissions') {
         const c = (athlete?.submissionCount ?? athlete?.SubmissionCount ?? 0);
         return `The Submittinator: Most Tests Submitted: ${c}`;
@@ -248,7 +239,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         return 'The Regular: Two or More Tests Submitted';
     }
 
-    // --- Crowd badges ---
     if (typeof label === 'string' && label.startsWith('Crowd – ')) {
         if (label.endsWith('Most Guessed') && place) {
             const count = (athlete?.crowdCount ?? athlete?.CrowdCount ?? 0);
@@ -259,7 +249,7 @@ function makeTooltipFromServerBadge(b, athlete) {
         if (label.includes('Age Gap') && place) {
             const ch = Number(athlete?.chronologicalAge ?? athlete?.ChronoAge ?? 0);
             const cr = Number(athlete?.crowdAge ?? athlete?.CrowdAge ?? 0);
-            const gap = Math.max(0, ch - cr); // legacy considered only "younger"
+            const gap = Math.max(0, ch - cr);
             const gapText = Number.isFinite(gap) ? gap.toFixed(1) : '';
             const yearWord = gapText === '1.0' ? 'year' : 'years';
             if (place === 1) return `Skin Trafficker: Perceived ${gapText} ${yearWord} younger`;
@@ -276,7 +266,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         }
     }
 
-    // --- PhenoAge Best Improvement ---
     if (label === 'PhenoAge Best Improvement') {
         let delta = null;
         if (athlete && typeof athlete.phenoAgeDifference === 'number') {
@@ -291,7 +280,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         return 'Redemption Arc: Greatest Age Reversal from First Submission (Baseline)';
     }
 
-    // --- Domain winners (needs biomarker values on athlete) ---
     if (typeof label === 'string' && label.startsWith('Best Domain')) {
         const best = athlete?.bestBiomarkerValues || athlete?.BestMarkerValues;
         if (Array.isArray(best) && best.length >= 10) {
@@ -313,7 +301,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         }
     }
 
-    // --- First Applicants ---
     if (label === 'First Applicants') {
         if (place === 1) return 'Athlete Zero: 1st Athlete to Join the Longevity World Cup';
         if (place === 2) return 'Athlete Beta: 2nd Athlete to Join the Longevity World Cup';
@@ -322,7 +309,6 @@ function makeTooltipFromServerBadge(b, athlete) {
         return 'First Applicants';
     }
 
-    // --- Editorial neutrals ---
     if (label === 'Podcast') return 'Podcast: hear to this athlete\'s story in depth';
     if (label === 'Pregnancy') return 'Baby on Board';
     if (label === 'Host') return 'Host: Organizer of the Longevity World Cup';
@@ -352,9 +338,9 @@ function computeOrder(b) {
             else if (cat === 'division')   micro = 0.02;
             else if (cat === 'generation') micro = 0.03;
             else if (cat === 'exclusive')  micro = 0.04;
-        } else if (label === 'Crowd – Most Guessed')           micro = 0.20;
-        else if (label === 'Crowd – Age Gap (Chrono−Crowd)')   micro = 0.21;
-        else if (label === 'Crowd – Lowest Crowd Age')         micro = 0.22;
+        } else if (label === 'Crowd – Most Guessed')         micro = 0.20;
+        else if (label === 'Crowd – Age Gap (Chrono−Crowd)') micro = 0.21;
+        else if (label === 'Crowd – Lowest Crowd Age')       micro = 0.22;
 
         return base + micro;
     }
@@ -365,21 +351,21 @@ function computeOrder(b) {
     if (label === 'Chronological Age – Youngest') return 1.13;
     if (label === 'PhenoAge – Lowest')            return 1.14;
 
+    if (label === 'First Applicants')     return 1.19;
+    if (label === 'Pregnancy')            return 1.191;
+    if (label === 'Host')                 return 1.192;
+    if (label === 'Perfect Application')  return 1.193;
+
     if (label === 'Most Submissions') return 1.20;
     if (label === '≥2 Submissions')   return 1.21;
 
-    if (label === 'Best Domain – Liver')        return 1.30;
-    if (label === 'Best Domain – Kidney')       return 1.31;
-    if (label === 'Best Domain – Metabolic')    return 1.32;
-    if (label === 'Best Domain – Inflammation') return 1.33;
-    if (label === 'Best Domain – Immune')       return 1.34;
+    if (label === 'PhenoAge Best Improvement')  return 1.30;
 
-    if (label === 'PhenoAge Best Improvement')  return 1.40;
-
-    if (label === 'First Applicants') return 1.19;
-    if (label === 'Pregnancy')        return 1.191;
-    if (label === 'Host')             return 1.192;
-    if (label === 'Perfect Application') return 1.193;
+    if (label === 'Best Domain – Liver')        return 1.31;
+    if (label === 'Best Domain – Kidney')       return 1.32;
+    if (label === 'Best Domain – Metabolic')    return 1.33;
+    if (label === 'Best Domain – Inflammation') return 1.34;
+    if (label === 'Best Domain – Immune')       return 1.35;
 
     return 1.50;
 }
@@ -405,7 +391,7 @@ function buildServerBadgeHtml(b, athlete) {
 /* =========================
    Public API
    ========================= */
-window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
+window.setBadges = function (athlete, athleteCell) {
     let badgeContainer = null;
     if (athleteCell && athleteCell.classList && athleteCell.classList.contains('badge-section')) {
         badgeContainer = athleteCell;
@@ -416,7 +402,6 @@ window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
 
     const items = [];
 
-    // 0) Personal link bubble (teal, clickable)
     const personalLink = athlete.personalLink || athlete.PersonalLink;
     if (personalLink) {
         const href = personalLink.startsWith('http') ? personalLink : `https://${personalLink}`;
@@ -429,14 +414,12 @@ window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
         });
     }
 
-    // 1) Server-sent badges ONLY
     const serverBadges =
         Array.isArray(athlete.Badges) ? athlete.Badges :
             Array.isArray(athlete.badges) ? athlete.badges : [];
 
     serverBadges.forEach(b => items.push(buildServerBadgeHtml(b, athlete)));
 
-    // 2) Local-only "Perfect Guess" (user-specific)
     try {
         const rawName = athlete.name || athlete.Name || athlete.displayName || athlete.DisplayName || '';
         if (rawName) {
@@ -445,7 +428,7 @@ window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
                 slug = window.slugifyName(rawName, true);
             } else {
                 let s = String(rawName).toLowerCase();
-                try { s = s.normalize('NFKD'); } catch (_) { /* ignore */ }
+                try { s = s.normalize('NFKD'); } catch (_) {}
                 slug = s.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
             }
 
@@ -465,13 +448,11 @@ window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
                 });
             }
         }
-    } catch { /* no-op */ }
+    } catch {}
 
-    // Render
     items.sort((a, b) => a.order - b.order);
     badgeContainer.innerHTML = items.map(x => x.html).join('');
 
-    // Tiny appear animation on leaderboard (not in modal)
     try {
         const isModalStrip =
             (badgeContainer.id && badgeContainer.id === 'modalBadgeStrip') ||
@@ -486,8 +467,7 @@ window.setBadges = function (athlete, athleteCell /* row wrapper or modal */) {
                 });
             });
         }
-    } catch { /* no-op */ }
+    } catch {}
 };
 
-// keep a no-op for any legacy calls
 window.computeBadges = window.computeBadges || function () {};
