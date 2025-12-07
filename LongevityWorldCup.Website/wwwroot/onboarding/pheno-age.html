@@ -484,6 +484,8 @@
     <!--FOOTER-->
     <!-- JavaScript -->
     <script defer>
+        history.pushState({}, '', '/pheno-age' + (window.location.search || '') + (window.location.hash || ''));
+
         // Check if the URL has the query parameter "fake=1"
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';

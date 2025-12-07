@@ -18,6 +18,8 @@
 <!--FOOTER-->
 
 <script>
+    history.pushState({}, '', '/events' + (window.location.search || '') + (window.location.hash || ''));
+
     function initEventBoard() {
         const titleEl = document.getElementById('eventBoardTitle');
         if (titleEl && titleEl.scrollIntoView) {

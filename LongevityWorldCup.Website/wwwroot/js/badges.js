@@ -480,7 +480,7 @@ window.setBadges = function (athlete, athleteCell) {
             <span class="badge-class badge-clickable"
                   ${spanA11y}
                   title="${tooltipText}" style="${badgeBackgrounds[rank - 1]}"
-                  onclick="window.location.href='/leaderboard/leaderboard.html';">
+                  onclick="window.location.href='/leaderboard';">
                 <i class="fa ${iconClass}"></i>
             </span>`;
         const colorOrder = rank === 1 ? 2 : rank === 2 ? 3 : 4;

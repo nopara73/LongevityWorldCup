@@ -2481,7 +2481,7 @@
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
-        let rankText = `#${ultimateRank} in the <a href="/leaderboard/leaderboard.html" class="league-link">Ultimate League</a>`;
+        let rankText = `#${ultimateRank} in the <a href="/leaderboard" class="league-link">Ultimate League</a>`;
         if (bestLeagueRank !== ultimateRank) {
             const leagueLabel = bestLeagueName.replace('_', ' ');
             if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
