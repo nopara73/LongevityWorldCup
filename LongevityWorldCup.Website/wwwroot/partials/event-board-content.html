@@ -264,7 +264,7 @@
             <th colspan="3">
                 <div class="header-bar">
                     <span>Highlights</span>
-                    <a class="view-all" id="eventsViewAll" href="/event-board/event-board.html" target="_top">View All</a>
+                    <a class="view-all" id="eventsViewAll" href="/events" target="_top">View All</a>
                 </div>
             </th>
         </tr>
@@ -383,7 +383,7 @@
             return `/athlete/${encodeURIComponent(normalizeLinkId(slugifyLocal(slug)))}`;
         }
         function leaderboardUrl(rank){
-            const base="/leaderboard/leaderboard.html";
+            const base="/leaderboard";
             return Number.isFinite(rank)&&rank>0?`${base}#rank-${Math.floor(rank)}`:base;
         }
         function athleteName(a){
