@@ -67,6 +67,13 @@
                 width: auto;
                 min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
             }
+            .input-group.lwc-date-flex input[type="date"] {
+                flex: 1;
+                padding: 0.5rem;
+                min-height: 40px; /* visually matches your other controls */
+                box-sizing: border-box;
+            }
+
 
         #phenoAgeResult {
             max-width: 580px; /* Set max width to match the form */
@@ -261,7 +268,9 @@
             <fieldset>
                 <legend>Blood Draw Date:</legend>
                 <p class="privacy-note">When did you get your blood test done?</p>
-                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+                <div class="input-group lwc-date-flex">
+                    <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+                </div>
             </fieldset>
 
             <!-- Biomarker Fieldset -->
