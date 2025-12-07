@@ -755,7 +755,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             double? lastPheno = null;
             double[]? bestMarkerValues = null;
 
-// NEW: track per-marker bests (mix-and-match across complete sets)
+            // NEW: track per-marker bests (mix-and-match across complete sets)
             double? bestAlb = null,
                 bestCreat = null,
                 bestGlu = null,
@@ -765,6 +765,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 bestMcv = null,
                 bestRdw = null,
                 bestAlp = null;
+
+            double bestDelta = double.PositiveInfinity;
 
             if (o["Biomarkers"] is JsonArray biomArr)
             {
@@ -794,7 +796,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                         TryGet(entry, "AlpUL", out var alp) &&
                         crpMgL > 0 && !double.IsNaN(AgeAt(entryDate)))
                     {
-                        // Count only complete biomarker sets (matches FE)
                         submissionCount++;
 
                         // PhenoAge for baseline/lowest calculations
@@ -817,6 +818,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                             {
                                 lowestPheno = ph;
                             }
+
+                            var delta = ph - AgeAt(entryDate);
+                            if (delta < bestDelta) bestDelta = delta;
                         }
 
                         // --- NEW: update per-marker bests (mirrors old FE rules) ---
@@ -861,9 +865,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             if (double.IsNaN(lowestPheno) || double.IsInfinity(lowestPheno))
                 lowestPheno = chrono ?? double.PositiveInfinity;
 
-            double? ageReduction = (chrono.HasValue && !double.IsInfinity(lowestPheno))
-                ? (lowestPheno - chrono.Value)
-                : (double?)null;
+            double? ageReduction = double.IsInfinity(bestDelta) ? (double?)null : bestDelta;
 
             double? lowestPhenoRounded = double.IsInfinity(lowestPheno) ? null : Math.Round(lowestPheno, 2);
             double? phenoDiffFromBaseline = null;
