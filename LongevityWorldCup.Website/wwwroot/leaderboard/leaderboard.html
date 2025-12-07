@@ -20,6 +20,8 @@
 </html>
 
 <script>
+    history.pushState({}, '', '/leaderboard' + (window.location.search || '') + (window.location.hash || ''));
+
     document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
             const leaderboardTitle = document.getElementById('leaderboardTitle');

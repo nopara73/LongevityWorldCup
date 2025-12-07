@@ -153,7 +153,7 @@ function pickClickUrl(b, athlete) {
     const val = getVal(b);
 
     if (label === 'Age Reduction') {
-        if (cat === 'global') return '/leaderboard/leaderboard.html';
+        if (cat === 'global') return '/leaderboard/leaderboard';
         if ((cat === 'division' || cat === 'generation' || cat === 'exclusive') && val) {
             const slug = (typeof window.slugifyName === 'function') ? window.slugifyName(String(val), true) : null;
             return slug ? `/league/${slug}` : null;

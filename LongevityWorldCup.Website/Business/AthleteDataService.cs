@@ -5,11 +5,14 @@ using System.Text.Json;
 using System.Text;
 using System.Security.Cryptography;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Business;
 
 public class AthleteDataService : IDisposable
 {
+    private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
+    
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
 
     // rolling window for new-athlete detection (currently ~1 month)
@@ -310,6 +313,7 @@ public class AthleteDataService : IDisposable
                 proofs.Add($"/athletes/{folderName}/{Path.GetFileName(p)}");
             athlete["Proofs"] = proofs;
 
+            CanonicalizeIsoDatesInPlace(athlete);
             athletesRoot.Add(athlete);
         }
 
@@ -335,8 +339,42 @@ public class AthleteDataService : IDisposable
             }
         }, CancellationToken.None);
     }
-
-
+    
+    private static void CanonicalizeIsoDatesInPlace(JsonNode node)
+    {
+        if (node is JsonObject obj)
+        {
+            var keys = obj.Select(kv => kv.Key).ToList();
+            foreach (var key in keys)
+            {
+                var val = obj[key];
+                if (val is JsonValue jv && jv.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s) && IsoDateLike.IsMatch(s) && DateTime.TryParse(s, null, DateTimeStyles.RoundtripKind, out var dt))
+                {
+                    obj[key] = dt.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                }
+                else if (val is not null)
+                {
+                    CanonicalizeIsoDatesInPlace(val);
+                }
+            }
+        }
+        else if (node is JsonArray arr)
+        {
+            for (int i = 0; i < arr.Count; i++)
+            {
+                var val = arr[i];
+                if (val is JsonValue jv && jv.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s) && IsoDateLike.IsMatch(s) && DateTime.TryParse(s, null, DateTimeStyles.RoundtripKind, out var dt))
+                {
+                    arr[i] = dt.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                }
+                else if (val is not null)
+                {
+                    CanonicalizeIsoDatesInPlace(val);
+                }
+            }
+        }
+    }
+    
     // Detect and emit athlete-count milestones (retroactive + ongoing).
     // Uses the N-th athlete's JoinedAt timestamp as the event time.
     private void DetectAndEmitAthleteCountMilestones()

@@ -67,6 +67,25 @@
                 width: auto;
                 min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
             }
+            .input-group.lwc-date-flex input[type="date"] {
+                flex: 1;
+                padding: 0.5rem;
+                min-height: 40px; /* visually matches your other controls */
+                box-sizing: border-box;
+            }
+
+        /* Give all selects proper right padding and a consistent arrow */
+        .bioageform select,
+        #dobFieldset select {
+            padding-right: 2.25rem;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 0.6rem center;
+            background-size: 12px 12px;
+        }
 
         #phenoAgeResult {
             max-width: 580px; /* Set max width to match the form */
@@ -261,7 +280,9 @@
             <fieldset>
                 <legend>Blood Draw Date:</legend>
                 <p class="privacy-note">When did you get your blood test done?</p>
-                <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" style="max-width: 280px;" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+                <div class="input-group lwc-date-flex">
+                    <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+                </div>
             </fieldset>
 
             <!-- Biomarker Fieldset -->
@@ -484,6 +505,8 @@
     <!--FOOTER-->
     <!-- JavaScript -->
     <script defer>
+        history.pushState({}, '', '/pheno-age' + (window.location.search || '') + (window.location.hash || ''));
+
         // Check if the URL has the query parameter "fake=1"
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';

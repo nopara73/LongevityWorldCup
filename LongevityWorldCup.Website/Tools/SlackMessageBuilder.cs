@@ -197,7 +197,7 @@ public static class SlackMessageBuilder
     }
 
     private static string LeaderboardUrl() =>
-        "https://longevityworldcup.com/leaderboard/leaderboard.html";
+        "https://longevityworldcup.com/leaderboard";
 
     // ------------------ helpers ------------------
 
