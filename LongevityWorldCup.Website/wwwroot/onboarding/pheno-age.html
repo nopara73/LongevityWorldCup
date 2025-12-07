@@ -73,7 +73,9 @@
                 min-height: 40px; /* visually matches your other controls */
                 box-sizing: border-box;
             }
-        /* Add inner spacing and a consistent arrow for DOB selects only */
+
+        /* Give all selects proper right padding and a consistent arrow */
+        .bioageform select,
         #dobFieldset select {
             padding-right: 2.25rem;
             -webkit-appearance: none;
@@ -84,7 +86,6 @@
             background-position: right 0.6rem center;
             background-size: 12px 12px;
         }
-
 
         #phenoAgeResult {
             max-width: 580px; /* Set max width to match the form */
