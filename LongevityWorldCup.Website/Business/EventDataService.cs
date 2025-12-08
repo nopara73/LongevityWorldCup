@@ -39,17 +39,14 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceBadgeAward = 8d;
 
     private readonly SqliteConnection _sqlite;
-    private readonly SlackWebhookClient _slack;
-
-    private readonly object _athDirLock = new();
-    private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SlackEventService _slackEvents;
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackWebhookClient slack)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents)
     {
         _ = env;
-        _slack = slack;
+        _slackEvents = slackEvents;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -87,9 +84,7 @@ public sealed class EventDataService : IDisposable
 
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
     {
-        var map = new Dictionary<string, (string Name, int? Rank)>(StringComparer.OrdinalIgnoreCase);
-        foreach (var i in items) map[i.Slug] = (i.Name, i.CurrentRank);
-        lock (_athDirLock) _athDir = map;
+        _slackEvents.SetAthleteDirectory(items);
     }
 
     public void CreateNewRankEvents(
@@ -333,7 +328,6 @@ public sealed class EventDataService : IDisposable
         }
     }
 
-
     public void CreateAthleteCountMilestoneEvents(
         IEnumerable<(int Count, DateTime OccurredAtUtc)> items,
         bool skipIfExists = true,
@@ -545,17 +539,6 @@ public sealed class EventDataService : IDisposable
     private static DateTime EnsureUtc(DateTime dt) =>
         dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
-    private string SlugToNameResolve(string slug)
-    {
-        lock (_athDirLock)
-        {
-            if (_athDir.TryGetValue(slug, out var v) && !string.IsNullOrWhiteSpace(v.Name)) return v.Name;
-        }
-
-        var spaced = slug.Replace('_', '-').Replace('-', ' ');
-        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
-    }
-
     private static bool TryExtractRankFromRawText(string rawText, out int rank)
     {
         rank = 0;
@@ -580,18 +563,7 @@ public sealed class EventDataService : IDisposable
             return;
         }
 
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
-                if (!string.IsNullOrWhiteSpace(text))
-                    await _slack.SendAsync(text);
-            }
-            catch
-            {
-            }
-        });
+        _ = _slackEvents.SendImmediateAsync(type, rawText);
     }
 
     public void Dispose()
