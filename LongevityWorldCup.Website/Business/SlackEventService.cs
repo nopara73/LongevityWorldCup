@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
@@ -76,13 +77,34 @@ public sealed class SlackEventService : IDisposable
             _timer = null;
         }
 
-        var sb = new StringBuilder();
-        foreach (var (t, r) in toSend)
+        var groups = new Dictionary<string, List<(EventType Type, string Raw)>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in toSend)
         {
-            var line = BuildMessage(t, r);
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            if (sb.Length > 0) sb.Append('\n');
-            sb.Append(line);
+            if (!EventHelpers.TryExtractSlug(item.Raw, out var slug) || string.IsNullOrWhiteSpace(slug))
+                slug = string.Empty;
+
+            if (!groups.TryGetValue(slug, out var list))
+            {
+                list = new List<(EventType, string)>();
+                groups[slug] = list;
+            }
+            list.Add(item);
+        }
+
+        var orderedKeys = groups.Keys.Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
+        if (groups.ContainsKey(string.Empty)) orderedKeys.Add(string.Empty);
+
+        var sb = new StringBuilder();
+        foreach (var key in orderedKeys)
+        {
+            var items = groups[key];
+            foreach (var (t, r) in items)
+            {
+                var line = BuildMessage(t, r);
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (sb.Length > 0) sb.Append('\n');
+                sb.Append(line);
+            }
         }
 
         var payload = sb.ToString();
