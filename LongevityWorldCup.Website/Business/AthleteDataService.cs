@@ -1,4 +1,4 @@
-﻿﻿using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
@@ -654,77 +654,27 @@ public class AthleteDataService : IDisposable
         var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
         var results = new List<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
 
+        var statsMap = PhenoStatsCalculator.BuildAll(Athletes, asOf);
+
         foreach (var athlete in Athletes.OfType<JsonObject>())
         {
-            var name = athlete["Name"]?.GetValue<string>() ?? "";
             var slug = athlete["AthleteSlug"]?.GetValue<string>() ?? "";
+            if (!statsMap.TryGetValue(slug, out var r)) continue;
+            if (!r.DobUtc.HasValue) continue;
 
-            var dobNode = athlete["DateOfBirth"]?.AsObject();
-            if (dobNode is null) continue;
+            var name = r.Name ?? "";
+            var dobUtc = r.DobUtc.Value;
 
-            int y = dobNode["Year"]!.GetValue<int>();
-            int m = dobNode["Month"]!.GetValue<int>();
-            int d = dobNode["Day"]!.GetValue<int>();
-            var dobUtc = new DateTime(y, m, d, 0, 0, 0, DateTimeKind.Utc);
-
-            double AgeYears(DateTime date) => (date.Date - dobUtc.Date).TotalDays / 365.2425;
-
-            var chronoToday = Math.Round(AgeYears(asOf), 2);
-            double lowestPheno = double.PositiveInfinity;
-            double chronoAtLowest = chronoToday;
-
-            if (athlete["Biomarkers"] is JsonArray biomArr)
-            {
-                foreach (var entry in biomArr.OfType<JsonObject>())
-                {
-                    var entryDate = asOf;
-                    var ds = entry["Date"]?.GetValue<string>();
-                    if (!string.IsNullOrWhiteSpace(ds) &&
-                        DateTime.TryParse(ds, null,
-                            System.Globalization.DateTimeStyles.RoundtripKind, out var parsed))
-                    {
-                        entryDate = DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc);
-                    }
-
-                    var ageAtEntry = AgeYears(entryDate);
-
-                    if (TryGet(entry, "AlbGL", out var alb) &&
-                        TryGet(entry, "CreatUmolL", out var creat) &&
-                        TryGet(entry, "GluMmolL", out var glu) &&
-                        TryGet(entry, "CrpMgL", out var crpMgL) &&
-                        TryGet(entry, "Wbc1000cellsuL", out var wbc) &&
-                        TryGet(entry, "LymPc", out var lym) &&
-                        TryGet(entry, "McvFL", out var mcv) &&
-                        TryGet(entry, "RdwPc", out var rdw) &&
-                        TryGet(entry, "AlpUL", out var alp) &&
-                        crpMgL > 0)
-                    {
-                        var ph = Tools.PhenoAgeHelper.CalculatePhenoAgeFromRaw(
-                            ageAtEntry, alb, creat, glu, crpMgL, wbc, lym, mcv, rdw, alp);
-
-                        if (!double.IsNaN(ph) && !double.IsInfinity(ph) && ph < lowestPheno)
-                        {
-                            lowestPheno = ph;
-                            chronoAtLowest = ageAtEntry;
-                        }
-                    }
-                }
-            }
-
-            if (double.IsNaN(lowestPheno) || double.IsInfinity(lowestPheno))
-            {
-                lowestPheno = chronoToday; 
-                chronoAtLowest = chronoToday; 
-            }
-
-            var ageDiff = Math.Round(lowestPheno - chronoAtLowest, 2);
+            var chronoToday = r.ChronoAge.HasValue ? Math.Round(r.ChronoAge.Value, 2) : 0;
+            var lowestPheno = r.LowestPhenoAge.HasValue ? Math.Round(r.LowestPhenoAge.Value, 2) : chronoToday;
+            var ageDiff = Math.Round(r.AgeReduction ?? 0, 2);
 
             var obj = new JsonObject
             {
                 ["AthleteSlug"] = slug,
                 ["Name"] = name,
                 ["ChronologicalAge"] = chronoToday,
-                ["LowestPhenoAge"] = Math.Round(lowestPheno, 2),
+                ["LowestPhenoAge"] = lowestPheno,
                 ["AgeDifference"] = ageDiff
             };
 
@@ -736,22 +686,6 @@ public class AthleteDataService : IDisposable
             arr.Add(o);
 
         return arr;
-
-        static bool TryGet(JsonObject o, string key, out double v)
-        {
-            v = 0;
-            try
-            {
-                var n = o[key];
-                if (n is null) return false;
-                v = n.GetValue<double>();
-                return !double.IsNaN(v) && !double.IsInfinity(v);
-            }
-            catch
-            {
-                return false;
-            }
-        }
     }
 
     private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>

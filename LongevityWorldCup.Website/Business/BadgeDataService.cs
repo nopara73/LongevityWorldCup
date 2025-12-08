@@ -189,7 +189,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
         tx.Commit();
     }
-    
+
     private void HydrateComputedStatsIntoAthletes(Dictionary<string, AthleteStats> stats)
     {
         foreach (var o in _athletes.Athletes.OfType<JsonObject>())
@@ -198,8 +198,10 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             if (string.IsNullOrWhiteSpace(slug)) continue;
             if (!stats.TryGetValue(slug, out var s)) continue;
 
-            if (s.ChronoAge.HasValue) o["ChronoAge"] = s.ChronoAge.Value; else o.Remove("ChronoAge");
-            if (s.LowestPhenoAge.HasValue) o["LowestPhenoAge"] = s.LowestPhenoAge.Value; else o.Remove("LowestPhenoAge");
+            if (s.ChronoAge.HasValue) o["ChronoAge"] = s.ChronoAge.Value;
+            else o.Remove("ChronoAge");
+            if (s.LowestPhenoAge.HasValue) o["LowestPhenoAge"] = s.LowestPhenoAge.Value;
+            else o.Remove("LowestPhenoAge");
             o["SubmissionCount"] = s.SubmissionCount;
 
             if (s.BestMarkerValues is not null)
@@ -742,236 +744,31 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf)
     {
+        var core = PhenoStatsCalculator.BuildAll(_athletes.Athletes, asOf);
         var result = new Dictionary<string, AthleteStats>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var o in _athletes.Athletes.OfType<JsonObject>())
+        foreach (var kv in core)
         {
-            var slug = o["AthleteSlug"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(slug)) continue;
-
-            var name = o["Name"]?.GetValue<string>() ?? slug;
-
-            // DOB
-            DateTime? dob = null;
-            if (o["DateOfBirth"] is JsonObject dobNode)
+            var r = kv.Value;
+            result[kv.Key] = new AthleteStats
             {
-                try
-                {
-                    int y = dobNode["Year"]!.GetValue<int>();
-                    int m = dobNode["Month"]!.GetValue<int>();
-                    int d = dobNode["Day"]!.GetValue<int>();
-                    dob = new DateTime(y, m, d, 0, 0, 0, DateTimeKind.Utc);
-                }
-                catch
-                {
-                    /* ignore invalid */
-                }
-            }
-
-            double? chrono = null;
-            if (dob.HasValue)
-                chrono = (asOf - dob.Value.Date).TotalDays / 365.2425;
-
-            // Build best marker-values and baseline/best PhenoAge from Biomarkers
-            int submissionCount = 0;
-            double lowestPheno = double.PositiveInfinity;
-            double? firstPheno = null;
-            double? lastPheno = null;
-            double[]? bestMarkerValues = null;
-
-            // NEW: track per-marker bests (mix-and-match across complete sets)
-            double? bestAlb = null,
-                bestCreat = null,
-                bestGlu = null,
-                bestCrp = null,
-                bestWbc = null,
-                bestLym = null,
-                bestMcv = null,
-                bestRdw = null,
-                bestAlp = null;
-
-            double bestDelta = double.PositiveInfinity;
-
-            if (o["Biomarkers"] is JsonArray biomArr)
-            {
-                foreach (var entry in biomArr.OfType<JsonObject>())
-                {
-                    // Parse entry date (roundtrip if present)
-                    var entryDate = asOf;
-                    var ds = entry["Date"]?.GetValue<string>();
-                    if (!string.IsNullOrWhiteSpace(ds) &&
-                        DateTime.TryParse(ds, null, DateTimeStyles.RoundtripKind, out var parsed))
-                    {
-                        entryDate = DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc);
-                    }
-
-                    // Age at the date of the test
-                    double AgeAt(DateTime d) => dob.HasValue ? (d.Date - dob.Value.Date).TotalDays / 365.2425 : double.NaN;
-
-                    // Read raw biomarkers; require positive CRP to compute (== "complete set")
-                    if (TryGet(entry, "AlbGL", out var alb) &&
-                        TryGet(entry, "CreatUmolL", out var creat) &&
-                        TryGet(entry, "GluMmolL", out var glu) &&
-                        TryGet(entry, "CrpMgL", out var crpMgL) &&
-                        TryGet(entry, "Wbc1000cellsuL", out var wbc) &&
-                        TryGet(entry, "LymPc", out var lym) &&
-                        TryGet(entry, "McvFL", out var mcv) &&
-                        TryGet(entry, "RdwPc", out var rdw) &&
-                        TryGet(entry, "AlpUL", out var alp) &&
-                        crpMgL > 0 && !double.IsNaN(AgeAt(entryDate)))
-                    {
-                        submissionCount++;
-
-                        // PhenoAge for baseline/lowest calculations
-                        var ph = PhenoAgeHelper.CalculatePhenoAgeFromRaw(
-                            AgeAt(entryDate), alb, creat, glu, crpMgL, wbc, lym, mcv, rdw, alp);
-
-                        if (!double.IsNaN(ph) && !double.IsInfinity(ph))
-                        {
-                            // track first valid PhenoAge in array order as "baseline" (FE behavior)
-                            if (!firstPheno.HasValue)
-                            {
-                                firstPheno = ph;
-                            }
-
-                            // always update lastPheno when we see a complete set
-                            lastPheno = ph;
-
-                            // best (minimum) PhenoAge across real submissions
-                            if (ph < lowestPheno)
-                            {
-                                lowestPheno = ph;
-                            }
-
-                            var delta = ph - AgeAt(entryDate);
-                            if (delta < bestDelta) bestDelta = delta;
-                        }
-
-                        // --- NEW: update per-marker bests (mirrors old FE rules) ---
-                        // Albumin & Lymphocytes: higher is better
-                        if (!bestAlb.HasValue || alb > bestAlb.Value) bestAlb = alb;
-                        if (!bestLym.HasValue || lym > bestLym.Value) bestLym = lym;
-
-                        // Everything else: lower is better
-                        if (!bestCreat.HasValue || creat < bestCreat.Value) bestCreat = creat;
-                        if (!bestGlu.HasValue || glu < bestGlu.Value) bestGlu = glu;
-                        if (!bestCrp.HasValue || crpMgL < bestCrp.Value) bestCrp = crpMgL;
-                        if (!bestWbc.HasValue || wbc < bestWbc.Value) bestWbc = wbc;
-                        if (!bestMcv.HasValue || mcv < bestMcv.Value) bestMcv = mcv;
-                        if (!bestRdw.HasValue || rdw < bestRdw.Value) bestRdw = rdw;
-                        if (!bestAlp.HasValue || alp < bestAlp.Value) bestAlp = alp;
-                    }
-                }
-
-                // Build BestMarkerValues exactly like the legacy FE did:
-                // use "today's" chronological age + per-marker bests (mix-and-match), and ln(CRP/10).
-                if (bestAlb.HasValue && bestCreat.HasValue && bestGlu.HasValue && bestCrp.HasValue &&
-                    bestWbc.HasValue && bestLym.HasValue && bestMcv.HasValue && bestRdw.HasValue && bestAlp.HasValue &&
-                    bestCrp.Value > 0 && chrono.HasValue)
-                {
-                    var lnCrpOver10 = Math.Log(bestCrp.Value / 10.0);
-                    bestMarkerValues = new[]
-                    {
-                        chrono.Value, // <-- FE used current chronological age here
-                        bestAlb.Value,
-                        bestCreat.Value,
-                        bestGlu.Value,
-                        lnCrpOver10,
-                        bestWbc.Value,
-                        bestLym.Value,
-                        bestMcv.Value,
-                        bestRdw.Value,
-                        bestAlp.Value
-                    };
-                }
-            }
-
-            if (double.IsNaN(lowestPheno) || double.IsInfinity(lowestPheno))
-                lowestPheno = chrono ?? double.PositiveInfinity;
-
-            double? ageReduction = double.IsInfinity(bestDelta) ? (double?)null : bestDelta;
-
-            double? lowestPhenoRounded = double.IsInfinity(lowestPheno) ? null : Math.Round(lowestPheno, 2);
-            double? phenoDiffFromBaseline = null;
-            if (firstPheno.HasValue && lastPheno.HasValue)
-            {
-                // Use LAST - FIRST (FE baseline vs most recent), keep raw for ranking
-                phenoDiffFromBaseline = (lastPheno.Value - firstPheno.Value);
-            }
-
-            // Crowd stats hydrated by AthleteDataService (CrowdAge, CrowdCount)
-            double? crowdAge = null;
-            int crowdCount = 0;
-            try
-            {
-                if (o["CrowdAge"] is JsonValue jvAge && jvAge.TryGetValue<double>(out var ca))
-                    crowdAge = ca;
-                if (o["CrowdCount"] is JsonValue jvCnt && jvCnt.TryGetValue<int>(out var cc))
-                    crowdCount = cc;
-            }
-            catch
-            {
-                /* ignore */
-            }
-
-            // Generation fallback from DOB (mirrors FE)
-            var generation = TryGetString(o, "Generation");
-            if (string.IsNullOrWhiteSpace(generation) && dob.HasValue)
-            {
-                generation = GetGenerationFromBirthYear(dob.Value.Year);
-            }
-
-            result[slug] = new AthleteStats
-            {
-                Slug = slug,
-                Name = name,
-                DobUtc = dob,
-                ChronoAge = chrono,
-                LowestPhenoAge = double.IsInfinity(lowestPheno) ? (double?)null : lowestPheno,
-                AgeReduction = ageReduction,
-                SubmissionCount = submissionCount,
-                Division = TryGetString(o, "Division"),
-                Generation = generation,
-                Exclusive = TryGetString(o, "ExclusiveLeague"),
-                BestMarkerValues = bestMarkerValues,
-                PhenoAgeDiffFromBaseline = phenoDiffFromBaseline,
-                CrowdAge = crowdAge,
-                CrowdCount = crowdCount
+                Slug = kv.Key,
+                Name = r.Name,
+                DobUtc = r.DobUtc,
+                ChronoAge = r.ChronoAge,
+                LowestPhenoAge = r.LowestPhenoAge,
+                AgeReduction = r.AgeReduction,
+                SubmissionCount = r.SubmissionCount,
+                Division = r.Division,
+                Generation = r.Generation,
+                Exclusive = r.Exclusive,
+                BestMarkerValues = r.BestMarkerValues,
+                PhenoAgeDiffFromBaseline = r.PhenoAgeDiffFromBaseline,
+                CrowdAge = r.CrowdAge,
+                CrowdCount = r.CrowdCount
             };
         }
 
         return result;
-
-        static bool TryGet(JsonObject o, string key, out double v)
-        {
-            v = 0;
-            try
-            {
-                var n = o[key];
-                if (n is null) return false;
-                v = n.GetValue<double>();
-                return !double.IsNaN(v) && !double.IsInfinity(v);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        static string? TryGetString(JsonObject o, string key)
-        {
-            try
-            {
-                var n = o[key];
-                if (n is null) return null;
-                var s = n.GetValue<string?>();
-                return string.IsNullOrWhiteSpace(s) ? null : s;
-            }
-            catch
-            {
-                return null;
-            }
-        }
     }
 
     /// <summary>
