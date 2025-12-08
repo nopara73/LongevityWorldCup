@@ -404,6 +404,7 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
+        var notify = new List<string>();
 
         lock (_sqlite)
         {
@@ -455,12 +456,17 @@ public sealed class EventDataService : IDisposable
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
+                notify.Add(text);
             }
 
             tx.Commit();
         }
 
-        if (created > 0) ReloadIntoCache();
+        if (created > 0)
+        {
+            ReloadIntoCache();
+            foreach (var raw in notify) FireAndForgetSlack(EventType.BadgeAward, raw);
+        }
     }
 
     public IReadOnlyList<EventItem> GetEvents(
@@ -552,18 +558,22 @@ public sealed class EventDataService : IDisposable
     {
         if (type == EventType.NewRank)
         {
-            if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
-                return;
-        }
-        else if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
-        {
-        }
-        else
-        {
+            if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10) return;
+            _ = _slackEvents.SendImmediateAsync(type, rawText);
             return;
         }
 
-        _ = _slackEvents.SendImmediateAsync(type, rawText);
+        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
+        {
+            _ = _slackEvents.SendImmediateAsync(type, rawText);
+            return;
+        }
+
+        if (type == EventType.BadgeAward)
+        {
+            _ = _slackEvents.BufferAsync(type, rawText);
+            return;
+        }
     }
 
     public void Dispose()

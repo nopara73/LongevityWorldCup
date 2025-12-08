@@ -54,8 +54,6 @@ public sealed class SlackEventService : IDisposable
         return Task.CompletedTask;
     }
 
-    public Task FlushAsync() => FlushInternalAsync();
-
     private void OnTimer(object? _)
     {
         _ = FlushInternalAsync();
