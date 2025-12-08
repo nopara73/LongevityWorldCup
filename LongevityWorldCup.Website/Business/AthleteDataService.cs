@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Nodes;
+using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
@@ -215,6 +215,7 @@ public class AthleteDataService : IDisposable
                     HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
                     HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
                     PushAthleteDirectoryToEvents();
+                    AthletesChanged?.Invoke();
                 }
             }
         });
@@ -542,6 +543,7 @@ public class AthleteDataService : IDisposable
         }
 
         PushAthleteDirectoryToEvents();
+        AthletesChanged?.Invoke();
     }
 
     /// <summary>

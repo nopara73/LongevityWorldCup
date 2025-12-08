@@ -57,12 +57,12 @@ public sealed class BadgeDataService : IDisposable
         using var cmd = _sqlite.CreateCommand();
         cmd.CommandText = $@"
 CREATE TABLE IF NOT EXISTS {AwardsTable} (
-    BadgeLabel     TEXT NOT NULL,   -- human readable label (e.g., 'Age Reduction', 'Chronological Age – Oldest')
-    LeagueCategory TEXT NOT NULL,   -- 'Global' | 'Division' | 'Generation' | 'Exclusive'
-    LeagueValue    TEXT NULL,       -- value for the category (e.g., 'Men''s', 'Gen X', 'Prosperan'), NULL for Global
-    Place          INTEGER NULL,    -- 1/2/3 for ranked badges; NULL for flag-style badges
+    BadgeLabel     TEXT NOT NULL,
+    LeagueCategory TEXT NOT NULL,
+    LeagueValue    TEXT NULL,
+    Place          INTEGER NULL,
     AthleteSlug    TEXT NOT NULL,
-    DefinitionHash TEXT NULL,       -- per-rule hash (varies only when the underlying rule changes)
+    DefinitionHash TEXT NULL,
     UpdatedAt      TEXT NOT NULL,
     PRIMARY KEY (BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug)
 );";
@@ -78,10 +78,8 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         HydrateComputedStatsIntoAthletes(stats);
         var defs = BuildBadgeDefinitions();
 
-        // Collect human-friendly rows here
         var awards = new List<AwardRow>(capacity: 4096);
 
-        // 1) Ranked Top-N badges (global/division/generation/exclusive)
         foreach (var def in defs)
         {
             if (def.Scope == BadgeScope.Global)
@@ -110,7 +108,7 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
                     var ranked = SelectTop(group, def);
                     if (ranked.Count == 0) continue;
 
-                    var genVersion = cat == "Generation" ? "gen-v1" : null; // bump if generation bands change in future
+                    var genVersion = cat == "Generation" ? "gen-v1" : null;
                     var ruleHash = BuildRankedRuleHash(def.Label, cat, def.MetricKey, def.TopN, def.SortDirection, tieBreakKey: "dob_then_name", generationBandsVersion: genVersion);
 
                     for (int i = 0; i < ranked.Count; i++)
@@ -129,26 +127,15 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
             }
         }
 
-        // 2) Domain winners (ties allowed) => Place = 1, LeagueCategory = Global
         AddDomainAwards(stats, awards);
-
-        // 3) Submission badges
         AddSubmissionAwards(stats, awards);
-
-        // 4) PhenoAge best improvement => Place = 1 (ties allowed), Global
         AddPhenoDiffAwards(stats, awards);
-
-        // 5) Crowd badges (tiers) => Place = 1/2/3, Global
         AddCrowdAwards(stats, awards);
-
-        // 6) Editorial (server-driven novelty) badges (flag / small ranked)
         AddEditorialAwards(stats, awards);
 
-        // Compute diff vs previous snapshot before replacing table and emit BadgeAward events via EventDataService
         var previous = ReadCurrentAwardsSnapshot();
         EmitBadgeAwardEvents(previous, awards, DateTime.UtcNow);
 
-        // Persist (replace all rows)
         var now = DateTime.UtcNow.ToString("o");
 
         using var tx = _sqlite.BeginTransaction();
@@ -218,7 +205,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
     }
 
-    // NEW: current awards snapshot reader (no writes)
     private List<AwardRow> ReadCurrentAwardsSnapshot()
     {
         var list = new List<AwardRow>(1024);
@@ -242,7 +228,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
         catch
         {
-            // table may not exist on first run; ignore
         }
 
         return list;
@@ -375,7 +360,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
         catch
         {
-            /* ignore */
         }
 
         return null;
@@ -383,7 +367,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string BuildEditorialRuleHash(string label, string? note = null)
     {
-        // Stable hash to make editorial rules identifiable in DB diffs
         string sig = $"label={label}|category=Global|type=editorial|note={note ?? "n/a"}";
         using var sha = System.Security.Cryptography.SHA256.Create();
         var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sig));
@@ -396,7 +379,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        // Build Name->Slug and Slug->JsonObject lookups from current athletes
         var nameToSlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var slugToObj = new Dictionary<string, System.Text.Json.Nodes.JsonObject>(StringComparer.OrdinalIgnoreCase);
 
@@ -421,7 +403,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             slugToObj[slug] = o;
         }
 
-        // 1) Podcast: flag badge for anyone who has PodcastLink
         foreach (var (name, slug) in nameToSlug)
         {
             if (!slugToObj.TryGetValue(slug, out var obj)) continue;
@@ -440,7 +421,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             }
         }
 
-        // 2) First Applicants: preserve legacy top-10 by name
         var firstApplicants = new (string Name, int Place)[]
         {
             ("Alan V", 1), ("Cody Hergenroeder", 2), ("Spiderius", 3), ("Jesse", 4), ("Tone Vays", 5),
@@ -460,7 +440,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             });
         }
 
-        // 3) Pregnancy: legacy single-name mapping (flag)
         var pregnancyNames = new[] { "Olga Vresca" };
         foreach (var name in pregnancyNames)
         {
@@ -476,7 +455,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             });
         }
 
-        // 4) Host: organizer (flag)
         if (nameToSlug.TryGetValue("nopara73", out var hostSlug))
         {
             awards.Add(new AwardRow
@@ -490,7 +468,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             });
         }
 
-        // 5) Perfect Application: legacy single-name mapping (flag)
         if (nameToSlug.TryGetValue("Cornee", out var paSlug))
         {
             awards.Add(new AwardRow
@@ -507,12 +484,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private sealed class AwardRow
     {
-        public required string BadgeLabel { get; init; } // human label
-        public required string LeagueCategory { get; init; } // Global | Division | Generation | Exclusive
-        public string? LeagueValue { get; init; } // null for Global
-        public int? Place { get; init; } // 1/2/3 or null
+        public required string BadgeLabel { get; init; }
+        public required string LeagueCategory { get; init; }
+        public string? LeagueValue { get; init; }
+        public int? Place { get; init; }
         public required string AthleteSlug { get; init; }
-        public string? DefinitionHash { get; init; } // per-rule hash
+        public string? DefinitionHash { get; init; }
     }
 
     private sealed class BadgeEventItem
@@ -531,28 +508,20 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         foreach (var r in rows) sink.Add(r);
     }
 
-    // ===== Models & Definitions ============================================
-
     private sealed class AthleteStats
     {
         public required string Slug { get; init; }
         public required string Name { get; init; }
         public DateTime? DobUtc { get; init; }
-        public double? ChronoAge { get; init; } // years
-        public double? LowestPhenoAge { get; init; } // years
-        public double? AgeReduction { get; init; } // pheno - chrono (lower is better)
+        public double? ChronoAge { get; init; }
+        public double? LowestPhenoAge { get; init; }
+        public double? AgeReduction { get; init; }
         public int SubmissionCount { get; init; }
-
-        // Grouping
         public string? Division { get; init; }
         public string? Generation { get; init; }
         public string? Exclusive { get; init; }
-
-        // For domain badges and redemption arc
-        public double[]? BestMarkerValues { get; init; } // [ageYears, Alb, Creat, Glu, ln(CRP/10), WBC, Lymph, MCV, RDW, ALP]
-        public double? PhenoAgeDiffFromBaseline { get; init; } // lastPheno - firstSubmissionPheno
-
-        // Crowd stats (for crowd badges)
+        public double[]? BestMarkerValues { get; init; }
+        public double? PhenoAgeDiffFromBaseline { get; init; }
         public double? CrowdAge { get; init; }
         public int CrowdCount { get; init; }
     }
@@ -572,17 +541,15 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     }
 
     private sealed record BadgeDefinition(
-        string Label, // human-friendly label used as identifier (you stated: label will not change)
+        string Label,
         BadgeScope Scope,
         int TopN,
         Func<AthleteStats, bool> Eligibility,
         Func<AthleteStats, double?> Metric,
         SortDir SortDirection,
         IComparer<AthleteStats>? TieBreaker,
-        string MetricKey // stable metric identifier (e.g., 'ChronoAge', 'PhenoAge', 'AgeReduction')
+        string MetricKey
     );
-
-    // ===== Rule-hash helpers ===============================================
 
     private static string ComputeRuleHash(string signature)
     {
@@ -600,7 +567,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         string tieBreakKey,
         string? generationBandsVersion)
     {
-        // Compose a stable textual signature for ranked (TopN) badges
         var sb = new StringBuilder();
         sb.Append("label=").Append(label)
             .Append("|category=").Append(leagueCategory)
@@ -619,14 +585,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string BuildDomainRuleHash(string label, string domainKey)
     {
-        // Domain contributors: min contributor, ties allowed, global, place=1
         var sig = $"label={label}|category=Global|metric=domain:{domainKey}|agg=min|ties=allowed|place=1";
         return ComputeRuleHash(sig);
     }
 
     private static string BuildSubmissionsRuleHash(string label, bool isThreshold, int threshold = 0)
     {
-        // ≥2 submissions (flag): threshold; Most Submissions: max submissions, ties allowed
         string sig = isThreshold
             ? $"label={label}|category=Global|rule=threshold_submissions>={threshold}"
             : $"label={label}|category=Global|metric=submission_count|agg=max|ties=allowed|place=1";
@@ -635,23 +599,18 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string BuildPhenoDiffRuleHash(string label)
     {
-        // Best improvement: min (lastPheno - baselinePheno), ties allowed, global
         var sig = $"label={label}|category=Global|metric=pheno_last_minus_baseline|agg=min|requires_subs>=2|ties=allowed|place=1";
         return ComputeRuleHash(sig);
     }
 
     private static string BuildCrowdRuleHash(string label, string metricKey, string order, bool distinctValues, int decimals)
     {
-        // Crowd badges: distinct value tiers, rounding rules included for stability
         var sig = $"label={label}|category=Global|metric={metricKey}|order={order}|distinct_values={(distinctValues ? "yes" : "no")}|round={decimals}dp|tiers=top3|ties=allowed";
         return ComputeRuleHash(sig);
     }
 
-    // ===== Definitions ======================================================
-
     private static IReadOnlyList<BadgeDefinition> BuildBadgeDefinitions()
     {
-        // Tie-breaker: competition rules (older DOB wins, then name)
         var compTie = Comparer<AthleteStats>.Create((a, b) =>
         {
             int dobCmp = CompareNullable(a.DobUtc, b.DobUtc, (x, y) => DateTime.Compare(x, y));
@@ -661,7 +620,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
         return new[]
         {
-            // Chronological Age – Oldest (global)
             new BadgeDefinition(
                 Label: "Chronological Age – Oldest",
                 Scope: BadgeScope.Global,
@@ -672,7 +630,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 TieBreaker: compTie,
                 MetricKey: "ChronoAge"),
 
-            // Chronological Age – Youngest (global)
             new BadgeDefinition(
                 Label: "Chronological Age – Youngest",
                 Scope: BadgeScope.Global,
@@ -683,7 +640,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 TieBreaker: compTie,
                 MetricKey: "ChronoAge"),
 
-            // PhenoAge – Lowest (global)
             new BadgeDefinition(
                 Label: "PhenoAge – Lowest",
                 Scope: BadgeScope.Global,
@@ -694,7 +650,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 TieBreaker: compTie,
                 MetricKey: "PhenoAge"),
 
-            // Age Reduction (global)
             new BadgeDefinition(
                 Label: "Age Reduction",
                 Scope: BadgeScope.Global,
@@ -705,7 +660,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 TieBreaker: compTie,
                 MetricKey: "AgeReduction"),
 
-            // Age Reduction by Division
             new BadgeDefinition(
                 Label: "Age Reduction",
                 Scope: BadgeScope.Division,
@@ -716,7 +670,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 TieBreaker: compTie,
                 MetricKey: "AgeReduction"),
 
-            // Age Reduction by Generation
             new BadgeDefinition(
                 Label: "Age Reduction",
                 Scope: BadgeScope.Generation,
@@ -727,7 +680,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 TieBreaker: compTie,
                 MetricKey: "AgeReduction"),
 
-            // Age Reduction by Exclusive league
             new BadgeDefinition(
                 Label: "Age Reduction",
                 Scope: BadgeScope.Exclusive,
@@ -739,8 +691,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 MetricKey: "AgeReduction"),
         };
     }
-
-    // ===== Stat projection ==================================================
 
     private Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf)
     {
@@ -771,9 +721,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         return result;
     }
 
-    /// <summary>
-    /// Groups athletes by human-friendly league (Category + Value).
-    /// </summary>
     private static IEnumerable<(string Category, string? Value, List<AthleteStats> Group)> GroupByLeague(
         IEnumerable<AthleteStats> items, BadgeScope scope)
     {
@@ -829,12 +776,10 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     {
         bool ha = a.HasValue, hb = b.HasValue;
         if (ha && hb) return cmp(a.Value, b.Value);
-        if (ha && !hb) return -1; // value < null
-        if (!ha && hb) return 1; // null > value
-        return 0; // both null
+        if (ha && !hb) return -1;
+        if (!ha && hb) return 1;
+        return 0;
     }
-
-    // ===== Additional badge calculators ====================================
 
     private static void AddDomainAwards(
         Dictionary<string, AthleteStats> stats,
@@ -849,7 +794,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             ("Best Domain – Immune", "immune", PhenoAgeHelper.CalculateImmunePhenoAgeContributor),
         };
 
-
         foreach (var (label, key, scorer) in domains)
         {
             var candidates = stats.Values
@@ -857,17 +801,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 .Select(s => new { s.Slug, Score = scorer(s.BestMarkerValues!) })
                 .ToList();
 
-
             if (candidates.Count == 0) continue;
-
 
             var best = candidates.Min(x => x.Score);
             var holders = candidates.Where(x => x.Score == best)
                 .Select(x => x.Slug);
 
-
             var ruleHash = BuildDomainRuleHash(label, key);
-
 
             foreach (var slug in holders)
             {
@@ -888,7 +828,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        // ≥2 Submissions: everyone with >=2 submissions (flag, Place=null)
         var threshold = 2;
         var thresholdHash = BuildSubmissionsRuleHash("≥2 Submissions", isThreshold: true, threshold: threshold);
 
@@ -905,7 +844,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             });
         }
 
-        // Most Submissions: max submissions (ties allowed), Place=1
         var maxCount = stats.Values.Max(s => s.SubmissionCount);
         if (maxCount > 0)
         {
@@ -929,7 +867,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        // PhenoAge Best Improvement: lowest (most negative) Δ from baseline (ties allowed), Place=1
         var candidates = stats.Values
             .Where(s => s.PhenoAgeDiffFromBaseline.HasValue && s.SubmissionCount >= 2)
             .Select(s => new { s.Slug, Diff = s.PhenoAgeDiffFromBaseline!.Value })
@@ -962,9 +899,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             .Where(s => s.CrowdCount > 0 && s.CrowdAge.HasValue)
             .ToList();
 
-
         if (withGuesses.Count == 0) return;
-
 
         var topCounts = withGuesses.Select(s => s.CrowdCount)
             .Where(c => c > 0)
@@ -975,28 +910,25 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         var mostGuessedHash = BuildCrowdRuleHash("Crowd – Most Guessed", "CrowdCount", "desc", true, 0);
         AddTier(withGuesses, topCounts, s => s.CrowdCount, "Crowd – Most Guessed", mostGuessedHash, awards);
 
-
         var positiveGaps = withGuesses
             .Where(s => s.ChronoAge.HasValue && s.CrowdAge.HasValue)
-            .Select(s => s.ChronoAge!.Value - s.CrowdAge!.Value)
+            .Select(s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero))
             .Where(g => g > 0)
             .Distinct()
             .OrderByDescending(g => g)
             .Take(3)
             .ToList();
         var ageGapHash = BuildCrowdRuleHash("Crowd – Age Gap (Chrono−Crowd)", "ChronoMinusCrowdAge", "desc", true, 2);
-        AddTier(withGuesses, positiveGaps, s => s.ChronoAge!.Value - s.CrowdAge!.Value, "Crowd – Age Gap (Chrono−Crowd)", ageGapHash, awards);
-
+        AddTier(withGuesses, positiveGaps, s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero), "Crowd – Age Gap (Chrono−Crowd)", ageGapHash, awards);
 
         var lowestAges = withGuesses
-            .Select(s => s.CrowdAge!.Value)
+            .Select(s => Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero))
             .Distinct()
             .OrderBy(a => a)
             .Take(3)
             .ToList();
         var lowestAgeHash = BuildCrowdRuleHash("Crowd – Lowest Crowd Age", "CrowdAge", "asc", true, 2);
-        AddTier(withGuesses, lowestAges, s => s.CrowdAge!.Value, "Crowd – Lowest Crowd Age", lowestAgeHash, awards);
-
+        AddTier(withGuesses, lowestAges, s => Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero), "Crowd – Lowest Crowd Age", lowestAgeHash, awards);
 
         static void AddTier<T>(
             List<AthleteStats> pool,
@@ -1027,9 +959,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
     }
 
-    // ===== Utilities ========================================================
-
-    // Mirrors frontend getGeneration(birthYear)
     private static string? GetGenerationFromBirthYear(int birthYear)
     {
         if (birthYear >= 1928 && birthYear <= 1945) return "Silent Generation";
@@ -1043,7 +972,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     public void Dispose()
     {
-        _athletes.AthletesChanged -= OnAthletesChanged; // NEW: unsubscribe
+        _athletes.AthletesChanged -= OnAthletesChanged;
         _sqlite.Close();
         _sqlite.Dispose();
         GC.SuppressFinalize(this);
