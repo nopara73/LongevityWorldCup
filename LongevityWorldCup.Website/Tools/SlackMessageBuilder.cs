@@ -23,6 +23,8 @@ public static class SlackMessageBuilder
         };
     }
 
+    // ------------------ Joined ------------------
+
     private static string BuildJoined(string? slug, Func<string, string> slugToName)
     {
         if (slug is null) return "A new athlete joined the leaderboard";
@@ -42,6 +44,8 @@ public static class SlackMessageBuilder
             $"A warm welcome to {nameLink} on the leaderboard"
         );
     }
+
+    // ------------------ NewRank ------------------
 
     private static string BuildNewRank(
         string? slug,
@@ -87,6 +91,8 @@ public static class SlackMessageBuilder
         );
     }
 
+    // ------------------ Donation ------------------
+
     private static string BuildDonation(string rawText)
     {
         var (tx, sats) = ParseDonationTokens(rawText);
@@ -128,6 +134,8 @@ public static class SlackMessageBuilder
 
     private static decimal SatsToBtc(long sats) => sats / 100_000_000m;
 
+    // ------------------ Athlete Count Milestone (Slack) ------------------
+
     private static string BuildAthleteCountMilestone(string rawText)
     {
         var count = ParseAthleteCount(rawText);
@@ -150,16 +158,16 @@ public static class SlackMessageBuilder
     {
         switch (n)
         {
-            case 42: return $"{C} athletes — the answer to life, the universe & everything ✨";
-            case 69: return $"{C} athletes — nice 😏";
-            case 100: return $"Hit {C} on the leaderboard, triple digits 🏁";
-            case 123: return $"Counted up to {C} contenders in the tournament 🔢";
-            case 256: return $"Power of two — {C} competitors in the bracket 💻";
-            case 300: return $"{C} in the tournament — This is Sparta! 🛡️";
-            case 404: return $"Logged {C} in the competition — athlete not found? found 🔎";
-            case 500: return $"Crossed {C}, half-K competing 🚀";
-            case 666: return $"Hit {C} athletes — beast mode 😈";
-            case 777: return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
+            case 42:   return $"{C} athletes — the answer to life, the universe & everything ✨";
+            case 69:   return $"{C} athletes — nice 😏";
+            case 100:  return $"Hit {C} on the leaderboard, triple digits 🏁";
+            case 123:  return $"Counted up to {C} contenders in the tournament 🔢";
+            case 256:  return $"Power of two — {C} competitors in the bracket 💻";
+            case 300:  return $"{C} in the tournament — This is Sparta! 🛡️";
+            case 404:  return $"Logged {C} in the competition — athlete not found? found 🔎";
+            case 500:  return $"Crossed {C}, half-K competing 🚀";
+            case 666:  return $"Hit {C} athletes — beast mode 😈";
+            case 777:  return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
             case 1000: return $"Reached {C}, the big 1K competing 🏆";
             case 1337: return $"Leet level — {C} contenders in play 🕹️";
             case 1500: return $"Passed {C}, a solid field in the tournament 🧱";
@@ -168,7 +176,7 @@ public static class SlackMessageBuilder
             case 3141: return $"Slice of π, {C} now on the board 🥧";
             case 5000: return $"Press-worthy surge — {C} athletes in the tournament 📰";
             case 6969: return $"Meme tier unlocked, {C} competitors 🔓";
-            case 10000: return $"Five digits strong — {C} in the competition 💪";
+            case 10000:return $"Five digits strong — {C} in the competition 💪";
         }
 
         if (n > 9000 && n < 10000)
@@ -179,6 +187,8 @@ public static class SlackMessageBuilder
 
     private static string LeaderboardUrl() =>
         "https://longevityworldcup.com/leaderboard";
+
+    // ------------------ BadgeAward (league) ------------------
 
     private static string BuildBadgeAward(string rawText, Func<string, string> slugToName)
     {
@@ -221,23 +231,44 @@ public static class SlackMessageBuilder
     {
         var c = (cat ?? "").Trim();
         var v = (val ?? "").Trim();
+
+        if (c == "Division")
+        {
+            return v switch
+            {
+                "Men" => "Men's Division",
+                "Women" => "Women's Division",
+                "Open" => "Open Division",
+                _ => $"{v} Division"
+            };
+        }
+
+        if (c == "Generation")
+        {
+            return v switch
+            {
+                "Silent Generation" => "Silent Generation",
+                "Baby Boomers" => "Baby Boomers Generation",
+                "Gen X" => "Gen X Generation",
+                "Millennials" => "Millennials Generation",
+                "Gen Z" => "Gen Z Generation",
+                "Gen Alpha" => "Gen Alpha Generation",
+                _ => $"{v} Generation"
+            };
+        }
+
+        if (c == "Exclusive")
+        {
+            return "Prosperan Exclusive League";
+        }
+
         if (string.IsNullOrWhiteSpace(c) && string.IsNullOrWhiteSpace(v)) return "league";
         if (string.IsNullOrWhiteSpace(c)) return v;
         if (string.IsNullOrWhiteSpace(v)) return c;
-
-        if (string.Equals(c, "Division", StringComparison.OrdinalIgnoreCase))
-        {
-            if (string.Equals(v, "Men", StringComparison.OrdinalIgnoreCase)) return "Men's Division";
-            if (string.Equals(v, "Women", StringComparison.OrdinalIgnoreCase)) return "Women's Division";
-            return $"{v} Division";
-        }
-
-        if (string.Equals(c, "Generation", StringComparison.OrdinalIgnoreCase)) return $"{v} Generation";
-        if (string.Equals(c, "Exclusive", StringComparison.OrdinalIgnoreCase)) return $"{v} Exclusive";
-        if (string.Equals(c, "Domain", StringComparison.OrdinalIgnoreCase)) return $"{v} Domain";
-
         return $"{v} {c}";
     }
+
+    // ------------------ helpers ------------------
 
     private static (string? slug, int? rank, string? prev) ParseTokens(string text)
     {
