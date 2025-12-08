@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
     public void ComputeAndPersistAwards()
     {
         var stats = BuildAthleteStats(_asOfUtc);
+        HydrateComputedStatsIntoAthletes(stats);
         var defs = BuildBadgeDefinitions();
 
         // Collect human-friendly rows here
@@ -143,12 +144,9 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         // 6) Editorial (server-driven novelty) badges (flag / small ranked)
         AddEditorialAwards(stats, awards);
 
-        // NEW: compute diff vs previous snapshot before replacing table and emit BadgeAward events via EventDataService
+        // Compute diff vs previous snapshot before replacing table and emit BadgeAward events via EventDataService
         var previous = ReadCurrentAwardsSnapshot();
-        if (previous.Count > 0)
-        {
-            EmitBadgeAwardEvents(previous, awards, DateTime.UtcNow);
-        }
+        EmitBadgeAwardEvents(previous, awards, DateTime.UtcNow);
 
         // Persist (replace all rows)
         var now = DateTime.UtcNow.ToString("o");
@@ -190,6 +188,32 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
 
         tx.Commit();
+    }
+    
+    private void HydrateComputedStatsIntoAthletes(Dictionary<string, AthleteStats> stats)
+    {
+        foreach (var o in _athletes.Athletes.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            if (!stats.TryGetValue(slug, out var s)) continue;
+
+            if (s.ChronoAge.HasValue) o["ChronoAge"] = s.ChronoAge.Value; else o.Remove("ChronoAge");
+            if (s.LowestPhenoAge.HasValue) o["LowestPhenoAge"] = s.LowestPhenoAge.Value; else o.Remove("LowestPhenoAge");
+            o["SubmissionCount"] = s.SubmissionCount;
+
+            if (s.BestMarkerValues is not null)
+            {
+                o["BestMarkerValues"] = new JsonArray(s.BestMarkerValues.Select(v => (JsonNode)v).ToArray());
+            }
+            else
+            {
+                o.Remove("BestMarkerValues");
+            }
+
+            if (s.PhenoAgeDiffFromBaseline.HasValue) o["PhenoAgeDiffFromBaseline"] = s.PhenoAgeDiffFromBaseline.Value;
+            else o.Remove("PhenoAgeDiffFromBaseline");
+        }
     }
 
     // NEW: current awards snapshot reader (no writes)
