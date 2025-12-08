@@ -101,7 +101,6 @@ public static class SlackMessageBuilder
         var btc = SatsToBtc(sats.Value);
         var btcFormatted = btc.ToString("0.########", CultureInfo.InvariantCulture);
 
-        // Slack link: <url|label>
         string donationUrl = "https://longevityworldcup.com/#donation-section";
         string amountMd = $"<{donationUrl}|{btcFormatted} BTC>";
 
@@ -127,12 +126,8 @@ public static class SlackMessageBuilder
         string? tx = null;
         long? sats = null;
 
-        var mTx = Regex.Match(text, @"\btx\[(?<v>[^\]]+)\]");
-        if (mTx.Success) tx = mTx.Groups["v"].Value;
-
-        var mSats = Regex.Match(text, @"\bsats\[(?<v>\d+)\]");
-        if (mSats.Success && long.TryParse(mSats.Groups["v"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var s))
-            sats = s;
+        if (EventHelpers.TryExtractTx(text, out var txOut)) tx = txOut;
+        if (EventHelpers.TryExtractSats(text, out var satsOut)) sats = satsOut;
 
         return (tx, sats);
     }
@@ -149,7 +144,7 @@ public static class SlackMessageBuilder
         if (count is null || count <= 0)
             return Escape(rawText);
 
-        var countLabel = count.Value.ToString("N0", CultureInfo.InvariantCulture); // e.g., "1,337"
+        var countLabel = count.Value.ToString("N0", CultureInfo.InvariantCulture);
         var countLink = Link(LeaderboardUrl(), countLabel);
 
         return MilestoneMessage(count.Value, countLink);
@@ -157,10 +152,7 @@ public static class SlackMessageBuilder
 
     private static int? ParseAthleteCount(string text)
     {
-        var m = Regex.Match(text, @"\bathletes\[(?<v>\d+)\]");
-        if (!m.Success) return null;
-        if (int.TryParse(m.Groups["v"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
-            return n;
+        if (EventHelpers.TryExtractAthleteCount(text, out var n)) return n;
         return null;
     }
 
@@ -192,7 +184,6 @@ public static class SlackMessageBuilder
         if (n > 9000 && n < 10000)
             return $"Over nine thousand, {C} in the tournament 🔥";
 
-        // exact fallback phrasing as requested
         return $"The compatation reach {C} athletes";
     }
 
@@ -207,14 +198,9 @@ public static class SlackMessageBuilder
         int? rank = null;
         string? prev = null;
 
-        var mSlug = Regex.Match(text, @"slug\[(?<v>[^\]]+)\]");
-        if (mSlug.Success) slug = mSlug.Groups["v"].Value;
-
-        var mRank = Regex.Match(text, @"rank\[(?<v>\d+)\]");
-        if (mRank.Success && int.TryParse(mRank.Groups["v"].Value, out var r)) rank = r;
-
-        var mPrev = Regex.Match(text, @"prev\[(?<v>[^\]]+)\]");
-        if (mPrev.Success) prev = mPrev.Groups["v"].Value;
+        if (EventHelpers.TryExtractSlug(text, out var s)) slug = s;
+        if (EventHelpers.TryExtractRank(text, out var r)) rank = r;
+        if (EventHelpers.TryExtractPrev(text, out var p)) prev = p;
 
         return (slug, rank, prev);
     }

@@ -29,6 +29,22 @@ public static class EventHelpers
 
     public static bool TryExtractValue(string raw, out string value) => TryExtractField(raw, "val", out value);
 
+    public static bool TryExtractTx(string raw, out string tx) => TryExtractField(raw, "tx", out tx);
+
+    public static bool TryExtractSats(string raw, out long sats)
+    {
+        sats = 0;
+        if (!TryExtractField(raw, "sats", out var s)) return false;
+        return long.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out sats);
+    }
+
+    public static bool TryExtractAthleteCount(string raw, out int count)
+    {
+        count = 0;
+        if (!TryExtractField(raw, "athletes", out var s)) return false;
+        return int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out count);
+    }
+
     static bool TryExtractField(string raw, string field, out string value)
     {
         var m = Regex.Match(raw ?? string.Empty, $@"\b{Regex.Escape(field)}\[(.*?)\]", RegexOptions.CultureInvariant);
