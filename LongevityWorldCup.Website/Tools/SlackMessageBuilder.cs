@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
@@ -19,11 +18,10 @@ public static class SlackMessageBuilder
             EventType.Joined => BuildJoined(slug, slugToName),
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
+            EventType.BadgeAward => BuildBadgeAward(rawText, slugToName),
             _ => Escape(rawText)
         };
     }
-
-    // ------------------ Joined ------------------
 
     private static string BuildJoined(string? slug, Func<string, string> slugToName)
     {
@@ -44,8 +42,6 @@ public static class SlackMessageBuilder
             $"A warm welcome to {nameLink} on the leaderboard"
         );
     }
-
-    // ------------------ NewRank ------------------
 
     private static string BuildNewRank(
         string? slug,
@@ -91,8 +87,6 @@ public static class SlackMessageBuilder
         );
     }
 
-    // ------------------ Donation ------------------
-
     private static string BuildDonation(string rawText)
     {
         var (tx, sats) = ParseDonationTokens(rawText);
@@ -134,10 +128,6 @@ public static class SlackMessageBuilder
 
     private static decimal SatsToBtc(long sats) => sats / 100_000_000m;
 
-    // ------------------ Athlete Count Milestone (Slack) ------------------
-    // One distinct line per special number. Avoid sentence-ending periods.
-    // Count is a clickable link to the leaderboard.
-
     private static string BuildAthleteCountMilestone(string rawText)
     {
         var count = ParseAthleteCount(rawText);
@@ -160,16 +150,16 @@ public static class SlackMessageBuilder
     {
         switch (n)
         {
-            case 42:   return $"{C} athletes — the answer to life, the universe & everything ✨";
-            case 69:   return $"{C} athletes — nice 😏";
-            case 100:  return $"Hit {C} on the leaderboard, triple digits 🏁";
-            case 123:  return $"Counted up to {C} contenders in the tournament 🔢";
-            case 256:  return $"Power of two — {C} competitors in the bracket 💻";
-            case 300:  return $"{C} in the tournament — This is Sparta! 🛡️";
-            case 404:  return $"Logged {C} in the competition — athlete not found? found 🔎";
-            case 500:  return $"Crossed {C}, half-K competing 🚀";
-            case 666:  return $"Hit {C} athletes — beast mode 😈";
-            case 777:  return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
+            case 42: return $"{C} athletes — the answer to life, the universe & everything ✨";
+            case 69: return $"{C} athletes — nice 😏";
+            case 100: return $"Hit {C} on the leaderboard, triple digits 🏁";
+            case 123: return $"Counted up to {C} contenders in the tournament 🔢";
+            case 256: return $"Power of two — {C} competitors in the bracket 💻";
+            case 300: return $"{C} in the tournament — This is Sparta! 🛡️";
+            case 404: return $"Logged {C} in the competition — athlete not found? found 🔎";
+            case 500: return $"Crossed {C}, half-K competing 🚀";
+            case 666: return $"Hit {C} athletes — beast mode 😈";
+            case 777: return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
             case 1000: return $"Reached {C}, the big 1K competing 🏆";
             case 1337: return $"Leet level — {C} contenders in play 🕹️";
             case 1500: return $"Passed {C}, a solid field in the tournament 🧱";
@@ -178,7 +168,7 @@ public static class SlackMessageBuilder
             case 3141: return $"Slice of π, {C} now on the board 🥧";
             case 5000: return $"Press-worthy surge — {C} athletes in the tournament 📰";
             case 6969: return $"Meme tier unlocked, {C} competitors 🔓";
-            case 10000:return $"Five digits strong — {C} in the competition 💪";
+            case 10000: return $"Five digits strong — {C} in the competition 💪";
         }
 
         if (n > 9000 && n < 10000)
@@ -190,7 +180,64 @@ public static class SlackMessageBuilder
     private static string LeaderboardUrl() =>
         "https://longevityworldcup.com/leaderboard";
 
-    // ------------------ helpers ------------------
+    private static string BuildBadgeAward(string rawText, Func<string, string> slugToName)
+    {
+        if (!EventHelpers.TryExtractSlug(rawText, out var slug)) return Escape(rawText);
+
+        EventHelpers.TryExtractCategory(rawText, out var cat);
+        EventHelpers.TryExtractValue(rawText, out var val);
+        EventHelpers.TryExtractPlace(rawText, out var place);
+        EventHelpers.TryExtractPrev(rawText, out var prevSlug);
+
+        var name = slugToName(slug);
+        var nameLink = Link(AthleteUrl(slug), name);
+
+        var league = LeagueDisplay(cat, val);
+        var ord = place > 0 ? Ordinal(place) : "ranked";
+        var medal = place > 0 ? MedalOrTrend(place) : "";
+        var rankWithMedal = $"{ord}{medal}";
+
+        if (!string.IsNullOrWhiteSpace(prevSlug))
+        {
+            var prevName = slugToName(prevSlug);
+            var prevLink = Link(AthleteUrl(prevSlug), prevName);
+            return Pick(
+                $"{nameLink} took {rankWithMedal} in {league} from {prevLink}",
+                $"{nameLink} grabbed {rankWithMedal} in {league} from {prevLink}",
+                $"{nameLink} claimed {rankWithMedal} in {league} from {prevLink}",
+                $"{nameLink} overtook {prevLink} for {rankWithMedal} in {league}"
+            );
+        }
+
+        return Pick(
+            $"{nameLink} is {rankWithMedal} in {league}",
+            $"{nameLink} takes {rankWithMedal} in {league}",
+            $"{nameLink} now {rankWithMedal} in {league}",
+            $"{nameLink} secures {rankWithMedal} in {league}"
+        );
+    }
+
+    private static string LeagueDisplay(string? cat, string? val)
+    {
+        var c = (cat ?? "").Trim();
+        var v = (val ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(c) && string.IsNullOrWhiteSpace(v)) return "league";
+        if (string.IsNullOrWhiteSpace(c)) return v;
+        if (string.IsNullOrWhiteSpace(v)) return c;
+
+        if (string.Equals(c, "Division", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(v, "Men", StringComparison.OrdinalIgnoreCase)) return "Men's Division";
+            if (string.Equals(v, "Women", StringComparison.OrdinalIgnoreCase)) return "Women's Division";
+            return $"{v} Division";
+        }
+
+        if (string.Equals(c, "Generation", StringComparison.OrdinalIgnoreCase)) return $"{v} Generation";
+        if (string.Equals(c, "Exclusive", StringComparison.OrdinalIgnoreCase)) return $"{v} Exclusive";
+        if (string.Equals(c, "Domain", StringComparison.OrdinalIgnoreCase)) return $"{v} Domain";
+
+        return $"{v} {c}";
+    }
 
     private static (string? slug, int? rank, string? prev) ParseTokens(string text)
     {
