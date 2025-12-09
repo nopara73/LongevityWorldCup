@@ -1,4 +1,5 @@
-﻿<style>
+﻿<link rel="stylesheet" href="/css/badges.css">
+<style>
     /* =========================
    1) Design tokens
    ========================= */
@@ -281,59 +282,6 @@
     .leaderboard table tbody tr:target{ background:rgba(255,255,0,.35); transition:background-color 1.2s ease; }
 
     /* =========================
-       9) Badges (table + modal strip)
-       ========================= */
-    .badge-section{ display:flex; align-items:center; flex-wrap:wrap; gap:.3rem; }
-    .badge-class{
-        display:inline-flex; align-items:center; justify-content:center; text-decoration:none;
-        width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:bold; color:#fff;
-        margin-left:.3rem; box-shadow:0 2px 4px rgba(0,0,0,.3); transition:transform .2s ease;
-    }
-    .badge-class:hover{ transform: scale(1.08); animation: none; }
-
-    a.badge-class:hover,
-    .badge-class.badge-clickable:hover,
-    .badge-class[data-clickable="true"]:hover,
-    .modal-badge-item > a.badge-class:hover{
-        transform: scale(1.2);
-        animation: shadowPulse 1s ease-in-out 1 forwards;
-    }
-
-    a.badge-class:focus-visible,
-    .badge-class.badge-clickable:focus-visible,
-    .badge-class[data-clickable="true"]:focus-visible,
-    .modal-badge-item > a.badge-class:focus-visible{
-        transform: scale(1.2);
-        animation: shadowPulse 1s ease-in-out 1 forwards;
-        outline: none;
-    }
-
-    .modal-badge-strip{ display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; margin:.5rem 0 1rem; }
-    .modal-badge-strip .badge-class{ width:70px; height:70px; font-size:2rem; margin:.4rem; }
-    .modal-badge-strip .modal-badge-item{ display:inline-flex; flex-direction:column; align-items:center; margin:.4rem; }
-    .modal-badge-strip .modal-badge-name{
-        font-size:.75rem; margin-top:.2rem; color:var(--primary-color); text-align:center; width:100px;
-        white-space:normal; word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
-    }
-    .modal-badge-name .modal-badge-title{ display:block; font-weight:bold; }
-    .modal-badge-name .modal-badge-detail{ display:none; }
-    .modal-badge-item:hover .modal-badge-detail,
-    .modal-badge-item.expanded .modal-badge-detail{ display:block; }
-    .modal-badge-item:hover .modal-badge-name,
-    .modal-badge-item.expanded .modal-badge-name{ -webkit-line-clamp:unset; max-height:none; overflow:visible; }
-
-    /* Badges: only clickable ones get the hand cursor. Others stay default. */
-    .badge-class { cursor: default !important; }
-
-    /* Preserve pointer for anchors, and for spans marked clickable. */
-    a.badge-class,
-    .badge-class.badge-clickable,
-    .badge-class[data-clickable="true"],
-    .modal-badge-item > a.badge-class {
-        cursor: pointer !important;
-    }
-
-    /* =========================
        10) Modal
        ========================= */
     .modal{
@@ -474,12 +422,6 @@
         letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease; color:#000;
     }
 
-    /* Keyframes */
-    @keyframes shadowPulse{
-        0%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
-        50%{ box-shadow:0 0 10px rgba(0,0,0,.6); }
-        100%{ box-shadow:0 0 4px rgba(0,0,0,.3); }
-    }
     @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
     @keyframes expandCircle{ from{ transform:scale(.5); opacity:0;} to{ transform:scale(1); opacity:1;} }
     @keyframes pop{ 0%{ transform:scale(0); opacity:0;} 100%{ transform:scale(1); opacity:1;} }
@@ -497,9 +439,6 @@
        13) Mobile
        ========================= */
     @media (max-width: 768px){
-        #detailsModal .badge-class{ pointer-events:none; cursor:default; }
-        #detailsModal .badge-class.badge-podcast{ pointer-events:auto !important; cursor:pointer !important; }
-
         .search-container{ max-width:100%; margin-top:1rem; }
         #athleteSearch{ padding:.5rem 2.5rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
@@ -1173,6 +1112,7 @@
                         lastMonthRank: lastMonthRank,
                         rankImproved: rankImproved,
                         isNew: !!athlete.IsNew,
+                        Badges: athlete.Badges || [],
                     };
                 });
 
