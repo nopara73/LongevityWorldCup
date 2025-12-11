@@ -567,7 +567,7 @@ public sealed class EventDataService : IDisposable
         if (type == EventType.NewRank)
         {
             if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank > 10) return;
-            _ = _slackEvents.SendImmediateAsync(type, rawText);
+            _ = _slackEvents.BufferAsync(type, rawText);
             return;
         }
 
@@ -583,6 +583,12 @@ public sealed class EventDataService : IDisposable
             if (!BadgeSlackWhitelist.Contains(label)) return;
             if (!EventHelpers.TryExtractPlace(rawText, out var place) || place != 1) return;
 
+            if (EventHelpers.TryExtractCategory(rawText, out var cat) && string.Equals(cat, "Global", StringComparison.Ordinal))
+            {
+                var norm = EventHelpers.NormalizeBadgeLabel(label);
+                if (string.Equals(norm, "Age Reduction", StringComparison.Ordinal)) return;
+            }
+        
             _ = _slackEvents.BufferAsync(type, rawText);
             return;
         }
