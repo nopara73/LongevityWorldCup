@@ -386,6 +386,9 @@ public static class SlackMessageBuilder
         var c = (cat ?? "").Trim();
         var v = (val ?? "").Trim();
 
+        if (string.Equals(c, "Global", StringComparison.OrdinalIgnoreCase))
+            return "Ultimate League";
+        
         if (c == "Division")
         {
             return v switch
