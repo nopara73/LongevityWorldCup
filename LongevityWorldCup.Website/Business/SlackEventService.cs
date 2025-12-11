@@ -81,8 +81,7 @@ public sealed class SlackEventService : IDisposable
         foreach (var item in toSend)
         {
             if (!EventHelpers.TryExtractSlug(item.Raw, out var slug) || string.IsNullOrWhiteSpace(slug))
-                slug = string.Empty;
-
+                continue;
             if (!groups.TryGetValue(slug, out var list))
             {
                 list = new List<(EventType, string)>();
@@ -91,31 +90,17 @@ public sealed class SlackEventService : IDisposable
             list.Add(item);
         }
 
-        var orderedKeys = groups.Keys.Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
-        if (groups.ContainsKey(string.Empty)) orderedKeys.Add(string.Empty);
-
-        var sb = new StringBuilder();
-        foreach (var key in orderedKeys)
+        foreach (var kv in groups)
         {
-            var items = groups[key];
-            foreach (var (t, r) in items)
+            var message = SlackMessageBuilder.ForMergedGroup(kv.Value, SlugToNameResolve);
+            if (string.IsNullOrWhiteSpace(message)) continue;
+            try
             {
-                var line = BuildMessage(t, r);
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                if (sb.Length > 0) sb.Append('\n');
-                sb.Append(line);
+                await _slack.SendAsync(message);
             }
-        }
-
-        var payload = sb.ToString();
-        if (string.IsNullOrWhiteSpace(payload)) return;
-
-        try
-        {
-            await _slack.SendAsync(payload);
-        }
-        catch
-        {
+            catch
+            {
+            }
         }
     }
 

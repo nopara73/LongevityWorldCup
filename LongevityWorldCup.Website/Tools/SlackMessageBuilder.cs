@@ -23,18 +23,232 @@ public static class SlackMessageBuilder
         };
     }
 
+    public static string ForMergedGroup(
+        IEnumerable<(EventType Type, string Raw)> items,
+        Func<string, string> slugToName)
+    {
+        string slug = "";
+        foreach (var it in items)
+        {
+            if (EventHelpers.TryExtractSlug(it.Raw, out var s) && !string.IsNullOrWhiteSpace(s)) { slug = s; break; }
+        }
+        if (string.IsNullOrWhiteSpace(slug)) return "";
+
+        var name = slugToName(slug);
+        var nameLink = Link(AthleteUrl(slug), name);
+
+        bool hasJoined = false;
+        bool hasNewRank = false;
+        string? prevSlug = null;
+        int? newRank = null;
+
+        foreach (var it in items)
+        {
+            if (it.Type == EventType.Joined) hasJoined = true;
+            if (it.Type == EventType.NewRank)
+            {
+                hasNewRank = true;
+                if (EventHelpers.TryExtractPrev(it.Raw, out var p) && !string.IsNullOrWhiteSpace(p)) prevSlug = p;
+                if (EventHelpers.TryExtractRank(it.Raw, out var r)) newRank = r;
+            }
+        }
+
+        var desc = BuildBadgeDescriptions(items);
+        var prevPart = "";
+        if (hasNewRank && !string.IsNullOrWhiteSpace(prevSlug))
+        {
+            var prevName = slugToName(prevSlug);
+            var prevLink = Link(AthleteUrl(prevSlug), prevName);
+            prevPart = $" from {prevLink}";
+        }
+
+        var rankToken = newRank.HasValue && newRank.Value > 0
+            ? $"{Ordinal(newRank.Value)}{MedalOrTrend(newRank.Value)}"
+            : "a top spot";
+
+        if (hasNewRank && desc.Count > 0 && hasJoined)
+            return $"{nameLink} joined the competition, took {rankToken} in Ultimate League{prevPart}, and {JoinList(desc)}.";
+        if (hasNewRank && desc.Count > 0)
+            return $"{nameLink} took {rankToken} in Ultimate League{prevPart}, and {JoinList(desc)}.";
+        if (hasNewRank && hasJoined)
+            return $"{nameLink} joined the competition and took {rankToken} in Ultimate League{prevPart}.";
+        if (hasNewRank)
+            return $"{nameLink} took {rankToken} in Ultimate League{prevPart}.";
+        if (desc.Count > 0 && hasJoined)
+            return $"{nameLink} joined the competition and {JoinList(desc)}.";
+        if (desc.Count > 0)
+            return $"{nameLink} {JoinList(desc)}.";
+
+        return "";
+    }
+
+    static List<string> BuildBadgeDescriptions(IEnumerable<(EventType Type, string Raw)> items)
+    {
+        var arByPlace = new SortedDictionary<int, List<string>>();
+        var domainByPlace = new SortedDictionary<int, List<string>>();
+        var phenoByPlace = new SortedDictionary<int, List<string>>();
+        var chronoByPlace = new SortedDictionary<int, List<string>>();
+        var crowdByPlace = new SortedDictionary<int, List<string>>();
+
+        foreach (var it in items)
+        {
+            if (it.Type != EventType.BadgeAward) continue;
+
+            EventHelpers.TryExtractBadgeLabel(it.Raw, out var label);
+            EventHelpers.TryExtractCategory(it.Raw, out var cat);
+            EventHelpers.TryExtractValue(it.Raw, out var val);
+            EventHelpers.TryExtractPlace(it.Raw, out var place);
+
+            var norm = EventHelpers.NormalizeBadgeLabel(label);
+            if (string.IsNullOrWhiteSpace(norm)) continue;
+
+            var p = place > 0 ? place : 0;
+
+            if (string.Equals(norm, "Age Reduction", StringComparison.Ordinal))
+            {
+                var league = LeagueDisplay(cat, val);
+                if (string.Equals(league, "Ultimate League", StringComparison.Ordinal)) continue;
+                if (!arByPlace.TryGetValue(p, out var list)) { list = new List<string>(); arByPlace[p] = list; }
+                list.Add(league);
+                continue;
+            }
+
+            if (norm.StartsWith("Best Domain", StringComparison.Ordinal))
+            {
+                var d = EventHelpers.ExtractDomainFromLabel(norm);
+                if (!string.IsNullOrWhiteSpace(d))
+                {
+                    if (!domainByPlace.TryGetValue(p, out var list)) { list = new List<string>(); domainByPlace[p] = list; }
+                    list.Add(d);
+                }
+                continue;
+            }
+
+            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.Ordinal))
+            {
+                if (!phenoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); phenoByPlace[p] = list; }
+                list.Add("lowest PhenoAge");
+                continue;
+            }
+
+            if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.Ordinal))
+            {
+                if (!phenoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); phenoByPlace[p] = list; }
+                list.Add("best PhenoAge improvement");
+                continue;
+            }
+
+            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.Ordinal))
+            {
+                if (!chronoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); chronoByPlace[p] = list; }
+                list.Add("youngest chronological age");
+                continue;
+            }
+
+            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.Ordinal))
+            {
+                if (!chronoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); chronoByPlace[p] = list; }
+                list.Add("oldest chronological age");
+                continue;
+            }
+
+            if (string.Equals(norm, "Crowd - Most Guessed", StringComparison.Ordinal))
+            {
+                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
+                list.Add("most crowd guesses");
+                continue;
+            }
+
+            if (string.Equals(norm, "Crowd - Age Gap (Chrono-Crowd)", StringComparison.Ordinal))
+            {
+                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
+                list.Add("smallest Chrono Crowd age gap");
+                continue;
+            }
+
+            if (string.Equals(norm, "Crowd - Lowest Crowd Age", StringComparison.Ordinal))
+            {
+                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
+                list.Add("lowest crowd age");
+                continue;
+            }
+        }
+
+        var result = new List<string>();
+
+        foreach (var kv in arByPlace)
+        {
+            if (kv.Value.Count == 0) continue;
+            var joined = JoinList(kv.Value);
+            if (kv.Key > 0)
+                result.Add($"took {Ordinal(kv.Key)} place in {joined}");
+            else
+                result.Add($"placed in {joined}");
+        }
+
+        foreach (var kv in domainByPlace)
+        {
+            if (kv.Value.Count == 0) continue;
+            var joined = JoinList(kv.Value.Select(x => x + " biomarkers").ToList());
+            if (kv.Key > 0)
+                result.Add($"took {Ordinal(kv.Key)} in {joined}");
+            else
+                result.Add($"placed in {joined}");
+        }
+
+        foreach (var kv in phenoByPlace)
+        {
+            if (kv.Value.Count == 0) continue;
+            var joined = JoinList(kv.Value);
+            if (kv.Key > 0)
+                result.Add($"took {Ordinal(kv.Key)} for {joined}");
+            else
+                result.Add($"placed for {joined}");
+        }
+
+        foreach (var kv in chronoByPlace)
+        {
+            if (kv.Value.Count == 0) continue;
+            var joined = JoinList(kv.Value);
+            if (kv.Key > 0)
+                result.Add($"took {Ordinal(kv.Key)} for {joined}");
+            else
+                result.Add($"placed for {joined}");
+        }
+
+        foreach (var kv in crowdByPlace)
+        {
+            if (kv.Value.Count == 0) continue;
+            var joined = JoinList(kv.Value);
+            if (kv.Key > 0)
+                result.Add($"took {Ordinal(kv.Key)} for {joined}");
+            else
+                result.Add($"placed for {joined}");
+        }
+
+        return result;
+    }
+
+    static string JoinList(List<string> parts)
+    {
+        if (parts.Count == 0) return "";
+        if (parts.Count == 1) return parts[0];
+        if (parts.Count == 2) return $"{parts[0]} and {parts[1]}";
+        var allButLast = string.Join(", ", parts.Take(parts.Count - 1));
+        return $"{allButLast} and {parts.Last()}";
+    }
+
     private static string BuildJoined(string? slug, Func<string, string> slugToName)
     {
         if (slug is null) return "A new athlete joined the leaderboard";
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
-
         return Pick(
             $"{nameLink} joined the leaderboard",
             $"Welcome {nameLink} to the leaderboard",
             $"New contender: {nameLink} just joined the leaderboard",
             $"{nameLink} has entered the leaderboard",
-            $"Say hi to {nameLink} — new on the leaderboard",
+            $"Say hi to {nameLink} - new on the leaderboard",
             $"{nameLink} steps onto the leaderboard",
             $"{nameLink} appears on the leaderboard",
             $"{nameLink} is now on the leaderboard",
@@ -103,14 +317,14 @@ public static class SlackMessageBuilder
             $"Someone has donated {amountMd}{Gap}:tada:",
             $"Donation of {amountMd} received{Gap}:tada:",
             $"A generous donor contributed {amountMd}{Gap}:raised_hands:",
-            $"We just received {amountMd} — thank you{Gap}:yellow_heart:",
+            $"We just received {amountMd} - thank you{Gap}:yellow_heart:",
             $"Support came in: {amountMd}{Gap}:rocket:",
-            $"{amountMd} donated — much appreciated{Gap}:sparkles:",
+            $"{amountMd} donated - much appreciated{Gap}:sparkles:",
             $"New donation: {amountMd}{Gap}:dizzy:",
             $"Thanks for the {amountMd} gift{Gap}:pray:",
             $"A kind supporter sent {amountMd}{Gap}:gift:",
             $"Donation confirmed: {amountMd}{Gap}:white_check_mark:",
-            $"Appreciate your support — {amountMd}{Gap}:star2:",
+            $"Appreciate your support - {amountMd}{Gap}:star2:",
             $"Your generosity fueled us: {amountMd}{Gap}:fire:"
         );
     }
@@ -150,25 +364,25 @@ public static class SlackMessageBuilder
     {
         switch (n)
         {
-            case 42:   return $"{C} athletes — the answer to life, the universe & everything ✨";
-            case 69:   return $"{C} athletes — nice 😏";
+            case 42:   return $"{C} athletes - the answer to life, the universe & everything ✨";
+            case 69:   return $"{C} athletes - nice 😏";
             case 100:  return $"Hit {C} on the leaderboard, triple digits 🏁";
             case 123:  return $"Counted up to {C} contenders in the tournament 🔢";
-            case 256:  return $"Power of two — {C} competitors in the bracket 💻";
-            case 300:  return $"{C} in the tournament — This is Sparta! 🛡️";
-            case 404:  return $"Logged {C} in the competition — athlete not found? found 🔎";
+            case 256:  return $"Power of two - {C} competitors in the bracket 💻";
+            case 300:  return $"{C} in the tournament - This is Sparta! 🛡️";
+            case 404:  return $"Logged {C} in the competition - athlete not found? found 🔎";
             case 500:  return $"Crossed {C}, half-K competing 🚀";
-            case 666:  return $"Hit {C} athletes — beast mode 😈";
+            case 666:  return $"Hit {C} athletes - beast mode 😈";
             case 777:  return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
             case 1000: return $"Reached {C}, the big 1K competing 🏆";
-            case 1337: return $"Leet level — {C} contenders in play 🕹️";
+            case 1337: return $"Leet level - {C} contenders in play 🕹️";
             case 1500: return $"Passed {C}, a solid field in the tournament 🧱";
             case 1618: return $"Golden-ratio vibes at {C} in the competition 🌀";
-            case 2000: return $"Cleared {C} — 2K participants in contention 🎯";
+            case 2000: return $"Cleared {C} - 2K participants in contention 🎯";
             case 3141: return $"Slice of π, {C} now on the board 🥧";
-            case 5000: return $"Press-worthy surge — {C} athletes in the tournament 📰";
+            case 5000: return $"Press-worthy surge - {C} athletes in the tournament 📰";
             case 6969: return $"Meme tier unlocked, {C} competitors 🔓";
-            case 10000:return $"Five digits strong — {C} in the competition 💪";
+            case 10000:return $"Five digits strong - {C} in the competition 💪";
         }
 
         if (n > 9000 && n < 10000)
