@@ -45,6 +45,19 @@ public static class EventHelpers
         return int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out count);
     }
 
+    public static string NormalizeBadgeLabel(string? label) =>
+        (label ?? string.Empty).Replace('–', '-').Trim();
+
+    public static string ExtractDomainFromLabel(string? label)
+    {
+        var s = NormalizeBadgeLabel(label);
+        if (string.IsNullOrEmpty(s)) return "Domain";
+        var i = s.IndexOf('-', StringComparison.Ordinal);
+        if (i < 0 || i + 1 >= s.Length) return "Domain";
+        var rest = s[(i + 1)..].Trim();
+        return string.IsNullOrEmpty(rest) ? "Domain" : rest;
+    }
+
     static bool TryExtractField(string raw, string field, out string value)
     {
         var m = Regex.Match(raw ?? string.Empty, $@"\b{Regex.Escape(field)}\[(.*?)\]", RegexOptions.CultureInvariant);
