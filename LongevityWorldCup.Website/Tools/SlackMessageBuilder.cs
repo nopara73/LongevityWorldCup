@@ -61,12 +61,12 @@ public static class SlackMessageBuilder
         if (prev is null)
         {
             return Pick(
-                $"{currNameLink} is now {rankWithMedal}",
-                $"{currNameLink} takes {rankWithMedal}",
-                $"{currNameLink} secures {rankWithMedal}",
-                $"{currNameLink} locks in {rankWithMedal}",
-                $"{currNameLink} claims {rankWithMedal}",
-                $"{currNameLink} now at {rankWithMedal}"
+                $"{currNameLink} is now {rankWithMedal} in Ultimate League",
+                $"{currNameLink} takes {rankWithMedal} in Ultimate League",
+                $"{currNameLink} secures {rankWithMedal} in Ultimate League",
+                $"{currNameLink} locks in {rankWithMedal} in Ultimate League",
+                $"{currNameLink} claims {rankWithMedal} in Ultimate League",
+                $"{currNameLink} now at {rankWithMedal} in Ultimate League"
             );
         }
 
@@ -74,16 +74,16 @@ public static class SlackMessageBuilder
         var prevNameLink = Link(AthleteUrl(prev), prevName);
 
         return Pick(
-            $"{currNameLink} took {rankWithMedal} from {prevNameLink}",
-            $"{currNameLink} grabbed {rankWithMedal} from {prevNameLink}",
-            $"{currNameLink} overtook {prevNameLink} for {rankWithMedal}",
-            $"{currNameLink} edged past {prevNameLink} into {rankWithMedal}",
-            $"{currNameLink} passed {prevNameLink} for {rankWithMedal}",
-            $"{currNameLink} displaced {prevNameLink} at {rankWithMedal}",
-            $"{currNameLink} leapt ahead of {prevNameLink} to {rankWithMedal}",
-            $"{currNameLink} snatched {rankWithMedal} from {prevNameLink}",
-            $"{currNameLink} nudged ahead of {prevNameLink} for {rankWithMedal}",
-            $"{currNameLink} outpaced {prevNameLink} for {rankWithMedal}"
+            $"{currNameLink} took {rankWithMedal} in Ultimate League from {prevNameLink}",
+            $"{currNameLink} grabbed {rankWithMedal} in Ultimate League from {prevNameLink}",
+            $"{currNameLink} overtook {prevNameLink} for {rankWithMedal} in Ultimate League",
+            $"{currNameLink} edged past {prevNameLink} into {rankWithMedal} in Ultimate League",
+            $"{currNameLink} passed {prevNameLink} for {rankWithMedal} in Ultimate League",
+            $"{currNameLink} displaced {prevNameLink} at {rankWithMedal} in Ultimate League",
+            $"{currNameLink} leapt ahead of {prevNameLink} to {rankWithMedal} in Ultimate League",
+            $"{currNameLink} snatched {rankWithMedal} from {prevNameLink} in Ultimate League",
+            $"{currNameLink} nudged ahead of {prevNameLink} for {rankWithMedal} in Ultimate League",
+            $"{currNameLink} outpaced {prevNameLink} for {rankWithMedal} in Ultimate League"
         );
     }
 
