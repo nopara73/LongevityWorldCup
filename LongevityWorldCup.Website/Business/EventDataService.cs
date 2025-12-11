@@ -564,6 +564,12 @@ public sealed class EventDataService : IDisposable
 
     private void FireAndForgetSlack(EventType type, string rawText)
     {
+        if (type == EventType.Joined)
+        {
+            _ = _slackEvents.BufferAsync(type, rawText);
+            return;
+        }
+        
         if (type == EventType.NewRank)
         {
             if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank > 10) return;
