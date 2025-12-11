@@ -1,0 +1,28 @@
+{
+  "Name": "Andrea",
+  "DisplayName": null,
+  "MediaContact": "https://www.facebook.com/share/1AAFuLfiBR/",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 6,
+    "Day": 27
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-25",
+      "AlbGL": 48,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 4.662522202486679,
+      "CrpMgL": 0.6,
+      "LymPc": 33,
+      "McvFL": 84,
+      "RdwPc": 13,
+      "AlpUL": 54,
+      "Wbc1000cellsuL": 6.2
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Slovakia",
+  "Why": "The curiosity of what I can achieve",
+  "PersonalLink": null
+}
