@@ -660,16 +660,17 @@
                 bloodDrawDateInput.value = latest.Date;
             }
             const propMap = {
-                albumin: 'AlbGL',
-                creatinine: 'CreatUmolL',
-                glucose: 'GluMmolL',
-                crp: 'CrpMgL',
+                wbc: 'Wbc1000cellsuL',
                 lymphocyte: 'LymPc',
                 mcv: 'McvFL',
                 rcdw: 'RdwPc',
+                albumin: 'AlbGL',
                 ap: 'AlpUL',
-                wbc: 'Wbc1000cellsuL'
+                creatinine: 'CreatUmolL',
+                glucose: 'GluMmolL',
+                crp: 'CrpMgL'
             };
+
             Object.entries(propMap).forEach(([id, prop]) => {
                 if (latest[prop] != null && !isNaN(latest[prop])) {
                     touchedBiomarkers.add(id);
@@ -805,16 +806,17 @@
                     return new Date(current.Date) > new Date(latest.Date) ? current : latest;
                 });
                 const biomarkerDefaults = {
-                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
-                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
-                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
-                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '10' },
+                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' },
                     lymphocyte: { val: latestBiomarkerSet.LymPc, unit: '1' },
                     mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
                     rcdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
+                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
                     ap: { val: latestBiomarkerSet.AlpUL, unit: '1' },
-                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' }
+                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
+                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
+                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '10' }
                 };
+
                 Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
                     const input = document.getElementById(id);
                     if (!input.value) {
@@ -1313,16 +1315,17 @@
 
 
             const idMapUnique = {
-                AlbGL: 'albumin',
-                CreatUmolL: 'creatinine',
-                GluMmolL: 'glucose',
-                CrpMgL: 'crp',
+                Wbc1000cellsuL: 'wbc',
                 LymPc: 'lymphocyte',
                 McvFL: 'mcv',
                 RdwPc: 'rcdw',
+                AlbGL: 'albumin',
                 AlpUL: 'ap',
-                Wbc1000cellsuL: 'wbc'
+                CreatUmolL: 'creatinine',
+                GluMmolL: 'glucose',
+                CrpMgL: 'crp'
             };
+
             Object.values(idMapUnique).forEach(bioId => {
                 document.getElementById(bioId).value = '';
             });
@@ -1408,9 +1411,24 @@
                 Date: bloodDrawDate
             };
             // only assign if the user actually touched that field:
+            if (touchedBiomarkers.has('wbc')) {
+                entry.Wbc1000cellsuL = parseFloat(document.getElementById('wbc').value);
+            }
+            if (touchedBiomarkers.has('lymphocyte')) {
+                entry.LymPc = parseFloat(document.getElementById('lymphocyte').value);
+            }
+            if (touchedBiomarkers.has('mcv')) {
+                entry.McvFL = parseFloat(document.getElementById('mcv').value);
+            }
+            if (touchedBiomarkers.has('rcdw')) {
+                entry.RdwPc = parseFloat(document.getElementById('rcdw').value);
+            }
             if (touchedBiomarkers.has('albumin')) {
                 entry.AlbGL = parseFloat(document.getElementById('albumin').value)
                     / parseFloat(document.getElementById('albuminUnit').value);
+            }
+            if (touchedBiomarkers.has('ap')) {
+                entry.AlpUL = parseFloat(document.getElementById('ap').value);
             }
             if (touchedBiomarkers.has('creatinine')) {
                 entry.CreatUmolL = parseFloat(document.getElementById('creatinine').value)
@@ -1424,21 +1442,7 @@
                 entry.CrpMgL = (parseFloat(document.getElementById('crp').value)
                     / parseFloat(document.getElementById('crpUnit').value)) * 10; // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
             }
-            if (touchedBiomarkers.has('lymphocyte')) {
-                entry.LymPc = parseFloat(document.getElementById('lymphocyte').value);
-            }
-            if (touchedBiomarkers.has('mcv')) {
-                entry.McvFL = parseFloat(document.getElementById('mcv').value);
-            }
-            if (touchedBiomarkers.has('rcdw')) {
-                entry.RdwPc = parseFloat(document.getElementById('rcdw').value);
-            }
-            if (touchedBiomarkers.has('ap')) {
-                entry.AlpUL = parseFloat(document.getElementById('ap').value);
-            }
-            if (touchedBiomarkers.has('wbc')) {
-                entry.Wbc1000cellsuL = parseFloat(document.getElementById('wbc').value);
-            }
+
 
             const biomarkerData = {
                 DateOfBirth: {
@@ -1479,17 +1483,8 @@
 
 
             // Set fake values for all input fields
-            document.getElementById('albumin').value = 45; // g/L
-            document.getElementById('albuminUnit').value = 1; // g/L
-
-            document.getElementById('creatinine').value = 80; // µmol/L
-            document.getElementById('creatinineUnit').value = 1; // µmol/L
-
-            document.getElementById('glucose').value = 4.5; // mmol/L
-            document.getElementById('glucoseUnit').value = 1; // mmol/L
-
-            document.getElementById('crp').value = 1.8; // mg/L
-            document.getElementById('crpUnit').value = 10; // mg/L
+            document.getElementById('wbc').value = 6; // 1000 cells/μL
+            document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
 
             document.getElementById('lymphocyte').value = 39; // %
             document.getElementById('lymphocyteUnit').value = 1; // %
@@ -1500,11 +1495,21 @@
             document.getElementById('rcdw').value = 11; // %
             document.getElementById('rcdwUnit').value = 1; // %
 
+            document.getElementById('albumin').value = 45; // g/L
+            document.getElementById('albuminUnit').value = 1; // g/L
+
             document.getElementById('ap').value = 12; // U/L
             document.getElementById('apUnit').value = 1; // U/L
 
-            document.getElementById('wbc').value = 6; // 1000 cells/μL
-            document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
+            document.getElementById('creatinine').value = 80; // µmol/L
+            document.getElementById('creatinineUnit').value = 1; // µmol/L
+
+            document.getElementById('glucose').value = 4.5; // mmol/L
+            document.getElementById('glucoseUnit').value = 1; // mmol/L
+
+            document.getElementById('crp').value = 1.8; // mg/L
+            document.getElementById('crpUnit').value = 10; // mg/L
+
 
             // mark all biomarkers as touched in fake mode and expand them
             ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']
