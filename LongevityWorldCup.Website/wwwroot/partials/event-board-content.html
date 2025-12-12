@@ -1,4 +1,4 @@
-﻿<link rel="stylesheet" href="/css/badges.css">
+﻿﻿<link rel="stylesheet" href="/css/badges.css">
 <script src="/js/badges.js"></script>
 
 <style>
@@ -281,7 +281,7 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6 };
 
         const MILESTONE_COPY = {
             42:    'Answer unlocked - the competition reached <strong class="milestone-count">42</strong> athletes',
@@ -321,6 +321,53 @@
             ).replace("~",">"));
         }
         function initialsFromName(n){const parts=String(n).trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
+
+        function normalizeNewlines(s){return String(s||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");}
+        function splitCustomEventText(text){
+            const s=normalizeNewlines(text);
+            const idx=s.indexOf("\n\n");
+            if(idx>=0){
+                return { title: s.slice(0,idx).trimEnd(), content: s.slice(idx+2) };
+            }
+            return { title: s.trimEnd(), content: "" };
+        }
+        function isSafeHttpUrl(u){return /^https?:\/\/.+/i.test(String(u||"").trim());}
+        function renderCustomMarkup(text){
+            const s=String(text||"");
+            let out="";
+            let i=0;
+            while(i<s.length){
+                const open=s.indexOf("[", i);
+                if(open<0){out+=esc(s.slice(i));break;}
+                out+=esc(s.slice(i, open));
+                const close=s.indexOf("](", open+1);
+                if(close<0){out+=esc(s.slice(open));break;}
+                const label=s.slice(open+1, close);
+                const parenStart=close+2;
+                let depth=1;
+                let j=parenStart;
+                while(j<s.length && depth>0){
+                    const ch=s[j];
+                    if(ch==="(") depth++;
+                    else if(ch===")") depth--;
+                    j++;
+                }
+                if(depth!==0){out+=esc(s.slice(open));break;}
+                const inner=s.slice(parenStart, j-1);
+                const key=label.trim().toLowerCase();
+                if(key==="bold"){
+                    out+=`<span style="font-weight:800">${renderCustomMarkup(inner)}</span>`;
+                }else if(key==="strong"){
+                    out+=`<span style="font-weight:800;color:var(--secondary-color,#ff4f87)">${renderCustomMarkup(inner)}</span>`;
+                }else if(isSafeHttpUrl(inner)){
+                    out+=`<a href="${esc(inner.trim())}" target="_top" rel="noopener">${esc(label)}</a>`;
+                }else{
+                    out+=esc(s.slice(open, j));
+                }
+                i=j;
+            }
+            return out;
+        }
 
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
@@ -525,7 +572,7 @@
 
             return null;
         }
-        
+
         function findServerBadgeOnAthleteEx(athlete,label,cat,val,place){
             if(!athlete) return null;
             const map=lowerKeyMap(athlete);
@@ -852,6 +899,10 @@
                 } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
                     const n = Number.isFinite(r.milestoneCount) ? r.milestoneCount : null;
                     msgHtml = n ? milestoneMessage(n) : esc(r.text);
+                } else if (r.type === EVENT_TYPE.CustomEvent) {
+                    const parts = splitCustomEventText(r.text);
+                    const titleSingle = normalizeNewlines(parts.title).replace(/\n+/g, " ").trim();
+                    msgHtml = renderCustomMarkup(titleSingle);
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
