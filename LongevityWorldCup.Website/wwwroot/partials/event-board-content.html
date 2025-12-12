@@ -1,4 +1,4 @@
-﻿﻿<link rel="stylesheet" href="/css/badges.css">
+﻿<link rel="stylesheet" href="/css/badges.css">
 <script src="/js/badges.js"></script>
 
 <style>
@@ -20,7 +20,8 @@
         --badge-chip-pad-x:.45rem;
         --badge-gap:.25rem;
         --badge-inline-gap:.2rem;
-        --milestone-people:#6366f1
+        --milestone-people:#6366f1;
+        --custom-event-accent:#ff6a00;
     }
 
     @keyframes fadeInBoard{
@@ -116,6 +117,10 @@
         border:2px solid var(--secondary-color,#ff4f87);
         box-shadow:0 1px 3px rgba(0,0,0,.12);
         background:#eef3f7
+    }
+    .avatar.custom-event-avatar,.avatar-fallback.custom-event-avatar{
+        border:2px solid var(--custom-event-accent);
+        box-shadow:0 0 0 3px rgba(255,106,0,.22),0 6px 18px rgba(255,106,0,.22),0 1px 3px rgba(0,0,0,.12)
     }
     .avatar{object-fit:cover;display:block;image-rendering:auto}
     .avatar-fallback{display:inline-flex;align-items:center;justify-content:center;color:#5a6b7b;font-weight:800;font-size:.7rem;text-transform:uppercase;line-height:24px}
@@ -808,7 +813,9 @@
                     : "";
 
                 const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
-                const name = a ? (athleteName(a) || r.primarySlug) : (r.primarySlug || "");
+
+                const isCustomEvent = r.type === EVENT_TYPE.CustomEvent;
+                const name = isCustomEvent ? "Longevity World Cup" : (a ? (athleteName(a) || r.primarySlug) : (r.primarySlug || ""));
                 const url = r.primarySlug ? makeAthleteUrlFromSlug(r.primarySlug) : "";
                 const img = a ? athletePic(a) : "";
 
@@ -829,6 +836,9 @@
                     avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
                 } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
                     avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
+                } else if (r.type === EVENT_TYPE.CustomEvent) {
+                    const logo = "/assets/HdLogo.png";
+                    avatarHtml = `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
