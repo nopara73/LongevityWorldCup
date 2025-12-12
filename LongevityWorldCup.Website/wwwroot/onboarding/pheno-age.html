@@ -263,11 +263,19 @@
             border: 2px solid #bbb;
             background: transparent;
         }
-
-            .lwc-dot.lwc-dot--on {
-                background: #4CAF50;
-                border-color: #4CAF50;
+        @media (hover: hover) and (pointer: fine) {
+            .lwc-dot {
+                cursor: pointer;
             }
+        }
+
+        .lwc-dot.lwc-dot--on {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            cursor: default;
+            pointer-events: none;
+        }
+
 
         .lwc-step-actions {
             display: flex;
@@ -293,8 +301,8 @@
             <p id="mainInstructions" data-aos="fade" data-aos-duration="700" data-aos-delay="300" style="text-align:center">Calculate your biological age, known as <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">PhenoAge</a>:</p>
             <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <div class="lwc-wizard-nav" aria-hidden="true">
-                    <div class="lwc-dot lwc-dot--on" id="lwcDot1"></div>
-                    <div class="lwc-dot" id="lwcDot2"></div>
+                    <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
+                    <div class="lwc-dot" id="lwcDot2" role="button" tabindex="0" aria-label="Go to Step 2"></div>
                 </div>
                 <section id="lwc-step-1" class="lwc-step lwc-step--active lwc-step--visible" aria-labelledby="lwcStep1Title">
 
@@ -1113,7 +1121,14 @@
             if (d1 && d2) {
                 d1.classList.toggle('lwc-dot--on', step === 1);
                 d2.classList.toggle('lwc-dot--on', step === 2);
+
+                d1.setAttribute('aria-disabled', step === 1 ? 'true' : 'false');
+                d2.setAttribute('aria-disabled', step === 2 ? 'true' : 'false');
+
+                d1.tabIndex = step === 1 ? -1 : 0;
+                d2.tabIndex = step === 2 ? -1 : 0;
             }
+
 
             // focus niceties
             if (step === 1) {
@@ -1167,6 +1182,26 @@
             }
             if (toStep1Btn) {
                 toStep1Btn.addEventListener('click', () => lwcSetStep(1));
+            }
+
+            // Make wizard dots clickable (desktop) and keyboard accessible
+            const dot1 = document.getElementById('lwcDot1');
+            const dot2 = document.getElementById('lwcDot2');
+
+            function activateDot1() { lwcSetStep(1); }
+            function activateDot2() { if (lwcValidateStep1()) lwcSetStep(2); }
+
+            if (dot1) {
+                dot1.addEventListener('click', activateDot1);
+                dot1.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activateDot1(); }
+                });
+            }
+            if (dot2) {
+                dot2.addEventListener('click', activateDot2);
+                dot2.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activateDot2(); }
+                });
             }
 
             // Make the global Back button step-aware
