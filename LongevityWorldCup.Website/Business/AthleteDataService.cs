@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Nodes;
+using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
@@ -42,6 +42,9 @@ public class AthleteDataService : IDisposable
     // single-column biomarker/test signature to detect new/changed test submissions
     private const string TestSigColumn = "TestSig";
 
+    // NEW: notify listeners (e.g., BadgeDataService) after reloads
+    public event Action? AthletesChanged;
+
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
     {
         _env = env;
@@ -57,77 +60,80 @@ public class AthleteDataService : IDisposable
         var dbPath = Path.Combine(dataDir, DatabaseFileName);
         _sqliteConnection = new SqliteConnection($"Data Source={dbPath}");
         _sqliteConnection.Open();
-        using (var cmd = _sqliteConnection.CreateCommand())
+        lock (_sqliteConnection)
         {
-            cmd.CommandText = @"
-    CREATE TABLE IF NOT EXISTS Athletes (
-        Key        TEXT PRIMARY KEY,
-        AgeGuesses TEXT NOT NULL
-    )";
-            cmd.ExecuteNonQuery();
-
-            // Try to add column (ignore if exists)
-            cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
-            try
+            using (var cmd = _sqliteConnection.CreateCommand())
             {
+                cmd.CommandText = @"
+        CREATE TABLE IF NOT EXISTS Athletes (
+            Key        TEXT PRIMARY KEY,
+            AgeGuesses TEXT NOT NULL
+        )";
                 cmd.ExecuteNonQuery();
-            }
-            catch
-            {
-                /* column already exists */
-            }
 
-            // Ensure Placements, CurrentPlacement, LastAgeDiff columns exist
-            cmd.CommandText = "PRAGMA table_info(Athletes);";
-            using var r = cmd.ExecuteReader();
-            var hasPlacements = false;
-            var hasCurrentPlacement = false;
-            var hasLastAgeDiff = false;
-            var hasTestSig = false; // track if our signature column exists
-            while (r.Read())
-            {
-                var colName = r.GetString(1);
-                if (string.Equals(colName, "Placements", StringComparison.OrdinalIgnoreCase))
-                    hasPlacements = true;
-                if (string.Equals(colName, "CurrentPlacement", StringComparison.OrdinalIgnoreCase))
-                    hasCurrentPlacement = true;
-                if (string.Equals(colName, "LastAgeDiff", StringComparison.OrdinalIgnoreCase))
-                    hasLastAgeDiff = true;
-                if (string.Equals(colName, TestSigColumn, StringComparison.OrdinalIgnoreCase))
-                    hasTestSig = true;
-            }
+                // Try to add column (ignore if exists)
+                cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                }
+                catch
+                {
+                    /* column already exists */
+                }
 
-            if (!hasPlacements)
-            {
-                using var alter = _sqliteConnection.CreateCommand();
-                alter.CommandText = "ALTER TABLE Athletes ADD COLUMN Placements TEXT NOT NULL DEFAULT '[]';";
-                alter.ExecuteNonQuery();
+                // Ensure Placements, CurrentPlacement, LastAgeDiff columns exist
+                cmd.CommandText = "PRAGMA table_info(Athletes);";
+                using var r = cmd.ExecuteReader();
+                var hasPlacements = false;
+                var hasCurrentPlacement = false;
+                var hasLastAgeDiff = false;
+                var hasTestSig = false; // track if our signature column exists
+                while (r.Read())
+                {
+                    var colName = r.GetString(1);
+                    if (string.Equals(colName, "Placements", StringComparison.OrdinalIgnoreCase))
+                        hasPlacements = true;
+                    if (string.Equals(colName, "CurrentPlacement", StringComparison.OrdinalIgnoreCase))
+                        hasCurrentPlacement = true;
+                    if (string.Equals(colName, "LastAgeDiff", StringComparison.OrdinalIgnoreCase))
+                        hasLastAgeDiff = true;
+                    if (string.Equals(colName, TestSigColumn, StringComparison.OrdinalIgnoreCase))
+                        hasTestSig = true;
+                }
 
-                using var backfill = _sqliteConnection.CreateCommand();
-                backfill.CommandText = "UPDATE Athletes SET Placements='[]' WHERE Placements IS NULL OR Placements='';";
-                backfill.ExecuteNonQuery();
-            }
+                if (!hasPlacements)
+                {
+                    using var alter = _sqliteConnection.CreateCommand();
+                    alter.CommandText = "ALTER TABLE Athletes ADD COLUMN Placements TEXT NOT NULL DEFAULT '[]';";
+                    alter.ExecuteNonQuery();
 
-            if (!hasCurrentPlacement)
-            {
-                using var alter2 = _sqliteConnection.CreateCommand();
-                alter2.CommandText = "ALTER TABLE Athletes ADD COLUMN CurrentPlacement INTEGER NULL;";
-                alter2.ExecuteNonQuery();
-            }
+                    using var backfill = _sqliteConnection.CreateCommand();
+                    backfill.CommandText = "UPDATE Athletes SET Placements='[]' WHERE Placements IS NULL OR Placements='';";
+                    backfill.ExecuteNonQuery();
+                }
 
-            if (!hasLastAgeDiff)
-            {
-                using var alter3 = _sqliteConnection.CreateCommand();
-                alter3.CommandText = "ALTER TABLE Athletes ADD COLUMN LastAgeDiff REAL NULL;";
-                alter3.ExecuteNonQuery();
-            }
+                if (!hasCurrentPlacement)
+                {
+                    using var alter2 = _sqliteConnection.CreateCommand();
+                    alter2.CommandText = "ALTER TABLE Athletes ADD COLUMN CurrentPlacement INTEGER NULL;";
+                    alter2.ExecuteNonQuery();
+                }
 
-            // add single signature column (one-time)
-            if (!hasTestSig)
-            {
-                using var alter4 = _sqliteConnection.CreateCommand();
-                alter4.CommandText = $"ALTER TABLE Athletes ADD COLUMN {TestSigColumn} TEXT NULL;";
-                alter4.ExecuteNonQuery();
+                if (!hasLastAgeDiff)
+                {
+                    using var alter3 = _sqliteConnection.CreateCommand();
+                    alter3.CommandText = "ALTER TABLE Athletes ADD COLUMN LastAgeDiff REAL NULL;";
+                    alter3.ExecuteNonQuery();
+                }
+
+                // add single signature column (one-time)
+                if (!hasTestSig)
+                {
+                    using var alter4 = _sqliteConnection.CreateCommand();
+                    alter4.CommandText = $"ALTER TABLE Athletes ADD COLUMN {TestSigColumn} TEXT NULL;";
+                    alter4.ExecuteNonQuery();
+                }
             }
         }
 
@@ -139,13 +145,16 @@ public class AthleteDataService : IDisposable
         // Finally, set JoinedAt=now for any that are still null
         if (newlyJoined.Count > 0)
         {
-            using var fillNow = _sqliteConnection.CreateCommand();
-            var keys = newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()).ToList();
-            var placeholders = string.Join(",", keys.Select((_, i) => $"@k{i}"));
-            fillNow.CommandText = $"UPDATE Athletes SET JoinedAt=@now WHERE (JoinedAt IS NULL OR JoinedAt='') AND Key IN ({placeholders})";
-            fillNow.Parameters.AddWithValue("@now", _serviceStartUtc.ToString("o"));
-            for (int i = 0; i < keys.Count; i++) fillNow.Parameters.AddWithValue($"@k{i}", keys[i]);
-            fillNow.ExecuteNonQuery();
+            lock (_sqliteConnection)
+            {
+                using var fillNow = _sqliteConnection.CreateCommand();
+                var keys = newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()).ToList();
+                var placeholders = string.Join(",", keys.Select((_, i) => $"@k{i}"));
+                fillNow.CommandText = $"UPDATE Athletes SET JoinedAt=@now WHERE (JoinedAt IS NULL OR JoinedAt='') AND Key IN ({placeholders})";
+                fillNow.Parameters.AddWithValue("@now", _serviceStartUtc.ToString("o"));
+                for (int i = 0; i < keys.Count; i++) fillNow.Parameters.AddWithValue($"@k{i}", keys[i]);
+                fillNow.ExecuteNonQuery();
+            }
         }
 
         // Hydrate persisted age‐guess stats from SQLite
@@ -153,6 +162,7 @@ public class AthleteDataService : IDisposable
         HydratePlacementsIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
         HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+        HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
 
         // persist biomarker/test signature for all athletes (so we can detect new/changed tests later)
         var changedSigsAtStartup = SyncBiomarkerSignatures(); // returns slugs whose signatures changed
@@ -203,7 +213,9 @@ public class AthleteDataService : IDisposable
                     HydratePlacementsIntoAthletesJson();
                     HydrateNewFlagsIntoAthletesJson();
                     HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+                    HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
                     PushAthleteDirectoryToEvents();
+                    AthletesChanged?.Invoke();
                 }
             }
         });
@@ -224,22 +236,25 @@ public class AthleteDataService : IDisposable
     public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
     {
         var result = new List<(JsonObject, DateTime)>();
-        using var cmd = _sqliteConnection.CreateCommand();
-        cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
-
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
+        lock (_sqliteConnection)
         {
-            var key = reader.GetString(0);
-            var joinedAt = DateTime.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind);
+            using var cmd = _sqliteConnection.CreateCommand();
+            cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
 
-            var athleteJson = Athletes
-                .OfType<JsonObject>()
-                .FirstOrDefault(a =>
-                    string.Equals(a["AthleteSlug"]?.GetValue<string>(), key, StringComparison.OrdinalIgnoreCase));
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var key = reader.GetString(0);
+                var joinedAt = DateTime.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind);
 
-            if (athleteJson != null)
-                result.Add((athleteJson, joinedAt));
+                var athleteJson = Athletes
+                    .OfType<JsonObject>()
+                    .FirstOrDefault(a =>
+                        string.Equals(a["AthleteSlug"]?.GetValue<string>(), key, StringComparison.OrdinalIgnoreCase));
+
+                if (athleteJson != null)
+                    result.Add((athleteJson, joinedAt));
+            }
         }
 
         return result;
@@ -412,6 +427,7 @@ public class AthleteDataService : IDisposable
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+            HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
 
             // recompute and persist biomarker/test signatures after reload
             var changedSigs = SyncBiomarkerSignatures();
@@ -430,6 +446,9 @@ public class AthleteDataService : IDisposable
             DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
 
             PushAthleteDirectoryToEvents();
+
+            // NEW: notify subscribers that athletes changed (e.g., recompute badges)
+            AthletesChanged?.Invoke();
         }
         finally
         {
@@ -524,6 +543,7 @@ public class AthleteDataService : IDisposable
         }
 
         PushAthleteDirectoryToEvents();
+        AthletesChanged?.Invoke();
     }
 
     /// <summary>
@@ -636,77 +656,27 @@ public class AthleteDataService : IDisposable
         var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
         var results = new List<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
 
+        var statsMap = PhenoStatsCalculator.BuildAll(Athletes, asOf);
+
         foreach (var athlete in Athletes.OfType<JsonObject>())
         {
-            var name = athlete["Name"]?.GetValue<string>() ?? "";
             var slug = athlete["AthleteSlug"]?.GetValue<string>() ?? "";
+            if (!statsMap.TryGetValue(slug, out var r)) continue;
+            if (!r.DobUtc.HasValue) continue;
 
-            var dobNode = athlete["DateOfBirth"]?.AsObject();
-            if (dobNode is null) continue;
+            var name = r.Name ?? "";
+            var dobUtc = r.DobUtc.Value;
 
-            int y = dobNode["Year"]!.GetValue<int>();
-            int m = dobNode["Month"]!.GetValue<int>();
-            int d = dobNode["Day"]!.GetValue<int>();
-            var dobUtc = new DateTime(y, m, d, 0, 0, 0, DateTimeKind.Utc);
-
-            double AgeYears(DateTime date) => (date.Date - dobUtc.Date).TotalDays / 365.2425;
-
-            var chronoToday = Math.Round(AgeYears(asOf), 2);
-            double lowestPheno = double.PositiveInfinity;
-            double chronoAtLowest = chronoToday;
-
-            if (athlete["Biomarkers"] is JsonArray biomArr)
-            {
-                foreach (var entry in biomArr.OfType<JsonObject>())
-                {
-                    var entryDate = asOf;
-                    var ds = entry["Date"]?.GetValue<string>();
-                    if (!string.IsNullOrWhiteSpace(ds) &&
-                        DateTime.TryParse(ds, null,
-                            System.Globalization.DateTimeStyles.RoundtripKind, out var parsed))
-                    {
-                        entryDate = DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc);
-                    }
-
-                    var ageAtEntry = AgeYears(entryDate);
-
-                    if (TryGet(entry, "AlbGL", out var alb) &&
-                        TryGet(entry, "CreatUmolL", out var creat) &&
-                        TryGet(entry, "GluMmolL", out var glu) &&
-                        TryGet(entry, "CrpMgL", out var crpMgL) &&
-                        TryGet(entry, "Wbc1000cellsuL", out var wbc) &&
-                        TryGet(entry, "LymPc", out var lym) &&
-                        TryGet(entry, "McvFL", out var mcv) &&
-                        TryGet(entry, "RdwPc", out var rdw) &&
-                        TryGet(entry, "AlpUL", out var alp) &&
-                        crpMgL > 0)
-                    {
-                        var ph = Tools.PhenoAgeHelper.CalculatePhenoAgeFromRaw(
-                            ageAtEntry, alb, creat, glu, crpMgL, wbc, lym, mcv, rdw, alp);
-
-                        if (!double.IsNaN(ph) && !double.IsInfinity(ph) && ph < lowestPheno)
-                        {
-                            lowestPheno = ph;
-                            chronoAtLowest = ageAtEntry;
-                        }
-                    }
-                }
-            }
-
-            if (double.IsNaN(lowestPheno) || double.IsInfinity(lowestPheno))
-            {
-                lowestPheno = chronoToday; 
-                chronoAtLowest = chronoToday; 
-            }
-
-            var ageDiff = Math.Round(lowestPheno - chronoAtLowest, 2);
+            var chronoToday = r.ChronoAge.HasValue ? Math.Round(r.ChronoAge.Value, 2) : 0;
+            var lowestPheno = r.LowestPhenoAge.HasValue ? Math.Round(r.LowestPhenoAge.Value, 2) : chronoToday;
+            var ageDiff = Math.Round(r.AgeReduction ?? 0, 2);
 
             var obj = new JsonObject
             {
                 ["AthleteSlug"] = slug,
                 ["Name"] = name,
                 ["ChronologicalAge"] = chronoToday,
-                ["LowestPhenoAge"] = Math.Round(lowestPheno, 2),
+                ["LowestPhenoAge"] = lowestPheno,
                 ["AgeDifference"] = ageDiff
             };
 
@@ -718,22 +688,6 @@ public class AthleteDataService : IDisposable
             arr.Add(o);
 
         return arr;
-
-        static bool TryGet(JsonObject o, string key, out double v)
-        {
-            v = 0;
-            try
-            {
-                var n = o[key];
-                if (n is null) return false;
-                v = n.GetValue<double>();
-                return !double.IsNaN(v) && !double.IsInfinity(v);
-            }
-            catch
-            {
-                return false;
-            }
-        }
     }
 
     private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>
@@ -892,6 +846,72 @@ public class AthleteDataService : IDisposable
         // Persistence must only happen AFTER we compare and possibly emit events.
     }
 
+    // Public entry-point so other services (e.g., BadgeDataService) can trigger a badges refresh.
+    public void RefreshBadgesFromDatabase()
+    {
+        HydrateBadgesIntoAthletesJson();
+    }
+    
+    // badges from BadgeAwards -> injected into athlete JSON objects
+    private void HydrateBadgesIntoAthletesJson()
+    {
+        // Schema (BadgeAwards): BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt
+        var byAthlete = new Dictionary<string, JsonArray>(StringComparer.OrdinalIgnoreCase);
+
+        lock (_sqliteConnection)
+        {
+            try
+            {
+                using var cmd = _sqliteConnection.CreateCommand();
+                cmd.CommandText = "SELECT BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug FROM BadgeAwards";
+                using var r = cmd.ExecuteReader();
+
+                while (r.Read())
+                {
+                    var label = r.GetString(0);
+                    var cat = r.GetString(1);
+                    var val = r.IsDBNull(2) ? null : r.GetString(2);
+                    int? place = r.IsDBNull(3) ? (int?)null : r.GetInt32(3);
+                    var slug = r.GetString(4);
+
+                    if (!byAthlete.TryGetValue(slug, out var list))
+                    {
+                        list = new JsonArray();
+                        byAthlete[slug] = list;
+                    }
+
+                    var badge = new JsonObject
+                    {
+                        ["Label"] = label,
+                        ["LeagueCategory"] = cat,
+                        ["LeagueValue"] = val is null ? null : JsonValue.Create(val),
+                        ["Place"] = place is int p ? JsonValue.Create(p) : null
+                    };
+                    list.Add(badge);
+                }
+            }
+            catch (SqliteException ex) when (ex.SqliteErrorCode == 1 /* no such table: BadgeAwards */)
+            {
+                // If BadgeAwards doesn't exist yet, we leave badges empty.
+            }
+        }
+
+        foreach (var athleteJson in Athletes.OfType<JsonObject>())
+        {
+            var slug = athleteJson["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug))
+            {
+                athleteJson["Badges"] = new JsonArray();
+                continue;
+            }
+
+            if (byAthlete.TryGetValue(slug, out var arr))
+                athleteJson["Badges"] = arr;
+            else
+                athleteJson["Badges"] = new JsonArray();
+        }
+    }
+
     public void Dispose()
     {
         _athleteWatcher.Dispose();
@@ -905,19 +925,22 @@ public class AthleteDataService : IDisposable
     private List<(JsonObject Athlete, DateTime JoinedAt)> EnsureDbRowsForNewAthletes()
     {
         var newlyJoined = new List<(JsonObject, DateTime)>();
-        foreach (var athleteJson in Athletes.OfType<JsonObject>())
+        lock (_sqliteConnection)
         {
-            var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
-            using var cmd = _sqliteConnection.CreateCommand();
-            cmd.CommandText = "INSERT OR IGNORE INTO Athletes (Key, AgeGuesses, JoinedAt) VALUES (@k, @ages, @joined)";
-            cmd.Parameters.AddWithValue("@k", slug);
-            cmd.Parameters.AddWithValue("@ages", "[]");
-            cmd.Parameters.AddWithValue("@joined", _serviceStartUtc.ToString("o"));
-            var rows = cmd.ExecuteNonQuery();
-            if (rows == 1)
+            foreach (var athleteJson in Athletes.OfType<JsonObject>())
             {
-                athleteJson["IsNew"] = true;
-                newlyJoined.Add((athleteJson, _serviceStartUtc));
+                var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
+                using var cmd = _sqliteConnection.CreateCommand();
+                cmd.CommandText = "INSERT OR IGNORE INTO Athletes (Key, AgeGuesses, JoinedAt) VALUES (@k, @ages, @joined)";
+                cmd.Parameters.AddWithValue("@k", slug);
+                cmd.Parameters.AddWithValue("@ages", "[]");
+                cmd.Parameters.AddWithValue("@joined", _serviceStartUtc.ToString("o"));
+                var rows = cmd.ExecuteNonQuery();
+                if (rows == 1)
+                {
+                    athleteJson["IsNew"] = true;
+                    newlyJoined.Add((athleteJson, _serviceStartUtc));
+                }
             }
         }
 

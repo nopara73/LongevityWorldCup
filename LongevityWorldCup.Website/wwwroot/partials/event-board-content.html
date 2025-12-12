@@ -1,134 +1,248 @@
-﻿<style>
+﻿<link rel="stylesheet" href="/css/badges.css">
+<script src="/js/badges.js"></script>
+
+<style>
     :root{
         --row-fade-duration:.35s;
         --row-stagger-step:40ms;
         --row-stagger-group-size:8;
-        --row-delay: 0ms;
-        --donation-gift: #10b981;
+        --row-delay:0ms;
+        --donation-gift:#10b981;
+        --details-bg:rgba(0,188,212,.08);
+        --zebra-even:rgba(240,244,248,.5);
+        --zebra-odd:transparent;
+        --event-row-min:44px;
+        --row-pad-y:2px;
+        --badge-size:24px;
+        --badge-icon-size:.75rem;
+        --badge-chip-font:.75rem;
+        --badge-chip-pad-y:.1rem;
+        --badge-chip-pad-x:.45rem;
+        --badge-gap:.25rem;
+        --badge-inline-gap:.2rem;
+        --milestone-people:#6366f1
     }
+
     @keyframes fadeInBoard{
-        from{opacity:0; transform:translateY(10px)}
-        to{opacity:1; transform:translateY(0)}
+        from{opacity:0;transform:translateY(10px)}
+        to{opacity:1;transform:translateY(0)}
     }
-    .fade-in-board{ animation: fadeInBoard .6s ease-in-out both; }
-    .row-appear{
-        opacity:0;
-        transform:translateY(8px);
-    }
+
+    .fade-in-board{animation:fadeInBoard .6s ease-in-out both}
+    .row-appear{opacity:0;transform:translateY(8px)}
     .row-appear.is-visible{
         opacity:1;
         transform:translateY(0);
-        transition:
-                opacity var(--row-fade-duration) ease,
-                transform var(--row-fade-duration) ease;
-        transition-delay: var(--row-delay, 0ms);
+        transition:opacity var(--row-fade-duration) ease,transform var(--row-fade-duration) ease;
+        transition-delay:var(--row-delay,0ms)
     }
-    @media (prefers-reduced-motion: reduce){
-        .fade-in-board{ animation:none !important }
-        .row-appear,
-        .row-appear.is-visible{ opacity:1; transform:none; transition:none !important }
-    }
-    .events-board {
-        display: flex;
-        align-items: stretch;
-        background-color: var(--card-bg);
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        flex-grow: 1;
-        margin: 0 auto;
-    }
-    .events-board table {
-        flex-grow: 1;
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        align-self: flex-start;
-        padding-bottom:5px;
-    }
-        .events-board thead th {
-            background: rgba(0, 188, 212, 0.12);
-            color: var(--primary-color);
-            text-transform: uppercase;
-            font-weight: 800;
-            font-size: 0.85rem; /* smaller, like countdown */
-            letter-spacing: 1px;
-            text-align: left;
-            padding: 15px 20px; /* tighter, like countdown */
-            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-            /* IMPORTANT: no display:flex here */
-        }
 
-    .events-board td.col-avatar { padding-right: 8px; }
-    .events-board td.event-message { padding-left: 0px; }
-    .header-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
+    @media (prefers-reduced-motion:reduce){
+        .fade-in-board{animation:none!important}
+        .row-appear,.row-appear.is-visible{opacity:1;transform:none;transition:none!important}
     }
-    .view-all {
-        text-decoration: none;
-        color: var(--primary-color);
-        opacity: 0.8;
-        font-weight: 400;
-        font-size: 0.85rem;
+
+    .events-board{
+        display:flex;
+        align-items:stretch;
+        background-color:var(--card-bg);
+        border-radius:20px;
+        box-shadow:0 10px 30px rgba(0,0,0,.1);
+        overflow:hidden;
+        flex-grow:1;
+        margin:0 auto
     }
-    .view-all:hover { opacity: 1; text-decoration: underline; }
-    .events-board tbody td {
-        vertical-align: middle;
-        padding: 0 20px;
-        height: 40px;
-        line-height: 30px;
+
+    .events-board table{
+        flex-grow:1;
+        width:100%;
+        border-collapse:separate;
+        border-spacing:0;
+        align-self:flex-start;
+        padding-bottom:5px
     }
-    .events-board table tr:nth-child(even) { background-color: rgba(240, 244, 248, 0.5); }
-    .events-board table tbody tr {
-        height: 30px;
-        transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
-        cursor: default;
+
+    .events-board thead th{
+        background:rgba(0,188,212,.12);
+        color:var(--primary-color);
+        text-transform:uppercase;
+        font-weight:800;
+        font-size:.85rem;
+        letter-spacing:1px;
+        text-align:left;
+        padding:15px 20px;
+        border-bottom:1px solid rgba(0,0,0,.03)
     }
-    .events-board table tbody tr:hover {
-        transform: scale(1.01);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-        background-color: rgba(240, 244, 248, 0.8);
+
+    .header-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .view-all{text-decoration:none;color:var(--primary-color);opacity:.8;font-weight:400;font-size:.85rem}
+    .view-all:hover{opacity:1;text-decoration:underline}
+
+    .events-board table tbody tr{
+        height:auto;
+        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease;
+        cursor:default;
+        background-color:var(--zebra-odd)
     }
-    .col-avatar { width: 36px; }
-    .avatar,.avatar-fallback {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        overflow: hidden;
-        border: 2px solid var(--secondary-color, #ff4f87);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        background: none;
+    .events-board table tbody tr.zebra-even{background-color:var(--zebra-even)}
+    .events-board table tbody tr.zebra-odd{background-color:var(--zebra-odd)}
+    .events-board table tbody tr:hover{
+        transform:scale(1.01);
+        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        background-color:rgba(240,244,248,.8)
     }
-    .avatar { object-fit: cover; display: block; }
-    .avatar-fallback {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #5a6b7b;
-        font-weight: 800;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        line-height: 24px;
+    .events-board table tbody tr.group-hover{
+        transform:scale(1.01);
+        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        background-color:rgba(240,244,248,.8);
+        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
-    .avatar-link { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-    .athlete-td { display: flex; align-items: center; gap: 0.6rem; text-align: left; }
-    .event-message a { color: var(--primary-color); text-decoration: underline; cursor: pointer; }
-    .event-message { color: var(--dark-text-color); }
-    .col-date { text-align: right; white-space: nowrap; color: #7a8a99; font-weight: 400; font-size: 0.8rem; opacity: 50% }
-    .event-message{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
-    .event-message .athlete-name-text{
-        color: var(--primary-color);
-        text-decoration: none;
-        cursor: default;
+
+    .events-board tbody td{
+        height:auto;
+        vertical-align:middle;
+        padding:0 20px;
+        line-height:1.35
     }
-    .name-and-rank{display:inline-flex;align-items:baseline}
-    .event-message a.placement-link{ text-decoration:none }
+
+    .events-board td.col-avatar{padding-right:8px}
+    .events-board td.event-message{padding-left:0}
+
+    .col-avatar{width:36px}
+    .col-date{text-align:right;white-space:nowrap;color:#7a8a99;font-weight:400;font-size:.8rem;opacity:.5}
+
+    .avatar,.avatar-fallback{
+        width:24px;height:24px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;
+        border:2px solid var(--secondary-color,#ff4f87);
+        box-shadow:0 1px 3px rgba(0,0,0,.12);
+        background:#eef3f7
+    }
+    .avatar{object-fit:cover;display:block;image-rendering:auto}
+    .avatar-fallback{display:inline-flex;align-items:center;justify-content:center;color:#5a6b7b;font-weight:800;font-size:.7rem;text-transform:uppercase;line-height:24px}
+    .avatar-link{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+    .avatar,
+    .avatar-fallback{transition:transform .15s ease,box-shadow .15s ease;will-change:transform}
+    .avatar-link:hover .avatar,
+    .avatar-link:focus .avatar,
+    .avatar-link:hover .avatar-fallback,
+    .avatar-link:focus .avatar-fallback{transform:scale(1.15);box-shadow:0 2px 6px rgba(0,0,0,.16)}
+    .avatar-disabled{display:inline-flex;align-items:center;justify-content:center;cursor:default}
+    .avatar-disabled .avatar,.avatar-disabled .avatar-fallback{transition:none;transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+    .avatar-disabled:hover .avatar,.avatar-disabled:focus .avatar,
+    .avatar-disabled:hover .avatar-fallback,.avatar-disabled:focus .avatar-fallback{transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+    .athlete-td{
+        display:flex;
+        align-items:center;
+        gap:.6rem;
+        text-align:left;
+        min-height:calc(var(--event-row-min) - (var(--row-pad-y) * 2));
+        padding-top:var(--row-pad-y);
+        padding-bottom:var(--row-pad-y);
+        box-sizing:border-box
+    }
+    .events-board td.event-message{
+        display:flex;
+        align-items:center;
+        align-content:center;
+        flex-wrap:wrap;
+        gap:var(--badge-gap);
+        line-height:1.35;
+        min-height:calc(var(--event-row-min) - (var(--row-pad-y) * 2));
+        padding-top:var(--row-pad-y);
+        padding-bottom:var(--row-pad-y);
+        box-sizing:border-box
+    }
+
+    .event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
+    .event-message a:hover,
+    .event-message a:focus{color:var(--secondary-color,#ff4f87);text-decoration-color:var(--secondary-color,#ff4f87)}
+    .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
+    .name-and-rank{display:inline-flex;align-items:baseline;gap:.15rem}
+    .event-message .rank-badge{display:inline-flex;align-items:baseline;gap:.15rem;white-space:nowrap}
+    .event-message .rank-icon{margin-left:.2rem}
+    .event-message a.placement-link{text-decoration:none}
     .event-message a.placement-link:hover,
-    .event-message a.placement-link:focus{ text-decoration:none }
-    .placement-link{margin-left:2px}
+    .event-message a.placement-link:focus{text-decoration:none}
+
+    .donation-amount{color:var(--secondary-color,#ff4f87);font-weight:700}
+    .donation-gift-avatar{
+        width:24px;height:24px;border-radius:50%;
+        background:var(--donation-gift,#10b981);
+        border:2px solid var(--donation-gift,#10b981)!important;
+        box-shadow:0 1px 2px rgba(0,0,0,.06);
+        display:grid;place-items:center;line-height:0
+    }
+    .donation-gift-avatar i{color:#fff!important;display:block;font-size:.95rem;line-height:1}
+
+    .milestone-people-avatar{
+        width:24px;height:24px;border-radius:50%;
+        background:var(--milestone-people,#6366f1);
+        border:2px solid var(--milestone-people,#6366f1)!important;
+        box-shadow:0 1px 2px rgba(0,0,0,.06);
+        display:grid;place-items:center;line-height:0
+    }
+    .milestone-people-avatar i{color:#fff!important;display:block;font-size:.95rem;line-height:1}
+    .milestone-count{color:var(--secondary-color,#ff4f87);font-weight:700}
+    .count-accent{color:var(--secondary-color,#ff4f87);font-weight:700}
+
+    .badge-list{display:flex;flex-wrap:wrap;gap:.35rem}
+    .badge-chip{
+        background:rgba(0,188,212,.12);
+        color:var(--primary-color);
+        border-radius:999px;
+        padding:.15rem .55rem;
+        font-weight:700;
+        font-size:.85rem;
+        white-space:nowrap
+    }
+
+    .events-board .badge-class{
+        display:inline-grid;
+        place-items:center;
+        width:var(--badge-size);
+        height:var(--badge-size);
+        border-radius:999px;
+        line-height:1;
+        box-shadow:0 1px 2px rgba(0,0,0,.05);
+        margin-inline:var(--badge-inline-gap);
+        margin-block:1px;
+        vertical-align:middle
+    }
+    .events-board .badge-class i{font-size:var(--badge-icon-size);line-height:1}
+    .events-board .badge-chip{
+        font-size:var(--badge-chip-font);
+        padding:var(--badge-chip-pad-y) var(--badge-chip-pad-x);
+        margin-inline:var(--badge-inline-gap);
+        margin-block:1px;
+        vertical-align:middle
+    }
+    .events-board .details-cell .badge-section{display:flex;flex-wrap:wrap;gap:var(--badge-gap)}
+    .events-board .details-cell .badge-section .badge-class,
+    .events-board .details-cell .badge-section .badge-chip{margin:0 .25rem .25rem 0}
+
+    .events-board .others-wrapper{position:relative;display:inline-block}
+    .events-board .others-link{color:var(--primary-color);text-decoration:underline;cursor:pointer}
+    .events-board .others-flyout{
+        position:absolute;top:1.3em;left:0;display:none;
+        background:var(--card-bg,#fff);padding:.35rem .5rem;border-radius:8px;
+        box-shadow:0 8px 24px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.06);
+        z-index:3;white-space:nowrap
+    }
+    .events-board .others-wrapper:hover .others-flyout{display:block}
+    .events-board .others-flyout a{color:var(--primary-color);text-decoration:underline}
+
+    .events-board .badge-with-from{display:inline-flex;align-items:center;position:relative;white-space:normal}
+    .events-board .badge-with-from .badge-from{
+        max-width:0;opacity:0;overflow:hidden;white-space:nowrap;margin-left:0;
+        transition:max-width .25s ease,opacity .25s ease,margin-left .25s ease
+    }
+    .events-board .badge-with-from:hover .badge-from{max-width:260px;opacity:1;margin-left:.35rem}
+    .events-board .badge-with-from.show-from .badge-from{max-width:260px;opacity:1;margin-left:.35rem}
+
+    .events-board tbody tr.details-row{display:none}
+    .details-cell{padding:10px 20px;background:var(--details-bg);border-top:1px solid rgba(0,0,0,.06)}
+
     @media (max-width:600px){
         .events-board thead th{font-size:.85rem;padding:10px 12px}
         .view-all{font-size:.75rem}
@@ -138,123 +252,13 @@
         .avatar,.avatar-fallback{width:22px;height:22px;border-width:2px}
         .event-message{font-size:.95rem}
         .col-date{font-size:.72rem;opacity:.6;padding-left:6px}
+        .events-board table tbody tr:hover{transform:none;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+        .events-board td.event-message{align-items:center;align-content:center}
     }
+
     @media (max-width:360px){
         .col-date{display:none}
     }
-    .event-message a:hover,
-    .event-message a:focus {
-        color: var(--secondary-color, #ff4f87);
-        text-decoration-color: var(--secondary-color, #ff4f87);
-    }
-    .avatar,
-    .avatar-fallback {
-        transition: transform .15s ease, box-shadow .15s ease;
-        will-change: transform;
-    }
-    .avatar-link:hover .avatar,
-    .avatar-link:focus .avatar,
-    .avatar-link:hover .avatar-fallback,
-    .avatar-link:focus .avatar-fallback {
-        transform: scale(1.15);
-        box-shadow: 0 2px 6px rgba(0,0,0,.16);
-    }
-    .event-message .rank-icon{ margin-left:.25rem; }
-    .event-message .rank-badge{ display:inline-flex; align-items:baseline; gap:.15rem; }
-    .event-message .rank-badge .rank-icon{ margin:0; }
-
-    .avatar-disabled{display:inline-flex;align-items:center;justify-content:center;cursor:default}
-    .avatar-disabled .avatar,.avatar-disabled .avatar-fallback{transition:none;transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-    .avatar-disabled:hover .avatar,.avatar-disabled:focus .avatar,
-    .avatar-disabled:hover .avatar-fallback,.avatar-disabled:focus .avatar-fallback{transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-
-    .donation-amount{ color: var(--secondary-color, #ff4f87); }
-    .donation-gift-avatar{
-        --gift: var(--donation-gift, #10b981);
-        width: 24px; height: 24px;
-        border-radius: 50%;
-        background: var(--gift);
-        border: 2px solid var(--gift) !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,.06);
-        display: grid;                 /* perfectly center contents */
-        place-items: center;
-        line-height: 0;                /* kill baseline alignment */
-        box-sizing: content-box;
-    }
-
-    .donation-gift-avatar i{
-        color: #fff !important;
-        display: block;                /* avoids inline font metrics */
-        font-size: .95rem;
-        line-height: 1;
-    }
-
-    /* --- Milestone visuals (same spirit as donation) --- */
-    :root{ --milestone-people:#6366f1; }
-    .milestone-people-avatar{
-        --people: var(--milestone-people, #6366f1);
-        width: 24px; height: 24px;
-        border-radius: 50%;
-        background: var(--people);
-        border: 2px solid var(--people) !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,.06);
-        display: grid;
-        place-items: center;
-        line-height: 0;
-        box-sizing: content-box;
-    }
-    .milestone-people-avatar i{
-        color: #fff !important;
-        display: block;
-        font-size: .95rem;
-        line-height: 1;
-    }
-    .milestone-count{
-        color: var(--secondary-color, #ff4f87);
-        font-weight: 700;
-    }
-
-    /* Keep natural wrapping + vertical centering */
-    .events-board tbody tr {
-        display: table-row; /* default behavior */
-    }
-
-    .events-board td.event-message {
-        display: flex;              /* allow vertical centering */
-        align-items: center;        /* center vertically within the row */
-        flex-wrap: wrap;            /* keep wrapping */
-        gap: 0.25rem;
-        line-height: 1.35;
-        text-wrap: pretty;
-    }
-
-    /* Keep inline flow for text elements */
-    .event-message .name-and-rank,
-    .event-message .rank-badge,
-    .event-message a,
-    .event-message .athlete-name-text {
-        display: inline;
-        vertical-align: baseline;
-    }
-
-    /* Prevent long URLs from breaking layout */
-    .event-message a {
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    /* Keep rank and icon together */
-    .event-message .rank-badge { white-space: nowrap; }
-    .event-message .rank-icon { margin-left: .2rem; }
-
-    /* Mobile adjustments */
-    @media (max-width: 600px) {
-        .events-board tbody td.event-message {
-            line-height: 1.3;
-            align-items: flex-start; /* better flow on very small screens */
-        }
-    }
-    
 </style>
 
 <div id="events-root" class="events-board fade-in-board">
@@ -277,43 +281,46 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5 };
 
         const MILESTONE_COPY = {
-            42:    'Answer unlocked — the competition reached <strong class="milestone-count">42</strong> athletes',
-            69:    'Nice — the competition reached <strong class="milestone-count">69</strong> athletes',
+            42:    'Answer unlocked - the competition reached <strong class="milestone-count">42</strong> athletes',
+            69:    'Nice - the competition reached <strong class="milestone-count">69</strong> athletes',
             100:   'The competition reached <strong class="milestone-count">100</strong> athletes',
             123:   'Counting up, the competition reached <strong class="milestone-count">123</strong> athletes',
-            256:   'Power of two — the competition reached <strong class="milestone-count">256</strong> athletes',
+            256:   'Power of two - the competition reached <strong class="milestone-count">256</strong> athletes',
             300:   'This is Sparta! The competition reached <strong class="milestone-count">300</strong> athletes',
-            404:   'Athlete not found — the competition reached <strong class="milestone-count">404</strong> athletes',
-            500:   'Halfway to a thousand — the competition reached <strong class="milestone-count">500</strong> athletes',
-            666:   'Beast mode — the competition reached <strong class="milestone-count">666</strong> athletes',
-            777:   'Lucky roll — the competition reached <strong class="milestone-count">777</strong> athletes',
-            1000:  'Four digits — the competition reached <strong class="milestone-count">1,000</strong> athletes',
-            1337:  'Leet status — the competition reached <strong class="milestone-count">1,337</strong> athletes',
-            1618:  'Golden ratio vibes — the competition reached <strong class="milestone-count">1,618</strong> athletes',
-            2000:  'New bracket — the competition reached <strong class="milestone-count">2,000</strong> athletes',
-            3141:  'Pi energy — the competition reached <strong class="milestone-count">3,141</strong> athletes',
-            5000:  'Serious crowd — the competition reached <strong class="milestone-count">5,000</strong> athletes',
-            6969:  'Double nice — the competition reached <strong class="milestone-count">6,969</strong> athletes',
-            9000:  'Over nine thousand — the competition reached <strong class="milestone-count">9,000</strong> athletes',
-            10000: 'Established tier — the competition reached <strong class="milestone-count">10,000</strong> athletes',
+            404:   'Athlete not found - the competition reached <strong class="milestone-count">404</strong> athletes',
+            500:   'Halfway to a thousand - the competition reached <strong class="milestone-count">500</strong> athletes',
+            666:   'Beast mode - the competition reached <strong class="milestone-count">666</strong> athletes',
+            777:   'Lucky roll - the competition reached <strong class="milestone-count">777</strong> athletes',
+            1000:  'Four digits - the competition reached <strong class="milestone-count">1,000</strong> athletes',
+            1337:  'Leet status - the competition reached <strong class="milestone-count">1,337</strong> athletes',
+            1618:  'Golden ratio vibes - the competition reached <strong class="milestone-count">1,618</strong> athletes',
+            2000:  'New bracket - the competition reached <strong class="milestone-count">2,000</strong> athletes',
+            3141:  'Pi energy - the competition reached <strong class="milestone-count">3,141</strong> athletes',
+            5000:  'Serious crowd - the competition reached <strong class="milestone-count">5,000</strong> athletes',
+            6969:  'Double nice - the competition reached <strong class="milestone-count">6,969</strong> athletes',
+            9000:  'Over nine thousand - the competition reached <strong class="milestone-count">9,000</strong> athletes',
+            10000: 'Established tier - the competition reached <strong class="milestone-count">10,000</strong> athletes',
         };
 
         function milestoneMessage(n){
             const preset = MILESTONE_COPY[n];
             if (preset) return preset;
-
             const num = new Intl.NumberFormat().format(n);
             return `The competition reached <strong class="milestone-count">${num}</strong> athletes`;
         }
-        
+
         function lowerKeyMap(o){const m={};Object.keys(o||{}).forEach(k=>m[k.toLowerCase()]=k);return m;}
         function slugifyLocal(s){return(s||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-");}
-        function normalizeLinkId(id){return String(id||"").replace(/_/g,"-");}
-        function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-        function initialsFromName(n){const parts=String(n||"").trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
+        function normalizeLinkId(id){return String(id).replace(/_/g,"-");}
+        function esc(s){
+            return String(s).replace(/[&<>"']/g, c => (
+                {"&":"&amp;","<":"&lt;","~":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+            ).replace("~",">"));
+        }
+        function initialsFromName(n){const parts=String(n).trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
 
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
@@ -330,7 +337,7 @@
             if(diffDays===1) return 'Yesterday <i class="fa fa-rocket"></i>';
             return `${diffDays} days ago <i class="fa fa-rocket"></i>`;
         }
-        function relativeDayLabelNoIcon(iso,{emptyIfToday=true}={}) {
+        function relativeDayLabelNoIcon(iso,{emptyIfToday=true}={}){
             const dt=new Date(iso); if(isNaN(dt)) return "";
             const today=startOfLocalDay(new Date());
             const thatDay=startOfLocalDay(dt);
@@ -356,8 +363,7 @@
             if(n===3) return '<i class="fa-solid fa-award rank-icon" style="color: #cd7f32;" title="3rd place" aria-label="3rd place"></i>';
             return '';
         }
-        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
-        function parseLimit(val){ if(val===undefined||val===null||val==="")return null; const n=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(n)&&n>0?Math.floor(n):null; }
+        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"";}
         function parseTimeVar(varName, fallbackMs){
             const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
             if(!v) return fallbackMs;
@@ -395,7 +401,7 @@
         function athletePic(a){
             if(!a) return "";
             const map=lowerKeyMap(a);
-            const keys=["profilepic","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl"];
+            const keys=["profilepic","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl","pictureurl","avatarurl","imgurl","profile_img","profile_pic_url"];
             for(const k of keys){ if(map[k]){ const v=String(a[map[k]]).trim(); if(v) return v; } }
             return "";
         }
@@ -416,18 +422,36 @@
             return out;
         }
         function extractPrevSlug(text){
-            const m=/prev\[(.+?)\]/.exec(String(text||""));
+            const m=/prev\[(.+?)\]/.exec(String(text));
             return m?m[1]:null;
         }
         function extractRank(text){
-            const m=/rank\[(\d+)\]/.exec(String(text||""));
+            const m=/rank\[(\d+)\]/.exec(String(text));
             if(!m) return null;
             const n=parseInt(m[1],10);
             return Number.isFinite(n)&&n>0?n:null;
         }
+        function extractBadge(text){
+            const m=/badge\[(.+?)\]/.exec(String(text));
+            return m?m[1]:null;
+        }
+        function extractLeagueCategory(text){
+            const m=/cat\[(.+?)\]/.exec(String(text));
+            return m?m[1]:null;
+        }
+        function extractLeagueValue(text){
+            const m=/val\[(.*?)\]/.exec(String(text));
+            return m?m[1]:null;
+        }
+        function extractPlace(text){
+            const m=/place\[(\d*)\]/.exec(String(text));
+            if(!m) return null;
+            const n=parseInt(m[1],10);
+            return Number.isFinite(n)?n:null;
+        }
 
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
-            const s=String(text||"");
+            const s=String(text);
             const rx=/slug\[(.+?)\]/g;
             let out="", last=0, m;
             while((m=rx.exec(s))!==null){
@@ -444,6 +468,72 @@
             }
             out += esc(s.slice(last));
             return out;
+        }
+
+        function findServerBadgeOnAthlete(athlete, label){
+            if(!athlete || !label) return null;
+            const map=lowerKeyMap(athlete);
+            const listKey=map["badges"]||map["athletebadges"]||map["awards"]||map["badge"];
+            const list=listKey?athlete[listKey]:null;
+            if(!Array.isArray(list)) return null;
+            const norm=s=>String(s).trim().toLowerCase();
+            const want=norm(label);
+            for(const b of list){
+                const bm=lowerKeyMap(b);
+                const labKey=bm["badgelabel"]||bm["label"]||bm["name"];
+                if(labKey && norm(b[labKey])===want) return b;
+            }
+            return null;
+        }
+
+        function findServerBadgeOnAthleteEx(athlete,label,cat,val,place){
+            if(!athlete) return null;
+            const map=lowerKeyMap(athlete);
+            const listKey=map["badges"]||map["athletebadges"]||map["awards"]||map["badge"];
+            const list=listKey?athlete[listKey]:null;
+            if(!Array.isArray(list)) return null;
+            const norm=s=>String(s||"").trim().toLowerCase();
+            const wantL=norm(label),wantC=norm(cat),wantV=norm(val),wantP=place==null?null:Number(place);
+            let fallback=null;
+            for(const b of list){
+                const bm=lowerKeyMap(b);
+                const labKey=bm["badgelabel"]||bm["label"]||bm["name"];
+                const catKey=bm["leaguecategory"]||bm["category"]||bm["categoryname"]||bm["cat"];
+                const valKey=bm["leaguevalue"]||bm["league"]||bm["value"]||bm["val"];
+                const plcKey=bm["place"]||bm["rank"]||bm["position"];
+                const labOk=labKey?norm(b[labKey])===wantL:false;
+                const catOk=wantC?catKey&&norm(b[catKey])===wantC:true;
+                const valOk=wantV?valKey&&norm(b[valKey])===wantV:true;
+                const plcOk=wantP!=null?plcKey&&Number(b[plcKey])===wantP:true;
+                if(labOk&&catOk&&valOk&&plcOk) return b;
+                if(labOk&&!fallback) fallback=b;
+            }
+            return fallback;
+        }
+
+        let allowBadgeClicks = true;
+
+        function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
+            try{
+                const full=findServerBadgeOnAthleteEx(athlete,label,leagueCategory,leagueValue,place)??{ BadgeLabel:String(label), LeagueCategory:leagueCategory, LeagueValue:leagueValue, Place:place };
+                const b=full;
+                const icon=typeof window.pickIconForServerBadge==='function'?window.pickIconForServerBadge(b):'fa-award';
+                const style=typeof window.pickBackgroundForServerBadge==='function'?window.pickBackgroundForServerBadge(b):'';
+                const tip=typeof window.makeTooltipFromServerBadge==='function'?window.makeTooltipFromServerBadge(b, athlete||null):String(label);
+                const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
+                const attrs=url?`class="badge-class badge-clickable" role="button" tabindex="0" onclick="window.location.href='${url}'"`:`class="badge-class"`;
+                return `<span ${attrs} title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
+            }catch(e){
+                return `<span class="badge-chip"><strong>${esc(String(label))}</strong></span>`;
+            }
+        }
+
+        function renderBadgeWithFrom(label, prevSlug, athletesIndex, linkNames, afterSlugFn, athlete, forceOpen=false, leagueCategory=null, leagueValue=null, place=null){
+            const iconHtml = renderBadgeBubbleForLabel(String(label||"badge"), athlete, leagueCategory, leagueValue, place);
+            const cls = forceOpen ? "badge-with-from show-from" : "badge-with-from";
+            if(!prevSlug) return `<span class="${cls}">${iconHtml}</span>`;
+            const donorHtml = renderTextWithSlugLinks(`slug[${prevSlug}]`, linkNames, athletesIndex, afterSlugFn);
+            return `<span class="${cls}">${iconHtml}<span class="badge-from"> from ${donorHtml}</span></span>`;
         }
 
         function toRows(rawEvents){
@@ -463,12 +553,15 @@
                 const rank = extractRank(text);
                 const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
                 const milestoneCount = (() => { const m = /athletes\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : null; })();
+                const badgeLabel = extractBadge(text);
+                const leagueCategory = extractLeagueCategory(text);
+                const leagueValue = extractLeagueValue(text);
+                const place = extractPlace(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount };
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
             });
         }
 
-        // ---- helper to gate NewRank items to top-10 in the normal list
         function isTop10Rank(row, athletesIndex){
             if(row.type !== EVENT_TYPE.NewRank) return true;
             if (Number.isFinite(row.rank)) return row.rank <= 10;
@@ -476,7 +569,6 @@
             const placement = getCurrentPlacement(a);
             return Number.isFinite(placement) && placement <= 10;
         }
-        // ----
 
         function applyVisibleNow(el){
             const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -489,7 +581,7 @@
                     const idx=Number(el.dataset.rowIndex||0);
                     const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
                     const stepMs=parseTimeVar('--row-stagger-step',40);
-                    el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}ms`);
+                    el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}`);
                 }
                 el.classList.add('is-visible');
                 if(rowObserver) rowObserver.unobserve(el);
@@ -508,7 +600,7 @@
                             const idx=Number(el.dataset.rowIndex||0);
                             const groupSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-stagger-group-size'))||8;
                             const stepMs=parseTimeVar('--row-stagger-step',40);
-                            el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}ms`);
+                            el.style.setProperty('--row-delay',`${(idx%groupSize)*stepMs}`);
                         }
                         el.classList.add('is-visible');
                         io.unobserve(el);
@@ -524,6 +616,76 @@
 
         function revealVisibleRowsImmediately(container){
             container.querySelectorAll('.row-appear:not(.is-visible)').forEach(applyVisibleNow);
+        }
+
+        function applyArrivalOrderEpsilon(rows, stepMs=1){
+            const seen=new Map();
+            for(const r of rows){
+                if(!r.occurredAt) continue;
+                const t=+new Date(r.occurredAt);
+                if(!Number.isFinite(t)) continue;
+                const c=seen.get(t)||0;
+                if(c>0) r.occurredAt=new Date(t+c*stepMs).toISOString();
+                seen.set(t,c+1);
+            }
+            return rows;
+        }
+
+        function groupBadgeBursts(rows, windowMs=60000){
+            const out=[];
+            const removed=new Set();
+            for(let i=0;i<rows.length;i++){
+                if(removed.has(i)) continue;
+                const r=rows[i];
+                if(!(r && r.type===EVENT_TYPE.BadgeAward && r.primarySlug && r.occurredAt)){
+                    out.push(r);
+                    continue;
+                }
+                const t0=+new Date(r.occurredAt);
+                if(!Number.isFinite(t0)){ out.push(r); continue; }
+                const end=t0+windowMs;
+
+                const idxs=[i];
+                const items=[];
+                if(r.badgeLabel || r.prevSlug){
+                    items.push({ label:r.badgeLabel||"badge", prevSlug:r.prevSlug||null, leagueCategory:r.leagueCategory||null, leagueValue:r.leagueValue||null, place:r.place??null });
+                }
+
+                for(let j=i+1;j<rows.length;j++){
+                    if(removed.has(j)) continue;
+                    const x=rows[j];
+                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue;
+                    const tj=+new Date(x.occurredAt);
+                    if(!Number.isFinite(tj)) continue;
+                    if(tj>=t0 && tj<end){
+                        idxs.push(j);
+                        items.push({ label:x.badgeLabel||"badge", prevSlug:x.prevSlug||null, leagueCategory:x.leagueCategory||null, leagueValue:x.leagueValue||null, place:x.place??null });
+                    }
+                    if(tj>=end) break;
+                }
+
+                if(idxs.length>1){
+                    const uniqueLabels=[...new Set(items.map(it=>it.label).filter(Boolean))];
+                    const groupRow={...rows[i], isGroup:true, badgeCount:idxs.length, badges:uniqueLabels, items, occurredAt: rows[i].occurredAt};
+                    out.push(groupRow);
+                    for(let k=1;k<idxs.length;k++) removed.add(idxs[k]);
+                }else{
+                    out.push(r);
+                }
+            }
+            return out;
+        }
+
+        function applyZebraStriping(tbody){
+            let idx=0;
+            const rows=[...tbody.querySelectorAll('tr')];
+            rows.forEach(r=>{
+                if(r.classList.contains('details-row')) return;
+                r.classList.remove('zebra-even','zebra-odd');
+                const cls=(idx%2===0)?'zebra-even':'zebra-odd';
+                r.classList.add(cls);
+                idx++;
+            });
         }
 
         function renderRows(rows, athletesIndex, linkNames){
@@ -560,15 +722,15 @@
                 const img = a ? athletePic(a) : "";
 
                 let avatarHtml = "";
-                const clickableNewRankOrJoined = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank) && r.primarySlug && linkNames;
-                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank) {
+                const clickableProfileable = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) && r.primarySlug && linkNames;
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) {
                     if (img) {
-                        avatarHtml = clickableNewRankOrJoined
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></a>`
-                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy"></span>`;
+                        avatarHtml = clickableProfileable
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
+                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
                     } else {
                         const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
-                        avatarHtml = clickableNewRankOrJoined
+                        avatarHtml = clickableProfileable
                             ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">${fallback}</a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
@@ -581,7 +743,36 @@
                 }
 
                 let msgHtml = "";
-                if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
+
+                if (r.type === EVENT_TYPE.BadgeAward && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+                    if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
+                        const items = Array.isArray(r.items) ? r.items : [];
+                        const orderFn = typeof window.computeOrder === 'function' ? window.computeOrder : null;
+                        const orderedItems = orderFn
+                            ? items.slice().sort((a,b)=>{
+                                const oa = orderFn({ BadgeLabel:a.label, LeagueCategory:a.leagueCategory, LeagueValue:a.leagueValue, Place:a.place });
+                                const ob = orderFn({ BadgeLabel:b.label, LeagueCategory:b.leagueCategory, LeagueValue:b.leagueValue, Place:b.place });
+                                return oa - ob;
+                            })
+                            : items;
+                        const icons = orderedItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
+                        msgHtml = `${nameWithRank} bagged <strong class="count-accent">${orderedItems.length}</strong> new badges: ${icons}`;
+                    } else {
+                        if (r.prevSlug) {
+                            const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                            msgHtml = `${nameWithRank} claims ${bubbleWithFrom}`;
+                        } else {
+                            const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                            msgHtml = `${nameWithRank} adds ${bubble} to the collection`;
+                        }
+                    }
+                } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
                     const nameWithCurrentRank = renderTextWithSlugLinks(
                         `slug[${r.primarySlug}]`,
@@ -628,24 +819,36 @@
                 }
 
                 const tr = document.createElement("tr");
-                tr.className = "row-appear";
+                tr.className = "row-appear main-row";
                 tr.dataset.rowIndex = String(idx);
+                tr.dataset.groupId = `g_${idx}`;
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
                      <td class="athlete-td event-message">${msgHtml}</td>
                      <td class="col-date">${dateLabel}</td>`;
+                const imgEl = tr.querySelector("img.avatar");
+                if (imgEl) {
+                    const initials = initialsFromName(name);
+                    imgEl.addEventListener("error", () => {
+                        const parent = imgEl.closest(".avatar-link, .avatar-disabled");
+                        if (parent) parent.innerHTML = `<div class="avatar-fallback">${initials}</div>`;
+                    }, { once: true });
+                }
                 frag.appendChild(tr);
             });
 
             tbody.appendChild(frag);
 
-            if (!prefersReduced && rows.length){
+            applyZebraStriping(tbody);
+
+            const rowsNow = tbody.querySelectorAll(".row-appear");
+            if (!prefersReduced && rowsNow.length){
                 const io = ensureRowObserver();
-                tbody.querySelectorAll(".row-appear").forEach(r => io.observe(r));
+                rowsNow.forEach(r => io.observe(r));
                 requestAnimationFrame(() => revealVisibleRowsImmediately(tbody));
                 window.addEventListener("resize", () => revealVisibleRowsImmediately(tbody), { passive: true });
             } else {
-                tbody.querySelectorAll(".row-appear").forEach(r => r.classList.add("is-visible"));
+                rowsNow.forEach(r => r.classList.add("is-visible"));
             }
         }
 
@@ -658,7 +861,6 @@
             return normalizeLinkId(slugifyLocal(s));
         }
 
-        // call signature: loadEventsTable(maxRows=null, showViewAll=true, athleteId=null, linkNames=true)
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setViewAllVisible(!!showViewAll);
 
@@ -669,18 +871,31 @@
                 const athletesIndex=buildAthleteIndex(athletes);
                 let rows=toRows(Array.isArray(events)?events:[]);
 
-                // Are we in athlete modal context?
                 const target=normalizeIncomingAthleteId(athleteId);
+                allowBadgeClicks = !target;
+
                 if(target){
-                    // Athlete modal: keep only events related to this athlete and hide milestones
-                    rows=rows.filter(r=>r.slugs.includes(target) && r.type !== EVENT_TYPE.AthleteCountMilestone);
+                    rows=rows.filter(r=>{
+                        if(r.type===EVENT_TYPE.AthleteCountMilestone) return false;
+                        if(r.type===EVENT_TYPE.BadgeAward) return r.primarySlug===target;
+                        return r.slugs.includes(target);
+                    });
                 }else{
-                    // Normal list: show all Joined, but gate NewRank to top-10 only.
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
                 }
 
-                // apply optional limit after filtering
-                const n=parseLimit(maxRows);
+                rows = applyArrivalOrderEpsilon(rows, 1);
+                rows = groupBadgeBursts(rows, 60000);
+                rows.sort((a,b)=>{
+                    const ta=+new Date(a.occurredAt||0);
+                    const tb=+new Date(b.occurredAt||0);
+                    if(!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
+                    if(!Number.isFinite(ta)) return -1;
+                    if(!Number.isFinite(tb)) return 1;
+                    return tb - ta;
+                });
+
+                const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
                 if(n!==null) rows=rows.slice(0,n);
 
                 renderRows(rows,athletesIndex,!!linkNames);
