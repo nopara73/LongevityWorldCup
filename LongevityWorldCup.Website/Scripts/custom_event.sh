@@ -1,7 +1,30 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 esc=$'\033'
 bel=$'\a'
+
+usage() {
+  echo "Usage: $0 /path/to/LongevityWorldCup.db" >&2
+  exit 1
+}
+
+db_path="${1:-}"
+if [[ -z "${db_path//[[:space:]]/}" ]]; then
+  usage
+fi
+
+command -v sqlite3 >/dev/null 2>&1 || { echo "sqlite3 is not installed" >&2; exit 1; }
+
+if [[ ! -f "$db_path" ]]; then
+  echo "Database file not found: $db_path" >&2
+  exit 1
+fi
+
+has_events_table="$(sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Events' LIMIT 1;")"
+if [[ "$has_events_table" != "1" ]]; then
+  echo "Events table not found in database: $db_path" >&2
+  exit 1
+fi
 
 render() {
   s="$1"
@@ -40,6 +63,11 @@ render "[strong](Text that will be bold and pink colored)"
 printf '\n\n'
 
 read -r -p "Title: " title_raw
+if [[ -z "${title_raw//[[:space:]]/}" ]]; then
+  echo "Title is required" >&2
+  exit 1
+fi
+
 printf '%s\n' "Content. End input with a single dot on its own line:"
 content_raw=""
 while IFS= read -r line; do
@@ -59,18 +87,17 @@ printf 'Content:\n%s\n\n' "$content_preview"
 read -r -p "Proceed? [y/N] " ok
 case "${ok:-}" in y|Y) :;; *) echo "Cancelled"; exit 0;; esac
 
-if [[ -n "${LWC_DB:-}" ]]; then
-  command -v sqlite3 >/dev/null 2>&1 || { echo "sqlite3 is not installed"; exit 1; }
-  mkdir -p "$(dirname "$LWC_DB")"
-  sqlite3 "$LWC_DB" "CREATE TABLE IF NOT EXISTS CustomEvents (Id TEXT PRIMARY KEY, CreatedUtc TEXT NOT NULL, Title TEXT NOT NULL, Content TEXT NOT NULL)"
-  if command -v uuidgen >/dev/null 2>&1; then id="$(uuidgen)"; else id="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s%N)"; fi
-  esc_sql() { printf "%s" "$1" | sed "s/'/''/g"; }
-  t="$(esc_sql "$title_raw")"
-  c="$(esc_sql "$content_raw")"
-  sqlite3 "$LWC_DB" "INSERT INTO CustomEvents (Id, CreatedUtc, Title, Content) VALUES ('$id', strftime('%Y-%m-%dT%H:%M:%SZ','now'), '$t', '$c')"
-  echo "Inserted $id into $LWC_DB"
+combined_raw="$title_raw"$'\n\n'"$content_raw"
+
+if command -v uuidgen >/dev/null 2>&1; then
+  id="$(uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]')"
 else
-  echo "Confirmed"
-  printf 'Title:\n%s\n\n' "$title_raw"
-  printf 'Content:\n%s\n' "$content_raw"
+  id="$(cat /proc/sys/kernel/random/uuid 2>/dev/null | tr -d '-' | tr '[:upper:]' '[:lower:]' || date +%s%N)"
 fi
+
+esc_sql() { printf "%s" "$1" | sed "s/'/''/g"; }
+
+txt="$(esc_sql "$combined_raw")"
+
+sqlite3 "$db_path" "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 5);"
+echo "Inserted $id into $db_path"
