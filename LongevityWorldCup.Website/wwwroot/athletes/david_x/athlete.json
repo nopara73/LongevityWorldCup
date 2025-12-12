@@ -8,6 +8,18 @@
   },
   "Biomarkers": [
     {
+      "Date": "2025-01-02",
+        "AlbGL": 46,
+		"CreatUmolL": 79.6,
+		"GluMmolL": 5.17,
+		"CrpMgL": 0.28,
+		"LymPc": 39,
+		"McvFL": 93,
+		"RdwPc": 13.1,
+		"AlpUL": 69,
+		"Wbc1000cellsuL": 3.1
+    },
+    {
       "Date": "2025-04-08",
       "AlbGL": 47,
       "CreatUmolL": 71.6,
@@ -30,10 +42,23 @@
       "RdwPc": 12.2,
       "AlpUL": 55,
       "Wbc1000cellsuL": 2.6
+    },
+    {
+      "Date": "2025-12-09",
+      "AlbGL": 49,
+      "CreatUmolL": 69.91150442477877,
+      "GluMmolL": 5.384,
+      "CrpMgL": 0.2,
+      "LymPc": 47.4,
+      "McvFL": 96.4,
+      "RdwPc": 12,
+      "AlpUL": 52,
+      "Wbc1000cellsuL": 2.7
     }
   ],
   "Division": "Men's",
   "Flag": "United States",
   "Why": "Continuously experimenting and tuning.",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "DisplayName": null
 }
