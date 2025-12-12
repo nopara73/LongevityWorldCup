@@ -1099,6 +1099,14 @@
                 requestAnimationFrame(() => {
                     active.classList.add('lwc-step--visible');
                     active.style.pointerEvents = 'auto';
+
+                    // ensure any pre-expanded biomarker cards get correct heights
+                    // once the step is actually visible (covers fake=1 prefill case)
+                    if (step === 2) {
+                        recalcOpenBiomarkerHeightsLwc();
+                        // run again on next tick to catch late layout/ fonts
+                        setTimeout(recalcOpenBiomarkerHeightsLwc, 60);
+                    }
                 });
             }
 
@@ -1115,6 +1123,22 @@
                 const firstOpen = document.querySelector('#lwc-step-2 .biomarker-card input, #lwc-step-2 input, #lwc-step-2 select');
                 if (firstOpen) firstOpen.focus();
             }
+        }
+
+
+        function recalcOpenBiomarkerHeightsLwc() {
+            document
+                .querySelectorAll('.biomarker-card.active .biomarker-card-content')
+                .forEach(content => {
+                    // remove any inline maxHeight to measure natural size
+                    content.style.maxHeight = 'none';
+                    const full = content.scrollHeight;
+                    // re-apply the correct height so transition rules remain intact
+                    content.style.maxHeight = full + 'px';
+                    // make sure vertical padding is present for visible cards
+                    content.style.paddingTop = '0.75rem';
+                    content.style.paddingBottom = '0.75rem';
+                });
         }
 
         function lwcValidateStep1() {
