@@ -255,6 +255,43 @@
     .events-board .badge-with-from.show-from .badge-from{max-width:260px;opacity:1;margin-left:.35rem}
 
     .events-board tbody tr.details-row{display:none}
+    .events-board tbody tr.custom-event-details{
+        display:none;
+    }
+
+    .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details{
+        display:table-row;
+    }
+
+    .custom-event-title{
+        flex:1 1 auto;
+        min-width:0;
+    }
+
+    .custom-event-expander{
+        margin-left:auto;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:26px;
+        height:26px;
+        border-radius:999px;
+        border:1px solid rgba(0,194,168,.55);
+        background:rgba(0,194,168,.08);
+        color:#00C2A8;
+        cursor:pointer;
+        line-height:1;
+        padding:0;
+    }
+
+    .custom-event-row.is-open .custom-event-expander{
+        background:rgba(0,194,168,.14);
+    }
+
+    .custom-event-content{
+        padding:6px 0;
+        line-height:1.45;
+    }
     .details-cell{padding:10px 20px;background:var(--details-bg);border-top:1px solid rgba(0,0,0,.06)}
 
     @media (max-width:600px){
@@ -382,7 +419,10 @@
             }
             return out;
         }
-
+        function renderCustomMarkupWithBreaks(text){
+            const s = normalizeNewlines(text || "");
+            return s.split("\n").map(line => renderCustomMarkup(line)).join("<br>");
+        }
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
             const dt=new Date(iso); if(isNaN(dt)) return "";
@@ -847,7 +887,7 @@
                     avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
                 } else if (r.type === EVENT_TYPE.CustomEvent) {
                     const logo = "/assets/HdLogo.png";
-                    avatarHtml = `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
+                    avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
@@ -921,7 +961,7 @@
                 } else if (r.type === EVENT_TYPE.CustomEvent) {
                     const parts = splitCustomEventText(r.text);
                     const titleSingle = normalizeNewlines(parts.title).replace(/\n+/g, " ").trim();
-                    msgHtml = renderCustomMarkup(titleSingle);
+                    msgHtml = `<span class="custom-event-title">${renderCustomMarkup(titleSingle)}</span><button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="custom-event-details-${idx}" title="Show details">▾</button>`;
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
@@ -949,6 +989,32 @@
                     }, { once: true });
                 }
                 frag.appendChild(tr);
+
+                if (isCustomEvent) {
+                    tr.classList.add("custom-event-row");
+
+                    const parts = splitCustomEventText(r.text);
+                    const contentHtml = renderCustomMarkupWithBreaks(String(parts.content || "").trim());
+
+                    const detailsTr = document.createElement("tr");
+                    detailsTr.className = "details-row custom-event-details";
+                    detailsTr.innerHTML =
+                        `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${contentHtml || `<span style="opacity:.7">No details</span>`}</div></td>`;
+
+                    const btn = tr.querySelector(".custom-event-expander");
+                    if (btn) {
+                        btn.addEventListener("click", (ev) => {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            const open = tr.classList.toggle("is-open");
+                            btn.setAttribute("aria-expanded", open ? "true" : "false");
+                            btn.textContent = open ? "▴" : "▾";
+                            applyZebraStriping(tbody);
+                        });
+                    }
+
+                    frag.appendChild(detailsTr);
+                }
             });
 
             tbody.appendChild(frag);
