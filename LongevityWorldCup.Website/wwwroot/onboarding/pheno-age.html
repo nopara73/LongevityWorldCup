@@ -372,6 +372,79 @@
                     <fieldset>
                         <legend>Biomarkers:</legend>
 
+                        <!-- White Blood Cell Count -->
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">
+                                White Blood Cell Count (WBC)
+                                <span class="toggle-icon">+</span>
+                            </div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
+                                    <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">1000 cells/μL</option>
+                                        <option value="1">10⁹ cells/L</option>
+                                        <option value="1000">cells/μL</option>
+                                        <option value="1000">cells/mm³</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lymphocyte Percentage -->
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">
+                                Lymphocytes (LYM)
+                                <span class="toggle-icon">+</span>
+                            </div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="lymphocyte" name="lymphocyte" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
+                                    <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">%</option>
+                                        <option value="1">1000 cells/μL</option>
+                                        <option value="1">10⁹ cells/L</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mean Corpuscular Volume -->
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">
+                                Mean Corpuscular Volume (MCV)
+                                <span class="toggle-icon">+</span>
+                            </div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
+                                    <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">fL</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Red Cell Distribution Width -->
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">
+                                Red Cell Distribution Width (RDW, RDW-CV)
+                                <span class="toggle-icon">+</span>
+                            </div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="rcdw" name="rcdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
+                                    <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">%</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Albumin -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
@@ -388,6 +461,24 @@
                                         <option value="0.1">g%</option>
                                         <!-- Albumin's molar mass can vary slightly depending on its source and exact composition, usually given as approximately 66,500 g/mol but sometimes noted as 66,430 g/mol or 66,563 g/mol in specific contexts. If we calculate using 66,430 g/mol as the molar mass, then it's: 15.0466µmol/L -->
                                         <option value="15.0466">µmol/L</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alkaline Phosphatase -->
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">
+                                Alkaline Phosphatase (ALP)
+                                <span class="toggle-icon">+</span>
+                            </div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
+                                    <select id="apUnit" name="apUnit" aria-label="AP unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">U/L</option>
+                                        <option value="0.01667">μkat/L</option>
                                     </select>
                                 </div>
                             </div>
@@ -461,97 +552,6 @@
                                             <option value="86.96">nmol/L</option>
                                         </select>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Lymphocyte Percentage -->
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
-                                Lymphocytes (LYM)
-                                <span class="toggle-icon">+</span>
-                            </div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="lymphocyte" name="lymphocyte" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
-                                    <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">%</option>
-                                        <option value="1">1000 cells/μL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Mean Corpuscular Volume -->
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
-                                Mean Corpuscular Volume (MCV)
-                                <span class="toggle-icon">+</span>
-                            </div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
-                                    <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">fL</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Red Cell Distribution Width -->
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
-                                Red Cell Distribution Width (RDW, RDW-CV)
-                                <span class="toggle-icon">+</span>
-                            </div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="rcdw" name="rcdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
-                                    <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">%</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Alkaline Phosphatase -->
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
-                                Alkaline Phosphatase (ALP)
-                                <span class="toggle-icon">+</span>
-                            </div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
-                                    <select id="apUnit" name="apUnit" aria-label="AP unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">U/L</option>
-                                        <option value="0.01667">μkat/L</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- White Blood Cell Count -->
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
-                                White Blood Cell Count (WBC)
-                                <span class="toggle-icon">+</span>
-                            </div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
-                                    <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">1000 cells/μL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1000">cells/μL</option>
-                                        <option value="1000">cells/mm³</option>
-                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -629,7 +629,7 @@
 
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
-        ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc']
+        ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']
             .forEach(id => {
                 const el = document.getElementById(id);
                 el.addEventListener('input', () => {
@@ -1278,7 +1278,7 @@
             }
 
             // Initialize collapsability based on current values (handles programmatic fills)
-            ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc']
+            ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']
                 .forEach(fieldId => {
                     document.getElementById(fieldId).dispatchEvent(new Event('input'));
                 });
@@ -1507,7 +1507,7 @@
             document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
 
             // mark all biomarkers as touched in fake mode and expand them
-            ['albumin', 'creatinine', 'glucose', 'crp', 'lymphocyte', 'mcv', 'rcdw', 'ap', 'wbc']
+            ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']
                 .forEach(id => {
                     touchedBiomarkers.add(id);
                     expandFieldCard(id);
