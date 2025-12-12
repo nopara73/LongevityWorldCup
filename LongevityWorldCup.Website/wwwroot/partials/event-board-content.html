@@ -21,7 +21,7 @@
         --badge-gap:.25rem;
         --badge-inline-gap:.2rem;
         --milestone-people:#6366f1;
-        --custom-event-accent:#ff6a00;
+        --custom-event-accent:#00C2A8;
     }
 
     @keyframes fadeInBoard{
@@ -118,10 +118,19 @@
         box-shadow:0 1px 3px rgba(0,0,0,.12);
         background:#eef3f7
     }
-    .avatar.custom-event-avatar,.avatar-fallback.custom-event-avatar{
-        border:2px solid var(--custom-event-accent);
-        box-shadow:0 0 0 3px rgba(255,106,0,.22),0 6px 18px rgba(255,106,0,.22),0 1px 3px rgba(0,0,0,.12)
+    
+    .avatar.custom-event-avatar,
+    .avatar-fallback.custom-event-avatar{
+        border:1px solid #00C2A8 !important;
+        box-shadow:
+                0 0 0 1px rgba(0,194,168,1),
+                0 0 2px rgba(0,194,168,1),
+                0 0 8px rgba(0,194,168,1) !important;
+        filter:
+                drop-shadow(0 0 4px rgba(0,194,168,.55))
+                drop-shadow(0 0 7px rgba(0,194,168,.22)) !important;
     }
+
     .avatar{object-fit:cover;display:block;image-rendering:auto}
     .avatar-fallback{display:inline-flex;align-items:center;justify-content:center;color:#5a6b7b;font-weight:800;font-size:.7rem;text-transform:uppercase;line-height:24px}
     .avatar-link{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
