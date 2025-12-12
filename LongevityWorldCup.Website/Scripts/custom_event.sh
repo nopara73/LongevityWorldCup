@@ -47,20 +47,25 @@ render() {
 }
 
 printf 'Formatting examples\n\n'
-printf 'Type: %s\n' "[link text](https://example.com)"
+
+printf 'Link\n'
+printf 'Example: %s\n' "Visit [Longevity World Cup](https://longevityworldcup.com/) for the latest leaderboard."
 printf 'Renders: '
-render "[link text](https://example.com)"
+render "Visit [Longevity World Cup](https://longevityworldcup.com/) for the latest leaderboard."
 printf '\n\n'
 
-printf 'Type: %s\n' "[bold](Text that will be bold)"
+printf 'Bold\n'
+printf 'Example: %s\n' "This update highlights one [bold](important) change in the Longevity World Cup."
 printf 'Renders: '
-render "[bold](Text that will be bold)"
+render "This update highlights one [bold](important) change in the Longevity World Cup."
 printf '\n\n'
 
-printf 'Type: %s\n' "[strong](Text that will be bold and pink colored)"
+printf 'Strong\n'
+printf 'Example: %s\n' "This is a [strong](major announcement) for the Longevity World Cup community."
 printf 'Renders: '
-render "[strong](Text that will be bold and pink colored)"
+render "This is a [strong](major announcement) for the Longevity World Cup community."
 printf '\n\n'
+
 
 read -r -p "Title: " title_raw
 if [[ -z "${title_raw//[[:space:]]/}" ]]; then
@@ -99,5 +104,5 @@ esc_sql() { printf "%s" "$1" | sed "s/'/''/g"; }
 
 txt="$(esc_sql "$combined_raw")"
 
-sqlite3 "$db_path" "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 5);"
+sqlite3 "$db_path" "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15);"
 echo "Inserted $id into $db_path"
