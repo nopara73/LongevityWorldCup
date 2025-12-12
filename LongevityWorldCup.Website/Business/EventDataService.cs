@@ -25,7 +25,8 @@ public enum EventType
     NewRank = 2,
     DonationReceived = 3,
     AthleteCountMilestone = 4,
-    BadgeAward = 5
+    BadgeAward = 5,
+    CustomEvent = 6
 }
 
 public sealed class EventDataService : IDisposable
