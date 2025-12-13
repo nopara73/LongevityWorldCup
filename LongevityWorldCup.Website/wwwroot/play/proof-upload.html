@@ -106,16 +106,17 @@
             const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
             const latest = (biomarkerData.Biomarkers && biomarkerData.Biomarkers[0]) || {};
             const propertyToLabel = {
+                Wbc1000cellsuL: 'White Blood Cell Count (WBC)',
+                LymPc: 'Lymphocytes (LYM)',
+                McvFL: 'Mean Corpuscular Volume (MCV)',
+                RdwPc: 'Red Cell Distribution Width (RDW, RDW-CV)',
                 AlbGL: 'Albumin',
+                AlpUL: 'Alkaline Phosphatase (ALP)',
                 CreatUmolL: 'Creatinine',
                 GluMmolL: 'Glucose',
-                CrpMgL: 'C-Reactive Protein',
-                LymPc: 'Lymphocyte Percentage',
-                McvFL: 'Mean Corpuscular Volume',
-                RdwPc: 'Red Cell Distribution Width',
-                AlpUL: 'Alkaline Phosphatase',
-                Wbc1000cellsuL: 'White Blood Cell Count'
+                CrpMgL: 'C-Reactive Protein (CRP)'
             };
+
             const checklistItems = Object.entries(propertyToLabel)
                 .filter(([prop, label]) => latest[prop] !== undefined && !isNaN(latest[prop]))
                 .map(([prop, label]) => label);
