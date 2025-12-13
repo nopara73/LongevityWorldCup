@@ -794,8 +794,15 @@
 
     function isCompleteBiomarkerSet(set) {
         const values = [
-            set.AlbGL, set.CreatUmolL, set.GluMmolL, set.CrpMgL,
-            set.Wbc1000cellsuL, set.LymPc, set.McvFL, set.RdwPc, set.AlpUL
+            set.Wbc1000cellsuL,
+            set.LymPc,
+            set.McvFL,
+            set.RdwPc,
+            set.AlbGL,
+            set.AlpUL,
+            set.CreatUmolL,
+            set.GluMmolL,
+            set.CrpMgL
         ];
         return values.every(Number.isFinite) && set.CrpMgL > 0;
     }
@@ -899,35 +906,18 @@
 
                     // Create an object to store the best biomarker values from all sets
                     let bestBiomarkers = {
-                        AlbGL: null,          // Albumin (higher is better)
-                        CreatUmolL: null,     // Creatinine (lower is better)
-                        GluMmolL: null,       // Glucose (lower is better)
-                        CrpMgL: null,         // CRP (lower is better)
                         Wbc1000cellsuL: null, // White blood cell count (lower is better)
                         LymPc: null,          // Lymphocytes (higher is better)
                         McvFL: null,          // Mean corpuscular volume (lower is better)
                         RdwPc: null,          // Red cell distribution width (lower is better)
-                        AlpUL: null           // Alkaline phosphatase (lower is better)
+                        AlbGL: null,          // Albumin (higher is better)
+                        AlpUL: null,          // Alkaline phosphatase (lower is better)
+                        CreatUmolL: null,     // Creatinine (lower is better)
+                        GluMmolL: null,       // Glucose (lower is better)
+                        CrpMgL: null          // CRP (lower is better)
                     };
 
-                    // Iterate through each biomarker set to update the best values
                     completeBiomarkerSets.forEach(biomarkerSet => {
-                        // Albumin: negative coefficient means higher is better
-                        if (bestBiomarkers.AlbGL === null || biomarkerSet.AlbGL > bestBiomarkers.AlbGL) {
-                            bestBiomarkers.AlbGL = biomarkerSet.AlbGL;
-                        }
-                        // Creatinine: positive coefficient means lower is better
-                        if (bestBiomarkers.CreatUmolL === null || biomarkerSet.CreatUmolL < bestBiomarkers.CreatUmolL) {
-                            bestBiomarkers.CreatUmolL = biomarkerSet.CreatUmolL;
-                        }
-                        // Glucose: positive coefficient means lower is better
-                        if (bestBiomarkers.GluMmolL === null || biomarkerSet.GluMmolL < bestBiomarkers.GluMmolL) {
-                            bestBiomarkers.GluMmolL = biomarkerSet.GluMmolL;
-                        }
-                        // CRP: positive coefficient means lower is better
-                        if (bestBiomarkers.CrpMgL === null || biomarkerSet.CrpMgL < bestBiomarkers.CrpMgL) {
-                            bestBiomarkers.CrpMgL = biomarkerSet.CrpMgL;
-                        }
                         // White blood cell count: positive coefficient means lower is better
                         if (bestBiomarkers.Wbc1000cellsuL === null || biomarkerSet.Wbc1000cellsuL < bestBiomarkers.Wbc1000cellsuL) {
                             bestBiomarkers.Wbc1000cellsuL = biomarkerSet.Wbc1000cellsuL;
@@ -944,11 +934,28 @@
                         if (bestBiomarkers.RdwPc === null || biomarkerSet.RdwPc < bestBiomarkers.RdwPc) {
                             bestBiomarkers.RdwPc = biomarkerSet.RdwPc;
                         }
+                        // Albumin: negative coefficient means higher is better
+                        if (bestBiomarkers.AlbGL === null || biomarkerSet.AlbGL > bestBiomarkers.AlbGL) {
+                            bestBiomarkers.AlbGL = biomarkerSet.AlbGL;
+                        }
                         // Alkaline phosphatase: positive coefficient means lower is better
                         if (bestBiomarkers.AlpUL === null || biomarkerSet.AlpUL < bestBiomarkers.AlpUL) {
                             bestBiomarkers.AlpUL = biomarkerSet.AlpUL;
                         }
+                        // Creatinine: positive coefficient means lower is better
+                        if (bestBiomarkers.CreatUmolL === null || biomarkerSet.CreatUmolL < bestBiomarkers.CreatUmolL) {
+                            bestBiomarkers.CreatUmolL = biomarkerSet.CreatUmolL;
+                        }
+                        // Glucose: positive coefficient means lower is better
+                        if (bestBiomarkers.GluMmolL === null || biomarkerSet.GluMmolL < bestBiomarkers.GluMmolL) {
+                            bestBiomarkers.GluMmolL = biomarkerSet.GluMmolL;
+                        }
+                        // CRP: positive coefficient means lower is better
+                        if (bestBiomarkers.CrpMgL === null || biomarkerSet.CrpMgL < bestBiomarkers.CrpMgL) {
+                            bestBiomarkers.CrpMgL = biomarkerSet.CrpMgL;
+                        }
                     });
+
                     let phenoAgeDifference = 0;
                     // Only proceed if there are submissions.
                     if (completeBiomarkerSets.length > 0) {
@@ -2548,15 +2555,15 @@
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
-            biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL);
-            biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
-            biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
-            biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
+            biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
             biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc);
             biomarkersRaw['MCV (fL)'].push(entry.McvFL);
             biomarkersRaw['RDW (%)'].push(entry.RdwPc);
+            biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL);
             biomarkersRaw['ALP (U/L)'].push(entry.AlpUL);
-            biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
+            biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
+            biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
+            biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
 
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
@@ -2582,15 +2589,15 @@
 
     function initializeBiomarkersRaw() {
         return {
-            'Albumin (g/L)': [],
-            'Creatinine (µmol/L)': [],
-            'Glucose (mmol/L)': [],
-            'CRP (mg/L)': [],
+            'WBC (10^3 cells/µL)': [],
             'Lymphocytes (%)': [],
             'MCV (fL)': [],
             'RDW (%)': [],
+            'Albumin (g/L)': [],
             'ALP (U/L)': [],
-            'WBC (10^3 cells/µL)': []
+            'Creatinine (µmol/L)': [],
+            'Glucose (mmol/L)': [],
+            'CRP (mg/L)': []
         };
     }
 
@@ -2605,15 +2612,15 @@
             // Return the value used so we can update the entry
             return valueToUse;
         }
-        entry.AlbGL = pushOrInherit('Albumin (g/L)', entry.AlbGL);
-        entry.CreatUmolL = pushOrInherit('Creatinine (µmol/L)', entry.CreatUmolL);
-        entry.GluMmolL = pushOrInherit('Glucose (mmol/L)', entry.GluMmolL);
-        entry.CrpMgL = pushOrInherit('CRP (mg/L)', entry.CrpMgL);
+        entry.Wbc1000cellsuL = pushOrInherit('WBC (10^3 cells/µL)', entry.Wbc1000cellsuL);
         entry.LymPc = pushOrInherit('Lymphocytes (%)', entry.LymPc);
         entry.McvFL = pushOrInherit('MCV (fL)', entry.McvFL);
         entry.RdwPc = pushOrInherit('RDW (%)', entry.RdwPc);
+        entry.AlbGL = pushOrInherit('Albumin (g/L)', entry.AlbGL);
         entry.AlpUL = pushOrInherit('ALP (U/L)', entry.AlpUL);
-        entry.Wbc1000cellsuL = pushOrInherit('WBC (10^3 cells/µL)', entry.Wbc1000cellsuL);
+        entry.CreatUmolL = pushOrInherit('Creatinine (µmol/L)', entry.CreatUmolL);
+        entry.GluMmolL = pushOrInherit('Glucose (mmol/L)', entry.GluMmolL);
+        entry.CrpMgL = pushOrInherit('CRP (mg/L)', entry.CrpMgL);
     }
 
     function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
@@ -2660,15 +2667,15 @@
         ];
 
         const biomarkerColors = {
-            'Albumin (g/L)': 'rgba(0, 128, 255, 1)',
-            'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',
-            'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',
-            'CRP (mg/L)': 'rgba(255, 69, 0, 1)',
+            'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)',
             'Lymphocytes (%)': 'rgba(0, 100, 0, 1)',
             'MCV (fL)': 'rgba(70, 130, 180, 1)',
             'RDW (%)': 'rgba(220, 20, 60, 1)',
+            'Albumin (g/L)': 'rgba(0, 128, 255, 1)',
             'ALP (U/L)': 'rgba(218, 165, 32, 1)',
-            'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)'
+            'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',
+            'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',
+            'CRP (mg/L)': 'rgba(255, 69, 0, 1)'
         };
 
         for (const [key, zScores] of Object.entries(biomarkersZScores)) {
