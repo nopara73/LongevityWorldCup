@@ -111,7 +111,8 @@ window.PhenoAge.calculatePhenoAge = function (markerValues) {
     const tmonths = 120;
     const mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
 
-    return 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
+    const phenoAge = 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
+    return Math.max(0, phenoAge);
 };
 
 // ----- Domain Contribution Functions ----- //
