@@ -486,6 +486,46 @@
             return null;
         }
 
+        function findServerBadgeOnAthleteStrict(athlete,label,cat,val,place){
+            if(!athlete || !label) return null;
+            const map=lowerKeyMap(athlete);
+            const listKey=map["badges"]||map["athletebadges"]||map["awards"]||map["badge"];
+            const list=listKey?athlete[listKey]:null;
+            if(!Array.isArray(list)) return null;
+
+            const norm=s=>String(s||"").trim().toLowerCase();
+            const wantL=norm(label);
+            const wantC=norm(cat);
+            const wantV=norm(val);
+            const wantP=place==null?null:Number(place);
+
+            for(const b of list){
+                const bm=lowerKeyMap(b);
+                const labKey=bm["badgelabel"]||bm["label"]||bm["name"];
+                const catKey=bm["leaguecategory"]||bm["category"]||bm["categoryname"]||bm["cat"];
+                const valKey=bm["leaguevalue"]||bm["league"]||bm["value"]||bm["val"];
+                const plcKey=bm["place"]||bm["rank"]||bm["position"];
+
+                if(!labKey || norm(b[labKey])!==wantL) continue;
+
+                if(cat!=null && String(cat).trim()!==""){
+                    if(!catKey || norm(b[catKey])!==wantC) continue;
+                }
+
+                if(val!=null && String(val).trim()!==""){
+                    if(!valKey || norm(b[valKey])!==wantV) continue;
+                }
+
+                if(wantP!=null){
+                    if(!plcKey || Number(b[plcKey])!==wantP) continue;
+                }
+
+                return b;
+            }
+
+            return null;
+        }
+        
         function findServerBadgeOnAthleteEx(athlete,label,cat,val,place){
             if(!athlete) return null;
             const map=lowerKeyMap(athlete);
@@ -515,11 +555,15 @@
 
         function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
             try{
-                const full=findServerBadgeOnAthleteEx(athlete,label,leagueCategory,leagueValue,place)??{ BadgeLabel:String(label), LeagueCategory:leagueCategory, LeagueValue:leagueValue, Place:place };
-                const b=full;
+                const ownedBadge = findServerBadgeOnAthleteStrict(athlete,label,leagueCategory,leagueValue,place);
+                const ownedNow = !!ownedBadge;
+
+                const b = ownedBadge ?? { BadgeLabel:String(label), LeagueCategory:leagueCategory, LeagueValue:leagueValue, Place:place };
                 const icon=typeof window.pickIconForServerBadge==='function'?window.pickIconForServerBadge(b):'fa-award';
                 const style=typeof window.pickBackgroundForServerBadge==='function'?window.pickBackgroundForServerBadge(b):'';
-                const tip=typeof window.makeTooltipFromServerBadge==='function'?window.makeTooltipFromServerBadge(b, athlete||null):String(label);
+                const tip=typeof window.makeTooltipFromServerBadge==='function'
+                    ? window.makeTooltipFromServerBadge(b, athlete||null, { suppressValues: !ownedNow })
+                    : String(label);
                 const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
                 const attrs=url?`class="badge-class badge-clickable" role="button" tabindex="0" onclick="window.location.href='${url}'"`:`class="badge-class"`;
                 return `<span ${attrs} title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
