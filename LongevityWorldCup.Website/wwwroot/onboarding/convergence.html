@@ -553,17 +553,25 @@
                     const proofImageContainer = document.getElementById('proofImageContainer');
                     const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
-                    window.setupProofUploadHTML(nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer[
-                        'Albumin',
-                        'Creatinine',
-                        'Glucose',
-                        'C-Reactive Protein',
-                        'Lymphocyte Percentage',
-                        'Mean Corpuscular Volume',
-                        'Red Cell Distribution Width',
-                        'Alkaline Phosphatase',
-                        'White Blood Cell Count'
-                    ]);
+                    window.setupProofUploadHTML(
+                        nextButton,
+                        uploadProofButton,
+                        proofPicInput,
+                        proofImageContainer,
+                        proofPics,
+                        biomarkerChecklistContainer,
+                        [
+                            'White Blood Cell Count (WBC)',
+                            'Lymphocytes (LYM)',
+                            'Mean Corpuscular Volume (MCV)',
+                            'Red Cell Distribution Width (RDW, RDW-CV)',
+                            'Albumin',
+                            'Alkaline Phosphatase (ALP)',
+                            'Creatinine',
+                            'Glucose',
+                            'C-Reactive Protein (CRP)'
+                        ]
+                    );
 
                     break;
                 case 6:
