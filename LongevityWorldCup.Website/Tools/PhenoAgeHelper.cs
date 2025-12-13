@@ -116,7 +116,8 @@ namespace LongevityWorldCup.Website.Tools
             const int tmonths = 120;
             var mortalityScore = 1 - Math.Exp(-Math.Exp(rollingTotal) * (Math.Exp(gamma * tmonths) - 1) / gamma);
 
-            return 141.50225 + Math.Log(-0.00553 * Math.Log(1 - mortalityScore)) / 0.090165;
+            var phenoAge = 141.50225 + Math.Log(-0.00553 * Math.Log(1 - mortalityScore)) / 0.090165;
+            return Math.Max(0, phenoAge);
         }
 
         private const double ScalingFactor = 1 / 0.090165;
