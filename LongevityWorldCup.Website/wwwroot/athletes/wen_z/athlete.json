@@ -1,0 +1,28 @@
+{
+  "Name": "Wen Z",
+  "DisplayName": null,
+  "MediaContact": "wen1wenxiangzhuang@gmail.com",
+  "DateOfBirth": {
+    "Year": 2005,
+    "Month": 5,
+    "Day": 21
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-04",
+      "AlbGL": 49,
+      "CreatUmolL": 77,
+      "GluMmolL": 4.4,
+      "CrpMgL": 0.5,
+      "LymPc": 51.35,
+      "McvFL": 88,
+      "RdwPc": 11.4,
+      "AlpUL": 34,
+      "Wbc1000cellsuL": 3.7
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Rapa Nui (Easter Island)",
+  "Why": "Love for Science. Love for feeling healthy. Love for performance.\nBeing there for loved ones and not being limited by my body and health for anything I want to do.",
+  "PersonalLink": "https://www.instagram.com/wen_x_z/"
+}
