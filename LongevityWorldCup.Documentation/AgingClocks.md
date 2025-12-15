@@ -1,6 +1,6 @@
 # Every Commercially Available Biological Aging Clock in Existence
 
-|Created|Clock|Type|Creators (only real humans allowed)|Sellers|Availability|
+|Created|Clock|Type|Creators (only real humans allowed)|Sellers|Availability
 |-|-|-|-|-|-|
 |1960s–1970s|VO₂max Age|cardiorespiratory fitness (max oxygen uptake)|Per-Olof Åstrand|any sports lab, fitness trackers|global|
 |2004|Vascular Age|arterial stiffness (pulse wave velocity)|Thomas Münzel|smart scales, wearables, clinics|global|
@@ -30,9 +30,10 @@
 |2023|Physiological Age (PhysiAge)|blood glucose + blood pressure + step count||[Aging is Beautiful Calculator](https://agingisbeautiful.com/2023/08/18/a-simple-way-to-calculate-your-physiological-age/)|global (online)|
 |2023|Bortz Age|blood|Jordan Bortz, Andrea Guariglia, Lucija Klaric, David Tang, Peter Ward, Michael Geer, Marc Chadeau-Hyam, Dragana Vuckovic & Peter K. Joshi |many labs, [longevity-tools Bortz calculator](https://www.longevity-tools.com/humanitys-bortz-blood-age)|global|
 |2024|NOVOS Age|methylation (saliva)||[NOVOS](https://novoslabs.com/product/novos-age/)|USA, Canada|
-|2024|LinAge|blood, BP, pulse rate, BMI, smoking status, medical history| Sheng Fong et al.|any lab|global|
+|2024|LinAge|blood, BP, pulse rate, BMI, smoking status, medical history|[Sheng Fong et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC11333290/)|any lab|global|
 |2024|BioAge DNA Test (DNA Labs India)|methylation (saliva)||[DNA Labs India](https://dnalabsindia.com/test/longevity-biological-age-bioage-dna-test)|India, international shipping|
 |2024|WHOOP Age|wearable||[WHOOP](https://www.whoop.com/)|global|
+|2025|LinAge2|blood, BP, pulse rate, BMI, smoking status, medical history|[Sheng Fong et al.](https://www.nature.com/articles/s41514-025-00221-4)|any lab|global|
 |2025|Muhdo|methylation (saliva)|Chris Collins et al.|[muhdohub](https://muhdohub.com/products/dna-epigenetic-kit), [shop.muhdo](https://shop.muhdo.com/)|global|
 |2025|Aeternum DNA Biological Age Test|methylation (saliva)|Oliver Foster|[Aeternum](https://aeternum.site/products/aeternum-biological-age-test-kit), [Aeternum EU](https://eu.aeternum.site/product/aeternum-biological-age-test-kit/)|global (domestic stock in USA, Canada, UK, Australia, Singapore, Hong Kong, & Europe)|
 |2025|SYMPHONYAge|methylation||[TruDiagnostic](https://shop.trudiagnostic.com/products/truage-complete-epigenetic-collection), [Life Extension](https://www.lifeextension.com/lab-testing/itemlc900003/truage-complete-epigenetic-age-profile-finger-stick-test)|all US territories and most countries|
