@@ -30,6 +30,7 @@
 |2023|Physiological Age (PhysiAge)|blood glucose + blood pressure + step count||[Aging is Beautiful Calculator](https://agingisbeautiful.com/2023/08/18/a-simple-way-to-calculate-your-physiological-age/)|global (online)|
 |2023|Bortz Age|blood|Jordan Bortz, Andrea Guariglia, Lucija Klaric, David Tang, Peter Ward, Michael Geer, Marc Chadeau-Hyam, Dragana Vuckovic & Peter K. Joshi |many labs, [longevity-tools Bortz calculator](https://www.longevity-tools.com/humanitys-bortz-blood-age)|global|
 |2024|NOVOS Age|methylation (saliva)||[NOVOS](https://novoslabs.com/product/novos-age/)|USA, Canada|
+|2024|LinAge|blood, BP, pulse rate, BMI, smoking status, medical history| Sheng Fong et al.|any lab|global|
 |2024|BioAge DNA Test (DNA Labs India)|methylation (saliva)||[DNA Labs India](https://dnalabsindia.com/test/longevity-biological-age-bioage-dna-test)|India, international shipping|
 |2024|WHOOP Age|wearable||[WHOOP](https://www.whoop.com/)|global|
 |2025|Muhdo|methylation (saliva)|Chris Collins et al.|[muhdohub](https://muhdohub.com/products/dna-epigenetic-kit), [shop.muhdo](https://shop.muhdo.com/)|global|
