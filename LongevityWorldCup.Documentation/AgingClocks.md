@@ -1,6 +1,6 @@
 # Every Commercially Available Biological Aging Clock in Existence
 
-|Created|Clock|Type|Creators (only real humans allowed)|Sellers|Availability
+|Created|Clock|Type|Creators (only real humans allowed)|Sellers|Availability|
 |-|-|-|-|-|-|
 |1960s–1970s|VO₂max Age|cardiorespiratory fitness (max oxygen uptake)|Per-Olof Åstrand|any sports lab, fitness trackers|global|
 |2004|Vascular Age|arterial stiffness (pulse wave velocity)|Thomas Münzel|smart scales, wearables, clinics|global|
