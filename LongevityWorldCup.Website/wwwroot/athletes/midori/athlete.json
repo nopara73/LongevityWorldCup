@@ -1,0 +1,28 @@
+{
+  "Name": "Midori",
+  "DisplayName": null,
+  "MediaContact": "alexandrina.pro@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 2,
+    "Day": 6
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-16",
+      "AlbGL": 49,
+      "CreatUmolL": 66,
+      "GluMmolL": 5,
+      "CrpMgL": 1.16,
+      "LymPc": 33.8,
+      "McvFL": 82.6,
+      "RdwPc": 13.9,
+      "AlpUL": 46,
+      "Wbc1000cellsuL": 5.2
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "France",
+  "Why": "I’d like to stay healthy as long as possible",
+  "PersonalLink": null
+}
