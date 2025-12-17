@@ -320,26 +320,20 @@
     }
 
     .custom-event-expander::before{
-        content:"";
+        content:"\f078";
+        font-family:"Font Awesome 6 Free";
+        font-weight:900;
         position:absolute;
         left:50%;
         top:50%;
-
-        width:10px;
-        height:10px;
-        box-sizing:border-box;
-
-        border-right:3px solid currentColor;
-        border-bottom:3px solid currentColor;
-        border-radius:2px;
-
-        transform:translate(-50%,-50%) rotate(45deg);
+        transform:translate(-50%,-50%) rotate(0deg);
         transform-origin:50% 50%;
         transition:transform .18s ease;
+        font-size:12px;
+        line-height:1;
     }
-
     .custom-event-row.is-open .custom-event-expander::before{
-        transform:translate(-50%,-50%) rotate(-134.9deg);
+        transform:translate(-50%,-50%) rotate(180deg);
     }
 
     .events-board tbody tr.custom-event-row{cursor:pointer}
