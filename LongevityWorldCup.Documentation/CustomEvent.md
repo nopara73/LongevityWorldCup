@@ -1,7 +1,7 @@
 ## Run the script
 
 ```bash
-bash Scripts/custom_event.sh /path/to/LongevityWorldCup.db
+./Scripts/custom_event.sh "/path/to/LongevityWorldCup.db"
 ```
 
 ## Enter the Title and Content
