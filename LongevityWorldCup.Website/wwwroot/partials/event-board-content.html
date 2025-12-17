@@ -165,6 +165,10 @@
         box-sizing:border-box
     }
     .events-board td.event-message{
+        padding-left:0;
+    }
+
+    .events-board td.event-message .event-message-cell{
         display:flex;
         align-items:center;
         align-content:center;
@@ -174,7 +178,8 @@
         min-height:calc(var(--event-row-min) - (var(--row-pad-y) * 2));
         padding-top:var(--row-pad-y);
         padding-bottom:var(--row-pad-y);
-        box-sizing:border-box
+        box-sizing:border-box;
+        min-width:0;
     }
 
     .event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
@@ -378,7 +383,7 @@
     @media (max-width:600px){
         .events-board thead th{font-size:.85rem;padding:10px 12px}
         .view-all{font-size:.75rem}
-        .events-board tbody td{padding:6px 12px;height:auto;line-height:1.25}
+        .events-board tbody td{padding:0 12px;height:auto;line-height:1.25}
         .events-board table tbody tr{height:auto}
         .col-avatar{width:28px}
         .avatar,.avatar-fallback{width:22px;height:22px;border-width:2px}
@@ -1059,7 +1064,7 @@
                 tr.dataset.groupId = `g_${idx}`;
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                     <td class="athlete-td event-message">${msgHtml}</td>
+                     <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
                      <td class="col-date">${dateLabel}</td>`;
                 const imgEl = tr.querySelector("img.avatar");
                 if (imgEl) {
