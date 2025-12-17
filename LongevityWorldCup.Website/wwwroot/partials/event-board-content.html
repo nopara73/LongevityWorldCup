@@ -342,6 +342,7 @@
     }
 
     .events-board tbody tr.custom-event-row{cursor:pointer}
+    .events-board tbody tr.custom-event-row.custom-event-no-details{cursor:default}
 
     @media (prefers-reduced-motion:reduce){
         .custom-event-expander::before{transition:none}
@@ -1047,7 +1048,13 @@
                 } else if (r.type === EVENT_TYPE.CustomEvent) {
                     const parts = splitCustomEventText(r.text);
                     const titleSingle = normalizeNewlines(parts.title).replace(/\n+/g, " ").trim();
-                    msgHtml = `<span class="custom-event-title">${renderCustomMarkup(titleSingle)}<button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="custom-event-details-${idx}" aria-label="Show details" title="Show details"></button></span>`;
+                    const hasDetails = String(parts.content || "").trim().length > 0;
+
+                    msgHtml = `<span class="custom-event-title">${renderCustomMarkup(titleSingle)}${
+                        hasDetails
+                            ? `<button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="custom-event-details-${idx}" aria-label="Show details" title="Show details"></button>`
+                            : ``
+                    }</span>`;
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
@@ -1080,12 +1087,20 @@
                     tr.classList.add("custom-event-row");
 
                     const parts = splitCustomEventText(r.text);
-                    const contentHtml = renderCustomMarkupWithBreaks(String(parts.content || "").trim());
+                    const contentTrim = String(parts.content || "").trim();
+                    const hasDetails = contentTrim.length > 0;
+
+                    if (!hasDetails) {
+                        tr.classList.add("custom-event-no-details");
+                        return;
+                    }
+
+                    const contentHtml = renderCustomMarkupWithBreaks(contentTrim);
 
                     const detailsTr = document.createElement("tr");
                     detailsTr.className = "details-row custom-event-details";
                     detailsTr.innerHTML =
-                        `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${contentHtml || `<span style="opacity:.7">No details</span>`}</div></td>`;
+                        `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${contentHtml}</div></td>`;
 
                     const btn = tr.querySelector(".custom-event-expander");
 
