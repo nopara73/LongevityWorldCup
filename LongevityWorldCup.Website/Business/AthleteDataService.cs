@@ -12,10 +12,8 @@ namespace LongevityWorldCup.Website.Business;
 public class AthleteDataService : IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
-    
+    private readonly DatabaseFileWatcher _dbWatcher;
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
-
-    // rolling window for new-athlete detection (currently ~1 month)
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
 
     public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
@@ -198,27 +196,17 @@ public class AthleteDataService : IDisposable
         DetectAndEmitAthleteCountMilestones(); // emit milestones retroactively and at startup
 
         // Poll-loop to detect external DB writes and reload stats
-        _ = Task.Run(async () =>
+        _dbWatcher = new DatabaseFileWatcher(dbPath, TimeSpan.FromSeconds(5));
+        _dbWatcher.DatabaseChanged += () =>
         {
-            var lastWrite = File.GetLastWriteTimeUtc(dbPath);
-            while (true)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-
-                var newWrite = File.GetLastWriteTimeUtc(dbPath);
-                if (newWrite > lastWrite)
-                {
-                    lastWrite = newWrite;
-                    ReloadCrowdStats();
-                    HydratePlacementsIntoAthletesJson();
-                    HydrateNewFlagsIntoAthletesJson();
-                    HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-                    HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
-                    PushAthleteDirectoryToEvents();
-                    AthletesChanged?.Invoke();
-                }
-            }
-        });
+            ReloadCrowdStats();
+            HydratePlacementsIntoAthletesJson();
+            HydrateNewFlagsIntoAthletesJson();
+            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+            HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
+            PushAthleteDirectoryToEvents();
+            AthletesChanged?.Invoke();
+        };
 
         // daily backup + retention
         _ = Task.Run(async () =>
@@ -914,6 +902,7 @@ public class AthleteDataService : IDisposable
 
     public void Dispose()
     {
+        _dbWatcher.Dispose();
         _athleteWatcher.Dispose();
         _reloadLock.Dispose();
         _debounceCts?.Dispose();
