@@ -43,8 +43,6 @@ public sealed class EventDataService : IDisposable
     private readonly SlackEventService _slackEvents;
     private readonly DatabaseFileWatcher _dbWatcher;
 
-    private int _dbChangeGate;
-
     public JsonArray Events { get; private set; } = [];
     
     private static readonly HashSet<string> BadgeSlackWhitelist = new(StringComparer.Ordinal)
@@ -127,15 +125,13 @@ public sealed class EventDataService : IDisposable
 
     private void OnDatabaseChanged()
     {
-        if (Interlocked.Exchange(ref _dbChangeGate, 1) == 1) return;
         try
         {
             ProcessPendingSlackEvents();
             ReloadIntoCache();
         }
-        finally
+        catch
         {
-            Interlocked.Exchange(ref _dbChangeGate, 0);
         }
     }
 
@@ -151,11 +147,8 @@ public sealed class EventDataService : IDisposable
             selectCmd.Transaction = tx;
             selectCmd.CommandText =
                 "SELECT Id, Type, Text FROM Events " +
-                "WHERE SlackProcessed = 0 AND Type IN (@t1, @t2, @t3) " +
+                "WHERE SlackProcessed = 0 " +
                 "ORDER BY OccurredAt ASC;";
-            selectCmd.Parameters.AddWithValue("@t1", (int)EventType.NewRank);
-            selectCmd.Parameters.AddWithValue("@t2", (int)EventType.DonationReceived);
-            selectCmd.Parameters.AddWithValue("@t3", (int)EventType.AthleteCountMilestone);
 
             using var r = selectCmd.ExecuteReader();
             var pending = new List<(string Id, int TypeInt, string Text)>();
