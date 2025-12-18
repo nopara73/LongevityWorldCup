@@ -1,0 +1,28 @@
+{
+  "Name": "Chase",
+  "DisplayName": null,
+  "MediaContact": "Jjphoops@gmail.com",
+  "DateOfBirth": {
+    "Year": 1991,
+    "Month": 1,
+    "Day": 25
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-08-22",
+      "AlbGL": 44,
+      "CreatUmolL": 134.5132743362832,
+      "GluMmolL": 4.551509769094139,
+      "CrpMgL": 3,
+      "LymPc": 32,
+      "McvFL": 102,
+      "RdwPc": 12.3,
+      "AlpUL": 41,
+      "Wbc1000cellsuL": 4.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "I don’t want to end up like my grandparents with decaying brains and bodies in my matter years. I want to be physically active all the way until the end of",
+  "PersonalLink": "linkedin.com/in/cblakeley"
+}
