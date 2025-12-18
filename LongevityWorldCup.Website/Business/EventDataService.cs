@@ -39,17 +39,31 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceBadgeAward = 8d;
 
     private readonly SqliteConnection _sqlite;
-    private readonly SlackWebhookClient _slack;
-
-    private readonly object _athDirLock = new();
-    private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SlackEventService _slackEvents;
 
     public JsonArray Events { get; private set; } = [];
+    
+    private static readonly HashSet<string> BadgeSlackWhitelist = new(StringComparer.Ordinal)
+    {
+        "Chronological Age – Oldest",
+        "Chronological Age – Youngest",
+        "PhenoAge – Lowest",
+        "Age Reduction",
+        "Best Domain – Liver",
+        "Best Domain – Kidney",
+        "Best Domain – Metabolic",
+        "Best Domain – Inflammation",
+        "Best Domain – Immune",
+        "PhenoAge Best Improvement",
+        "Crowd – Most Guessed",
+        "Crowd – Age Gap (Chrono−Crowd)",
+        "Crowd – Lowest Crowd Age"
+    };
 
-    public EventDataService(IWebHostEnvironment env, SlackWebhookClient slack)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents)
     {
         _ = env;
-        _slack = slack;
+        _slackEvents = slackEvents;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -87,11 +101,9 @@ public sealed class EventDataService : IDisposable
 
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
     {
-        var map = new Dictionary<string, (string Name, int? Rank)>(StringComparer.OrdinalIgnoreCase);
-        foreach (var i in items) map[i.Slug] = (i.Name, i.CurrentRank);
-        lock (_athDirLock) _athDir = map;
+        _slackEvents.SetAthleteDirectory(items);
     }
-
+    
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,
@@ -333,7 +345,6 @@ public sealed class EventDataService : IDisposable
         }
     }
 
-
     public void CreateAthleteCountMilestoneEvents(
         IEnumerable<(int Count, DateTime OccurredAtUtc)> items,
         bool skipIfExists = true,
@@ -410,6 +421,7 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
+        var notify = new List<string>();
 
         lock (_sqlite)
         {
@@ -461,12 +473,17 @@ public sealed class EventDataService : IDisposable
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
+                notify.Add(text);
             }
 
             tx.Commit();
         }
 
-        if (created > 0) ReloadIntoCache();
+        if (created > 0)
+        {
+            ReloadIntoCache();
+            foreach (var raw in notify) FireAndForgetSlack(EventType.BadgeAward, raw);
+        }
     }
 
     public IReadOnlyList<EventItem> GetEvents(
@@ -545,53 +562,42 @@ public sealed class EventDataService : IDisposable
     private static DateTime EnsureUtc(DateTime dt) =>
         dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
-    private string SlugToNameResolve(string slug)
-    {
-        lock (_athDirLock)
-        {
-            if (_athDir.TryGetValue(slug, out var v) && !string.IsNullOrWhiteSpace(v.Name)) return v.Name;
-        }
-
-        var spaced = slug.Replace('_', '-').Replace('-', ' ');
-        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
-    }
-
-    private static bool TryExtractRankFromRawText(string rawText, out int rank)
-    {
-        rank = 0;
-        if (string.IsNullOrWhiteSpace(rawText)) return false;
-        var m = Regex.Match(rawText, @"\brank\[(\d+)\]", RegexOptions.CultureInvariant);
-        if (!m.Success) return false;
-        return int.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out rank);
-    }
-
     private void FireAndForgetSlack(EventType type, string rawText)
     {
+        // if (type == EventType.Joined)
+        // {
+        //     _ = _slackEvents.BufferAsync(type, rawText);
+        //     return;
+        // }
+        
         if (type == EventType.NewRank)
         {
-            if (!TryExtractRankFromRawText(rawText, out var rank) || rank > 10)
-                return;
-        }
-        else if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
-        {
-        }
-        else
-        {
+            if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank > 10) return;
+            _ = _slackEvents.SendImmediateAsync(type, rawText);
             return;
         }
 
-        _ = Task.Run(async () =>
+        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
         {
-            try
-            {
-                var text = SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
-                if (!string.IsNullOrWhiteSpace(text))
-                    await _slack.SendAsync(text);
-            }
-            catch
-            {
-            }
-        });
+            _ = _slackEvents.SendImmediateAsync(type, rawText);
+            return;
+        }
+
+        // if (type == EventType.BadgeAward)
+        // {
+        //     if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return;
+        //     if (!BadgeSlackWhitelist.Contains(label)) return;
+        //     if (!EventHelpers.TryExtractPlace(rawText, out var place) || place != 1) return;
+        //
+        //     if (EventHelpers.TryExtractCategory(rawText, out var cat) && string.Equals(cat, "Global", StringComparison.Ordinal))
+        //     {
+        //         var norm = EventHelpers.NormalizeBadgeLabel(label);
+        //         if (string.Equals(norm, "Age Reduction", StringComparison.Ordinal)) return;
+        //     }
+        //
+        //     _ = _slackEvents.BufferAsync(type, rawText);
+        //     return;
+        // }
     }
 
     public void Dispose()
