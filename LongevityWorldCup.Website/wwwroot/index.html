@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <link rel="canonical" href="https://longevityworldcup.com/" />
-    <title>Longevity World Cup 2025</title>
+    <title>Longevity World Cup</title>
     <!--HEAD-->
     <style>
         .dialog {
@@ -399,51 +399,6 @@
             }
         }
 
-        /* Countdown Section Styles (beta box) */
-        .countdown-section {
-            position: relative;
-            overflow: hidden;
-            color: var(--dark-text-color);
-            padding: 1.75rem 2rem;
-            border-radius: 16px;
-            margin-top: 2rem;
-            text-align: center;
-            background: linear-gradient( 135deg, rgba(79, 163, 232, 0.12), rgba(79, 232, 163, 0.08) );
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-        }
-
-            .countdown-section h2 {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.6rem;
-                font-size: 1.4rem;
-                margin-bottom: 0.75rem;
-            }
-
-                .countdown-section h2 i {
-                    font-size: 1.4rem;
-                    opacity: 0.9;
-                }
-
-        #countdown {
-            font-size: 2.1rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            margin-bottom: 0.6rem;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        }
-
-        .countdown-section p {
-            font-size: 0.95rem;
-            color: var(--dark-text-color);
-            line-height: 1.6;
-            max-width: 520px;
-            margin: 0.25rem auto 0;
-            opacity: 0.9;
-        }
-
         /* ===== Season countdown next to events board ===== */
 
         .lwc-highlights-countdown-wrapper {
@@ -621,18 +576,6 @@
         <p class="game-description" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
             Too old for your sport? Not&nbsp;this&nbsp;one! In the Longevity&nbsp;World&nbsp;Cup, you&nbsp;don't&nbsp;age&nbsp;out - you&nbsp;age&nbsp;in. Reverse&nbsp;your&nbsp;age and <strong>rise&nbsp;on&nbsp;the&nbsp;leaderboard!</strong>
         </p>
-        <!-- New Countdown Section -->
-        <div class="section-container countdown-section" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-            <h2><i class="fas fa-hourglass-half"></i> Beta Testing Ends In:</h2>
-            <div id="countdown">
-                <!-- The countdown timer will be inserted here by JavaScript -->
-            </div>
-            <p>
-                <span class="smaller-text">
-                    Beta registration is now open! Start competing today! The official launch is set for September 16, 2025.
-                </span>
-            </p>
-        </div>
 
         <div class="lwc-highlights-countdown-wrapper">
             <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
@@ -660,7 +603,7 @@
                            class="lwc-countdown-rulebook-link"
                            target="_blank"
                            rel="noopener"
-                           aria-label="View the full 2025 Longevity World Cup rulebook on GitHub">
+                           aria-label="View the Longevity World Cup rulebook on GitHub">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                             <span>View Rulebook</span>
                         </a>
@@ -973,87 +916,6 @@
                 console.error('Error fetching BTC data:', error);
             });
 
-        // Countdown Timer Script
-        (function () {
-            const now = new Date();
-            const targetDate = new Date(2025, 8, 16, 0, 0, 0).getTime();
-            const countdownElement = document.getElementById('countdown');
-            const leaderboardButton = document.getElementById('viewAllAthletesBtn'); // Example element
-            const leaderboardContent = document.querySelector('.leaderboard-content'); // Replace with actual leaderboard container class or id
-
-            let countdownInterval; // Declare the variable outside the function
-
-            const updateCountdown = () => {
-                const now = new Date().getTime();
-                const distance = targetDate - now;
-
-                // if timer passed and not within first month anymore
-                const oneMonthMs = 30 * 24 * 60 * 60 * 1000;  // 30 days in milliseconds
-                if (distance < -oneMonthMs) {
-                    const countdownSectionElem = document.querySelector('.countdown-section');
-                    if (countdownSectionElem) countdownSectionElem.style.display = 'none';
-                    clearInterval(countdownInterval);
-                    return;
-                }
-
-                if (distance < 0) {
-                    // Countdown has finished
-                    clearInterval(countdownInterval);
-                    countdownElement.innerHTML = `
-                                      <div class="launch-announcement">
-                                        <div class="rocket-row top-rockets">
-                                          <i class="fas fa-rocket rocket-icon rocket-top-1"></i>
-                                          <i class="fas fa-rocket rocket-icon rocket-top-2"></i>
-                                          <i class="fas fa-rocket rocket-icon rocket-top-3"></i>
-                                        </div>
-                                        <span class="launch-text">The competition has just STARTED</span>
-                                        <div class="rocket-row bottom-rockets">
-                                          <i class="fas fa-rocket rocket-icon rocket-bottom-1"></i>
-                                          <i class="fas fa-rocket rocket-icon rocket-bottom-2"></i>
-                                          <i class="fas fa-rocket rocket-icon rocket-bottom-3"></i>
-                                        </div>
-                                      </div>
-`;
-
-                    setTimeout(() => {
-                        document.querySelectorAll('.rocket-row.top-rockets .rocket-icon')
-                            .forEach(el => el.style.animation = 'rocketExit 0.6s ease-out forwards');
-                    }, 1200);
-
-                    if (typeof confetti === 'function') confetti();
-                    // Hide the "Competition Starts In:" header and illustrative text
-                    const countdownHeader = document.querySelector('.countdown-section h2'); // Replace with actual selector for the header
-                    const illustrativeText = document.querySelector('.countdown-section p'); // Replace with actual selector for the text
-                    if (countdownHeader) countdownHeader.style.display = 'none';
-                    if (illustrativeText) illustrativeText.style.display = 'none';
-
-                    return;
-                }
-
-                // Time calculations for months, days, hours, minutes, and seconds
-                const totalDays = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const months = Math.floor(totalDays / 30);   // 0 when < 30 days
-                const days = totalDays % 30;
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                // Build the countdown string based on non-zero values
-                let countdownText = '';
-                if (months > 0) countdownText += `${months}mo `;
-                if (days > 0 || months > 0) countdownText += `${days}d `;
-                if (hours > 0 || days > 0 || months > 0) countdownText += `${hours}h `;
-                if (minutes > 0 || hours > 0 || days > 0 || months > 0) countdownText += `${minutes}m `;
-                countdownText += `${seconds}s`; // Always show seconds
-
-                // Display the result
-                countdownElement.innerHTML = countdownText.trim();
-            };
-
-            // Initial call and set interval
-            updateCountdown();
-            countdownInterval = setInterval(updateCountdown, 1000); // Assign the interval here
-        })();
         function initHighlightsCountdown() {
             const countdownElement = document.getElementById('lwcHighlightsCountdownTimer');
             if (!countdownElement) return;
