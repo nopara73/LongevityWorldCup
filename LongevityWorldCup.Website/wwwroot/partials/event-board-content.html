@@ -20,7 +20,8 @@
         --badge-chip-pad-x:.45rem;
         --badge-gap:.25rem;
         --badge-inline-gap:.2rem;
-        --milestone-people:#6366f1
+        --milestone-people:#6366f1;
+        --custom-event-accent:#00C2A8;
     }
 
     @keyframes fadeInBoard{
@@ -98,6 +99,19 @@
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
 
+    .events-board table tbody tr.custom-event-row.is-open:hover + tr.custom-event-details,
+    .events-board table tbody tr.custom-event-details:hover{
+        transform:scale(1.01);
+        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
+    }
+    .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover){
+        transform:scale(1.01);
+        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        background-color:rgba(240,244,248,.8);
+        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
+    }
+
     .events-board tbody td{
         height:auto;
         vertical-align:middle;
@@ -117,6 +131,15 @@
         box-shadow:0 1px 3px rgba(0,0,0,.12);
         background:#eef3f7
     }
+
+    .avatar.custom-event-avatar,
+    .avatar-fallback.custom-event-avatar{
+        border:2px solid rgba(255,120,0,1) !important;
+        filter:
+                drop-shadow(0 0 2px rgba(255,110,0,.75))
+                drop-shadow(0 0 6px rgba(255,60,0,.60)) !important;
+    }
+
     .avatar{object-fit:cover;display:block;image-rendering:auto}
     .avatar-fallback{display:inline-flex;align-items:center;justify-content:center;color:#5a6b7b;font-weight:800;font-size:.7rem;text-transform:uppercase;line-height:24px}
     .avatar-link{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
@@ -142,6 +165,10 @@
         box-sizing:border-box
     }
     .events-board td.event-message{
+        padding-left:0;
+    }
+
+    .events-board td.event-message .event-message-cell{
         display:flex;
         align-items:center;
         align-content:center;
@@ -151,7 +178,8 @@
         min-height:calc(var(--event-row-min) - (var(--row-pad-y) * 2));
         padding-top:var(--row-pad-y);
         padding-bottom:var(--row-pad-y);
-        box-sizing:border-box
+        box-sizing:border-box;
+        min-width:0;
     }
 
     .event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
@@ -241,12 +269,122 @@
     .events-board .badge-with-from.show-from .badge-from{max-width:260px;opacity:1;margin-left:.35rem}
 
     .events-board tbody tr.details-row{display:none}
+
+    .events-board tbody tr.custom-event-details{
+        display:table-row;
+        transform:none;
+        box-shadow:none;
+        background-color:transparent;
+    }
+
+    .events-board tbody tr.custom-event-details .details-cell{
+        padding:0 20px;
+        background:var(--details-bg);
+        border-top:0;
+    }
+
+    .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details{
+        display:table-row;
+    }
+
+    .custom-event-title{
+        min-width:0;
+        overflow-wrap:anywhere;
+        word-break:break-word;
+    }
+
+    .custom-event-expander,
+    .custom-event-expander:hover,
+    .custom-event-expander:focus,
+    .custom-event-expander:active,
+    .custom-event-expander:focus-visible{
+        background:transparent !important;
+        border:0 !important;
+        box-shadow:none !important;
+        outline:none !important;
+    }
+
+    .custom-event-expander{
+        -webkit-appearance:none;
+        appearance:none;
+        -webkit-tap-highlight-color:transparent;
+
+        position:relative;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+
+        width:18px;
+        height:18px;
+        margin-left:.35rem;
+        padding:0;
+
+        color:#000;
+        cursor:pointer;
+        vertical-align:middle;
+    }
+
+    .custom-event-expander::before{
+        content:"\f078";
+        font-family:"Font Awesome 6 Free";
+        font-weight:900;
+        position:absolute;
+        left:50%;
+        top:50%;
+        transform:translate(-50%,-50%) rotate(0deg);
+        transform-origin:50% 50%;
+        transition:transform .18s ease;
+        font-size:12px;
+        line-height:1;
+    }
+    .custom-event-row.is-open .custom-event-expander::before{
+        transform:translate(-50%,-50%) rotate(180deg);
+    }
+
+    .events-board tbody tr.custom-event-row{cursor:pointer}
+    .events-board tbody tr.custom-event-row.custom-event-no-details{cursor:default}
+
+    @media (prefers-reduced-motion:reduce){
+        .custom-event-expander::before{transition:none}
+    }
+
+    .custom-event-content{
+        padding:0;
+        line-height:1.45;
+        max-height:0;
+        opacity:0;
+        overflow:hidden;
+        transform:translateY(-2px);
+        will-change:max-height,opacity,transform,padding;
+        transition:
+                max-height .34s cubic-bezier(.2,.85,.2,1),
+                transform .34s cubic-bezier(.2,.85,.2,1),
+                padding .34s cubic-bezier(.2,.85,.2,1),
+                opacity .18s linear .16s;
+    }
+
+    .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-content{
+        padding:10px 0;
+        max-height:1400px;
+        opacity:1;
+        transform:translateY(0);
+        transition:
+                max-height .34s cubic-bezier(.2,.85,.2,1),
+                transform .34s cubic-bezier(.2,.85,.2,1),
+                padding .34s cubic-bezier(.2,.85,.2,1),
+                opacity .18s linear;
+    }
+
     .details-cell{padding:10px 20px;background:var(--details-bg);border-top:1px solid rgba(0,0,0,.06)}
+
+    @media (prefers-reduced-motion:reduce){
+        .custom-event-content{transition:none;transform:none}
+    }
 
     @media (max-width:600px){
         .events-board thead th{font-size:.85rem;padding:10px 12px}
         .view-all{font-size:.75rem}
-        .events-board tbody td{padding:6px 12px;height:auto;line-height:1.25}
+        .events-board tbody td{padding:0 12px;height:auto;line-height:1.25}
         .events-board table tbody tr{height:auto}
         .col-avatar{width:28px}
         .avatar,.avatar-fallback{width:22px;height:22px;border-width:2px}
@@ -281,7 +419,7 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6 };
 
         const MILESTONE_COPY = {
             42:    'Answer unlocked - the competition reached <strong class="milestone-count">42</strong> athletes',
@@ -322,6 +460,56 @@
         }
         function initialsFromName(n){const parts=String(n).trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
 
+        function normalizeNewlines(s){return String(s||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");}
+        function splitCustomEventText(text){
+            const s=normalizeNewlines(text);
+            const idx=s.indexOf("\n\n");
+            if(idx>=0){
+                return { title: s.slice(0,idx).trimEnd(), content: s.slice(idx+2) };
+            }
+            return { title: s.trimEnd(), content: "" };
+        }
+        function isSafeHttpUrl(u){return /^https?:\/\/.+/i.test(String(u||"").trim());}
+        function renderCustomMarkup(text){
+            const s=String(text||"");
+            let out="";
+            let i=0;
+            while(i<s.length){
+                const open=s.indexOf("[", i);
+                if(open<0){out+=esc(s.slice(i));break;}
+                out+=esc(s.slice(i, open));
+                const close=s.indexOf("](", open+1);
+                if(close<0){out+=esc(s.slice(open));break;}
+                const label=s.slice(open+1, close);
+                const parenStart=close+2;
+                let depth=1;
+                let j=parenStart;
+                while(j<s.length && depth>0){
+                    const ch=s[j];
+                    if(ch==="(") depth++;
+                    else if(ch===")") depth--;
+                    j++;
+                }
+                if(depth!==0){out+=esc(s.slice(open));break;}
+                const inner=s.slice(parenStart, j-1);
+                const key=label.trim().toLowerCase();
+                if(key==="bold"){
+                    out+=`<span style="font-weight:800">${renderCustomMarkup(inner)}</span>`;
+                }else if(key==="strong"){
+                    out+=`<span style="font-weight:800;color:var(--secondary-color,#ff4f87)">${renderCustomMarkup(inner)}</span>`;
+                }else if(isSafeHttpUrl(inner)){
+                    out+=`<a href="${esc(inner.trim())}" target="_top" rel="noopener">${esc(label)}</a>`;
+                }else{
+                    out+=esc(s.slice(open, j));
+                }
+                i=j;
+            }
+            return out;
+        }
+        function renderCustomMarkupWithBreaks(text){
+            const s = normalizeNewlines(text || "");
+            return s.split("\n").map(line => renderCustomMarkup(line)).join("<br>");
+        }
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
             const dt=new Date(iso); if(isNaN(dt)) return "";
@@ -525,7 +713,7 @@
 
             return null;
         }
-        
+
         function findServerBadgeOnAthleteEx(athlete,label,cat,val,place){
             if(!athlete) return null;
             const map=lowerKeyMap(athlete);
@@ -761,7 +949,9 @@
                     : "";
 
                 const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
-                const name = a ? (athleteName(a) || r.primarySlug) : (r.primarySlug || "");
+
+                const isCustomEvent = r.type === EVENT_TYPE.CustomEvent;
+                const name = isCustomEvent ? "Longevity World Cup" : (a ? (athleteName(a) || r.primarySlug) : (r.primarySlug || ""));
                 const url = r.primarySlug ? makeAthleteUrlFromSlug(r.primarySlug) : "";
                 const img = a ? athletePic(a) : "";
 
@@ -782,6 +972,9 @@
                     avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
                 } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
                     avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
+                } else if (r.type === EVENT_TYPE.CustomEvent) {
+                    const logo = "/assets/HdLogo.png";
+                    avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
@@ -852,6 +1045,16 @@
                 } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
                     const n = Number.isFinite(r.milestoneCount) ? r.milestoneCount : null;
                     msgHtml = n ? milestoneMessage(n) : esc(r.text);
+                } else if (r.type === EVENT_TYPE.CustomEvent) {
+                    const parts = splitCustomEventText(r.text);
+                    const titleSingle = normalizeNewlines(parts.title).replace(/\n+/g, " ").trim();
+                    const hasDetails = String(parts.content || "").trim().length > 0;
+
+                    msgHtml = `<span class="custom-event-title">${renderCustomMarkup(titleSingle)}${
+                        hasDetails
+                            ? `<button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="custom-event-details-${idx}" aria-label="Show details" title="Show details"></button>`
+                            : ``
+                    }</span>`;
                 } else {
                     const tokenHtml = renderTextWithSlugLinks(
                         r.text,
@@ -868,7 +1071,7 @@
                 tr.dataset.groupId = `g_${idx}`;
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                     <td class="athlete-td event-message">${msgHtml}</td>
+                     <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
                      <td class="col-date">${dateLabel}</td>`;
                 const imgEl = tr.querySelector("img.avatar");
                 if (imgEl) {
@@ -879,6 +1082,54 @@
                     }, { once: true });
                 }
                 frag.appendChild(tr);
+
+                if (isCustomEvent) {
+                    tr.classList.add("custom-event-row");
+
+                    const parts = splitCustomEventText(r.text);
+                    const contentTrim = String(parts.content || "").trim();
+                    const hasDetails = contentTrim.length > 0;
+
+                    if (!hasDetails) {
+                        tr.classList.add("custom-event-no-details");
+                        return;
+                    }
+
+                    const contentHtml = renderCustomMarkupWithBreaks(contentTrim);
+
+                    const detailsTr = document.createElement("tr");
+                    detailsTr.className = "details-row custom-event-details";
+                    detailsTr.innerHTML =
+                        `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${contentHtml}</div></td>`;
+
+                    const btn = tr.querySelector(".custom-event-expander");
+
+                    const toggleOpen = () => {
+                        const open = tr.classList.toggle("is-open");
+                        if (btn) {
+                            btn.setAttribute("aria-expanded", open ? "true" : "false");
+                            btn.setAttribute("title", open ? "Hide details" : "Show details");
+                            btn.setAttribute("aria-label", open ? "Hide details" : "Show details");
+                        }
+                        applyZebraStriping(tbody);
+                    };
+
+                    if (btn) {
+                        btn.addEventListener("click", (ev) => {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            toggleOpen();
+                        });
+                    }
+
+                    tr.addEventListener("click", (ev) => {
+                        const t = ev.target;
+                        if (t && t.closest && (t.closest("a") || t.closest(".custom-event-expander"))) return;
+                        toggleOpen();
+                    });
+
+                    frag.appendChild(detailsTr);
+                }
             });
 
             tbody.appendChild(frag);

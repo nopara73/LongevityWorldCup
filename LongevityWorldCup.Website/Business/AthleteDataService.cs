@@ -215,6 +215,7 @@ public class AthleteDataService : IDisposable
                     HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
                     HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
                     PushAthleteDirectoryToEvents();
+                    _eventDataService.ReloadIntoCache();
                     AthletesChanged?.Invoke();
                 }
             }
