@@ -33,24 +33,52 @@ The renderer supports three inline formats inside both Title and Content.
 
 ### Link
 
+Renders as a clickable link in the UI.
+
+```text
+[Longevity World Cup](https://longevityworldcup.com/)
+```
+
+- `[Longevity World Cup]` -> the text that will be clickable
+- `(https://longevityworldcup.com/)` -> the link
+
+Example:
+
 ```text
 Visit [Longevity World Cup](https://longevityworldcup.com/) for the latest leaderboard.
 ```
-Renders as a clickable link in the UI.
 
 ### Bold
 
+Renders with bold font weight.
+
+```text
+[bold](important)
+```
+
+- `[bold]` -> this is the keyword, won't be visible.
+- `(important)` -> the text that will be bold.
+
+Example:
 ```text
 This update highlights one [bold](important) change.
 ```
-Renders with bold font weight.
 
 ### Strong
 
+Renders with bold font weight and uses the accent color.
+
+```text
+[strong](major announcement)
+```
+
+- `[strong]` -> this is the keyword, won't be visible.
+- `(major announcement)` -> the text that will have the strong style applied to.
+
+Example:
 ```text
 This is a [strong](major announcement) for the community.
 ```
-Renders with bold font weight and uses the accent color.
 
 ## Delete an event by ID
 
