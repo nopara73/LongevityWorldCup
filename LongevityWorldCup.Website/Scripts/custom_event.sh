@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+
+if [[ "${LWC_CR_STRIPPED:-0}" != "1" ]] && LC_ALL=C grep -q $'\r' "$0"; then
+  export LWC_CR_STRIPPED=1
+  tmp="$(mktemp)"
+  tr -d '\r' < "$0" > "$tmp"
+  chmod +x "$tmp"
+  exec bash "$tmp" "$@"
+fi
+
 set -euo pipefail
 esc=$'\033'
 bel=$'\a'
@@ -19,6 +28,75 @@ if [[ ! -f "$db_path" ]]; then
   echo "Database file not found: $db_path" >&2
   exit 1
 fi
+
+sqlite_timeout_ms="${LWC_SQLITE_TIMEOUT_MS:-5000}"
+
+fs_type() {
+  stat -f -c %T "$1" 2>/dev/null || echo "unknown"
+}
+
+writable_path() {
+  local p="$1"
+  [[ -e "$p" ]] && [[ -w "$p" ]]
+}
+
+diag_io() {
+  local dir wal shm owner group fstype
+  dir="$(dirname "$db_path")"
+  wal="${db_path}-wal"
+  shm="${db_path}-shm"
+  owner="$(stat -c %U "$db_path" 2>/dev/null || echo "?")"
+  group="$(stat -c %G "$db_path" 2>/dev/null || echo "?")"
+  fstype="$(fs_type "$dir")"
+
+  echo ""
+  echo "SQLite disk I/O error diagnostics:"
+  echo "DB: $db_path"
+  echo "Dir: $dir"
+  echo "FS type: $fstype"
+  echo "Owner: $owner  Group: $group"
+  echo ""
+  ls -la "$db_path" "$dir" 2>/dev/null || true
+  [[ -e "$wal" ]] && ls -la "$wal" 2>/dev/null || true
+  [[ -e "$shm" ]] && ls -la "$shm" 2>/dev/null || true
+  echo ""
+  echo "Writable checks:"
+  echo "  DB writable:  $(writable_path "$db_path" && echo yes || echo no)"
+  echo "  Dir writable: $(writable_path "$dir" && echo yes || echo no)"
+  echo "  WAL writable: $([[ -e "$wal" ]] && (writable_path "$wal" && echo yes || echo no) || echo "(missing)")"
+  echo "  SHM writable: $([[ -e "$shm" ]] && (writable_path "$shm" && echo yes || echo no) || echo "(missing)")"
+  echo ""
+  echo "Fix guidance:"
+  echo "  - Run the script as the same user that owns the DB/WAL files."
+  echo "  - Ensure the DB directory and any existing -wal/-shm files are writable by that user."
+  echo "  - Avoid /mnt/c (WSL) and network filesystems for SQLite DBs if possible."
+  echo ""
+}
+
+precheck_writeability() {
+  local dir wal shm
+  dir="$(dirname "$db_path")"
+  wal="${db_path}-wal"
+  shm="${db_path}-shm"
+
+  if [[ ! -w "$dir" ]]; then
+    echo "DB directory is not writable: $dir" >&2
+    diag_io
+    exit 1
+  fi
+
+  if [[ -e "$wal" && ! -w "$wal" ]]; then
+    echo "WAL file exists but is not writable: $wal" >&2
+    diag_io
+    exit 1
+  fi
+
+  if [[ -e "$shm" && ! -w "$shm" ]]; then
+    echo "SHM file exists but is not writable: $shm" >&2
+    diag_io
+    exit 1
+  fi
+}
 
 has_events_table="$(sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Events' LIMIT 1;")"
 if [[ "$has_events_table" != "1" ]]; then
@@ -66,7 +144,6 @@ printf 'Renders: '
 render "This is a [strong](major announcement) for the Longevity World Cup community."
 printf '\n\n'
 
-
 read -r -p "Title: " title_raw
 if [[ -z "${title_raw//[[:space:]]/}" ]]; then
   echo "Title is required" >&2
@@ -104,5 +181,29 @@ esc_sql() { printf "%s" "$1" | sed "s/'/''/g"; }
 
 txt="$(esc_sql "$combined_raw")"
 
-sqlite3 "$db_path" "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15);"
-echo "Inserted $id into $db_path"
+precheck_writeability
+
+set +e
+err=""
+for attempt in 1 2 3; do
+  out="$(sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15); COMMIT;" 2>&1)"
+  rc=$?
+  if [[ $rc -eq 0 ]]; then
+    echo "Inserted $id into $db_path"
+    set -e
+    exit 0
+  fi
+  err="$out"
+  if echo "$out" | grep -qi "disk I/O error"; then
+    sleep 0.2
+    continue
+  fi
+  break
+done
+set -e
+
+echo "$err" >&2
+if echo "$err" | grep -qi "disk I/O error"; then
+  diag_io
+fi
+exit 1
