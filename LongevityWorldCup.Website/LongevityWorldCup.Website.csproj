@@ -11,6 +11,10 @@
     <Content Remove="AppData\**" />
     <EmbeddedResource Remove="AppData\**" />
     <None Remove="AppData\**" />
+    <None Update="Scripts\custom_event.sh">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
