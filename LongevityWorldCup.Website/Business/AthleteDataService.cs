@@ -16,7 +16,16 @@ public class AthleteDataService : IDisposable
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
 
-    public JsonArray Athletes { get; private set; } = []; // Initialize to avoid nullability issue
+    private JsonArray _athletes = []; // Initialize to avoid nullability issue
+
+    public JsonArray Athletes
+    {
+        get
+        {
+            lock (_athletesJsonLock)
+                return (JsonArray)_athletes.DeepClone();
+        }
+    }
 
     private readonly IWebHostEnvironment _env;
     private readonly EventDataService _eventDataService;
@@ -42,6 +51,8 @@ public class AthleteDataService : IDisposable
 
     // NEW: notify listeners (e.g., BadgeDataService) after reloads
     public event Action? AthletesChanged;
+    
+    private readonly object _athletesJsonLock = new();
 
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
     {
@@ -199,11 +210,20 @@ public class AthleteDataService : IDisposable
         _dbWatcher = new DatabaseFileWatcher(dbPath, TimeSpan.FromSeconds(5));
         _dbWatcher.DatabaseChanged += () =>
         {
-            ReloadCrowdStats();
-            HydratePlacementsIntoAthletesJson();
-            HydrateNewFlagsIntoAthletesJson();
-            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-            HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
+            _reloadLock.Wait();
+            try
+            {
+                ReloadCrowdStats();
+                HydratePlacementsIntoAthletesJson();
+                HydrateNewFlagsIntoAthletesJson();
+                HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+                HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
+            }
+            finally
+            {
+                _reloadLock.Release();
+            }
+
             PushAthleteDirectoryToEvents();
             AthletesChanged?.Invoke();
         };
@@ -223,6 +243,13 @@ public class AthleteDataService : IDisposable
 
     public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
     {
+        var athletesSnapshot = GetAthletesSnapshot();
+        var bySlug = athletesSnapshot
+            .OfType<JsonObject>()
+            .Select(a => (Slug: a["AthleteSlug"]?.GetValue<string>() ?? "", Obj: a))
+            .Where(t => !string.IsNullOrWhiteSpace(t.Slug))
+            .ToDictionary(t => t.Slug, t => t.Obj, StringComparer.OrdinalIgnoreCase);
+
         var result = new List<(JsonObject, DateTime)>();
         lock (_sqliteConnection)
         {
@@ -233,14 +260,12 @@ public class AthleteDataService : IDisposable
             while (reader.Read())
             {
                 var key = reader.GetString(0);
-                var joinedAt = DateTime.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind);
+                if (reader.IsDBNull(1))
+                    continue;
 
-                var athleteJson = Athletes
-                    .OfType<JsonObject>()
-                    .FirstOrDefault(a =>
-                        string.Equals(a["AthleteSlug"]?.GetValue<string>(), key, StringComparison.OrdinalIgnoreCase));
+                var joinedAt = DateTime.Parse(reader.GetString(1), null, DateTimeStyles.RoundtripKind);
 
-                if (athleteJson != null)
+                if (bySlug.TryGetValue(key, out var athleteJson))
                     result.Add((athleteJson, joinedAt));
             }
         }
@@ -306,7 +331,7 @@ public class AthleteDataService : IDisposable
             athletesRoot.Add(athlete);
         }
 
-        Athletes = athletesRoot;
+        lock (_athletesJsonLock) _athletes = athletesRoot;
     }
 
     private void DebounceReload()
@@ -404,6 +429,8 @@ public class AthleteDataService : IDisposable
 
     private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
     {
+        var notify = false;
+
         await _reloadLock.WaitAsync();
         try
         {
@@ -433,14 +460,17 @@ public class AthleteDataService : IDisposable
 
             DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
 
-            PushAthleteDirectoryToEvents();
-
-            // NEW: notify subscribers that athletes changed (e.g., recompute badges)
-            AthletesChanged?.Invoke();
+            notify = true;
         }
         finally
         {
             _reloadLock.Release();
+        }
+
+        if (notify)
+        {
+            PushAthleteDirectoryToEvents();
+            AthletesChanged?.Invoke();
         }
     }
 
@@ -470,64 +500,79 @@ public class AthleteDataService : IDisposable
     /// </summary>
     public void AddAgeGuess(string athleteSlug, int ageGuess)
     {
-        lock (_sqliteConnection)
+        int cnt;
+        double median;
+
+        _reloadLock.Wait();
+        try
         {
-            // insert the new guess
-            using var selectJsonCmd = _sqliteConnection.CreateCommand();
-            selectJsonCmd.CommandText =
-                "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
-            selectJsonCmd.Parameters.AddWithValue("@key", athleteSlug);
-            var existingJson = (selectJsonCmd.ExecuteScalar() as string) ?? "[]";
-
-            var ageArray = JsonSerializer.Deserialize<List<JsonObject>>(existingJson)!;
-            ageArray.Add(new JsonObject
+            lock (_sqliteConnection)
             {
-                ["TimestampUtc"] = DateTime.UtcNow.ToString("o"),
-                ["AgeGuess"] = ageGuess
-            });
-            var updatedJson = JsonSerializer.Serialize(ageArray);
+                // insert the new guess
+                using var selectJsonCmd = _sqliteConnection.CreateCommand();
+                selectJsonCmd.CommandText =
+                    "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
+                selectJsonCmd.Parameters.AddWithValue("@key", athleteSlug);
+                var existingJson = (selectJsonCmd.ExecuteScalar() as string) ?? "[]";
 
-            using var updateCmd = _sqliteConnection.CreateCommand();
-            updateCmd.CommandText =
-                "UPDATE Athletes SET AgeGuesses = @ages WHERE Key = @key";
-            updateCmd.Parameters.AddWithValue("@ages", updatedJson);
-            updateCmd.Parameters.AddWithValue("@key", athleteSlug);
-            updateCmd.ExecuteNonQuery();
+                var ageArray = JsonSerializer.Deserialize<List<JsonObject>>(existingJson)!;
+                ageArray.Add(new JsonObject
+                {
+                    ["TimestampUtc"] = DateTime.UtcNow.ToString("o"),
+                    ["AgeGuess"] = ageGuess
+                });
 
-            // fetch all ages to compute median & count
-            using var selectAgesJson = _sqliteConnection.CreateCommand();
-            selectAgesJson.CommandText =
-                "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
-            selectAgesJson.Parameters.AddWithValue("@key", athleteSlug);
-            var agesJsonText = (selectAgesJson.ExecuteScalar() as string) ?? "[]";
-            var allGuesses = JsonSerializer.Deserialize<List<JsonObject>>(agesJsonText)!;
-            var ages = allGuesses
-                .Select(node => node["AgeGuess"]!.GetValue<int>())
-                .OrderBy(val => val)
-                .ToList();
+                // store back
+                var updatedJson = JsonSerializer.Serialize(ageArray);
+                using var updateCmd = _sqliteConnection.CreateCommand();
+                updateCmd.CommandText =
+                    "UPDATE Athletes SET AgeGuesses = @ages WHERE Key = @key";
+                updateCmd.Parameters.AddWithValue("@ages", updatedJson);
+                updateCmd.Parameters.AddWithValue("@key", athleteSlug);
+                updateCmd.ExecuteNonQuery();
 
-            int cnt = ages.Count;
-            double median = 0;
-            if (cnt > 0)
-            {
-                median = (cnt % 2 == 1)
-                    ? ages[cnt / 2]
-                    : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                // re-read and compute median and count
+                using var selectCmd = _sqliteConnection.CreateCommand();
+                selectCmd.CommandText =
+                    "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
+                selectCmd.Parameters.AddWithValue("@key", athleteSlug);
+                var allJson = (selectCmd.ExecuteScalar() as string) ?? "[]";
+
+                var allGuesses = JsonSerializer.Deserialize<List<JsonObject>>(allJson)!;
+                var ages = allGuesses
+                    .Select(node => node["AgeGuess"]!.GetValue<int>())
+                    .OrderBy(val => val)
+                    .ToList();
+
+                cnt = ages.Count;
+                median = 0;
+                if (cnt > 0)
+                {
+                    median = (cnt % 2 == 1)
+                        ? ages[cnt / 2]
+                        : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                }
             }
 
-            // update the in-memory JSON
-            var athleteJson = Athletes
-                .OfType<JsonObject>()
-                .FirstOrDefault(o => string.Equals(
-                    o["AthleteSlug"]?.GetValue<string>(),
-                    athleteSlug,
-                    StringComparison.OrdinalIgnoreCase));
-
-            if (athleteJson != null)
+            lock (_athletesJsonLock)
             {
-                athleteJson["CrowdCount"] = cnt;
-                athleteJson["CrowdAge"] = median;
+                var athleteJson = _athletes
+                    .OfType<JsonObject>()
+                    .FirstOrDefault(o => string.Equals(
+                        o["AthleteSlug"]?.GetValue<string>(),
+                        athleteSlug,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (athleteJson != null)
+                {
+                    athleteJson["CrowdCount"] = cnt;
+                    athleteJson["CrowdAge"] = median;
+                }
             }
+        }
+        finally
+        {
+            _reloadLock.Release();
         }
 
         PushAthleteDirectoryToEvents();
@@ -539,14 +584,32 @@ public class AthleteDataService : IDisposable
     /// </summary>
     public void ReloadCrowdStats()
     {
-        lock (_sqliteConnection)
+        List<string> slugs;
+        lock (_athletesJsonLock)
         {
-            foreach (var athleteJson in Athletes.OfType<JsonObject>())
+            slugs = _athletes
+                .OfType<JsonObject>()
+                .Select(a => a["AthleteSlug"]!.GetValue<string>())
+                .ToList();
+        }
+
+        var stats = new Dictionary<string, (double Median, int Count)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var slug in slugs)
+        {
+            var (median, count) = GetCrowdStats(slug);
+            stats[slug] = (median, count);
+        }
+
+        lock (_athletesJsonLock)
+        {
+            foreach (var athleteJson in _athletes.OfType<JsonObject>())
             {
                 var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
-                var (median, count) = GetCrowdStats(slug);
-                athleteJson["CrowdAge"] = median;
-                athleteJson["CrowdCount"] = count;
+                if (stats.TryGetValue(slug, out var s))
+                {
+                    athleteJson["CrowdAge"] = s.Median;
+                    athleteJson["CrowdCount"] = s.Count;
+                }
             }
         }
     }
@@ -613,7 +676,8 @@ public class AthleteDataService : IDisposable
 
     public int GetActualAge(string athleteSlug)
     {
-        var athleteJson = Athletes
+        var athletesSnapshot = GetAthletesSnapshot();
+        var athleteJson = athletesSnapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o => string.Equals(
                 o["AthleteSlug"]?.GetValue<string>(),
@@ -642,11 +706,12 @@ public class AthleteDataService : IDisposable
     public JsonArray GetRankingsOrder(DateTime? asOfUtc = null)
     {
         var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
+        var athletesSnapshot = GetAthletesSnapshot();
         var results = new List<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
 
-        var statsMap = PhenoStatsCalculator.BuildAll(Athletes, asOf);
+        var statsMap = PhenoStatsCalculator.BuildAll(athletesSnapshot, asOf);
 
-        foreach (var athlete in Athletes.OfType<JsonObject>())
+        foreach (var athlete in athletesSnapshot.OfType<JsonObject>())
         {
             var slug = athlete["AthleteSlug"]?.GetValue<string>() ?? "";
             if (!statsMap.TryGetValue(slug, out var r)) continue;
@@ -720,27 +785,38 @@ public class AthleteDataService : IDisposable
 
         var json = JsonSerializer.Serialize(placements);
 
-        lock (_sqliteConnection)
+        _reloadLock.Wait();
+        try
         {
-            using var cmd = _sqliteConnection.CreateCommand();
-            cmd.CommandText = "UPDATE Athletes SET Placements=@p WHERE Key=@k";
-            cmd.Parameters.AddWithValue("@p", json);
-            cmd.Parameters.AddWithValue("@k", athleteSlug);
-            cmd.ExecuteNonQuery();
+            lock (_sqliteConnection)
+            {
+                using var cmd = _sqliteConnection.CreateCommand();
+                cmd.CommandText = "UPDATE Athletes SET Placements=@p WHERE Key=@k";
+                cmd.Parameters.AddWithValue("@p", json);
+                cmd.Parameters.AddWithValue("@k", athleteSlug);
+                cmd.ExecuteNonQuery();
+            }
+
+            lock (_athletesJsonLock)
+            {
+                var athleteJson = _athletes
+                    .OfType<JsonObject>()
+                    .FirstOrDefault(o => string.Equals(
+                        o["AthleteSlug"]?.GetValue<string>(),
+                        athleteSlug,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (athleteJson != null)
+                {
+                    var arr = new JsonArray();
+                    foreach (var v in placements) arr.Add(v is int x ? JsonValue.Create(x) : null);
+                    athleteJson["Placements"] = arr;
+                }
+            }
         }
-
-        var athleteJson = Athletes
-            .OfType<JsonObject>()
-            .FirstOrDefault(o => string.Equals(
-                o["AthleteSlug"]?.GetValue<string>(),
-                athleteSlug,
-                StringComparison.OrdinalIgnoreCase));
-
-        if (athleteJson != null)
+        finally
         {
-            var arr = new JsonArray();
-            foreach (var v in placements) arr.Add(v is int x ? JsonValue.Create(x) : null);
-            athleteJson["Placements"] = arr;
+            _reloadLock.Release();
         }
 
         PushAthleteDirectoryToEvents();
@@ -758,27 +834,45 @@ public class AthleteDataService : IDisposable
 
     private void HydratePlacementsIntoAthletesJson()
     {
-        foreach (var athleteJson in Athletes.OfType<JsonObject>())
+        List<string> slugs;
+        lock (_athletesJsonLock)
         {
-            var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
-            var p = GetPlacements(slug);
-            var arr = new JsonArray();
-            foreach (var v in p) arr.Add(v is int x ? JsonValue.Create(x) : null);
-            athleteJson["Placements"] = arr;
+            slugs = _athletes
+                .OfType<JsonObject>()
+                .Select(a => a["AthleteSlug"]!.GetValue<string>())
+                .ToList();
+        }
+
+        var bySlug = new Dictionary<string, int?[]>(StringComparer.OrdinalIgnoreCase);
+        foreach (var slug in slugs)
+            bySlug[slug] = GetPlacements(slug);
+
+        lock (_athletesJsonLock)
+        {
+            foreach (var athleteJson in _athletes.OfType<JsonObject>())
+            {
+                var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
+                if (!bySlug.TryGetValue(slug, out var p))
+                    continue;
+
+                var arr = new JsonArray();
+                foreach (var v in p) arr.Add(v is int x ? JsonValue.Create(x) : null);
+                athleteJson["Placements"] = arr;
+            }
         }
     }
 
     // compute IsNew from SQLite JoinedAt using the NewAthleteWindow
     private void HydrateNewFlagsIntoAthletesJson()
     {
+        var cutoffUtc = DateTime.UtcNow - NewAthleteWindow;
+
+        var joinedByKey = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
         lock (_sqliteConnection)
         {
-            var cutoffUtc = DateTime.UtcNow - NewAthleteWindow;
-
             using var cmd = _sqliteConnection.CreateCommand();
             cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
 
-            var joinedByKey = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
             using (var reader = cmd.ExecuteReader())
             {
                 while (reader.Read())
@@ -787,14 +881,17 @@ public class AthleteDataService : IDisposable
                     var joinedAtText = reader.IsDBNull(1) ? null : reader.GetString(1);
                     if (string.IsNullOrWhiteSpace(joinedAtText)) continue;
 
-                    if (DateTime.TryParse(joinedAtText, null, System.Globalization.DateTimeStyles.RoundtripKind, out var joinedAt))
+                    if (DateTime.TryParse(joinedAtText, null, DateTimeStyles.RoundtripKind, out var joinedAt))
                     {
                         joinedByKey[key] = joinedAt;
                     }
                 }
             }
+        }
 
-            foreach (var athleteJson in Athletes.OfType<JsonObject>())
+        lock (_athletesJsonLock)
+        {
+            foreach (var athleteJson in _athletes.OfType<JsonObject>())
             {
                 var slug = athleteJson["AthleteSlug"]?.GetValue<string>();
                 var isNew = false;
@@ -821,13 +918,16 @@ public class AthleteDataService : IDisposable
             }
         }
 
-        foreach (var athlete in Athletes.OfType<JsonObject>())
+        lock (_athletesJsonLock)
         {
-            var slug = athlete["AthleteSlug"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(slug) && map.TryGetValue(slug, out var pos))
-                athlete["CurrentPlacement"] = pos;
-            else
-                athlete["CurrentPlacement"] = null;
+            foreach (var athlete in _athletes.OfType<JsonObject>())
+            {
+                var slug = athlete["AthleteSlug"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(slug) && map.TryGetValue(slug, out var pos))
+                    athlete["CurrentPlacement"] = pos;
+                else
+                    athlete["CurrentPlacement"] = null;
+            }
         }
 
         // IMPORTANT: we DO NOT persist the snapshot here anymore.
@@ -837,7 +937,15 @@ public class AthleteDataService : IDisposable
     // Public entry-point so other services (e.g., BadgeDataService) can trigger a badges refresh.
     public void RefreshBadgesFromDatabase()
     {
-        HydrateBadgesIntoAthletesJson();
+        _reloadLock.Wait();
+        try
+        {
+            HydrateBadgesIntoAthletesJson();
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
     }
     
     // badges from BadgeAwards -> injected into athlete JSON objects
@@ -884,20 +992,29 @@ public class AthleteDataService : IDisposable
             }
         }
 
-        foreach (var athleteJson in Athletes.OfType<JsonObject>())
+        lock (_athletesJsonLock)
         {
-            var slug = athleteJson["AthleteSlug"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(slug))
+            foreach (var athleteJson in _athletes.OfType<JsonObject>())
             {
-                athleteJson["Badges"] = new JsonArray();
-                continue;
-            }
+                var slug = athleteJson["AthleteSlug"]?.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(slug))
+                {
+                    athleteJson["Badges"] = new JsonArray();
+                    continue;
+                }
 
-            if (byAthlete.TryGetValue(slug, out var arr))
-                athleteJson["Badges"] = arr;
-            else
-                athleteJson["Badges"] = new JsonArray();
+                if (byAthlete.TryGetValue(slug, out var arr))
+                    athleteJson["Badges"] = arr;
+                else
+                    athleteJson["Badges"] = new JsonArray();
+            }
         }
+    }
+    
+    public JsonArray GetAthletesSnapshot()
+    {
+        lock (_athletesJsonLock)
+            return (JsonArray)_athletes.DeepClone();
     }
 
     public void Dispose()
@@ -913,12 +1030,20 @@ public class AthleteDataService : IDisposable
 
     private List<(JsonObject Athlete, DateTime JoinedAt)> EnsureDbRowsForNewAthletes()
     {
-        var newlyJoined = new List<(JsonObject, DateTime)>();
+        List<string> slugs;
+        lock (_athletesJsonLock)
+        {
+            slugs = _athletes
+                .OfType<JsonObject>()
+                .Select(a => a["AthleteSlug"]!.GetValue<string>())
+                .ToList();
+        }
+
+        var inserted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         lock (_sqliteConnection)
         {
-            foreach (var athleteJson in Athletes.OfType<JsonObject>())
+            foreach (var slug in slugs)
             {
-                var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
                 using var cmd = _sqliteConnection.CreateCommand();
                 cmd.CommandText = "INSERT OR IGNORE INTO Athletes (Key, AgeGuesses, JoinedAt) VALUES (@k, @ages, @joined)";
                 cmd.Parameters.AddWithValue("@k", slug);
@@ -926,10 +1051,24 @@ public class AthleteDataService : IDisposable
                 cmd.Parameters.AddWithValue("@joined", _serviceStartUtc.ToString("o"));
                 var rows = cmd.ExecuteNonQuery();
                 if (rows == 1)
-                {
-                    athleteJson["IsNew"] = true;
-                    newlyJoined.Add((athleteJson, _serviceStartUtc));
-                }
+                    inserted.Add(slug);
+            }
+        }
+
+        var newlyJoined = new List<(JsonObject, DateTime)>();
+        if (inserted.Count == 0)
+            return newlyJoined;
+
+        lock (_athletesJsonLock)
+        {
+            foreach (var athleteJson in _athletes.OfType<JsonObject>())
+            {
+                var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
+                if (!inserted.Contains(slug))
+                    continue;
+
+                athleteJson["IsNew"] = true;
+                newlyJoined.Add((athleteJson, _serviceStartUtc));
             }
         }
 
@@ -1275,8 +1414,9 @@ public class AthleteDataService : IDisposable
 
     private void PushAthleteDirectoryToEvents()
     {
+        var athletesSnapshot = GetAthletesSnapshot();
         var list = new List<(string Slug, string Name, int? CurrentRank)>();
-        foreach (var o in Athletes.OfType<JsonObject>())
+        foreach (var o in athletesSnapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
@@ -1296,12 +1436,13 @@ public class AthleteDataService : IDisposable
     {
         // Computes a deterministic signature from Biomarkers and stores it in Athletes.TestSig.
         // If nothing changed, no write occurs. This is called on startup and after reloads.
+        var athletesSnapshot = GetAthletesSnapshot();
         var changed = new List<string>();
         lock (_sqliteConnection)
         {
             using var tx = _sqliteConnection.BeginTransaction();
 
-            foreach (var athlete in Athletes.OfType<JsonObject>())
+            foreach (var athlete in athletesSnapshot.OfType<JsonObject>())
             {
                 var slug = athlete["AthleteSlug"]?.GetValue<string>();
                 if (string.IsNullOrWhiteSpace(slug)) continue;
