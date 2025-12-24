@@ -1,0 +1,28 @@
+{
+  "Name": "anicca",
+  "DisplayName": null,
+  "MediaContact": "katia.anicca@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 11,
+    "Day": 22
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-18",
+      "AlbGL": 66,
+      "CreatUmolL": 79.64601769911505,
+      "GluMmolL": 4.157415630550623,
+      "CrpMgL": 1.2,
+      "LymPc": 46.7,
+      "McvFL": 90.1,
+      "RdwPc": 13.3,
+      "AlpUL": 64.2,
+      "Wbc1000cellsuL": 4.48
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Bolivia",
+  "Why": "Be useful to the world. Be brave.",
+  "PersonalLink": null
+}

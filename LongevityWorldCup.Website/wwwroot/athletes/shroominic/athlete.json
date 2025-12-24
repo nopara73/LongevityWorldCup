@@ -1,0 +1,28 @@
+{
+  "Name": "shroominic",
+  "DisplayName": null,
+  "MediaContact": "contact@shroominic.com",
+  "DateOfBirth": {
+    "Year": 2002,
+    "Month": 11,
+    "Day": 11
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-19",
+      "AlbGL": 49,
+      "CreatUmolL": 92.9203539823009,
+      "GluMmolL": 4.607015985790409,
+      "CrpMgL": 0.15,
+      "LymPc": 28.5,
+      "McvFL": 88.6,
+      "RdwPc": 11.9,
+      "AlpUL": 93,
+      "Wbc1000cellsuL": 4.07
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "hacker",
+  "Why": "Achieving Peak Performance and Health",
+  "PersonalLink": "https://x.com/shroominic"
+}

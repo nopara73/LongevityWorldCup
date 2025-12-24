@@ -1,0 +1,28 @@
+{
+  "Name": "Zsigrai Eszter",
+  "DisplayName": null,
+  "MediaContact": "eszterzsigrai@gmail.com",
+  "DateOfBirth": {
+    "Year": 1997,
+    "Month": 8,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-02",
+      "AlbGL": 46,
+      "CreatUmolL": 65,
+      "GluMmolL": 4.4,
+      "CrpMgL": 1.4,
+      "LymPc": 23.8,
+      "McvFL": 81.1,
+      "RdwPc": 12.2,
+      "AlpUL": 58,
+      "Wbc1000cellsuL": 9.37
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Healthy eating, warding off diseases and harmony in the body. I deal with experimental photography, eco print and fine art. I love to run!",
+  "PersonalLink": "https://www.instagram.com/zsigraie.art/"
+}
