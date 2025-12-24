@@ -641,7 +641,7 @@ public sealed class EventDataService : IDisposable
             return;
         }
 
-        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
+        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone || type == EventType.CustomEvent)
         {
             _ = _slackEvents.SendImmediateAsync(type, rawText);
             return;
