@@ -18,10 +18,23 @@
       "RdwPc": 12.8,
       "AlpUL": 44,
       "Wbc1000cellsuL": 7.22
+    },
+    {
+      "Date": "2025-12-20",
+      "AlbGL": 43,
+      "CreatUmolL": 69.91150442477877,
+      "GluMmolL": 5.328596802841918,
+      "CrpMgL": 1,
+      "LymPc": 37,
+      "McvFL": 90.8,
+      "RdwPc": 12.4,
+      "AlpUL": 48,
+      "Wbc1000cellsuL": 7.16
     }
   ],
   "Division": "Women's",
   "Flag": "Brasil",
   "Why": "What drives me are life's challenges, which make me a better person with a broader repertoire.",
-  "PersonalLink": "https://www.instagram.com/beatrizbevilaqua/"
+  "PersonalLink": "https://www.instagram.com/beatrizbevilaqua/",
+  "DisplayName": null
 }
