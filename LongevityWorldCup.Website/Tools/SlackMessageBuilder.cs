@@ -20,6 +20,7 @@ public static class SlackMessageBuilder
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
             EventType.BadgeAward => BuildBadgeAward(rawText, slugToName),
+            EventType.CustomEvent => BuildCustomEvent(rawText),
             EventType.General => BuildCustomEvent(rawText),
             _ => Escape(rawText)
         };
