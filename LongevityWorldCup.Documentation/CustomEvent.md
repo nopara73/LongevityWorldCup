@@ -1,14 +1,7 @@
-## Get into position
-
-```sh
-sudo su
-cd /var/www/.longevityworldcup
-```
-
 ## Run the script
 
 ```bash
-./Scripts/custom_event.sh "LongevityWorldCup.db"
+sudo bash -lc 'cd /var/www/.longevityworldcup && bash /home/user/LongevityWorldCup/LongevityWorldCup.Website/Scripts/custom_event.sh "LongevityWorldCup.db"'
 ```
 
 ## Enter the Title and Content
