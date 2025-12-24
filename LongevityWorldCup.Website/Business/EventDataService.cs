@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -41,6 +42,7 @@ public sealed class EventDataService : IDisposable
 
     private readonly SqliteConnection _sqlite;
     private readonly SlackEventService _slackEvents;
+    private readonly DatabaseFileWatcher _dbWatcher;
 
     public JsonArray Events { get; private set; } = [];
     
@@ -78,14 +80,32 @@ public sealed class EventDataService : IDisposable
             cmd.CommandText =
                 """
                 CREATE TABLE IF NOT EXISTS Events (
-                    Id         TEXT PRIMARY KEY,
-                    Type       INTEGER NOT NULL,
-                    Text       TEXT NOT NULL,
-                    OccurredAt TEXT NOT NULL,
-                    Relevance  REAL  NOT NULL DEFAULT 5
+                    Id             TEXT PRIMARY KEY,
+                    Type           INTEGER NOT NULL,
+                    Text           TEXT NOT NULL,
+                    OccurredAt     TEXT NOT NULL,
+                    Relevance      REAL  NOT NULL DEFAULT 5,
+                    SlackProcessed INTEGER NOT NULL DEFAULT 0
                 );
                 """;
             cmd.ExecuteNonQuery();
+
+            var addedSlackProcessed = false;
+            cmd.CommandText = "ALTER TABLE Events ADD COLUMN SlackProcessed INTEGER NOT NULL DEFAULT 0;";
+            try
+            {
+                cmd.ExecuteNonQuery();
+                addedSlackProcessed = true;
+            }
+            catch
+            {
+            }
+
+            if (addedSlackProcessed)
+            {
+                cmd.CommandText = "UPDATE Events SET SlackProcessed = 1;";
+                cmd.ExecuteNonQuery();
+            }
 
             cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_OccurredAt ON Events(OccurredAt);";
             cmd.ExecuteNonQuery();
@@ -97,7 +117,67 @@ public sealed class EventDataService : IDisposable
             cmd.ExecuteNonQuery();
         }
 
+        ProcessPendingSlackEvents();
         ReloadIntoCache();
+
+        _dbWatcher = new DatabaseFileWatcher(dbPath, TimeSpan.FromMilliseconds(250));
+        _dbWatcher.DatabaseChanged += OnDatabaseChanged;
+    }
+
+    private void OnDatabaseChanged()
+    {
+        try
+        {
+            ProcessPendingSlackEvents();
+            ReloadIntoCache();
+        }
+        catch
+        {
+        }
+    }
+
+    private void ProcessPendingSlackEvents()
+    {
+        var notify = new List<(EventType Type, string RawText)>();
+
+        lock (_sqlite)
+        {
+            using var tx = _sqlite.BeginTransaction();
+
+            using var selectCmd = _sqlite.CreateCommand();
+            selectCmd.Transaction = tx;
+            selectCmd.CommandText =
+                "SELECT Id, Type, Text FROM Events " +
+                "WHERE SlackProcessed = 0 " +
+                "ORDER BY OccurredAt ASC;";
+
+            using var r = selectCmd.ExecuteReader();
+            var pending = new List<(string Id, int TypeInt, string Text)>();
+            while (r.Read())
+                pending.Add((r.GetString(0), r.GetInt32(1), r.GetString(2)));
+
+            if (pending.Count > 0)
+            {
+                using var claimCmd = _sqlite.CreateCommand();
+                claimCmd.Transaction = tx;
+                claimCmd.CommandText = "UPDATE Events SET SlackProcessed = 1 WHERE Id = @id AND SlackProcessed = 0;";
+                var pId = claimCmd.Parameters.Add("@id", SqliteType.Text);
+
+                foreach (var (id, typeInt, text) in pending)
+                {
+                    pId.Value = id;
+                    var affected = claimCmd.ExecuteNonQuery();
+                    if (affected != 1) continue;
+
+                    var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
+                    notify.Add((type, text));
+                }
+            }
+
+            tx.Commit();
+        }
+
+        foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
@@ -113,7 +193,6 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
-        var notify = new List<(EventType Type, string RawText)>();
 
         lock (_sqlite)
         {
@@ -163,7 +242,6 @@ public sealed class EventDataService : IDisposable
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
-                notify.Add((EventType.NewRank, text));
             }
 
             tx.Commit();
@@ -172,7 +250,6 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
-            foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
         }
     }
 
@@ -184,7 +261,6 @@ public sealed class EventDataService : IDisposable
         if (athletes is null) throw new ArgumentNullException(nameof(athletes));
 
         int created = 0;
-        var notify = new List<(EventType Type, string RawText)>();
 
         lock (_sqlite)
         {
@@ -233,7 +309,6 @@ public sealed class EventDataService : IDisposable
                     pRel.Value = defaultRelevance;
                     insertCmd.ExecuteNonQuery();
                     created++;
-                    notify.Add((EventType.Joined, joinedText));
                 }
 
                 if (currentRank is int r && r >= 1)
@@ -260,7 +335,6 @@ public sealed class EventDataService : IDisposable
                         pRel.Value = DefaultRelevanceNewRank;
                         insertCmd.ExecuteNonQuery();
                         created++;
-                        notify.Add((EventType.NewRank, rankText));
                     }
                 }
             }
@@ -271,7 +345,6 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
-            foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
         }
     }
 
@@ -283,7 +356,6 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
-        var notify = new List<string>();
 
         lock (_sqlite)
         {
@@ -332,7 +404,6 @@ public sealed class EventDataService : IDisposable
 
                 insertCmd.ExecuteNonQuery();
                 created++;
-                notify.Add(text);
             }
 
             tx.Commit();
@@ -341,8 +412,6 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
-            foreach (var raw in notify)
-                FireAndForgetSlack(EventType.DonationReceived, raw);
         }
     }
 
@@ -354,7 +423,6 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
-        var notify = new List<(EventType Type, string RawText)>();
 
         lock (_sqlite)
         {
@@ -401,7 +469,6 @@ public sealed class EventDataService : IDisposable
 
                 insertCmd.ExecuteNonQuery();
                 created++;
-                notify.Add((EventType.AthleteCountMilestone, text));
             }
 
             tx.Commit();
@@ -410,7 +477,6 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
-            foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
         }
     }
 
@@ -422,7 +488,6 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
-        var notify = new List<string>();
 
         lock (_sqlite)
         {
@@ -474,7 +539,6 @@ public sealed class EventDataService : IDisposable
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
-                notify.Add(text);
             }
 
             tx.Commit();
@@ -483,7 +547,6 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
-            foreach (var raw in notify) FireAndForgetSlack(EventType.BadgeAward, raw);
         }
     }
 
@@ -578,7 +641,7 @@ public sealed class EventDataService : IDisposable
             return;
         }
 
-        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
+        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone || type == EventType.CustomEvent)
         {
             _ = _slackEvents.SendImmediateAsync(type, rawText);
             return;
@@ -603,6 +666,7 @@ public sealed class EventDataService : IDisposable
 
     public void Dispose()
     {
+        _dbWatcher.Dispose();
         _sqlite.Close();
         _sqlite.Dispose();
         GC.SuppressFinalize(this);
