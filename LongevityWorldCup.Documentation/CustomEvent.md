@@ -1,21 +1,15 @@
-## Get into position
-
-```sh
-sudo su
-cd /var/www/.longevityworldcup
-```
-
-## Run the script
+## 1. Run the script
 
 ```bash
-./Scripts/custom_event.sh "LongevityWorldCup.db"
+sudo bash -lc 'cd /var/www/.longevityworldcup && bash /home/user/LongevityWorldCup/LongevityWorldCup.Website/Scripts/custom_event.sh "LongevityWorldCup.db"'
 ```
 
-## Enter the Title and Content
+## 2. Enter the Title and Content
 
 1. When prompted for `Title`, type a single line and press Enter.
 2. When prompted for `Content`, type multiple lines.
-3. End the content input by typing a single dot on its own line.
+   - Content is optional. 
+   - End the content input by typing a single dot on its own line.
 
 Example input:
 
@@ -31,6 +25,7 @@ Check out the [Longevity World Cup](https://longevityworldcup.com/) site.
 End of message.
 .
 ```
+_Note: For No Content events, just press `.` then `Enter` when the script asks for it._
 
 ## Supported formatting
 
@@ -38,30 +33,52 @@ The renderer supports three inline formats inside both Title and Content.
 
 ### Link
 
-Type
+Renders as a clickable link in the UI.
+
+```text
+[Longevity World Cup](https://longevityworldcup.com/)
+```
+
+- `[Longevity World Cup]` -> the text that will be clickable
+- `(https://longevityworldcup.com/)` -> the link
+
+Example:
+
 ```text
 Visit [Longevity World Cup](https://longevityworldcup.com/) for the latest leaderboard.
 ```
 
-Renders as a clickable link in the UI.
-
 ### Bold
 
-Type
+Renders with bold font weight.
+
+```text
+[bold](important)
+```
+
+- `[bold]` -> this is the keyword, won't be visible.
+- `(important)` -> the text that will be bold.
+
+Example:
 ```text
 This update highlights one [bold](important) change.
 ```
 
-Renders with bold font weight.
-
 ### Strong
 
-Type
+Renders with bold font weight and uses the accent color.
+
+```text
+[strong](major announcement)
+```
+
+- `[strong]` -> this is the keyword, won't be visible.
+- `(major announcement)` -> the text that will have the strong style applied to.
+
+Example:
 ```text
 This is a [strong](major announcement) for the community.
 ```
-
-Renders with bold font weight and uses the accent color.
 
 ## Delete an event by ID
 
@@ -70,4 +87,5 @@ When the script inserts a new event, it prints the inserted `Id`. You can delete
 Run:
 
 ```bash
-sqlite3 /path/to/LongevityWorldCup.db "DELETE FROM Events WHERE Id = 16e6c75b4e8646eab6ebb966503e6aa5;"
+sudo sqlite3 /var/www/.longevityworldcup/LongevityWorldCup.db "DELETE FROM Events WHERE Id = 'ID_GOES_HERE';"
+```

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
@@ -19,6 +20,8 @@ public static class SlackMessageBuilder
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
             EventType.BadgeAward => BuildBadgeAward(rawText, slugToName),
+            EventType.CustomEvent => BuildCustomEvent(rawText),
+            EventType.General => BuildCustomEvent(rawText),
             _ => Escape(rawText)
         };
     }
@@ -677,4 +680,48 @@ public static class SlackMessageBuilder
 
     private static string Pick(params string[] options) =>
         options.Length == 0 ? "" : options[Random.Shared.Next(options.Length)];
+
+    private static string BuildCustomEvent(string rawText)
+    {
+        if (string.IsNullOrEmpty(rawText)) return "";
+
+        var s = rawText.Replace("\r\n", "\n").Replace("\r", "\n").TrimEnd();
+
+        var idx = s.IndexOf("\n\n", StringComparison.Ordinal);
+        var title = (idx >= 0 ? s.Substring(0, idx) : s).Trim();
+        var content = (idx >= 0 ? s.Substring(idx + 2) : "").TrimEnd();
+
+        var titleEsc = ApplyCustomMarkupToSlack(Escape(title));
+
+        if (string.IsNullOrWhiteSpace(content))
+            return titleEsc;
+
+        var contentEsc = ApplyCustomMarkupToSlack(Escape(content));
+        return titleEsc + "\n\n" + contentEsc;
+    }
+
+    private static string ApplyCustomMarkupToSlack(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+
+        s = Regex.Replace(
+            s,
+            @"\[strong\]\(([^()]*)\)",
+            m => $"*_{m.Groups[1].Value}_*",
+            RegexOptions.CultureInvariant);
+
+        s = Regex.Replace(
+            s,
+            @"\[bold\]\(([^()]*)\)",
+            m => $"*{m.Groups[1].Value}*",
+            RegexOptions.CultureInvariant);
+
+        s = Regex.Replace(
+            s,
+            @"\[([^\[\]]+)\]\((https?:[^)\s]+)\)",
+            m => $"<{m.Groups[2].Value}|{m.Groups[1].Value}>",
+            RegexOptions.CultureInvariant);
+
+        return s;
+    }
 }
