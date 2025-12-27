@@ -1,0 +1,28 @@
+{
+  "Name": "Nikki From Miami",
+  "DisplayName": null,
+  "MediaContact": "Nicole@creatza.com",
+  "DateOfBirth": {
+    "Year": 1998,
+    "Month": 7,
+    "Day": 17
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-15",
+      "AlbGL": 46,
+      "CreatUmolL": 60.17699115044248,
+      "GluMmolL": 4.496003552397869,
+      "CrpMgL": 4,
+      "LymPc": 36.7,
+      "McvFL": 92.7,
+      "RdwPc": 11.7,
+      "AlpUL": 45,
+      "Wbc1000cellsuL": 5
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "Being creative & trying new things!!",
+  "PersonalLink": "https://www.creatza.com"
+}
