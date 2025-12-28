@@ -37,9 +37,11 @@
     /* Scope table styles to the leaderboard table only */
     .leaderboard > table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
 
+    .leaderboard td{ text-align:center; }
+
     /* Scoped header styles – do NOT affect the modal info table */
     .leaderboard table th{
-        padding:1rem 0; text-align:center; background-color:rgba(0,188,212,.1);
+        padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
         color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
     }
     .leaderboard table th:nth-child(2){ text-align:left; }
@@ -256,11 +258,12 @@
        8) Table row bits
        ========================= */
     .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
-    .age-reduction{ font-weight:700; color:#4caf50; }
+    .age-reduction{ font-weight:700; color:#4caf50; text-align:left; }
+    .athlete-td{ display:flex; align-items:center; text-align:left; gap:.5rem; }
 
     .athlete-name{
         color:var(--primary-color); text-decoration:underline; text-align:left; cursor:pointer; transition:color .2s ease-in-out;
-        padding:.5rem .1rem .5rem 0; white-space:pre-wrap; overflow-wrap: break-word;
+        display:inline-block; padding:.5rem .2rem .5rem .5rem; white-space:pre-wrap;
     }
     .athlete-name:hover{ color:var(--secondary-color); background-color:rgba(0,0,0,.05); border-radius:8px; font-size:1.1em; }
     .podium .athlete-name{ font-size:1.1rem; padding-bottom:.2rem; }
@@ -277,10 +280,6 @@
 
     .leaderboard table tbody tr{ scroll-margin-top:0; }
     .leaderboard table tbody tr:target{ background:rgba(255,255,0,.35); transition:background-color 1.2s ease; }
-
-    .age-reduction-td {
-        text-align: center;
-    }
 
     /* =========================
        10) Modal
@@ -544,7 +543,7 @@
                 <thead>
                 <tr>
                     <th>Rank</th>
-                    <th colspan="2">Athlete</th>
+                    <th>Athlete</th>
                     <th>
                         Sponsor<br />
                         <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
@@ -559,7 +558,7 @@
                         <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
                            onmouseover="this.style.color='var(--secondary-color)';"
                            onmouseout="this.style.color='var(--primary-color)';">
-                           Years Reduced
+                            Age Reduction
                         </a>
                     </th>
                     <th>Media Contact</th>
@@ -699,13 +698,12 @@
         <td data-label="Rank" class="rank-td">
             <span class="rank"></span>
         </td>
-        <td data-label="Athlete Portrait" class="athlete-portrait-td">
+        <td data-label="Athlete" class="athlete-td">
             <img src="" alt="" class="portrait" loading="lazy">
-        </td>
-        <td data-label="Athlete" class="athlete-td" colspan="2">
             <span class="athlete-name" title="View stats"></span>
             <div class="badge-section"></div>
         </td>
+        <td data-label="Sponsor" class="sponsor-td"></td>
         <td data-label="Age Reduction" class="age-reduction-td">
             <span class="age-reduction"></span>
         </td>
@@ -1296,6 +1294,9 @@
                                         });
                                     });
 
+                                    applyCamelCaseNewlines();
+                                    autoshrinkPodiumNames();
+
                                     addClickListenerToImages('.portrait, #modalProfilePic', function () {
                                         openEnlargedView(this);
                                     });
@@ -1328,8 +1329,7 @@
 
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
-                    const athletePortraitCell = row.querySelector('.athlete-portrait-td');
-                    const portraitImg = athletePortraitCell.querySelector('img.portrait');
+                    const portraitImg = athleteCell.querySelector('img.portrait');
                     portraitImg.src = athlete.profilePic;
                     portraitImg.alt = `${athlete.displayName} portrait`;
                     if (athlete.isNew) {
@@ -1348,7 +1348,7 @@
                     window.setBadges(athlete, athleteCell);
 
                     const ageReductionSpan = row.querySelector('.age-reduction');
-                    ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1);
+                    ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years';
 
                     const mediaContactCell = row.querySelector('.media-contact-td');
                     mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
@@ -1371,6 +1371,7 @@
                     }
 
                     attachAthleteNameClickListeners();
+                    applyCamelCaseNewlines();
                     addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
                     });
@@ -1799,6 +1800,7 @@
 
         if (typeof AOS !== 'undefined') {
             AOS.refresh();
+            applyCamelCaseNewlines(); // Reapply the camelCase fix AFTER AOS refresh
         }
 
         const url = new URL(window.location.href);
@@ -2180,6 +2182,16 @@
         addFadeInEffectToElements();
     });
 
+    function applyCamelCaseNewlines() {
+        if (window.innerWidth < 480) {
+            document.querySelectorAll('.athlete-name').forEach(el => {
+                if (el.closest('.podium')) return;
+                const txt = el.textContent;
+                el.innerHTML = txt.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
+            });
+        }
+    }
+
     function fitTextToWidth(el, minPx = 12, maxPx = null) {
         // reset to CSS default first
         el.style.fontSize = '';
@@ -2195,6 +2207,13 @@
         el.style.fontSize = best + 'px';
     }
 
+    function autoshrinkPodiumNames() {
+        document.querySelectorAll('.podium .athlete-name').forEach(el => fitTextToWidth(el, 12));
+    }
+
+    // run after podium render and on resize
+    window.addEventListener('resize', debounce(autoshrinkPodiumNames, 150));
+    window.addEventListener('load', autoshrinkPodiumNames);
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' || event.key === 'Esc') {
             closeOpenComponents();
