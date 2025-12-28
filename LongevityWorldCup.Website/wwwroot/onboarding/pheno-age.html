@@ -1428,7 +1428,7 @@
                     / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2));
             }
             if (touchedBiomarkers.has('ap')) {
-                entry.AlpUL = parseFloat(document.getElementById('ap').value);
+                entry.AlpUL = parseFloat((parseFloat(document.getElementById('ap').value) / parseFloat(document.getElementById('apUnit').value)).toFixed(2));
             }
             if (touchedBiomarkers.has('creatinine')) {
                 entry.CreatUmolL = parseFloat((parseFloat(document.getElementById('creatinine').value)
