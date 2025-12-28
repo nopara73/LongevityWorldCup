@@ -729,7 +729,6 @@
         }
 
         if (athleteSlug !== null) {
-            console.log(params.toString())
             if (params.get('guessmyage') != '1') {
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
                 allGuesses[athleteSlug] = { value: null, skipped: true, first: false };

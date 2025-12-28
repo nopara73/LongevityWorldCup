@@ -810,10 +810,6 @@
             }
         });
 
-        // Set the address and link
-        adjustBitcoinAddressDisplay();
-        document.getElementById("btcAddressLink").href = `https://mempool.space/address/${bitcoinDonationAddress}`;
-
         function adjustBitcoinAddressDisplay() {
             const btcAddressLink = document.getElementById("btcAddressLink");
             const fullAddress = bitcoinDonationAddress;
