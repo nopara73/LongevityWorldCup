@@ -1412,7 +1412,7 @@
             };
             // only assign if the user actually touched that field:
             if (touchedBiomarkers.has('wbc')) {
-                entry.Wbc1000cellsuL = parseFloat(document.getElementById('wbc').value);
+                entry.Wbc1000cellsuL = parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2));
             }
             if (touchedBiomarkers.has('lymphocyte')) {
                 entry.LymPc = parseFloat(document.getElementById('lymphocyte').value);
