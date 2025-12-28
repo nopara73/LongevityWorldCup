@@ -1424,23 +1424,23 @@
                 entry.RdwPc = parseFloat(document.getElementById('rcdw').value);
             }
             if (touchedBiomarkers.has('albumin')) {
-                entry.AlbGL = parseFloat(document.getElementById('albumin').value)
-                    / parseFloat(document.getElementById('albuminUnit').value);
+                entry.AlbGL = parseFloat((parseFloat(document.getElementById('albumin').value)
+                    / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2));
             }
             if (touchedBiomarkers.has('ap')) {
                 entry.AlpUL = parseFloat(document.getElementById('ap').value);
             }
             if (touchedBiomarkers.has('creatinine')) {
-                entry.CreatUmolL = parseFloat(document.getElementById('creatinine').value)
-                    / parseFloat(document.getElementById('creatinineUnit').value);
+                entry.CreatUmolL = parseFloat((parseFloat(document.getElementById('creatinine').value)
+                    / parseFloat(document.getElementById('creatinineUnit').value)).toFixed(2));
             }
             if (touchedBiomarkers.has('glucose')) {
-                entry.GluMmolL = parseFloat(document.getElementById('glucose').value)
-                    / parseFloat(document.getElementById('glucoseUnit').value);
+                entry.GluMmolL = parseFloat((parseFloat(document.getElementById('glucose').value)
+                    / parseFloat(document.getElementById('glucoseUnit').value)).toFixed(2));
             }
             if (touchedBiomarkers.has('crp')) {
-                entry.CrpMgL = (parseFloat(document.getElementById('crp').value)
-                    / parseFloat(document.getElementById('crpUnit').value)) * 10; // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
+                entry.CrpMgL = parseFloat(((parseFloat(document.getElementById('crp').value)
+                    / parseFloat(document.getElementById('crpUnit').value)) * 10).toFixed(2)); // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
             }
 
 
