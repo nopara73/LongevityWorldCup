@@ -89,15 +89,292 @@
         }
 
         #phenoAgeResult {
-            max-width: 580px; /* Set max width to match the form */
+            max-width: 580px;
             padding: 1.5rem;
-            color: var(--dark-text-color); /* Standard dark gray */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); /* Faint dark shadow for emphasis */
-
+            color: var(--dark-text-color);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
             border-radius: 8px;
             font-size: 1.5rem;
             opacity: 0;
             transition: opacity 1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #phenoAgeResult.show {
+            opacity: 1;
+        }
+
+        /* Elegant animated background gradient */
+        #phenoAgeResult::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%;
+            height: 200%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle at 30% 30%, rgba(0, 188, 212, 0.08) 0%, rgba(76, 175, 80, 0.04) 40%, transparent 70%);
+            animation: bioAgeBgPulse 12s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes bioAgeBgPulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.4;
+            }
+            50% {
+                transform: translate(calc(-50% + 5%), calc(-50% + 5%)) scale(1.1);
+                opacity: 0.7;
+            }
+        }
+
+        #validAgeInput {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Label text styling */
+        #validAgeInput > div:first-child {
+            font-size: 0.875rem;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        #phenoAgeResult.show #validAgeInput > div:first-child {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Main age number container */
+        .bio-age-number-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2rem 0;
+            width: 100%;
+            min-height: 140px;
+            padding: 1rem 0;
+        }
+
+        #animatedAge {
+            font-size: 6.5rem;
+            font-weight: 800;
+            text-align: center;
+            display: block;
+            color: #00bcd4;
+            background: linear-gradient(135deg, #00bcd4 0%, #4CAF50 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            line-height: 1;
+            letter-spacing: -3px;
+            opacity: 0;
+            transform: scale(0.4) translateY(30px);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+            position: relative;
+            z-index: 1;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        #phenoAgeResult.show #animatedAge {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        /* Subtle glow effect for the number */
+        #animatedAge::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle, rgba(0, 188, 212, 0.15) 0%, rgba(76, 175, 80, 0.1) 50%, transparent 75%);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0;
+            animation: bioAgeGlow 3s ease-in-out infinite;
+            filter: blur(20px);
+        }
+
+        @keyframes bioAgeGlow {
+            0%, 100% {
+                opacity: 0.3;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            50% {
+                opacity: 0.6;
+                transform: translate(-50%, -50%) scale(1.1);
+            }
+        }
+
+        /* Pulse animation when counting */
+        #animatedAge.counting {
+            animation: bioAgePulse 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes bioAgePulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.03);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Final reveal animation */
+        #animatedAge.final-reveal {
+            animation: bioAgeFinalReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes bioAgeFinalReveal {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.12);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Color variations based on performance */
+        #animatedAge.age-excellent {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #animatedAge.age-excellent::after {
+            background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, rgba(39, 174, 96, 0.1) 50%, transparent 75%);
+        }
+
+        #animatedAge.age-good {
+            background: linear-gradient(135deg, #00bcd4 0%, #4CAF50 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #animatedAge.age-average {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #animatedAge.age-average::after {
+            background: radial-gradient(circle, rgba(255, 152, 0, 0.15) 0%, rgba(245, 124, 0, 0.1) 50%, transparent 75%);
+        }
+
+        /* Years text styling */
+        #yearsText {
+            font-size: 1.25rem;
+            color: #64748b;
+            text-align: center;
+            margin-top: 1rem;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        #phenoAgeResult.show #yearsText {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            #phenoAgeResult {
+                padding: 2rem 1.5rem;
+                margin: 1.5rem auto;
+            }
+
+            .bio-age-number-container {
+                min-height: 120px;
+                margin: 1.5rem 0;
+            }
+
+            #animatedAge {
+                font-size: 5rem;
+                letter-spacing: -2px;
+            }
+
+            #validAgeInput > div:first-child {
+                font-size: 0.8rem;
+                margin-bottom: 1.25rem;
+            }
+
+            #yearsText {
+                font-size: 1.1rem;
+                margin-top: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #phenoAgeResult {
+                padding: 2.5rem 1.5rem;
+                margin: 1.5rem auto;
+                border-radius: 18px;
+            }
+
+            .bio-age-number-container {
+                min-height: 100px;
+                margin: 1.25rem 0;
+            }
+
+            #animatedAge {
+                font-size: 4rem;
+                letter-spacing: -1.5px;
+            }
+
+            #validAgeInput > div:first-child {
+                font-size: 0.75rem;
+                letter-spacing: 0.8px;
+            }
+
+            #yearsText {
+                font-size: 1rem;
+            }
+        }
+
+        /* Respect reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            #phenoAgeResult,
+            #animatedAge,
+            #validAgeInput > div:first-child,
+            #yearsText {
+                animation: none !important;
+                transition: opacity 0.3s ease !important;
+            }
+
+            #phenoAgeResult::before {
+                animation: none !important;
+            }
+
+            #animatedAge::after {
+                animation: none !important;
+            }
         }
 
         .crp-container {
@@ -566,9 +843,11 @@
         </div>
         <div id="phenoAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <div id="validAgeInput">
-                <div style="font-size: 1rem; color: #2c3e50; text-align: center;">Your biological age is:</div>
-                <div style="font-size: 2.5rem; color: #4CAF50; font-weight: bold; text-align: center;"><span id="animatedAge">0</span></div>
-                <div id="yearsText" style="font-size: 1rem; color: #2c3e50; text-align: center;">years</div>
+                <div>Your biological age is:</div>
+                <div class="bio-age-number-container">
+                    <span id="animatedAge">0</span>
+                </div>
+                <div id="yearsText">years</div>
             </div>
             <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: #8B0000; background-color: #FAD2D2; padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
@@ -889,7 +1168,7 @@
 
             // Check if the result is not infinite
             if (!isFinite(phenoAge)) {
-                resultElement.style.opacity = 1; // Fade-in effect
+                resultElement.classList.add('show');
                 ensureCorrectInputSuggestion.style.display = 'block';
                 validAgeInput.style.display = 'none';
                 return;
@@ -900,40 +1179,94 @@
             }
 
             // Setting up the animated counter effect
+            const animatedAgeElement = document.getElementById('animatedAge');
+            const yearsTextElement = document.getElementById('yearsText');
             let displayAge = 0;
+            
+            // Determine age category for color coding
+            const ageDiff = phenoAge - chronologicalAgeAtTimeOfTest;
+            const ageCategory = ageDiff < -2 ? 'age-excellent' : (ageDiff < 0 ? 'age-good' : 'age-average');
+            
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
                 isFirstTimeAnimation = false;
 
                 setTimeout(() => {
-                    resultElement.style.opacity = 1; // Fade-in effect
+                    // Trigger the card reveal animation
+                    resultElement.classList.add('show');
+                    
+                    // Calculate animation speed - smooth and not too fast
+                    const animationDuration = Math.min(Math.max(phenoAge * 25, 800), 2500);
+                    const stepCount = Math.ceil(phenoAge);
+                    const stepInterval = Math.max(animationDuration / stepCount, 15);
+                    const incrementPerStep = phenoAge / stepCount;
+                    
+                    let currentStep = 0;
                     const ageCounter = setInterval(() => {
-                        displayAge += 1;
-                        document.getElementById('animatedAge').innerText = displayAge.toFixed(0);
+                        currentStep++;
+                        displayAge = Math.min(incrementPerStep * currentStep, phenoAge);
+                        animatedAgeElement.innerText = displayAge.toFixed(1);
+                        
+                        // Subtle pulse effect during counting (only every few steps to avoid jank)
+                        if (currentStep % 3 === 0) {
+                            animatedAgeElement.classList.add('counting');
+                            setTimeout(() => {
+                                animatedAgeElement.classList.remove('counting');
+                            }, 250);
+                        }
+                        
                         if (displayAge >= phenoAge) {
                             clearInterval(ageCounter);
-                            document.getElementById('animatedAge').innerText = phenoAge.toFixed(1); // Set final age value
-
+                            
+                            // Set final age value with decimal precision
+                            animatedAgeElement.innerText = phenoAge.toFixed(1);
+                            
+                            // Remove any existing age category classes before adding the new one
+                            animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
+                            
+                            // Add color category and final reveal animation
+                            animatedAgeElement.classList.add(ageCategory);
+                            animatedAgeElement.classList.add('final-reveal');
+                            
+                            // Remove final reveal class after animation completes
+                            setTimeout(() => {
+                                animatedAgeElement.classList.remove('final-reveal');
+                            }, 800);
+                            
+                            // Update years text with celebratory emoji if bio age is better
                             if (phenoAge < chronologicalAgeAtTimeOfTest) {
-                                // Add the celebratory emoji to the "years" line
-                                document.getElementById('yearsText').innerHTML = `years 🚀`;
+                                yearsTextElement.innerHTML = `years 🚀`;
+                            } else {
+                                yearsTextElement.innerHTML = `years`;
                             }
 
-                            // Show the Next button
-                            document.getElementById('continueButton').classList.add('show');
-                            updateCalculateButton();
+                            // Show the Next button after a brief delay
+                            setTimeout(() => {
+                                document.getElementById('continueButton').classList.add('show');
+                                updateCalculateButton();
+                            }, 500);
                         }
-                    }, 30);
-                }, 100);
+                    }, stepInterval);
+                }, 150);
             } else {
                 setTimeout(() => {
-                    resultElement.style.opacity = 1; // Fade-in effect
+                    // Trigger the card reveal animation
+                    resultElement.classList.add('show');
+                    
                     // Direct update without animation
-                    document.getElementById('animatedAge').innerText = phenoAge.toFixed(1);
-                    document.getElementById('yearsText').innerHTML = phenoAge < chronologicalAgeAtTimeOfTest ? `years 🚀` : `years`;
+                    animatedAgeElement.innerText = phenoAge.toFixed(1);
+                    
+                    // Remove any existing age category classes before adding the new one
+                    animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
+                    animatedAgeElement.classList.add(ageCategory);
+                    
+                    yearsTextElement.innerHTML = phenoAge < chronologicalAgeAtTimeOfTest ? `years 🚀` : `years`;
 
-                    document.getElementById('continueButton').classList.add('show');
-                    updateCalculateButton();
+                    // Show the Next button
+                    setTimeout(() => {
+                        document.getElementById('continueButton').classList.add('show');
+                        updateCalculateButton();
+                    }, 400);
                 }, 100);
             }
 
