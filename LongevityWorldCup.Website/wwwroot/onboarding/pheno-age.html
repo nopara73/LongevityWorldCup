@@ -1415,7 +1415,27 @@
                 entry.Wbc1000cellsuL = parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2));
             }
             if (touchedBiomarkers.has('lymphocyte')) {
-                entry.LymPc = parseFloat(document.getElementById('lymphocyte').value);
+                const lymphRawValue = parseFloat(document.getElementById('lymphocyte').value);
+                const lymphUnitElement = document.getElementById('lymphocyteUnit');
+                const lymphUnitText = lymphUnitElement.options[lymphUnitElement.selectedIndex].text;
+                const isPercentageUnit = lymphUnitText === '%';
+                
+                let lymphValueToStore = lymphRawValue;
+                
+                if (!isPercentageUnit) {
+                    const wbcValueElement = document.getElementById('wbc');
+                    const wbcUnitElement = document.getElementById('wbcUnit');
+                    const wbcRawValue = window.PhenoAge.parseInput(wbcValueElement.value);
+                    const wbcUnitConversion = parseFloat(wbcUnitElement.value);
+                    
+                    if (!isNaN(wbcRawValue)) {
+                        const wbcAdjustedValue = wbcRawValue / wbcUnitConversion;
+                        const lymphAdjustedValue = lymphRawValue / parseFloat(lymphUnitElement.value);
+                        lymphValueToStore = (lymphAdjustedValue / wbcAdjustedValue) * 100;
+                    }
+                }
+                
+                entry.LymPc = parseFloat(lymphValueToStore.toFixed(2));
             }
             if (touchedBiomarkers.has('mcv')) {
                 entry.McvFL = parseFloat(document.getElementById('mcv').value);
