@@ -811,6 +811,7 @@
 
         function adjustBitcoinAddressDisplay() {
             const btcAddressLink = document.getElementById("btcAddressLink");
+            if (!btcAddressLink) return;
             const fullAddress = bitcoinDonationAddress;
             const container = btcAddressLink.parentElement;
 
