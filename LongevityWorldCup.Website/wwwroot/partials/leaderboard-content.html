@@ -286,11 +286,62 @@
        ========================= */
     .modal{
         display:none; position:fixed; z-index:3; left:0; top:0; width:100%; height:100%;
-        overflow:auto; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+        overflow:hidden; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
     }
     .modal-content{
         background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
         border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn .5s ease-out;
+        -webkit-overflow-scrolling:touch; scroll-behavior:smooth; overscroll-behavior:contain;
+        position:relative;
+    }
+    /* Remove border-radius on mobile immediately (before animation) */
+    @media (max-width: 768px) {
+        .modal-content{
+            border-radius:0 !important;
+        }
+        .modal-content.guess-mode{
+            border-radius:0 !important;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .modal-content{ scroll-behavior:auto; animation:none; }
+    }
+    
+    /* Sticky header with athlete name */
+    .modal-sticky-header{
+        position:sticky; top:0; left:0; right:0; z-index:5;
+        background:#fefefe; padding:0.75rem 1rem; margin:-20px -20px 1rem -20px;
+        border-bottom:1px solid rgba(0,0,0,0.1); box-shadow:0 2px 4px rgba(0,0,0,0.05);
+        display:none; align-items:center; justify-content:space-between;
+        transition:opacity 0.2s ease, transform 0.2s ease;
+    }
+    .modal-sticky-header.visible{ display:flex; }
+    /* Blur overlay above sticky header */
+    .modal-sticky-header.visible::before{
+        content:''; position:absolute; top:-40px; left:0; right:0; height:40px;
+        background:linear-gradient(to bottom, rgba(254,254,254,0.8), rgba(254,254,254,0.95));
+        backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+        pointer-events:none; z-index:-1;
+    }
+    .modal-sticky-header .sticky-athlete-name{
+        font-size:1.1rem; font-weight:600; color:var(--dark-text-color);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;
+    }
+    .modal-sticky-header .sticky-close-btn{
+        background:none; border:none; font-size:1.5rem; color:#999;
+        cursor:pointer; padding:0.5rem; margin-left:1rem; flex-shrink:0;
+        line-height:1; min-width:44px; min-height:44px;
+        border-radius:50%; transition:all 0.2s ease;
+        display:flex; align-items:center; justify-content:center;
+    }
+    .modal-sticky-header .sticky-close-btn:hover{
+        color:var(--dark-text-color);
+        background:rgba(0,0,0,0.05);
+        transform:scale(1.1);
+    }
+    .modal-sticky-header .sticky-close-btn:active{
+        transform:scale(0.95);
+        background:rgba(0,0,0,0.1);
     }
     .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 
@@ -372,6 +423,15 @@
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
     .athlete-links a:hover{ color:var(--secondary-color); }
+
+    /* Scroll progress indicator */
+    .modal-scroll-progress{
+        position:sticky; top:0; left:0; width:0%; height:3px; background:var(--primary-color);
+        z-index:10; transition:width 0.1s ease-out; opacity:0; pointer-events:none;
+        border-radius:0 2px 2px 0;
+    }
+    .modal-scroll-progress.visible{ opacity:1; }
+    .modal-content{ position:relative; }
 
     /* =========================
        11) Proofs & enlarged overlay
@@ -481,6 +541,35 @@
             font-size: 0.9rem;
             border-spacing: 0.2rem .08rem;
         }
+
+        /* Mobile modal improvements */
+        .modal-content{
+            width:95%; padding:15px; margin:0; max-height:100vh; height:100vh;
+            border-radius:0 !important; /* Remove rounded corners on mobile immediately */
+            padding-top:max(15px, env(safe-area-inset-top));
+            padding-bottom:max(15px, env(safe-area-inset-bottom));
+            padding-left:max(15px, env(safe-area-inset-left));
+            padding-right:max(15px, env(safe-area-inset-right));
+        }
+        .modal-content.guess-mode{
+            border-radius:0 !important; /* Also remove rounded corners in guess-mode on mobile */
+        }
+        #modalProfilePic{ width:50%; }
+        .modal-scroll-progress{ height:2px; }
+        
+        /* Ensure minimum touch target sizes */
+        .modal-content a, .modal-content button, .close{
+            min-height:44px; min-width:44px;
+            display:inline-flex; align-items:center; justify-content:center;
+        }
+        
+        /* Sticky header adjustments for mobile */
+        .modal-sticky-header{
+            margin:-15px -15px 1rem -15px; padding:0.75rem 1rem;
+        }
+        .modal-sticky-header.visible::before{
+            top:-30px; height:30px;
+        }
         .athlete-info-table th {
             padding-right: 0.1rem;
         }
@@ -572,9 +661,14 @@
 
         <div id="detailsModal" class="modal">
             <div class="modal-content">
+                <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
+                <div class="modal-sticky-header" id="modalStickyHeader">
+                    <span class="sticky-athlete-name" id="stickyAthleteName"></span>
+                    <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
+                </div>
                 <span id="closeAthleteDetailsModal" class="close">&times;</span>
 
-                <div class="athlete-profile">
+                <div class="athlete-profile" id="athlete-profile">
                     <img id="modalProfilePic"
                          src=""
                          alt="Athlete Profile Picture"
@@ -591,7 +685,7 @@
                             <!-- Visualization will be dynamically generated here -->
                         </div>
                     </div>
-                    <div class="athlete-info">
+                    <div class="athlete-info" id="athlete-stats">
                         <table class="athlete-info-table">
                             <tbody>
                             <tr>
@@ -670,12 +764,12 @@
                     <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
                 </div>
 
-                <div class="biomarkers-section">
+                <div class="biomarkers-section" id="athlete-biomarkers">
                     <h3>Biomarkers Over Time</h3>
                     <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
                 </div>
 
-                <div class="proofs-section">
+                <div class="proofs-section" id="athlete-proofs">
                     <h3>Proofs</h3>
                     <div class="proofs-gallery" id="proofsGallery">
                         <!-- Proof images will be inserted here -->
@@ -780,6 +874,50 @@
         }, true);
     })();
 
+    /* ------- Scroll Performance Optimization ------- */
+    (function() {
+        if (window.__scrollOptimizerInstalled) return;
+        window.__scrollOptimizerInstalled = true;
+
+        // Throttle function using requestAnimationFrame
+        function throttleRAF(func) {
+            let rafId = null;
+            return function(...args) {
+                if (rafId === null) {
+                    rafId = requestAnimationFrame(() => {
+                        func.apply(this, args);
+                        rafId = null;
+                    });
+                }
+            };
+        }
+
+        // Scroll position memory
+        const scrollMemory = {
+            store: function(athleteSlug, scrollTop) {
+                if (athleteSlug) {
+                    sessionStorage.setItem(`modalScroll_${athleteSlug}`, String(scrollTop));
+                }
+            },
+            retrieve: function(athleteSlug) {
+                if (athleteSlug) {
+                    const stored = sessionStorage.getItem(`modalScroll_${athleteSlug}`);
+                    return stored ? parseInt(stored, 10) : null;
+                }
+                return null;
+            },
+            clear: function(athleteSlug) {
+                if (athleteSlug) {
+                    sessionStorage.removeItem(`modalScroll_${athleteSlug}`);
+                }
+            }
+        };
+
+        window.ModalScrollOptimizer = {
+            throttleRAF: throttleRAF,
+            memory: scrollMemory
+        };
+    })();
 
     function canAutoScroll() {
         if (window.ScrollGuard?.isBlocked?.()) return false;
@@ -1513,7 +1651,7 @@
 
         // Append the cloned element to the document (it will be added where it fits in your DOM structure)
         document.body.appendChild(clone);
-        document.body.classList.add('no-scroll');
+        lockBodyScroll();
         history.pushState({ modal: 'enlarged' }, "");
 
         // Trigger a transition to show the element
@@ -1536,9 +1674,9 @@
         enlargedElem.classList.remove('show');
         setTimeout(() => {
             document.body.removeChild(enlargedElem);
-            // If no modal is open, remove the no-scroll class
+            // If no modal is open, restore body scroll
             if (modal.style.display !== "block") {
-                document.body.classList.remove('no-scroll');
+                restoreBodyScroll();
             }
         }, 300);
     }
@@ -1570,25 +1708,258 @@
     const closeBtn = document.getElementById("closeAthleteDetailsModal");
     const athleteDetails = document.getElementById("athleteDetails");
     let ageChart;
+    let savedBodyScroll = 0;
+
+    // Improved body scroll lock for iOS
+    function lockBodyScroll() {
+        if (document.body.classList.contains('no-scroll')) return;
+        
+        savedBodyScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        document.body.classList.add('no-scroll');
+        
+        // Prevent iOS bounce
+        const scrollY = savedBodyScroll;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+    }
+
+    function restoreBodyScroll() {
+        if (!document.body.classList.contains('no-scroll')) return;
+        
+        document.body.classList.remove('no-scroll');
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        
+        // Restore scroll position
+        if (savedBodyScroll !== undefined) {
+            window.scrollTo(0, savedBodyScroll);
+            savedBodyScroll = 0;
+        }
+    }
+
+    // Initialize scroll progress indicator and sticky header
+    // Store the scroll listener function reference on the element to allow proper removal
+    function initializeScrollProgress(modalContent) {
+        const progressBar = document.getElementById('modalScrollProgress');
+        const stickyHeader = document.getElementById('modalStickyHeader');
+        if (!modalContent) return;
+
+        // Remove previous listener if it exists (using stored reference)
+        if (modalContent._scrollProgressListener) {
+            modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
+            modalContent._scrollProgressListener = null;
+        }
+
+        // Create the update function
+        const updateProgress = window.ModalScrollOptimizer?.throttleRAF(function() {
+            const scrollTop = modalContent.scrollTop;
+            const scrollHeight = modalContent.scrollHeight - modalContent.clientHeight;
+            const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+            
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+                progressBar.setAttribute('aria-valuenow', Math.round(progress));
+                
+                // Show/hide progress bar
+                if (scrollHeight > 50) {
+                    progressBar.classList.add('visible');
+                } else {
+                    progressBar.classList.remove('visible');
+                }
+            }
+            
+            // Show/hide sticky header (show when athlete name starts scrolling out of view)
+            // Don't show in guess-mode
+            if (stickyHeader && !modalContent.classList.contains('guess-mode')) {
+                const athleteName = document.getElementById('athleteName');
+                if (athleteName) {
+                    // Get the athlete name's position relative to modal content
+                    const nameOffsetTop = athleteName.offsetTop;
+                    // Show sticky header when scrolled past the name (with small offset for smooth transition)
+                    if (scrollTop > nameOffsetTop - 30) {
+                        stickyHeader.classList.add('visible');
+                    } else {
+                        stickyHeader.classList.remove('visible');
+                    }
+                }
+            } else if (stickyHeader && modalContent.classList.contains('guess-mode')) {
+                // Always hide sticky header in guess-mode
+                stickyHeader.classList.remove('visible');
+            }
+        }) || function() {
+            // Fallback if optimizer not available
+            const scrollTop = modalContent.scrollTop;
+            const scrollHeight = modalContent.scrollHeight - modalContent.clientHeight;
+            const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+            
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+                progressBar.setAttribute('aria-valuenow', Math.round(progress));
+                if (scrollHeight > 50) {
+                    progressBar.classList.add('visible');
+                } else {
+                    progressBar.classList.remove('visible');
+                }
+            }
+            
+            // Don't show in guess-mode
+            if (stickyHeader && !modalContent.classList.contains('guess-mode')) {
+                const athleteName = document.getElementById('athleteName');
+                if (athleteName) {
+                    // Get the athlete name's position relative to modal content
+                    const nameOffsetTop = athleteName.offsetTop;
+                    // Show sticky header when scrolled past the name (with small offset for smooth transition)
+                    if (scrollTop > nameOffsetTop - 30) {
+                        stickyHeader.classList.add('visible');
+                    } else {
+                        stickyHeader.classList.remove('visible');
+                    }
+                }
+            } else if (stickyHeader && modalContent.classList.contains('guess-mode')) {
+                // Always hide sticky header in guess-mode
+                stickyHeader.classList.remove('visible');
+            }
+        };
+
+        // Store the listener reference on the element for future removal
+        modalContent._scrollProgressListener = updateProgress;
+        
+        // Add new listener (passive for performance)
+        modalContent.addEventListener('scroll', updateProgress, { passive: true });
+        
+        // Initial update
+        updateProgress();
+    }
+
+    // Scroll-to-section navigation
+    function setupScrollToSectionNavigation(modalContent) {
+        // Optional: Add floating navigation menu for long content
+        // This is a lightweight implementation - can be enhanced later
+        const sections = [
+            { id: 'athlete-profile', label: 'Profile' },
+            { id: 'athlete-stats', label: 'Stats' },
+            { id: 'athlete-biomarkers', label: 'Biomarkers' },
+            { id: 'athlete-proofs', label: 'Proofs' }
+        ];
+
+        // Add smooth scroll behavior when clicking section links
+        sections.forEach(section => {
+            const sectionEl = document.getElementById(section.id);
+            if (sectionEl) {
+                // Ensure smooth scrolling when programmatically scrolled to
+                sectionEl.scrollIntoView = (function(original) {
+                    return function(options) {
+                        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                        const opts = options || { behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' };
+                        return original.call(this, opts);
+                    };
+                })(Element.prototype.scrollIntoView);
+            }
+        });
+    }
+
+    // Keyboard navigation for modal
+    function setupModalKeyboardNavigation() {
+        document.addEventListener('keydown', function(event) {
+            if (modal.style.display !== "block") return;
+            
+            const modalContent = document.querySelector('.modal-content');
+            if (!modalContent) return;
+            if (modalContent.classList.contains('guess-mode')) return;
+
+            // Home key - scroll to top
+            if (event.key === 'Home' && !event.ctrlKey && !event.metaKey) {
+                event.preventDefault();
+                const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                modalContent.scrollTo({
+                    top: 0,
+                    behavior: prefersReducedMotion ? 'auto' : 'smooth'
+                });
+                return;
+            }
+
+            // End key - scroll to bottom
+            if (event.key === 'End' && !event.ctrlKey && !event.metaKey) {
+                event.preventDefault();
+                const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                modalContent.scrollTo({
+                    top: modalContent.scrollHeight,
+                    behavior: prefersReducedMotion ? 'auto' : 'smooth'
+                });
+                return;
+            }
+
+            // Arrow keys for section navigation (when not in input/textarea)
+            if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && 
+                !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+                // Only handle if focus is within modal
+                if (modal.contains(document.activeElement)) {
+                    // Let default behavior handle focus navigation
+                    return;
+                }
+            }
+        });
+    }
+
+    // Initialize keyboard navigation
+    setupModalKeyboardNavigation();
+    
+    // Set up sticky header close button
+    const stickyCloseBtn = document.getElementById('stickyCloseBtn');
+    if (stickyCloseBtn) {
+        stickyCloseBtn.onclick = function() {
+            const modalContent = document.querySelector('.modal-content');
+            if (modalContent && modalContent.classList.contains('guess-mode')) return;
+            closeModal();
+        };
+    }
 
     closeBtn.onclick = function () {
-        // don’t let them close mid-game
-        if (modalContent.classList.contains('guess-mode')) return;
+        // don't let them close mid-game
+        const modalContent = document.querySelector('.modal-content');
+        if (modalContent && modalContent.classList.contains('guess-mode')) return;
         closeModal();
     };
 
     window.addEventListener('click', function (event) {
-        if (event.target === modal && !modalContent.classList.contains('guess-mode')) {
+        const modalContent = document.querySelector('.modal-content');
+        if (event.target === modal && modalContent && !modalContent.classList.contains('guess-mode')) {
             closeModal();
         }
     });
 
     function closeModal() {
+        const modalContent = document.querySelector('.modal-content');
+        if (!modalContent) return;
+        
+        const athleteSlug = modalContent.dataset.athleteSlug;
+        
+        // Don't store scroll position - always start from top when reopening
+        
+        // Hide sticky header
+        const stickyHeader = document.getElementById('modalStickyHeader');
+        if (stickyHeader) {
+            stickyHeader.classList.remove('visible');
+        }
+        
+        // Remove scroll listener to prevent memory leaks
+        if (modalContent._scrollProgressListener) {
+            modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
+            modalContent._scrollProgressListener = null;
+        }
+        
         modal.classList.add('fade-out');
         setTimeout(() => {
             modal.style.display = "none";
             modal.classList.remove('fade-out');
-            document.body.classList.remove('no-scroll');
+            restoreBodyScroll();
+            
+            // Reset scroll position for next open
+            if (modalContent) {
+                modalContent.scrollTop = 0;
+            }
 
             // Clear the athlete parameter from the URL:
             history.replaceState({}, "", originalAthletelessURL);
@@ -2219,8 +2590,9 @@
         }
     });
     function closeOpenComponents() {
-        // don’t close the details modal mid-guess
-        if (modalContent.classList.contains('guess-mode')) return;
+        // don't close the details modal mid-guess
+        const modalContent = document.querySelector('.modal-content');
+        if (modalContent && modalContent.classList.contains('guess-mode')) return;
 
         const enlargedImg = document.querySelector('.enlarged-portrait.show');
         if (enlargedImg) {
@@ -2311,10 +2683,30 @@
 
                 // Display the modal
                 modal.style.display = "block";
-                document.body.classList.add('no-scroll');
+                lockBodyScroll();
 
                 const modalContent = document.querySelector('.modal-content');
+                if (!modalContent) {
+                    console.error('Modal content element not found');
+                    return;
+                }
+                
+                modalContent.dataset.athleteSlug = athleteSlug;
+                
+                // Always start at top when modal opens
                 modalContent.scrollTop = 0;
+                
+                // Hide sticky header initially
+                const stickyHeader = document.getElementById('modalStickyHeader');
+                if (stickyHeader) {
+                    stickyHeader.classList.remove('visible');
+                }
+                
+                // Initialize scroll progress indicator
+                initializeScrollProgress(modalContent);
+                
+                // Setup scroll-to-section navigation (optional floating menu for long content)
+                setupScrollToSectionNavigation(modalContent);
 
                 var frame = document.getElementById('events-frame');
                 if (frame) {
@@ -2419,7 +2811,17 @@
 
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
-        document.getElementById('athleteName').textContent = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
+        const athleteNameWithRank = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
+        const athleteNameElement = document.getElementById('athleteName');
+        athleteNameElement.textContent = athleteNameWithRank;
+        
+        // Set sticky header name - use the full content including rank badges/emojis
+        const stickyAthleteName = document.getElementById('stickyAthleteName');
+        if (stickyAthleteName) {
+            // Clone the full content including any HTML (like emojis/badges)
+            stickyAthleteName.innerHTML = athleteNameElement.innerHTML;
+        }
+        
         const profilePic = document.getElementById('modalProfilePic');
         profilePic.src = fullAthleteData.ProfilePic;
         profilePic.alt = `${modalDisplayName} Profile Picture`;
