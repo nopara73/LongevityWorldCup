@@ -34,6 +34,10 @@
                     var leaderboardContent = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "leaderboard-content.html"));
                     var guessMyAge = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "guess-my-age.html"));
                     var eventBoardContent = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "event-board-content.html"));
+                    var ageVisualization = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "age-visualization.html"));
+
+                    // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
+                    leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
@@ -44,7 +48,8 @@
                         .Replace("<!--SUB-PROGRESS-BAR-->", subProgressBar)
                         .Replace("<!--LEADERBOARD-CONTENT-->", leaderboardContent)
                         .Replace("<!--GUESS-MY-AGE-->", guessMyAge)
-                        .Replace("<!--EVENT-BOARD-CONTENT-->", eventBoardContent);
+                        .Replace("<!--EVENT-BOARD-CONTENT-->", eventBoardContent)
+                        .Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
 
                     // Optionally remove the play button on certain pages
                     if (path.Contains("join-game"))
