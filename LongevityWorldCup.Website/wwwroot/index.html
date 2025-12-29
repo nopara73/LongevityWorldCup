@@ -738,13 +738,12 @@
             closeNewsletterModal();
         });
 
+        const newsletterModal = document.getElementById("newsletterModal");
         window.addEventListener('click', function (event) {
             if (event.target === newsletterModal) {
                 closeNewsletterModal();
             }
         });
-
-        const newsletterModal = document.getElementById("newsletterModal");
         // Add keydown event listener for closing the modal
         document.addEventListener('keydown', function (event) {
             if (newsletterModal.style.display === 'flex') {
