@@ -147,7 +147,7 @@ internal class Program
 
                     File.WriteAllText(oldJsonPath, oldObj.ToString() + Environment.NewLine);
                 }
-                // skip athlete.json, handled below
+                // skip athlete.json, already handled above
                 continue;
             }
 
