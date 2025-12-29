@@ -12,9 +12,6 @@ namespace LongevityWorldCup.Website.Controllers
         [HttpPost("athlete-age")]
         public IActionResult PostAthleteAgeGuess(string athleteName, int ageGuess)
         {
-            if (string.IsNullOrWhiteSpace(athleteName))
-                return BadRequest("Athlete name is required.");
-            
             // normalize incoming name (hyphens → underscores)
             var key = athleteName.Replace('-', '_');
             var actualAge = _svc.GetActualAge(key);
