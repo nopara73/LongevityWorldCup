@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
-if [[ "${LWC_CR_STRIPPED:-0}" != "1" ]] && LC_ALL=C grep -q $'\r' "$0"; then
-  export LWC_CR_STRIPPED=1
-  tmp="$(mktemp)"
-  tr -d '\r' < "$0" > "$tmp"
-  chmod +x "$tmp"
-  exec bash "$tmp" "$@"
+if LC_ALL=C grep -q $'\r' "$0"; then
+  if [[ "${1:-}" != "--__cr_stripped" ]]; then
+    tmp="$(mktemp)"
+    tr -d '\r' < "$0" > "$tmp"
+    chmod +x "$tmp"
+    exec bash "$tmp" --__cr_stripped "$@"
+  fi
+fi
+
+if [[ "${1:-}" == "--__cr_stripped" ]]; then
+  shift
 fi
 
 set -euo pipefail
@@ -22,6 +27,10 @@ if [[ -z "${db_path//[[:space:]]/}" ]]; then
   usage
 fi
 
+if [[ "$db_path" != /* ]]; then
+  db_path="$(pwd -P)/$db_path"
+fi
+
 command -v sqlite3 >/dev/null 2>&1 || { echo "sqlite3 is not installed" >&2; exit 1; }
 
 if [[ ! -f "$db_path" ]]; then
@@ -29,15 +38,50 @@ if [[ ! -f "$db_path" ]]; then
   exit 1
 fi
 
-sqlite_timeout_ms="${LWC_SQLITE_TIMEOUT_MS:-5000}"
+svc_user="$(stat -c %U "$db_path" 2>/dev/null || true)"
+if [[ -z "${svc_user:-}" || "$svc_user" == "UNKNOWN" ]]; then
+  svc_user="$(id -un)"
+fi
+
+as_svc() {
+  if [[ "$(id -un)" == "$svc_user" ]]; then
+    "$@"
+    return
+  fi
+
+  if [[ $EUID -eq 0 ]]; then
+    if command -v runuser >/dev/null 2>&1; then
+      runuser -u "$svc_user" -- "$@"
+      return
+    fi
+    if command -v su >/dev/null 2>&1; then
+      su -s /bin/bash "$svc_user" -c "$(printf '%q ' "$@")"
+      return
+    fi
+    echo "Cannot switch user to '$svc_user' (root, but no runuser/su)." >&2
+    exit 1
+  fi
+
+  if command -v sudo >/dev/null 2>&1; then
+    sudo -u "$svc_user" -- "$@"
+    return
+  fi
+
+  echo "Cannot switch user to '$svc_user' (not root, no sudo)." >&2
+  exit 1
+}
+
+sqlite_timeout_ms=15000
+sqlite_max_retries=50
+sqlite_retry_initial_ms=50
+sqlite_retry_max_ms=500
 
 fs_type() {
   stat -f -c %T "$1" 2>/dev/null || echo "unknown"
 }
 
-writable_path() {
-  local p="$1"
-  [[ -e "$p" ]] && [[ -w "$p" ]]
+writable_path_as_svc() {
+  as_svc test -w "$1" >/dev/null 2>&1
 }
 
 diag_io() {
@@ -55,21 +99,17 @@ diag_io() {
   echo "Dir: $dir"
   echo "FS type: $fstype"
   echo "Owner: $owner  Group: $group"
+  echo "DB user (dynamic): $svc_user"
   echo ""
   ls -la "$db_path" "$dir" 2>/dev/null || true
   [[ -e "$wal" ]] && ls -la "$wal" 2>/dev/null || true
   [[ -e "$shm" ]] && ls -la "$shm" 2>/dev/null || true
   echo ""
-  echo "Writable checks:"
-  echo "  DB writable:  $(writable_path "$db_path" && echo yes || echo no)"
-  echo "  Dir writable: $(writable_path "$dir" && echo yes || echo no)"
-  echo "  WAL writable: $([[ -e "$wal" ]] && (writable_path "$wal" && echo yes || echo no) || echo "(missing)")"
-  echo "  SHM writable: $([[ -e "$shm" ]] && (writable_path "$shm" && echo yes || echo no) || echo "(missing)")"
-  echo ""
-  echo "Fix guidance:"
-  echo "  - Run the script as the same user that owns the DB/WAL files."
-  echo "  - Ensure the DB directory and any existing -wal/-shm files are writable by that user."
-  echo "  - Avoid /mnt/c (WSL) and network filesystems for SQLite DBs if possible."
+  echo "Writable checks for db user ($svc_user):"
+  echo "  Dir writable: $(writable_path_as_svc "$dir" && echo yes || echo no)"
+  echo "  DB writable:  $(writable_path_as_svc "$db_path" && echo yes || echo no)"
+  echo "  WAL writable: $([[ -e "$wal" ]] && (writable_path_as_svc "$wal" && echo yes || echo no) || echo "(missing)")"
+  echo "  SHM writable: $([[ -e "$shm" ]] && (writable_path_as_svc "$shm" && echo yes || echo no) || echo "(missing)")"
   echo ""
 }
 
@@ -79,26 +119,32 @@ precheck_writeability() {
   wal="${db_path}-wal"
   shm="${db_path}-shm"
 
-  if [[ ! -w "$dir" ]]; then
-    echo "DB directory is not writable: $dir" >&2
+  if ! writable_path_as_svc "$dir"; then
+    echo "DB directory is not writable for $svc_user: $dir" >&2
     diag_io
     exit 1
   fi
 
-  if [[ -e "$wal" && ! -w "$wal" ]]; then
-    echo "WAL file exists but is not writable: $wal" >&2
+  if ! writable_path_as_svc "$db_path"; then
+    echo "DB file is not writable for $svc_user: $db_path" >&2
     diag_io
     exit 1
   fi
 
-  if [[ -e "$shm" && ! -w "$shm" ]]; then
-    echo "SHM file exists but is not writable: $shm" >&2
+  if [[ -e "$wal" && ! writable_path_as_svc "$wal" ]]; then
+    echo "WAL file exists but is not writable for $svc_user: $wal" >&2
+    diag_io
+    exit 1
+  fi
+
+  if [[ -e "$shm" && ! writable_path_as_svc "$shm" ]]; then
+    echo "SHM file exists but is not writable for $svc_user: $shm" >&2
     diag_io
     exit 1
   fi
 }
 
-has_events_table="$(sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Events' LIMIT 1;")"
+has_events_table="$(as_svc sqlite3 "$db_path" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Events' LIMIT 1;")"
 if [[ "$has_events_table" != "1" ]]; then
   echo "Events table not found in database: $db_path" >&2
   exit 1
@@ -178,26 +224,47 @@ else
 fi
 
 esc_sql() { printf "%s" "$1" | sed "s/'/''/g"; }
-
 txt="$(esc_sql "$combined_raw")"
 
 precheck_writeability
 
+is_retryable_err() {
+  LC_ALL=C echo "$1" | grep -qiE "database is locked|database is busy|SQLITE_BUSY|SQLITE_LOCKED|disk I/O error"
+}
+
 set +e
 err=""
-for attempt in 1 2 3; do
-  out="$(sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15); COMMIT;" 2>&1)"
+attempt=0
+delay_ms="$sqlite_retry_initial_ms"
+while :; do
+  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15); COMMIT;" 2>&1)"
   rc=$?
   if [[ $rc -eq 0 ]]; then
     echo "Inserted $id into $db_path"
     set -e
     exit 0
   fi
+
   err="$out"
-  if echo "$out" | grep -qi "disk I/O error"; then
-    sleep 0.2
+
+  if echo "$out" | grep -qi "UNIQUE constraint failed: Events.Id"; then
+    echo "Inserted $id into $db_path"
+    set -e
+    exit 0
+  fi
+
+  if is_retryable_err "$out" && [[ $attempt -lt $sqlite_max_retries ]]; then
+    attempt=$((attempt + 1))
+    jitter=$((RANDOM % 25))
+    sleep_s="$(awk -v ms="$((delay_ms + jitter))" 'BEGIN{printf "%.3f", ms/1000.0}')"
+    sleep "$sleep_s"
+    delay_ms=$((delay_ms * 2))
+    if [[ $delay_ms -gt $sqlite_retry_max_ms ]]; then
+      delay_ms="$sqlite_retry_max_ms"
+    fi
     continue
   fi
+
   break
 done
 set -e
