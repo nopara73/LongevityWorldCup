@@ -22,6 +22,8 @@ public sealed class BadgeDataService : IDisposable
     private readonly EventDataService _events; // NEW: event sink for BadgeAward events via DI
 
     private const string AwardsTable = "BadgeAwards";
+    private readonly SemaphoreSlim _athletesChangedRecomputeGate = new SemaphoreSlim(1, 1);
+    private int _athletesChangedRecomputeAgain;
 
     public BadgeDataService(AthleteDataService athletes, EventDataService events)
     {
@@ -43,10 +45,31 @@ public sealed class BadgeDataService : IDisposable
 
     private void OnAthletesChanged()
     {
-        // Recompute awards based on the latest athlete data,
-        // then hydrate the latest awards back into athlete JSONs.
-        ComputeAndPersistAwards();
-        _athletes.RefreshBadgesFromDatabase();
+        if (!_athletesChangedRecomputeGate.Wait(0))
+        {
+            Interlocked.Exchange(ref _athletesChangedRecomputeAgain, 1);
+            return;
+        }
+
+        try
+        {
+            while (true)
+            {
+                Interlocked.Exchange(ref _athletesChangedRecomputeAgain, 0);
+
+                // Recompute awards based on the latest athlete data,
+                // then hydrate the latest awards back into athlete JSONs.
+                ComputeAndPersistAwards();
+                _athletes.RefreshBadgesFromDatabase();
+
+                if (Interlocked.CompareExchange(ref _athletesChangedRecomputeAgain, 0, 1) == 0)
+                    break;
+            }
+        }
+        finally
+        {
+            _athletesChangedRecomputeGate.Release();
+        }
     }
 
     /// <summary>
@@ -357,11 +380,11 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     }
 
 
-    private static string? TryGetStringNode(System.Text.Json.Nodes.JsonObject o, string key)
+    private static string? TryGetStringNode(JsonObject o, string key)
     {
         try
         {
-            if (o.TryGetPropertyValue(key, out System.Text.Json.Nodes.JsonNode? node) && node is not null)
+            if (o.TryGetPropertyValue(key, out JsonNode? node) && node is not null)
                 return node.GetValue<string?>();
         }
         catch
@@ -374,10 +397,10 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     private static string BuildEditorialRuleHash(string label, string? note = null)
     {
         string sig = $"label={label}|category=Global|type=editorial|note={note ?? "n/a"}";
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sig));
-        var sb = new System.Text.StringBuilder(bytes.Length * 2);
-        foreach (var b in bytes) sb.Append(b.ToString("x2", System.Globalization.CultureInfo.InvariantCulture));
+        using var sha = SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(sig));
+        var sb = new StringBuilder(bytes.Length * 2);
+        foreach (var b in bytes) sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
         return sb.ToString();
     }
 
@@ -386,11 +409,11 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         List<AwardRow> awards)
     {
         var nameToSlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var slugToObj = new Dictionary<string, System.Text.Json.Nodes.JsonObject>(StringComparer.OrdinalIgnoreCase);
+        var slugToObj = new Dictionary<string, JsonObject>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var node in _athletes.Athletes)
         {
-            if (node is not System.Text.Json.Nodes.JsonObject o) continue;
+            if (node is not JsonObject o) continue;
 
             var slug =
                 TryGetStringNode(o, "AthleteSlug") ??
