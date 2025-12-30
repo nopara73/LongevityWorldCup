@@ -203,11 +203,11 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private void HydrateComputedStatsIntoAthletes(Dictionary<string, AthleteStats> stats)
     {
-        foreach (var o in _athletes.Athletes.OfType<JsonObject>())
+        _athletes.UpdateAthletesJsonInPlace(o =>
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(slug)) continue;
-            if (!stats.TryGetValue(slug, out var s)) continue;
+            if (string.IsNullOrWhiteSpace(slug)) return;
+            if (!stats.TryGetValue(slug, out var s)) return;
 
             if (s.ChronoAge.HasValue) o["ChronoAge"] = s.ChronoAge.Value;
             else o.Remove("ChronoAge");
@@ -226,7 +226,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
             if (s.PhenoAgeDiffFromBaseline.HasValue) o["PhenoAgeDiffFromBaseline"] = s.PhenoAgeDiffFromBaseline.Value;
             else o.Remove("PhenoAgeDiffFromBaseline");
-        }
+        });
     }
 
     private List<AwardRow> ReadCurrentAwardsSnapshot()

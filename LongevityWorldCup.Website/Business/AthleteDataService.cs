@@ -965,6 +965,17 @@ public class AthleteDataService : IDisposable
         }
     }
     
+    public void UpdateAthletesJsonInPlace(Action<JsonObject> mutator)
+    {
+        if (mutator is null) throw new ArgumentNullException(nameof(mutator));
+
+        lock (_athletesJsonLock)
+        {
+            foreach (var o in _athletes.OfType<JsonObject>())
+                mutator(o);
+        }
+    }
+    
     public JsonArray GetAthletesSnapshot()
     {
         lock (_athletesJsonLock)
