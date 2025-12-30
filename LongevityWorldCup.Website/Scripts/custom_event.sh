@@ -131,13 +131,13 @@ precheck_writeability() {
     exit 1
   fi
 
-  if [[ -e "$wal" && ! writable_path_as_svc "$wal" ]]; then
+  if [[ -e "$wal" ]] && ! writable_path_as_svc "$wal"; then
     echo "WAL file exists but is not writable for $svc_user: $wal" >&2
     diag_io
     exit 1
   fi
 
-  if [[ -e "$shm" && ! writable_path_as_svc "$shm" ]]; then
+  if [[ -e "$shm" ]] && ! writable_path_as_svc "$shm"; then
     echo "SHM file exists but is not writable for $svc_user: $shm" >&2
     diag_io
     exit 1
