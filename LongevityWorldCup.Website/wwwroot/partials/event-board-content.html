@@ -1176,7 +1176,19 @@
                         return r.slugs.includes(target);
                     });
                 }else{
-                    rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
+                    rows=rows.filter(r=>{
+                        if(r.type===EVENT_TYPE.NewRank) return isTop10Rank(r, athletesIndex);
+
+                        if(r.type===EVENT_TYPE.BadgeAward){
+                            const cat=String(r.leagueCategory||"").trim().toLowerCase();
+                            const plc=Number(r.place);
+                            if(!(plc>=1 && plc<=3)) return false;
+                            if(!cat) return false;
+                            return cat.startsWith("division") || cat.startsWith("generation") || cat.startsWith("exclusive");
+                        }
+
+                        return true;
+                    });
                 }
 
                 rows = applyArrivalOrderEpsilon(rows, 1);
