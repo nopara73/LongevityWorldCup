@@ -200,6 +200,18 @@ public sealed class DatabaseManager : IDisposable
             cmd.CommandText = $"PRAGMA busy_timeout={busyTimeoutMs};";
             cmd.ExecuteNonQuery();
         }
+
+        using (var cmd = _sqlite.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA wal_autocheckpoint=250;";
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = _sqlite.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA journal_size_limit=16777216;";
+            cmd.ExecuteNonQuery();
+        }
     }
 
     private void Enter()
