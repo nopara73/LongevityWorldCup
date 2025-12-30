@@ -12,7 +12,6 @@ namespace LongevityWorldCup.Website.Business;
 public class AthleteDataService : IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
-    private readonly DatabaseFileWatcher _dbWatcher;
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
 
@@ -67,7 +66,6 @@ public class AthleteDataService : IDisposable
         _backupDir = Path.Combine(dataDir, "Backups");
         Directory.CreateDirectory(_backupDir);
 
-        var dbPath = _db.DbPath;
         _db.Run(sqlite =>
         {
             using (var cmd = sqlite.CreateCommand())
@@ -205,27 +203,7 @@ public class AthleteDataService : IDisposable
 
         DetectAndEmitAthleteCountMilestones(); // emit milestones retroactively and at startup
 
-        // Poll-loop to detect external DB writes and reload stats
-        _dbWatcher = new DatabaseFileWatcher(dbPath, TimeSpan.FromSeconds(5));
-        _dbWatcher.DatabaseChanged += () =>
-        {
-            _reloadLock.Wait();
-            try
-            {
-                ReloadCrowdStats();
-                HydratePlacementsIntoAthletesJson();
-                HydrateNewFlagsIntoAthletesJson();
-                HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-                HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
-            }
-            finally
-            {
-                _reloadLock.Release();
-            }
-
-            PushAthleteDirectoryToEvents();
-            AthletesChanged?.Invoke();
-        };
+        _db.DatabaseChanged += OnDatabaseChanged;
 
         // daily backup + retention
         _ = Task.Run(async () =>
@@ -238,6 +216,26 @@ public class AthleteDataService : IDisposable
         });
 
         PushAthleteDirectoryToEvents();
+    }
+
+    private void OnDatabaseChanged()
+    {
+        _reloadLock.Wait();
+        try
+        {
+            ReloadCrowdStats();
+            HydratePlacementsIntoAthletesJson();
+            HydrateNewFlagsIntoAthletesJson();
+            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+            HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
+
+        PushAthleteDirectoryToEvents();
+        AthletesChanged?.Invoke();
     }
 
     public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
@@ -1024,7 +1022,7 @@ public class AthleteDataService : IDisposable
 
     public void Dispose()
     {
-        _dbWatcher.Dispose();
+        _db.DatabaseChanged -= OnDatabaseChanged;
         _athleteWatcher.Dispose();
         _reloadLock.Dispose();
         _debounceCts?.Dispose();

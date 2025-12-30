@@ -42,7 +42,6 @@ public sealed class EventDataService : IDisposable
 
     private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
-    private readonly DatabaseFileWatcher _dbWatcher;
 
     public JsonArray Events { get; private set; } = [];
     
@@ -71,8 +70,6 @@ public sealed class EventDataService : IDisposable
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
-
-        var dbPath = _db.DbPath;
 
         _db.Run(sqlite =>
         {
@@ -122,8 +119,7 @@ public sealed class EventDataService : IDisposable
         ProcessPendingSlackEvents();
         ReloadIntoCache();
 
-        _dbWatcher = new DatabaseFileWatcher(dbPath, TimeSpan.FromMilliseconds(250));
-        _dbWatcher.DatabaseChanged += OnDatabaseChanged;
+        _db.DatabaseChanged += OnDatabaseChanged;
     }
 
     private void OnDatabaseChanged()
@@ -668,7 +664,7 @@ public sealed class EventDataService : IDisposable
 
     public void Dispose()
     {
-        _dbWatcher.Dispose();
+        _db.DatabaseChanged -= OnDatabaseChanged;
         GC.SuppressFinalize(this);
     }
 }

@@ -13,14 +13,19 @@ public sealed class DatabaseManager : IDisposable
     private readonly int _initialBackoffMs;
     private readonly int _maxBackoffMs;
 
+    private readonly DatabaseFileWatcher _watcher;
+
     public string DbPath { get; }
+
+    public event Action? DatabaseChanged;
 
     public DatabaseManager(
         int busyTimeoutMs = 15000,
         int defaultTimeoutSeconds = 15,
         int maxRetries = 50,
         int initialBackoffMs = 50,
-        int maxBackoffMs = 500)
+        int maxBackoffMs = 500,
+        int watchPollIntervalMs = 1000)
     {
         DbPath = Path.Combine(EnvironmentHelpers.GetDataDir(), "LongevityWorldCup.db");
 
@@ -40,6 +45,18 @@ public sealed class DatabaseManager : IDisposable
         _sqlite.Open();
 
         ApplyPragmas(busyTimeoutMs);
+
+        _watcher = new DatabaseFileWatcher(DbPath, TimeSpan.FromMilliseconds(watchPollIntervalMs));
+        _watcher.DatabaseChanged += () =>
+        {
+            try
+            {
+                DatabaseChanged?.Invoke();
+            }
+            catch
+            {
+            }
+        };
     }
 
     public T Run<T>(Func<SqliteConnection, T> work)
@@ -104,6 +121,14 @@ public sealed class DatabaseManager : IDisposable
 
     public void Dispose()
     {
+        try
+        {
+            _watcher.Dispose();
+        }
+        catch
+        {
+        }
+
         _sqlite.Dispose();
         _gate.Dispose();
     }
