@@ -639,7 +639,19 @@ public sealed class EventDataService : IDisposable
             return;
         }
 
-        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone || type == EventType.CustomEvent)
+        if (type == EventType.CustomEvent)
+        {
+            if (!EventHelpers.TryExtractCustomEventTitle(rawText, out var title))
+                return;
+
+            if (string.Equals(title, "Test", StringComparison.Ordinal))
+                return;
+
+            _ = _slackEvents.SendImmediateAsync(type, rawText);
+            return;
+        }
+
+        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
         {
             _ = _slackEvents.SendImmediateAsync(type, rawText);
             return;
