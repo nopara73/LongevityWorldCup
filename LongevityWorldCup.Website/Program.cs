@@ -32,11 +32,12 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
 
+            builder.Services.AddSingleton<DatabaseManager>();
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
             builder.Services.AddSingleton<BitcoinDataService>();
             builder.Services.AddSingleton<BadgeDataService>();
-
+            
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
             builder.Services.AddHttpClient<SlackWebhookClient>();
