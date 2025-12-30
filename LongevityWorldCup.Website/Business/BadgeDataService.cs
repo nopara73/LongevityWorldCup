@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Security.Cryptography;
 using System.Globalization;
@@ -17,7 +16,7 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class BadgeDataService : IDisposable
 {
     private readonly AthleteDataService _athletes;
-    private readonly SqliteConnection _sqlite;
+    private readonly DatabaseManager _db;
     private readonly DateTime _asOfUtc;
     private readonly EventDataService _events; // NEW: event sink for BadgeAward events via DI
 
@@ -25,21 +24,17 @@ public sealed class BadgeDataService : IDisposable
     private readonly SemaphoreSlim _athletesChangedRecomputeGate = new SemaphoreSlim(1, 1);
     private int _athletesChangedRecomputeAgain;
 
-    public BadgeDataService(AthleteDataService athletes, EventDataService events)
+    public BadgeDataService(AthleteDataService athletes, EventDataService events, DatabaseManager db)
     {
         _athletes = athletes ?? throw new ArgumentNullException(nameof(athletes));
         _events = events ?? throw new ArgumentNullException(nameof(events));
+        _db = db ?? throw new ArgumentNullException(nameof(db));
         _asOfUtc = DateTime.UtcNow.Date;
-
-        var dbPath = Path.Combine(EnvironmentHelpers.GetDataDir(), "LongevityWorldCup.db");
-        _sqlite = new SqliteConnection($"Data Source={dbPath}");
-        _sqlite.Open();
 
         EnsureTables();
         ComputeAndPersistAwards();
         _athletes.RefreshBadgesFromDatabase();
 
-        // NEW: when athlete files change at runtime, recompute and refresh badges
         _athletes.AthletesChanged += OnAthletesChanged;
     }
 
@@ -77,8 +72,10 @@ public sealed class BadgeDataService : IDisposable
     /// </summary>
     private void EnsureTables()
     {
-        using var cmd = _sqlite.CreateCommand();
-        cmd.CommandText = $@"
+        _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $@"
 CREATE TABLE IF NOT EXISTS {AwardsTable} (
     BadgeLabel     TEXT NOT NULL,
     LeagueCategory TEXT NOT NULL,
@@ -89,7 +86,8 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
     UpdatedAt      TEXT NOT NULL,
     PRIMARY KEY (BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug)
 );";
-        cmd.ExecuteNonQuery();
+            cmd.ExecuteNonQuery();
+        });
     }
 
     /// <summary>
@@ -161,43 +159,46 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
 
         var now = DateTime.UtcNow.ToString("o");
 
-        using var tx = _sqlite.BeginTransaction();
-
-        using (var del = _sqlite.CreateCommand())
+        _db.Run(sqlite =>
         {
-            del.Transaction = tx;
-            del.CommandText = $"DELETE FROM {AwardsTable};";
-            del.ExecuteNonQuery();
-        }
+            using var tx = sqlite.BeginTransaction();
 
-        using (var ins = _sqlite.CreateCommand())
-        {
-            ins.Transaction = tx;
-            ins.CommandText = $@"
+            using (var del = sqlite.CreateCommand())
+            {
+                del.Transaction = tx;
+                del.CommandText = $"DELETE FROM {AwardsTable};";
+                del.ExecuteNonQuery();
+            }
+
+            using (var ins = sqlite.CreateCommand())
+            {
+                ins.Transaction = tx;
+                ins.CommandText = $@"
 INSERT INTO {AwardsTable} (BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt)
 VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
-            var pBL = ins.Parameters.Add("@bl", SqliteType.Text);
-            var pLC = ins.Parameters.Add("@lc", SqliteType.Text);
-            var pLV = ins.Parameters.Add("@lv", SqliteType.Text);
-            var pP = ins.Parameters.Add("@p", SqliteType.Integer);
-            var pA = ins.Parameters.Add("@a", SqliteType.Text);
-            var pD = ins.Parameters.Add("@dh", SqliteType.Text);
-            var pU = ins.Parameters.Add("@u", SqliteType.Text);
+                var pBL = ins.Parameters.Add("@bl", SqliteType.Text);
+                var pLC = ins.Parameters.Add("@lc", SqliteType.Text);
+                var pLV = ins.Parameters.Add("@lv", SqliteType.Text);
+                var pP = ins.Parameters.Add("@p", SqliteType.Integer);
+                var pA = ins.Parameters.Add("@a", SqliteType.Text);
+                var pD = ins.Parameters.Add("@dh", SqliteType.Text);
+                var pU = ins.Parameters.Add("@u", SqliteType.Text);
 
-            foreach (var r in awards)
-            {
-                pBL.Value = r.BadgeLabel;
-                pLC.Value = r.LeagueCategory;
-                pLV.Value = r.LeagueValue is null ? (object)DBNull.Value : r.LeagueValue;
-                pP.Value = r.Place.HasValue ? r.Place.Value : (object)DBNull.Value;
-                pA.Value = r.AthleteSlug;
-                pD.Value = r.DefinitionHash ?? (object)DBNull.Value;
-                pU.Value = now;
-                ins.ExecuteNonQuery();
+                foreach (var r in awards)
+                {
+                    pBL.Value = r.BadgeLabel;
+                    pLC.Value = r.LeagueCategory;
+                    pLV.Value = r.LeagueValue is null ? (object)DBNull.Value : r.LeagueValue;
+                    pP.Value = r.Place.HasValue ? r.Place.Value : (object)DBNull.Value;
+                    pA.Value = r.AthleteSlug;
+                    pD.Value = r.DefinitionHash ?? (object)DBNull.Value;
+                    pU.Value = now;
+                    ins.ExecuteNonQuery();
+                }
             }
-        }
 
-        tx.Commit();
+            tx.Commit();
+        });
     }
 
     private void HydrateComputedStatsIntoAthletes(Dictionary<string, AthleteStats> stats)
@@ -233,21 +234,24 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         var list = new List<AwardRow>(1024);
         try
         {
-            using var cmd = _sqlite.CreateCommand();
-            cmd.CommandText = $"SELECT BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash FROM {AwardsTable};";
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
+            _db.Run(sqlite =>
             {
-                list.Add(new AwardRow
+                using var cmd = sqlite.CreateCommand();
+                cmd.CommandText = $"SELECT BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash FROM {AwardsTable};";
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
                 {
-                    BadgeLabel = r.GetString(0),
-                    LeagueCategory = r.GetString(1),
-                    LeagueValue = r.IsDBNull(2) ? null : r.GetString(2),
-                    Place = r.IsDBNull(3) ? (int?)null : r.GetInt32(3),
-                    AthleteSlug = r.GetString(4),
-                    DefinitionHash = r.IsDBNull(5) ? null : r.GetString(5)
-                });
-            }
+                    list.Add(new AwardRow
+                    {
+                        BadgeLabel = r.GetString(0),
+                        LeagueCategory = r.GetString(1),
+                        LeagueValue = r.IsDBNull(2) ? null : r.GetString(2),
+                        Place = r.IsDBNull(3) ? (int?)null : r.GetInt32(3),
+                        AthleteSlug = r.GetString(4),
+                        DefinitionHash = r.IsDBNull(5) ? null : r.GetString(5)
+                    });
+                }
+            });
         }
         catch
         {
@@ -988,22 +992,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
     }
 
-    private static string? GetGenerationFromBirthYear(int birthYear)
-    {
-        if (birthYear >= 1928 && birthYear <= 1945) return "Silent Generation";
-        if (birthYear >= 1946 && birthYear <= 1964) return "Baby Boomers";
-        if (birthYear >= 1965 && birthYear <= 1980) return "Gen X";
-        if (birthYear >= 1981 && birthYear <= 1996) return "Millennials";
-        if (birthYear >= 1997 && birthYear <= 2012) return "Gen Z";
-        if (birthYear >= 2013) return "Gen Alpha";
-        return null;
-    }
-
     public void Dispose()
     {
         _athletes.AthletesChanged -= OnAthletesChanged;
-        _sqlite.Close();
-        _sqlite.Dispose();
         GC.SuppressFinalize(this);
     }
 }
