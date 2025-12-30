@@ -38,9 +38,6 @@ public class AthleteDataService : IDisposable
 
     private readonly DatabaseManager _db;
 
-    private const int MaxBackupFiles = 5;
-    private readonly string _backupDir;
-
     private readonly string _athletesRootDir;
     private readonly object _pendingLock = new();
     private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
@@ -61,10 +58,6 @@ public class AthleteDataService : IDisposable
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
-
-        // set up backup directory
-        _backupDir = Path.Combine(dataDir, "Backups");
-        Directory.CreateDirectory(_backupDir);
 
         _db.Run(sqlite =>
         {
@@ -204,16 +197,6 @@ public class AthleteDataService : IDisposable
         DetectAndEmitAthleteCountMilestones(); // emit milestones retroactively and at startup
 
         _db.DatabaseChanged += OnDatabaseChanged;
-
-        // daily backup + retention
-        _ = Task.Run(async () =>
-        {
-            while (true)
-            {
-                BackupDatabase();
-                await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
-            }
-        });
 
         PushAthleteDirectoryToEvents();
     }
@@ -612,38 +595,6 @@ public class AthleteDataService : IDisposable
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Creates a timestamped backup, then prunes old backups so only the newest `MaxBackupFiles` remain.
-    /// </summary>
-    public void BackupDatabase()
-    {
-        // checkpoint WAL so the main file is up-to-date
-        _db.Run(sqlite =>
-        {
-            using var chk = sqlite.CreateCommand();
-            chk.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
-            chk.ExecuteNonQuery();
-        });
-
-        // copy into a new file
-        var backupFile = Path.Combine(_backupDir, $"LongevityWC_{DateTime.UtcNow:yyyyMMdd_HHmmss}.db");
-        _db.Run(sqlite =>
-        {
-            using var dest = new SqliteConnection($"Data Source={backupFile}");
-            dest.Open();
-            sqlite.BackupDatabase(dest);
-        });
-
-        // prune old backups
-        var files = Directory
-            .GetFiles(_backupDir, "*.db")
-            .Select(f => new FileInfo(f))
-            .OrderByDescending(f => f.CreationTimeUtc)
-            .Skip(MaxBackupFiles);
-        foreach (var f in files)
-            f.Delete();
     }
 
     /// <summary>

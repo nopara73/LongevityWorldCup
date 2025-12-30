@@ -119,6 +119,48 @@ public sealed class DatabaseManager : IDisposable
         }
     }
 
+    public string BackupDatabase(string backupDir, string filePrefix = "LongevityWC_", int maxBackupFiles = 5)
+    {
+        if (string.IsNullOrWhiteSpace(backupDir)) throw new ArgumentNullException(nameof(backupDir));
+        if (maxBackupFiles < 1) maxBackupFiles = 1;
+
+        Directory.CreateDirectory(backupDir);
+
+        var backupFile = Path.Combine(backupDir, $"{filePrefix}{DateTime.UtcNow:yyyyMMdd_HHmmss}.db");
+
+        Run(sqlite =>
+        {
+            using (var chk = sqlite.CreateCommand())
+            {
+                chk.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+                chk.ExecuteNonQuery();
+            }
+
+            using var dest = new SqliteConnection($"Data Source={backupFile}");
+            dest.Open();
+            sqlite.BackupDatabase(dest);
+        });
+
+        try
+        {
+            var files = new List<FileInfo>();
+            foreach (var f in Directory.GetFiles(backupDir, "*.db"))
+                files.Add(new FileInfo(f));
+
+            files.Sort((a, b) => b.CreationTimeUtc.CompareTo(a.CreationTimeUtc));
+
+            for (var i = maxBackupFiles; i < files.Count; i++)
+            {
+                try { files[i].Delete(); } catch { }
+            }
+        }
+        catch
+        {
+        }
+
+        return backupFile;
+    }
+
     public void Dispose()
     {
         try
