@@ -1,0 +1,28 @@
+{
+  "Name": "Mathias",
+  "DisplayName": null,
+  "MediaContact": "digimon.camp@hotmail.de",
+  "DateOfBirth": {
+    "Year": 1992,
+    "Month": 8,
+    "Day": 24
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-08",
+      "AlbGL": 43,
+      "CreatUmolL": 70.79646017699116,
+      "GluMmolL": 3.829928952042629,
+      "CrpMgL": 0.6,
+      "LymPc": 32.5,
+      "McvFL": 95,
+      "RdwPc": 13,
+      "AlpUL": 71,
+      "Wbc1000cellsuL": 4.6
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Austria",
+  "Why": "My plans for tomorrow and creating human evolution",
+  "PersonalLink": "https://www.instagram.com/mathihof"
+}
