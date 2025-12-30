@@ -10,8 +10,16 @@ public sealed class DatabaseFileWatcher : IDisposable
     private const int DebounceMs = 250;
 
     private readonly string _dbPath;
+    private readonly string _walPath;
+    private readonly string _shmPath;
+    private readonly string _journalPath;
+
     private readonly string _dirPath;
     private readonly string _fileName;
+    private readonly string _walFileName;
+    private readonly string _shmFileName;
+    private readonly string _journalFileName;
+
     private readonly TimeSpan _pollInterval;
 
     private readonly CancellationTokenSource _cts = new();
@@ -20,8 +28,17 @@ public sealed class DatabaseFileWatcher : IDisposable
     private readonly FileSystemWatcher _watcher;
     private readonly Timer _debounceTimer;
 
-    private DateTime _lastWriteUtc;
-    private long _lastLength;
+    private DateTime _lastDbWriteUtc;
+    private long _lastDbLength;
+
+    private DateTime _lastWalWriteUtc;
+    private long _lastWalLength;
+
+    private DateTime _lastShmWriteUtc;
+    private long _lastShmLength;
+
+    private DateTime _lastJournalWriteUtc;
+    private long _lastJournalLength;
 
     private int _scheduled;
     private int _disposed;
@@ -36,7 +53,18 @@ public sealed class DatabaseFileWatcher : IDisposable
         _dirPath = Path.GetDirectoryName(_dbPath) ?? ".";
         _fileName = Path.GetFileName(_dbPath);
 
-        (_lastWriteUtc, _lastLength) = SafeGetWriteAndLength(_dbPath);
+        _walPath = _dbPath + "-wal";
+        _shmPath = _dbPath + "-shm";
+        _journalPath = _dbPath + "-journal";
+
+        _walFileName = _fileName + "-wal";
+        _shmFileName = _fileName + "-shm";
+        _journalFileName = _fileName + "-journal";
+
+        (_lastDbWriteUtc, _lastDbLength) = SafeGetWriteAndLength(_dbPath);
+        (_lastWalWriteUtc, _lastWalLength) = SafeGetWriteAndLength(_walPath);
+        (_lastShmWriteUtc, _lastShmLength) = SafeGetWriteAndLength(_shmPath);
+        (_lastJournalWriteUtc, _lastJournalLength) = SafeGetWriteAndLength(_journalPath);
 
         _debounceTimer = new Timer(_ => DebouncedFire(), null, Timeout.Infinite, Timeout.Infinite);
 
@@ -57,14 +85,24 @@ public sealed class DatabaseFileWatcher : IDisposable
 
     private void OnFsEvent(string? name)
     {
-        if (!string.Equals(name, _fileName, StringComparison.Ordinal)) return;
+        if (!IsRelevantName(name)) return;
         ScheduleFire();
     }
 
     private void OnFsRenamed(string? oldName, string? name)
     {
-        if (string.Equals(oldName, _fileName, StringComparison.Ordinal) || string.Equals(name, _fileName, StringComparison.Ordinal))
+        if (IsRelevantName(oldName) || IsRelevantName(name))
             ScheduleFire();
+    }
+
+    private bool IsRelevantName(string? name)
+    {
+        if (name is null) return false;
+
+        return string.Equals(name, _fileName, StringComparison.Ordinal)
+               || string.Equals(name, _walFileName, StringComparison.Ordinal)
+               || string.Equals(name, _shmFileName, StringComparison.Ordinal)
+               || string.Equals(name, _journalFileName, StringComparison.Ordinal);
     }
 
     private void ScheduleFire()
@@ -85,7 +123,10 @@ public sealed class DatabaseFileWatcher : IDisposable
         if (Volatile.Read(ref _disposed) != 0) return;
         if (Interlocked.Exchange(ref _scheduled, 0) == 0) return;
 
-        (_lastWriteUtc, _lastLength) = SafeGetWriteAndLength(_dbPath);
+        (_lastDbWriteUtc, _lastDbLength) = SafeGetWriteAndLength(_dbPath);
+        (_lastWalWriteUtc, _lastWalLength) = SafeGetWriteAndLength(_walPath);
+        (_lastShmWriteUtc, _lastShmLength) = SafeGetWriteAndLength(_shmPath);
+        (_lastJournalWriteUtc, _lastJournalLength) = SafeGetWriteAndLength(_journalPath);
 
         try
         {
@@ -111,11 +152,28 @@ public sealed class DatabaseFileWatcher : IDisposable
                 break;
             }
 
-            var (newWrite, newLen) = SafeGetWriteAndLength(_dbPath);
-            if (newWrite != _lastWriteUtc || newLen != _lastLength)
+            var (dbWrite, dbLen) = SafeGetWriteAndLength(_dbPath);
+            var (walWrite, walLen) = SafeGetWriteAndLength(_walPath);
+            var (shmWrite, shmLen) = SafeGetWriteAndLength(_shmPath);
+            var (journalWrite, journalLen) = SafeGetWriteAndLength(_journalPath);
+
+            if (dbWrite != _lastDbWriteUtc || dbLen != _lastDbLength
+                || walWrite != _lastWalWriteUtc || walLen != _lastWalLength
+                || shmWrite != _lastShmWriteUtc || shmLen != _lastShmLength
+                || journalWrite != _lastJournalWriteUtc || journalLen != _lastJournalLength)
             {
-                _lastWriteUtc = newWrite;
-                _lastLength = newLen;
+                _lastDbWriteUtc = dbWrite;
+                _lastDbLength = dbLen;
+
+                _lastWalWriteUtc = walWrite;
+                _lastWalLength = walLen;
+
+                _lastShmWriteUtc = shmWrite;
+                _lastShmLength = shmLen;
+
+                _lastJournalWriteUtc = journalWrite;
+                _lastJournalLength = journalLen;
+
                 ScheduleFire();
             }
         }

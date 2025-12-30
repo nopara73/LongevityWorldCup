@@ -12,7 +12,6 @@ namespace LongevityWorldCup.Website.Business;
 public class AthleteDataService : IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
-    private readonly DatabaseFileWatcher _dbWatcher;
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
 
@@ -37,10 +36,7 @@ public class AthleteDataService : IDisposable
 
     private const string DatabaseFileName = "LongevityWorldCup.db";
 
-    private readonly SqliteConnection _sqliteConnection;
-
-    private const int MaxBackupFiles = 5;
-    private readonly string _backupDir;
+    private readonly DatabaseManager _db;
 
     private readonly string _athletesRootDir;
     private readonly object _pendingLock = new();
@@ -54,24 +50,18 @@ public class AthleteDataService : IDisposable
     
     private readonly object _athletesJsonLock = new();
 
-    public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService)
+    public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService, DatabaseManager db)
     {
         _env = env;
         _eventDataService = eventDataService;
+        _db = db ?? throw new ArgumentNullException(nameof(db));
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
 
-        // set up backup directory
-        _backupDir = Path.Combine(dataDir, "Backups");
-        Directory.CreateDirectory(_backupDir);
-
-        var dbPath = Path.Combine(dataDir, DatabaseFileName);
-        _sqliteConnection = new SqliteConnection($"Data Source={dbPath}");
-        _sqliteConnection.Open();
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
-            using (var cmd = _sqliteConnection.CreateCommand())
+            using (var cmd = sqlite.CreateCommand())
             {
                 cmd.CommandText = @"
         CREATE TABLE IF NOT EXISTS Athletes (
@@ -113,25 +103,25 @@ public class AthleteDataService : IDisposable
 
                 if (!hasPlacements)
                 {
-                    using var alter = _sqliteConnection.CreateCommand();
+                    using var alter = sqlite.CreateCommand();
                     alter.CommandText = "ALTER TABLE Athletes ADD COLUMN Placements TEXT NOT NULL DEFAULT '[]';";
                     alter.ExecuteNonQuery();
 
-                    using var backfill = _sqliteConnection.CreateCommand();
+                    using var backfill = sqlite.CreateCommand();
                     backfill.CommandText = "UPDATE Athletes SET Placements='[]' WHERE Placements IS NULL OR Placements='';";
                     backfill.ExecuteNonQuery();
                 }
 
                 if (!hasCurrentPlacement)
                 {
-                    using var alter2 = _sqliteConnection.CreateCommand();
+                    using var alter2 = sqlite.CreateCommand();
                     alter2.CommandText = "ALTER TABLE Athletes ADD COLUMN CurrentPlacement INTEGER NULL;";
                     alter2.ExecuteNonQuery();
                 }
 
                 if (!hasLastAgeDiff)
                 {
-                    using var alter3 = _sqliteConnection.CreateCommand();
+                    using var alter3 = sqlite.CreateCommand();
                     alter3.CommandText = "ALTER TABLE Athletes ADD COLUMN LastAgeDiff REAL NULL;";
                     alter3.ExecuteNonQuery();
                 }
@@ -139,12 +129,12 @@ public class AthleteDataService : IDisposable
                 // add single signature column (one-time)
                 if (!hasTestSig)
                 {
-                    using var alter4 = _sqliteConnection.CreateCommand();
+                    using var alter4 = sqlite.CreateCommand();
                     alter4.CommandText = $"ALTER TABLE Athletes ADD COLUMN {TestSigColumn} TEXT NULL;";
                     alter4.ExecuteNonQuery();
                 }
             }
-        }
+        });
 
         // Initial load
         LoadAthletesAsync().GetAwaiter().GetResult();
@@ -154,16 +144,16 @@ public class AthleteDataService : IDisposable
         // Finally, set JoinedAt=now for any that are still null
         if (newlyJoined.Count > 0)
         {
-            lock (_sqliteConnection)
+            _db.Run(sqlite =>
             {
-                using var fillNow = _sqliteConnection.CreateCommand();
+                using var fillNow = sqlite.CreateCommand();
                 var keys = newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()).ToList();
                 var placeholders = string.Join(",", keys.Select((_, i) => $"@k{i}"));
                 fillNow.CommandText = $"UPDATE Athletes SET JoinedAt=@now WHERE (JoinedAt IS NULL OR JoinedAt='') AND Key IN ({placeholders})";
                 fillNow.Parameters.AddWithValue("@now", _serviceStartUtc.ToString("o"));
                 for (int i = 0; i < keys.Count; i++) fillNow.Parameters.AddWithValue($"@k{i}", keys[i]);
                 fillNow.ExecuteNonQuery();
-            }
+            });
         }
 
         // Hydrate persisted age‐guess stats from SQLite
@@ -206,39 +196,29 @@ public class AthleteDataService : IDisposable
 
         DetectAndEmitAthleteCountMilestones(); // emit milestones retroactively and at startup
 
-        // Poll-loop to detect external DB writes and reload stats
-        _dbWatcher = new DatabaseFileWatcher(dbPath, TimeSpan.FromSeconds(5));
-        _dbWatcher.DatabaseChanged += () =>
-        {
-            _reloadLock.Wait();
-            try
-            {
-                ReloadCrowdStats();
-                HydratePlacementsIntoAthletesJson();
-                HydrateNewFlagsIntoAthletesJson();
-                HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-                HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
-            }
-            finally
-            {
-                _reloadLock.Release();
-            }
-
-            PushAthleteDirectoryToEvents();
-            AthletesChanged?.Invoke();
-        };
-
-        // daily backup + retention
-        _ = Task.Run(async () =>
-        {
-            while (true)
-            {
-                BackupDatabase();
-                await Task.Delay(TimeSpan.FromHours(24)).ConfigureAwait(false);
-            }
-        });
+        _db.DatabaseChanged += OnDatabaseChanged;
 
         PushAthleteDirectoryToEvents();
+    }
+
+    private void OnDatabaseChanged()
+    {
+        _reloadLock.Wait();
+        try
+        {
+            ReloadCrowdStats();
+            HydratePlacementsIntoAthletesJson();
+            HydrateNewFlagsIntoAthletesJson();
+            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+            HydrateBadgesIntoAthletesJson();           // badges refresh when DB changed
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
+
+        PushAthleteDirectoryToEvents();
+        AthletesChanged?.Invoke();
     }
 
     public IEnumerable<(JsonObject Athlete, DateTime JoinedAt)> GetAthletesJoinedData()
@@ -251,9 +231,9 @@ public class AthleteDataService : IDisposable
             .ToDictionary(t => t.Slug, t => t.Obj, StringComparer.OrdinalIgnoreCase);
 
         var result = new List<(JsonObject, DateTime)>();
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
-            using var cmd = _sqliteConnection.CreateCommand();
+            using var cmd = sqlite.CreateCommand();
             cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
 
             using var reader = cmd.ExecuteReader();
@@ -268,7 +248,7 @@ public class AthleteDataService : IDisposable
                 if (bySlug.TryGetValue(key, out var athleteJson))
                     result.Add((athleteJson, joinedAt));
             }
-        }
+        });
 
         return result;
     }
@@ -506,10 +486,13 @@ public class AthleteDataService : IDisposable
         _reloadLock.Wait();
         try
         {
-            lock (_sqliteConnection)
+            cnt = 0;
+            median = 0;
+
+            _db.Run(sqlite =>
             {
                 // insert the new guess
-                using var selectJsonCmd = _sqliteConnection.CreateCommand();
+                using var selectJsonCmd = sqlite.CreateCommand();
                 selectJsonCmd.CommandText =
                     "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
                 selectJsonCmd.Parameters.AddWithValue("@key", athleteSlug);
@@ -524,7 +507,7 @@ public class AthleteDataService : IDisposable
 
                 // store back
                 var updatedJson = JsonSerializer.Serialize(ageArray);
-                using var updateCmd = _sqliteConnection.CreateCommand();
+                using var updateCmd = sqlite.CreateCommand();
                 updateCmd.CommandText =
                     "UPDATE Athletes SET AgeGuesses = @ages WHERE Key = @key";
                 updateCmd.Parameters.AddWithValue("@ages", updatedJson);
@@ -532,7 +515,7 @@ public class AthleteDataService : IDisposable
                 updateCmd.ExecuteNonQuery();
 
                 // re-read and compute median and count
-                using var selectCmd = _sqliteConnection.CreateCommand();
+                using var selectCmd = sqlite.CreateCommand();
                 selectCmd.CommandText =
                     "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
                 selectCmd.Parameters.AddWithValue("@key", athleteSlug);
@@ -552,7 +535,7 @@ public class AthleteDataService : IDisposable
                         ? ages[cnt / 2]
                         : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
                 }
-            }
+            });
 
             lock (_athletesJsonLock)
             {
@@ -615,42 +598,13 @@ public class AthleteDataService : IDisposable
     }
 
     /// <summary>
-    /// Creates a timestamped backup, then prunes old backups so only the newest `MaxBackupFiles` remain.
-    /// </summary>
-    public void BackupDatabase()
-    {
-        // checkpoint WAL so the main file is up-to-date
-        using var chk = _sqliteConnection.CreateCommand();
-        chk.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
-        chk.ExecuteNonQuery();
-
-        // copy into a new file
-        var backupFile = Path.Combine(_backupDir, $"LongevityWC_{DateTime.UtcNow:yyyyMMdd_HHmmss}.db");
-        lock (_sqliteConnection)
-        {
-            using var dest = new SqliteConnection($"Data Source={backupFile}");
-            dest.Open();
-            _sqliteConnection.BackupDatabase(dest);
-        }
-
-        // prune old backups
-        var files = Directory
-            .GetFiles(_backupDir, "*.db")
-            .Select(f => new FileInfo(f))
-            .OrderByDescending(f => f.CreationTimeUtc)
-            .Skip(MaxBackupFiles);
-        foreach (var f in files)
-            f.Delete();
-    }
-
-    /// <summary>
     /// Returns (Median, Count) for all guesses recorded so far for athleteSlug.
     /// </summary>
     public (double Median, int Count) GetCrowdStats(string athleteSlug)
     {
-        lock (_sqliteConnection)
+        return _db.Run(sqlite =>
         {
-            using var selectAgesJson = _sqliteConnection.CreateCommand();
+            using var selectAgesJson = sqlite.CreateCommand();
             selectAgesJson.CommandText =
                 "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
             selectAgesJson.Parameters.AddWithValue("@key", athleteSlug);
@@ -671,7 +625,7 @@ public class AthleteDataService : IDisposable
             }
 
             return (median, cnt);
-        }
+        });
     }
 
     public int GetActualAge(string athleteSlug)
@@ -754,9 +708,9 @@ public class AthleteDataService : IDisposable
 
     public int?[] GetPlacements(string athleteSlug)
     {
-        lock (_sqliteConnection)
+        return _db.Run(sqlite =>
         {
-            using var cmd = _sqliteConnection.CreateCommand();
+            using var cmd = sqlite.CreateCommand();
             cmd.CommandText = "SELECT Placements FROM Athletes WHERE Key=@k";
             cmd.Parameters.AddWithValue("@k", athleteSlug);
             var txt = cmd.ExecuteScalar() as string ?? "[]";
@@ -775,7 +729,7 @@ public class AthleteDataService : IDisposable
             }
 
             return result;
-        }
+        });
     }
 
     public void SetPlacements(string athleteSlug, int?[] placements)
@@ -788,14 +742,14 @@ public class AthleteDataService : IDisposable
         _reloadLock.Wait();
         try
         {
-            lock (_sqliteConnection)
+            _db.Run(sqlite =>
             {
-                using var cmd = _sqliteConnection.CreateCommand();
+                using var cmd = sqlite.CreateCommand();
                 cmd.CommandText = "UPDATE Athletes SET Placements=@p WHERE Key=@k";
                 cmd.Parameters.AddWithValue("@p", json);
                 cmd.Parameters.AddWithValue("@k", athleteSlug);
                 cmd.ExecuteNonQuery();
-            }
+            });
 
             lock (_athletesJsonLock)
             {
@@ -868,9 +822,9 @@ public class AthleteDataService : IDisposable
         var cutoffUtc = DateTime.UtcNow - NewAthleteWindow;
 
         var joinedByKey = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
-            using var cmd = _sqliteConnection.CreateCommand();
+            using var cmd = sqlite.CreateCommand();
             cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes";
 
             using (var reader = cmd.ExecuteReader())
@@ -887,7 +841,7 @@ public class AthleteDataService : IDisposable
                     }
                 }
             }
-        }
+        });
 
         lock (_athletesJsonLock)
         {
@@ -954,11 +908,11 @@ public class AthleteDataService : IDisposable
         // Schema (BadgeAwards): BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt
         var byAthlete = new Dictionary<string, JsonArray>(StringComparer.OrdinalIgnoreCase);
 
-        lock (_sqliteConnection)
+        try
         {
-            try
+            _db.Run(sqlite =>
             {
-                using var cmd = _sqliteConnection.CreateCommand();
+                using var cmd = sqlite.CreateCommand();
                 cmd.CommandText = "SELECT BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug FROM BadgeAwards";
                 using var r = cmd.ExecuteReader();
 
@@ -985,11 +939,11 @@ public class AthleteDataService : IDisposable
                     };
                     list.Add(badge);
                 }
-            }
-            catch (SqliteException ex) when (ex.SqliteErrorCode == 1 /* no such table: BadgeAwards */)
-            {
-                // If BadgeAwards doesn't exist yet, we leave badges empty.
-            }
+            });
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 1 /* no such table: BadgeAwards */)
+        {
+            // If BadgeAwards doesn't exist yet, we leave badges empty.
         }
 
         lock (_athletesJsonLock)
@@ -1019,12 +973,10 @@ public class AthleteDataService : IDisposable
 
     public void Dispose()
     {
-        _dbWatcher.Dispose();
+        _db.DatabaseChanged -= OnDatabaseChanged;
         _athleteWatcher.Dispose();
         _reloadLock.Dispose();
         _debounceCts?.Dispose();
-        _sqliteConnection.Close();
-        _sqliteConnection.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -1040,11 +992,11 @@ public class AthleteDataService : IDisposable
         }
 
         var inserted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
             foreach (var slug in slugs)
             {
-                using var cmd = _sqliteConnection.CreateCommand();
+                using var cmd = sqlite.CreateCommand();
                 cmd.CommandText = "INSERT OR IGNORE INTO Athletes (Key, AgeGuesses, JoinedAt) VALUES (@k, @ages, @joined)";
                 cmd.Parameters.AddWithValue("@k", slug);
                 cmd.Parameters.AddWithValue("@ages", "[]");
@@ -1053,7 +1005,7 @@ public class AthleteDataService : IDisposable
                 if (rows == 1)
                     inserted.Add(slug);
             }
-        }
+        });
 
         var newlyJoined = new List<(JsonObject, DateTime)>();
         if (inserted.Count == 0)
@@ -1132,9 +1084,9 @@ public class AthleteDataService : IDisposable
     private Dictionary<string, int?> LoadStoredCurrentPlacements()
     {
         var map = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
-            using var cmd = _sqliteConnection.CreateCommand();
+            using var cmd = sqlite.CreateCommand();
             cmd.CommandText = "SELECT Key, CurrentPlacement FROM Athletes";
             using var r = cmd.ExecuteReader();
             while (r.Read())
@@ -1143,7 +1095,7 @@ public class AthleteDataService : IDisposable
                 int? cp = r.IsDBNull(1) ? (int?)null : r.GetInt32(1);
                 map[key] = cp;
             }
-        }
+        });
 
         return map;
     }
@@ -1151,9 +1103,9 @@ public class AthleteDataService : IDisposable
     private Dictionary<string, double?> LoadStoredLastAgeDifferences()
     {
         var map = new Dictionary<string, double?>(StringComparer.OrdinalIgnoreCase);
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
-            using var cmd = _sqliteConnection.CreateCommand();
+            using var cmd = sqlite.CreateCommand();
             cmd.CommandText = "SELECT Key, LastAgeDiff FROM Athletes";
             using var r = cmd.ExecuteReader();
             while (r.Read())
@@ -1162,7 +1114,7 @@ public class AthleteDataService : IDisposable
                 double? val = r.IsDBNull(1) ? (double?)null : r.GetDouble(1);
                 map[key] = val;
             }
-        }
+        });
 
         return map;
     }
@@ -1190,17 +1142,17 @@ public class AthleteDataService : IDisposable
 
     private void PersistCurrentPlacementsSnapshot(Dictionary<string, int> current, Dictionary<string, double> currentAgeDiffs)
     {
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqliteConnection.BeginTransaction();
-            using (var clear = _sqliteConnection.CreateCommand())
+            using var tx = sqlite.BeginTransaction();
+            using (var clear = sqlite.CreateCommand())
             {
                 clear.Transaction = tx;
                 clear.CommandText = "UPDATE Athletes SET CurrentPlacement=NULL";
                 clear.ExecuteNonQuery();
             }
 
-            using (var upd = _sqliteConnection.CreateCommand())
+            using (var upd = sqlite.CreateCommand())
             {
                 upd.Transaction = tx;
                 upd.CommandText = "UPDATE Athletes SET CurrentPlacement=@p, LastAgeDiff=@d WHERE Key=@k";
@@ -1220,7 +1172,7 @@ public class AthleteDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
     }
 
     /// <summary>
@@ -1438,9 +1390,9 @@ public class AthleteDataService : IDisposable
         // If nothing changed, no write occurs. This is called on startup and after reloads.
         var athletesSnapshot = GetAthletesSnapshot();
         var changed = new List<string>();
-        lock (_sqliteConnection)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqliteConnection.BeginTransaction();
+            using var tx = sqlite.BeginTransaction();
 
             foreach (var athlete in athletesSnapshot.OfType<JsonObject>())
             {
@@ -1450,7 +1402,7 @@ public class AthleteDataService : IDisposable
                 var newSig = ComputeBiomarkerSignature(athlete);
                 string? oldSig;
 
-                using (var sel = _sqliteConnection.CreateCommand())
+                using (var sel = sqlite.CreateCommand())
                 {
                     sel.Transaction = tx;
                     sel.CommandText = $"SELECT {TestSigColumn} FROM Athletes WHERE Key=@k";
@@ -1461,7 +1413,7 @@ public class AthleteDataService : IDisposable
 
                 if (!string.Equals(oldSig, newSig, StringComparison.Ordinal))
                 {
-                    using var upd = _sqliteConnection.CreateCommand();
+                    using var upd = sqlite.CreateCommand();
                     upd.Transaction = tx;
                     upd.CommandText = $"UPDATE Athletes SET {TestSigColumn}=@s WHERE Key=@k";
                     upd.Parameters.AddWithValue("@s", (object?)newSig ?? DBNull.Value);
@@ -1473,7 +1425,7 @@ public class AthleteDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
 
         return changed;
     }

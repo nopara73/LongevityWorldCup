@@ -9,6 +9,24 @@ public static class EventHelpers
 
     public static bool TryExtractBadgeLabel(string raw, out string label) => TryExtractField(raw, "badge", out label);
 
+    public static bool TryExtractCustomEventTitle(string? rawText, out string title)
+    {
+        title = string.Empty;
+        if (string.IsNullOrEmpty(rawText)) return false;
+
+        var nl = rawText.IndexOf('\n');
+        var cr = rawText.IndexOf('\r');
+
+        int i;
+        if (nl >= 0 && cr >= 0) i = Math.Min(nl, cr);
+        else i = Math.Max(nl, cr);
+
+        if (i < 0) i = rawText.Length;
+
+        title = rawText.Substring(0, i).Trim();
+        return title.Length > 0;
+    }
+
     public static bool TryExtractRank(string raw, out int rank)
     {
         rank = 0;
