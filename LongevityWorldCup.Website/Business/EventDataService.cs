@@ -40,9 +40,8 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceAthleteMilestone = 8d;
     private const double DefaultRelevanceBadgeAward = 8d;
 
-    private readonly SqliteConnection _sqlite;
+    private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
-    private readonly DatabaseFileWatcher _dbWatcher;
 
     public JsonArray Events { get; private set; } = [];
     
@@ -63,65 +62,64 @@ public sealed class EventDataService : IDisposable
         "Crowd – Lowest Crowd Age"
     };
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, DatabaseManager db)
     {
         _ = env;
         _slackEvents = slackEvents;
+        _db = db ?? throw new ArgumentNullException(nameof(db));
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
 
-        var dbPath = Path.Combine(dataDir, DatabaseFileName);
-        _sqlite = new SqliteConnection($"Data Source={dbPath}");
-        _sqlite.Open();
-
-        using (var cmd = _sqlite.CreateCommand())
+        _db.Run(sqlite =>
         {
-            cmd.CommandText =
-                """
-                CREATE TABLE IF NOT EXISTS Events (
-                    Id             TEXT PRIMARY KEY,
-                    Type           INTEGER NOT NULL,
-                    Text           TEXT NOT NULL,
-                    OccurredAt     TEXT NOT NULL,
-                    Relevance      REAL  NOT NULL DEFAULT 5,
-                    SlackProcessed INTEGER NOT NULL DEFAULT 0
-                );
-                """;
-            cmd.ExecuteNonQuery();
-
-            var addedSlackProcessed = false;
-            cmd.CommandText = "ALTER TABLE Events ADD COLUMN SlackProcessed INTEGER NOT NULL DEFAULT 0;";
-            try
+            using (var cmd = sqlite.CreateCommand())
             {
+                cmd.CommandText =
+                    """
+                    CREATE TABLE IF NOT EXISTS Events (
+                        Id             TEXT PRIMARY KEY,
+                        Type           INTEGER NOT NULL,
+                        Text           TEXT NOT NULL,
+                        OccurredAt     TEXT NOT NULL,
+                        Relevance      REAL  NOT NULL DEFAULT 5,
+                        SlackProcessed INTEGER NOT NULL DEFAULT 0
+                    );
+                    """;
                 cmd.ExecuteNonQuery();
-                addedSlackProcessed = true;
-            }
-            catch
-            {
-            }
 
-            if (addedSlackProcessed)
-            {
-                cmd.CommandText = "UPDATE Events SET SlackProcessed = 1;";
+                var addedSlackProcessed = false;
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN SlackProcessed INTEGER NOT NULL DEFAULT 0;";
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    addedSlackProcessed = true;
+                }
+                catch
+                {
+                }
+
+                if (addedSlackProcessed)
+                {
+                    cmd.CommandText = "UPDATE Events SET SlackProcessed = 1;";
+                    cmd.ExecuteNonQuery();
+                }
+
+                cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_OccurredAt ON Events(OccurredAt);";
+                cmd.ExecuteNonQuery();
+
+                cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_Type_OccurredAt ON Events(Type, OccurredAt);";
+                cmd.ExecuteNonQuery();
+
+                cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_Relevance ON Events(Relevance);";
                 cmd.ExecuteNonQuery();
             }
-
-            cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_OccurredAt ON Events(OccurredAt);";
-            cmd.ExecuteNonQuery();
-
-            cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_Type_OccurredAt ON Events(Type, OccurredAt);";
-            cmd.ExecuteNonQuery();
-
-            cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_Relevance ON Events(Relevance);";
-            cmd.ExecuteNonQuery();
-        }
+        });
 
         ProcessPendingSlackEvents();
         ReloadIntoCache();
 
-        _dbWatcher = new DatabaseFileWatcher(dbPath, TimeSpan.FromMilliseconds(250));
-        _dbWatcher.DatabaseChanged += OnDatabaseChanged;
+        _db.DatabaseChanged += OnDatabaseChanged;
     }
 
     private void OnDatabaseChanged()
@@ -140,11 +138,11 @@ public sealed class EventDataService : IDisposable
     {
         var notify = new List<(EventType Type, string RawText)>();
 
-        lock (_sqlite)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqlite.BeginTransaction();
+            using var tx = sqlite.BeginTransaction();
 
-            using var selectCmd = _sqlite.CreateCommand();
+            using var selectCmd = sqlite.CreateCommand();
             selectCmd.Transaction = tx;
             selectCmd.CommandText =
                 "SELECT Id, Type, Text FROM Events " +
@@ -158,7 +156,7 @@ public sealed class EventDataService : IDisposable
 
             if (pending.Count > 0)
             {
-                using var claimCmd = _sqlite.CreateCommand();
+                using var claimCmd = sqlite.CreateCommand();
                 claimCmd.Transaction = tx;
                 claimCmd.CommandText = "UPDATE Events SET SlackProcessed = 1 WHERE Id = @id AND SlackProcessed = 0;";
                 var pId = claimCmd.Parameters.Add("@id", SqliteType.Text);
@@ -175,7 +173,7 @@ public sealed class EventDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
 
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
@@ -194,18 +192,18 @@ public sealed class EventDataService : IDisposable
 
         int created = 0;
 
-        lock (_sqlite)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqlite.BeginTransaction();
+            using var tx = sqlite.BeginTransaction();
 
-            using var existsCmd = _sqlite.CreateCommand();
+            using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
             existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
             var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
-            using var insertCmd = _sqlite.CreateCommand();
+            using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
@@ -245,7 +243,7 @@ public sealed class EventDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
 
         if (created > 0)
         {
@@ -262,11 +260,11 @@ public sealed class EventDataService : IDisposable
 
         int created = 0;
 
-        lock (_sqlite)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqlite.BeginTransaction();
+            using var tx = sqlite.BeginTransaction();
 
-            using var existsCmd = _sqlite.CreateCommand();
+            using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
             existsCmd.CommandText =
                 "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
@@ -274,7 +272,7 @@ public sealed class EventDataService : IDisposable
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
             var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
-            using var insertCmd = _sqlite.CreateCommand();
+            using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
@@ -340,7 +338,7 @@ public sealed class EventDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
 
         if (created > 0)
         {
@@ -357,17 +355,17 @@ public sealed class EventDataService : IDisposable
 
         int created = 0;
 
-        lock (_sqlite)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqlite.BeginTransaction();
+            using var tx = sqlite.BeginTransaction();
 
-            using var existsCmd = _sqlite.CreateCommand();
+            using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
             existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
 
-            using var insertCmd = _sqlite.CreateCommand();
+            using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) " +
@@ -407,7 +405,7 @@ public sealed class EventDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
 
         if (created > 0)
         {
@@ -424,17 +422,17 @@ public sealed class EventDataService : IDisposable
 
         int created = 0;
 
-        lock (_sqlite)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqlite.BeginTransaction();
+            using var tx = sqlite.BeginTransaction();
 
-            using var existsCmd = _sqlite.CreateCommand();
+            using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
             existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
 
-            using var insertCmd = _sqlite.CreateCommand();
+            using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
@@ -472,7 +470,7 @@ public sealed class EventDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
 
         if (created > 0)
         {
@@ -489,18 +487,18 @@ public sealed class EventDataService : IDisposable
 
         int created = 0;
 
-        lock (_sqlite)
+        _db.Run(sqlite =>
         {
-            using var tx = _sqlite.BeginTransaction();
+            using var tx = sqlite.BeginTransaction();
 
-            using var existsCmd = _sqlite.CreateCommand();
+            using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
             existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
             var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
-            using var insertCmd = _sqlite.CreateCommand();
+            using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
@@ -542,7 +540,7 @@ public sealed class EventDataService : IDisposable
             }
 
             tx.Commit();
-        }
+        });
 
         if (created > 0)
         {
@@ -585,9 +583,9 @@ public sealed class EventDataService : IDisposable
             $" ORDER BY OccurredAt {(newestFirst ? "DESC" : "ASC")}" +
             (limit.HasValue ? " LIMIT @limit OFFSET @offset" : "");
 
-        lock (_sqlite)
+        return _db.Run(sqlite =>
         {
-            using var cmd = _sqlite.CreateCommand();
+            using var cmd = sqlite.CreateCommand();
             cmd.CommandText = sql;
             foreach (var p in parameters) cmd.Parameters.Add(p);
             if (limit.HasValue)
@@ -600,7 +598,7 @@ public sealed class EventDataService : IDisposable
             using var r = cmd.ExecuteReader();
             while (r.Read()) list.Add(Map(r));
             return list;
-        }
+        });
     }
 
     public void ReloadIntoCache()
@@ -641,7 +639,19 @@ public sealed class EventDataService : IDisposable
             return;
         }
 
-        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone || type == EventType.CustomEvent)
+        if (type == EventType.CustomEvent)
+        {
+            if (!EventHelpers.TryExtractCustomEventTitle(rawText, out var title))
+                return;
+
+            if (string.Equals(title, "Test", StringComparison.Ordinal))
+                return;
+
+            _ = _slackEvents.SendImmediateAsync(type, rawText);
+            return;
+        }
+
+        if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
         {
             _ = _slackEvents.SendImmediateAsync(type, rawText);
             return;
@@ -666,9 +676,7 @@ public sealed class EventDataService : IDisposable
 
     public void Dispose()
     {
-        _dbWatcher.Dispose();
-        _sqlite.Close();
-        _sqlite.Dispose();
+        _db.DatabaseChanged -= OnDatabaseChanged;
         GC.SuppressFinalize(this);
     }
 }

@@ -32,11 +32,12 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
 
+            builder.Services.AddSingleton<DatabaseManager>();
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
             builder.Services.AddSingleton<BitcoinDataService>();
             builder.Services.AddSingleton<BadgeDataService>();
-
+            
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
             builder.Services.AddHttpClient<SlackWebhookClient>();
@@ -51,6 +52,7 @@ namespace LongevityWorldCup.Website
                 var monthlyKey = new JobKey("MonthlyJob");
                 var yearlyKey = new JobKey("YearlyJob");
                 var donationKey = new JobKey("BitcoinDonationCheckJob");
+                var backupKey = new JobKey("DatabaseBackupJob");
 
                 // Every day 00:00
                 q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
@@ -76,7 +78,17 @@ namespace LongevityWorldCup.Website
                     .WithIdentity("YearlyTrigger")
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 1 ?").InTimeZone(TimeZoneInfo.Utc)));
 
-                // Every on start and 10 minutes
+                // On every start and every day 00:05 (Database backup)
+                q.AddJob<DatabaseBackupJob>(o => o.WithIdentity(backupKey));
+                q.AddTrigger(t => t.ForJob(backupKey)
+                    .WithIdentity("DatabaseBackupTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 5 0 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                q.AddTrigger(t => t.ForJob(backupKey) // on start
+                    .WithIdentity("DatabaseBackupTrigger_Immediate")
+                    .StartNow()
+                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+
+                // On every start and 10 minutes
                 q.AddJob<BitcoinDonationCheckJob>(o => o.WithIdentity(donationKey));
                 q.AddTrigger(t => t.ForJob(donationKey)
                     .WithIdentity("BitcoinDonationCheckTrigger")
