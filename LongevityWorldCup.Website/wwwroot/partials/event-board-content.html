@@ -908,6 +908,51 @@
             return out;
         }
 
+        function groupAthleteBursts(rows, windowMs=60000){
+            const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward]);
+
+            const timeOf=r=>{
+                const t=+new Date(r && r.occurredAt ? r.occurredAt : 0);
+                return Number.isFinite(t) ? t : NaN;
+            };
+
+            const out=rows.slice();
+
+            for(let i=0;i<out.length;i++){
+                const anchor=out[i];
+                if(!(anchor && anchor.primarySlug && eligibleTypes.has(anchor.type) && anchor.occurredAt)) continue;
+
+                const slug=String(anchor.primarySlug);
+                const tAnchor=timeOf(anchor);
+                if(!Number.isFinite(tAnchor)) continue;
+
+                const moved=[];
+
+                for(let j=i-1;j>=0;j--){
+                    const r=out[j];
+                    if(!(r && r.primarySlug && String(r.primarySlug)===slug && eligibleTypes.has(r.type) && r.occurredAt)) continue;
+
+                    const tj=timeOf(r);
+                    if(!Number.isFinite(tj)) continue;
+
+                    const diff=tj - tAnchor;
+                    if(diff>windowMs) break;
+
+                    moved.push(r);
+                    out.splice(j,1);
+                    i--;
+                }
+
+                if(moved.length){
+                    moved.reverse();
+                    out.splice(i,0,...moved);
+                    i += moved.length;
+                }
+            }
+
+            return out;
+        }
+
         function applyZebraStriping(tbody){
             let idx=0;
             const rows=[...tbody.querySelectorAll('tr')];
@@ -1190,6 +1235,8 @@
                     return tb - ta;
                 });
 
+                rows = groupAthleteBursts(rows, 60000);
+                
                 const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
                 if(n!==null) rows=rows.slice(0,n);
 

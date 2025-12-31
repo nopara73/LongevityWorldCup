@@ -580,7 +580,7 @@ public sealed class EventDataService : IDisposable
         var sql =
             "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events" +
             (filters.Count > 0 ? " WHERE " + string.Join(" AND ", filters) : "") +
-            $" ORDER BY OccurredAt {(newestFirst ? "DESC" : "ASC")}" +
+            $" ORDER BY OccurredAt {(newestFirst ? "DESC" : "ASC")}, CASE WHEN Type = {(int)EventType.Joined} THEN 0 WHEN Type = {(int)EventType.NewRank} THEN 1 ELSE 2 END ASC" +
             (limit.HasValue ? " LIMIT @limit OFFSET @offset" : "");
 
         return _db.Run(sqlite =>
