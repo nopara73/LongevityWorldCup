@@ -90,6 +90,11 @@ printf "Enter slug: " && read -r SLUG && sqlite3 LongevityWorldCup.db "DELETE FR
 printf "Enter slug: " && read -r SLUG && sqlite3 LongevityWorldCup.db "BEGIN; DELETE FROM Events WHERE instr(Text,'slug['||'$SLUG'||']')>0 OR instr(Text,'prev['||'$SLUG'||']')>0; DELETE FROM Athletes WHERE Key='$SLUG'; COMMIT;"
 ```
 
+## Merge DB files
+```sh
+sudo sqlite3 /var/www/.longevityworldcup/LongevityWorldCup.db ".backup '/var/www/.longevityworldcup/LongevityWorldCup_merged.db'"
+```
+
 ## Subscriptions
 
 ### View
