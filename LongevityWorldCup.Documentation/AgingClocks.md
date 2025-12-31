@@ -45,3 +45,4 @@
 |2025|Epi-Proteomics|proteomics (saliva)||[MoleQlar](https://moleqlar.com/en/products/epi-proteomics-test-en)|Europe|
 |2025|BEspoke Age Test (BEAT™)|multi-domain|[Tiat Lim](https://www.instagram.com/deaging.guru/)|[BEAT™ Spreadsheet](https://onedrive.live.com/:x:/g/personal/43A80B3B028E9AE0/EeCajgI7C6gggENT6AUAAAABl2j0sLEo1_wgrV6AFeAwZw?resid=43A80B3B028E9AE0!387155&ithint=file%2Cxlsx&e=rhECw2&migratedtospo=true&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3gvYy80M2E4MGIzYjAyOGU5YWUwL0VlQ2FqZ0k3QzZnZ2dFTlQ2QVVBQUFBQmwyajBzTEVvMV93Z3JWNkFGZUF3Wnc_ZT1yaEVDdzI)|global|
 |2025|GetTested Biological Age|blood + methylation||[GetTested.io](https://gettested.io/product/biological-age-and-longevity-test)|more than 60 countries|
+|2025|SevenAge|blood|[David H. Meyer et al.](https://www.nature.com/articles/s41598-025-27478-9)|any lab|global|
