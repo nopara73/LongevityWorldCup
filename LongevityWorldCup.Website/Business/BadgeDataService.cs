@@ -297,10 +297,11 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             set.Add(x.AthleteSlug);
         }
 
-        var prevBest = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var prevBest = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var x in before)
         {
             if (!x.Place.HasValue) continue;
+
             var k = AbKey(x.AthleteSlug, x.BadgeLabel, x.LeagueCategory, x.LeagueValue);
             if (!prevBest.TryGetValue(k, out var best) || x.Place.Value < best)
                 prevBest[k] = x.Place.Value;
@@ -317,10 +318,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
             var parts = key.Split('|');
             var label = parts.Length > 0 ? parts[0] : "";
-            var cat = parts.Length > 1 ? parts[1] : "";
-            var valStr = parts.Length > 2 ? parts[2] : "";
-            int placeParsed;
-            int? place = parts.Length > 3 && int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out placeParsed) ? placeParsed : (int?)null;
+            var cat = parts.Length > 1 ? parts[1] : "Global";
+            var valStr = parts.Length > 2 ? parts[2] : null;
+
+            int? place = null;
+            if (parts.Length > 3 && int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var placeParsed))
+                place = placeParsed;
 
             var adds = nextSet.Except(prevSet, StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
             if (adds.Count == 0) continue;
@@ -340,6 +343,10 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 // Only 1-to-1 swap sets ReplacedSlug; otherwise null
                 var singleSwap = prevSet.Count == 1 && nextSet.Count == 1 && addsForward.Count == 1 && removes.Count == 1 && !string.Equals(addsForward.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
 
+                var replacedSlugs = (!singleSwap && nextSet.Count == 1 && addsForward.Count == 1 && removes.Count > 1)
+                    ? removes
+                    : null;
+
                 for (int i = 0; i < addsForward.Count; i++)
                 {
                     var replaced = singleSwap ? removes[0] : null;
@@ -351,7 +358,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                         LeagueCategory = cat,
                         LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
                         Place = place,
-                        ReplacedSlug = replaced
+                        ReplacedSlug = replaced,
+                        ReplacedSlugs = replacedSlugs
                     });
                 }
             }
@@ -359,6 +367,10 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             {
                 // Only 1-to-1 swap sets ReplacedSlug; otherwise null
                 var singleSwap = prevSet.Count == 1 && nextSet.Count == 1 && adds.Count == 1 && removes.Count == 1 && !string.Equals(adds.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
+
+                var replacedSlugs = (!singleSwap && nextSet.Count == 1 && adds.Count == 1 && removes.Count > 1)
+                    ? removes
+                    : null;
 
                 for (int i = 0; i < adds.Count; i++)
                 {
@@ -371,7 +383,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                         LeagueCategory = cat,
                         LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
                         Place = null,
-                        ReplacedSlug = replaced
+                        ReplacedSlug = replaced,
+                        ReplacedSlugs = replacedSlugs
                     });
                 }
             }
@@ -534,6 +547,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public string? LeagueValue { get; init; }
         public int? Place { get; init; }
         public string? ReplacedSlug { get; init; }
+        public IReadOnlyList<string>? ReplacedSlugs { get; init; }
     }
 
     private static void AddRange(List<AwardRow> sink, IEnumerable<AwardRow> rows)
