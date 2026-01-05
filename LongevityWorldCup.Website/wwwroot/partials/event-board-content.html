@@ -192,6 +192,20 @@
     .event-message a.placement-link{text-decoration:none}
     .event-message a.placement-link:hover,
     .event-message a.placement-link:focus{text-decoration:none}
+    .event-message a.more-link{
+        color:#7a8a99;
+        opacity:.75;
+        font-size:.85em;
+        text-decoration:none;
+        text-decoration-color:rgba(122,138,153,.55);
+    }
+    .event-message a.more-link:hover,
+    .event-message a.more-link:focus{
+        color:#7a8a99;
+        opacity:1;
+        text-decoration:underline;
+        text-decoration-color:#7a8a99;
+    }
 
     .donation-amount{color:var(--secondary-color,#ff4f87);font-weight:700}
     .donation-gift-avatar{
@@ -1091,8 +1105,14 @@
                                 : `episode`);
 
                         msgHtml = `${nameWithRank} was featured in a new ${episodeHtml} of our podcast`;
-                    } else if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
-                        const items = Array.isArray(r.items) ? r.items : [];
+                    } else if (
+                        (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) ||
+                        (Number.isFinite(r.totalBadgeCount) && r.totalBadgeCount > 1)
+                    ) {
+                        const items = (r.isGroup && Array.isArray(r.items))
+                            ? r.items
+                            : [{ label:r.badgeLabel||"badge", leagueCategory:r.leagueCategory||null, leagueValue:r.leagueValue||null, place:r.place??null }];
+
                         const orderFn = typeof window.computeOrder === 'function' ? window.computeOrder : null;
                         const orderedItems = orderFn
                             ? items.slice().sort((a,b)=>{
@@ -1104,10 +1124,17 @@
 
                         const icons = orderedItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
 
+                        const totalCount = Number.isFinite(r.totalBadgeCount) ? r.totalBadgeCount : orderedItems.length;
+                        const moreCount = totalCount - orderedItems.length;
+
+                        const moreLink = (moreCount > 0 && url)
+                            ? ` <a href="${url}" class="more-link"${openLinksInNewTab ? ` target="_blank" rel="noopener"` : ` target="_top"`}>(+${moreCount} more)</a>`
+                            : ``;
+
                         if(isLost){
-                            msgHtml = `${nameWithRank} lost <strong class="count-accent">${orderedItems.length}</strong> badges: ${icons}`;
+                            msgHtml = `${nameWithRank} lost <strong class="count-accent">${totalCount}</strong> badges: ${icons}${moreLink}`;
                         }else{
-                            msgHtml = `${nameWithRank} bagged <strong class="count-accent">${orderedItems.length}</strong> new badges: ${icons}`;
+                            msgHtml = `${nameWithRank} bagged <strong class="count-accent">${totalCount}</strong> new badges: ${icons}${moreLink}`;
                         }
                     } else {
                         if(isLost){
@@ -1209,8 +1236,8 @@
                 tr.dataset.groupId = `g_${idx}`;
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                     <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
-                     <td class="col-date">${dateLabel}</td>`;
+             <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
+             <td class="col-date">${dateLabel}</td>`;
                 const imgEl = tr.querySelector("img.avatar");
                 if (imgEl) {
                     const initials = initialsFromName(name);
@@ -1380,6 +1407,8 @@
                 }
 
                 if(r.isGroup && Array.isArray(r.items)){
+                    const total = Number.isFinite(r.badgeCount) ? r.badgeCount : r.items.length;
+
                     const kept = r.items.filter(it => allowFn(it.label, it.leagueCategory, it.place));
                     if(kept.length===0) continue;
 
@@ -1397,6 +1426,7 @@
                             leagueCategory: it.leagueCategory || null,
                             leagueValue: it.leagueValue || null,
                             place: (it.place ?? null),
+                            totalBadgeCount: total
                         });
                         continue;
                     }
@@ -1407,7 +1437,8 @@
                         isGroup:true,
                         badgeCount: kept.length,
                         badges: uniqueLabels,
-                        items: kept
+                        items: kept,
+                        totalBadgeCount: total
                     });
                     continue;
                 }
