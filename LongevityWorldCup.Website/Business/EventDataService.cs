@@ -44,7 +44,7 @@ public sealed class EventDataService : IDisposable
     private readonly SlackEventService _slackEvents;
 
     public JsonArray Events { get; private set; } = [];
-    
+
     private static readonly HashSet<string> BadgeSlackWhitelist = new(StringComparer.Ordinal)
     {
         "Chronological Age – Oldest",
@@ -182,7 +182,7 @@ public sealed class EventDataService : IDisposable
     {
         _slackEvents.SetAthleteDirectory(items);
     }
-    
+
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,
@@ -519,9 +519,24 @@ public sealed class EventDataService : IDisposable
                 var baseText = $"slug[{slug}] badge[{badgeLabel}] cat[{leagueCategory}] val[{leagueValue ?? ""}] place[{placeStr}]";
 
                 string text;
+
                 if (!string.IsNullOrWhiteSpace(replacedSlug))
                 {
-                    text = $"{baseText} prev[{replacedSlug}]";
+                    if (string.Equals(replacedSlug, "lost", StringComparison.Ordinal))
+                    {
+                        text = $"{baseText} lost[1]";
+                    }
+                    else if (replacedSlug.StartsWith("lost:", StringComparison.Ordinal))
+                    {
+                        var winner = replacedSlug.Substring("lost:".Length);
+                        text = string.IsNullOrWhiteSpace(winner)
+                            ? $"{baseText} lost[1]"
+                            : $"{baseText} lost[1] prev[{winner}]";
+                    }
+                    else
+                    {
+                        text = $"{baseText} prev[{replacedSlug}]";
+                    }
                 }
                 else if (replacedSlugs is { Count: > 0 })
                 {
@@ -644,7 +659,7 @@ public sealed class EventDataService : IDisposable
         //     _ = _slackEvents.BufferAsync(type, rawText);
         //     return;
         // }
-        
+
         if (type == EventType.NewRank)
         {
             if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank > 10) return;

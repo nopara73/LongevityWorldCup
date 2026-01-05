@@ -326,9 +326,32 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 place = placeParsed;
 
             var adds = nextSet.Except(prevSet, StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
-            if (adds.Count == 0) continue;
-
             var removes = prevSet.Except(nextSet, StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
+
+            if (adds.Count == 0)
+            {
+                if (removes.Count == 0) continue;
+
+                string? winner = null;
+                if (nextSet.Count == 1) winner = nextSet.First();
+
+                for (int i = 0; i < removes.Count; i++)
+                {
+                    items.Add(new BadgeEventItem
+                    {
+                        AthleteSlug = removes[i],
+                        OccurredAtUtc = occurredAtUtc,
+                        BadgeLabel = label,
+                        LeagueCategory = cat,
+                        LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
+                        Place = place,
+                        ReplacedSlug = winner is null ? "lost" : $"lost:{winner}",
+                        ReplacedSlugs = null
+                    });
+                }
+
+                continue;
+            }
 
             if (place.HasValue)
             {

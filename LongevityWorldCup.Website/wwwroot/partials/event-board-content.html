@@ -908,6 +908,8 @@
                     continue;
                 }
 
+                const groupKey = r.badgeBurstKey || r.primarySlug;
+
                 const t0=+new Date(r.occurredAt);
                 if(!Number.isFinite(t0)){ out.push(r); continue; }
                 const end=t0+windowMs;
@@ -921,7 +923,10 @@
                 for(let j=i+1;j<rows.length;j++){
                     if(removed.has(j)) continue;
                     const x=rows[j];
-                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue;
+                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug && x.occurredAt)) continue;
+
+                    const xGroupKey = x.badgeBurstKey || x.primarySlug;
+                    if(xGroupKey !== groupKey) continue;
 
                     const xBadgeKey = String(x.badgeLabel||"").trim().toLowerCase();
                     if(xBadgeKey === "podcast") continue;
