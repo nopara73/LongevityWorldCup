@@ -649,7 +649,15 @@
                 const a=athletesIndex.get(key);
                 const name=a?(athleteName(a)||raw):raw;
                 const href=a?makeAthleteUrlFromSlug(raw):"";
-                const piece=linkNames&&href?`<a href="${href}">${esc(name)}</a>`:`<span class="athlete-name-text">${esc(name)}</span>`;
+
+                const isSelf = athletePageTargetSlug && key===athletePageTargetSlug;
+                const shouldLink = !!href && !isSelf && (linkNames || openLinksInNewTab);
+
+                const targetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
+                const piece=shouldLink
+                    ? `<a href="${href}"${targetAttrs}>${esc(name)}</a>`
+                    : `<span class="athlete-name-text">${esc(name)}</span>`;
+
                 const extra=typeof afterSlug==="function"?afterSlug(key,a):"";
                 out += `<span class="name-and-rank">${piece}${extra}</span>`;
                 last=rx.lastIndex;
@@ -740,7 +748,9 @@
         }
 
         let allowBadgeClicks = true;
-
+        let athletePageTargetSlug = null;
+        let openLinksInNewTab = false;
+        
         function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
             try{
                 const ownedBadge = findServerBadgeOnAthleteStrict(athlete,label,leagueCategory,leagueValue,place);
@@ -993,9 +1003,16 @@
                 const placement = getCurrentPlacement(aObj);
                 if (!placement) return "";
                 const label = `(#${placement})`;
-                return linkNames
-                    ? `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`
-                    : `<span class="placement-link">${esc(label)}</span>`;
+
+                if (linkNames){
+                    return `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`;
+                }
+
+                if (openLinksInNewTab){
+                    return `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_blank" rel="noopener">${esc(label)}</a>`;
+                }
+
+                return `<span class="placement-link">${esc(label)}</span>`;
             };
 
             rows.forEach((r, idx) => {
@@ -1011,17 +1028,27 @@
                 const url = r.primarySlug ? makeAthleteUrlFromSlug(r.primarySlug) : "";
                 const img = a ? athletePic(a) : "";
 
+                const primaryKey = r.primarySlug ? slugifyLocal(normalizeLinkId(r.primarySlug)) : "";
+                const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
+
                 let avatarHtml = "";
-                const clickableProfileable = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) && r.primarySlug && linkNames;
+                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward)
+                    && r.primarySlug
+                    && url
+                    && !isSelfRow
+                    && (linkNames || openLinksInNewTab);
+
+                const avatarTargetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
+
                 if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) {
                     if (img) {
-                        avatarHtml = clickableProfileable
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
+                        avatarHtml = canLinkAvatar
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
                     } else {
                         const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
-                        avatarHtml = clickableProfileable
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">${fallback}</a>`
+                        avatarHtml = canLinkAvatar
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}>${fallback}</a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
@@ -1057,9 +1084,11 @@
                             return isSafeHttpUrl(v) ? v : "";
                         })();
 
-                        const episodeHtml = (linkNames && podcastUrl)
-                            ? `<a href="${esc(podcastUrl)}" target="_top" rel="noopener">episode</a>`
-                            : `episode`;
+                        const episodeHtml = (podcastUrl && openLinksInNewTab)
+                            ? `<a href="${esc(podcastUrl)}" target="_blank" rel="noopener">episode</a>`
+                            : ((linkNames && podcastUrl)
+                                ? `<a href="${esc(podcastUrl)}" target="_top" rel="noopener">episode</a>`
+                                : `episode`);
 
                         msgHtml = `${nameWithRank} was featured in a new ${episodeHtml} of our podcast`;
                     } else if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
@@ -1428,8 +1457,21 @@
                 const athletesIndex=buildAthleteIndex(athletes);
                 let rows=toRows(Array.isArray(events)?events:[]);
 
-                const target=normalizeIncomingAthleteId(athleteId);
+                const targetArg=normalizeIncomingAthleteId(athleteId);
+
+                const targetPath=(function(){
+                    if(targetArg) return "";
+                    const p=String(window.location.pathname||"");
+                    if(!/\/athlete\//i.test(p)) return "";
+                    return normalizeIncomingAthleteId(p);
+                })();
+
+                const target=targetArg || targetPath;
+
                 allowBadgeClicks = !target;
+
+                athletePageTargetSlug = target || null;
+                openLinksInNewTab = !!target;
 
                 const mode = target ? "athlete" : (n!==null ? "highlights" : "viewAll");
 
