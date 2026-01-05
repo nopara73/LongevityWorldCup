@@ -343,9 +343,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 // Only 1-to-1 swap sets ReplacedSlug; otherwise null
                 var singleSwap = prevSet.Count == 1 && nextSet.Count == 1 && addsForward.Count == 1 && removes.Count == 1 && !string.Equals(addsForward.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
 
-                var replacedSlugs = (!singleSwap && nextSet.Count == 1 && addsForward.Count == 1 && removes.Count > 1)
-                    ? removes
-                    : null;
+                IReadOnlyList<string>? replacedSlugs = null;
+                if (!singleSwap && nextSet.Count == 1 && addsForward.Count == 1 && removes.Count > 1)
+                    replacedSlugs = removes;
 
                 for (int i = 0; i < addsForward.Count; i++)
                 {
@@ -368,9 +368,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 // Only 1-to-1 swap sets ReplacedSlug; otherwise null
                 var singleSwap = prevSet.Count == 1 && nextSet.Count == 1 && adds.Count == 1 && removes.Count == 1 && !string.Equals(adds.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
 
-                var replacedSlugs = (!singleSwap && nextSet.Count == 1 && adds.Count == 1 && removes.Count > 1)
-                    ? removes
-                    : null;
+                IReadOnlyList<string>? replacedSlugs = null;
+                if (!singleSwap && nextSet.Count == 1 && adds.Count == 1 && removes.Count > 1)
+                    replacedSlugs = removes;
 
                 for (int i = 0; i < adds.Count; i++)
                 {
@@ -392,10 +392,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
         if (items.Count > 0)
             _events.CreateBadgeAwardEvents(
-                items.Select(i => (i.AthleteSlug, i.OccurredAtUtc, i.BadgeLabel, i.LeagueCategory, i.LeagueValue, i.Place, i.ReplacedSlug)),
+                items.Select(i => (i.AthleteSlug, i.OccurredAtUtc, i.BadgeLabel, i.LeagueCategory, i.LeagueValue, i.Place, i.ReplacedSlug, i.ReplacedSlugs)),
                 skipIfExists: true);
     }
-
 
     private static string? TryGetStringNode(JsonObject o, string key)
     {

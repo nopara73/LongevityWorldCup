@@ -479,7 +479,7 @@ public sealed class EventDataService : IDisposable
     }
 
     public void CreateBadgeAwardEvents(
-        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string LeagueCategory, string? LeagueValue, int? Place, string? ReplacedSlug)> items,
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string LeagueCategory, string? LeagueValue, int? Place, string? ReplacedSlug, IReadOnlyList<string>? ReplacedSlugs)> items,
         bool skipIfExists = true,
         double defaultRelevance = DefaultRelevanceBadgeAward)
     {
@@ -508,7 +508,7 @@ public sealed class EventDataService : IDisposable
             var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
             var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
-            foreach (var (slug, occurredAtUtc, badgeLabel, leagueCategory, leagueValue, place, replacedSlug) in items)
+            foreach (var (slug, occurredAtUtc, badgeLabel, leagueCategory, leagueValue, place, replacedSlug, replacedSlugs) in items)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
                 if (string.IsNullOrWhiteSpace(badgeLabel)) continue;
@@ -517,7 +517,20 @@ public sealed class EventDataService : IDisposable
                 var occurredAt = EnsureUtc(occurredAtUtc).ToString("o");
                 var placeStr = place.HasValue ? place.Value.ToString(CultureInfo.InvariantCulture) : "";
                 var baseText = $"slug[{slug}] badge[{badgeLabel}] cat[{leagueCategory}] val[{leagueValue ?? ""}] place[{placeStr}]";
-                var text = string.IsNullOrWhiteSpace(replacedSlug) ? baseText : $"{baseText} prev[{replacedSlug}]";
+
+                string text;
+                if (!string.IsNullOrWhiteSpace(replacedSlug))
+                {
+                    text = $"{baseText} prev[{replacedSlug}]";
+                }
+                else if (replacedSlugs is { Count: > 0 })
+                {
+                    text = $"{baseText} prevs[{string.Join(",", replacedSlugs)}]";
+                }
+                else
+                {
+                    text = baseText;
+                }
 
                 var shouldInsert = true;
                 if (skipIfExists)

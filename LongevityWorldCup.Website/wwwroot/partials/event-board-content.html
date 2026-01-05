@@ -806,6 +806,10 @@
                 const prevSlug=prevRaw?slugifyLocal(normalizeLinkId(prevRaw)):null;
                 if(prevSlug) slugTokens.push(prevSlug);
 
+                const prevRaws=extractPrevSlugs(text);
+                const prevSlugs=prevRaws.map(s=>slugifyLocal(normalizeLinkId(s)));
+                for(const ps of prevSlugs) slugTokens.push(ps);
+
                 const rank = extractRank(text);
                 const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
                 const milestoneCount = (() => { const m = /athletes\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : null; })();
@@ -814,7 +818,7 @@
                 const leagueValue = extractLeagueValue(text);
                 const place = extractPlace(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
             });
         }
 
@@ -941,6 +945,14 @@
                 }
             }
             return out;
+        }
+
+        function extractPrevSlugs(text){
+            const m=/prevs\[(.*?)\]/.exec(String(text));
+            if(!m) return [];
+            const raw=m[1];
+            if(!raw) return [];
+            return raw.split(',').map(s=>String(s).trim()).filter(Boolean);
         }
 
         function groupAthleteBursts(rows, windowMs=60000){
@@ -1521,7 +1533,7 @@
                                 return;
                             }
 
-                            if(r.prevSlug===target){
+                            if(r.prevSlug===target || (Array.isArray(r.prevSlugs) && r.prevSlugs.includes(target))){
                                 const winner = r.primarySlug;
                                 r.badgeDirection = "lost";
                                 r.badgeBurstKey = `${target}|lost`;
