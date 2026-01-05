@@ -869,29 +869,52 @@
             for(let i=0;i<rows.length;i++){
                 if(removed.has(i)) continue;
                 const r=rows[i];
-                if(!(r && r.type===EVENT_TYPE.BadgeAward && r.primarySlug && r.occurredAt)){
+
+                const key0 = r ? (r.badgeBurstKey || r.primarySlug) : null;
+
+                if(!(r && r.type===EVENT_TYPE.BadgeAward && key0 && r.occurredAt)){
                     out.push(r);
                     continue;
                 }
+
                 const t0=+new Date(r.occurredAt);
                 if(!Number.isFinite(t0)){ out.push(r); continue; }
                 const end=t0+windowMs;
 
                 const idxs=[i];
                 const items=[];
-                if(r.badgeLabel || r.prevSlug){
-                    items.push({ label:r.badgeLabel||"badge", prevSlug:r.prevSlug||null, leagueCategory:r.leagueCategory||null, leagueValue:r.leagueValue||null, place:r.place??null });
+                if(r.badgeLabel || r.prevSlug || r.otherSlug){
+                    items.push({
+                        label:r.badgeLabel||"badge",
+                        prevSlug:r.prevSlug||null,
+                        otherSlug:r.otherSlug||null,
+                        leagueCategory:r.leagueCategory||null,
+                        leagueValue:r.leagueValue||null,
+                        place:r.place??null
+                    });
                 }
 
                 for(let j=i+1;j<rows.length;j++){
                     if(removed.has(j)) continue;
                     const x=rows[j];
-                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue;
+
+                    const keyJ = x ? (x.badgeBurstKey || x.primarySlug) : null;
+
+                    if(!(x && x.type===EVENT_TYPE.BadgeAward && keyJ===key0 && x.occurredAt)) continue;
+
                     const tj=+new Date(x.occurredAt);
                     if(!Number.isFinite(tj)) continue;
+
                     if(tj>=t0 && tj<end){
                         idxs.push(j);
-                        items.push({ label:x.badgeLabel||"badge", prevSlug:x.prevSlug||null, leagueCategory:x.leagueCategory||null, leagueValue:x.leagueValue||null, place:x.place??null });
+                        items.push({
+                            label:x.badgeLabel||"badge",
+                            prevSlug:x.prevSlug||null,
+                            otherSlug:x.otherSlug||null,
+                            leagueCategory:x.leagueCategory||null,
+                            leagueValue:x.leagueValue||null,
+                            place:x.place??null
+                        });
                     }
                     if(tj>=end) break;
                 }
@@ -1033,6 +1056,9 @@
                         athletesIndex,
                         afterNameWithCurrentRankFor()
                     );
+
+                    const isLost = r.badgeDirection === "lost";
+
                     if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
                         const items = Array.isArray(r.items) ? r.items : [];
                         const orderFn = typeof window.computeOrder === 'function' ? window.computeOrder : null;
@@ -1043,15 +1069,36 @@
                                 return oa - ob;
                             })
                             : items;
+
                         const icons = orderedItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
-                        msgHtml = `${nameWithRank} bagged <strong class="count-accent">${orderedItems.length}</strong> new badges: ${icons}`;
+
+                        if(isLost){
+                            msgHtml = `${nameWithRank} lost <strong class="count-accent">${orderedItems.length}</strong> badges: ${icons}`;
+                        }else{
+                            msgHtml = `${nameWithRank} bagged <strong class="count-accent">${orderedItems.length}</strong> new badges: ${icons}`;
+                        }
                     } else {
-                        if (r.prevSlug) {
-                            const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
-                            msgHtml = `${nameWithRank} claims ${bubbleWithFrom}`;
-                        } else {
+                        if(isLost){
                             const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
-                            msgHtml = `${nameWithRank} adds ${bubble} to the collection`;
+                            if(r.otherSlug){
+                                const toHtml = renderTextWithSlugLinks(
+                                    `slug[${r.otherSlug}]`,
+                                    linkNames,
+                                    athletesIndex,
+                                    afterNameWithCurrentRankFor()
+                                );
+                                msgHtml = `${nameWithRank} lost ${bubble} to ${toHtml}`;
+                            }else{
+                                msgHtml = `${nameWithRank} lost ${bubble}`;
+                            }
+                        } else {
+                            if (r.prevSlug) {
+                                const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                                msgHtml = `${nameWithRank} claims ${bubbleWithFrom}`;
+                            } else {
+                                const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                                msgHtml = `${nameWithRank} adds ${bubble} to the collection`;
+                            }
                         }
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
@@ -1116,8 +1163,8 @@
                 tr.dataset.groupId = `g_${idx}`;
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                     <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
-                     <td class="col-date">${dateLabel}</td>`;
+             <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
+             <td class="col-date">${dateLabel}</td>`;
                 const imgEl = tr.querySelector("img.avatar");
                 if (imgEl) {
                     const initials = initialsFromName(name);
@@ -1192,6 +1239,145 @@
             }
         }
 
+        function normalizeBadgeKey(s){
+            return String(s||"")
+                .replace(/[–—]/g,"-")
+                .replace(/\s+/g," ")
+                .trim()
+                .toLowerCase();
+        }
+
+        function isAllowedBadgeHighlights(label, leagueCategory, place){
+            const key = normalizeBadgeKey(label);
+            if(key==="podcast") return true;
+            if(key==="pregnancy") return true;
+
+            if(key==="age reduction"){
+                if(!isTop3Place(place)) return false;
+                const cat = normalizeBadgeKey(leagueCategory);
+                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive";
+            }
+
+            if(
+                key==="chronological age - oldest" ||
+                key==="chronological age - youngest" ||
+                key==="phenoage - lowest" ||
+                key==="phenoage best improvement"
+            ){
+                return isTop3Place(place);
+            }
+
+            return false;
+        }
+
+        function isAllowedBadgeViewAll(label, leagueCategory, place){
+            if(isAllowedBadgeHighlights(label, leagueCategory, place)) return true;
+
+            const key = normalizeBadgeKey(label);
+            if(key.startsWith("best domain -")) return isTop3Place(place);
+
+            return false;
+        }
+
+        function normalizeBadgeKey(s){
+            return String(s||"")
+                .replace(/[–—]/g,"-")
+                .replace(/\s+/g," ")
+                .trim()
+                .toLowerCase();
+        }
+
+        function isTop3Place(place){
+            return place===1 || place===2 || place===3;
+        }
+
+        function isAllowedBadgeHighlights(label, leagueCategory, place){
+            const key = normalizeBadgeKey(label);
+            if(key==="podcast") return true;
+            if(key==="pregnancy") return true;
+
+            if(key==="age reduction"){
+                if(!isTop3Place(place)) return false;
+                const cat = normalizeBadgeKey(leagueCategory);
+                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive";
+            }
+
+            if(
+                key==="chronological age - oldest" ||
+                key==="chronological age - youngest" ||
+                key==="phenoage - lowest" ||
+                key==="phenoage best improvement"
+            ){
+                return isTop3Place(place);
+            }
+
+            return false;
+        }
+
+        function isAllowedBadgeViewAll(label, leagueCategory, place){
+            if(isAllowedBadgeHighlights(label, leagueCategory, place)) return true;
+
+            const key = normalizeBadgeKey(label);
+            if(key.startsWith("best domain -")) return isTop3Place(place);
+
+            return false;
+        }
+
+        function filterBadgeRowsForMainFeed(rows, mode){
+            const allowFn = mode==="viewAll" ? isAllowedBadgeViewAll : isAllowedBadgeHighlights;
+
+            const out=[];
+            for(const r of rows){
+                if(!(r && r.type===EVENT_TYPE.BadgeAward)){
+                    out.push(r);
+                    continue;
+                }
+
+                if(r.isGroup && Array.isArray(r.items)){
+                    const kept = r.items.filter(it => allowFn(it.label, it.leagueCategory, it.place));
+                    if(kept.length===0) continue;
+
+                    if(kept.length===1){
+                        const it = kept[0];
+                        out.push({
+                            ...r,
+                            isGroup:false,
+                            badgeCount:null,
+                            badges:null,
+                            items:null,
+                            badgeLabel: it.label || r.badgeLabel || "badge",
+                            prevSlug: it.prevSlug || null,
+                            otherSlug: it.otherSlug || null,
+                            leagueCategory: it.leagueCategory || null,
+                            leagueValue: it.leagueValue || null,
+                            place: (it.place ?? null),
+                        });
+                        continue;
+                    }
+
+                    const uniqueLabels=[...new Set(kept.map(it=>it.label).filter(Boolean))];
+                    out.push({
+                        ...r,
+                        isGroup:true,
+                        badgeCount: kept.length,
+                        badges: uniqueLabels,
+                        items: kept
+                    });
+                    continue;
+                }
+
+                if(allowFn(r.badgeLabel, r.leagueCategory, r.place)){
+                    out.push(r);
+                }
+            }
+
+            return out;
+        }
+
+        function isTop3Place(place){
+            return place===1 || place===2 || place===3;
+        }
+
         function normalizeIncomingAthleteId(id){
             if(id==null) return '';
             let s=String(id).trim();
@@ -1204,6 +1390,8 @@
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setViewAllVisible(!!showViewAll);
 
+            const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
+
             const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
             const athletesReq=fetch("/api/data/athletes",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
 
@@ -1214,11 +1402,38 @@
                 const target=normalizeIncomingAthleteId(athleteId);
                 allowBadgeClicks = !target;
 
+                const mode = target ? "athlete" : (n!==null ? "highlights" : "viewAll");
+
                 if(target){
                     rows=rows.filter(r=>{
                         if(r.type===EVENT_TYPE.AthleteCountMilestone) return false;
-                        if(r.type===EVENT_TYPE.BadgeAward) return r.primarySlug===target;
                         return r.slugs.includes(target);
+                    });
+
+                    rows.forEach(r=>{
+                        if(r.type!==EVENT_TYPE.BadgeAward) return;
+
+                        if(r.primarySlug===target){
+                            r.badgeDirection = "gained";
+                            r.badgeBurstKey = `${target}|gained`;
+                            r.otherSlug = null;
+                            return;
+                        }
+
+                        if(r.prevSlug===target){
+                            const winner = r.primarySlug;
+                            r.badgeDirection = "lost";
+                            r.badgeBurstKey = `${target}|lost`;
+                            r.otherSlug = winner || null;
+
+                            r.primarySlug = target;
+                            r.prevSlug = null;
+
+                            const aObj = athletesIndex.get(target);
+                            if(aObj){
+                                r.text = `slug[${target}] lost badge[${r.badgeLabel||"badge"}]`;
+                            }
+                        }
                     });
                 }else{
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
@@ -1226,6 +1441,11 @@
 
                 rows = applyArrivalOrderEpsilon(rows, 1);
                 rows = groupBadgeBursts(rows, 60000);
+
+                if(!target){
+                    rows = filterBadgeRowsForMainFeed(rows, mode);
+                }
+
                 rows.sort((a,b)=>{
                     const ta=+new Date(a.occurredAt||0);
                     const tb=+new Date(b.occurredAt||0);
@@ -1236,8 +1456,7 @@
                 });
 
                 rows = groupAthleteBursts(rows, 60000);
-                
-                const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
+
                 if(n!==null) rows=rows.slice(0,n);
 
                 renderRows(rows,athletesIndex,!!linkNames);
