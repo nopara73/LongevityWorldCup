@@ -1116,19 +1116,33 @@
                         ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
                         : esc(takenText);
 
-                    let prevHtml = "";
-                    if (r.prevSlug) {
-                        prevHtml = renderTextWithSlugLinks(
-                            `slug[${r.prevSlug}]`,
-                            linkNames,
-                            athletesIndex,
-                            afterNameWithCurrentRankFor()
-                        );
-                    }
+                    if(r.newRankDirection === "lost"){
+                        if(r.otherSlug){
+                            const toHtml = renderTextWithSlugLinks(
+                                `slug[${r.otherSlug}]`,
+                                linkNames,
+                                athletesIndex,
+                                afterNameWithCurrentRankFor()
+                            );
+                            msgHtml = `${nameWithCurrentRank} lost the ${takenHtml} place to ${toHtml}`;
+                        }else{
+                            msgHtml = `${nameWithCurrentRank} lost the ${takenHtml} place`;
+                        }
+                    }else{
+                        let prevHtml = "";
+                        if (r.prevSlug) {
+                            prevHtml = renderTextWithSlugLinks(
+                                `slug[${r.prevSlug}]`,
+                                linkNames,
+                                athletesIndex,
+                                afterNameWithCurrentRankFor()
+                            );
+                        }
 
-                    msgHtml = prevHtml
-                        ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}`
-                        : `${nameWithCurrentRank} took the ${takenHtml} place`;
+                        msgHtml = prevHtml
+                            ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}`
+                            : `${nameWithCurrentRank} took the ${takenHtml} place`;
+                    }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
                     const amount = Number.isFinite(r.sats) ? r.sats : 0;
                     const btc = amount / 100000000;
@@ -1411,27 +1425,36 @@
                     });
 
                     rows.forEach(r=>{
-                        if(r.type!==EVENT_TYPE.BadgeAward) return;
+                        if(r.type===EVENT_TYPE.BadgeAward){
+                            if(r.primarySlug===target){
+                                r.badgeDirection = "gained";
+                                r.badgeBurstKey = `${target}|gained`;
+                                r.otherSlug = null;
+                                return;
+                            }
 
-                        if(r.primarySlug===target){
-                            r.badgeDirection = "gained";
-                            r.badgeBurstKey = `${target}|gained`;
-                            r.otherSlug = null;
-                            return;
+                            if(r.prevSlug===target){
+                                const winner = r.primarySlug;
+                                r.badgeDirection = "lost";
+                                r.badgeBurstKey = `${target}|lost`;
+                                r.otherSlug = winner || null;
+
+                                r.primarySlug = target;
+                                r.prevSlug = null;
+                                return;
+                            }
                         }
 
-                        if(r.prevSlug===target){
-                            const winner = r.primarySlug;
-                            r.badgeDirection = "lost";
-                            r.badgeBurstKey = `${target}|lost`;
-                            r.otherSlug = winner || null;
+                        if(r.type===EVENT_TYPE.NewRank){
+                            if(r.prevSlug===target){
+                                const winner = r.primarySlug;
 
-                            r.primarySlug = target;
-                            r.prevSlug = null;
+                                r.newRankDirection = "lost";
+                                r.otherSlug = winner || null;
 
-                            const aObj = athletesIndex.get(target);
-                            if(aObj){
-                                r.text = `slug[${target}] lost badge[${r.badgeLabel||"badge"}]`;
+                                r.primarySlug = target;
+                                r.prevSlug = null;
+                                return;
                             }
                         }
                     });
