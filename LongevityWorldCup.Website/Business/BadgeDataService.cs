@@ -297,24 +297,21 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             set.Add(x.AthleteSlug);
         }
 
-        var prevBest = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var x in before)
-        {
-            if (!x.Place.HasValue) continue;
-
-            var k = AbKey(x.AthleteSlug, x.BadgeLabel, x.LeagueCategory, x.LeagueValue);
-            if (!prevBest.TryGetValue(k, out var best) || x.Place.Value < best)
-                prevBest[k] = x.Place.Value;
-        }
+        var changedKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var k in beforeMap.Keys) changedKeys.Add(k);
+        foreach (var k in afterMap.Keys) changedKeys.Add(k);
 
         var items = new List<BadgeEventItem>();
 
-        foreach (var kv in afterMap)
+        foreach (var key in changedKeys)
         {
-            var key = kv.Key;
-            var nextSet = kv.Value;
             beforeMap.TryGetValue(key, out var prevSet);
+            afterMap.TryGetValue(key, out var nextSet);
+
             prevSet ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            nextSet ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (prevSet.SetEquals(nextSet)) continue;
 
             var parts = key.Split('|');
             var label = parts.Length > 0 ? parts[0] : "";
@@ -335,18 +332,19 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 string? winner = null;
                 if (nextSet.Count == 1) winner = nextSet.First();
 
-                for (int i = 0; i < removes.Count; i++)
+                if (winner is not null && prevSet.Count > 1 && nextSet.Count == 1)
                 {
                     items.Add(new BadgeEventItem
                     {
-                        AthleteSlug = removes[i],
+                        AthleteSlug = winner,
                         OccurredAtUtc = occurredAtUtc,
                         BadgeLabel = label,
                         LeagueCategory = cat,
                         LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
                         Place = place,
-                        ReplacedSlug = winner is null ? "lost" : $"lost:{winner}",
-                        ReplacedSlugs = null
+                        BecameSoloOwner = true,
+                        ReplacedSlug = null,
+                        ReplacedSlugs = removes
                     });
                 }
 
@@ -355,41 +353,67 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
             if (place.HasValue)
             {
-                var addsForward = new List<string>();
-                foreach (var slug in adds)
+                var beforeByAb = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var x in before)
                 {
-                    var abKey = AbKey(slug, label, cat, string.IsNullOrEmpty(valStr) ? null : valStr);
-                    var forward = !prevBest.TryGetValue(abKey, out var prevPlace) || place.Value < prevPlace;
-                    if (forward) addsForward.Add(slug);
+                    if (!x.Place.HasValue) continue;
+                    var ab = AbKey(x.AthleteSlug, x.BadgeLabel, x.LeagueCategory, x.LeagueValue);
+                    if (beforeByAb.TryGetValue(ab, out var cur))
+                        beforeByAb[ab] = Math.Min(cur, x.Place.Value);
+                    else
+                        beforeByAb[ab] = x.Place.Value;
                 }
 
-                // Only 1-to-1 swap sets ReplacedSlug; otherwise null
-                var singleSwap = prevSet.Count == 1 && nextSet.Count == 1 && addsForward.Count == 1 && removes.Count == 1 && !string.Equals(addsForward.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
-
-                IReadOnlyList<string>? replacedSlugs = null;
-                if (!singleSwap && nextSet.Count == 1 && addsForward.Count == 1 && removes.Count > 1)
-                    replacedSlugs = removes;
-
-                for (int i = 0; i < addsForward.Count; i++)
+                var afterByAb = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var x in after)
                 {
-                    var replaced = singleSwap ? removes[0] : null;
-                    items.Add(new BadgeEventItem
+                    if (!x.Place.HasValue) continue;
+                    var ab = AbKey(x.AthleteSlug, x.BadgeLabel, x.LeagueCategory, x.LeagueValue);
+                    if (afterByAb.TryGetValue(ab, out var cur))
+                        afterByAb[ab] = Math.Min(cur, x.Place.Value);
+                    else
+                        afterByAb[ab] = x.Place.Value;
+                }
+
+                var addsForward = adds.Where(slug =>
+                {
+                    var ab = AbKey(slug, label, cat, valStr);
+                    var afterPlace = afterByAb.TryGetValue(ab, out var ap) ? (int?)ap : null;
+                    var beforePlace = beforeByAb.TryGetValue(ab, out var bp) ? (int?)bp : null;
+                    return afterPlace.HasValue && (!beforePlace.HasValue || afterPlace.Value < beforePlace.Value);
+                }).OrderBy(s => s, StringComparer.Ordinal).ToList();
+
+                if (addsForward.Count > 0)
+                {
+                    for (int i = 0; i < addsForward.Count; i++)
                     {
-                        AthleteSlug = addsForward[i],
-                        OccurredAtUtc = occurredAtUtc,
-                        BadgeLabel = label,
-                        LeagueCategory = cat,
-                        LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
-                        Place = place,
-                        ReplacedSlug = replaced,
-                        ReplacedSlugs = replacedSlugs
-                    });
+                        var ab = AbKey(addsForward[i], label, cat, valStr);
+                        var afterPlace = afterByAb.TryGetValue(ab, out var ap) ? (int?)ap : null;
+
+                        items.Add(new BadgeEventItem
+                        {
+                            AthleteSlug = addsForward[i],
+                            OccurredAtUtc = occurredAtUtc,
+                            BadgeLabel = label,
+                            LeagueCategory = cat,
+                            LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
+                            Place = afterPlace,
+                            ReplacedSlug = null,
+                            ReplacedSlugs = null
+                        });
+                    }
                 }
+
+                continue;
             }
-            else
+
             {
-                // Only 1-to-1 swap sets ReplacedSlug; otherwise null
-                var singleSwap = prevSet.Count == 1 && nextSet.Count == 1 && adds.Count == 1 && removes.Count == 1 && !string.Equals(adds.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
+                var singleSwap =
+                    prevSet.Count == 1 &&
+                    nextSet.Count == 1 &&
+                    adds.Count == 1 &&
+                    removes.Count == 1 &&
+                    !string.Equals(adds.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
 
                 IReadOnlyList<string>? replacedSlugs = null;
                 if (!singleSwap && nextSet.Count == 1 && adds.Count == 1 && removes.Count > 1)
@@ -415,7 +439,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
         if (items.Count > 0)
             _events.CreateBadgeAwardEvents(
-                items.Select(i => (i.AthleteSlug, i.OccurredAtUtc, i.BadgeLabel, i.LeagueCategory, i.LeagueValue, i.Place, i.ReplacedSlug, i.ReplacedSlugs)),
+                items.Select(i => (i.AthleteSlug, i.OccurredAtUtc, i.BadgeLabel, i.LeagueCategory, i.LeagueValue, i.Place, i.BecameSoloOwner, i.ReplacedSlug, i.ReplacedSlugs)),
                 skipIfExists: true);
     }
 
@@ -560,7 +584,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public string? DefinitionHash { get; init; }
     }
 
-    private sealed class BadgeEventItem
+    class BadgeEventItem
     {
         public required string AthleteSlug { get; init; }
         public required DateTime OccurredAtUtc { get; init; }
@@ -568,6 +592,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public required string LeagueCategory { get; init; }
         public string? LeagueValue { get; init; }
         public int? Place { get; init; }
+        public bool BecameSoloOwner { get; init; }
         public string? ReplacedSlug { get; init; }
         public IReadOnlyList<string>? ReplacedSlugs { get; init; }
     }

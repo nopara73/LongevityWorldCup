@@ -479,7 +479,7 @@ public sealed class EventDataService : IDisposable
     }
 
     public void CreateBadgeAwardEvents(
-        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string LeagueCategory, string? LeagueValue, int? Place, string? ReplacedSlug, IReadOnlyList<string>? ReplacedSlugs)> items,
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string BadgeLabel, string LeagueCategory, string? LeagueValue, int? Place, bool BecameSoloOwner, string? ReplacedSlug, IReadOnlyList<string>? ReplacedSlugs)> items,
         bool skipIfExists = true,
         double defaultRelevance = DefaultRelevanceBadgeAward)
     {
@@ -508,7 +508,7 @@ public sealed class EventDataService : IDisposable
             var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
             var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
 
-            foreach (var (slug, occurredAtUtc, badgeLabel, leagueCategory, leagueValue, place, replacedSlug, replacedSlugs) in items)
+            foreach (var (slug, occurredAtUtc, badgeLabel, leagueCategory, leagueValue, place, becameSoloOwner, replacedSlug, replacedSlugs) in items)
             {
                 if (string.IsNullOrWhiteSpace(slug)) continue;
                 if (string.IsNullOrWhiteSpace(badgeLabel)) continue;
@@ -518,25 +518,13 @@ public sealed class EventDataService : IDisposable
                 var placeStr = place.HasValue ? place.Value.ToString(CultureInfo.InvariantCulture) : "";
                 var baseText = $"slug[{slug}] badge[{badgeLabel}] cat[{leagueCategory}] val[{leagueValue ?? ""}] place[{placeStr}]";
 
+                if (becameSoloOwner) baseText += " solo[1]";
+
                 string text;
 
                 if (!string.IsNullOrWhiteSpace(replacedSlug))
                 {
-                    if (string.Equals(replacedSlug, "lost", StringComparison.Ordinal))
-                    {
-                        text = $"{baseText} lost[1]";
-                    }
-                    else if (replacedSlug.StartsWith("lost:", StringComparison.Ordinal))
-                    {
-                        var winner = replacedSlug.Substring("lost:".Length);
-                        text = string.IsNullOrWhiteSpace(winner)
-                            ? $"{baseText} lost[1]"
-                            : $"{baseText} lost[1] prev[{winner}]";
-                    }
-                    else
-                    {
-                        text = $"{baseText} prev[{replacedSlug}]";
-                    }
+                    text = $"{baseText} prev[{replacedSlug}]";
                 }
                 else if (replacedSlugs is { Count: > 0 })
                 {

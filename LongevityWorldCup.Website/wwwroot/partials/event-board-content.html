@@ -810,6 +810,16 @@
                 const prevSlugs=prevRaws.map(s=>slugifyLocal(normalizeLinkId(s)));
                 for(const ps of prevSlugs) slugTokens.push(ps);
 
+                const isSolo = /solo\[1\]/.test(text);
+                let badgeBurstKey = null;
+                if(type===EVENT_TYPE.BadgeAward && isSolo && primarySlug){
+                    const badgeLabel0 = extractBadge(text) || "";
+                    const leagueCategory0 = extractLeagueCategory(text) || "";
+                    const leagueValue0 = extractLeagueValue(text) || "";
+                    const place0 = extractPlace(text);
+                    badgeBurstKey = `${primarySlug}|solo|${badgeLabel0}|${leagueCategory0}|${leagueValue0}|${place0 ?? ""}`;
+                }
+
                 const rank = extractRank(text);
                 const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
                 const milestoneCount = (() => { const m = /athletes\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : null; })();
@@ -818,7 +828,7 @@
                 const leagueValue = extractLeagueValue(text);
                 const place = extractPlace(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
             });
         }
 
@@ -1047,7 +1057,7 @@
             };
 
             rows.forEach((r, idx) => {
-                const dateLabel = r.occurredAt ? formatListDate(r.occurredAt) : "";
+                const dateLabel = r.occurredAt ? formatListDate(r.occuredAt) : "";
                 const rel = (r.type === EVENT_TYPE.Joined && r.occurredAt)
                     ? relativeDayLabel(r.occurredAt)
                     : "";
@@ -1104,9 +1114,10 @@
                     );
 
                     const isLost = r.badgeDirection === "lost";
+                    const isSolo = !isLost && (r.badgeDirection === "solo" || !!r.isSolo);
 
                     const badgeKey = String(r.badgeLabel||"").trim().toLowerCase();
-                    if(!isLost && badgeKey === "podcast"){
+                    if(!isLost && !isSolo && badgeKey === "podcast"){
                         const podcastUrl = (function(){
                             if(!a) return "";
                             const am = lowerKeyMap(a);
@@ -1154,7 +1165,10 @@
                             msgHtml = `${nameWithRank} bagged <strong class="count-accent">${totalCount}</strong> new badges: ${icons}${moreLink}`;
                         }
                     } else {
-                        if(isLost){
+                        if(isSolo){
+                            const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                            msgHtml = `${nameWithRank} now holds ${bubble} alone`;
+                        } else if(isLost){
                             const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
                             if(r.otherSlug){
                                 const toHtml = renderTextWithSlugLinks(
@@ -1532,8 +1546,13 @@
                     rows.forEach(r=>{
                         if(r.type===EVENT_TYPE.BadgeAward){
                             if(r.primarySlug===target){
-                                r.badgeDirection = "gained";
-                                r.badgeBurstKey = `${target}|gained`;
+                                if(r.isSolo){
+                                    r.badgeDirection = "solo";
+                                    r.badgeBurstKey = `${target}|solo|${r.badgeLabel||""}|${r.leagueCategory||""}|${r.leagueValue||""}|${r.place ?? ""}`;
+                                }else{
+                                    r.badgeDirection = "gained";
+                                    r.badgeBurstKey = `${target}|gained`;
+                                }
                                 r.otherSlug = null;
                                 return;
                             }
