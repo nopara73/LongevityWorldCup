@@ -1057,7 +1057,7 @@
             };
 
             rows.forEach((r, idx) => {
-                const dateLabel = r.occurredAt ? formatListDate(r.occuredAt) : "";
+                const dateLabel = r.occurredAt ? formatListDate(r.occurredAt) : "";
                 const rel = (r.type === EVENT_TYPE.Joined && r.occurredAt)
                     ? relativeDayLabel(r.occurredAt)
                     : "";
@@ -1269,6 +1269,7 @@
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
              <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
              <td class="col-date">${dateLabel}</td>`;
+
                 const imgEl = tr.querySelector("img.avatar");
                 if (imgEl) {
                     const initials = initialsFromName(name);
