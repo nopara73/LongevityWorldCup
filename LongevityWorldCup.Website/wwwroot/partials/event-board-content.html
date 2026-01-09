@@ -1508,52 +1508,6 @@
             return normalizeLinkId(slugifyLocal(s));
         }
 
-        function badgeLeagueBatchKey(row){
-            if(!row) return null;
-            const label = normalizeBadgeKey(row.badgeLabel);
-            const cat = String(row.leagueCategory||"").trim().toLowerCase();
-            const val = String(row.leagueValue||"").trim().toLowerCase();
-            const t = String(row.occurredAt||"").trim();
-            if(!t) return null;
-            return `${label}|${cat}|${val}|${t}`;
-        }
-
-        function suppressSlotShiftLostBadgeRowsForTarget(rows, target){
-            if(!target || !Array.isArray(rows) || rows.length===0) return rows;
-
-            const improved = new Set();
-
-            for(const r of rows){
-                if(!(r && r.type===EVENT_TYPE.BadgeAward)) continue;
-                if(r.primarySlug!==target) continue;
-                if(!r.occurredAt) continue;
-
-                const dir = r.badgeDirection || "";
-                const isImprovement = dir==="gained" || dir==="solo" || (!!r.isSolo && dir!=="lost");
-                if(!isImprovement) continue;
-
-                const k = badgeLeagueBatchKey(r);
-                if(k) improved.add(k);
-            }
-
-            if(improved.size===0) return rows;
-
-            const out=[];
-            for(const r of rows){
-                if(!(r && r.type===EVENT_TYPE.BadgeAward && r.primarySlug===target && r.badgeDirection==="lost" && r.occurredAt)){
-                    out.push(r);
-                    continue;
-                }
-
-                const k = badgeLeagueBatchKey(r);
-                if(k && improved.has(k)) continue;
-
-                out.push(r);
-            }
-
-            return out;
-        }
-
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setViewAllVisible(!!showViewAll);
 
@@ -1629,8 +1583,6 @@
                             }
                         }
                     });
-
-                    rows = suppressSlotShiftLostBadgeRowsForTarget(rows, target);
                 }else{
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
                 }
@@ -1661,7 +1613,7 @@
                 if(tbody) tbody.innerHTML=`<tr><td colspan="3">Failed to load events</td></tr>`;
             });
         };
-        
+
         document.addEventListener('DOMContentLoaded',()=>{
             const root=document.getElementById('events-root');
             if(root) root.classList.add('fade-in-board');
