@@ -45,6 +45,14 @@ nopara73 launched the [Longevity World Cup](https://www.longevityworldcup.com/) 
 
 In a private exchange, Dr. Zolman revealed his departure from the Rejuvenation Olympics. He attributed his choice to step away to concerns over the leaderboard's scientific integrity, stating, "Bryan and TruDiagnostic made the leaderboards unscientific and clinically meaningless."
 
+### 2026 January – First Place Finishes Across Major Longevity Leaderboards
+
+On January 1, 2026, Bryan Johnson secured first place on the Rejuvenation Olympics leaderboard, while Michael Lustgarten, PhD ranked first on the Longevity World Cup leaderboard. This marked the first time different longevity competitions, using distinct biological aging clocks, simultaneously crowned clear category leaders—highlighting both the fragmentation and maturation of longevity as a competitive sport.
+
+<img width="697" height="592" alt="image" src="https://github.com/user-attachments/assets/c297016d-a7b9-488b-b57c-51c648c3feb2" />
+
+<img width="1092" height="557" alt="image" src="https://github.com/user-attachments/assets/ab6a393c-eeac-4a6a-a814-18aad2aac3f5" />
+
 ## Special Mentions
 
 Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health), the [VO2 Max Leaderboard](https://www.joinzero.co/leaderboard) by JoinZero, and [Favies (previously Goaly)](https://favies.com/) and various fitness tracker-specific gamified leaderboards.
