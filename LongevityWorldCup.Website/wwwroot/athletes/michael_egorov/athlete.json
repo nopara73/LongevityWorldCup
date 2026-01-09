@@ -1,0 +1,28 @@
+{
+  "Name": "Michael Egorov",
+  "DisplayName": null,
+  "MediaContact": "m_egorov@hotmail.com",
+  "DateOfBirth": {
+    "Year": 1959,
+    "Month": 2,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-31",
+      "AlbGL": 44,
+      "CreatUmolL": 74.34,
+      "GluMmolL": 5.11,
+      "CrpMgL": 0.2,
+      "LymPc": 21.4,
+      "McvFL": 93.5,
+      "RdwPc": 12.5,
+      "AlpUL": 68,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "I would like to continue running and swimming in the ocean for 30-40 more years",
+  "PersonalLink": null
+}
