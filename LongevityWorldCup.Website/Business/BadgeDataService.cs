@@ -385,6 +385,11 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
                 if (addsForward.Count > 0)
                 {
+                    string? replaced = null;
+                    IReadOnlyList<string>? replacedSlugs = null;
+                    if (removes.Count == 1) replaced = removes[0];
+                    else if (removes.Count > 1) replacedSlugs = removes;
+
                     for (int i = 0; i < addsForward.Count; i++)
                     {
                         var ab = AbKey(addsForward[i], label, cat, valStr);
@@ -398,8 +403,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                             LeagueCategory = cat,
                             LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
                             Place = afterPlace,
-                            ReplacedSlug = null,
-                            ReplacedSlugs = null
+                            ReplacedSlug = replaced,
+                            ReplacedSlugs = replacedSlugs
                         });
                     }
                 }
@@ -408,20 +413,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             }
 
             {
-                var singleSwap =
-                    prevSet.Count == 1 &&
-                    nextSet.Count == 1 &&
-                    adds.Count == 1 &&
-                    removes.Count == 1 &&
-                    !string.Equals(adds.First(), removes.First(), StringComparison.OrdinalIgnoreCase);
-
+                string? replaced = null;
                 IReadOnlyList<string>? replacedSlugs = null;
-                if (!singleSwap && nextSet.Count == 1 && adds.Count == 1 && removes.Count > 1)
-                    replacedSlugs = removes;
+                if (removes.Count == 1) replaced = removes[0];
+                else if (removes.Count > 1) replacedSlugs = removes;
 
                 for (int i = 0; i < adds.Count; i++)
                 {
-                    var replaced = singleSwap ? removes[0] : null;
                     items.Add(new BadgeEventItem
                     {
                         AthleteSlug = adds[i],
