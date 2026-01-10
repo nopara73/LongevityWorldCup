@@ -41,11 +41,24 @@
       "McvFL": 96.5,
       "RdwPc": 12.6,
       "Wbc1000cellsuL": 4.7
+    },
+    {
+      "Date": "2025-09-22",
+      "AlbGL": 51,
+      "CreatUmolL": 80.4,
+      "GluMmolL": 4.28,
+      "CrpMgL": 0.16,
+      "LymPc": 25.8,
+      "McvFL": 99.6,
+      "RdwPc": 12,
+      "AlpUL": 48,
+      "Wbc1000cellsuL": 4.5
     }
   ],
   "Division": "Men's",
   "Flag": "NZD",
   "Why": "Optimising my body with a little bit of fun too",
   "PersonalLink": "https://Bsupercharged.com",
-  "PodcastLink": "https://youtu.be/Iwno9u6AHxs"
+  "PodcastLink": "https://youtu.be/Iwno9u6AHxs",
+  "DisplayName": null
 }
