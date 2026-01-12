@@ -1352,46 +1352,6 @@
                 .toLowerCase();
         }
 
-        function isAllowedBadgeHighlights(label, leagueCategory, place){
-            const key = normalizeBadgeKey(label);
-            if(key==="podcast") return true;
-            if(key==="pregnancy") return true;
-
-            if(key==="age reduction"){
-                if(!isTop3Place(place)) return false;
-                const cat = normalizeBadgeKey(leagueCategory);
-                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive";
-            }
-
-            if(
-                key==="chronological age - oldest" ||
-                key==="chronological age - youngest" ||
-                key==="phenoage - lowest" ||
-                key==="phenoage best improvement"
-            ){
-                return isTop3Place(place);
-            }
-
-            return false;
-        }
-
-        function isAllowedBadgeViewAll(label, leagueCategory, place){
-            if(isAllowedBadgeHighlights(label, leagueCategory, place)) return true;
-
-            const key = normalizeBadgeKey(label);
-            if(key.startsWith("best domain -")) return isTop3Place(place);
-
-            return false;
-        }
-
-        function normalizeBadgeKey(s){
-            return String(s||"")
-                .replace(/[–—]/g,"-")
-                .replace(/\s+/g," ")
-                .trim()
-                .toLowerCase();
-        }
-
         function isTop3Place(place){
             return place===1 || place===2 || place===3;
         }
@@ -1481,22 +1441,6 @@
             }
 
             return out;
-        }
-
-        function isTop3Place(place){
-            return place===1 || place===2 || place===3;
-        }
-
-        function athletePodcastLink(a){
-            if(!a) return "";
-            const map=lowerKeyMap(a);
-            const k=map["podcastlink"];
-            if(!k) return "";
-            const v=String(a[k]??"").trim();
-            if(!v) return "";
-            if(/^https?:\/\/.+/i.test(v)) return v;
-            if(/^\/[^\s]+$/.test(v)) return v;
-            return "";
         }
 
         function normalizeIncomingAthleteId(id){
