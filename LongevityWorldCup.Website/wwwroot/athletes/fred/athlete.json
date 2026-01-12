@@ -1,0 +1,28 @@
+{
+  "Name": "Fred",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/frebhed/",
+  "DateOfBirth": {
+    "Year": 1977,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-28",
+      "AlbGL": 40,
+      "CreatUmolL": 111,
+      "GluMmolL": 5.2,
+      "CrpMgL": 0.2,
+      "LymPc": 63,
+      "McvFL": 93,
+      "RdwPc": 13,
+      "AlpUL": 58,
+      "Wbc1000cellsuL": 2.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Australia",
+  "Why": "Curiosity. Longevity. Health. Fitness.",
+  "PersonalLink": null
+}
