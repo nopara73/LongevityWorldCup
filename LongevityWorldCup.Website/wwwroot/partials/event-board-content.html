@@ -54,6 +54,31 @@
         margin:0 auto
     }
 
+    .events-board.athlete-events-scroll{
+        overflow:hidden;
+    }
+
+    .events-board.athlete-events-scroll #eventsTable tbody{
+        display:block;
+        max-height:min(520px, 70svh);
+        overflow-y:auto;
+        overflow-x:hidden;
+    }
+
+    .events-board.athlete-events-scroll #eventsTable thead,
+    .events-board.athlete-events-scroll #eventsTable tbody tr{
+        display:table;
+        width:100%;
+        table-layout:fixed;
+    }
+
+    .events-board.athlete-events-scroll #eventsTable thead th{
+        position:static;
+        background:#e6f7fa;
+        z-index:auto;
+        box-shadow:0 1px 0 rgba(0,0,0,.08);
+    }
+
     .events-board table{
         flex-grow:1;
         width:100%;
@@ -64,7 +89,9 @@
     }
 
     .events-board thead th{
-        background:rgba(0,188,212,.12);
+        background:
+                linear-gradient(rgba(0,188,212,.12),rgba(0,188,212,.12)),
+                var(--card-bg);
         color:var(--primary-color);
         text-transform:uppercase;
         font-weight:800;
@@ -72,8 +99,33 @@
         letter-spacing:1px;
         text-align:left;
         padding:15px 20px;
-        border-bottom:1px solid rgba(0,0,0,.03)
+        border-bottom:1px solid rgba(0,0,0,.03);
+        position:relative;
+        z-index:2
     }
+
+    .events-board.athlete-scroll #eventsTable thead,
+    .events-board.athlete-scroll #eventsTable tbody tr{
+        display:table;
+        width:100%;
+        table-layout:fixed;
+    }
+
+    .events-board.athlete-scroll #eventsTable tbody{
+        display:block;
+        max-height:420px;
+        overflow-y:auto;
+        overflow-x:hidden;
+        background:var(--card-bg);
+        border-radius:0 0 20px 20px;
+    }
+
+    .events-board.athlete-scroll #eventsTable td.col-date{width:76px}
+
+    .events-board.athlete-scroll td.event-message .event-message-cell > *{min-width:0}
+
+    .events-board.athlete-scroll tbody tr.custom-event-details{display:none}
+    .events-board.athlete-scroll tbody tr.custom-event-row.is-open + tr.custom-event-details{display:table}
 
     .header-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem}
     .view-all{text-decoration:none;color:var(--primary-color);opacity:.8;font-weight:400;font-size:.85rem}
@@ -1473,9 +1525,24 @@
                     return normalizeIncomingAthleteId(p);
                 })();
 
-                const target=targetArg || targetPath;
+                const targetParentPath=(function(){
+                    if(targetArg || targetPath) return "";
+                    try{
+                        if(window===window.parent) return "";
+                        const pp=String(window.parent.location && window.parent.location.pathname || "");
+                        if(!/\/athlete\//i.test(pp)) return "";
+                        return normalizeIncomingAthleteId(pp);
+                    }catch(_){
+                        return "";
+                    }
+                })();
+
+                const target=targetArg || targetPath || targetParentPath;
 
                 allowBadgeClicks = !target;
+
+                const root=document.getElementById('events-root');
+                if(root) root.classList.toggle('athlete-scroll', !!target);
 
                 athletePageTargetSlug = target || null;
                 openLinksInNewTab = !!target;
