@@ -54,6 +54,31 @@
         margin:0 auto
     }
 
+    .events-board.athlete-events-scroll{
+        overflow:hidden;
+    }
+
+    .events-board.athlete-events-scroll #eventsTable tbody{
+        display:block;
+        max-height:min(520px, 70svh);
+        overflow-y:auto;
+        overflow-x:hidden;
+    }
+
+    .events-board.athlete-events-scroll #eventsTable thead,
+    .events-board.athlete-events-scroll #eventsTable tbody tr{
+        display:table;
+        width:100%;
+        table-layout:fixed;
+    }
+
+    .events-board.athlete-events-scroll #eventsTable thead th{
+        position:static;
+        background:#e6f7fa;
+        z-index:auto;
+        box-shadow:0 1px 0 rgba(0,0,0,.08);
+    }
+
     .events-board table{
         flex-grow:1;
         width:100%;
@@ -64,7 +89,9 @@
     }
 
     .events-board thead th{
-        background:rgba(0,188,212,.12);
+        background:
+                linear-gradient(rgba(0,188,212,.12),rgba(0,188,212,.12)),
+                var(--card-bg);
         color:var(--primary-color);
         text-transform:uppercase;
         font-weight:800;
@@ -72,8 +99,33 @@
         letter-spacing:1px;
         text-align:left;
         padding:15px 20px;
-        border-bottom:1px solid rgba(0,0,0,.03)
+        border-bottom:1px solid rgba(0,0,0,.03);
+        position:relative;
+        z-index:2
     }
+
+    .events-board.athlete-scroll #eventsTable thead,
+    .events-board.athlete-scroll #eventsTable tbody tr{
+        display:table;
+        width:100%;
+        table-layout:fixed;
+    }
+
+    .events-board.athlete-scroll #eventsTable tbody{
+        display:block;
+        max-height:420px;
+        overflow-y:auto;
+        overflow-x:hidden;
+        background:var(--card-bg);
+        border-radius:0 0 20px 20px;
+    }
+
+    .events-board.athlete-scroll #eventsTable td.col-date{width:76px}
+
+    .events-board.athlete-scroll td.event-message .event-message-cell > *{min-width:0}
+
+    .events-board.athlete-scroll tbody tr.custom-event-details{display:none}
+    .events-board.athlete-scroll tbody tr.custom-event-row.is-open + tr.custom-event-details{display:table}
 
     .header-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem}
     .view-all{text-decoration:none;color:var(--primary-color);opacity:.8;font-weight:400;font-size:.85rem}
@@ -192,6 +244,20 @@
     .event-message a.placement-link{text-decoration:none}
     .event-message a.placement-link:hover,
     .event-message a.placement-link:focus{text-decoration:none}
+    .event-message a.more-link{
+        color:#7a8a99;
+        opacity:.75;
+        font-size:.85em;
+        text-decoration:none;
+        text-decoration-color:rgba(122,138,153,.55);
+    }
+    .event-message a.more-link:hover,
+    .event-message a.more-link:focus{
+        color:#7a8a99;
+        opacity:1;
+        text-decoration:underline;
+        text-decoration-color:#7a8a99;
+    }
 
     .donation-amount{color:var(--secondary-color,#ff4f87);font-weight:700}
     .donation-gift-avatar{
@@ -649,7 +715,15 @@
                 const a=athletesIndex.get(key);
                 const name=a?(athleteName(a)||raw):raw;
                 const href=a?makeAthleteUrlFromSlug(raw):"";
-                const piece=linkNames&&href?`<a href="${href}">${esc(name)}</a>`:`<span class="athlete-name-text">${esc(name)}</span>`;
+
+                const isSelf = athletePageTargetSlug && key===athletePageTargetSlug;
+                const shouldLink = !!href && !isSelf && (linkNames || openLinksInNewTab);
+
+                const targetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
+                const piece=shouldLink
+                    ? `<a href="${href}"${targetAttrs}>${esc(name)}</a>`
+                    : `<span class="athlete-name-text">${esc(name)}</span>`;
+
                 const extra=typeof afterSlug==="function"?afterSlug(key,a):"";
                 out += `<span class="name-and-rank">${piece}${extra}</span>`;
                 last=rx.lastIndex;
@@ -740,7 +814,9 @@
         }
 
         let allowBadgeClicks = true;
-
+        let athletePageTargetSlug = null;
+        let openLinksInNewTab = false;
+        
         function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
             try{
                 const ownedBadge = findServerBadgeOnAthleteStrict(athlete,label,leagueCategory,leagueValue,place);
@@ -782,6 +858,20 @@
                 const prevSlug=prevRaw?slugifyLocal(normalizeLinkId(prevRaw)):null;
                 if(prevSlug) slugTokens.push(prevSlug);
 
+                const prevRaws=extractPrevSlugs(text);
+                const prevSlugs=prevRaws.map(s=>slugifyLocal(normalizeLinkId(s)));
+                for(const ps of prevSlugs) slugTokens.push(ps);
+
+                const isSolo = /solo\[1\]/.test(text);
+                let badgeBurstKey = null;
+                if(type===EVENT_TYPE.BadgeAward && isSolo && primarySlug){
+                    const badgeLabel0 = extractBadge(text) || "";
+                    const leagueCategory0 = extractLeagueCategory(text) || "";
+                    const leagueValue0 = extractLeagueValue(text) || "";
+                    const place0 = extractPlace(text);
+                    badgeBurstKey = `${primarySlug}|solo|${badgeLabel0}|${leagueCategory0}|${leagueValue0}|${place0 ?? ""}`;
+                }
+
                 const rank = extractRank(text);
                 const sats = (() => { const m = /sats\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : 0; })();
                 const milestoneCount = (() => { const m = /athletes\[(\d+)\]/.exec(text); return m ? parseInt(m[1], 10) : null; })();
@@ -790,7 +880,7 @@
                 const leagueValue = extractLeagueValue(text);
                 const place = extractPlace(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
             });
         }
 
@@ -873,6 +963,15 @@
                     out.push(r);
                     continue;
                 }
+
+                const badgeKey = String(r.badgeLabel||"").trim().toLowerCase();
+                if(badgeKey === "podcast"){
+                    out.push(r);
+                    continue;
+                }
+
+                const groupKey = r.badgeBurstKey || r.primarySlug;
+
                 const t0=+new Date(r.occurredAt);
                 if(!Number.isFinite(t0)){ out.push(r); continue; }
                 const end=t0+windowMs;
@@ -886,7 +985,14 @@
                 for(let j=i+1;j<rows.length;j++){
                     if(removed.has(j)) continue;
                     const x=rows[j];
-                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug===r.primarySlug && x.occurredAt)) continue;
+                    if(!(x && x.type===EVENT_TYPE.BadgeAward && x.primarySlug && x.occurredAt)) continue;
+
+                    const xGroupKey = x.badgeBurstKey || x.primarySlug;
+                    if(xGroupKey !== groupKey) continue;
+
+                    const xBadgeKey = String(x.badgeLabel||"").trim().toLowerCase();
+                    if(xBadgeKey === "podcast") continue;
+
                     const tj=+new Date(x.occurredAt);
                     if(!Number.isFinite(tj)) continue;
                     if(tj>=t0 && tj<end){
@@ -906,6 +1012,14 @@
                 }
             }
             return out;
+        }
+
+        function extractPrevSlugs(text){
+            const m=/prevs\[(.*?)\]/.exec(String(text));
+            if(!m) return [];
+            const raw=m[1];
+            if(!raw) return [];
+            return raw.split(',').map(s=>String(s).trim()).filter(Boolean);
         }
 
         function groupAthleteBursts(rows, windowMs=60000){
@@ -982,9 +1096,16 @@
                 const placement = getCurrentPlacement(aObj);
                 if (!placement) return "";
                 const label = `(#${placement})`;
-                return linkNames
-                    ? `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`
-                    : `<span class="placement-link">${esc(label)}</span>`;
+
+                if (linkNames){
+                    return `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_top">${esc(label)}</a>`;
+                }
+
+                if (openLinksInNewTab){
+                    return `<a href="${leaderboardUrl(placement)}" class="placement-link" target="_blank" rel="noopener">${esc(label)}</a>`;
+                }
+
+                return `<span class="placement-link">${esc(label)}</span>`;
             };
 
             rows.forEach((r, idx) => {
@@ -1000,17 +1121,27 @@
                 const url = r.primarySlug ? makeAthleteUrlFromSlug(r.primarySlug) : "";
                 const img = a ? athletePic(a) : "";
 
+                const primaryKey = r.primarySlug ? slugifyLocal(normalizeLinkId(r.primarySlug)) : "";
+                const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
+
                 let avatarHtml = "";
-                const clickableProfileable = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) && r.primarySlug && linkNames;
+                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward)
+                    && r.primarySlug
+                    && url
+                    && !isSelfRow
+                    && (linkNames || openLinksInNewTab);
+
+                const avatarTargetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
+
                 if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) {
                     if (img) {
-                        avatarHtml = clickableProfileable
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
+                        avatarHtml = canLinkAvatar
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
                     } else {
                         const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
-                        avatarHtml = clickableProfileable
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}">${fallback}</a>`
+                        avatarHtml = canLinkAvatar
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}>${fallback}</a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
@@ -1033,8 +1164,35 @@
                         athletesIndex,
                         afterNameWithCurrentRankFor()
                     );
-                    if (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) {
-                        const items = Array.isArray(r.items) ? r.items : [];
+
+                    const isLost = r.badgeDirection === "lost";
+                    const isSolo = !isLost && (r.badgeDirection === "solo" || !!r.isSolo);
+
+                    const badgeKey = String(r.badgeLabel||"").trim().toLowerCase();
+                    if(!isLost && !isSolo && badgeKey === "podcast"){
+                        const podcastUrl = (function(){
+                            if(!a) return "";
+                            const am = lowerKeyMap(a);
+                            const key = am["podcastlink"] || am["podcasturl"] || am["podcast"];
+                            const v = key ? String(a[key]).trim() : "";
+                            return isSafeHttpUrl(v) ? v : "";
+                        })();
+
+                        const episodeHtml = (podcastUrl && openLinksInNewTab)
+                            ? `<a href="${esc(podcastUrl)}" target="_blank" rel="noopener">episode</a>`
+                            : ((linkNames && podcastUrl)
+                                ? `<a href="${esc(podcastUrl)}" target="_top" rel="noopener">episode</a>`
+                                : `episode`);
+
+                        msgHtml = `${nameWithRank} was featured in a new ${episodeHtml} of our podcast`;
+                    } else if (
+                        (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) ||
+                        (Number.isFinite(r.totalBadgeCount) && r.totalBadgeCount > 1)
+                    ) {
+                        const items = (r.isGroup && Array.isArray(r.items))
+                            ? r.items
+                            : [{ label:r.badgeLabel||"badge", leagueCategory:r.leagueCategory||null, leagueValue:r.leagueValue||null, place:r.place??null }];
+
                         const orderFn = typeof window.computeOrder === 'function' ? window.computeOrder : null;
                         const orderedItems = orderFn
                             ? items.slice().sort((a,b)=>{
@@ -1043,15 +1201,46 @@
                                 return oa - ob;
                             })
                             : items;
+
                         const icons = orderedItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
-                        msgHtml = `${nameWithRank} bagged <strong class="count-accent">${orderedItems.length}</strong> new badges: ${icons}`;
+
+                        const totalCount = Number.isFinite(r.totalBadgeCount) ? r.totalBadgeCount : orderedItems.length;
+                        const moreCount = totalCount - orderedItems.length;
+
+                        const moreLink = (moreCount > 0 && url)
+                            ? ` <a href="${url}" class="more-link"${openLinksInNewTab ? ` target="_blank" rel="noopener"` : ` target="_top"`}>(+${moreCount} more)</a>`
+                            : ``;
+
+                        if(isLost){
+                            msgHtml = `${nameWithRank} lost <strong class="count-accent">${totalCount}</strong> badges: ${icons}${moreLink}`;
+                        }else{
+                            msgHtml = `${nameWithRank} bagged <strong class="count-accent">${totalCount}</strong> new badges: ${icons}${moreLink}`;
+                        }
                     } else {
-                        if (r.prevSlug) {
-                            const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
-                            msgHtml = `${nameWithRank} claims ${bubbleWithFrom}`;
-                        } else {
+                        if(isSolo){
                             const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
-                            msgHtml = `${nameWithRank} adds ${bubble} to the collection`;
+                            msgHtml = `${nameWithRank} now holds ${bubble} alone`;
+                        } else if(isLost){
+                            const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                            if(r.otherSlug){
+                                const toHtml = renderTextWithSlugLinks(
+                                    `slug[${r.otherSlug}]`,
+                                    linkNames,
+                                    athletesIndex,
+                                    afterNameWithCurrentRankFor()
+                                );
+                                msgHtml = `${nameWithRank} lost ${bubble} to ${toHtml}`;
+                            }else{
+                                msgHtml = `${nameWithRank} lost ${bubble}`;
+                            }
+                        } else {
+                            if (r.prevSlug) {
+                                const bubbleWithFrom = renderBadgeWithFrom(r.badgeLabel, r.prevSlug, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                                msgHtml = `${nameWithRank} claims ${bubbleWithFrom}`;
+                            } else {
+                                const bubble = renderBadgeWithFrom(r.badgeLabel, null, athletesIndex, linkNames, afterNameWithCurrentRankFor(), a, true, r.leagueCategory||null, r.leagueValue||null, r.place??null);
+                                msgHtml = `${nameWithRank} adds ${bubble} to the collection`;
+                            }
                         }
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
@@ -1069,19 +1258,33 @@
                         ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
                         : esc(takenText);
 
-                    let prevHtml = "";
-                    if (r.prevSlug) {
-                        prevHtml = renderTextWithSlugLinks(
-                            `slug[${r.prevSlug}]`,
-                            linkNames,
-                            athletesIndex,
-                            afterNameWithCurrentRankFor()
-                        );
-                    }
+                    if(r.newRankDirection === "lost"){
+                        if(r.otherSlug){
+                            const toHtml = renderTextWithSlugLinks(
+                                `slug[${r.otherSlug}]`,
+                                linkNames,
+                                athletesIndex,
+                                afterNameWithCurrentRankFor()
+                            );
+                            msgHtml = `${nameWithCurrentRank} lost the ${takenHtml} place to ${toHtml}`;
+                        }else{
+                            msgHtml = `${nameWithCurrentRank} lost the ${takenHtml} place`;
+                        }
+                    }else{
+                        let prevHtml = "";
+                        if (r.prevSlug) {
+                            prevHtml = renderTextWithSlugLinks(
+                                `slug[${r.prevSlug}]`,
+                                linkNames,
+                                athletesIndex,
+                                afterNameWithCurrentRankFor()
+                            );
+                        }
 
-                    msgHtml = prevHtml
-                        ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}`
-                        : `${nameWithCurrentRank} took the ${takenHtml} place`;
+                        msgHtml = prevHtml
+                            ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}`
+                            : `${nameWithCurrentRank} took the ${takenHtml} place`;
+                    }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
                     const amount = Number.isFinite(r.sats) ? r.sats : 0;
                     const btc = amount / 100000000;
@@ -1116,8 +1319,9 @@
                 tr.dataset.groupId = `g_${idx}`;
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
-                     <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
-                     <td class="col-date">${dateLabel}</td>`;
+             <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
+             <td class="col-date">${dateLabel}</td>`;
+
                 const imgEl = tr.querySelector("img.avatar");
                 if (imgEl) {
                     const initials = initialsFromName(name);
@@ -1192,6 +1396,105 @@
             }
         }
 
+        function normalizeBadgeKey(s){
+            return String(s||"")
+                .replace(/[–—]/g,"-")
+                .replace(/\s+/g," ")
+                .trim()
+                .toLowerCase();
+        }
+
+        function isTop3Place(place){
+            return place===1 || place===2 || place===3;
+        }
+
+        function isAllowedBadgeHighlights(label, leagueCategory, place){
+            const key = normalizeBadgeKey(label);
+            if(key==="podcast") return true;
+            if(key==="pregnancy") return true;
+
+            if(key==="age reduction"){
+                if(!isTop3Place(place)) return false;
+                const cat = normalizeBadgeKey(leagueCategory);
+                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive";
+            }
+
+            if(
+                key==="chronological age - oldest" ||
+                key==="chronological age - youngest" ||
+                key==="phenoage - lowest" ||
+                key==="phenoage best improvement"
+            ){
+                return isTop3Place(place);
+            }
+
+            return false;
+        }
+
+        function isAllowedBadgeViewAll(label, leagueCategory, place){
+            if(isAllowedBadgeHighlights(label, leagueCategory, place)) return true;
+
+            const key = normalizeBadgeKey(label);
+            if(key.startsWith("best domain -")) return isTop3Place(place);
+
+            return false;
+        }
+
+        function filterBadgeRowsForMainFeed(rows, mode){
+            const allowFn = mode==="viewAll" ? isAllowedBadgeViewAll : isAllowedBadgeHighlights;
+
+            const out=[];
+            for(const r of rows){
+                if(!(r && r.type===EVENT_TYPE.BadgeAward)){
+                    out.push(r);
+                    continue;
+                }
+
+                if(r.isGroup && Array.isArray(r.items)){
+                    const total = Number.isFinite(r.badgeCount) ? r.badgeCount : r.items.length;
+
+                    const kept = r.items.filter(it => allowFn(it.label, it.leagueCategory, it.place));
+                    if(kept.length===0) continue;
+
+                    if(kept.length===1){
+                        const it = kept[0];
+                        out.push({
+                            ...r,
+                            isGroup:false,
+                            badgeCount:null,
+                            badges:null,
+                            items:null,
+                            badgeLabel: it.label || r.badgeLabel || "badge",
+                            prevSlug: it.prevSlug || null,
+                            otherSlug: it.otherSlug || null,
+                            leagueCategory: it.leagueCategory || null,
+                            leagueValue: it.leagueValue || null,
+                            place: (it.place ?? null),
+                            totalBadgeCount: total
+                        });
+                        continue;
+                    }
+
+                    const uniqueLabels=[...new Set(kept.map(it=>it.label).filter(Boolean))];
+                    out.push({
+                        ...r,
+                        isGroup:true,
+                        badgeCount: kept.length,
+                        badges: uniqueLabels,
+                        items: kept,
+                        totalBadgeCount: total
+                    });
+                    continue;
+                }
+
+                if(allowFn(r.badgeLabel, r.leagueCategory, r.place)){
+                    out.push(r);
+                }
+            }
+
+            return out;
+        }
+
         function normalizeIncomingAthleteId(id){
             if(id==null) return '';
             let s=String(id).trim();
@@ -1204,6 +1507,8 @@
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setViewAllVisible(!!showViewAll);
 
+            const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
+
             const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
             const athletesReq=fetch("/api/data/athletes",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
 
@@ -1211,14 +1516,83 @@
                 const athletesIndex=buildAthleteIndex(athletes);
                 let rows=toRows(Array.isArray(events)?events:[]);
 
-                const target=normalizeIncomingAthleteId(athleteId);
+                const targetArg=normalizeIncomingAthleteId(athleteId);
+
+                const targetPath=(function(){
+                    if(targetArg) return "";
+                    const p=String(window.location.pathname||"");
+                    if(!/\/athlete\//i.test(p)) return "";
+                    return normalizeIncomingAthleteId(p);
+                })();
+
+                const targetParentPath=(function(){
+                    if(targetArg || targetPath) return "";
+                    try{
+                        if(window===window.parent) return "";
+                        const pp=String(window.parent.location && window.parent.location.pathname || "");
+                        if(!/\/athlete\//i.test(pp)) return "";
+                        return normalizeIncomingAthleteId(pp);
+                    }catch(_){
+                        return "";
+                    }
+                })();
+
+                const target=targetArg || targetPath || targetParentPath;
+
                 allowBadgeClicks = !target;
+
+                const root=document.getElementById('events-root');
+                if(root) root.classList.toggle('athlete-scroll', !!target);
+
+                athletePageTargetSlug = target || null;
+                openLinksInNewTab = !!target;
+
+                const mode = target ? "athlete" : (n!==null ? "highlights" : "viewAll");
 
                 if(target){
                     rows=rows.filter(r=>{
                         if(r.type===EVENT_TYPE.AthleteCountMilestone) return false;
-                        if(r.type===EVENT_TYPE.BadgeAward) return r.primarySlug===target;
                         return r.slugs.includes(target);
+                    });
+
+                    rows.forEach(r=>{
+                        if(r.type===EVENT_TYPE.BadgeAward){
+                            if(r.primarySlug===target){
+                                if(r.isSolo){
+                                    r.badgeDirection = "solo";
+                                    r.badgeBurstKey = `${target}|solo|${r.badgeLabel||""}|${r.leagueCategory||""}|${r.leagueValue||""}|${r.place ?? ""}`;
+                                }else{
+                                    r.badgeDirection = "gained";
+                                    r.badgeBurstKey = `${target}|gained`;
+                                }
+                                r.otherSlug = null;
+                                return;
+                            }
+
+                            if(r.prevSlug===target || (Array.isArray(r.prevSlugs) && r.prevSlugs.includes(target))){
+                                const winner = r.primarySlug;
+                                r.badgeDirection = "lost";
+                                r.badgeBurstKey = `${target}|lost`;
+                                r.otherSlug = winner || null;
+
+                                r.primarySlug = target;
+                                r.prevSlug = null;
+                                return;
+                            }
+                        }
+
+                        if(r.type===EVENT_TYPE.NewRank){
+                            if(r.prevSlug===target){
+                                const winner = r.primarySlug;
+
+                                r.newRankDirection = "lost";
+                                r.otherSlug = winner || null;
+
+                                r.primarySlug = target;
+                                r.prevSlug = null;
+                                return;
+                            }
+                        }
                     });
                 }else{
                     rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
@@ -1226,6 +1600,11 @@
 
                 rows = applyArrivalOrderEpsilon(rows, 1);
                 rows = groupBadgeBursts(rows, 60000);
+
+                if(!target){
+                    rows = filterBadgeRowsForMainFeed(rows, mode);
+                }
+
                 rows.sort((a,b)=>{
                     const ta=+new Date(a.occurredAt||0);
                     const tb=+new Date(b.occurredAt||0);
@@ -1236,8 +1615,7 @@
                 });
 
                 rows = groupAthleteBursts(rows, 60000);
-                
-                const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
+
                 if(n!==null) rows=rows.slice(0,n);
 
                 renderRows(rows,athletesIndex,!!linkNames);
