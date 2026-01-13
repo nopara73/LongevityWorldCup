@@ -642,16 +642,10 @@ public sealed class EventDataService : IDisposable
 
     private void FireAndForgetSlack(EventType type, string rawText)
     {
-        // if (type == EventType.Joined)
-        // {
-        //     _ = _slackEvents.BufferAsync(type, rawText);
-        //     return;
-        // }
-
         if (type == EventType.NewRank)
         {
             if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank > 10) return;
-            _ = _slackEvents.SendImmediateAsync(type, rawText);
+            _ = _slackEvents.BufferAsync(type, rawText);
             return;
         }
 
@@ -673,21 +667,35 @@ public sealed class EventDataService : IDisposable
             return;
         }
 
-        // if (type == EventType.BadgeAward)
-        // {
-        //     if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return;
-        //     if (!BadgeSlackWhitelist.Contains(label)) return;
-        //     if (!EventHelpers.TryExtractPlace(rawText, out var place) || place != 1) return;
-        //
-        //     if (EventHelpers.TryExtractCategory(rawText, out var cat) && string.Equals(cat, "Global", StringComparison.Ordinal))
-        //     {
-        //         var norm = EventHelpers.NormalizeBadgeLabel(label);
-        //         if (string.Equals(norm, "Age Reduction", StringComparison.Ordinal)) return;
-        //     }
-        //
-        //     _ = _slackEvents.BufferAsync(type, rawText);
-        //     return;
-        // }
+        if (type == EventType.BadgeAward)
+        {
+            if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return;
+
+            var norm = EventHelpers.NormalizeBadgeLabel(label);
+
+            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
+            {
+                _ = _slackEvents.BufferAsync(type, rawText);
+                return;
+            }
+
+            if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!EventHelpers.TryExtractPlace(rawText, out var place) || place != 1) return;
+                _ = _slackEvents.BufferAsync(type, rawText);
+                return;
+            }
+
+            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+            {
+                _ = _slackEvents.BufferAsync(type, rawText);
+                return;
+            }
+
+            return;
+        }
     }
 
     public void Dispose()
