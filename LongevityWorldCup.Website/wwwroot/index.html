@@ -912,11 +912,11 @@
             const getNextJanuary15 = () => {
                 const now = new Date();
                 let year = now.getFullYear();
-                const jan15ThisYear = new Date(year, 0, 15, 0, 0, 0);
+                const jan15ThisYear = new Date(year, 0, 16, 0, 0, 0);
                 if (now > jan15ThisYear) {
                     year += 1;
                 }
-                return new Date(year, 0, 15, 0, 0, 0).getTime();
+                return new Date(year, 0, 16, 0, 0, 0).getTime();
             };
 
             let targetTime = getNextJanuary15();
