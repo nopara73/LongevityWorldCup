@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Business;
 
@@ -28,61 +29,199 @@ public static class SlackMessageBuilder
 
     public static string ForMergedGroup(
         IEnumerable<(EventType Type, string Raw)> items,
-        Func<string, string> slugToName)
+        Func<string, string> slugToName,
+        Func<string, double?>? getChronoAgeForSlug = null,
+        Func<string, double?>? getLowestPhenoAgeForSlug = null)
     {
+        var list = items as List<(EventType Type, string Raw)> ?? items.ToList();
+
         string slug = "";
-        foreach (var it in items)
+        foreach (var it in list)
         {
-            if (EventHelpers.TryExtractSlug(it.Raw, out var s) && !string.IsNullOrWhiteSpace(s)) { slug = s; break; }
+            if (EventHelpers.TryExtractSlug(it.Raw, out var s) && !string.IsNullOrWhiteSpace(s))
+            {
+                slug = s;
+                break;
+            }
         }
+
         if (string.IsNullOrWhiteSpace(slug)) return "";
 
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
 
-        bool hasJoined = false;
-        bool hasNewRank = false;
-        string? prevSlug = null;
         int? newRank = null;
+        string? prevSlug = null;
 
-        foreach (var it in items)
+        bool hasPodcast = false;
+
+        string? divisionVal = null;
+        string? generationVal = null;
+        string? exclusiveVal = null;
+
+        bool hasPhenoLowest = false;
+        bool hasChronoYoungest = false;
+        bool hasChronoOldest = false;
+
+        foreach (var it in list)
         {
-            if (it.Type == EventType.Joined) hasJoined = true;
             if (it.Type == EventType.NewRank)
             {
-                hasNewRank = true;
-                if (EventHelpers.TryExtractPrev(it.Raw, out var p) && !string.IsNullOrWhiteSpace(p)) prevSlug = p;
                 if (EventHelpers.TryExtractRank(it.Raw, out var r)) newRank = r;
+                if (EventHelpers.TryExtractPrev(it.Raw, out var p) && !string.IsNullOrWhiteSpace(p)) prevSlug = p;
+                continue;
+            }
+
+            if (it.Type != EventType.BadgeAward) continue;
+
+            EventHelpers.TryExtractBadgeLabel(it.Raw, out var label);
+            EventHelpers.TryExtractCategory(it.Raw, out var cat);
+            EventHelpers.TryExtractValue(it.Raw, out var val);
+            EventHelpers.TryExtractPlace(it.Raw, out var place);
+
+            var norm = EventHelpers.NormalizeBadgeLabel(label);
+            if (string.IsNullOrWhiteSpace(norm)) continue;
+
+            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
+            {
+                hasPodcast = true;
+                continue;
+            }
+
+            if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+            {
+                if (place != 1) continue;
+
+                if (string.Equals(cat, "Division", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) divisionVal = val.Trim();
+                    continue;
+                }
+
+                if (string.Equals(cat, "Generation", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) generationVal = val.Trim();
+                    continue;
+                }
+
+                if (string.Equals(cat, "Exclusive", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) exclusiveVal = val.Trim();
+                    continue;
+                }
+
+                continue;
+            }
+
+            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+            {
+                if (place == 1) hasPhenoLowest = true;
+                continue;
+            }
+
+            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
+            {
+                if (place == 1) hasChronoYoungest = true;
+                continue;
+            }
+
+            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
+            {
+                if (place == 1) hasChronoOldest = true;
+                continue;
             }
         }
 
-        var desc = BuildBadgeDescriptions(items);
-        var prevPart = "";
-        if (hasNewRank && !string.IsNullOrWhiteSpace(prevSlug))
+        if (!newRank.HasValue || newRank.Value <= 0) return "";
+
+        static string F2(double v) => v.ToString("0.00", CultureInfo.InvariantCulture);
+
+        string DivisionName(string v)
+        {
+            var t = (v ?? "").Trim();
+            return t switch
+            {
+                "Men" => "Men's",
+                "Women" => "Women's",
+                "Open" => "Open",
+                _ => t
+            };
+        }
+
+        string GenerationName(string v) => (v ?? "").Trim();
+
+        string ExclusiveName(string v) => (v ?? "").Trim();
+
+        var leagueParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(divisionVal)) leagueParts.Add($"the {DivisionName(divisionVal)} division");
+        if (!string.IsNullOrWhiteSpace(generationVal)) leagueParts.Add($"the {GenerationName(generationVal)} league");
+        if (!string.IsNullOrWhiteSpace(exclusiveVal)) leagueParts.Add($"the {ExclusiveName(exclusiveVal)} league");
+
+        string? awardText = null;
+
+        if (leagueParts.Count == 0)
+        {
+            if (hasPhenoLowest)
+            {
+                var ph = getLowestPhenoAgeForSlug?.Invoke(slug);
+                awardText = ph.HasValue
+                    ? $"lowest biological age in the field at {F2(ph.Value)} years"
+                    : "lowest biological age in the field";
+            }
+            else if (hasChronoYoungest || hasChronoOldest)
+            {
+                var ch = getChronoAgeForSlug?.Invoke(slug);
+                if (hasChronoYoungest)
+                {
+                    awardText = ch.HasValue
+                        ? $"youngest athlete in the field at {F2(ch.Value)} years"
+                        : "youngest athlete in the field";
+                }
+                else
+                {
+                    awardText = ch.HasValue
+                        ? $"oldest athlete in the field at {F2(ch.Value)} years"
+                        : "oldest athlete in the field";
+                }
+            }
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("In the Ultimate League, ");
+        sb.Append(nameLink);
+        sb.Append(" climbed to #");
+        sb.Append(newRank.Value);
+
+        if (!string.IsNullOrWhiteSpace(prevSlug))
         {
             var prevName = slugToName(prevSlug);
             var prevLink = Link(AthleteUrl(prevSlug), prevName);
-            prevPart = $" from {prevLink}";
+            sb.Append(", overtaking ");
+            sb.Append(prevLink);
         }
 
-        var rankToken = newRank.HasValue && newRank.Value > 0
-            ? $"{Ordinal(newRank.Value)}{MedalOrTrend(newRank.Value)}"
-            : "a top spot";
+        if (leagueParts.Count > 0)
+        {
+            sb.Append(", and is also currently #1 in ");
+            sb.Append(JoinList(leagueParts));
+        }
+        else if (!string.IsNullOrWhiteSpace(awardText))
+        {
+            sb.Append(", and is also currently the ");
+            sb.Append(awardText);
+        }
 
-        if (hasNewRank && desc.Count > 0 && hasJoined)
-            return $"{nameLink} joined the competition, took {rankToken} in Ultimate League{prevPart}, and {JoinList(desc)}.";
-        if (hasNewRank && desc.Count > 0)
-            return $"{nameLink} took {rankToken} in Ultimate League{prevPart}, and {JoinList(desc)}.";
-        if (hasNewRank && hasJoined)
-            return $"{nameLink} joined the competition and took {rankToken} in Ultimate League{prevPart}.";
-        if (hasNewRank)
-            return $"{nameLink} took {rankToken} in Ultimate League{prevPart}.";
-        if (desc.Count > 0 && hasJoined)
-            return $"{nameLink} joined the competition and {JoinList(desc)}.";
-        if (desc.Count > 0)
-            return $"{nameLink} {JoinList(desc)}.";
+        sb.Append('.');
 
-        return "";
+        if (hasPodcast)
+        {
+            sb.Append('\n');
+            sb.Append("If you're curious who ");
+            sb.Append(Escape(name));
+            sb.Append(" is beyond the stats, check out the new podcast episode.");
+        }
+
+        return sb.ToString();
     }
 
     static List<string> BuildBadgeDescriptions(IEnumerable<(EventType Type, string Raw)> items)
@@ -111,7 +250,12 @@ public static class SlackMessageBuilder
             {
                 var league = LeagueDisplay(cat, val);
                 if (string.Equals(league, "Ultimate League", StringComparison.Ordinal)) continue;
-                if (!arByPlace.TryGetValue(p, out var list)) { list = new List<string>(); arByPlace[p] = list; }
+                if (!arByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    arByPlace[p] = list;
+                }
+
                 list.Add(league);
                 continue;
             }
@@ -121,57 +265,98 @@ public static class SlackMessageBuilder
                 var d = EventHelpers.ExtractDomainFromLabel(norm);
                 if (!string.IsNullOrWhiteSpace(d))
                 {
-                    if (!domainByPlace.TryGetValue(p, out var list)) { list = new List<string>(); domainByPlace[p] = list; }
+                    if (!domainByPlace.TryGetValue(p, out var list))
+                    {
+                        list = new List<string>();
+                        domainByPlace[p] = list;
+                    }
+
                     list.Add(d);
                 }
+
                 continue;
             }
 
             if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.Ordinal))
             {
-                if (!phenoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); phenoByPlace[p] = list; }
+                if (!phenoByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    phenoByPlace[p] = list;
+                }
+
                 list.Add("lowest PhenoAge");
                 continue;
             }
 
             if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.Ordinal))
             {
-                if (!phenoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); phenoByPlace[p] = list; }
+                if (!phenoByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    phenoByPlace[p] = list;
+                }
+
                 list.Add("best PhenoAge improvement");
                 continue;
             }
 
             if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.Ordinal))
             {
-                if (!chronoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); chronoByPlace[p] = list; }
+                if (!chronoByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    chronoByPlace[p] = list;
+                }
+
                 list.Add("youngest chronological age");
                 continue;
             }
 
             if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.Ordinal))
             {
-                if (!chronoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); chronoByPlace[p] = list; }
+                if (!chronoByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    chronoByPlace[p] = list;
+                }
+
                 list.Add("oldest chronological age");
                 continue;
             }
 
             if (string.Equals(norm, "Crowd - Most Guessed", StringComparison.Ordinal))
             {
-                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
+                if (!crowdByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    crowdByPlace[p] = list;
+                }
+
                 list.Add("most crowd guesses");
                 continue;
             }
 
             if (string.Equals(norm, "Crowd - Age Gap (Chrono-Crowd)", StringComparison.Ordinal))
             {
-                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
+                if (!crowdByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    crowdByPlace[p] = list;
+                }
+
                 list.Add("smallest Chrono Crowd age gap");
                 continue;
             }
 
             if (string.Equals(norm, "Crowd - Lowest Crowd Age", StringComparison.Ordinal))
             {
-                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
+                if (!crowdByPlace.TryGetValue(p, out var list))
+                {
+                    list = new List<string>();
+                    crowdByPlace[p] = list;
+                }
+
                 list.Add("lowest crowd age");
                 continue;
             }
@@ -367,16 +552,16 @@ public static class SlackMessageBuilder
     {
         switch (n)
         {
-            case 42:   return $"{C} athletes - the answer to life, the universe & everything ✨";
-            case 69:   return $"{C} athletes - nice 😏";
-            case 100:  return $"Hit {C} on the leaderboard, triple digits 🏁";
-            case 123:  return $"Counted up to {C} contenders in the tournament 🔢";
-            case 256:  return $"Power of two - {C} competitors in the bracket 💻";
-            case 300:  return $"{C} in the tournament - This is Sparta! 🛡️";
-            case 404:  return $"Logged {C} in the competition - athlete not found? found 🔎";
-            case 500:  return $"Crossed {C}, half-K competing 🚀";
-            case 666:  return $"Hit {C} athletes - beast mode 😈";
-            case 777:  return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
+            case 42: return $"{C} athletes - the answer to life, the universe & everything ✨";
+            case 69: return $"{C} athletes - nice 😏";
+            case 100: return $"Hit {C} on the leaderboard, triple digits 🏁";
+            case 123: return $"Counted up to {C} contenders in the tournament 🔢";
+            case 256: return $"Power of two - {C} competitors in the bracket 💻";
+            case 300: return $"{C} in the tournament - This is Sparta! 🛡️";
+            case 404: return $"Logged {C} in the competition - athlete not found? found 🔎";
+            case 500: return $"Crossed {C}, half-K competing 🚀";
+            case 666: return $"Hit {C} athletes - beast mode 😈";
+            case 777: return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
             case 1000: return $"Reached {C}, the big 1K competing 🏆";
             case 1337: return $"Leet level - {C} contenders in play 🕹️";
             case 1500: return $"Passed {C}, a solid field in the tournament 🧱";
@@ -385,7 +570,7 @@ public static class SlackMessageBuilder
             case 3141: return $"Slice of π, {C} now on the board 🥧";
             case 5000: return $"Press-worthy surge - {C} athletes in the tournament 📰";
             case 6969: return $"Meme tier unlocked, {C} competitors 🔓";
-            case 10000:return $"Five digits strong - {C} in the competition 💪";
+            case 10000: return $"Five digits strong - {C} in the competition 💪";
         }
 
         if (n > 9000 && n < 10000)
@@ -452,6 +637,7 @@ public static class SlackMessageBuilder
                     $"{nameLink} claimed {rw} for oldest chronological age from {prevLink}"
                 );
             }
+
             return Pick(
                 $"{nameLink} is {rw} for oldest chronological age",
                 $"{nameLink} takes {rw} for oldest chronological age",
@@ -472,6 +658,7 @@ public static class SlackMessageBuilder
                     $"{nameLink} claimed {rw} for youngest chronological age from {prevLink}"
                 );
             }
+
             return Pick(
                 $"{nameLink} is {rw} for youngest chronological age",
                 $"{nameLink} takes {rw} for youngest chronological age",
@@ -492,6 +679,7 @@ public static class SlackMessageBuilder
                     $"{nameLink} claimed {rw} for lowest PhenoAge from {prevLink}"
                 );
             }
+
             return Pick(
                 $"{nameLink} is {rw} for lowest PhenoAge",
                 $"{nameLink} takes {rw} for lowest PhenoAge",
@@ -512,6 +700,7 @@ public static class SlackMessageBuilder
                     $"{nameLink} claimed {rw} for best PhenoAge improvement from {prevLink}"
                 );
             }
+
             return Pick(
                 $"{nameLink} is {rw} for best PhenoAge improvement",
                 $"{nameLink} takes {rw} for best PhenoAge improvement",
@@ -531,6 +720,7 @@ public static class SlackMessageBuilder
                     $"{nameLink} grabbed {rw} for most crowd guesses from {prevLink}"
                 );
             }
+
             return Pick(
                 $"{nameLink} is {rw} for most crowd guesses",
                 $"{nameLink} takes {rw} for most crowd guesses"
@@ -549,6 +739,7 @@ public static class SlackMessageBuilder
                     $"{nameLink} grabbed {rw} for smallest Chrono-Crowd age gap from {prevLink}"
                 );
             }
+
             return Pick(
                 $"{nameLink} is {rw} for smallest Chrono-Crowd age gap",
                 $"{nameLink} takes {rw} for smallest Chrono-Crowd age gap"
@@ -567,6 +758,7 @@ public static class SlackMessageBuilder
                     $"{nameLink} grabbed {rw} for lowest crowd age from {prevLink}"
                 );
             }
+
             return Pick(
                 $"{nameLink} is {rw} for lowest crowd age",
                 $"{nameLink} takes {rw} for lowest crowd age"
@@ -605,7 +797,7 @@ public static class SlackMessageBuilder
 
         if (string.Equals(c, "Global", StringComparison.OrdinalIgnoreCase))
             return "Ultimate League";
-        
+
         if (c == "Division")
         {
             return v switch

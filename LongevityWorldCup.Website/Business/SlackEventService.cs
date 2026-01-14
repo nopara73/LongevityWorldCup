@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Tools;
 
@@ -8,15 +9,17 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class SlackEventService : IDisposable
 {
     private readonly SlackWebhookClient _slack;
+    private readonly AthleteDataService _athletes;
     private readonly object _lockObj = new();
     private readonly List<(EventType Type, string Raw)> _buffer = new();
     private Timer? _timer;
     private readonly TimeSpan _window = TimeSpan.FromSeconds(5);
     private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
 
-    public SlackEventService(SlackWebhookClient slack)
+    public SlackEventService(SlackWebhookClient slack, AthleteDataService athletes)
     {
         _slack = slack;
+        _athletes = athletes;
     }
 
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
@@ -90,9 +93,34 @@ public sealed class SlackEventService : IDisposable
             list.Add(item);
         }
 
+        var bio = new Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var order = _athletes.GetRankingsOrder();
+            foreach (var node in order.OfType<JsonObject>())
+            {
+                var slug = node["AthleteSlug"]?.GetValue<string>() ?? "";
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+
+                double? chrono = null;
+                double? pheno = null;
+
+                if (node["ChronologicalAge"] is JsonValue jChrono && jChrono.TryGetValue<double>(out var dChrono)) chrono = dChrono;
+                if (node["LowestPhenoAge"] is JsonValue jPheno && jPheno.TryGetValue<double>(out var dPheno)) pheno = dPheno;
+
+                bio[slug] = (chrono, pheno);
+            }
+        }
+        catch
+        {
+        }
+
+        double? GetChrono(string s) => bio.TryGetValue(s, out var v) ? v.ChronoAge : null;
+        double? GetPheno(string s) => bio.TryGetValue(s, out var v) ? v.LowestPhenoAge : null;
+
         foreach (var kv in groups)
         {
-            var message = SlackMessageBuilder.ForMergedGroup(kv.Value, SlugToNameResolve);
+            var message = SlackMessageBuilder.ForMergedGroup(kv.Value, SlugToNameResolve, GetChrono, GetPheno);
             if (string.IsNullOrWhiteSpace(message)) continue;
             try
             {

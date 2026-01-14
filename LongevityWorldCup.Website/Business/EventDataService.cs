@@ -679,9 +679,10 @@ public sealed class EventDataService : IDisposable
                 return;
             }
 
+            if (!EventHelpers.TryExtractPlace(rawText, out var place) || place != 1) return;
+
             if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
             {
-                if (!EventHelpers.TryExtractPlace(rawText, out var place) || place != 1) return;
                 _ = _slackEvents.BufferAsync(type, rawText);
                 return;
             }
