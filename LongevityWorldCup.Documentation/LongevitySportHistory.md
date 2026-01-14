@@ -53,4 +53,4 @@ On January 1, 2026, Bryan Johnson secured first place on the Rejuvenation Olympi
 
 ## Special Mentions
 
-Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health), the [VO2 Max Leaderboard](https://www.joinzero.co/leaderboard) by JoinZero, and [Favies (previously Goaly)](https://favies.com/) and various fitness tracker-specific gamified leaderboards.
+Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health) and various fitness tracker-specific gamified leaderboards.
