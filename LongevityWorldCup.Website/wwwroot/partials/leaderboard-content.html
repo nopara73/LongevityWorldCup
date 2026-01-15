@@ -2722,7 +2722,7 @@
 
                     const paceOfAgingRank = _.findIndex(athletesOrderedByPace, ['name', athleteData.name]) + 1;
                     if (Number.isFinite(paceOfAgingRank)) {
-                        document.getElementById('paceOfAgingRank').textContent = paceOfAgingRank;
+                        document.getElementById('paceOfAgingRank').textContent = '#' + paceOfAgingRank;
                     }
                 } else {
                     paceOfAgingContainer.style.display = 'none';
