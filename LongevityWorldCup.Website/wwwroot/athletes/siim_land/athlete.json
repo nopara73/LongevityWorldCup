@@ -1,0 +1,39 @@
+{
+  "Name": "Siim Land",
+  "MediaContact": "info@siimland.com",
+  "DateOfBirth": {
+    "Year": 1994,
+    "Month": 9,
+    "Day": 16
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-05",
+      "AlbGL": 44.2,
+      "CreatUmolL": 83.0976,
+      "GluMmolL": 8.575,
+      "CrpMgL": 0.1,
+      "LymPc": 52.6,
+      "McvFL": 91,
+      "RdwPc": 12.6,
+      "AlpUL": 58.6,
+      "Wbc1000cellsuL": 5.06
+    },
+    {
+      "Date": "2025-08-08",
+      "AlbGL": 46,
+      "CreatUmolL": 70.7214,
+      "GluMmolL": 4.5,
+      "CrpMgL": 0.1,
+      "LymPc": 49.6,
+      "McvFL": 91,
+      "RdwPc": 11.9,
+      "AlpUL": 51,
+      "Wbc1000cellsuL": 4.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Estonia",
+  "Why": "Stay optimized, stay empowered",
+  "PersonalLink": "https://www.siimland.co"
+}
