@@ -2,8 +2,6 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
-using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -32,8 +30,6 @@ public enum EventType
 
 public sealed class EventDataService : IDisposable
 {
-    private const string DatabaseFileName = "LongevityWorldCup.db";
-
     private const double DefaultRelevanceJoined = 5d;
     private const double DefaultRelevanceNewRank = 10d;
     private const double DefaultRelevanceDonation = 9d;
@@ -44,23 +40,6 @@ public sealed class EventDataService : IDisposable
     private readonly SlackEventService _slackEvents;
 
     public JsonArray Events { get; private set; } = [];
-
-    private static readonly HashSet<string> BadgeSlackWhitelist = new(StringComparer.Ordinal)
-    {
-        "Chronological Age – Oldest",
-        "Chronological Age – Youngest",
-        "PhenoAge – Lowest",
-        "Age Reduction",
-        "Best Domain – Liver",
-        "Best Domain – Kidney",
-        "Best Domain – Metabolic",
-        "Best Domain – Inflammation",
-        "Best Domain – Immune",
-        "PhenoAge Best Improvement",
-        "Crowd – Most Guessed",
-        "Crowd – Age Gap (Chrono−Crowd)",
-        "Crowd – Lowest Crowd Age"
-    };
 
     public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, DatabaseManager db)
     {

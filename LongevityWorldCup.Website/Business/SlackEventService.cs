@@ -55,6 +55,7 @@ public sealed class SlackEventService : IDisposable
                 _timer.Change(_window, Timeout.InfiniteTimeSpan);
             }
         }
+
         return Task.CompletedTask;
     }
 
@@ -74,6 +75,7 @@ public sealed class SlackEventService : IDisposable
                 _timer = null;
                 return;
             }
+
             toSend = new List<(EventType Type, string Raw)>(_buffer);
             _buffer.Clear();
             _timer?.Dispose();
@@ -90,6 +92,7 @@ public sealed class SlackEventService : IDisposable
                 list = new List<(EventType, string)>();
                 groups[slug] = list;
             }
+
             list.Add(item);
         }
 
@@ -120,7 +123,22 @@ public sealed class SlackEventService : IDisposable
 
         foreach (var kv in groups)
         {
-            var message = SlackMessageBuilder.ForMergedGroup(kv.Value, SlugToNameResolve, GetChrono, GetPheno);
+            var list = kv.Value;
+
+            if (list.Count == 0)
+                continue;
+
+            string message;
+            if (list.Count == 1)
+            {
+                var single = list[0];
+                message = SlackMessageBuilder.ForEventText(single.Type, single.Raw, SlugToNameResolve);
+            }
+            else
+            {
+                message = SlackMessageBuilder.ForMergedGroup(list, SlugToNameResolve, GetChrono, GetPheno);
+            }
+
             if (string.IsNullOrWhiteSpace(message)) continue;
             try
             {
@@ -143,6 +161,7 @@ public sealed class SlackEventService : IDisposable
         {
             if (_athDir.TryGetValue(slug, out var v) && !string.IsNullOrWhiteSpace(v.Name)) return v.Name;
         }
+
         var spaced = slug.Replace('_', '-').Replace('-', ' ');
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
     }
@@ -155,6 +174,7 @@ public sealed class SlackEventService : IDisposable
             _timer = null;
             _buffer.Clear();
         }
+
         GC.SuppressFinalize(this);
     }
 }
