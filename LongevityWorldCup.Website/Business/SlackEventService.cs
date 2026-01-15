@@ -118,25 +118,41 @@ public sealed class SlackEventService : IDisposable
         {
         }
 
+        var podcastBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var snap = _athletes.GetAthletesSnapshot();
+            foreach (var node in snap.OfType<JsonObject>())
+            {
+                var slug = node["AthleteSlug"]?.GetValue<string>() ?? "";
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+
+                if (node["PodcastLink"] is JsonValue j && j.TryGetValue<string>(out var url) && !string.IsNullOrWhiteSpace(url))
+                    podcastBySlug[slug] = url.Trim();
+            }
+        }
+        catch
+        {
+        }
+
         double? GetChrono(string s) => bio.TryGetValue(s, out var v) ? v.ChronoAge : null;
         double? GetPheno(string s) => bio.TryGetValue(s, out var v) ? v.LowestPhenoAge : null;
+        string? GetPodcast(string s) => podcastBySlug.TryGetValue(s, out var url) ? url : null;
 
         foreach (var kv in groups)
         {
             var list = kv.Value;
-
-            if (list.Count == 0)
-                continue;
+            if (list.Count == 0) continue;
 
             string message;
             if (list.Count == 1)
             {
                 var single = list[0];
-                message = SlackMessageBuilder.ForEventText(single.Type, single.Raw, SlugToNameResolve);
+                message = SlackMessageBuilder.ForEventText(single.Type, single.Raw, SlugToNameResolve, getPodcastLinkForSlug: GetPodcast);
             }
             else
             {
-                message = SlackMessageBuilder.ForMergedGroup(list, SlugToNameResolve, GetChrono, GetPheno);
+                message = SlackMessageBuilder.ForMergedGroup(list, SlugToNameResolve, GetChrono, GetPheno, GetPodcast);
             }
 
             if (string.IsNullOrWhiteSpace(message)) continue;
