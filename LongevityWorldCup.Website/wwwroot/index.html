@@ -375,9 +375,6 @@
                 margin: 0;
             }
 
-            #countdown {
-                font-size: 1.5rem;
-            }
 
             .section-container {
                 padding: 1.5rem;
@@ -480,74 +477,17 @@
             justify-content: center;
         }
 
-        .lwc-highlights-countdown-timer {
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        }
-
         .lwc-countdown-details-text {
-            margin-top: 0.25rem;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            max-width: 360px;
+            margin-top: 0;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            max-width: 100%;
+            padding: 0 1rem;
             margin-left: auto;
             margin-right: auto;
             color: var(--dark-text-color);
             opacity: 0.9;
         }
-
-        .lwc-countdown-primary-deadline {
-            display: inline-block;
-            margin-bottom: 0.15rem;
-            font-weight: 600;
-        }
-
-        .lwc-countdown-secondary-deadline {
-            display: inline-block;
-            opacity: 0.85;
-        }
-        .lwc-countdown-rulebook-link-wrapper {
-            margin-top: 0.85rem;
-            display: flex;
-            justify-content: center;
-        }
-
-        .lwc-countdown-rulebook-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.45rem 0.95rem;
-            border-radius: 999px;
-            border: 1px solid rgba(0, 188, 212, 0.5);
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            text-decoration: none;
-            color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-            transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-
-            .lwc-countdown-rulebook-link i {
-                font-size: 0.95rem;
-                opacity: 0.9;
-            }
-
-            .lwc-countdown-rulebook-link:hover {
-                background: #ffffff;
-                transform: translateY(-1px);
-                box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-                border-color: var(--primary-color);
-            }
-
-            .lwc-countdown-rulebook-link:focus-visible {
-                outline: 2px solid var(--primary-color);
-                outline-offset: 2px;
-            }
 
         /* mobile: stack the cards */
         @media (max-width: 991px) {
@@ -561,10 +501,6 @@
                     flex: 0 0 auto;
                     width: 100%;
                 }
-
-            .lwc-highlights-countdown-timer {
-                font-size: 1.6rem;
-            }
 
             .lwc-countdown-body {
                 padding: 14px 16px 16px;
@@ -586,20 +522,13 @@
             <div id="lwc-countdown-box" class="events-board events-board--timer" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
                 <div class="lwc-countdown-inner">
                     <div class="lwc-countdown-header-row">
-                        <span class="lwc-countdown-title">2025 Season</span>
-                        <span class="lwc-countdown-chip">Ends in</span>
+                        <span class="lwc-countdown-title">2026 Season</span>
+                        <span class="lwc-countdown-chip">Coming soon</span>
                     </div>
 
                     <div class="lwc-countdown-body">
-                        <div id="lwcHighlightsCountdownTimer" class="lwc-highlights-countdown-timer"></div>
-
-                        <p class="smaller-text lwc-countdown-details-text">
-                            <span class="lwc-countdown-primary-deadline">
-                                Final submission deadline: January&nbsp;15.
-                            </span><br>
-                            <span class="lwc-countdown-secondary-deadline">
-                                In 2026, the pheno age competition will continue as a secondary competition. <strong>A new season with a new aging clock is upcoming.</strong>
-                            </span>
+                        <p class="lwc-countdown-details-text">
+                            In 2026, the pheno age competition will continue as a secondary competition. <strong>A new season with a new aging clock is upcoming.</strong>
                         </p>
                     </div>
                 </div>
@@ -716,7 +645,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             callScoped('events-root-index', function () { loadEventsTable(5, true); });
             LoadLeaderboard(true, 10);
-            initHighlightsCountdown();
         });
 
 
@@ -905,49 +833,6 @@
                 console.error('Error fetching BTC data:', error);
             });
 
-        function initHighlightsCountdown() {
-            const countdownElement = document.getElementById('lwcHighlightsCountdownTimer');
-            if (!countdownElement) return;
-
-            const getNextJanuary15 = () => {
-                const now = new Date();
-                let year = now.getFullYear();
-                const jan15ThisYear = new Date(year, 0, 16, 0, 0, 0);
-                if (now > jan15ThisYear) {
-                    year += 1;
-                }
-                return new Date(year, 0, 16, 0, 0, 0).getTime();
-            };
-
-            let targetTime = getNextJanuary15();
-
-            const pad = (value) => String(value).padStart(2, '0');
-
-            const update = () => {
-                const nowMs = Date.now();
-                let distance = targetTime - nowMs;
-
-                if (distance <= 0) {
-                    // Recompute for the next year once we hit/past Jan 15
-                    targetTime = getNextJanuary15();
-                    distance = targetTime - nowMs;
-                }
-
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                countdownElement.textContent =
-                    pad(days) + 'd ' +
-                    pad(hours) + 'h ' +
-                    pad(minutes) + 'm ' +
-                    pad(seconds) + 's';
-            };
-
-            update();
-            setInterval(update, 1000);
-        }
 
         window.addEventListener('DOMContentLoaded', adjustBitcoinAddressDisplay);
         window.addEventListener('resize', adjustBitcoinAddressDisplay);
