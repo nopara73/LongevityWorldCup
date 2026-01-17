@@ -507,6 +507,320 @@
             }
         }
 
+        /* ===== Historical Archive Section ===== */
+        .archive-section {
+            text-align: center;
+        }
+
+        .archive-section h2 {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Table Wrapper */
+        .archive-table-wrapper {
+            overflow-x: auto;
+            margin: 2rem 0;
+            max-width: 100%;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .archive-table-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .archive-table-wrapper::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+        }
+
+        .archive-table-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(0, 188, 212, 0.3);
+            border-radius: 4px;
+        }
+
+        .archive-table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 188, 212, 0.5);
+        }
+
+        /* Table Base Styles */
+        .archive-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 15px;
+            overflow: hidden;
+            background-color: var(--card-bg);
+        }
+
+        /* Header Row */
+        .archive-table thead th {
+            background: linear-gradient(rgba(0,188,212,.12), rgba(0,188,212,.12));
+            color: var(--primary-color);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: .9rem;
+            letter-spacing: 1px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(0,0,0,.03);
+        }
+
+        /* Column Width Constraints */
+        .archive-table thead th:nth-child(1),
+        .archive-table td:nth-child(1) {
+            width: 10%;
+            min-width: 80px;
+        }
+
+        .archive-table thead th:nth-child(2),
+        .archive-table td:nth-child(2) {
+            width: 15%;
+            min-width: 120px;
+        }
+
+        .archive-table thead th:nth-child(3),
+        .archive-table td:nth-child(3),
+        .archive-table thead th:nth-child(4),
+        .archive-table td:nth-child(4),
+        .archive-table thead th:nth-child(5),
+        .archive-table td:nth-child(5) {
+            width: 25%;
+            text-align: left;
+        }
+
+        /* Table Body */
+        .archive-table tbody {
+            background-color: var(--card-bg);
+        }
+
+        .archive-table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        .archive-table tbody tr:hover {
+            background-color: rgba(240,244,248,.3);
+        }
+
+        /* Table Cells */
+        .archive-table td {
+            padding: 1rem 1.5rem;
+            text-align: center;
+            font-size: 1rem;
+            color: var(--dark-text-color);
+            vertical-align: middle;
+        }
+
+        /* Links in Table Cells */
+        .archive-table td a {
+            color: var(--primary-color);
+            text-decoration: underline;
+            text-decoration-color: rgba(0, 188, 212, 0.5);
+            text-underline-offset: 2px;
+            font-weight: 600;
+            transition: color 0.3s ease, text-decoration-color 0.3s ease;
+        }
+
+        .archive-table td a:hover {
+            color: var(--secondary-color);
+            text-decoration-color: var(--secondary-color);
+        }
+
+        .archive-table td a:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+
+        /* Age Reduction Styling */
+        .archive-table .age-reduction {
+            color: #4caf50;
+            font-weight: bold;
+            font-size: 1rem;
+            display: block;
+            margin-top: 0.25rem;
+            margin-left: 0;
+            white-space: nowrap;
+        }
+
+        /* Link Styling Below Table */
+        .archive-section p a {
+            font-size: 1rem;
+            opacity: 1;
+            transition: color 0.3s ease;
+        }
+
+        .archive-section p a:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .archive-table-wrapper {
+                margin: 1.5rem 0;
+            }
+
+            .archive-table thead th {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .archive-table td {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+                min-height: 44px;
+            }
+
+            .archive-section {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Mobile card layout - hide table, show cards */
+        .archive-mobile-card {
+            display: none;
+        }
+
+        /* Small screen optimizations - convert to card layout */
+        @media (max-width: 600px) {
+            .archive-table-wrapper {
+                display: none; /* Hide table wrapper on mobile */
+            }
+
+            .archive-mobile-card {
+                display: block;
+                background-color: var(--card-bg);
+                border-radius: 12px;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            }
+
+            .archive-mobile-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.75rem;
+                padding-bottom: 0.75rem;
+                border-bottom: 2px solid rgba(0, 188, 212, 0.12);
+            }
+
+            .archive-mobile-card-year {
+                font-weight: 700;
+                font-size: 1rem;
+                color: var(--dark-text-color);
+            }
+
+            .archive-mobile-card-clock {
+                font-size: 0.85rem;
+                color: var(--primary-color);
+            }
+
+            .archive-mobile-card-clock a {
+                color: var(--primary-color);
+                text-decoration: underline;
+                text-decoration-color: rgba(0, 188, 212, 0.5);
+                font-weight: 600;
+            }
+
+            .archive-mobile-card-winners {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .archive-mobile-card-winner {
+                display: flex;
+                align-items: baseline;
+                gap: 0.5rem;
+            }
+
+            .archive-mobile-card-place {
+                font-weight: 700;
+                font-size: 0.85rem;
+                color: var(--primary-color);
+                min-width: 2rem;
+                flex-shrink: 0;
+            }
+
+            .archive-mobile-card-winner-content {
+                flex: 1;
+                display: flex;
+                flex-direction: row;
+                align-items: baseline;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+            }
+
+            .archive-mobile-card-winner-name {
+                display: inline;
+                margin-bottom: 0;
+            }
+
+            .archive-mobile-card-winner-name a {
+                color: var(--primary-color);
+                text-decoration: underline;
+                text-decoration-color: rgba(0, 188, 212, 0.5);
+                font-weight: 600;
+                font-size: 0.9rem;
+            }
+
+            .archive-mobile-card-age-reduction {
+                color: #4caf50;
+                font-weight: bold;
+                font-size: 0.85rem;
+                display: inline;
+            }
+
+            .archive-mobile-card-winner-name a:hover {
+                color: var(--secondary-color);
+                text-decoration-color: var(--secondary-color);
+            }
+
+            .archive-mobile-card-clock a:hover {
+                color: var(--secondary-color);
+                text-decoration-color: var(--secondary-color);
+            }
+
+            .archive-section {
+                padding: 1rem;
+            }
+
+            .archive-section h2 {
+                font-size: 1.3rem;
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* Very small screens - further optimize */
+        @media (max-width: 480px) {
+            .archive-mobile-card {
+                padding: 0.75rem;
+            }
+
+            .archive-mobile-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .archive-mobile-card-year {
+                font-size: 0.95rem;
+            }
+
+            .archive-mobile-card-clock {
+                font-size: 0.8rem;
+            }
+
+            .archive-mobile-card-winner-name a {
+                font-size: 0.85rem;
+            }
+
+            .archive-mobile-card-age-reduction {
+                font-size: 0.8rem;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -541,6 +855,75 @@
             <button id="viewAllAthletesBtn" onclick="window.location.href='/leaderboard'" class="rankings-btn" aria-label="View all athletes on the leaderboard" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
                 VIEW ALL ATHLETES
             </button>
+        </div>
+
+        <!-- 2025 Season Archive Section -->
+        <div class="section-container archive-section" data-aos="fade" data-aos-duration="700" data-aos-delay="325">
+            <h2><i class="fas fa-trophy"></i> Hall of Fame</h2>
+            <div class="archive-table-wrapper">
+                <table class="archive-table" aria-label="Historical Archive of Longevity World Cup Champions">
+                    <thead>
+                        <tr>
+                            <th scope="col">Year</th>
+                            <th scope="col">Aging Clock</th>
+                            <th scope="col">1st</th>
+                            <th scope="col">2nd</th>
+                            <th scope="col">3rd</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2025</td>
+                            <td><a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></td>
+                            <td><a href="/athlete/michael-lustgarten">Michael Lustgarten, PhD</a> <span class="age-reduction">(-22.1 years)</span></td>
+                            <td><a href="/athlete/zdenek-sipek">Zdenek Sipek</a> <span class="age-reduction">(-20.6 years)</span></td>
+                            <td><a href="/athlete/wen-z">Wen Z</a> <span class="age-reduction">(-20.1 years)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Mobile card layout (shown on screens <= 600px) -->
+            <div class="archive-mobile-card">
+                <div class="archive-mobile-card-header">
+                    <span class="archive-mobile-card-year">2025</span>
+                    <div class="archive-mobile-card-clock">
+                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a>
+                    </div>
+                </div>
+                <div class="archive-mobile-card-winners">
+                    <div class="archive-mobile-card-winner">
+                        <span class="archive-mobile-card-place">1st</span>
+                        <div class="archive-mobile-card-winner-content">
+                            <span class="archive-mobile-card-winner-name">
+                                <a href="/athlete/michael-lustgarten">Michael Lustgarten, PhD</a>
+                            </span>
+                            <span class="archive-mobile-card-age-reduction">(-22.1 years)</span>
+                        </div>
+                    </div>
+                    <div class="archive-mobile-card-winner">
+                        <span class="archive-mobile-card-place">2nd</span>
+                        <div class="archive-mobile-card-winner-content">
+                            <span class="archive-mobile-card-winner-name">
+                                <a href="/athlete/zdenek-sipek">Zdenek Sipek</a>
+                            </span>
+                            <span class="archive-mobile-card-age-reduction">(-20.6 years)</span>
+                        </div>
+                    </div>
+                    <div class="archive-mobile-card-winner">
+                        <span class="archive-mobile-card-place">3rd</span>
+                        <div class="archive-mobile-card-winner-content">
+                            <span class="archive-mobile-card-winner-name">
+                                <a href="/athlete/wen-z">Wen Z</a>
+                            </span>
+                            <span class="archive-mobile-card-age-reduction">(-20.1 years)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 1.5rem; font-size: 1rem; color: var(--dark-text-color);">
+                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;"><i class="fas fa-book-open"></i> </a>
+                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline;">History of Longevity as a Sport</a>
+            </p>
         </div>
 
         <!-- Bitcoin Donation Section -->
