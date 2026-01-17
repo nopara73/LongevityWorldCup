@@ -1216,6 +1216,10 @@
                     displayPrizeFundBTC = prizeFundBTC.toFixed(5);
                     goalBTC = goalBTC.toFixed(5);
                 }
+                else {
+                    displayPrizeFundBTC = prizeFundBTC.toFixed(6);
+                    goalBTC = goalBTC.toFixed(6);
+                }
 
                 document.getElementById('current-btc').textContent = displayPrizeFundBTC;
                 document.getElementById('goal-btc').textContent = goalBTC;
