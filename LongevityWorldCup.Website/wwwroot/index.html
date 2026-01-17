@@ -510,6 +510,7 @@
         /* ===== Historical Archive Section ===== */
         .archive-section {
             text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,.1); /* Match leaderboard shadow, override section-container default */
         }
 
         .archive-section h2 {
@@ -555,13 +556,13 @@
 
         /* Header Row */
         .archive-table thead th {
-            background: linear-gradient(rgba(0,188,212,.12), rgba(0,188,212,.12));
+            background-color: rgba(0,188,212,.1);
             color: var(--primary-color);
             font-weight: 700;
             text-transform: uppercase;
             font-size: .9rem;
             letter-spacing: 1px;
-            padding: 1rem 1.5rem;
+            padding: 1rem 1rem;
             text-align: center;
             border-bottom: 1px solid rgba(0,0,0,.03);
         }
@@ -586,7 +587,7 @@
         .archive-table thead th:nth-child(5),
         .archive-table td:nth-child(5) {
             width: 25%;
-            text-align: left;
+            text-align: left !important;
         }
 
         /* Table Body */
@@ -595,16 +596,22 @@
         }
 
         .archive-table tbody tr {
-            transition: background-color 0.2s ease;
+            transition: opacity .3s ease, transform .3s ease;
+            cursor: pointer;
+        }
+
+        .archive-table tbody tr:nth-child(even) {
+            background-color: rgba(240,244,248,.5);
         }
 
         .archive-table tbody tr:hover {
-            background-color: rgba(240,244,248,.3);
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0,0,0,.1);
         }
 
         /* Table Cells */
         .archive-table td {
-            padding: 1rem 1.5rem;
+            padding: 1rem 1rem;
             text-align: center;
             font-size: 1rem;
             color: var(--dark-text-color);
@@ -635,8 +642,9 @@
         /* Age Reduction Styling */
         .archive-table .age-reduction {
             color: #4caf50;
-            font-weight: bold;
+            font-weight: 700;
             font-size: 1rem;
+            text-align: left;
             display: block;
             margin-top: 0.25rem;
             margin-left: 0;
@@ -669,6 +677,10 @@
                 padding: 0.75rem 1rem;
                 font-size: 0.9rem;
                 min-height: 44px;
+            }
+
+            .archive-table tbody tr:hover {
+                transform: none; /* Disable scale on mobile for better UX */
             }
 
             .archive-section {
