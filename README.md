@@ -11,7 +11,8 @@ https://www.longevityworldcup.com/
 - [x] 2024 Nov-Dec: Code
 - [x] 2025 Jan - Sept: Beta Testing
 - [x] 2025 Sept 16st: Launch
-- [ ] 2026 Jan 15st: Season 1 End
+- [x] 2026 Jan 15st: Season 1 End
+- [ ] 2026 Feb: Season 2 Start
 
 ## Build From Source Code
 

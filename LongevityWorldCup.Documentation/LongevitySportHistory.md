@@ -45,11 +45,38 @@ nopara73 launched the [Longevity World Cup](https://www.longevityworldcup.com/) 
 
 In a private exchange, Dr. Zolman revealed his departure from the Rejuvenation Olympics. He attributed his choice to step away to concerns over the leaderboard's scientific integrity, stating, "Bryan and TruDiagnostic made the leaderboards unscientific and clinically meaningless."
 
-### 2026 January – First Place Finishes Across Major Longevity Leaderboards
+### 2026 January 1 – First Place Finishes Across Major Longevity Leaderboards
 
 On January 1, 2026, Bryan Johnson secured first place on the Rejuvenation Olympics leaderboard, while Michael Lustgarten, PhD ranked first on the Longevity World Cup leaderboard. This marked the first time different longevity competitions, using distinct biological aging clocks, simultaneously crowned clear category leaders—highlighting both the fragmentation and maturation of longevity as a competitive sport.
 
 ![610955655_17863402740557255_5447801270218589289_n](https://github.com/user-attachments/assets/407dba3f-777e-4048-b69f-2e524d90aedd)
+
+### 2026 January 15 - Longevity World Cup Season 2025 Ended
+
+The inaugural Longevity World Cup concluded. The top 20 athletes by age reduction are listed below:
+
+| Rank | Athlete | Age Reduction |
+|------|---------|---------------|
+| 1 | [Michael Lustgarten, PhD](https://www.longevityworldcup.com/athlete/michael-lustgarten) | -22.1 years |
+| 2 | [Zdenek Sipek](https://www.longevityworldcup.com/athlete/zdenek-sipek) | -20.6 years |
+| 3 | [Wen Z](https://www.longevityworldcup.com/athlete/wen-z) | -20.1 years |
+| 4 | [Philipp Schmeing](https://www.longevityworldcup.com/athlete/philipp-schmeing) | -19.6 years |
+| 5 | [Angela Buzzeo](https://www.longevityworldcup.com/athlete/angela-buzzeo) | -19.5 years |
+| 6 | [deelicious](https://www.longevityworldcup.com/athlete/deelicious) | -18.9 years |
+| 7 | [Juan Robalino](https://www.longevityworldcup.com/athlete/juan-robalino) | -18.3 years |
+| 8 | [Max](https://www.longevityworldcup.com/athlete/max) | -18.3 years |
+| 9 | [anicca](https://www.longevityworldcup.com/athlete/anicca) | -17.8 years |
+| 10 | [Ilhui](https://www.longevityworldcup.com/athlete/ilhui) | -17.7 years |
+| 11 | [Larsemann](https://www.longevityworldcup.com/athlete/larsemann) | -17.4 years |
+| 12 | [Lauren](https://www.longevityworldcup.com/athlete/lauren) | -17.4 years |
+| 13 | [John](https://www.longevityworldcup.com/athlete/john) | -17.4 years |
+| 14 | [Maria Olenina](https://www.longevityworldcup.com/athlete/maria-olenina) | -17.4 years |
+| 15 | [David X](https://www.longevityworldcup.com/athlete/david-x) | -17.0 years |
+| 16 | [David Lo](https://www.longevityworldcup.com/athlete/david-lo) | -16.9 years |
+| 17 | [Julie Jiang](https://www.longevityworldcup.com/athlete/julie-jiang) | -16.8 years |
+| 18 | [QingqingZhuo](https://www.longevityworldcup.com/athlete/qingqingzhuo) | -16.7 years |
+| 19 | [Dave Pascoe](https://www.longevityworldcup.com/athlete/dave-pascoe) | -16.6 years |
+| 20 | [Keith Blondin](https://www.longevityworldcup.com/athlete/keith-blondin) | -16.4 years |
 
 ## Special Mentions
 

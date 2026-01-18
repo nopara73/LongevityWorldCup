@@ -1,5 +1,5 @@
-﻿<link rel="stylesheet" href="/css/badges.css">
-<script src=" https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js "></script>
+﻿<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+<link rel="stylesheet" href="/css/badges.css">
 <style>
     /* =========================
    1) Design tokens
@@ -246,8 +246,11 @@
     .podium-item.first .podium-item-lower{ background:#FFF9C4; }
     .podium-item.second .podium-item-lower{ background:#E0E0E0; }
     .podium-item.third .podium-item-lower{ background:#D9C3A3; }
-    .prize-money{ font-weight:bold; font-size:2rem; color:#4caf50; margin-top:2px; }
-    .btc-amount{ margin-top:1rem; font-weight:normal; font-size:.8rem; color:var(--dark-text-color); }
+    /* Temporarily hide prize money text - uncomment to show */
+    /* .prize-money{ font-weight:bold; font-size:2rem; color:#4caf50; margin-top:2px; } */
+    /* .btc-amount{ margin-top:1rem; font-weight:normal; font-size:.8rem; color:var(--dark-text-color); } */
+    .prize-money{ visibility:hidden; }
+    .btc-amount{ visibility:hidden; }
 
     .podium-rank{
         position:absolute; top:-6px; left:10%; transform:translateX(-50%); background:#fff;
@@ -2721,7 +2724,7 @@
                     paceOfAgingContainer.style.display = 'table-row';
 
                     const paceOfAgingRank = _.findIndex(athletesOrderedByPace, ['name', athleteData.name]) + 1;
-                    if (Number.isFinite(paceOfAgingRank)) {
+                    if (Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0) {
                         document.getElementById('paceOfAgingRank').textContent = '#' + paceOfAgingRank;
                     }
                 } else {
