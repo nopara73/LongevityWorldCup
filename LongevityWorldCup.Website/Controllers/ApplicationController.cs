@@ -156,7 +156,7 @@ namespace LongevityWorldCup.Website.Controllers
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(applicantData.Name, config.EmailFrom));
             message.To.Add(new MailboxAddress("", config.EmailTo));
-            message.Subject = $"[LWC25] Application: {applicantData.Name?.Trim() ?? "Unknown"}";
+            message.Subject = $"[LWC26] Application: {applicantData.Name?.Trim() ?? "Unknown"}";
 
             var builder = new BodyBuilder();
 
