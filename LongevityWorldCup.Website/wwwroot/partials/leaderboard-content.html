@@ -1,3 +1,4 @@
+﻿<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 <link rel="stylesheet" href="/css/badges.css">
 <style>
     /* =========================
@@ -733,7 +734,7 @@
 
                             <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
                                 <th scope="row"><strong>Pace of Aging:</strong></th>
-                                <td><span id="paceOfAging"></span> <span class="unit">years per year</span></td>
+                                <td><span id="paceOfAging"></span> <span class="unit">years per year (pace rank: <span id="paceOfAgingRank"></span>)</span></td>
                             </tr>
 
                             <tr title="Derived from the lowest biological age of the season">
@@ -805,6 +806,7 @@
 
 <script>
     let athleteResults = [];
+    let athletesOrderedByPace;
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
@@ -1309,6 +1311,8 @@
                         });
                     });
                 });
+
+                athletesOrderedByPace = _.orderBy(athleteResults, 'ageReductionPercent', 'desc');
 
                 const podiumCount = includePodium ? 3 : 0;
 
@@ -2718,6 +2722,11 @@
                 if (Number.isFinite(paceOfAgingValue)) {
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
                     paceOfAgingContainer.style.display = 'table-row';
+
+                    const paceOfAgingRank = _.findIndex(athletesOrderedByPace, ['name', athleteData.name]) + 1;
+                    if (Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0) {
+                        document.getElementById('paceOfAgingRank').textContent = '#' + paceOfAgingRank;
+                    }
                 } else {
                     paceOfAgingContainer.style.display = 'none';
                 }
