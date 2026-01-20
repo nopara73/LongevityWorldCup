@@ -485,7 +485,7 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7 };
 
         const MILESTONE_COPY = {
             42:    'Answer unlocked - the competition reached <strong class="milestone-count">42</strong> athletes',
@@ -1147,7 +1147,7 @@
                 const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
 
                 let avatarHtml = "";
-                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === 7)
+                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult)
                     && r.primarySlug
                     && url
                     && !isSelfRow
@@ -1155,7 +1155,7 @@
 
                 const avatarTargetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
 
-                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === 7) {
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult) {
                     if (img) {
                         avatarHtml = canLinkAvatar
                             ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
@@ -1307,7 +1307,7 @@
                             ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}`
                             : `${nameWithCurrentRank} took the ${takenHtml} place`;
                     }
-                } else if (r.type === 7 && r.primarySlug) {
+                } else if (r.type === EVENT_TYPE.SeasonFinalResult && r.primarySlug) {
                     const nameWithRank = renderTextWithSlugLinks(
                         `slug[${r.primarySlug}]`,
                         linkNames,
