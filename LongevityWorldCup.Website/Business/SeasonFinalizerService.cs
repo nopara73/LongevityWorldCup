@@ -76,10 +76,8 @@ public sealed class SeasonFinalizerService
             if (slugToName.ContainsKey(slug)) continue;
 
             var name =
-                o["AthleteName"]?.GetValue<string>() ??
                 o["DisplayName"]?.GetValue<string>() ??
-                o["Name"]?.GetValue<string>() ??
-                o["AthleteDisplayName"]?.GetValue<string>();
+                o["Name"]?.GetValue<string>();
 
             if (!string.IsNullOrWhiteSpace(name))
                 slugToName[slug] = name;
@@ -110,6 +108,7 @@ public sealed class SeasonFinalizerService
 
             var years = r.AgeDiff;
             if (double.IsNaN(years) || double.IsInfinity(years)) years = 0;
+            years = Math.Abs(years);
 
             var yearsReduced = Math.Round(years, 1, MidpointRounding.AwayFromZero).ToString("0.0", CultureInfo.InvariantCulture);
 
