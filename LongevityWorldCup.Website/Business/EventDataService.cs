@@ -637,6 +637,42 @@ public sealed class EventDataService : IDisposable
         }
     }
 
+    public void CreateCustomEvent(string titleRaw, string contentRaw, DateTime? occurredAtUtc = null, double relevance = 15d)
+    {
+        if (string.IsNullOrWhiteSpace(titleRaw)) throw new ArgumentNullException(nameof(titleRaw));
+        contentRaw ??= "";
+
+        var combinedRaw = titleRaw + "\n\n" + contentRaw;
+        var occurredAt = EnsureUtc(occurredAtUtc ?? DateTime.UtcNow).ToString("o");
+
+        int created = 0;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var insertCmd = sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            insertCmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
+            insertCmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
+            insertCmd.Parameters.AddWithValue("@text", combinedRaw);
+            insertCmd.Parameters.AddWithValue("@occ", occurredAt);
+            insertCmd.Parameters.AddWithValue("@rel", relevance);
+
+            insertCmd.ExecuteNonQuery();
+            created = 1;
+
+            tx.Commit();
+        });
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
+        }
+    }
+    
     public IReadOnlyList<EventItem> GetEvents(
         EventType? type = null,
         DateTime? fromUtc = null,
