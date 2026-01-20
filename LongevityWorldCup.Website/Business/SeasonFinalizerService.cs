@@ -54,6 +54,10 @@ public sealed class SeasonFinalizerService
             closesAtUtc: SeasonClosesAtUtcConst,
             clockId: ClockIdConst,
             rows: rows);
+        
+        /*
+         * Add more Season ending related actions here.
+         */
 
         return new SeasonFinalizationResult(true, false, SeasonIdConst, SeasonClosesAtUtcConst, ClockIdConst, rows.Count);
     }
