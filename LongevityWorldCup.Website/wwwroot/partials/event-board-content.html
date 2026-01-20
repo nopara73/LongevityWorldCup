@@ -1317,7 +1317,10 @@
 
                     const placeN = Number.isFinite(r.place) ? r.place : null;
                     const placeText = placeN ? ordinal(placeN) : "?";
-                    const placeHtml = `<strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>`;
+                    const placeIconHtml = placeN ? podiumIcon(placeN) : "";
+                    const placeHtml = placeN
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                        : esc(placeText);
 
                     const seasonN = Number.isFinite(r.seasonId) ? r.seasonId : null;
                     const seasonText = seasonN ? String(seasonN) : "";
