@@ -27,7 +27,8 @@ public enum EventType
     DonationReceived = 3,
     AthleteCountMilestone = 4,
     BadgeAward = 5,
-    CustomEvent = 6
+    CustomEvent = 6,
+    SeasonFinalResult = 7
 }
 
 public sealed class EventDataService : IDisposable
@@ -553,6 +554,78 @@ public sealed class EventDataService : IDisposable
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
+            }
+
+            tx.Commit();
+        });
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
+        }
+    }
+
+    public bool HasAnySeasonFinalResults(int seasonId)
+    {
+        var pat = $"%season[{seasonId}]%";
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text LIKE @pat LIMIT 1;";
+            cmd.Parameters.AddWithValue("@t", (int)EventType.SeasonFinalResult);
+            cmd.Parameters.AddWithValue("@pat", pat);
+            return cmd.ExecuteScalar() != null;
+        });
+    }
+
+    public void UpsertSeasonFinalResults(
+        int seasonId,
+        DateTime closesAtUtc,
+        string clockId,
+        IReadOnlyList<SeasonFinalResultRow> rows,
+        double defaultRelevance = 2d)
+    {
+        if (rows is null) throw new ArgumentNullException(nameof(rows));
+        if (string.IsNullOrWhiteSpace(clockId)) throw new ArgumentNullException(nameof(clockId));
+
+        var occurredAt = EnsureUtc(closesAtUtc).ToString("o");
+        int created = 0;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var insertCmd = sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed) " +
+                "SELECT @id, @type, @text, @occ, @rel, 1 " +
+                "WHERE NOT EXISTS (SELECT 1 FROM Events WHERE Type=@type AND Text=@text AND OccurredAt=@occ LIMIT 1);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            pType.Value = (int)EventType.SeasonFinalResult;
+            pOcc.Value = occurredAt;
+            pRel.Value = defaultRelevance;
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var r = rows[i];
+                if (string.IsNullOrWhiteSpace(r.AthleteSlug)) continue;
+                if (r.Place < 1) continue;
+
+                var ageDiffText = r.AgeDiff.ToString("0.00", CultureInfo.InvariantCulture);
+                var text = $"slug[{r.AthleteSlug}] season[{seasonId}] place[{r.Place}] clock[{clockId}] ageDiff[{ageDiffText}]";
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pText.Value = text;
+
+                var affected = insertCmd.ExecuteNonQuery();
+                if (affected == 1) created++;
             }
 
             tx.Commit();
