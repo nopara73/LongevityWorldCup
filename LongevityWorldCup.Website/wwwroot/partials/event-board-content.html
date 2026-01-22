@@ -485,7 +485,7 @@
 
 <script>
     (function(){
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7 };
 
         const MILESTONE_COPY = {
             42:    'Answer unlocked - the competition reached <strong class="milestone-count">42</strong> athletes',
@@ -703,6 +703,24 @@
             const n=parseInt(m[1],10);
             return Number.isFinite(n)?n:null;
         }
+        function extractSeason(text){
+            const m=/season\[(\d+)\]/.exec(String(text));
+            if(!m) return null;
+            const n=parseInt(m[1],10);
+            return Number.isFinite(n)?n:null;
+        }
+
+        function extractClock(text){
+            const m=/clock\[(.+?)\]/.exec(String(text));
+            return m?m[1]:null;
+        }
+
+        function extractAgeDiff(text){
+            const m=/ageDiff\[(.*?)\]/.exec(String(text));
+            if(!m) return null;
+            const n=parseFloat(m[1]);
+            return Number.isFinite(n)?n:null;
+        }
 
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
             const s=String(text);
@@ -880,7 +898,11 @@
                 const leagueValue = extractLeagueValue(text);
                 const place = extractPlace(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place };
+                const seasonId = extractSeason(text);
+                const clockId = extractClock(text);
+                const ageDiff = extractAgeDiff(text);
+
+                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff };
             });
         }
 
@@ -1125,7 +1147,7 @@
                 const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
 
                 let avatarHtml = "";
-                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward)
+                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult)
                     && r.primarySlug
                     && url
                     && !isSelfRow
@@ -1133,7 +1155,7 @@
 
                 const avatarTargetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
 
-                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward) {
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult) {
                     if (img) {
                         avatarHtml = canLinkAvatar
                             ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
@@ -1285,6 +1307,38 @@
                             ? `${nameWithCurrentRank} took the ${takenHtml} place from ${prevHtml}`
                             : `${nameWithCurrentRank} took the ${takenHtml} place`;
                     }
+                } else if (r.type === EVENT_TYPE.SeasonFinalResult && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+
+                    const placeN = Number.isFinite(r.place) ? r.place : null;
+                    const placeText = placeN ? ordinal(placeN) : "?";
+                    const placeIconHtml = placeN ? podiumIcon(placeN) : "";
+                    const placeHtml = placeN
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                        : esc(placeText);
+
+                    const seasonN = Number.isFinite(r.seasonId) ? r.seasonId : null;
+                    const seasonText = seasonN ? String(seasonN) : "";
+
+                    const clockRaw = r.clockId ? String(r.clockId).trim() : "";
+                    const clockNorm = clockRaw.toLowerCase().replace(/\s+/g,"");
+                    const clockText = clockNorm === "phenoage" ? "PhenoAge" : (clockRaw || "PhenoAge");
+
+                    const ageDiffN = Number.isFinite(r.ageDiff) ? r.ageDiff : null;
+                    const dir = (ageDiffN !== null && ageDiffN < 0) ? "younger" : "older";
+                    const years = ageDiffN !== null
+                        ? new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Math.abs(ageDiffN))
+                        : "?";
+                    const yearsHtml = `<strong style="color: #4caf50">${esc(years)} years</strong>`;
+
+                    msgHtml = seasonText
+                        ? `${nameWithRank} finished ${placeHtml} in ${esc(seasonText)} with a biological age ${yearsHtml} ${esc(dir)} (${esc(clockText)})`
+                        : `${nameWithRank} finished ${placeHtml} with a biological age ${yearsHtml} ${esc(dir)} (${esc(clockText)})`;
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
                     const amount = Number.isFinite(r.sats) ? r.sats : 0;
                     const btc = amount / 100000000;
@@ -1595,7 +1649,7 @@
                         }
                     });
                 }else{
-                    rows=rows.filter(r=> r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex));
+                    rows=rows.filter(r=> r.type!==7 && (r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex)));
                 }
 
                 rows = applyArrivalOrderEpsilon(rows, 1);
