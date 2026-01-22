@@ -35,6 +35,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<DatabaseManager>();
             builder.Services.AddSingleton<AthleteDataService>();
             builder.Services.AddSingleton<EventDataService>();
+            builder.Services.AddSingleton<SeasonFinalizerService>();
             builder.Services.AddSingleton<BitcoinDataService>();
             builder.Services.AddSingleton<BadgeDataService>();
             
@@ -53,6 +54,7 @@ namespace LongevityWorldCup.Website
                 var yearlyKey = new JobKey("YearlyJob");
                 var donationKey = new JobKey("BitcoinDonationCheckJob");
                 var backupKey = new JobKey("DatabaseBackupJob");
+                var seasonFinalizerKey = new JobKey("SeasonFinalizerJob");
 
                 // Every day 00:00
                 q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
@@ -95,6 +97,16 @@ namespace LongevityWorldCup.Website
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
                 q.AddTrigger(t => t.ForJob(donationKey) // on start
                     .WithIdentity("BitcoinDonationCheckTrigger_Immediate")
+                    .StartNow()
+                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+
+                // On every start and every 10 minutes
+                q.AddJob<SeasonFinalizerJob>(o => o.WithIdentity(seasonFinalizerKey));
+                q.AddTrigger(t => t.ForJob(seasonFinalizerKey)
+                    .WithIdentity("SeasonFinalizerTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                q.AddTrigger(t => t.ForJob(seasonFinalizerKey) // on start
+                    .WithIdentity("SeasonFinalizerTrigger_Immediate")
                     .StartNow()
                     .WithSimpleSchedule(x => x.WithRepeatCount(0)));
             });
