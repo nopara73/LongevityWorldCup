@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         AddCrowdAwards(stats, awards);
         AddEditorialAwards(stats, awards);
 
+        AddSeasonFinalResultsAwards(awards);
+
         var previous = ReadCurrentAwardsSnapshot();
         EmitBadgeAwardEvents(previous, awards, DateTime.UtcNow);
 
@@ -559,27 +561,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             });
         }
 
-        var lwc25Top20 = new (string Name, int Place)[]
-        {
-            ("Michael Lustgarten", 1), ("Zdenek Sipek", 2), ("Wen Z", 3), ("Philipp Schmeing", 4), ("Angela Buzzeo", 5),
-            ("deelicious", 6), ("Juan Robalino", 7), ("Max", 8), ("anicca", 9), ("Ilhui", 10),
-            ("Larsemann", 11), ("Lauren", 12), ("John", 13), ("Maria Olenina", 14), ("David X", 15),
-            ("David Lo", 16), ("Julie Jiang", 17), ("QingqingZhuo", 18), ("Dave Pascoe", 19), ("Keith Blondin", 20),
-        };
-        foreach (var (name, place) in lwc25Top20)
-        {
-            if (!nameToSlug.TryGetValue(name, out var slug)) continue;
-            awards.Add(new AwardRow
-            {
-                BadgeLabel = "LWC25 · Top 20",
-                LeagueCategory = "Global",
-                LeagueValue = null,
-                Place = place,
-                AthleteSlug = slug,
-                DefinitionHash = BuildEditorialRuleHash("LWC25 · Top 20", $"rank={place}")
-            });
-        }
-
         var pregnancyNames = new[] { "Olga Vresca" };
         foreach (var name in pregnancyNames)
         {
@@ -619,6 +600,83 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 AthleteSlug = paSlug,
                 DefinitionHash = BuildEditorialRuleHash("Perfect Application", "legacy_flag")
             });
+        }
+    }
+
+    private void AddSeasonFinalResultsAwards(List<AwardRow> awards)
+    {
+        try
+        {
+            _db.Run(sqlite =>
+            {
+                var seasons = new Dictionary<int, (string ClockId, string MaxFinalizedAtUtc)>();
+
+                using (var cmd = sqlite.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT SeasonId, ClockId, MAX(FinalizedAtUtc) FROM SeasonFinalResults GROUP BY SeasonId, ClockId;";
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        var seasonId = r.GetInt32(0);
+                        var clockId = r.GetString(1);
+                        var maxFinalizedAtUtc = r.IsDBNull(2) ? "" : r.GetString(2);
+
+                        if (!seasons.TryGetValue(seasonId, out var cur))
+                        {
+                            seasons[seasonId] = (clockId, maxFinalizedAtUtc);
+                            continue;
+                        }
+
+                        var cmp = string.CompareOrdinal(maxFinalizedAtUtc, cur.MaxFinalizedAtUtc);
+                        if (cmp > 0 || (cmp == 0 && string.CompareOrdinal(clockId, cur.ClockId) < 0))
+                            seasons[seasonId] = (clockId, maxFinalizedAtUtc);
+                    }
+                }
+
+                var ruleHashBySeason = new Dictionary<int, string>();
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var kv in seasons)
+                {
+                    var seasonId = kv.Key;
+                    var clockId = kv.Value.ClockId;
+
+                    var label = BuildSeasonLabel(seasonId);
+
+                    if (!ruleHashBySeason.TryGetValue(seasonId, out var ruleHash))
+                    {
+                        ruleHash = BuildSeasonFinalRuleHash(label, seasonId, topN: 20);
+                        ruleHashBySeason[seasonId] = ruleHash;
+                    }
+
+                    using var cmd = sqlite.CreateCommand();
+                    cmd.CommandText = "SELECT AthleteSlug, Place FROM SeasonFinalResults WHERE SeasonId = $seasonId AND ClockId = $clockId AND Place <= 20;";
+                    cmd.Parameters.AddWithValue("$seasonId", seasonId);
+                    cmd.Parameters.AddWithValue("$clockId", clockId);
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        var athleteSlug = r.GetString(0);
+                        var place = r.GetInt32(1);
+
+                        var k = $"{seasonId}|{place}|{athleteSlug}";
+                        if (!seen.Add(k)) continue;
+
+                        awards.Add(new AwardRow
+                        {
+                            BadgeLabel = label,
+                            LeagueCategory = "Global",
+                            LeagueValue = null,
+                            Place = place,
+                            AthleteSlug = athleteSlug,
+                            DefinitionHash = ruleHash
+                        });
+                    }
+                }
+            });
+        }
+        catch
+        {
         }
     }
 
@@ -748,6 +806,17 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     private static string BuildCrowdRuleHash(string label, string metricKey, string order, bool distinctValues, int decimals)
     {
         var sig = $"label={label}|category=Global|metric={metricKey}|order={order}|distinct_values={(distinctValues ? "yes" : "no")}|round={decimals}dp|tiers=top3|ties=allowed";
+        return ComputeRuleHash(sig);
+    }
+
+    private static string BuildSeasonLabel(int seasonId)
+    {
+        return "S" + (seasonId % 100).ToString("00", CultureInfo.InvariantCulture);
+    }
+
+    private static string BuildSeasonFinalRuleHash(string label, int seasonId, int topN)
+    {
+        var sig = $"label={label}|category=Global|type=season_final|seasonId={seasonId}|source=SeasonFinalResults|topN={topN}";
         return ComputeRuleHash(sig);
     }
 
