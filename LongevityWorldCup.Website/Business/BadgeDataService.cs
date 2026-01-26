@@ -559,6 +559,27 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             });
         }
 
+        var lwc25Top20 = new (string Name, int Place)[]
+        {
+            ("Michael Lustgarten", 1), ("Zdenek Sipek", 2), ("Wen Z", 3), ("Philipp Schmeing", 4), ("Angela Buzzeo", 5),
+            ("deelicious", 6), ("Juan Robalino", 7), ("Max", 8), ("anicca", 9), ("Ilhui", 10),
+            ("Larsemann", 11), ("Lauren", 12), ("John", 13), ("Maria Olenina", 14), ("David X", 15),
+            ("David Lo", 16), ("Julie Jiang", 17), ("QingqingZhuo", 18), ("Dave Pascoe", 19), ("Keith Blondin", 20),
+        };
+        foreach (var (name, place) in lwc25Top20)
+        {
+            if (!nameToSlug.TryGetValue(name, out var slug)) continue;
+            awards.Add(new AwardRow
+            {
+                BadgeLabel = "LWC25 · Top 20",
+                LeagueCategory = "Global",
+                LeagueValue = null,
+                Place = place,
+                AthleteSlug = slug,
+                DefinitionHash = BuildEditorialRuleHash("LWC25 · Top 20", $"rank={place}")
+            });
+        }
+
         var pregnancyNames = new[] { "Olga Vresca" };
         foreach (var name in pregnancyNames)
         {
