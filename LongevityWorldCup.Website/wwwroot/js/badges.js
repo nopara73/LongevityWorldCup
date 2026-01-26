@@ -1,8 +1,14 @@
-﻿/* badges.js
+/* badges.js
    Server-driven badge rendering only.
    IMPORTANT:
    - Competitive + editorial badges are rendered ONLY if the server includes them in athlete.Badges.
-   - No client-side fallbacks for Podcast / First Applicants / Pregnancy / Host / Perfect Application.
+   - No client-side fallbacks for
+   Podcast
+   First Applicants
+   LWC25 · Top 20
+   Pregnancy
+   Host
+   Perfect Application
    - Perfect Guess remains local-only (user-specific, based on localStorage).
 */
 
@@ -49,6 +55,7 @@ const BASE_ICONS = {
     'Best Domain – Immune': 'fa-virus',
     'Podcast': 'fa-microphone',
     'First Applicants': 'fa-dove',
+    'LWC25 · Top 20': 'fa-ranking-star',
     'Pregnancy': 'fa-baby-carriage',
     'Host': 'fa-house',
     'Perfect Application': 'fa-ruler'
@@ -106,6 +113,14 @@ function pickIconForServerBadge(b) {
         if (place === 3) return 'fa-bolt';
         if (place && place >= 4 && place <= 10) return 'fa-dove';
         return 'fa-dove';
+    }
+
+    if (label === 'LWC25 · Top 20') {
+        if (place === 1) return 'fa-trophy';
+        if (place === 2) return 'fa-medal';
+        if (place === 3) return 'fa-award';
+        if (place && place >= 4 && place <= 20) return 'fa-ranking-star';
+        return 'fa-ranking-star';
     }
 
     return BASE_ICONS[label] || 'fa-award';
@@ -371,6 +386,16 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
         return 'First Applicants';
     }
 
+    if (label === 'LWC25 · Top 20') {
+        if (place === 1) return 'LWC25 · Winner: Finished 1st in the 2025 Longevity World Cup';
+        if (place === 2) return 'LWC25 · 2nd Place: Finished 2nd in the 2025 Longevity World Cup';
+        if (place === 3) return 'LWC25 · 3rd Place: Finished 3rd in the 2025 Longevity World Cup';
+        if (place && place >= 4 && place <= 10) return 'LWC25 · Top 10: Finished among the Top 10 in the 2025 Longevity World Cup';
+        if (place && place >= 11 && place <= 20) return 'LWC25 · Top 20: Finished among the Top 20 in the 2025 Longevity World Cup';
+        return 'LWC25 · Top 20';
+    }
+
+
     if (label === 'Podcast') return "Podcast: hear to this athlete's story in depth";
     if (label === 'Pregnancy') return 'Baby on Board';
     if (label === 'Host') return 'Host: Organizer of the Longevity World Cup';
@@ -416,12 +441,13 @@ function computeOrder(b) {
     if (label === 'First Applicants')     return 1.19;
     if (label === 'Pregnancy')            return 1.191;
     if (label === 'Host')                 return 1.192;
-    if (label === 'Perfect Application')  return 1.193;
+    if (label === 'Perfect Application') return 1.193;
 
     if (label === 'Most Submissions') return 1.20;
-    if (label === '≥2 Submissions')   return 1.21;
+    if (label === '≥2 Submissions') return 1.21;
 
-    if (label === 'PhenoAge Best Improvement')  return 1.30;
+    if (label === 'PhenoAge Best Improvement') return 1.30;
+    if (label === 'LWC25 · Top 20' && place) return 1.301;
 
     if (label === 'Best Domain – Liver')        return 1.31;
     if (label === 'Best Domain – Kidney')       return 1.32;
