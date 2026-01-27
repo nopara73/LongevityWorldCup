@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         AddCrowdAwards(stats, awards);
         AddEditorialAwards(stats, awards);
 
+        AddSeasonFinalResultsAwards(awards);
+
         var previous = ReadCurrentAwardsSnapshot();
         EmitBadgeAwardEvents(previous, awards, DateTime.UtcNow);
 
@@ -248,7 +250,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                         LeagueValue = r.IsDBNull(2) ? null : r.GetString(2),
                         Place = r.IsDBNull(3) ? (int?)null : r.GetInt32(3),
                         AthleteSlug = r.GetString(4),
-                        DefinitionHash = r.IsDBNull(5) ? null : r.GetString(5)
+                        DefinitionHash = r.IsDBNull(5) ? null : r.GetString(5),
+                        OccurredAtUtc = null
                     });
                 }
             });
@@ -319,6 +322,23 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 afterByAb[ab] = x.Place.Value;
         }
 
+        static string AwardKey(string athleteSlug, string label, string cat, string? val, int? place)
+            => $"{athleteSlug}|{label}|{cat}|{val ?? ""}|{(place.HasValue ? place.Value.ToString(CultureInfo.InvariantCulture) : "")}";
+
+        var afterOccurredAt = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        foreach (var x in after)
+        {
+            if (!x.OccurredAtUtc.HasValue) continue;
+            var k = AwardKey(x.AthleteSlug, x.BadgeLabel, x.LeagueCategory, x.LeagueValue, x.Place);
+            afterOccurredAt[k] = x.OccurredAtUtc.Value;
+        }
+
+        DateTime ResolveOccurredAt(string athleteSlug, string label, string cat, string? val, int? place)
+        {
+            var k = AwardKey(athleteSlug, label, cat, val, place);
+            return afterOccurredAt.TryGetValue(k, out var ts) ? ts : occurredAtUtc;
+        }
+
         var changedKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var k in beforeMap.Keys) changedKeys.Add(k);
         foreach (var k in afterMap.Keys) changedKeys.Add(k);
@@ -381,7 +401,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                     items.Add(new BadgeEventItem
                     {
                         AthleteSlug = winner,
-                        OccurredAtUtc = occurredAtUtc,
+                        OccurredAtUtc = ResolveOccurredAt(winner, label, cat, string.IsNullOrEmpty(valStr) ? null : valStr, place),
                         BadgeLabel = label,
                         LeagueCategory = cat,
                         LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
@@ -418,7 +438,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                         items.Add(new BadgeEventItem
                         {
                             AthleteSlug = addsForward[i],
-                            OccurredAtUtc = occurredAtUtc,
+                            OccurredAtUtc = ResolveOccurredAt(addsForward[i], label, cat, string.IsNullOrEmpty(valStr) ? null : valStr, afterPlace),
                             BadgeLabel = label,
                             LeagueCategory = cat,
                             LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
@@ -451,7 +471,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                     items.Add(new BadgeEventItem
                     {
                         AthleteSlug = adds[i],
-                        OccurredAtUtc = occurredAtUtc,
+                        OccurredAtUtc = ResolveOccurredAt(adds[i], label, cat, string.IsNullOrEmpty(valStr) ? null : valStr, place),
                         BadgeLabel = label,
                         LeagueCategory = cat,
                         LeagueValue = string.IsNullOrEmpty(valStr) ? null : valStr,
@@ -601,6 +621,85 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
     }
 
+    private void AddSeasonFinalResultsAwards(List<AwardRow> awards)
+    {
+        try
+        {
+            _db.Run(sqlite =>
+            {
+                var seasons = new Dictionary<int, (string ClockId, string MaxFinalizedAtUtc)>();
+
+                using (var cmd = sqlite.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT SeasonId, ClockId, MAX(FinalizedAtUtc) FROM SeasonFinalResults GROUP BY SeasonId, ClockId;";
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        var seasonId = r.GetInt32(0);
+                        var clockId = r.GetString(1);
+                        var maxFinalizedAtUtc = r.IsDBNull(2) ? "" : r.GetString(2);
+
+                        if (!seasons.TryGetValue(seasonId, out var cur))
+                        {
+                            seasons[seasonId] = (clockId, maxFinalizedAtUtc);
+                            continue;
+                        }
+
+                        var cmp = string.CompareOrdinal(maxFinalizedAtUtc, cur.MaxFinalizedAtUtc);
+                        if (cmp > 0 || (cmp == 0 && string.CompareOrdinal(clockId, cur.ClockId) < 0))
+                            seasons[seasonId] = (clockId, maxFinalizedAtUtc);
+                    }
+                }
+
+                var ruleHashBySeason = new Dictionary<int, string>();
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var kv in seasons)
+                {
+                    var seasonId = kv.Key;
+                    var clockId = kv.Value.ClockId;
+
+                    var label = BuildSeasonLabel(seasonId);
+
+                    if (!ruleHashBySeason.TryGetValue(seasonId, out var ruleHash))
+                    {
+                        ruleHash = BuildSeasonFinalRuleHash(label, seasonId, topN: 20);
+                        ruleHashBySeason[seasonId] = ruleHash;
+                    }
+
+                    using var cmd = sqlite.CreateCommand();
+                    cmd.CommandText = "SELECT AthleteSlug, Place, SeasonClosesAtUtc FROM SeasonFinalResults WHERE SeasonId = $seasonId AND ClockId = $clockId AND Place <= 20;";
+                    cmd.Parameters.AddWithValue("$seasonId", seasonId);
+                    cmd.Parameters.AddWithValue("$clockId", clockId);
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        var athleteSlug = r.GetString(0);
+                        var place = r.GetInt32(1);
+                        var closesAtUtc = r.IsDBNull(2) ? (DateTime?)null : ParseUtc(r.GetString(2));
+
+                        var k = $"{seasonId}|{place}|{athleteSlug}";
+                        if (!seen.Add(k)) continue;
+
+                        awards.Add(new AwardRow
+                        {
+                            BadgeLabel = label,
+                            LeagueCategory = "Global",
+                            LeagueValue = null,
+                            Place = place,
+                            AthleteSlug = athleteSlug,
+                            DefinitionHash = ruleHash,
+                            OccurredAtUtc = closesAtUtc
+                        });
+                    }
+                }
+            });
+        }
+        catch
+        {
+        }
+    }
+
     private sealed class AwardRow
     {
         public required string BadgeLabel { get; init; }
@@ -609,6 +708,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public int? Place { get; init; }
         public required string AthleteSlug { get; init; }
         public string? DefinitionHash { get; init; }
+        public DateTime? OccurredAtUtc { get; init; }
     }
 
     class BadgeEventItem
@@ -727,6 +827,24 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     private static string BuildCrowdRuleHash(string label, string metricKey, string order, bool distinctValues, int decimals)
     {
         var sig = $"label={label}|category=Global|metric={metricKey}|order={order}|distinct_values={(distinctValues ? "yes" : "no")}|round={decimals}dp|tiers=top3|ties=allowed";
+        return ComputeRuleHash(sig);
+    }
+
+    private static string BuildSeasonLabel(int seasonId)
+    {
+        return "S" + (seasonId % 100).ToString("00", CultureInfo.InvariantCulture);
+    }
+
+    private static DateTime ParseUtc(string raw)
+    {
+        var dt = DateTime.Parse(raw, null, DateTimeStyles.RoundtripKind);
+        return dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+    }
+
+
+    private static string BuildSeasonFinalRuleHash(string label, int seasonId, int topN)
+    {
+        var sig = $"label={label}|category=Global|type=season_final|seasonId={seasonId}|source=SeasonFinalResults|topN={topN}";
         return ComputeRuleHash(sig);
     }
 

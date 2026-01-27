@@ -30,7 +30,19 @@
       "RdwPc": 12.1,
       "AlpUL": 61,
       "Wbc1000cellsuL": 7.6
-    }
+    },
+	{
+	  "Date": "2026-01-13",
+	  "AlbGL": 47.0,
+	  "CreatUmolL": 80.0,
+	  "GluMmolL": 5.1,
+	  "CrpMgL": 0.2,
+	  "LymPc": 30.1,
+	  "McvFL": 92.0,
+	  "RdwPc": 11.8,
+	  "AlpUL": 61.0,
+	  "Wbc1000cellsuL": 5.5
+	}
   ],
   "Division": "Women's",
   "Flag": "Singapore",
