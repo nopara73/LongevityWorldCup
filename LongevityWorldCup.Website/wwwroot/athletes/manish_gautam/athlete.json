@@ -1,0 +1,28 @@
+{
+  "Name": "Manish Gautam",
+  "DisplayName": null,
+  "MediaContact": "https://www.linkedin.com/in/manishgautam2420/",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 10,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-16",
+      "AlbGL": 43,
+      "CreatUmolL": 89.38,
+      "GluMmolL": 4.67,
+      "CrpMgL": 1.9,
+      "LymPc": 45,
+      "McvFL": 83.8,
+      "RdwPc": 12.6,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 10.44
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "India",
+  "Why": "Live long, live healthy, see the world, build the world.",
+  "PersonalLink": "https://www.linkedin.com/in/manishgautam2420/"
+}
