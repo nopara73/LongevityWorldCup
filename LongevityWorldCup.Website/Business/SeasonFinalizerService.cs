@@ -67,7 +67,7 @@ public sealed class SeasonFinalizerService
                 if (!hasEventFinalResults)
                     _events.UpsertSeasonFinalResults(seasonId: SeasonIdConst, closesAtUtc: SeasonClosesAtUtcConst, clockId: ClockIdConst, rows: rows);
                 if (!hasDbFinalResults)
-                    PersistSeasonFinalResults(nowUtc, rows);
+                    PersistSeasonFinalResults(SeasonClosesAtUtcConst, rows);
                 if (!hasCustomEvent)
                     CreateSeasonConcludedCustomEvent(nowUtc, order, rows);
             }
