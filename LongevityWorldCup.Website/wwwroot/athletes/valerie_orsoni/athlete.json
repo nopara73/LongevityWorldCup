@@ -1,0 +1,28 @@
+{
+  "Name": "Valerie Orsoni",
+  "DisplayName": null,
+  "MediaContact": "vorsoni@valbiohacker.com",
+  "DateOfBirth": {
+    "Year": 1970,
+    "Month": 4,
+    "Day": 29
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-11-18",
+      "AlbGL": 42,
+      "CreatUmolL": 66.37,
+      "GluMmolL": 5.05,
+      "CrpMgL": 1.6,
+      "LymPc": 31,
+      "McvFL": 92,
+      "RdwPc": 12.8,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 5.3
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Corsica",
+  "Why": "Pushing the limits of my body and mind",
+  "PersonalLink": "http://www.instagram.com/valerieorsoni"
+}
