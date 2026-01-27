@@ -1,0 +1,28 @@
+{
+  "Name": "Brian Chung",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/brian.s.chung/",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 8,
+    "Day": 22
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-01-05",
+      "AlbGL": 46,
+      "CreatUmolL": 86.73,
+      "GluMmolL": 4.94,
+      "CrpMgL": 0.22,
+      "LymPc": 32.7,
+      "McvFL": 90.8,
+      "RdwPc": 11.7,
+      "AlpUL": 87,
+      "Wbc1000cellsuL": 4.86
+    }
+  ],
+  "Division": "Open",
+  "Flag": "United States",
+  "Why": "Optimizing my lifestyle for the benefit of body and mind by maintaining my protocols, planning health interventions, and recording what works.",
+  "PersonalLink": "https://www.brianschung.com/health/"
+}
