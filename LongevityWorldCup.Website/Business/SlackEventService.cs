@@ -9,17 +9,17 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class SlackEventService : IDisposable
 {
     private readonly SlackWebhookClient _slack;
-    private readonly AthleteDataService _athletes;
     private readonly object _lockObj = new();
     private readonly List<(EventType Type, string Raw)> _buffer = new();
     private Timer? _timer;
     private readonly TimeSpan _window = TimeSpan.FromSeconds(5);
     private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)> _bio = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, string> _podcastBySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public SlackEventService(SlackWebhookClient slack, AthleteDataService athletes)
+    public SlackEventService(SlackWebhookClient slack)
     {
         _slack = slack;
-        _athletes = athletes;
     }
 
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
@@ -27,6 +27,24 @@ public sealed class SlackEventService : IDisposable
         var map = new Dictionary<string, (string Name, int? Rank)>(StringComparer.OrdinalIgnoreCase);
         foreach (var i in items) map[i.Slug] = (i.Name, i.CurrentRank);
         lock (_lockObj) _athDir = map;
+    }
+    
+    public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge)> items)
+    {
+        var map = new Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items) map[i.Slug] = (i.ChronologicalAge, i.LowestPhenoAge);
+        lock (_lockObj) _bio = map;
+    }
+
+    public void SetPodcastLinks(IReadOnlyList<(string Slug, string PodcastLink)> items)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items)
+        {
+            if (!string.IsNullOrWhiteSpace(i.PodcastLink)) map[i.Slug] = i.PodcastLink.Trim();
+        }
+
+        lock (_lockObj) _podcastBySlug = map;
     }
 
     public async Task SendImmediateAsync(EventType type, string rawText)
@@ -96,43 +114,12 @@ public sealed class SlackEventService : IDisposable
             list.Add(item);
         }
 
-        var bio = new Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)>(StringComparer.OrdinalIgnoreCase);
-        try
+        Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)> bio;
+        Dictionary<string, string> podcastBySlug;
+        lock (_lockObj)
         {
-            var order = _athletes.GetRankingsOrder();
-            foreach (var node in order.OfType<JsonObject>())
-            {
-                var slug = node["AthleteSlug"]?.GetValue<string>() ?? "";
-                if (string.IsNullOrWhiteSpace(slug)) continue;
-
-                double? chrono = null;
-                double? pheno = null;
-
-                if (node["ChronologicalAge"] is JsonValue jChrono && jChrono.TryGetValue<double>(out var dChrono)) chrono = dChrono;
-                if (node["LowestPhenoAge"] is JsonValue jPheno && jPheno.TryGetValue<double>(out var dPheno)) pheno = dPheno;
-
-                bio[slug] = (chrono, pheno);
-            }
-        }
-        catch
-        {
-        }
-
-        var podcastBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        try
-        {
-            var snap = _athletes.GetAthletesSnapshot();
-            foreach (var node in snap.OfType<JsonObject>())
-            {
-                var slug = node["AthleteSlug"]?.GetValue<string>() ?? "";
-                if (string.IsNullOrWhiteSpace(slug)) continue;
-
-                if (node["PodcastLink"] is JsonValue j && j.TryGetValue<string>(out var url) && !string.IsNullOrWhiteSpace(url))
-                    podcastBySlug[slug] = url.Trim();
-            }
-        }
-        catch
-        {
+            bio = _bio;
+            podcastBySlug = _podcastBySlug;
         }
 
         double? GetChrono(string s) => bio.TryGetValue(s, out var v) ? v.ChronoAge : null;
@@ -168,7 +155,15 @@ public sealed class SlackEventService : IDisposable
 
     private string BuildMessage(EventType type, string rawText)
     {
-        return SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
+        return SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve, getPodcastLinkForSlug: GetPodcastLinkForSlug);
+    }
+    
+    private string? GetPodcastLinkForSlug(string slug)
+    {
+        lock (_lockObj)
+        {
+            return _podcastBySlug.TryGetValue(slug, out var url) ? url : null;
+        }
     }
 
     private string SlugToNameResolve(string slug)
