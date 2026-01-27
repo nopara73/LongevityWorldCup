@@ -1,0 +1,28 @@
+{
+  "Name": "Christopher Wiley",
+  "DisplayName": null,
+  "MediaContact": "cwwiley20@gmail.com",
+  "DateOfBirth": {
+    "Year": 1952,
+    "Month": 6,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-09-02",
+      "AlbGL": 44,
+      "CreatUmolL": 71.68,
+      "GluMmolL": 5,
+      "CrpMgL": 1.8,
+      "LymPc": 33.7,
+      "McvFL": 93.9,
+      "RdwPc": 12.2,
+      "AlpUL": 47,
+      "Wbc1000cellsuL": 5.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "USA",
+  "Why": "Living to dance at my great-great-grandchildren’s weddings.",
+  "PersonalLink": null
+}
