@@ -1,7 +1,7 @@
 {
   "Name": "Inka Land",
   "DisplayName": "Inka Land, MSc",
-  "MediaContact": "https://www.youtube.com/@IAMINKALAND",
+  "MediaContact": "inkaland.hi@gmail.com",
   "DateOfBirth": {
     "Year": 1992,
     "Month": 7,
@@ -19,10 +19,22 @@
       "RdwPc": 11.7,
       "AlpUL": 46.4,
       "Wbc1000cellsuL": 3.63
+    },
+    {
+      "Date": "2026-01-06",
+      "AlbGL": 47.8,
+      "CreatUmolL": 63.72,
+      "GluMmolL": 5.05,
+      "CrpMgL": 0.14,
+      "LymPc": 37.6,
+      "McvFL": 97.5,
+      "RdwPc": 11.5,
+      "AlpUL": 50.1,
+      "Wbc1000cellsuL": 3.96
     }
   ],
   "Division": "Women's",
-  "Flag": "Estonia",
-  "Why": "Living long and healthy, future",
-  "PersonalLink": "https://www.inkaland.co/"
+  "Flag": "United Arab Emirates",
+  "Why": "Living long & healthy, serving others",
+  "PersonalLink": "https://www.youtube.com/@iaminkaland"
 }
