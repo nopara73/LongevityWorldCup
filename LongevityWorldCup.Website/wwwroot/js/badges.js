@@ -5,7 +5,7 @@
    - No client-side fallbacks for
    Podcast
    First Applicants
-   LWC25 · Top 20
+   S25
    Pregnancy
    Host
    Perfect Application
@@ -55,7 +55,7 @@ const BASE_ICONS = {
     'Best Domain – Immune': 'fa-virus',
     'Podcast': 'fa-microphone',
     'First Applicants': 'fa-dove',
-    'LWC25 · Top 20': 'fa-ranking-star',
+    'S25': 'fa-ranking-star',
     'Pregnancy': 'fa-baby-carriage',
     'Host': 'fa-house',
     'Perfect Application': 'fa-ruler'
@@ -115,7 +115,7 @@ function pickIconForServerBadge(b) {
         return 'fa-dove';
     }
 
-    if (label === 'LWC25 · Top 20') {
+    if (label === 'S25') {
         if (place === 1) return 'fa-trophy';
         if (place === 2) return 'fa-medal';
         if (place === 3) return 'fa-award';
@@ -386,7 +386,7 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
         return 'First Applicants';
     }
 
-    if (label === 'LWC25 · Top 20') {
+    if (label === 'S25') {
         if (place === 1) return 'LWC25 · Winner: Finished 1st in the 2025 Longevity World Cup';
         if (place === 2) return 'LWC25 · 2nd Place: Finished 2nd in the 2025 Longevity World Cup';
         if (place === 3) return 'LWC25 · 3rd Place: Finished 3rd in the 2025 Longevity World Cup';
@@ -447,7 +447,7 @@ function computeOrder(b) {
     if (label === '≥2 Submissions') return 1.21;
 
     if (label === 'PhenoAge Best Improvement') return 1.30;
-    if (label === 'LWC25 · Top 20' && place) return 1.301;
+    if (label === 'S25' && place) return 1.301;
 
     if (label === 'Best Domain – Liver')        return 1.31;
     if (label === 'Best Domain – Kidney')       return 1.32;
