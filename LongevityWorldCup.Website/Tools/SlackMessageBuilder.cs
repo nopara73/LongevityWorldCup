@@ -160,15 +160,17 @@ public static class SlackMessageBuilder
         if (!string.IsNullOrWhiteSpace(exclusiveVal)) leagueParts.Add($"the {ExclusiveName(exclusiveVal)} league");
 
         string? awardText = null;
+        bool awardUsesHasVerb = false;
 
         if (leagueParts.Count == 0)
         {
             if (hasPhenoLowest)
             {
                 var ph = getLowestPhenoAgeForSlug?.Invoke(slug);
+                awardUsesHasVerb = true;
                 awardText = ph.HasValue
-                    ? $"lowest biological age in the field at {F2(ph.Value)} years"
-                    : "lowest biological age in the field";
+                    ? $"the lowest biological age in the field, at {F2(ph.Value)} years"
+                    : "the lowest biological age in the field";
             }
             else if (hasChronoYoungest || hasChronoOldest)
             {
@@ -209,7 +211,7 @@ public static class SlackMessageBuilder
         }
         else if (!string.IsNullOrWhiteSpace(awardText))
         {
-            sb.Append(", and is also currently the ");
+            sb.Append(awardUsesHasVerb ? ", and now has " : ", and is also currently the ");
             sb.Append(awardText);
         }
 
