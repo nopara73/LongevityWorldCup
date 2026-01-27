@@ -579,6 +579,24 @@ public sealed class EventDataService : IDisposable
         });
     }
 
+    public bool HasCustomEventWithTitle(string titleRaw)
+    {
+        if (string.IsNullOrWhiteSpace(titleRaw)) return false;
+
+        var patLf = titleRaw + "\n\n%";
+        var patCrLf = titleRaw + "\r\n\r\n%";
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND (Text LIKE @patLf OR Text LIKE @patCrLf) LIMIT 1;";
+            cmd.Parameters.AddWithValue("@t", (int)EventType.CustomEvent);
+            cmd.Parameters.AddWithValue("@patLf", patLf);
+            cmd.Parameters.AddWithValue("@patCrLf", patCrLf);
+            return cmd.ExecuteScalar() != null;
+        });
+    }
+
     public void UpsertSeasonFinalResults(
         int seasonId,
         DateTime closesAtUtc,
@@ -705,7 +723,12 @@ public sealed class EventDataService : IDisposable
         var sql =
             "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events" +
             (filters.Count > 0 ? " WHERE " + string.Join(" AND ", filters) : "") +
-            $" ORDER BY OccurredAt {(newestFirst ? "DESC" : "ASC")}, CASE WHEN Type = {(int)EventType.Joined} THEN 0 WHEN Type = {(int)EventType.NewRank} THEN 1 ELSE 2 END ASC" +
+            $" ORDER BY OccurredAt {(newestFirst ? "DESC" : "ASC")}, CASE " +
+            $"WHEN Type = {(int)EventType.Joined} THEN 0 " +
+            $"WHEN Type = {(int)EventType.NewRank} THEN 1 " +
+            $"WHEN Type = {(int)EventType.SeasonFinalResult} THEN 2 " +
+            $"WHEN Type = {(int)EventType.BadgeAward} THEN 3 " +
+            $"ELSE 4 END ASC" +
             (limit.HasValue ? " LIMIT @limit OFFSET @offset" : "");
 
         return _db.Run(sqlite =>
