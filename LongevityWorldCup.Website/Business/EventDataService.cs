@@ -579,6 +579,24 @@ public sealed class EventDataService : IDisposable
         });
     }
 
+    public bool HasCustomEventWithTitle(string titleRaw)
+    {
+        if (string.IsNullOrWhiteSpace(titleRaw)) return false;
+
+        var patLf = titleRaw + "\n\n%";
+        var patCrLf = titleRaw + "\r\n\r\n%";
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND (Text LIKE @patLf OR Text LIKE @patCrLf) LIMIT 1;";
+            cmd.Parameters.AddWithValue("@t", (int)EventType.CustomEvent);
+            cmd.Parameters.AddWithValue("@patLf", patLf);
+            cmd.Parameters.AddWithValue("@patCrLf", patCrLf);
+            return cmd.ExecuteScalar() != null;
+        });
+    }
+
     public void UpsertSeasonFinalResults(
         int seasonId,
         DateTime closesAtUtc,

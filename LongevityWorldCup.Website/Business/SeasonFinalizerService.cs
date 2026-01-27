@@ -44,35 +44,36 @@ public sealed class SeasonFinalizerService
         if (nowUtc < SeasonClosesAtUtcConst)
             return new SeasonFinalizationResult(false, false, SeasonIdConst, SeasonClosesAtUtcConst, ClockIdConst, 0);
 
-        if (_events.HasAnySeasonFinalResults(seasonId: SeasonIdConst))
-        {
-            // Backward compatibility, can be removed after publish
-            if (!HasAnySeasonFinalResultsInDb(seasonId: SeasonIdConst, clockId: ClockIdConst))
-            {
-                var orderBackfill = _athletes.GetRankingsOrder(SeasonClosesAtUtcConst);
-                if (orderBackfill.Count > 0)
-                {
-                    var rowsBackfill = BuildRows(orderBackfill);
-                    if (rowsBackfill.Count > 0)
-                        PersistSeasonFinalResults(nowUtc, rowsBackfill);
-                }
-            }
+        var hasEventFinalResults = _events.HasAnySeasonFinalResults(seasonId: SeasonIdConst);
+        var hasDbFinalResults = HasAnySeasonFinalResultsInDb(seasonId: SeasonIdConst, clockId: ClockIdConst);
+        var titleRaw = BuildSeasonConcludedTitle();
+        var hasCustomEvent = _events.HasCustomEventWithTitle(titleRaw);
 
-            return new SeasonFinalizationResult(true, true, SeasonIdConst, SeasonClosesAtUtcConst, ClockIdConst, 0);
+        var alreadyFinalized = hasEventFinalResults;
+        int computedCount = 0;
+
+        if (!hasEventFinalResults || !hasDbFinalResults || !hasCustomEvent)
+        {
+            var order = _athletes.GetRankingsOrder(SeasonClosesAtUtcConst);
+            if (order.Count == 0)
+                return new SeasonFinalizationResult(true, alreadyFinalized, SeasonIdConst, SeasonClosesAtUtcConst, ClockIdConst, 0);
+
+            var rows = BuildRows(order);
+            computedCount = rows.Count;
+
+            if (rows.Count > 0)
+            {
+                // Season closing actions:
+                if (!hasEventFinalResults)
+                    _events.UpsertSeasonFinalResults(seasonId: SeasonIdConst, closesAtUtc: SeasonClosesAtUtcConst, clockId: ClockIdConst, rows: rows);
+                if (!hasDbFinalResults)
+                    PersistSeasonFinalResults(nowUtc, rows);
+                if (!hasCustomEvent)
+                    CreateSeasonConcludedCustomEvent(nowUtc, order, rows);
+            }
         }
 
-        var order = _athletes.GetRankingsOrder(SeasonClosesAtUtcConst);
-        if (order.Count == 0)
-            return new SeasonFinalizationResult(true, false, SeasonIdConst, SeasonClosesAtUtcConst, ClockIdConst, 0);
-
-        var rows = BuildRows(order);
-
-        // Season closing actions:
-        _events.UpsertSeasonFinalResults(seasonId: SeasonIdConst, closesAtUtc: SeasonClosesAtUtcConst, clockId: ClockIdConst, rows: rows);
-        PersistSeasonFinalResults(nowUtc, rows);
-        CreateSeasonConcludedCustomEvent(nowUtc, order, rows);
-
-        return new SeasonFinalizationResult(true, false, SeasonIdConst, SeasonClosesAtUtcConst, ClockIdConst, rows.Count);
+        return new SeasonFinalizationResult(true, alreadyFinalized, SeasonIdConst, SeasonClosesAtUtcConst, ClockIdConst, computedCount);
     }
 
     private void EnsureSeasonFinalResultsTable()
@@ -179,7 +180,7 @@ CREATE TABLE IF NOT EXISTS SeasonFinalResults(
             .Take(3)
             .ToList();
 
-        var titleRaw = $"{SeasonIdConst} Season Concluded";
+        var titleRaw = BuildSeasonConcludedTitle();
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"LWC{seasonTwoDigits} has officially concluded. Thank you to all participants and contributors who engaged with the competition throughout the year.");
@@ -213,6 +214,8 @@ CREATE TABLE IF NOT EXISTS SeasonFinalResults(
 
         _events.CreateCustomEvent(titleRaw: titleRaw, contentRaw: contentRaw, occurredAtUtc: nowUtc, relevance: 15d);
     }
+
+    private static string BuildSeasonConcludedTitle() => $"{SeasonIdConst} Season Concluded";
 
     private static List<SeasonFinalResultRow> BuildRows(JsonArray order)
     {
