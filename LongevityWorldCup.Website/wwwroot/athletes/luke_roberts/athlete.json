@@ -1,0 +1,28 @@
+{
+  "Name": "Luke Roberts",
+  "DisplayName": null,
+  "MediaContact": "longevityworldcup.yqjgk@passmail.net",
+  "DateOfBirth": {
+    "Year": 1999,
+    "Month": 8,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-29",
+      "AlbGL": 51,
+      "CreatUmolL": 93.81,
+      "GluMmolL": 5,
+      "CrpMgL": 0.8,
+      "LymPc": 34.5,
+      "McvFL": 94.2,
+      "RdwPc": 12,
+      "AlpUL": 54,
+      "Wbc1000cellsuL": 6.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "USA",
+  "Why": "I would like to stay youthful and healthy for as long as possible.",
+  "PersonalLink": null
+}
