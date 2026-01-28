@@ -204,17 +204,20 @@ public static class SlackMessageBuilder
             return BuildNewRank(slug, newRank.Value, prevSlug, slugToName);
         }
 
+        var rankVerb = Pick("climbed to #", "rose to #", "reached #", "moved up to #");
         var sb = new StringBuilder();
         sb.Append("In the Ultimate League, ");
         sb.Append(nameLink);
-        sb.Append(" climbed to #");
+        sb.Append(' ');
+        sb.Append(rankVerb);
         sb.Append(newRank.Value);
 
         if (!string.IsNullOrWhiteSpace(prevSlug))
         {
             var prevName = slugToName(prevSlug);
             var prevLink = Link(AthleteUrl(prevSlug), prevName);
-            sb.Append(", overtaking ");
+            var overtakePhrase = Pick(", overtaking ", ", passing ", ", leapfrogging ", ", edging past ", ", displacing ");
+            sb.Append(overtakePhrase);
             sb.Append(prevLink);
         }
 
@@ -223,12 +226,16 @@ public static class SlackMessageBuilder
         // In that case we intentionally skip the "also #1 in ..." wording.
         if (hasLeagueExtras)
         {
-            sb.Append(", and is also currently #1 in ");
+            var leagueIntro = Pick(", and is also currently #1 in ", ", and now leads ", ", and tops ", ", and is #1 in ");
+            sb.Append(leagueIntro);
             sb.Append(JoinList(leagueParts));
         }
         else if (!string.IsNullOrWhiteSpace(awardText))
         {
-            sb.Append(awardUsesHasVerb ? ", and now has " : ", and is also currently the ");
+            var awardIntro = awardUsesHasVerb
+                ? Pick(", and now has ", ", and holds ", ", and claims ")
+                : Pick(", and is also currently the ", ", and is now the ", ", and is the ");
+            sb.Append(awardIntro);
             sb.Append(awardText);
         }
 
@@ -238,12 +245,16 @@ public static class SlackMessageBuilder
         {
             var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
             var episodeLink = !string.IsNullOrWhiteSpace(podcastUrl) ? Link(podcastUrl, "episode") : "episode";
+            var nameEsc = Escape(name);
 
+            var podcastLine = Pick(
+                $"If you're curious who {nameEsc} is beyond the stats, check out the new podcast {episodeLink}",
+                $"Want to hear more from {nameEsc}? New podcast {episodeLink}",
+                $"Get to know {nameEsc} beyond the numbers – new podcast {episodeLink}",
+                $"{nameEsc} just dropped a new podcast {episodeLink} – have a listen"
+            );
             sb.Append('\n');
-            sb.Append("If you're curious who ");
-            sb.Append(Escape(name));
-            sb.Append(" is beyond the stats, check out the new podcast ");
-            sb.Append(episodeLink);
+            sb.Append(podcastLine);
         }
 
         return sb.ToString();
