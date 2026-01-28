@@ -190,6 +190,20 @@ public static class SlackMessageBuilder
             }
         }
 
+        // Decide whether we actually need merged wording or can fall back
+        // to the normal single-event rank message. If after all filters there
+        // are no meaningful extras (no sub-league #1s being shown, no age
+        // badge wording, no podcast line), then we just reuse the single
+        // NewRank phrasing for better Slack signal/noise.
+        var hasLeagueExtras = leagueParts.Count > 0 && newRank.Value != 1;
+        var hasAwardExtras = !string.IsNullOrWhiteSpace(awardText);
+        var hasPodcastExtra = hasPodcast;
+
+        if (!hasLeagueExtras && !hasAwardExtras && !hasPodcastExtra)
+        {
+            return BuildNewRank(slug, newRank.Value, prevSlug, slugToName);
+        }
+
         var sb = new StringBuilder();
         sb.Append("In the Ultimate League, ");
         sb.Append(nameLink);
@@ -204,7 +218,10 @@ public static class SlackMessageBuilder
             sb.Append(prevLink);
         }
 
-        if (leagueParts.Count > 0)
+        // If the athlete is already #1 in the Ultimate League, listing additional
+        // #1 positions in sub-leagues/divisions is redundant noise for Slack.
+        // In that case we intentionally skip the "also #1 in ..." wording.
+        if (hasLeagueExtras)
         {
             sb.Append(", and is also currently #1 in ");
             sb.Append(JoinList(leagueParts));
