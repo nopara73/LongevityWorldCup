@@ -239,10 +239,10 @@ public static class SlackMessageBuilder
             sb.Append(awardText);
         }
 
-        sb.Append('.');
-
+        // Single sentence: no trailing period. Multiple sentences (with podcast): each ends with period.
         if (hasPodcast)
         {
+            sb.Append('.');
             var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
             var episodeLink = !string.IsNullOrWhiteSpace(podcastUrl) ? Link(podcastUrl, "episode") : "episode";
             var nameEsc = Escape(name);
@@ -250,11 +250,13 @@ public static class SlackMessageBuilder
             var podcastLine = Pick(
                 $"If you're curious who {nameEsc} is beyond the stats, check out the new podcast {episodeLink}",
                 $"Want to hear more from {nameEsc}? New podcast {episodeLink}",
-                $"Get to know {nameEsc} beyond the numbers – new podcast {episodeLink}",
-                $"{nameEsc} just dropped a new podcast {episodeLink} – have a listen"
+                $"Get to know {nameEsc} beyond the numbers – new podcast {episodeLink}"
             );
             sb.Append('\n');
             sb.Append(podcastLine);
+            var trimmed = podcastLine.TrimEnd();
+            if (!trimmed.EndsWith('.') && !trimmed.EndsWith('?'))
+                sb.Append('.');
         }
 
         return sb.ToString();
