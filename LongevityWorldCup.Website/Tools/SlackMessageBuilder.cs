@@ -249,8 +249,8 @@ public static class SlackMessageBuilder
 
             var podcastLine = Pick(
                 $"If you're curious who {nameLink} is beyond the stats, check out the new podcast {episodeLink}",
-                $"Want to hear more from {nameLink}? New podcast {episodeLink}",
-                $"Get to know {nameLink} beyond the numbers – new podcast {episodeLink}"
+                $"To hear more from {nameLink}, check out the new podcast {episodeLink}",
+                $"Get to know {nameLink} beyond the numbers in the new podcast {episodeLink}"
             );
             sb.Append('\n');
             sb.Append(podcastLine);
