@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Business;
 
@@ -10,7 +11,8 @@ public static class SlackMessageBuilder
         EventType type,
         string rawText,
         Func<string, string> slugToName,
-        Func<string, int?>? getRankForSlug = null)
+        Func<string, int?>? getRankForSlug = null,
+        Func<string, string?>? getPodcastLinkForSlug = null)
     {
         var (slug, rank, prev) = ParseTokens(rawText);
         return type switch
@@ -19,7 +21,7 @@ public static class SlackMessageBuilder
             EventType.Joined => BuildJoined(slug, slugToName),
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
-            EventType.BadgeAward => BuildBadgeAward(rawText, slugToName),
+            EventType.BadgeAward => BuildBadgeAward(rawText, slugToName, getPodcastLinkForSlug),
             EventType.CustomEvent => BuildCustomEvent(rawText),
             EventType.General => BuildCustomEvent(rawText),
             _ => Escape(rawText)
@@ -28,73 +30,50 @@ public static class SlackMessageBuilder
 
     public static string ForMergedGroup(
         IEnumerable<(EventType Type, string Raw)> items,
-        Func<string, string> slugToName)
+        Func<string, string> slugToName,
+        Func<string, double?>? getChronoAgeForSlug = null,
+        Func<string, double?>? getLowestPhenoAgeForSlug = null,
+        Func<string, string?>? getPodcastLinkForSlug = null)
     {
+        var list = items as List<(EventType Type, string Raw)> ?? items.ToList();
+
         string slug = "";
-        foreach (var it in items)
+        foreach (var it in list)
         {
-            if (EventHelpers.TryExtractSlug(it.Raw, out var s) && !string.IsNullOrWhiteSpace(s)) { slug = s; break; }
+            if (EventHelpers.TryExtractSlug(it.Raw, out var s) && !string.IsNullOrWhiteSpace(s))
+            {
+                slug = s;
+                break;
+            }
         }
+
         if (string.IsNullOrWhiteSpace(slug)) return "";
 
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
 
-        bool hasJoined = false;
-        bool hasNewRank = false;
-        string? prevSlug = null;
         int? newRank = null;
+        string? prevSlug = null;
 
-        foreach (var it in items)
+        bool hasPodcast = false;
+
+        string? divisionVal = null;
+        string? generationVal = null;
+        string? exclusiveVal = null;
+
+        bool hasPhenoLowest = false;
+        bool hasChronoYoungest = false;
+        bool hasChronoOldest = false;
+
+        foreach (var it in list)
         {
-            if (it.Type == EventType.Joined) hasJoined = true;
             if (it.Type == EventType.NewRank)
             {
-                hasNewRank = true;
-                if (EventHelpers.TryExtractPrev(it.Raw, out var p) && !string.IsNullOrWhiteSpace(p)) prevSlug = p;
                 if (EventHelpers.TryExtractRank(it.Raw, out var r)) newRank = r;
+                if (EventHelpers.TryExtractPrev(it.Raw, out var p) && !string.IsNullOrWhiteSpace(p)) prevSlug = p;
+                continue;
             }
-        }
 
-        var desc = BuildBadgeDescriptions(items);
-        var prevPart = "";
-        if (hasNewRank && !string.IsNullOrWhiteSpace(prevSlug))
-        {
-            var prevName = slugToName(prevSlug);
-            var prevLink = Link(AthleteUrl(prevSlug), prevName);
-            prevPart = $" from {prevLink}";
-        }
-
-        var rankToken = newRank.HasValue && newRank.Value > 0
-            ? $"{Ordinal(newRank.Value)}{MedalOrTrend(newRank.Value)}"
-            : "a top spot";
-
-        if (hasNewRank && desc.Count > 0 && hasJoined)
-            return $"{nameLink} joined the competition, took {rankToken} in Ultimate League{prevPart}, and {JoinList(desc)}.";
-        if (hasNewRank && desc.Count > 0)
-            return $"{nameLink} took {rankToken} in Ultimate League{prevPart}, and {JoinList(desc)}.";
-        if (hasNewRank && hasJoined)
-            return $"{nameLink} joined the competition and took {rankToken} in Ultimate League{prevPart}.";
-        if (hasNewRank)
-            return $"{nameLink} took {rankToken} in Ultimate League{prevPart}.";
-        if (desc.Count > 0 && hasJoined)
-            return $"{nameLink} joined the competition and {JoinList(desc)}.";
-        if (desc.Count > 0)
-            return $"{nameLink} {JoinList(desc)}.";
-
-        return "";
-    }
-
-    static List<string> BuildBadgeDescriptions(IEnumerable<(EventType Type, string Raw)> items)
-    {
-        var arByPlace = new SortedDictionary<int, List<string>>();
-        var domainByPlace = new SortedDictionary<int, List<string>>();
-        var phenoByPlace = new SortedDictionary<int, List<string>>();
-        var chronoByPlace = new SortedDictionary<int, List<string>>();
-        var crowdByPlace = new SortedDictionary<int, List<string>>();
-
-        foreach (var it in items)
-        {
             if (it.Type != EventType.BadgeAward) continue;
 
             EventHelpers.TryExtractBadgeLabel(it.Raw, out var label);
@@ -105,131 +84,182 @@ public static class SlackMessageBuilder
             var norm = EventHelpers.NormalizeBadgeLabel(label);
             if (string.IsNullOrWhiteSpace(norm)) continue;
 
-            var p = place > 0 ? place : 0;
-
-            if (string.Equals(norm, "Age Reduction", StringComparison.Ordinal))
+            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
             {
-                var league = LeagueDisplay(cat, val);
-                if (string.Equals(league, "Ultimate League", StringComparison.Ordinal)) continue;
-                if (!arByPlace.TryGetValue(p, out var list)) { list = new List<string>(); arByPlace[p] = list; }
-                list.Add(league);
+                hasPodcast = true;
                 continue;
             }
 
-            if (norm.StartsWith("Best Domain", StringComparison.Ordinal))
+            if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
             {
-                var d = EventHelpers.ExtractDomainFromLabel(norm);
-                if (!string.IsNullOrWhiteSpace(d))
+                if (place != 1) continue;
+
+                if (string.Equals(cat, "Division", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!domainByPlace.TryGetValue(p, out var list)) { list = new List<string>(); domainByPlace[p] = list; }
-                    list.Add(d);
+                    if (!string.IsNullOrWhiteSpace(val)) divisionVal = val.Trim();
+                    continue;
                 }
+
+                if (string.Equals(cat, "Generation", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) generationVal = val.Trim();
+                    continue;
+                }
+
+                if (string.Equals(cat, "Exclusive", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) exclusiveVal = val.Trim();
+                    continue;
+                }
+
                 continue;
             }
 
-            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.Ordinal))
+            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
             {
-                if (!phenoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); phenoByPlace[p] = list; }
-                list.Add("lowest PhenoAge");
+                if (place == 1) hasPhenoLowest = true;
                 continue;
             }
 
-            if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.Ordinal))
+            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
             {
-                if (!phenoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); phenoByPlace[p] = list; }
-                list.Add("best PhenoAge improvement");
+                if (place == 1) hasChronoYoungest = true;
                 continue;
             }
 
-            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.Ordinal))
+            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
             {
-                if (!chronoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); chronoByPlace[p] = list; }
-                list.Add("youngest chronological age");
-                continue;
-            }
-
-            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.Ordinal))
-            {
-                if (!chronoByPlace.TryGetValue(p, out var list)) { list = new List<string>(); chronoByPlace[p] = list; }
-                list.Add("oldest chronological age");
-                continue;
-            }
-
-            if (string.Equals(norm, "Crowd - Most Guessed", StringComparison.Ordinal))
-            {
-                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
-                list.Add("most crowd guesses");
-                continue;
-            }
-
-            if (string.Equals(norm, "Crowd - Age Gap (Chrono-Crowd)", StringComparison.Ordinal))
-            {
-                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
-                list.Add("smallest Chrono Crowd age gap");
-                continue;
-            }
-
-            if (string.Equals(norm, "Crowd - Lowest Crowd Age", StringComparison.Ordinal))
-            {
-                if (!crowdByPlace.TryGetValue(p, out var list)) { list = new List<string>(); crowdByPlace[p] = list; }
-                list.Add("lowest crowd age");
+                if (place == 1) hasChronoOldest = true;
                 continue;
             }
         }
 
-        var result = new List<string>();
+        if (!newRank.HasValue || newRank.Value <= 0) return "";
 
-        foreach (var kv in arByPlace)
+        static string F2(double v) => v.ToString("0.00", CultureInfo.InvariantCulture);
+
+        string DivisionName(string v)
         {
-            if (kv.Value.Count == 0) continue;
-            var joined = JoinList(kv.Value);
-            if (kv.Key > 0)
-                result.Add($"took {Ordinal(kv.Key)} place in {joined}");
-            else
-                result.Add($"placed in {joined}");
+            var t = (v ?? "").Trim();
+            return t switch
+            {
+                "Men" => "Men's",
+                "Women" => "Women's",
+                "Open" => "Open",
+                _ => t
+            };
         }
 
-        foreach (var kv in domainByPlace)
+        string GenerationName(string v) => (v ?? "").Trim();
+
+        string ExclusiveName(string v) => (v ?? "").Trim();
+
+        var leagueParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(divisionVal)) leagueParts.Add($"the {DivisionName(divisionVal)} division");
+        if (!string.IsNullOrWhiteSpace(generationVal)) leagueParts.Add($"the {GenerationName(generationVal)} league");
+        if (!string.IsNullOrWhiteSpace(exclusiveVal)) leagueParts.Add($"the {ExclusiveName(exclusiveVal)} league");
+
+        string? awardText = null;
+        bool awardUsesHasVerb = false;
+
+        if (leagueParts.Count == 0)
         {
-            if (kv.Value.Count == 0) continue;
-            var joined = JoinList(kv.Value.Select(x => x + " biomarkers").ToList());
-            if (kv.Key > 0)
-                result.Add($"took {Ordinal(kv.Key)} in {joined}");
-            else
-                result.Add($"placed in {joined}");
+            if (hasPhenoLowest)
+            {
+                var ph = getLowestPhenoAgeForSlug?.Invoke(slug);
+                awardUsesHasVerb = true;
+                awardText = ph.HasValue
+                    ? $"the lowest biological age in the field, at {F2(ph.Value)} years"
+                    : "the lowest biological age in the field";
+            }
+            else if (hasChronoYoungest || hasChronoOldest)
+            {
+                var ch = getChronoAgeForSlug?.Invoke(slug);
+                if (hasChronoYoungest)
+                {
+                    awardText = ch.HasValue
+                        ? $"youngest athlete in the field at {F2(ch.Value)} years"
+                        : "youngest athlete in the field";
+                }
+                else
+                {
+                    awardText = ch.HasValue
+                        ? $"oldest athlete in the field at {F2(ch.Value)} years"
+                        : "oldest athlete in the field";
+                }
+            }
         }
 
-        foreach (var kv in phenoByPlace)
+        // Decide whether we actually need merged wording or can fall back
+        // to the normal single-event rank message. If after all filters there
+        // are no meaningful extras (no sub-league #1s being shown, no age
+        // badge wording, no podcast line), then we just reuse the single
+        // NewRank phrasing for better Slack signal/noise.
+        var hasLeagueExtras = leagueParts.Count > 0 && newRank.Value != 1;
+        var hasAwardExtras = !string.IsNullOrWhiteSpace(awardText);
+        var hasPodcastExtra = hasPodcast;
+
+        if (!hasLeagueExtras && !hasAwardExtras && !hasPodcastExtra)
         {
-            if (kv.Value.Count == 0) continue;
-            var joined = JoinList(kv.Value);
-            if (kv.Key > 0)
-                result.Add($"took {Ordinal(kv.Key)} for {joined}");
-            else
-                result.Add($"placed for {joined}");
+            return BuildNewRank(slug, newRank.Value, prevSlug, slugToName);
         }
 
-        foreach (var kv in chronoByPlace)
+        var rankVerb = Pick("climbed to #", "rose to #", "reached #", "moved up to #");
+        var sb = new StringBuilder();
+        sb.Append("In the Ultimate League, ");
+        sb.Append(nameLink);
+        sb.Append(' ');
+        sb.Append(rankVerb);
+        sb.Append(newRank.Value);
+        sb.Append(MedalOrTrend(newRank.Value));
+
+        if (!string.IsNullOrWhiteSpace(prevSlug))
         {
-            if (kv.Value.Count == 0) continue;
-            var joined = JoinList(kv.Value);
-            if (kv.Key > 0)
-                result.Add($"took {Ordinal(kv.Key)} for {joined}");
-            else
-                result.Add($"placed for {joined}");
+            var prevName = slugToName(prevSlug);
+            var prevLink = Link(AthleteUrl(prevSlug), prevName);
+            var overtakePhrase = Pick(", overtaking ", ", passing ", ", leapfrogging ", ", edging past ", ", displacing ");
+            sb.Append(overtakePhrase);
+            sb.Append(prevLink);
         }
 
-        foreach (var kv in crowdByPlace)
+        // If the athlete is already #1 in the Ultimate League, listing additional
+        // #1 positions in sub-leagues/divisions is redundant noise for Slack.
+        // In that case we intentionally skip the "also #1 in ..." wording.
+        if (hasLeagueExtras)
         {
-            if (kv.Value.Count == 0) continue;
-            var joined = JoinList(kv.Value);
-            if (kv.Key > 0)
-                result.Add($"took {Ordinal(kv.Key)} for {joined}");
-            else
-                result.Add($"placed for {joined}");
+            var leagueIntro = Pick(", and is also currently #1 in ", ", and now leads ", ", and tops ", ", and is #1 in ");
+            sb.Append(leagueIntro);
+            sb.Append(JoinList(leagueParts));
+        }
+        else if (!string.IsNullOrWhiteSpace(awardText))
+        {
+            var awardIntro = awardUsesHasVerb
+                ? Pick(", and now has ", ", and holds ", ", and claims ")
+                : Pick(", and is also currently the ", ", and is now the ", ", and is the ");
+            sb.Append(awardIntro);
+            sb.Append(awardText);
         }
 
-        return result;
+        // Single sentence: no trailing period. Multiple sentences (with podcast): each ends with period.
+        if (hasPodcast)
+        {
+            sb.Append('.');
+            var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
+            var episodeLink = !string.IsNullOrWhiteSpace(podcastUrl) ? Link(podcastUrl, "episode") : "episode";
+
+            var podcastLine = Pick(
+                $"If you're curious who {nameLink} is beyond the stats, check out the new podcast {episodeLink}",
+                $"To hear more from {nameLink}, check out the new podcast {episodeLink}",
+                $"Get to know {nameLink} beyond the numbers in the new podcast {episodeLink}"
+            );
+            sb.Append('\n');
+            sb.Append(podcastLine);
+            var trimmed = podcastLine.TrimEnd();
+            if (!trimmed.EndsWith('.') && !trimmed.EndsWith('?'))
+                sb.Append('.');
+        }
+
+        return sb.ToString();
     }
 
     static string JoinList(List<string> parts)
@@ -367,16 +397,16 @@ public static class SlackMessageBuilder
     {
         switch (n)
         {
-            case 42:   return $"{C} athletes - the answer to life, the universe & everything ✨";
-            case 69:   return $"{C} athletes - nice 😏";
-            case 100:  return $"Hit {C} on the leaderboard, triple digits 🏁";
-            case 123:  return $"Counted up to {C} contenders in the tournament 🔢";
-            case 256:  return $"Power of two - {C} competitors in the bracket 💻";
-            case 300:  return $"{C} in the tournament - This is Sparta! 🛡️";
-            case 404:  return $"Logged {C} in the competition - athlete not found? found 🔎";
-            case 500:  return $"Crossed {C}, half-K competing 🚀";
-            case 666:  return $"Hit {C} athletes - beast mode 😈";
-            case 777:  return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
+            case 42: return $"{C} athletes - the answer to life, the universe & everything ✨";
+            case 69: return $"{C} athletes - nice 😏";
+            case 100: return $"Hit {C} on the leaderboard, triple digits 🏁";
+            case 123: return $"Counted up to {C} contenders in the tournament 🔢";
+            case 256: return $"Power of two - {C} competitors in the bracket 💻";
+            case 300: return $"{C} in the tournament - This is Sparta! 🛡️";
+            case 404: return $"Logged {C} in the competition - athlete not found? found 🔎";
+            case 500: return $"Crossed {C}, half-K competing 🚀";
+            case 666: return $"Hit {C} athletes - beast mode 😈";
+            case 777: return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
             case 1000: return $"Reached {C}, the big 1K competing 🏆";
             case 1337: return $"Leet level - {C} contenders in play 🕹️";
             case 1500: return $"Passed {C}, a solid field in the tournament 🧱";
@@ -385,7 +415,7 @@ public static class SlackMessageBuilder
             case 3141: return $"Slice of π, {C} now on the board 🥧";
             case 5000: return $"Press-worthy surge - {C} athletes in the tournament 📰";
             case 6969: return $"Meme tier unlocked, {C} competitors 🔓";
-            case 10000:return $"Five digits strong - {C} in the competition 💪";
+            case 10000: return $"Five digits strong - {C} in the competition 💪";
         }
 
         if (n > 9000 && n < 10000)
@@ -397,204 +427,30 @@ public static class SlackMessageBuilder
     private static string LeaderboardUrl() =>
         "https://longevityworldcup.com/leaderboard";
 
-    private static string BuildBadgeAward(string rawText, Func<string, string> slugToName)
+    private static string BuildBadgeAward(string rawText, Func<string, string> slugToName, Func<string, string?>? getPodcastLinkForSlug = null)
     {
         if (!EventHelpers.TryExtractSlug(rawText, out var slug)) return Escape(rawText);
 
         EventHelpers.TryExtractBadgeLabel(rawText, out var label);
-        EventHelpers.TryExtractCategory(rawText, out var cat);
-        EventHelpers.TryExtractValue(rawText, out var val);
-        EventHelpers.TryExtractPlace(rawText, out var place);
-        EventHelpers.TryExtractPrev(rawText, out var prevSlug);
-
-        var name = slugToName(slug);
-        var nameLink = Link(AthleteUrl(slug), name);
-
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
 
-        if (!string.IsNullOrWhiteSpace(normLabel) && normLabel.StartsWith("Best Domain", StringComparison.Ordinal))
-        {
-            var domain = EventHelpers.ExtractDomainFromLabel(normLabel);
-            var ord = place > 0 ? Ordinal(place) : "ranked";
-            var medal = place > 0 ? MedalOrTrend(place) : "";
-            var rw = $"{ord}{medal}";
+        if (!string.Equals(normLabel, "Podcast", StringComparison.OrdinalIgnoreCase))
+            return "";
 
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for {domain} biomarkers from {prevLink}",
-                    $"{nameLink} grabbed {rw} for {domain} biomarkers from {prevLink}",
-                    $"{nameLink} claimed {rw} for {domain} biomarkers from {prevLink}",
-                    $"{nameLink} overtook {prevLink} for {rw} in {domain} biomarkers"
-                );
-            }
+        _ = slugToName;
 
-            return Pick(
-                $"{nameLink} is {rw} for {domain} biomarkers",
-                $"{nameLink} takes {rw} for {domain} biomarkers",
-                $"{nameLink} now {rw} for {domain} biomarkers",
-                $"{nameLink} secures {rw} for {domain} biomarkers"
-            );
-        }
+        var displaySlug = slug.Replace('_', '-');
+        var slugLink = Link(AthleteUrl(slug), displaySlug);
 
-        if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.Ordinal))
-        {
-            var rw = RankWithMedal(place);
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for oldest chronological age from {prevLink}",
-                    $"{nameLink} grabbed {rw} for oldest chronological age from {prevLink}",
-                    $"{nameLink} claimed {rw} for oldest chronological age from {prevLink}"
-                );
-            }
-            return Pick(
-                $"{nameLink} is {rw} for oldest chronological age",
-                $"{nameLink} takes {rw} for oldest chronological age",
-                $"{nameLink} now {rw} for oldest chronological age"
-            );
-        }
-
-        if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.Ordinal))
-        {
-            var rw = RankWithMedal(place);
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for youngest chronological age from {prevLink}",
-                    $"{nameLink} grabbed {rw} for youngest chronological age from {prevLink}",
-                    $"{nameLink} claimed {rw} for youngest chronological age from {prevLink}"
-                );
-            }
-            return Pick(
-                $"{nameLink} is {rw} for youngest chronological age",
-                $"{nameLink} takes {rw} for youngest chronological age",
-                $"{nameLink} now {rw} for youngest chronological age"
-            );
-        }
-
-        if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.Ordinal))
-        {
-            var rw = RankWithMedal(place);
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for lowest PhenoAge from {prevLink}",
-                    $"{nameLink} grabbed {rw} for lowest PhenoAge from {prevLink}",
-                    $"{nameLink} claimed {rw} for lowest PhenoAge from {prevLink}"
-                );
-            }
-            return Pick(
-                $"{nameLink} is {rw} for lowest PhenoAge",
-                $"{nameLink} takes {rw} for lowest PhenoAge",
-                $"{nameLink} now {rw} for lowest PhenoAge"
-            );
-        }
-
-        if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.Ordinal))
-        {
-            var rw = RankWithMedal(place);
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for best PhenoAge improvement from {prevLink}",
-                    $"{nameLink} grabbed {rw} for best PhenoAge improvement from {prevLink}",
-                    $"{nameLink} claimed {rw} for best PhenoAge improvement from {prevLink}"
-                );
-            }
-            return Pick(
-                $"{nameLink} is {rw} for best PhenoAge improvement",
-                $"{nameLink} takes {rw} for best PhenoAge improvement",
-                $"{nameLink} now {rw} for best PhenoAge improvement"
-            );
-        }
-
-        if (string.Equals(normLabel, "Crowd - Most Guessed", StringComparison.Ordinal))
-        {
-            var rw = RankWithMedal(place);
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for most crowd guesses from {prevLink}",
-                    $"{nameLink} grabbed {rw} for most crowd guesses from {prevLink}"
-                );
-            }
-            return Pick(
-                $"{nameLink} is {rw} for most crowd guesses",
-                $"{nameLink} takes {rw} for most crowd guesses"
-            );
-        }
-
-        if (string.Equals(normLabel, "Crowd - Age Gap (Chrono-Crowd)", StringComparison.Ordinal))
-        {
-            var rw = RankWithMedal(place);
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for smallest Chrono-Crowd age gap from {prevLink}",
-                    $"{nameLink} grabbed {rw} for smallest Chrono-Crowd age gap from {prevLink}"
-                );
-            }
-            return Pick(
-                $"{nameLink} is {rw} for smallest Chrono-Crowd age gap",
-                $"{nameLink} takes {rw} for smallest Chrono-Crowd age gap"
-            );
-        }
-
-        if (string.Equals(normLabel, "Crowd - Lowest Crowd Age", StringComparison.Ordinal))
-        {
-            var rw = RankWithMedal(place);
-            if (!string.IsNullOrWhiteSpace(prevSlug))
-            {
-                var prevName = slugToName(prevSlug);
-                var prevLink = Link(AthleteUrl(prevSlug), prevName);
-                return Pick(
-                    $"{nameLink} took {rw} for lowest crowd age from {prevLink}",
-                    $"{nameLink} grabbed {rw} for lowest crowd age from {prevLink}"
-                );
-            }
-            return Pick(
-                $"{nameLink} is {rw} for lowest crowd age",
-                $"{nameLink} takes {rw} for lowest crowd age"
-            );
-        }
-
-        var league = LeagueDisplay(cat, val);
-        var o = place > 0 ? Ordinal(place) : "ranked";
-        var m = place > 0 ? MedalOrTrend(place) : "";
-        var rwDefault = $"{o}{m}";
-
-        if (!string.IsNullOrWhiteSpace(prevSlug))
-        {
-            var prevName = slugToName(prevSlug);
-            var prevLink = Link(AthleteUrl(prevSlug), prevName);
-            return Pick(
-                $"{nameLink} took {rwDefault} in {league} from {prevLink}",
-                $"{nameLink} grabbed {rwDefault} in {league} from {prevLink}",
-                $"{nameLink} claimed {rwDefault} in {league} from {prevLink}",
-                $"{nameLink} overtook {prevLink} for {rwDefault} in {league}"
-            );
-        }
+        var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
+        var episodeLink = !string.IsNullOrWhiteSpace(podcastUrl) ? Link(podcastUrl, "episode") : "episode";
 
         return Pick(
-            $"{nameLink} is {rwDefault} in {league}",
-            $"{nameLink} takes {rwDefault} in {league}",
-            $"{nameLink} now {rwDefault} in {league}",
-            $"{nameLink} secures {rwDefault} in {league}"
+            $"{slugLink} just dropped in on a brand new podcast {episodeLink}",
+            $"Fresh {episodeLink} out now featuring {slugLink}",
+            $"New podcast {episodeLink} with {slugLink} on the mic",
+            $"{slugLink} takes the spotlight in our latest podcast {episodeLink}",
+            $"Hear {slugLink} in a newly released podcast {episodeLink}"
         );
     }
 
@@ -605,7 +461,7 @@ public static class SlackMessageBuilder
 
         if (string.Equals(c, "Global", StringComparison.OrdinalIgnoreCase))
             return "Ultimate League";
-        
+
         if (c == "Division")
         {
             return v switch

@@ -1379,6 +1379,7 @@ public class AthleteDataService : IDisposable
     {
         var athletesSnapshot = GetAthletesSnapshot();
         var list = new List<(string Slug, string Name, int? CurrentRank)>();
+        var podcastList = new List<(string Slug, string PodcastLink)>();
         foreach (var o in athletesSnapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
@@ -1388,9 +1389,14 @@ public class AthleteDataService : IDisposable
             var rp = o["CurrentPlacement"];
             if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
             list.Add((slug, name, rank));
+
+            var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(link))
+                podcastList.Add((slug, link.Trim()));
         }
 
         _eventDataService.SetAthleteDirectory(list);
+        _eventDataService.SetPodcastLinks(podcastList);
     }
 
     // ===== biomarker/test signature helpers (single-column persistence) =====
