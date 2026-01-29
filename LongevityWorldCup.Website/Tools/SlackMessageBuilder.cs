@@ -246,12 +246,11 @@ public static class SlackMessageBuilder
             sb.Append('.');
             var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
             var episodeLink = !string.IsNullOrWhiteSpace(podcastUrl) ? Link(podcastUrl, "episode") : "episode";
-            var nameEsc = Escape(name);
 
             var podcastLine = Pick(
-                $"If you're curious who {nameEsc} is beyond the stats, check out the new podcast {episodeLink}",
-                $"Want to hear more from {nameEsc}? New podcast {episodeLink}",
-                $"Get to know {nameEsc} beyond the numbers – new podcast {episodeLink}"
+                $"If you're curious who {nameLink} is beyond the stats, check out the new podcast {episodeLink}",
+                $"Want to hear more from {nameLink}? New podcast {episodeLink}",
+                $"Get to know {nameLink} beyond the numbers – new podcast {episodeLink}"
             );
             sb.Append('\n');
             sb.Append(podcastLine);

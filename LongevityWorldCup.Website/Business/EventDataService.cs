@@ -163,6 +163,11 @@ public sealed class EventDataService : IDisposable
         _slackEvents.SetAthleteDirectory(items);
     }
 
+    public void SetPodcastLinks(IReadOnlyList<(string Slug, string PodcastLink)> items)
+    {
+        _slackEvents.SetPodcastLinks(items);
+    }
+
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,
