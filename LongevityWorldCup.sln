@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35312.102
@@ -18,6 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LongevityWorldCup.Documenta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongevityWorldCup.ApplicationReviewer", "LongevityWorldCup.ApplicationReviewer\LongevityWorldCup.ApplicationReviewer.csproj", "{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongevityWorldCup.XOAuthHelper", "LongevityWorldCup.XOAuthHelper\LongevityWorldCup.XOAuthHelper.csproj", "{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E02B9ABA-1299-49E4-A4BD-022DC5FCC992}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
