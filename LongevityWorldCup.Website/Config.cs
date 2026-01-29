@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -20,6 +20,11 @@ namespace LongevityWorldCup.Website
         public string? GmailClientSecret { get; set; }
         public string? GmailRefreshToken { get; set; }
         public string? SlackWebhookUrl { get; set; }
+
+        public string? XApiKey { get; set; }
+        public string? XApiSecret { get; set; }
+        public string? XAccessToken { get; set; }
+        public string? XRefreshToken { get; set; }
 
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
