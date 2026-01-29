@@ -211,6 +211,7 @@ public static class SlackMessageBuilder
         sb.Append(' ');
         sb.Append(rankVerb);
         sb.Append(newRank.Value);
+        sb.Append(MedalOrTrend(newRank.Value));
 
         if (!string.IsNullOrWhiteSpace(prevSlug))
         {
