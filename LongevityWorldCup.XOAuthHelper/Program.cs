@@ -10,26 +10,26 @@ const int RedirectPort = 8765;
 const string CallbackPath = "/callback";
 const string Scopes = "tweet.read tweet.write users.read offline.access";
 
-var clientId = Environment.GetEnvironmentVariable("X_CLIENT_ID");
-var clientSecret = Environment.GetEnvironmentVariable("X_CLIENT_SECRET");
-if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+string? clientId = null;
+string? clientSecret = null;
+var argv = Environment.GetCommandLineArgs().Skip(1).ToArray();
+for (var i = 0; i < argv.Length; i++)
 {
-    var baseDir = AppContext.BaseDirectory;
-    var configPath = Path.Combine(baseDir, "oauth-config.json");
-    if (!File.Exists(configPath))
-        configPath = Path.Combine(Directory.GetCurrentDirectory(), "oauth-config.json");
-    if (File.Exists(configPath))
+    if (string.Equals(argv[i], "--client-id", StringComparison.OrdinalIgnoreCase) && i + 1 < argv.Length)
     {
-        var json = await File.ReadAllTextAsync(configPath);
-        var config = JsonSerializer.Deserialize<JsonElement>(json);
-        clientId = config.GetProperty("ClientId").GetString();
-        clientSecret = config.GetProperty("ClientSecret").GetString();
+        clientId = argv[++i];
+        continue;
+    }
+    if (string.Equals(argv[i], "--client-secret", StringComparison.OrdinalIgnoreCase) && i + 1 < argv.Length)
+    {
+        clientSecret = argv[++i];
+        continue;
     }
 }
 
 if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
 {
-    Console.WriteLine("Set X_CLIENT_ID and X_CLIENT_SECRET, or create oauth-config.json with ClientId and ClientSecret.");
+    Console.WriteLine("Usage: dotnet run -- --client-id <id> --client-secret <secret>");
     Console.WriteLine("Add http://127.0.0.1:8765/callback to your X app callback URLs.");
     return 1;
 }
@@ -52,7 +52,7 @@ var query = new Dictionary<string, string>
 var authQuery = string.Join("&", query.Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
 var authFull = $"{AuthUrl}?{authQuery}";
 
-Console.WriteLine("Open this URL in a browser and sign in with your bot X account:");
+Console.WriteLine("Open this URL in a browser and sign in with the LWC X account (or your test account):");
 Console.WriteLine(authFull);
 Console.WriteLine();
 TryOpenBrowser(authFull);
@@ -109,7 +109,7 @@ await WriteResponseAsync(response, 200, "Success. You can close this window.");
 listener.Stop();
 
 Console.WriteLine();
-Console.WriteLine("Add these to config.json (or env):");
+Console.WriteLine("Add these to config.json:");
 Console.WriteLine();
 Console.WriteLine("  \"XAccessToken\": \"" + accessToken + "\"");
 if (!string.IsNullOrEmpty(refreshToken))
