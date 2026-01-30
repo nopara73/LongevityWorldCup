@@ -44,6 +44,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient<SlackWebhookClient>();
             builder.Services.AddSingleton<SlackEventService>();
             builder.Services.AddHttpClient<XApiClient>();
+            builder.Services.AddSingleton<XEventService>();
 
             builder.Services.AddQuartz(q =>
             {
@@ -132,7 +133,7 @@ namespace LongevityWorldCup.Website
 
             // TODO: remove later
             app.Services.GetRequiredService<BadgeDataService>();
-            
+
             var lf = app.Services.GetRequiredService<ILoggerFactory>();
             EnvironmentHelpers.Log = lf.CreateLogger(nameof(EnvironmentHelpers));
 

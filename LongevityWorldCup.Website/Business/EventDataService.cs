@@ -39,13 +39,15 @@ public sealed class EventDataService : IDisposable
 
     private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
+    private readonly XEventService _xEvents;
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, DatabaseManager db)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, DatabaseManager db)
     {
         _ = env;
         _slackEvents = slackEvents;
+        _xEvents = xEvents;
         _db = db ?? throw new ArgumentNullException(nameof(db));
 
         var dataDir = EnvironmentHelpers.GetDataDir();
@@ -63,7 +65,8 @@ public sealed class EventDataService : IDisposable
                         Text           TEXT NOT NULL,
                         OccurredAt     TEXT NOT NULL,
                         Relevance      REAL  NOT NULL DEFAULT 5,
-                        SlackProcessed INTEGER NOT NULL DEFAULT 0
+                        SlackProcessed INTEGER NOT NULL DEFAULT 0,
+                        XProcessed     INTEGER NOT NULL DEFAULT 0
                     );
                     """;
                 cmd.ExecuteNonQuery();
@@ -85,6 +88,23 @@ public sealed class EventDataService : IDisposable
                     cmd.ExecuteNonQuery();
                 }
 
+                var addedXProcessed = false;
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN XProcessed INTEGER NOT NULL DEFAULT 0;";
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    addedXProcessed = true;
+                }
+                catch
+                {
+                }
+
+                if (addedXProcessed)
+                {
+                    cmd.CommandText = "UPDATE Events SET XProcessed = 1;";
+                    cmd.ExecuteNonQuery();
+                }
+
                 cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_OccurredAt ON Events(OccurredAt);";
                 cmd.ExecuteNonQuery();
 
@@ -97,6 +117,7 @@ public sealed class EventDataService : IDisposable
         });
 
         ProcessPendingSlackEvents();
+        ProcessPendingXEvents();
         ReloadIntoCache();
 
         _db.DatabaseChanged += OnDatabaseChanged;
@@ -107,6 +128,7 @@ public sealed class EventDataService : IDisposable
         try
         {
             ProcessPendingSlackEvents();
+            ProcessPendingXEvents();
             ReloadIntoCache();
         }
         catch
@@ -158,14 +180,60 @@ public sealed class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
+    private void ProcessPendingXEvents()
+    {
+        var notify = new List<(EventType Type, string RawText)>();
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var selectCmd = sqlite.CreateCommand();
+            selectCmd.Transaction = tx;
+            selectCmd.CommandText =
+                "SELECT Id, Type, Text FROM Events " +
+                "WHERE XProcessed = 0 " +
+                "ORDER BY OccurredAt ASC;";
+
+            using var r = selectCmd.ExecuteReader();
+            var pending = new List<(string Id, int TypeInt, string Text)>();
+            while (r.Read())
+                pending.Add((r.GetString(0), r.GetInt32(1), r.GetString(2)));
+
+            if (pending.Count > 0)
+            {
+                using var claimCmd = sqlite.CreateCommand();
+                claimCmd.Transaction = tx;
+                claimCmd.CommandText = "UPDATE Events SET XProcessed = 1 WHERE Id = @id AND XProcessed = 0;";
+                var pId = claimCmd.Parameters.Add("@id", SqliteType.Text);
+
+                foreach (var (id, typeInt, text) in pending)
+                {
+                    pId.Value = id;
+                    var affected = claimCmd.ExecuteNonQuery();
+                    if (affected != 1) continue;
+
+                    var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
+                    notify.Add((type, text));
+                }
+            }
+
+            tx.Commit();
+        });
+
+        foreach (var n in notify) FireAndForgetX(n.Type, n.RawText);
+    }
+
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
     {
         _slackEvents.SetAthleteDirectory(items);
+        _xEvents.SetAthleteDirectory(items);
     }
 
     public void SetPodcastLinks(IReadOnlyList<(string Slug, string PodcastLink)> items)
     {
         _slackEvents.SetPodcastLinks(items);
+        _xEvents.SetPodcastLinks(items);
     }
 
     public void CreateNewRankEvents(
@@ -601,8 +669,8 @@ public sealed class EventDataService : IDisposable
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed) " +
-                "SELECT @id, @type, @text, @occ, @rel, 1 " +
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed) " +
+                "SELECT @id, @type, @text, @occ, @rel, 1, 1 " +
                 "WHERE NOT EXISTS (SELECT 1 FROM Events WHERE Type=@type AND Text=@text AND OccurredAt=@occ LIMIT 1);";
             var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
@@ -813,6 +881,10 @@ public sealed class EventDataService : IDisposable
 
             return;
         }
+    }
+
+    private void FireAndForgetX(EventType type, string rawText)
+    {
     }
 
     public void Dispose()
