@@ -8,101 +8,70 @@ Prerequisite: you already have an X (Twitter) account. Goal: API keys and tokens
 
 1. Open: [developer.x.com](https://developer.x.com)
 2. Sign in with your existing X account
-3. If you don't have a developer account yet: click **Sign up** / **Apply**, answer the questions (app purpose, use case)
-4. Scroll down to the **"Find the right access for you"** section
-5. Select the **Free** package and click **Get Started**
-6. Once approved/set up, you can access the Developer Portal
+3. Scroll down to the **"Find the right access for you"** section
+4. Select the **Free** package and click **Get Started**
+5. Complete the wizard that pops up
+6. The Console portal will open – you can continue with step 2
 
 ---
 
 ## 2. Create Project and App
 
-1. In the portal: **Projects & Apps** → **Overview** (or **Apps**)
-2. **Create Project** (if needed), provide name and description
-3. **Create App** within the project (e.g. "LWC" or "Longevity World Cup")
-4. Provide app name, description, and use case
+1. In the portal, open the **Apps** menu
+2. Under **Pay Per Use**, a pre-created app may appear – delete it via **Manage Apps**
+3. Click **Create your first app**
+4. Create a new app and complete the form
+5. You will receive **Consumer Key** and **Secret Key** – save both
+6. If the app is created but does not appear, refresh the page
+7. Then proceed to step 3
 
 ---
 
 ## 3. User Authentication (OAuth 2.0) Setup
 
-1. In the app: **Keys and tokens** or **Settings**
-2. **User authentication settings** → **Set up** (or **Edit**)
+1. Click on your app
+2. Under **User authentication settings**, click **Set up**
 3. Configure:
-   - **App permissions:** **Read and write** (required for posting tweets)
+   - **App permissions:** **Read and write**
    - **Type of App:** **Web App, Automated App or Bot**
    - **Callback URI / Redirect URL:** `http://127.0.0.1:8765/callback`
-   - **Website URL:** e.g. `https://longevityworldcup.com`
-4. **Save** / **Next**
+   - **Website URL:** `https://longevityworldcup.com`
+4. Click **Save changes**
+5. You will receive **Client Secret ID** and **Client Secret** – save both
 
 ---
 
-## 4. OAuth 2.0 Keys
-
-1. **Keys and tokens** tab
-2. **OAuth 2.0 Keys** section:
-   - **Client ID** – copy it
-   - **Client Secret** – **Show** → copy it (this is the app secret, do not share)
-
-These are needed to run XOAuthHelper.
-
----
-
-## 5. Getting Access Token and Refresh Token (XOAuthHelper)
+## 4. Getting Access Token and Refresh Token (XOAuthHelper)
 
 1. Open the project and go to the `LongevityWorldCup.XOAuthHelper` folder
 2. Run:
    ```
-   dotnet run -- --client-id <Client_ID> --client-secret <Client_Secret>
+   dotnet run -- --client-id <Client_Secret_ID> --client-secret <Client_Secret>
    ```
+   Use **Client Secret ID** for `--client-id` and **Client Secret** for `--client-secret`.
 3. A browser opens with the X authorization page
-4. Sign in with the **LWC X account** (the one that will post), authorize the app
-5. The console displays:
-   - **XAccessToken**
-   - **XRefreshToken**
-6. Copy both – they go into `config.json`
+4. Log in with the **account that will post** (e.g. the LWC X account). If the wrong account appears, clear the browser cache on that page and try again
+5. Click **Authorize app**
+6. The terminal displays **XAccessToken** and **XRefreshToken** – save both (they go into `config.json`)
 
 ---
 
-## 6. Config Setup
+## 5. Config Setup
 
 Add this to `config.json` (Website project):
 
 ```json
-"XApiKey": "<Client_ID>",
+"XApiKey": "<Client_Secret_ID>",
 "XApiSecret": "<Client_Secret>",
-"XAccessToken": "<access_token_from_XOAuthHelper>",
-"XRefreshToken": "<refresh_token_from_XOAuthHelper>"
+"XAccessToken": "<XAccessToken>",
+"XRefreshToken": "<XRefreshToken>"
 ```
-
-- **XApiKey** = Client ID (OAuth 2.0)
-- **XApiSecret** = Client Secret (OAuth 2.0)
-- **XAccessToken** = output from XOAuthHelper
-- **XRefreshToken** = output from XOAuthHelper
 
 ---
 
-## 7. Billing / Credits (Important)
+## 6. Billing / Credits (Important)
 
 Posting tweets consumes **credits**. If you get **402 Payment Required**:
 
-1. **Billing** → **Credits**: if the balance is **$0**, you need to purchase credits or redeem a voucher
-2. **Billing** → **Billing information**: add a **payment method** (card)
-3. **Credits** → **Purchase credits** – buy credits, or
-4. **Credits** → **Redeem Voucher** – if you have a free credits voucher
+1. **Billing** → **Credits** → **Purchase credits**
 
-Free tier / 500 posts: check the portal and Billing section for current limits; 402 usually means $0 credit balance.
-
----
-
-## Summary
-
-| Step | Where | Action |
-|------|-------|--------|
-| 1 | developer.x.com | Sign in, scroll to "Find the right access for you", select Free, Get Started |
-| 2 | Projects & Apps | Create project and app |
-| 3 | App → User authentication | OAuth 2.0, Read and write, callback URL |
-| 4 | Keys and tokens | Copy Client ID, Client Secret |
-| 5 | XOAuthHelper | `dotnet run -- --client-id X --client-secret Y`, authorize with bot account |
-| 6 | config.json | XApiKey, XApiSecret, XAccessToken, XRefreshToken |
-| 7 | Billing → Credits | If 402: add payment method, buy credits or redeem voucher |
