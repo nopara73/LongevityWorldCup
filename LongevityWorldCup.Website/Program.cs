@@ -57,6 +57,7 @@ namespace LongevityWorldCup.Website
                 var donationKey = new JobKey("BitcoinDonationCheckJob");
                 var backupKey = new JobKey("DatabaseBackupJob");
                 var seasonFinalizerKey = new JobKey("SeasonFinalizerJob");
+                var xDailyPostKey = new JobKey("XDailyPostJob");
 
                 // Every day 00:00
                 q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
@@ -111,6 +112,11 @@ namespace LongevityWorldCup.Website
                     .WithIdentity("SeasonFinalizerTrigger_Immediate")
                     .StartNow()
                     .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+
+                q.AddJob<XDailyPostJob>(o => o.WithIdentity(xDailyPostKey));
+                q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                    .WithIdentity("XDailyPostTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
             });
             builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
 

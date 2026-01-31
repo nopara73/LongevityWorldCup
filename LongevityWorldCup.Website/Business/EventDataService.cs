@@ -117,7 +117,6 @@ public sealed class EventDataService : IDisposable
         });
 
         ProcessPendingSlackEvents();
-        ProcessPendingXEvents();
         ReloadIntoCache();
 
         _db.DatabaseChanged += OnDatabaseChanged;
@@ -128,7 +127,6 @@ public sealed class EventDataService : IDisposable
         try
         {
             ProcessPendingSlackEvents();
-            ProcessPendingXEvents();
             ReloadIntoCache();
         }
         catch
@@ -180,48 +178,65 @@ public sealed class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
-    private void ProcessPendingXEvents()
+    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)> GetPendingXEvents(DateTime? fromUtc, DateTime? toUtc, int limit = 10)
     {
-        var notify = new List<(EventType Type, string RawText)>();
+        return _db.Run(sqlite =>
+        {
+            var filters = new List<string> { "XProcessed = 0", "Type != @customEvent" };
+            var parameters = new List<SqliteParameter> { new SqliteParameter("@customEvent", (int)EventType.CustomEvent) };
+
+            if (fromUtc.HasValue)
+            {
+                filters.Add("OccurredAt >= @from");
+                parameters.Add(new SqliteParameter("@from", EnsureUtc(fromUtc.Value).ToString("o")));
+            }
+            if (toUtc.HasValue)
+            {
+                filters.Add("OccurredAt <= @to");
+                parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
+            }
+
+            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events WHERE " +
+                string.Join(" AND ", filters) +
+                " ORDER BY Relevance DESC, OccurredAt DESC LIMIT @limit";
+            parameters.Add(new SqliteParameter("@limit", limit));
+
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = sql;
+            foreach (var p in parameters) cmd.Parameters.Add(p);
+
+            var list = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var typeInt = r.GetInt32(1);
+                var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
+                var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
+                list.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
+            }
+            return list;
+        });
+    }
+
+    public void MarkEventsXProcessed(IEnumerable<string> ids)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0) return;
 
         _db.Run(sqlite =>
         {
             using var tx = sqlite.BeginTransaction();
-
-            using var selectCmd = sqlite.CreateCommand();
-            selectCmd.Transaction = tx;
-            selectCmd.CommandText =
-                "SELECT Id, Type, Text FROM Events " +
-                "WHERE XProcessed = 0 " +
-                "ORDER BY OccurredAt ASC;";
-
-            using var r = selectCmd.ExecuteReader();
-            var pending = new List<(string Id, int TypeInt, string Text)>();
-            while (r.Read())
-                pending.Add((r.GetString(0), r.GetInt32(1), r.GetString(2)));
-
-            if (pending.Count > 0)
+            using var cmd = sqlite.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "UPDATE Events SET XProcessed = 1 WHERE Id = @id AND XProcessed = 0";
+            var pId = cmd.Parameters.Add("@id", SqliteType.Text);
+            foreach (var id in idList)
             {
-                using var claimCmd = sqlite.CreateCommand();
-                claimCmd.Transaction = tx;
-                claimCmd.CommandText = "UPDATE Events SET XProcessed = 1 WHERE Id = @id AND XProcessed = 0;";
-                var pId = claimCmd.Parameters.Add("@id", SqliteType.Text);
-
-                foreach (var (id, typeInt, text) in pending)
-                {
-                    pId.Value = id;
-                    var affected = claimCmd.ExecuteNonQuery();
-                    if (affected != 1) continue;
-
-                    var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
-                    notify.Add((type, text));
-                }
+                pId.Value = id;
+                cmd.ExecuteNonQuery();
             }
-
             tx.Commit();
         });
-
-        foreach (var n in notify) FireAndForgetX(n.Type, n.RawText);
     }
 
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
@@ -881,10 +896,6 @@ public sealed class EventDataService : IDisposable
 
             return;
         }
-    }
-
-    private void FireAndForgetX(EventType type, string rawText)
-    {
     }
 
     public void Dispose()
