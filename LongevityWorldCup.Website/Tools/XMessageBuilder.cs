@@ -1,3 +1,4 @@
+using System.Globalization;
 using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
@@ -5,6 +6,7 @@ namespace LongevityWorldCup.Website.Tools;
 public static class XMessageBuilder
 {
     private const int MaxLength = 280;
+    private const string LeaderboardUrl = "https://longevityworldcup.com/leaderboard";
 
     public static string ForEventText(
         EventType type,
@@ -12,6 +14,16 @@ public static class XMessageBuilder
         Func<string, string> slugToName,
         Func<string, string?>? getPodcastLinkForSlug = null)
     {
+        if (type == EventType.AthleteCountMilestone)
+        {
+            if (!EventHelpers.TryExtractAthleteCount(rawText, out var count) || count <= 0) return "";
+            var countLabel = count.ToString("N0", CultureInfo.InvariantCulture);
+            var text =
+                $"Longevity World Cup just hit {countLabel} athletes on the leaderboard 🏁\n" +
+                $"📊 View the board: {LeaderboardUrl}";
+            return Truncate(text);
+        }
+
         if (type != EventType.BadgeAward) return "";
 
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
