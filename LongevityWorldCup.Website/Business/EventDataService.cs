@@ -239,31 +239,11 @@ public sealed class EventDataService : IDisposable
         });
     }
 
-    public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
+    public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
     {
-        _slackEvents.SetAthleteDirectory(items);
-        _xEvents.SetAthleteDirectory(items);
-    }
-
-    public void SetPodcastLinks(IReadOnlyList<(string Slug, string PodcastLink)> items)
-    {
-        _slackEvents.SetPodcastLinks(items);
-        _xEvents.SetPodcastLinks(items);
-    }
-
-    public void SetXHandles(IReadOnlyList<(string Slug, string Handle)> items)
-    {
-        _xEvents.SetXHandles(items);
-    }
-
-    public void SetLowestPhenoAges(IReadOnlyList<(string Slug, double? LowestPhenoAge)> items)
-    {
-        _xEvents.SetLowestPhenoAges(items);
-    }
-
-    public void SetChronoAges(IReadOnlyList<(string Slug, double? ChronoAge)> items)
-    {
-        _xEvents.SetChronoAges(items);
+        _xEvents.SetAthletesForX(items);
+        _slackEvents.SetAthleteDirectory(items.Select(a => (a.Slug, a.Name, a.CurrentRank)).ToList());
+        _slackEvents.SetPodcastLinks(items.Where(a => !string.IsNullOrWhiteSpace(a.PodcastLink)).Select(a => (a.Slug, a.PodcastLink!)).ToList());
     }
 
     public void CreateNewRankEvents(

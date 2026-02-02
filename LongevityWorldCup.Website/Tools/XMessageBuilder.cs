@@ -40,7 +40,8 @@ public static class XMessageBuilder
         Func<string, string> slugToName,
         Func<string, string?>? getPodcastLinkForSlug = null,
         Func<string, double?>? getLowestPhenoAgeForSlug = null,
-        Func<string, double?>? getChronoAgeForSlug = null)
+        Func<string, double?>? getChronoAgeForSlug = null,
+        Func<string, double?>? getPhenoDiffForSlug = null)
     {
         if (type == EventType.AthleteCountMilestone)
         {
@@ -80,6 +81,21 @@ public static class XMessageBuilder
                 $"Lowest biological age in the Longevity World Cup field 🧬\n" +
                 $"{phenoAthlete} holds it{ageStr}.\n" +
                 $"📊 Profile: {athleteUrl}");
+        }
+
+        if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var diffSlug)) return "";
+            var diffVal = getPhenoDiffForSlug?.Invoke(diffSlug);
+            if (!diffVal.HasValue) return "";
+            var years = Math.Abs(diffVal.Value);
+            var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
+            var athlete = slugToName(diffSlug);
+            var url = AthleteUrl(diffSlug);
+            return Truncate(
+                $"Best PhenoAge improvement in the Longevity World Cup field 🧬\n" +
+                $"{athlete} — biological age improved by {yearsStr} years vs baseline.\n" +
+                $"📊 Profile: {url}");
         }
 
         if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))

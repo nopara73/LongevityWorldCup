@@ -24,11 +24,7 @@ public class XDailyPostJob : IJob
     {
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
-        _events.SetAthleteDirectory(_athletes.GetAthleteDirectoryForX());
-        _events.SetPodcastLinks(_athletes.GetPodcastLinksForX());
-        _events.SetXHandles(_athletes.GetXHandlesForX());
-        _events.SetLowestPhenoAges(_athletes.GetLowestPhenoAgesForX());
-        _events.SetChronoAges(_athletes.GetChronoAgesForX());
+        _events.SetAthletesForX(_athletes.GetAthletesForX());
 
         var toUtc = DateTime.UtcNow;
         var fromUtc = toUtc.AddDays(-7);
