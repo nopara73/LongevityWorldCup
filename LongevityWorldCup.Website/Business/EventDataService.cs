@@ -178,9 +178,11 @@ public sealed class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
-    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)> GetPendingXEvents(DateTime? fromUtc, DateTime? toUtc, int limit = 10)
+    public const int XPriorityPrimaryMax = 7;
+
+    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
     {
-        return _db.Run(sqlite =>
+        var list = _db.Run(sqlite =>
         {
             var filters = new List<string> { "XProcessed = 0", "Type != @customEvent" };
             var parameters = new List<SqliteParameter> { new SqliteParameter("@customEvent", (int)EventType.CustomEvent) };
@@ -198,24 +200,56 @@ public sealed class EventDataService : IDisposable
 
             var sql = "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events WHERE " +
                 string.Join(" AND ", filters) +
-                " ORDER BY Relevance DESC, OccurredAt DESC LIMIT @limit";
-            parameters.Add(new SqliteParameter("@limit", limit));
+                " ORDER BY OccurredAt DESC";
+            if (limit.HasValue)
+            {
+                sql += " LIMIT @limit";
+                parameters.Add(new SqliteParameter("@limit", limit.Value));
+            }
 
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText = sql;
             foreach (var p in parameters) cmd.Parameters.Add(p);
 
-            var list = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
+            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
                 var typeInt = r.GetInt32(1);
                 var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
                 var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
-                list.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
+                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
             }
-            return list;
+            return result;
         });
+        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, GetXPriority(e.Type, e.Text))).ToList();
+        withPriority.Sort((a, b) =>
+        {
+            if (a.Item6 != b.Item6) return a.Item6.CompareTo(b.Item6);
+            return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
+        });
+        return withPriority;
+    }
+
+    private static int GetXPriority(EventType type, string text)
+    {
+        if (type == EventType.NewRank) return 0;
+        if (type == EventType.BadgeAward)
+        {
+            if (!EventHelpers.TryExtractBadgeLabel(text, out var label)) return 99;
+            var norm = EventHelpers.NormalizeBadgeLabel(label);
+            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase)) return 1;
+            if (EventHelpers.TryExtractPlace(text, out var place) && place == 1
+                && EventHelpers.TryExtractCategory(text, out var cat) && !string.Equals(cat, "Global", StringComparison.OrdinalIgnoreCase))
+                return 2;
+            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)) return 3;
+            if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase)) return 4;
+            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)) return 5;
+            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)) return 6;
+            return 99;
+        }
+        if (type == EventType.AthleteCountMilestone) return 7;
+        return 99;
     }
 
     public void MarkEventsXProcessed(IEnumerable<string> ids)

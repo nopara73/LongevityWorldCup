@@ -26,12 +26,14 @@ public class XDailyPostJob : IJob
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
 
-        var toUtc = DateTime.UtcNow;
-        var fromUtc = toUtc.AddDays(-7);
-        var pending = _events.GetPendingXEvents(fromUtc, toUtc, limit: 20);
+        var pending = _events.GetPendingXEvents();
+        var freshCutoff = DateTime.UtcNow.AddDays(-7);
 
-        foreach (var (id, type, text, _, _) in pending)
+        foreach (var (id, type, text, occurredAtUtc, _, xPriority) in pending)
         {
+            if (xPriority <= EventDataService.XPriorityPrimaryMax && occurredAtUtc < freshCutoff)
+                continue;
+
             var msg = _xEvents.TryBuildMessage(type, text);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
