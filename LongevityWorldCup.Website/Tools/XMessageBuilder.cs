@@ -16,7 +16,8 @@ public static class XMessageBuilder
         string rawText,
         Func<string, string> slugToName,
         Func<string, string?>? getPodcastLinkForSlug = null,
-        Func<string, double?>? getLowestPhenoAgeForSlug = null)
+        Func<string, double?>? getLowestPhenoAgeForSlug = null,
+        Func<string, double?>? getChronoAgeForSlug = null)
     {
         if (type == EventType.AthleteCountMilestone)
         {
@@ -56,6 +57,28 @@ public static class XMessageBuilder
                 $"Lowest biological age in the Longevity World Cup field 🧬\n" +
                 $"{phenoAthlete} holds it{ageStr}.\n" +
                 $"📊 Profile: {athleteUrl}");
+        }
+
+        if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var chronoSlug)) return "";
+            var chronoAge = getChronoAgeForSlug?.Invoke(chronoSlug);
+            if (!chronoAge.HasValue) return "";
+            var chronoAthlete = slugToName(chronoSlug);
+            var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
+            var url = AthleteUrl(chronoSlug);
+            return Truncate($"{chronoAthlete} just became the oldest in the Longevity World Cup field at {ageStr} 🏃‍♂️\n📊 Profile: {url}");
+        }
+
+        if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var chronoSlug)) return "";
+            var chronoAge = getChronoAgeForSlug?.Invoke(chronoSlug);
+            if (!chronoAge.HasValue) return "";
+            var chronoAthlete = slugToName(chronoSlug);
+            var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
+            var url = AthleteUrl(chronoSlug);
+            return Truncate($"{chronoAthlete} just became the youngest in the Longevity World Cup field at {ageStr} 🏃‍♂️\n📊 Profile: {url}");
         }
 
         if (!string.Equals(normLabel, "Podcast", StringComparison.OrdinalIgnoreCase)) return "";

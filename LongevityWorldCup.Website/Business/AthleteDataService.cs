@@ -712,6 +712,21 @@ public class AthleteDataService : IDisposable
         return list;
     }
 
+    public IReadOnlyList<(string Slug, double? ChronoAge)> GetChronoAgesForX()
+    {
+        var list = new List<(string Slug, double? ChronoAge)>();
+        foreach (var o in GetRankingsOrder().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            double? chrono = null;
+            if (o["ChronologicalAge"] is JsonValue cv && cv.TryGetValue<double>(out var v))
+                chrono = v;
+            list.Add((slug, chrono));
+        }
+        return list;
+    }
+
     private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>
         SortByCompetitionRules(IEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
     {
@@ -1441,6 +1456,7 @@ public class AthleteDataService : IDisposable
         _eventDataService.SetPodcastLinks(GetPodcastLinksForX());
         _eventDataService.SetXHandles(GetXHandlesForX());
         _eventDataService.SetLowestPhenoAges(GetLowestPhenoAgesForX());
+        _eventDataService.SetChronoAges(GetChronoAgesForX());
     }
 
     private static string? ExtractXHandle(string? mediaContact)

@@ -28,6 +28,7 @@ public class XDailyPostJob : IJob
         _events.SetPodcastLinks(_athletes.GetPodcastLinksForX());
         _events.SetXHandles(_athletes.GetXHandlesForX());
         _events.SetLowestPhenoAges(_athletes.GetLowestPhenoAgesForX());
+        _events.SetChronoAges(_athletes.GetChronoAgesForX());
 
         var toUtc = DateTime.UtcNow;
         var fromUtc = toUtc.AddDays(-7);
