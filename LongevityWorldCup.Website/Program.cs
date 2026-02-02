@@ -117,6 +117,11 @@ namespace LongevityWorldCup.Website
                 q.AddTrigger(t => t.ForJob(xDailyPostKey)
                     .WithIdentity("XDailyPostTrigger")
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                // TODO: remove – run X job on startup for testing only
+                q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                    .WithIdentity("XDailyPostTrigger_Immediate")
+                    .StartNow()
+                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
             });
             builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
 

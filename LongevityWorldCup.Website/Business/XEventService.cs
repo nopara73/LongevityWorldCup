@@ -64,6 +64,12 @@ public class XEventService
         await SendAsync(msg);
     }
 
+    public string? TryBuildMessage(EventType type, string rawText)
+    {
+        var msg = BuildMessage(type, rawText);
+        return string.IsNullOrWhiteSpace(msg) ? null : msg;
+    }
+
     private string BuildMessage(EventType type, string rawText)
     {
         return XMessageBuilder.ForEventText(type, rawText, SlugToName, GetPodcast);

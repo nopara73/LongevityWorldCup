@@ -18,16 +18,25 @@ public class XDailyPostJob : IJob
         _xEvents = xEvents;
     }
 
-    public Task Execute(IJobExecutionContext context)
+    public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
-        // TODO: get pending X events (e.g. _events.GetPendingXEvents)
-        // TODO: pick best event to post (selection logic)
-        // TODO: build tweet text for chosen event
-        // TODO: _xEvents.SendAsync(msg)
-        // TODO: _events.MarkEventsXProcessed([id])
+        var toUtc = DateTime.UtcNow;
+        var fromUtc = toUtc.AddDays(-7);
+        var pending = _events.GetPendingXEvents(fromUtc, toUtc, limit: 20);
 
-        return Task.CompletedTask;
+        foreach (var (id, type, text, _, _) in pending)
+        {
+            var msg = _xEvents.TryBuildMessage(type, text);
+            if (string.IsNullOrWhiteSpace(msg)) continue;
+
+            await _xEvents.SendAsync(msg);
+            _events.MarkEventsXProcessed(new[] { id });
+            _logger.LogInformation("XDailyPostJob posted event {Id}", id);
+            return;
+        }
+
+        _logger.LogInformation("XDailyPostJob no postable event found");
     }
 }

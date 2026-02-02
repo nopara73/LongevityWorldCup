@@ -20,14 +20,16 @@ public static class XMessageBuilder
 
         if (!EventHelpers.TryExtractSlug(rawText, out var slug)) return "";
 
-        var name = slugToName(slug);
+        var guest = slugToName(slug);
         var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
+        if (string.IsNullOrWhiteSpace(podcastUrl)) return "";
 
-        string text;
-        if (!string.IsNullOrWhiteSpace(podcastUrl))
-            text = $"{name} just released a new Longevity World Cup podcast episode: {podcastUrl}";
-        else
-            text = $"{name} just released a new Longevity World Cup podcast episode.";
+        const string host = "@nopara73";
+
+        var text =
+            $"New Longevity World Cup podcast 🎧\n" +
+            $"{host} sits down with {guest} for a full conversation on the show.\n" +
+            $"📹 Full episode: {podcastUrl}";
 
         return Truncate(text);
     }
