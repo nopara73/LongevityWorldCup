@@ -24,6 +24,22 @@ public static class XMessageBuilder
             return Truncate(text);
         }
 
+        if (type == EventType.NewRank)
+        {
+            if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank < 1 || rank > 3) return "";
+            if (!EventHelpers.TryExtractSlug(rawText, out var slug)) return "";
+            var current = slugToName(slug);
+            EventHelpers.TryExtractPrev(rawText, out var prevSlug);
+            var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
+
+            string text;
+            if (!string.IsNullOrWhiteSpace(prev))
+                text = $"New #{rank} in the Longevity World Cup Ultimate League 🏆\n{current} overtakes {prev} for the spot.\n📊 Leaderboard: {LeaderboardUrl}";
+            else
+                text = $"New #{rank} in the Longevity World Cup Ultimate League 🏆\n{current} takes #{rank}.\n📊 Leaderboard: {LeaderboardUrl}";
+            return Truncate(text);
+        }
+
         if (type != EventType.BadgeAward) return "";
 
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
