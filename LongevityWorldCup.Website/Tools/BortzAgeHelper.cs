@@ -2,30 +2,52 @@ using System.Globalization;
 
 namespace LongevityWorldCup.Website.Tools
 {
+    /// <summary>
+    /// Bortz Age / Biological Age Acceleration (BAA) from Bortz et al. 2023
+    /// https://www.nature.com/articles/s42003-023-05456-z
+    /// Coefficients and Scottish test-set means from https://github.com/bortzjd/bloodmarker_BA_estimation
+    /// BAA = 10 * sum((x_i - mean_i) * baaCoeff_i). Biological age = chronological age + BAA.
+    /// Excludes MSCV, PDW, PCT, and reticulocytes per product requirement.
+    /// </summary>
     public static class BortzAgeHelper
     {
         public enum CapMode { None, Floor, Ceiling }
-        public sealed record Biomarker(string Id, string Name, double Coeff, double? Cap = null, CapMode Mode = CapMode.None);
 
-        public static readonly Biomarker[] Biomarkers =
+        /// <summary>Feature id, display name, mean (for centering), BAA coefficient, log transform, and optional cap (PhenoAge-style).</summary>
+        public sealed record BortzFeature(string Id, string Name, double Mean, double BaaCoeff, bool IsLog = false, double? Cap = null, CapMode CapMode = CapMode.None);
+
+        /// <summary>Order matches the model. Age uses (ENET - SexAge) coefficient; sex is not in BAA. Caps match PhenoAge where applicable (no creatinine cap; Bortz would need ceiling, not floor).</summary>
+        public static readonly BortzFeature[] Features =
         {
-            new("age","Age",0.0804),
-            new("albumin","Albumin",-0.0336),
-            new("creatinine","Creatinine",0.0095,44,CapMode.Floor),
-            new("glucose","Glucose",0.1953,4.44,CapMode.Floor),
-            new("crp","C-reactive protein",0.0954),
-            new("wbc","White blood cell count",0.0554,3.5,CapMode.Floor),
-            new("lymphocyte","Lymphocytes",-0.012,60,CapMode.Ceiling),
-            new("mcv","Mean corpuscular volume",0.0268),
-            new("rcdw","Red cell distribution width",0.3306,11.4,CapMode.Floor),
-            new("ap","Alkaline phosphatase",0.0019)
+            new("age", "Age", 56.0487752, 0.074763266 - 0.100432393),
+            new("albumin", "Albumin", 45.1238763, -0.011331946),
+            new("alp", "Alkaline phosphatase", 82.6847975, 0.00164946),
+            new("urea", "Urea", 5.3547152, -0.029554872),
+            new("cholesterol", "Total Cholesterol", 5.6177437, -0.0805656),
+            new("creatinine", "Creatinine", 71.565605, -0.01095746), // no cap: PhenoAge has floor, Bortz would need ceiling
+            new("cystatin_c", "Cystatin C", 0.900946, 1.859556436),
+            new("hba1c", "HbA1c", 35.4785711, 0.018116675),
+            new("crp", "C-reactive protein (hsCRP)", 0.3003624, 0.079109916, IsLog: true),
+            new("ggt", "Gamma-glutamyl transferase", 3.3795613, 0.265550311, IsLog: true),
+            new("rbc", "Red blood cell count", 4.4994648, -0.204442153),
+            new("mcv", "Mean corpuscular volume", 91.9251099, 0.017165356),
+            new("rdw", "Red cell distribution width", 13.4342296, 0.202009895, Cap: 11.4, CapMode: CapMode.Floor),
+            new("monocyte_count", "Monocytes (absolute)", 0.4746987, 0.36937314),
+            new("neutrophil_count", "Neutrophils (absolute)", 4.1849454, 0.06679092),
+            new("lymphocyte_percentage", "Lymphocytes (%)", 28.5817604, -0.0108158, Cap: 60, CapMode: CapMode.Ceiling),
+            new("alt", "Alanine aminotransferase", 3.077868, -0.312442261, IsLog: true),
+            new("shbg", "SHBG", 3.8202787, 0.292323186, IsLog: true),
+            new("vitamin_d", "Vitamin D (25-OH)", 3.6052878, -0.265467867, IsLog: true),
+            new("glucose", "Glucose", 4.9563054, 0.032171478, Cap: 4.44, CapMode: CapMode.Floor),
+            new("mch", "Mean corpuscular hemoglobin", 31.8396206, 0.02746487),
+            new("apoa1", "Apolipoprotein A1", 1.5238771, -0.185139395),
         };
 
-        private static double ApplyCap(double value, Biomarker bm) =>
-            bm.Mode switch
+        private static double ApplyCap(double value, BortzFeature f) =>
+            f.CapMode switch
             {
-                CapMode.Floor => Math.Max(value, bm.Cap!.Value),
-                CapMode.Ceiling => Math.Min(value, bm.Cap!.Value),
+                CapMode.Floor => Math.Max(value, f.Cap!.Value),
+                CapMode.Ceiling => Math.Min(value, f.Cap!.Value),
                 _ => value
             };
 
@@ -35,106 +57,49 @@ namespace LongevityWorldCup.Website.Tools
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : double.NaN;
         }
 
-        public static double CalculateBortzAgeFromRaw(
-            double ageYears,
-            double albuminGL,
-            double creatUmolL,
-            double gluMmolL,
-            double crpMgL,
-            double wbc_1000cells_uL,
-            double lymphPc,
-            double mcvFL,
-            double rdwPc,
-            double alpUL)
+        /// <summary>
+        /// Compute Biological Age Acceleration (BAA). Values must be in model order and units:
+        /// age (years), albumin (g/L), ALP (U/L), urea (mmol/L), cholesterol (mmol/L), creatinine (µmol/L),
+        /// cystatin_c (mg/L), HbA1c (mmol/mol), CRP raw (mg/L), GGT raw (U/L), RBC (10^12/L), MCV (fL), RDW (%),
+        /// monocytes (10^9/L), neutrophils (10^9/L), lymphocyte % (%), ALT raw (U/L), SHBG raw (nmol/L), Vitamin D raw (nmol/L),
+        /// glucose (mmol/L), MCH (pg), ApoA1 (g/L).
+        /// CRP, GGT, ALT, SHBG, Vitamin D are log-transformed internally.
+        /// </summary>
+        public static double CalculateBAA(double[] values)
         {
-            if (crpMgL <= 0) return double.NaN;
-            var lnCrpOver10 = Math.Log(crpMgL / 10.0);
-            var values = new[]
+            if (values == null || values.Length != Features.Length)
+                return double.NaN;
+
+            double sum = 0;
+            for (int i = 0; i < Features.Length; i++)
             {
-                ageYears, albuminGL, creatUmolL, gluMmolL, lnCrpOver10,
-                wbc_1000cells_uL, lymphPc, mcvFL, rdwPc, alpUL
-            };
-            return CalculateBortzAge(values);
+                var f = Features[i];
+                double x = values[i];
+                if (f.IsLog && x > 0)
+                    x = Math.Log(x);
+                else if (f.IsLog && x <= 0)
+                    return double.NaN;
+                x = ApplyCap(x, f);
+                double centered = x - f.Mean;
+                sum += centered * f.BaaCoeff;
+            }
+            return sum * 10;
         }
 
-        public static double CalculateLiverScore(double[] markerValues)
+        /// <summary>Biological age = chronological age + BAA.</summary>
+        public static double CalculateBortzAge(double chronologicalAgeYears, double baa)
         {
-            var albumin = markerValues[1];
-            var ap = markerValues[9];
-            var coeffAlbumin = Biomarkers[1].Coeff;
-            var coeffAP = Biomarkers[9].Coeff;
-            return albumin * coeffAlbumin + ap * coeffAP;
+            if (!double.IsFinite(chronologicalAgeYears) || !double.IsFinite(baa))
+                return double.NaN;
+            return Math.Max(0, chronologicalAgeYears + baa);
         }
 
-        public static double CalculateKidneyScore(double[] markerValues)
+        /// <summary>Single entry point: compute BAA from raw values then return biological age.</summary>
+        public static double CalculateBortzAgeFromRaw(double chronologicalAgeYears, double[] rawValuesInFeatureOrder)
         {
-            var creatinine = ApplyCap(markerValues[2], Biomarkers[2]);
-            return creatinine * Biomarkers[2].Coeff;
+            var baa = CalculateBAA(rawValuesInFeatureOrder);
+            if (!double.IsFinite(baa)) return double.NaN;
+            return CalculateBortzAge(chronologicalAgeYears, baa);
         }
-
-        public static double CalculateMetabolicScore(double[] markerValues)
-        {
-            var glucose = ApplyCap(markerValues[3], Biomarkers[3]);
-            return glucose * Biomarkers[3].Coeff;
-        }
-
-        public static double CalculateInflammationScore(double[] markerValues)
-        {
-            var crp = markerValues[4];
-            return crp * Biomarkers[4].Coeff;
-        }
-
-        public static double CalculateImmuneScore(double[] markerValues)
-        {
-            var wbc = ApplyCap(markerValues[5], Biomarkers[5]);
-            var lymphocyte = ApplyCap(markerValues[6], Biomarkers[6]);
-            var mcv = markerValues[7];
-            var rcdw = ApplyCap(markerValues[8], Biomarkers[8]);
-
-            return wbc * Biomarkers[5].Coeff
-                 + lymphocyte * Biomarkers[6].Coeff
-                 + mcv * Biomarkers[7].Coeff
-                 + rcdw * Biomarkers[8].Coeff;
-        }
-
-        public static double CalculateBortzAge(double[] markerValues)
-        {
-            var ageScore = markerValues[0] * Biomarkers[0].Coeff;
-
-            var totalScore =
-                ageScore +
-                CalculateLiverScore(markerValues) +
-                CalculateKidneyScore(markerValues) +
-                CalculateMetabolicScore(markerValues) +
-                CalculateInflammationScore(markerValues) +
-                CalculateImmuneScore(markerValues);
-
-            const double b0 = -19.9067;
-            const double gamma = 0.0076927;
-            var rollingTotal = totalScore + b0;
-
-            const int tmonths = 120;
-            var mortalityScore = 1 - Math.Exp(-Math.Exp(rollingTotal) * (Math.Exp(gamma * tmonths) - 1) / gamma);
-
-            var bortzAge = 141.50225 + Math.Log(-0.00553 * Math.Log(1 - mortalityScore)) / 0.090165;
-            return Math.Max(0, bortzAge);
-        }
-
-        private const double ScalingFactor = 1 / 0.090165;
-
-        public static double CalculateLiverBortzAgeContributor(double[] markerValues) =>
-            CalculateLiverScore(markerValues) * ScalingFactor;
-
-        public static double CalculateKidneyBortzAgeContributor(double[] markerValues) =>
-            CalculateKidneyScore(markerValues) * ScalingFactor;
-
-        public static double CalculateMetabolicBortzAgeContributor(double[] markerValues) =>
-            CalculateMetabolicScore(markerValues) * ScalingFactor;
-
-        public static double CalculateInflammationBortzAgeContributor(double[] markerValues) =>
-            CalculateInflammationScore(markerValues) * ScalingFactor;
-
-        public static double CalculateImmuneBortzAgeContributor(double[] markerValues) =>
-            CalculateImmuneScore(markerValues) * ScalingFactor;
     }
 }

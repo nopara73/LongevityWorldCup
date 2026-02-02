@@ -1,147 +1,96 @@
-// Create a namespace
+// Bortz Age / Biological Age Acceleration (BAA) from Bortz et al. 2023
+// https://www.nature.com/articles/s42003-023-05456-z
+// Coefficients and Scottish test-set means from https://github.com/bortzjd/bloodmarker_BA_estimation
+// BAA = 10 * sum((x_i - mean_i) * baaCoeff_i). Biological age = chronological age + BAA.
+// Excludes MSCV, PDW, PCT, and reticulocytes.
+
 window.BortzAge = window.BortzAge || {};
 
-// Attach biomarkers to the namespace
-// https://github.com/nopara73/LongevityWorldCup/issues/136
-window.BortzAge.biomarkers = [
-    { id: 'age', name: 'Age', coeff: 0.0804 }, // Age has no known lower cap
-    { id: 'albumin', name: 'Albumin', coeff: -0.0336 }, // No upper cap
-    { id: 'creatinine', name: 'Creatinine', coeff: 0.0095, cap: 44 },
-    { id: 'glucose', name: 'Glucose', coeff: 0.1953, cap: 4.44 },
-    { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 }, // CRP has no known lower cap
-    { id: 'wbc', name: 'White blood cell count', coeff: 0.0554, cap: 3.5 },
-    { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012, cap: 60 },
-    { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 }, // No lower cap
-    { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306, cap: 11.4 },
-    { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 } // No lower cap
+// cap: value; capMode: 'floor' | 'ceiling' (PhenoAge-style; no creatinine cap in Bortz)
+window.BortzAge.features = [
+    { id: 'age', name: 'Age', mean: 56.0487752, baaCoeff: 0.074763266 - 0.100432393, isLog: false },
+    { id: 'albumin', name: 'Albumin', mean: 45.1238763, baaCoeff: -0.011331946, isLog: false },
+    { id: 'alp', name: 'Alkaline phosphatase', mean: 82.6847975, baaCoeff: 0.00164946, isLog: false },
+    { id: 'urea', name: 'Urea', mean: 5.3547152, baaCoeff: -0.029554872, isLog: false },
+    { id: 'cholesterol', name: 'Total Cholesterol', mean: 5.6177437, baaCoeff: -0.0805656, isLog: false },
+    { id: 'creatinine', name: 'Creatinine', mean: 71.565605, baaCoeff: -0.01095746, isLog: false },
+    { id: 'cystatin_c', name: 'Cystatin C', mean: 0.900946, baaCoeff: 1.859556436, isLog: false },
+    { id: 'hba1c', name: 'HbA1c', mean: 35.4785711, baaCoeff: 0.018116675, isLog: false },
+    { id: 'crp', name: 'C-reactive protein (hsCRP)', mean: 0.3003624, baaCoeff: 0.079109916, isLog: true },
+    { id: 'ggt', name: 'Gamma-glutamyl transferase', mean: 3.3795613, baaCoeff: 0.265550311, isLog: true },
+    { id: 'rbc', name: 'Red blood cell count', mean: 4.4994648, baaCoeff: -0.204442153, isLog: false },
+    { id: 'mcv', name: 'Mean corpuscular volume', mean: 91.9251099, baaCoeff: 0.017165356, isLog: false },
+    { id: 'rdw', name: 'Red cell distribution width', mean: 13.4342296, baaCoeff: 0.202009895, isLog: false, cap: 11.4, capMode: 'floor' },
+    { id: 'monocyte_count', name: 'Monocytes (absolute)', mean: 0.4746987, baaCoeff: 0.36937314, isLog: false },
+    { id: 'neutrophil_count', name: 'Neutrophils (absolute)', mean: 4.1849454, baaCoeff: 0.06679092, isLog: false },
+    { id: 'lymphocyte_percentage', name: 'Lymphocytes (%)', mean: 28.5817604, baaCoeff: -0.0108158, isLog: false, cap: 60, capMode: 'ceiling' },
+    { id: 'alt', name: 'Alanine aminotransferase', mean: 3.077868, baaCoeff: -0.312442261, isLog: true },
+    { id: 'shbg', name: 'SHBG', mean: 3.8202787, baaCoeff: 0.292323186, isLog: true },
+    { id: 'vitamin_d', name: 'Vitamin D (25-OH)', mean: 3.6052878, baaCoeff: -0.265467867, isLog: true },
+    { id: 'glucose', name: 'Glucose', mean: 4.9563054, baaCoeff: 0.032171478, isLog: false, cap: 4.44, capMode: 'floor' },
+    { id: 'mch', name: 'Mean corpuscular hemoglobin', mean: 31.8396206, baaCoeff: 0.02746487, isLog: false },
+    { id: 'apoa1', name: 'Apolipoprotein A1', mean: 1.5238771, baaCoeff: -0.185139395, isLog: false }
 ];
 
-// Helper function to parse input values
+// Backward compatibility: alias for form code that expects biomarkers
+window.BortzAge.biomarkers = window.BortzAge.features;
+
 window.BortzAge.parseInput = function (value) {
     return value === '' ? NaN : Number(value);
 };
 
-// Liver: Albumin (index 1) and Alkaline phosphatase (index 9)
-window.BortzAge.calculateLiverScore = function (markerValues) {
-    const albumin = markerValues[1];
-    const ap = markerValues[9];
-    const coeffAlbumin = window.BortzAge.biomarkers[1].coeff;
-    const coeffAP = window.BortzAge.biomarkers[9].coeff;
-    return albumin * coeffAlbumin + ap * coeffAP;
+/**
+ * Compute Biological Age Acceleration (BAA).
+ * @param {number[]} values - Raw values in feature order (same order as window.BortzAge.features).
+ *   For log features (CRP, GGT, ALT, SHBG, Vitamin D), pass raw value; log is applied inside.
+ * @returns {number} BAA in years
+ */
+function applyCap(value, f) {
+    if (!f.capMode) return value;
+    if (f.capMode === 'floor') return Math.max(value, f.cap);
+    if (f.capMode === 'ceiling') return Math.min(value, f.cap);
+    return value;
+}
+
+window.BortzAge.calculateBAA = function (values) {
+    if (!values || values.length !== window.BortzAge.features.length) return NaN;
+    let sum = 0;
+    for (let i = 0; i < window.BortzAge.features.length; i++) {
+        const f = window.BortzAge.features[i];
+        let x = values[i];
+        if (f.isLog) {
+            if (x <= 0) return NaN;
+            x = Math.log(x);
+        }
+        x = applyCap(x, f);
+        const centered = x - f.mean;
+        sum += centered * f.baaCoeff;
+    }
+    return sum * 10;
 };
 
-// Kidney: Creatinine (index 2) with a positive coefficient so use Math.max to ensure at least the cap value.
-window.BortzAge.calculateKidneyScore = function (markerValues) {
-    const creatinine = markerValues[2];
-    const cap = window.BortzAge.biomarkers[2].cap;
-    const coeff = window.BortzAge.biomarkers[2].coeff;
-    const cappedCreatinine = Math.max(creatinine, cap);
-    return cappedCreatinine * coeff;
+/**
+ * Biological age = chronological age + BAA.
+ */
+window.BortzAge.calculateBortzAgeFromBAA = function (chronologicalAgeYears, baa) {
+    if (!Number.isFinite(chronologicalAgeYears) || !Number.isFinite(baa)) return NaN;
+    return Math.max(0, chronologicalAgeYears + baa);
 };
 
-// Metabolic: Glucose (index 3) with a positive coefficient so use Math.max for capping.
-window.BortzAge.calculateMetabolicScore = function (markerValues) {
-    const glucose = markerValues[3];
-    const cap = window.BortzAge.biomarkers[3].cap;
-    const coeff = window.BortzAge.biomarkers[3].coeff;
-    const cappedGlucose = Math.max(glucose, cap);
-    return cappedGlucose * coeff;
-};
-
-// Inflammation: C-reactive protein (index 4) has no capping.
-window.BortzAge.calculateInflammationScore = function (markerValues) {
-    const crp = markerValues[4];
-    const coeff = window.BortzAge.biomarkers[4].coeff;
-    return crp * coeff;
-};
-
-// Immune: includes White blood cell count (index 5), Lymphocyte percent (index 6),
-// Mean corpuscular volume (index 7) and Red cell distribution width (index 8)
-// Note: For WBC and RDW (positive coefficients) we use Math.max; for lymphocytes (negative coefficient) we use Math.min;
-// MCV is used directly.
-window.BortzAge.calculateImmuneScore = function (markerValues) {
-    // White blood cell count (index 5)
-    const wbc = markerValues[5];
-    const wbcCap = window.BortzAge.biomarkers[5].cap;
-    const wbcCoeff = window.BortzAge.biomarkers[5].coeff;
-    const immuneWBC = Math.max(wbc, wbcCap) * wbcCoeff;
-
-    // Lymphocyte percent (index 6)
-    const lymphocyte = markerValues[6];
-    const lymphCap = window.BortzAge.biomarkers[6].cap;
-    const lymphCoeff = window.BortzAge.biomarkers[6].coeff;
-    const immuneLymphocyte = Math.min(lymphocyte, lymphCap) * lymphCoeff;
-
-    // Mean corpuscular volume (index 7) – no capping
-    const mcv = markerValues[7];
-    const mcvCoeff = window.BortzAge.biomarkers[7].coeff;
-    const immuneMCV = mcv * mcvCoeff;
-
-    // Red cell distribution width (index 8)
-    const rcdw = markerValues[8];
-    const rcdwCap = window.BortzAge.biomarkers[8].cap;
-    const rcdwCoeff = window.BortzAge.biomarkers[8].coeff;
-    const immuneRCDW = Math.max(rcdw, rcdwCap) * rcdwCoeff;
-
-    return immuneWBC + immuneLymphocyte + immuneMCV + immuneRCDW;
-};
-
-// ----- Main BortzAge Calculation ----- //
-
-// Note: The 'coefficients' parameter has been removed because each biomarker now
-// uses its coefficient directly from the window.BortzAge.biomarkers array.
-window.BortzAge.calculateBortzAge = function (markerValues) {
-    // The first element is Age (index 0)
-    const ageScore = markerValues[0] * window.BortzAge.biomarkers[0].coeff;
-
-    // Combine contributions from the five parts
-    const totalScore = ageScore +
-        window.BortzAge.calculateLiverScore(markerValues) +
-        window.BortzAge.calculateKidneyScore(markerValues) +
-        window.BortzAge.calculateMetabolicScore(markerValues) +
-        window.BortzAge.calculateInflammationScore(markerValues) +
-        window.BortzAge.calculateImmuneScore(markerValues);
-
-    // Include the constant term
-    const b0 = -19.9067;
-    const gamma = 0.0076927;
-    const rollingTotal = totalScore + b0;
-
-    // Use 120 months (10 years) as defined originally
-    const tmonths = 120;
-    const mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
-
-    const bortzAge = 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
-    return Math.max(0, bortzAge);
-};
-
-// ----- Domain Contribution Functions ----- //
-
-// Since the final transformation is linear in the rolling total,
-// the multiplier (scaling factor) is 1/0.090165 (approximately 11.088).
-const scalingFactor = 1 / 0.090165;
-
-// Contribution from Liver biomarkers to BortzAge (in years)
-window.BortzAge.calculateLiverBortzAgeContributor = function (markerValues) {
-    return window.BortzAge.calculateLiverScore(markerValues) * scalingFactor;
-};
-
-// Contribution from Kidney biomarkers to BortzAge (in years)
-window.BortzAge.calculateKidneyBortzAgeContributor = function (markerValues) {
-    return window.BortzAge.calculateKidneyScore(markerValues) * scalingFactor;
-};
-
-// Contribution from Metabolic biomarkers to BortzAge (in years)
-window.BortzAge.calculateMetabolicBortzAgeContributor = function (markerValues) {
-    return window.BortzAge.calculateMetabolicScore(markerValues) * scalingFactor;
-};
-
-// Contribution from Inflammation biomarkers to BortzAge (in years)
-window.BortzAge.calculateInflammationBortzAgeContributor = function (markerValues) {
-    return window.BortzAge.calculateInflammationScore(markerValues) * scalingFactor;
-};
-
-// Contribution from Immune biomarkers to BortzAge (in years)
-window.BortzAge.calculateImmuneBortzAgeContributor = function (markerValues) {
-    return window.BortzAge.calculateImmuneScore(markerValues) * scalingFactor;
+/**
+ * Compute Bortz Age from raw values in feature order.
+ * @param {number} chronologicalAgeYears - Optional; if omitted, first element of values is used as age.
+ * @param {number[]} rawValuesInFeatureOrder - Same order as window.BortzAge.features (age first, then 21 biomarkers)
+ * @returns {number} Biological age in years
+ */
+window.BortzAge.calculateBortzAge = function (chronologicalAgeYears, rawValuesInFeatureOrder) {
+    let values = rawValuesInFeatureOrder;
+    let chronoAge = chronologicalAgeYears;
+    if (arguments.length === 1 && Array.isArray(chronologicalAgeYears)) {
+        values = chronologicalAgeYears;
+        chronoAge = values[0];
+    }
+    const baa = window.BortzAge.calculateBAA(values);
+    if (!Number.isFinite(baa)) return NaN;
+    return window.BortzAge.calculateBortzAgeFromBAA(chronoAge, baa);
 };
