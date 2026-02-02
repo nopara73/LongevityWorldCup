@@ -10,17 +10,24 @@ public class XDailyPostJob : IJob
     private readonly ILogger<XDailyPostJob> _logger;
     private readonly EventDataService _events;
     private readonly XEventService _xEvents;
+    private readonly AthleteDataService _athletes;
 
-    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents)
+    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes)
     {
         _logger = logger;
         _events = events;
         _xEvents = xEvents;
+        _athletes = athletes;
     }
 
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
+
+        _events.SetAthleteDirectory(_athletes.GetAthleteDirectoryForX());
+        _events.SetPodcastLinks(_athletes.GetPodcastLinksForX());
+        _events.SetXHandles(_athletes.GetXHandlesForX());
+        _events.SetLowestPhenoAges(_athletes.GetLowestPhenoAgesForX());
 
         var toUtc = DateTime.UtcNow;
         var fromUtc = toUtc.AddDays(-7);

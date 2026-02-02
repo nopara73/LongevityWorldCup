@@ -8,11 +8,15 @@ public static class XMessageBuilder
     private const int MaxLength = 280;
     private const string LeaderboardUrl = "https://longevityworldcup.com/leaderboard";
 
+    private static string AthleteUrl(string slug) =>
+        $"https://longevityworldcup.com/athlete/{slug.Replace('_', '-')}";
+
     public static string ForEventText(
         EventType type,
         string rawText,
         Func<string, string> slugToName,
-        Func<string, string?>? getPodcastLinkForSlug = null)
+        Func<string, string?>? getPodcastLinkForSlug = null,
+        Func<string, double?>? getLowestPhenoAgeForSlug = null)
     {
         if (type == EventType.AthleteCountMilestone)
         {
@@ -40,6 +44,20 @@ public static class XMessageBuilder
 
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
+
+        if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var phenoSlug)) return "";
+            var phenoAthlete = slugToName(phenoSlug);
+            var phenoAge = getLowestPhenoAgeForSlug?.Invoke(phenoSlug);
+            var ageStr = phenoAge.HasValue ? $" at {phenoAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
+            var athleteUrl = AthleteUrl(phenoSlug);
+            return Truncate(
+                $"Lowest biological age in the Longevity World Cup field 🧬\n" +
+                $"{phenoAthlete} holds it{ageStr}.\n" +
+                $"📊 Profile: {athleteUrl}");
+        }
+
         if (!string.Equals(normLabel, "Podcast", StringComparison.OrdinalIgnoreCase)) return "";
 
         if (!EventHelpers.TryExtractSlug(rawText, out var guestSlug)) return "";

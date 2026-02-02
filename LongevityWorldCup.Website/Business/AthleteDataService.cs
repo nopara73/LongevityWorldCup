@@ -697,6 +697,21 @@ public class AthleteDataService : IDisposable
         return arr;
     }
 
+    public IReadOnlyList<(string Slug, double? LowestPhenoAge)> GetLowestPhenoAgesForX()
+    {
+        var list = new List<(string Slug, double? LowestPhenoAge)>();
+        foreach (var o in GetRankingsOrder().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            double? pheno = null;
+            if (o["LowestPhenoAge"] is JsonValue pv && pv.TryGetValue<double>(out var v))
+                pheno = v;
+            list.Add((slug, pheno));
+        }
+        return list;
+    }
+
     private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>
         SortByCompetitionRules(IEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
     {
@@ -1375,13 +1390,10 @@ public class AthleteDataService : IDisposable
         }
     }
 
-    private void PushAthleteDirectoryToEvents()
+    public IReadOnlyList<(string Slug, string Name, int? CurrentRank)> GetAthleteDirectoryForX()
     {
-        var athletesSnapshot = GetAthletesSnapshot();
         var list = new List<(string Slug, string Name, int? CurrentRank)>();
-        var podcastList = new List<(string Slug, string PodcastLink)>();
-        var xHandleList = new List<(string Slug, string Handle)>();
-        foreach (var o in athletesSnapshot.OfType<JsonObject>())
+        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
@@ -1390,20 +1402,45 @@ public class AthleteDataService : IDisposable
             var rp = o["CurrentPlacement"];
             if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
             list.Add((slug, name, rank));
+        }
+        return list;
+    }
 
+    public IReadOnlyList<(string Slug, string PodcastLink)> GetPodcastLinksForX()
+    {
+        var list = new List<(string Slug, string PodcastLink)>();
+        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
             var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(link))
-                podcastList.Add((slug, link.Trim()));
+                list.Add((slug, link.Trim()));
+        }
+        return list;
+    }
 
+    public IReadOnlyList<(string Slug, string Handle)> GetXHandlesForX()
+    {
+        var list = new List<(string Slug, string Handle)>();
+        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
             var media = o["MediaContact"]?.GetValue<string>();
             var handle = ExtractXHandle(media);
             if (!string.IsNullOrWhiteSpace(handle))
-                xHandleList.Add((slug, handle));
+                list.Add((slug, handle));
         }
+        return list;
+    }
 
-        _eventDataService.SetAthleteDirectory(list);
-        _eventDataService.SetPodcastLinks(podcastList);
-        _eventDataService.SetXHandles(xHandleList);
+    private void PushAthleteDirectoryToEvents()
+    {
+        _eventDataService.SetAthleteDirectory(GetAthleteDirectoryForX());
+        _eventDataService.SetPodcastLinks(GetPodcastLinksForX());
+        _eventDataService.SetXHandles(GetXHandlesForX());
+        _eventDataService.SetLowestPhenoAges(GetLowestPhenoAgesForX());
     }
 
     private static string? ExtractXHandle(string? mediaContact)

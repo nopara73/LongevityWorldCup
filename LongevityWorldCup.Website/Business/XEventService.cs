@@ -11,6 +11,7 @@ public class XEventService
     private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, string> _podcastBySlug = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, string> _handlesBySlug = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, double> _phenoBySlug = new(StringComparer.OrdinalIgnoreCase);
 
     public XEventService(XApiClient x, ILogger<XEventService> log)
     {
@@ -45,6 +46,16 @@ public class XEventService
         lock (_lockObj) _handlesBySlug = map;
     }
 
+    public void SetLowestPhenoAges(IReadOnlyList<(string Slug, double? LowestPhenoAge)> items)
+    {
+        var map = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items)
+        {
+            if (i.LowestPhenoAge.HasValue) map[i.Slug] = i.LowestPhenoAge.Value;
+        }
+        lock (_lockObj) _phenoBySlug = map;
+    }
+
     public async Task SendAsync(string text)
     {
         try
@@ -72,7 +83,7 @@ public class XEventService
 
     private string BuildMessage(EventType type, string rawText)
     {
-        return XMessageBuilder.ForEventText(type, rawText, SlugToName, GetPodcast);
+        return XMessageBuilder.ForEventText(type, rawText, SlugToName, GetPodcast, GetLowestPhenoAge);
     }
 
     private string SlugToName(string slug)
@@ -93,6 +104,14 @@ public class XEventService
         lock (_lockObj)
         {
             return _podcastBySlug.TryGetValue(slug, out var url) ? url : null;
+        }
+    }
+
+    private double? GetLowestPhenoAge(string slug)
+    {
+        lock (_lockObj)
+        {
+            return _phenoBySlug.TryGetValue(slug, out var age) ? age : null;
         }
     }
 }

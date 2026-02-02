@@ -256,6 +256,11 @@ public sealed class EventDataService : IDisposable
         _xEvents.SetXHandles(items);
     }
 
+    public void SetLowestPhenoAges(IReadOnlyList<(string Slug, double? LowestPhenoAge)> items)
+    {
+        _xEvents.SetLowestPhenoAges(items);
+    }
+
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,
