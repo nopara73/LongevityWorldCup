@@ -1380,6 +1380,7 @@ public class AthleteDataService : IDisposable
         var athletesSnapshot = GetAthletesSnapshot();
         var list = new List<(string Slug, string Name, int? CurrentRank)>();
         var podcastList = new List<(string Slug, string PodcastLink)>();
+        var xHandleList = new List<(string Slug, string Handle)>();
         foreach (var o in athletesSnapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
@@ -1393,10 +1394,38 @@ public class AthleteDataService : IDisposable
             var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(link))
                 podcastList.Add((slug, link.Trim()));
+
+            var media = o["MediaContact"]?.GetValue<string>();
+            var handle = ExtractXHandle(media);
+            if (!string.IsNullOrWhiteSpace(handle))
+                xHandleList.Add((slug, handle));
         }
 
         _eventDataService.SetAthleteDirectory(list);
         _eventDataService.SetPodcastLinks(podcastList);
+        _eventDataService.SetXHandles(xHandleList);
+    }
+
+    private static string? ExtractXHandle(string? mediaContact)
+    {
+        if (string.IsNullOrWhiteSpace(mediaContact)) return null;
+
+        if (System.Uri.TryCreate(mediaContact.Trim(), System.UriKind.Absolute, out var uri))
+        {
+            var host = uri.Host;
+            if (!host.EndsWith("x.com", StringComparison.OrdinalIgnoreCase) &&
+                !host.EndsWith("twitter.com", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var path = uri.AbsolutePath.Trim('/');
+            if (string.IsNullOrWhiteSpace(path)) return null;
+            var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var handleCore = parts.Length > 0 ? parts[0] : null;
+            if (string.IsNullOrWhiteSpace(handleCore)) return null;
+            return "@" + handleCore;
+        }
+
+        return null;
     }
 
     // ===== biomarker/test signature helpers (single-column persistence) =====

@@ -251,6 +251,11 @@ public sealed class EventDataService : IDisposable
         _xEvents.SetPodcastLinks(items);
     }
 
+    public void SetXHandles(IReadOnlyList<(string Slug, string Handle)> items)
+    {
+        _xEvents.SetXHandles(items);
+    }
+
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,

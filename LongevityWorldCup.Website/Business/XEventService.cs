@@ -10,6 +10,7 @@ public class XEventService
     private readonly object _lockObj = new();
     private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, string> _podcastBySlug = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, string> _handlesBySlug = new(StringComparer.OrdinalIgnoreCase);
 
     public XEventService(XApiClient x, ILogger<XEventService> log)
     {
@@ -32,6 +33,16 @@ public class XEventService
             if (!string.IsNullOrWhiteSpace(i.PodcastLink)) map[i.Slug] = i.PodcastLink.Trim();
         }
         lock (_lockObj) _podcastBySlug = map;
+    }
+
+    public void SetXHandles(IReadOnlyList<(string Slug, string Handle)> items)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items)
+        {
+            if (!string.IsNullOrWhiteSpace(i.Handle)) map[i.Slug] = i.Handle.Trim();
+        }
+        lock (_lockObj) _handlesBySlug = map;
     }
 
     public async Task SendAsync(string text)
@@ -62,6 +73,8 @@ public class XEventService
     {
         lock (_lockObj)
         {
+            if (_handlesBySlug.TryGetValue(slug, out var handle) && !string.IsNullOrWhiteSpace(handle))
+                return handle;
             if (_athDir.TryGetValue(slug, out var v) && !string.IsNullOrWhiteSpace(v.Name))
                 return v.Name;
         }
