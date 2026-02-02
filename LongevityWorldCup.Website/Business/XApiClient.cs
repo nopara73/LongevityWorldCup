@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -11,24 +12,32 @@ public class XApiClient
     private readonly HttpClient _http;
     private readonly Config _config;
     private readonly ILogger<XApiClient> _log;
+    private readonly IWebHostEnvironment _env;
     private readonly object _tokenLock = new();
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
     private string? _accessToken;
 
-    public XApiClient(HttpClient http, Config config, ILogger<XApiClient> log)
+    public XApiClient(HttpClient http, Config config, IWebHostEnvironment env, ILogger<XApiClient> log)
     {
         _http = http;
         _config = config;
+        _env = env;
         _log = log;
         _accessToken = config.XAccessToken;
     }
 
     public async Task SendAsync(string text)
     {
+        if (_env.IsDevelopment())
+        {
+            _log.LogInformation("X (Development): would have posted: {Content}", text);
+            return;
+        }
+
         var token = GetAccessToken();
         if (string.IsNullOrWhiteSpace(token))
         {
-            _log.LogWarning("X access token is not configured. Skipping tweet.");
+            _log.LogInformation("X credentials not configured. Would have posted: {Content}", text);
             return;
         }
 

@@ -52,7 +52,7 @@ var query = new Dictionary<string, string>
 var authQuery = string.Join("&", query.Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
 var authFull = $"{AuthUrl}?{authQuery}";
 
-Console.WriteLine("Open this URL in a browser and sign in with the LWC X account (or your test account):");
+Console.WriteLine("Open this URL in a browser and sign in with the LWC X account:");
 Console.WriteLine(authFull);
 Console.WriteLine();
 TryOpenBrowser(authFull);
