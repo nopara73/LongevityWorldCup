@@ -153,6 +153,11 @@ public static class XMessageBuilder
             $"📹 Full episode: {podcastUrl}");
     }
 
+    public static string ForFiller(FillerType fillerType, string payloadText, Func<string, string> slugToName)
+    {
+        return "";
+    }
+
     public static string Truncate(string s)
     {
         if (string.IsNullOrEmpty(s) || s.Length <= MaxLength) return s;

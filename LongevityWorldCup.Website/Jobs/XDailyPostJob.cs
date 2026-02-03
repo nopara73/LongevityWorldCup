@@ -11,13 +11,15 @@ public class XDailyPostJob : IJob
     private readonly EventDataService _events;
     private readonly XEventService _xEvents;
     private readonly AthleteDataService _athletes;
+    private readonly XFillerPostLogService _fillerLog;
 
-    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes)
+    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes, XFillerPostLogService fillerLog)
     {
         _logger = logger;
         _events = events;
         _xEvents = xEvents;
         _athletes = athletes;
+        _fillerLog = fillerLog;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -40,6 +42,16 @@ public class XDailyPostJob : IJob
             await _xEvents.SendAsync(msg);
             _events.MarkEventsXProcessed(new[] { id });
             _logger.LogInformation("XDailyPostJob posted event {Id}", id);
+            return;
+        }
+
+        var (fillerType, payloadText) = _fillerLog.GetSuggestedNextFiller();
+        var fillerMsg = _xEvents.TryBuildFillerMessage(fillerType, payloadText);
+        if (!string.IsNullOrWhiteSpace(fillerMsg))
+        {
+            await _xEvents.SendAsync(fillerMsg);
+            _fillerLog.LogPost(DateTime.UtcNow, fillerType, payloadText ?? "");
+            _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
             return;
         }
 

@@ -51,6 +51,12 @@ public class XEventService
         return string.IsNullOrWhiteSpace(msg) ? null : msg;
     }
 
+    public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)
+    {
+        var msg = XMessageBuilder.ForFiller(fillerType, payloadText ?? "", SlugToName);
+        return string.IsNullOrWhiteSpace(msg) ? null : msg;
+    }
+
     private string BuildMessage(EventType type, string rawText)
     {
         return XMessageBuilder.ForEventText(type, rawText, SlugToName, GetPodcast, GetLowestPhenoAge, GetChronoAge, GetPhenoDiff);
