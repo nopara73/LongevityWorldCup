@@ -733,6 +733,60 @@ public class AthleteDataService : IDisposable
         return list;
     }
 
+    public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
+    {
+        var order = GetRankingsOrder();
+        if (order.Count == 0) return Array.Empty<string>();
+        if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
+        {
+            return order.OfType<JsonObject>()
+                .Select(o => o["AthleteSlug"]?.GetValue<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Take(3)
+                .ToList()!;
+        }
+        var snapshot = GetAthletesSnapshot();
+        var divisionBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var generationBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var exclusiveBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in snapshot.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            var div = o["Division"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(div)) divisionBySlug[slug] = div;
+            var gen = o["Generation"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(gen)) generationBySlug[slug] = gen;
+            var ex = o["ExclusiveLeague"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(ex)) exclusiveBySlug[slug] = ex;
+        }
+        string? targetDivision = leagueSlug?.ToLowerInvariant() switch { "mens" => "Men's", "womens" => "Women's", "open" => "Open", _ => null };
+        string? targetGeneration = leagueSlug?.ToLowerInvariant() switch
+        {
+            "silent-generation" => "Silent Generation",
+            "baby-boomers" => "Baby Boomers",
+            "gen-x" => "Gen X",
+            "millennials" => "Millennials",
+            "gen-z" => "Gen Z",
+            "gen-alpha" => "Gen Alpha",
+            _ => null
+        };
+        string? targetExclusive = string.Equals(leagueSlug, "prosperan", StringComparison.OrdinalIgnoreCase) ? "Prosperan" : null;
+        if (targetDivision == null && targetGeneration == null && targetExclusive == null)
+            return Array.Empty<string>();
+        var list = new List<string>();
+        foreach (var o in order.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            var match = targetDivision != null && divisionBySlug.TryGetValue(slug, out var d) && string.Equals(d, targetDivision, StringComparison.OrdinalIgnoreCase)
+                || targetGeneration != null && generationBySlug.TryGetValue(slug, out var g) && string.Equals(g, targetGeneration, StringComparison.OrdinalIgnoreCase)
+                || targetExclusive != null && exclusiveBySlug.TryGetValue(slug, out var e) && string.Equals(e, targetExclusive, StringComparison.OrdinalIgnoreCase);
+            if (match) { list.Add(slug); if (list.Count >= 3) break; }
+        }
+        return list;
+    }
+
     private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>
         SortByCompetitionRules(IEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
     {

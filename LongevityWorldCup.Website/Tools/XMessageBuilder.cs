@@ -11,27 +11,44 @@ public static class XMessageBuilder
     private static string AthleteUrl(string slug) =>
         $"https://longevityworldcup.com/athlete/{slug.Replace('_', '-')}";
 
-    private static readonly Dictionary<string, string> LeagueUrlByCatVal = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, (string DisplayName, string Url)> LeagueBySlug = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Division|Men's"] = "https://longevityworldcup.com/league/mens",
-        ["Division|Women's"] = "https://longevityworldcup.com/league/womens",
-        ["Division|Open"] = "https://longevityworldcup.com/league/open",
-        ["Generation|Silent Generation"] = "https://longevityworldcup.com/league/silent-generation",
-        ["Generation|Baby Boomers"] = "https://longevityworldcup.com/league/baby-boomers",
-        ["Generation|Gen X"] = "https://longevityworldcup.com/league/gen-x",
-        ["Generation|Millennials"] = "https://longevityworldcup.com/league/millennials",
-        ["Generation|Gen Z"] = "https://longevityworldcup.com/league/gen-z",
-        ["Generation|Gen Alpha"] = "https://longevityworldcup.com/league/gen-alpha",
-        ["Exclusive|Prosperan"] = "https://longevityworldcup.com/league/prosperan"
+        ["ultimate"] = ("Ultimate League", LeaderboardUrl),
+        ["mens"] = ("Men's Division", "https://longevityworldcup.com/league/mens"),
+        ["womens"] = ("Women's Division", "https://longevityworldcup.com/league/womens"),
+        ["open"] = ("Open Division", "https://longevityworldcup.com/league/open"),
+        ["silent-generation"] = ("Silent Generation", "https://longevityworldcup.com/league/silent-generation"),
+        ["baby-boomers"] = ("Baby Boomers Generation", "https://longevityworldcup.com/league/baby-boomers"),
+        ["gen-x"] = ("Gen X Generation", "https://longevityworldcup.com/league/gen-x"),
+        ["millennials"] = ("Millennials Generation", "https://longevityworldcup.com/league/millennials"),
+        ["gen-z"] = ("Gen Z Generation", "https://longevityworldcup.com/league/gen-z"),
+        ["gen-alpha"] = ("Gen Alpha Generation", "https://longevityworldcup.com/league/gen-alpha"),
+        ["prosperan"] = ("Prosperan Exclusive League", "https://longevityworldcup.com/league/prosperan")
+    };
+
+    private static readonly Dictionary<string, string> CatValToSlug = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Division|Men's"] = "mens",
+        ["Division|Women's"] = "womens",
+        ["Division|Open"] = "open",
+        ["Generation|Silent Generation"] = "silent-generation",
+        ["Generation|Baby Boomers"] = "baby-boomers",
+        ["Generation|Gen X"] = "gen-x",
+        ["Generation|Millennials"] = "millennials",
+        ["Generation|Gen Z"] = "gen-z",
+        ["Generation|Gen Alpha"] = "gen-alpha",
+        ["Exclusive|Prosperan"] = "prosperan",
+        ["Global|"] = "ultimate"
     };
 
     private static string LeagueUrl(string? cat, string? val)
     {
         var c = (cat ?? "").Trim();
         var v = (val ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(v)) return LeaderboardUrl;
         var key = $"{c}|{v}";
-        return LeagueUrlByCatVal.TryGetValue(key, out var url) ? url : LeaderboardUrl;
+        if (CatValToSlug.TryGetValue(key, out var slug) && LeagueBySlug.TryGetValue(slug, out var league))
+            return league.Url;
+        return LeaderboardUrl;
     }
 
     public static string ForEventText(
@@ -153,9 +170,21 @@ public static class XMessageBuilder
             $"📹 Full episode: {podcastUrl}");
     }
 
-    public static string ForFiller(FillerType fillerType, string payloadText, Func<string, string> slugToName)
+    public static string ForFiller(FillerType fillerType, string payloadText, Func<string, string> slugToName, Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null)
     {
-        return "";
+        if (fillerType != FillerType.Top3Leaderboard) return "";
+        if (!EventHelpers.TryExtractLeague(payloadText ?? "", out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
+            return "";
+        if (!LeagueBySlug.TryGetValue(leagueSlug.Trim(), out var league))
+            return "";
+        var slugs = getTop3SlugsForLeague?.Invoke(leagueSlug.Trim()) ?? Array.Empty<string>();
+        if (slugs.Count == 0) return "";
+        var lines = new List<string> { $"The race for #1 in the {league.DisplayName} is on. Current top 3 👇", "" };
+        for (var i = 0; i < slugs.Count && i < 3; i++)
+            lines.Add($"{i + 1}. {slugToName(slugs[i])}");
+        lines.Add("");
+        lines.Add($"📊 Full leaderboard: {league.Url}");
+        return Truncate(string.Join("\n", lines));
     }
 
     public static string Truncate(string s)
@@ -168,12 +197,9 @@ public static class XMessageBuilder
     {
         var c = (cat ?? "").Trim();
         var v = (val ?? "").Trim();
-        if (string.Equals(c, "Global", StringComparison.OrdinalIgnoreCase)) return "Ultimate League";
-        if (string.Equals(c, "Division", StringComparison.OrdinalIgnoreCase))
-            return v switch { "Men" => "Men's Division", "Women" => "Women's Division", "Open" => "Open Division", _ => $"{v} Division" };
-        if (string.Equals(c, "Generation", StringComparison.OrdinalIgnoreCase))
-            return v switch { "Silent Generation" => "Silent Generation", "Baby Boomers" => "Baby Boomers Generation", "Gen X" => "Gen X Generation", "Millennials" => "Millennials Generation", "Gen Z" => "Gen Z Generation", "Gen Alpha" => "Gen Alpha Generation", _ => $"{v} Generation" };
-        if (string.Equals(c, "Exclusive", StringComparison.OrdinalIgnoreCase)) return "Prosperan Exclusive League";
+        var key = $"{c}|{v}";
+        if (CatValToSlug.TryGetValue(key, out var slug) && LeagueBySlug.TryGetValue(slug, out var league))
+            return league.DisplayName;
         if (string.IsNullOrWhiteSpace(c) && string.IsNullOrWhiteSpace(v)) return "";
         if (string.IsNullOrWhiteSpace(c)) return v;
         if (string.IsNullOrWhiteSpace(v)) return c;

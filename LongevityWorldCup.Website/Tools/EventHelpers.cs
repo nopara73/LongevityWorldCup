@@ -51,6 +51,8 @@ public static class EventHelpers
 
     public static bool TryExtractValue(string raw, out string value) => TryExtractField(raw, "val", out value);
 
+    public static bool TryExtractLeague(string raw, out string league) => TryExtractField(raw, "league", out league);
+
     public static bool TryExtractTx(string raw, out string tx) => TryExtractField(raw, "tx", out tx);
 
     public static bool TryExtractSats(string raw, out long sats)

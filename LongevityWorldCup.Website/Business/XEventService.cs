@@ -7,13 +7,15 @@ public class XEventService
 {
     private readonly XApiClient _x;
     private readonly ILogger<XEventService> _log;
+    private readonly AthleteDataService _athletes;
     private readonly object _lockObj = new();
     private Dictionary<string, AthleteForX> _bySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public XEventService(XApiClient x, ILogger<XEventService> log)
+    public XEventService(XApiClient x, ILogger<XEventService> log, AthleteDataService athletes)
     {
         _x = x;
         _log = log;
+        _athletes = athletes ?? throw new ArgumentNullException(nameof(athletes));
     }
 
     public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
@@ -53,7 +55,7 @@ public class XEventService
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)
     {
-        var msg = XMessageBuilder.ForFiller(fillerType, payloadText ?? "", SlugToName);
+        var msg = XMessageBuilder.ForFiller(fillerType, payloadText ?? "", SlugToName, _athletes.GetTop3SlugsForLeague);
         return string.IsNullOrWhiteSpace(msg) ? null : msg;
     }
 
