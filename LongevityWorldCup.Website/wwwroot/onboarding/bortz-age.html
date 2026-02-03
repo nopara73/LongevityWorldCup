@@ -648,14 +648,36 @@
                     <!-- Biomarkers grouped by category (same naming as Pheno Age where overlapping) -->
                     <fieldset>
                         <legend>Hematology</legend>
+                        <!-- White Blood Cell Count (from Pheno Age page) -->
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">
+                                White Blood Cell Count (WBC)
+                                <span class="toggle-icon">+</span>
+                            </div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="wbc" name="wbc" step="any" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
+                                    <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">1000 cells/μL</option>
+                                        <option value="1">10⁹ cells/L</option>
+                                        <option value="1000">cells/μL</option>
+                                        <option value="1000">cells/mm³</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">Lymphocytes (LYM) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="lymphocyte_percentage" name="lymphocyte_percentage" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="lymphocyte_percentageUnit" class="visually-hidden">Lymphocytes unit</label>
-                                    <select id="lymphocyte_percentageUnit" aria-label="Lymphocytes unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="lymphocyte_percentageUnit" class="visually-hidden">Select unit for Lymphocytes</label>
+                                    <select id="lymphocyte_percentageUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
+                                        <option value="1">1000 cells/μL</option>
+                                        <option value="1">10⁹ cells/L</option>
                                     </select>
                                 </div>
                             </div>
@@ -996,11 +1018,12 @@
         </div>
         <div id="bortzAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <div id="validAgeInput">
-                <div>Your biological age is:</div>
+                <div>Bortz age:</div>
                 <div class="bio-age-number-container">
                     <span id="animatedAge">0</span>
                 </div>
                 <div id="yearsText">years</div>
+                <div id="phenoAgeRow" style="display: none; margin-top: 1rem; font-size: 1.25rem;">PhenoAge: <span id="phenoAgeValue">0</span> years</div>
             </div>
             <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: #8B0000; background-color: #FAD2D2; padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
@@ -1062,7 +1085,7 @@
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
         const bortzFieldIds = ['lymphocyte_percentage', 'neutrophil_count', 'monocyte_count', 'rbc', 'mcv', 'mch', 'rdw', 'albumin', 'urea', 'creatinine', 'cystatin_c', 'glucose', 'hba1c', 'cholesterol', 'apoa1', 'alt', 'alp', 'ggt', 'crp', 'shbg', 'vitamin_d'];
-        bortzFieldIds.forEach(id => {
+        [...bortzFieldIds, 'wbc'].forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
                 el.addEventListener('input', () => {
@@ -1113,7 +1136,8 @@
                 ggt: 'Ggt',
                 crp: 'CrpMgL',
                 shbg: 'Shbg',
-                vitamin_d: 'VitaminD'
+                vitamin_d: 'VitaminD',
+                wbc: 'Wbc1000cellsuL'
             };
 
             Object.entries(propMap).forEach(([id, prop]) => {
@@ -1294,6 +1318,21 @@
                 }
             }
 
+            // White Blood Cell Count (WBC) – from Pheno Age page
+            const wbcEl = document.getElementById('wbc');
+            const wbcUnitEl = document.getElementById('wbcUnit');
+            if (wbcEl && wbcUnitEl) {
+                const wbcValue = parseFloat(wbcEl.value);
+                const wbcUnit = parseFloat(wbcUnitEl.value);
+                if (!isNaN(wbcValue) && wbcUnit === 1 && wbcValue > 4000) {
+                    console.warn("WBC is too high. Correcting the unit.");
+                    setUnit(wbcUnitEl, 1000);
+                } else if (!isNaN(wbcValue) && wbcUnit === 1000 && wbcValue < 30) {
+                    console.warn("WBC is too low. Correcting the unit.");
+                    setUnit(wbcUnitEl, 1);
+                }
+            }
+
         }
 
         let isFirstTimeAnimation = true; // Flag to control the first-time animation
@@ -1373,7 +1412,8 @@
                     ggt: { val: latestBiomarkerSet.Ggt, unit: '1' },
                     crp: { val: latestBiomarkerSet.CrpMgL, unit: '1' },
                     shbg: { val: latestBiomarkerSet.Shbg, unit: '1' },
-                    vitamin_d: { val: latestBiomarkerSet.VitaminD, unit: '1' }
+                    vitamin_d: { val: latestBiomarkerSet.VitaminD, unit: '1' },
+                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' }
                 };
                 Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
                     const input = document.getElementById(id);
@@ -1426,6 +1466,28 @@
                     } else {
                         adjustedValue = rawValue / unitConversion;
                     }
+                } else if (f.id === 'lymphocyte_percentage') {
+                    // Bortz expects Lymphocytes in %; convert from absolute (1000 cells/μL or 10⁹/L) using WBC when needed
+                    if (unitText === '%') {
+                        adjustedValue = rawValue / unitConversion;
+                    } else {
+                        const wbcValEl = document.getElementById('wbc');
+                        const wbcUnitValEl = document.getElementById('wbcUnit');
+                        const wbcRaw = wbcValEl ? window.PhenoAge.parseInput(wbcValEl.value) : NaN;
+                        const wbcUnitVal = wbcUnitValEl ? parseFloat(wbcUnitValEl.value) : 0;
+                        if (!isNaN(wbcRaw) && wbcUnitVal) {
+                            const wbcCanonical = wbcRaw / wbcUnitVal;
+                            const lymphAbs = rawValue / unitConversion;
+                            adjustedValue = (lymphAbs / wbcCanonical) * 100;
+                        } else {
+                            expandFieldCard('wbc');
+                            customAlert('Enter White Blood Cell Count (WBC) to use Lymphocytes in absolute units.').then(() => {
+                                document.getElementById('continueButton').classList.remove('show');
+                                updateCalculateButton();
+                            });
+                            return;
+                        }
+                    }
                 } else {
                     adjustedValue = rawValue / unitConversion;
                 }
@@ -1434,6 +1496,53 @@
 
             // Calculate Bortz Age: BAA = 10 * sum(centered * coeff), biological age = chronological age + BAA
             const bortzAge = window.BortzAge.calculateBortzAge(markerValues);
+
+            // Optionally compute PhenoAge when WBC is provided (PhenoAge order: age, albumin, creatinine, glucose, crp, wbc, lymphocyte, mcv, rdw, ap)
+            let phenoAge = NaN;
+            const wbcEl = document.getElementById('wbc');
+            const wbcUnitEl = document.getElementById('wbcUnit');
+            if (wbcEl && wbcUnitEl) {
+                const wbcRaw = window.PhenoAge.parseInput(wbcEl.value);
+                const wbcUnit = parseFloat(wbcUnitEl.value);
+                if (!isNaN(wbcRaw) && wbcUnit && wbcRaw > 0) {
+                    const wbcCanonical = wbcRaw / wbcUnit;
+                    const alb = parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value);
+                    const creat = parseFloat(document.getElementById('creatinine').value) / parseFloat(document.getElementById('creatinineUnit').value);
+                    const glu = parseFloat(document.getElementById('glucose').value) / parseFloat(document.getElementById('glucoseUnit').value);
+                    const crpMgL = parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value);
+                    let lymphPc = parseFloat(document.getElementById('lymphocyte_percentage').value);
+                    const lymphUnitElPheno = document.getElementById('lymphocyte_percentageUnit');
+                    const lymphUnitTextPheno = lymphUnitElPheno ? lymphUnitElPheno.options[lymphUnitElPheno.selectedIndex].text : '%';
+                    if (lymphUnitTextPheno !== '%') {
+                        const wbcRawPheno = window.PhenoAge.parseInput(wbcEl.value);
+                        const wbcUnitPheno = parseFloat(wbcUnitEl.value);
+                        if (!isNaN(wbcRawPheno) && wbcUnitPheno) {
+                            const wbcCanonicalPheno = wbcRawPheno / wbcUnitPheno;
+                            const lymphRawPheno = parseFloat(document.getElementById('lymphocyte_percentage').value);
+                            const lymphUnitConv = parseFloat(lymphUnitElPheno.value);
+                            lymphPc = (lymphRawPheno / lymphUnitConv) / wbcCanonicalPheno * 100;
+                        }
+                    }
+                    const mcvVal = parseFloat(document.getElementById('mcv').value);
+                    const rdwVal = parseFloat(document.getElementById('rdw').value);
+                    const apVal = parseFloat(document.getElementById('alp').value) / parseFloat(document.getElementById('alpUnit').value);
+                    if ([alb, creat, glu, crpMgL, lymphPc, mcvVal, rdwVal, apVal].every(v => !isNaN(v) && isFinite(v)) && crpMgL > 0) {
+                        const phenoMarkerValues = [
+                            chronologicalAgeAtTimeOfTest,
+                            alb,
+                            creat,
+                            glu,
+                            Math.log(crpMgL),
+                            wbcCanonical,
+                            lymphPc,
+                            mcvVal,
+                            rdwVal,
+                            apVal
+                        ];
+                        phenoAge = window.PhenoAge.calculatePhenoAge(phenoMarkerValues);
+                    }
+                }
+            }
 
             // Display the result
             const resultElement = document.getElementById('bortzAgeResult');
@@ -1514,6 +1623,18 @@
                                 yearsTextElement.innerHTML = `years`;
                             }
 
+                            // Show PhenoAge when computed (WBC provided)
+                            const phenoAgeRowEl = document.getElementById('phenoAgeRow');
+                            const phenoAgeValueEl = document.getElementById('phenoAgeValue');
+                            if (phenoAgeRowEl && phenoAgeValueEl) {
+                                if (isFinite(phenoAge)) {
+                                    phenoAgeValueEl.innerText = phenoAge.toFixed(1);
+                                    phenoAgeRowEl.style.display = '';
+                                } else {
+                                    phenoAgeRowEl.style.display = 'none';
+                                }
+                            }
+
                             // Show the Next button after a brief delay
                             setTimeout(() => {
                                 document.getElementById('continueButton').classList.add('show');
@@ -1535,6 +1656,18 @@
                     animatedAgeElement.classList.add(ageCategory);
                     
                     yearsTextElement.innerHTML = bortzAge < chronologicalAgeAtTimeOfTest ? `years 🚀` : `years`;
+
+                    // Show PhenoAge when computed (WBC provided)
+                    const phenoAgeRowEl = document.getElementById('phenoAgeRow');
+                    const phenoAgeValueEl = document.getElementById('phenoAgeValue');
+                    if (phenoAgeRowEl && phenoAgeValueEl) {
+                        if (isFinite(phenoAge)) {
+                            phenoAgeValueEl.innerText = phenoAge.toFixed(1);
+                            phenoAgeRowEl.style.display = '';
+                        } else {
+                            phenoAgeRowEl.style.display = 'none';
+                        }
+                    }
 
                     // Show the Next button
                     setTimeout(() => {
@@ -1781,7 +1914,7 @@
             }
 
             // Initialize collapsability based on current values (handles programmatic fills)
-            bortzFieldIds.forEach(fieldId => {
+            [...bortzFieldIds, 'wbc'].forEach(fieldId => {
                 const el = document.getElementById(fieldId);
                 if (el) el.dispatchEvent(new Event('input'));
             });
@@ -1836,7 +1969,8 @@
                 Ggt: 'ggt',
                 CrpMgL: 'crp',
                 Shbg: 'shbg',
-                VitaminD: 'vitamin_d'
+                VitaminD: 'vitamin_d',
+                Wbc1000cellsuL: 'wbc'
             };
 
             Object.values(idMapUnique).forEach(bioId => {
@@ -1872,6 +2006,10 @@
                     const id = idMapUnique[prop];
                     if (id) {
                         document.getElementById(id).value = entry[prop];
+                        if (prop === 'Wbc1000cellsuL') {
+                            const wbcUnitEl = document.getElementById('wbcUnit');
+                            if (wbcUnitEl) wbcUnitEl.value = '1';
+                        }
                         expandFieldCard(id);
                     }
                 });
@@ -1919,10 +2057,29 @@
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
-            // Collect biomarkers the user touched (Bortz model fields). Overlapping with Pheno Age use same canonical units (LymPc, McvFL, RdwPc, AlbGL, CreatUmolL, GluMmolL, CrpMgL, AlpUL) so JSON/athlete data is shared. Bortz does not use WBC.
+            // Collect biomarkers the user touched (Bortz model fields). Overlapping with Pheno Age use same canonical units (LymPc, McvFL, RdwPc, AlbGL, CreatUmolL, GluMmolL, CrpMgL, AlpUL, Wbc1000cellsuL) so JSON/athlete data is shared.
             const entry = { Date: bloodDrawDate };
             const store = (id, prop, fn) => { if (touchedBiomarkers.has(id)) entry[prop] = fn(); };
-            store('lymphocyte_percentage', 'LymPc', () => parseFloat(parseFloat(document.getElementById('lymphocyte_percentage').value).toFixed(2)));
+            store('wbc', 'Wbc1000cellsuL', () => parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2)));
+            store('lymphocyte_percentage', 'LymPc', () => {
+                const lymphRawValue = parseFloat(document.getElementById('lymphocyte_percentage').value);
+                const lymphUnitEl = document.getElementById('lymphocyte_percentageUnit');
+                const lymphUnitText = lymphUnitEl.options[lymphUnitEl.selectedIndex].text;
+                const isPercentageUnit = lymphUnitText === '%';
+                let lymphValueToStore = lymphRawValue;
+                if (!isPercentageUnit) {
+                    const wbcValueEl = document.getElementById('wbc');
+                    const wbcUnitEl = document.getElementById('wbcUnit');
+                    const wbcRawValue = window.PhenoAge.parseInput(wbcValueEl.value);
+                    const wbcUnitConversion = parseFloat(wbcUnitEl.value);
+                    if (!isNaN(wbcRawValue) && wbcUnitConversion) {
+                        const wbcAdjustedValue = wbcRawValue / wbcUnitConversion;
+                        const lymphAdjustedValue = lymphRawValue / parseFloat(lymphUnitEl.value);
+                        lymphValueToStore = (lymphAdjustedValue / wbcAdjustedValue) * 100;
+                    }
+                }
+                return parseFloat(lymphValueToStore.toFixed(2));
+            });
             store('neutrophil_count', 'NeutrophilCount', () => parseFloat((parseFloat(document.getElementById('neutrophil_count').value) / parseFloat(document.getElementById('neutrophil_countUnit').value)).toFixed(2)));
             store('monocyte_count', 'MonocyteCount', () => parseFloat((parseFloat(document.getElementById('monocyte_count').value) / parseFloat(document.getElementById('monocyte_countUnit').value)).toFixed(2)));
             store('rbc', 'Rbc', () => parseFloat((parseFloat(document.getElementById('rbc').value) / parseFloat(document.getElementById('rbcUnit').value)).toFixed(2)));
@@ -1961,7 +2118,6 @@
             store('crp', 'CrpMgL', () => parseFloat((parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value)).toFixed(2)));
             store('shbg', 'Shbg', () => parseFloat((parseFloat(document.getElementById('shbg').value) / parseFloat(document.getElementById('shbgUnit').value)).toFixed(2)));
             store('vitamin_d', 'VitaminD', () => parseFloat((parseFloat(document.getElementById('vitamin_d').value) / parseFloat(document.getElementById('vitamin_dUnit').value)).toFixed(2)));
-
 
             const biomarkerData = {
                 DateOfBirth: {
@@ -2027,8 +2183,9 @@
             fake('crp', 1.35);
             fake('shbg', 45.6);
             fake('vitamin_d', 50);
+            fake('wbc', 6, 'wbcUnit', 1);
 
-            bortzFieldIds.forEach(id => {
+            [...bortzFieldIds, 'wbc'].forEach(id => {
                 touchedBiomarkers.add(id);
                 expandFieldCard(id);
             });
