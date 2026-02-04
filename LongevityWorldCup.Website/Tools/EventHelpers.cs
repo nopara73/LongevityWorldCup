@@ -69,6 +69,8 @@ public static class EventHelpers
         return int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out count);
     }
 
+    public static bool TryExtractDomain(string raw, out string domain) => TryExtractField(raw, "domain", out domain);
+
     public static string NormalizeBadgeLabel(string? label) =>
         (label ?? string.Empty).Replace('–', '-').Trim();
 

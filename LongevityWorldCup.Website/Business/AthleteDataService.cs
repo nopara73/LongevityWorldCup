@@ -788,6 +788,28 @@ public class AthleteDataService : IDisposable
         return slugs.Where(s => existing.Contains(s)).ToList();
     }
 
+    public string? GetBestDomainWinnerSlug(string domainKey)
+    {
+        var label = domainKey?.ToLowerInvariant() switch
+        {
+            "liver" => "Best Domain – Liver",
+            "kidney" => "Best Domain – Kidney",
+            "metabolic" => "Best Domain – Metabolic",
+            "inflammation" => "Best Domain – Inflammation",
+            "immune" => "Best Domain – Immune",
+            _ => null
+        };
+        if (label is null) return null;
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT AthleteSlug FROM BadgeAwards WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 LIMIT 1";
+            cmd.Parameters.AddWithValue("@label", label);
+            var result = cmd.ExecuteScalar() as string;
+            return string.IsNullOrWhiteSpace(result) ? null : result;
+        });
+    }
+
     public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
     {
         var order = GetRankingsOrder();

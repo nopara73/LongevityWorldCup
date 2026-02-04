@@ -15,6 +15,7 @@ public class XFillerPostLogService
 {
     private const string TableName = "XFillerPostLog";
     private static readonly string[] Top3LeagueSlugs = ["ultimate", "mens", "womens", "open", "silent-generation", "baby-boomers", "gen-x", "millennials", "gen-z", "gen-alpha", "prosperan"];
+    private static readonly string[] DomainKeys = ["liver", "kidney", "metabolic", "inflammation", "immune"];
     private readonly DatabaseManager _db;
 
     public XFillerPostLogService(DatabaseManager db)
@@ -58,7 +59,8 @@ public class XFillerPostLogService
         options.Add((FillerType.CrowdGuesses, ""));
         options.Add((FillerType.Newcomers, ""));
         options.Add((FillerType.FieldStat, ""));
-        options.Add((FillerType.DomainTop, ""));
+        foreach (var dk in DomainKeys)
+            options.Add((FillerType.DomainTop, $"domain[{dk}]"));
 
         var lastByOption = _db.Run(sqlite =>
         {

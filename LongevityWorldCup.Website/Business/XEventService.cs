@@ -61,7 +61,8 @@ public class XEventService
             SlugToName,
             _athletes.GetTop3SlugsForLeague,
             _athletes.GetCrowdLowestAgeTop3,
-            _athletes.GetRecentNewcomersForX);
+            _athletes.GetRecentNewcomersForX,
+            _athletes.GetBestDomainWinnerSlug);
         return string.IsNullOrWhiteSpace(msg) ? null : msg;
     }
 

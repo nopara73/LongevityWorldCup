@@ -176,7 +176,8 @@ public static class XMessageBuilder
         Func<string, string> slugToName,
         Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null,
         Func<IReadOnlyList<(string Slug, double CrowdAge)>>? getCrowdLowestAgeTop3 = null,
-        Func<IReadOnlyList<string>>? getRecentNewcomersForX = null)
+        Func<IReadOnlyList<string>>? getRecentNewcomersForX = null,
+        Func<string, string?>? getBestDomainWinnerSlug = null)
     {
         if (fillerType == FillerType.Top3Leaderboard)
         {
@@ -219,6 +220,35 @@ public static class XMessageBuilder
                 "",
                 "Explore the newest athletes:",
                 LeaderboardUrl
+            };
+            return Truncate(string.Join("\n", lines));
+        }
+
+        if (fillerType == FillerType.DomainTop)
+        {
+            if (!EventHelpers.TryExtractDomain(payloadText ?? "", out var domainKey) || string.IsNullOrWhiteSpace(domainKey))
+                return "";
+            var winnerSlug = getBestDomainWinnerSlug?.Invoke(domainKey.Trim());
+            if (string.IsNullOrWhiteSpace(winnerSlug)) return "";
+            var name = slugToName(winnerSlug);
+            var (label, emoji) = domainKey.ToLowerInvariant() switch
+            {
+                "liver" => ("liver", "🧬"),
+                "kidney" => ("kidneys", "💧"),
+                "metabolic" => ("metabolic profile", "🔥"),
+                "inflammation" => ("inflammation profile", ""),
+                "immune" => ("immune profile", "🛡️"),
+                _ => ("domain", "")
+            };
+            var line1 = string.IsNullOrEmpty(emoji)
+                ? $"{name} currently has the best {label} in the Longevity World Cup field."
+                : $"{name} currently has the best {label} in the Longevity World Cup field {emoji}";
+            var url = AthleteUrl(winnerSlug);
+            var lines = new List<string>
+            {
+                line1,
+                "",
+                $"📊 Profile: {url}"
             };
             return Truncate(string.Join("\n", lines));
         }
