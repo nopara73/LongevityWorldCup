@@ -60,7 +60,8 @@ public class XEventService
             payloadText ?? "",
             SlugToName,
             _athletes.GetTop3SlugsForLeague,
-            _athletes.GetCrowdLowestAgeTop3);
+            _athletes.GetCrowdLowestAgeTop3,
+            _athletes.GetRecentNewcomersForX);
         return string.IsNullOrWhiteSpace(msg) ? null : msg;
     }
 

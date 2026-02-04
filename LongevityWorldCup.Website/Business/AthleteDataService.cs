@@ -758,6 +758,36 @@ public class AthleteDataService : IDisposable
             .ToList();
     }
 
+    public IReadOnlyList<string> GetRecentNewcomersForX()
+    {
+        const int windowDays = 7;
+        var cutoff = DateTime.UtcNow.AddDays(-windowDays);
+        var slugs = new List<string>();
+        _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes WHERE JoinedAt >= @cutoff";
+            cmd.Parameters.AddWithValue("@cutoff", cutoff.ToString("o"));
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var key = r.GetString(0);
+                slugs.Add(key);
+            }
+        });
+
+        if (slugs.Count == 0) return Array.Empty<string>();
+
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug)) existing.Add(slug);
+        }
+
+        return slugs.Where(s => existing.Contains(s)).ToList();
+    }
+
     public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
     {
         var order = GetRankingsOrder();

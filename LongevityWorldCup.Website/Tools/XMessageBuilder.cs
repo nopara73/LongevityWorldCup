@@ -175,7 +175,8 @@ public static class XMessageBuilder
         string payloadText,
         Func<string, string> slugToName,
         Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null,
-        Func<IReadOnlyList<(string Slug, double CrowdAge)>>? getCrowdLowestAgeTop3 = null)
+        Func<IReadOnlyList<(string Slug, double CrowdAge)>>? getCrowdLowestAgeTop3 = null,
+        Func<IReadOnlyList<string>>? getRecentNewcomersForX = null)
     {
         if (fillerType == FillerType.Top3Leaderboard)
         {
@@ -205,6 +206,20 @@ public static class XMessageBuilder
             }
             lines.Add("");
             lines.Add($"📊 Full leaderboard: {LeaderboardUrl}");
+            return Truncate(string.Join("\n", lines));
+        }
+
+        if (fillerType == FillerType.Newcomers)
+        {
+            var newcomers = getRecentNewcomersForX?.Invoke() ?? Array.Empty<string>();
+            if (newcomers.Count == 0) return "";
+            var lines = new List<string>
+            {
+                "Fresh faces on the Longevity World Cup leaderboard 🆕",
+                "",
+                "Explore the newest athletes:",
+                LeaderboardUrl
+            };
             return Truncate(string.Join("\n", lines));
         }
 
