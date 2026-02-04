@@ -1,0 +1,28 @@
+{
+  "Name": "Efe Perek",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/efeperek/",
+  "DateOfBirth": {
+    "Year": 2004,
+    "Month": 1,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-02-03",
+      "AlbGL": 47.6,
+      "CreatUmolL": 94.69,
+      "GluMmolL": 4.16,
+      "CrpMgL": 0.9,
+      "LymPc": 47.1,
+      "McvFL": 84.6,
+      "RdwPc": 13,
+      "AlpUL": 59,
+      "Wbc1000cellsuL": 7.56
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Turkey",
+  "Why": "Being your best self is the way to finding meaning and true happiness in life.",
+  "PersonalLink": "https://www.instagram.com/efeperek/"
+}
