@@ -1,4 +1,4 @@
-﻿<meta charset="UTF-8" />
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" content="Longevity World Cup - Leaderboard and event details." />
 <meta name="keywords" content="Longevity, World Cup, Leaderboard, Health, Event" />
@@ -37,6 +37,10 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
 <!-- AOS JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+
+<script>
+(function(){var v=Date.now();window.__v=v;document.write('<link rel="stylesheet" href="/css/badges.css?v='+v+'">');})();
+</script>
 
 <!--
 Monkey-patch DOMContentLoaded to delay all handlers until modulesReady resolves.
@@ -92,8 +96,7 @@ Must appear before any other script that initializes or relies on AOS.
 </script>
 
 <script type="module">
-    // build a version‑stamp once
-    const __v = Date.now();
+    const __v = window.__v || Date.now();
 
     // kick off dynamic imports (they run in module scope,
     // so nothing leaks global except what each module explicitly
