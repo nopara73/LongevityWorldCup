@@ -7,7 +7,6 @@ public enum FillerType
     Top3Leaderboard,
     CrowdGuesses,
     Newcomers,
-    FieldStat,
     DomainTop
 }
 
@@ -58,7 +57,6 @@ public class XFillerPostLogService
             options.Add((FillerType.Top3Leaderboard, $"league[{slug}]"));
         options.Add((FillerType.CrowdGuesses, ""));
         options.Add((FillerType.Newcomers, ""));
-        options.Add((FillerType.FieldStat, ""));
         foreach (var dk in DomainKeys)
             options.Add((FillerType.DomainTop, $"domain[{dk}]"));
 
