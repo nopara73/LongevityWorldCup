@@ -55,7 +55,12 @@ public class XEventService
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)
     {
-        var msg = XMessageBuilder.ForFiller(fillerType, payloadText ?? "", SlugToName, _athletes.GetTop3SlugsForLeague);
+        var msg = XMessageBuilder.ForFiller(
+            fillerType,
+            payloadText ?? "",
+            SlugToName,
+            _athletes.GetTop3SlugsForLeague,
+            _athletes.GetCrowdLowestAgeTop3);
         return string.IsNullOrWhiteSpace(msg) ? null : msg;
     }
 

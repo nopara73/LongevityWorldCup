@@ -170,21 +170,45 @@ public static class XMessageBuilder
             $"📹 Full episode: {podcastUrl}");
     }
 
-    public static string ForFiller(FillerType fillerType, string payloadText, Func<string, string> slugToName, Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null)
+    public static string ForFiller(
+        FillerType fillerType,
+        string payloadText,
+        Func<string, string> slugToName,
+        Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null,
+        Func<IReadOnlyList<(string Slug, double CrowdAge)>>? getCrowdLowestAgeTop3 = null)
     {
-        if (fillerType != FillerType.Top3Leaderboard) return "";
-        if (!EventHelpers.TryExtractLeague(payloadText ?? "", out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
-            return "";
-        if (!LeagueBySlug.TryGetValue(leagueSlug.Trim(), out var league))
-            return "";
-        var slugs = getTop3SlugsForLeague?.Invoke(leagueSlug.Trim()) ?? Array.Empty<string>();
-        if (slugs.Count == 0) return "";
-        var lines = new List<string> { $"The race for #1 in the {league.DisplayName} is on. Current top 3 👇", "" };
-        for (var i = 0; i < slugs.Count && i < 3; i++)
-            lines.Add($"{i + 1}. {slugToName(slugs[i])}");
-        lines.Add("");
-        lines.Add($"📊 Full leaderboard: {league.Url}");
-        return Truncate(string.Join("\n", lines));
+        if (fillerType == FillerType.Top3Leaderboard)
+        {
+            if (!EventHelpers.TryExtractLeague(payloadText ?? "", out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
+                return "";
+            if (!LeagueBySlug.TryGetValue(leagueSlug.Trim(), out var league))
+                return "";
+            var slugs = getTop3SlugsForLeague?.Invoke(leagueSlug.Trim()) ?? Array.Empty<string>();
+            if (slugs.Count == 0) return "";
+            var lines = new List<string> { $"The race for #1 in the {league.DisplayName} is on. Current top 3 👇", "" };
+            for (var i = 0; i < slugs.Count && i < 3; i++)
+                lines.Add($"{i + 1}. {slugToName(slugs[i])}");
+            lines.Add("");
+            lines.Add($"📊 Full leaderboard: {league.Url}");
+            return Truncate(string.Join("\n", lines));
+        }
+
+        if (fillerType == FillerType.CrowdGuesses)
+        {
+            var items = getCrowdLowestAgeTop3?.Invoke() ?? Array.Empty<(string Slug, double CrowdAge)>();
+            if (items.Count == 0) return "";
+            var lines = new List<string> { "Top 3 youngest-looking in the tournament according to the crowd 👀", "" };
+            for (var i = 0; i < items.Count && i < 3; i++)
+            {
+                var name = slugToName(items[i].Slug);
+                lines.Add($"{i + 1}. {name}");
+            }
+            lines.Add("");
+            lines.Add($"📊 Full leaderboard: {LeaderboardUrl}");
+            return Truncate(string.Join("\n", lines));
+        }
+
+        return "";
     }
 
     public static string Truncate(string s)

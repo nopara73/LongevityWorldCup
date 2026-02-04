@@ -733,6 +733,31 @@ public class AthleteDataService : IDisposable
         return list;
     }
 
+    public IReadOnlyList<(string Slug, double CrowdAge)> GetCrowdLowestAgeTop3()
+    {
+        var snapshot = GetAthletesSnapshot();
+        var list = new List<(string Slug, double CrowdAge)>();
+        foreach (var o in snapshot.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            double crowdAge;
+            if (o["CrowdAge"] is JsonValue cv && cv.TryGetValue<double>(out var ca))
+                crowdAge = ca;
+            else
+                continue;
+            int crowdCount = 0;
+            if (o["CrowdCount"] is JsonValue cc && cc.TryGetValue<int>(out var cnt))
+                crowdCount = cnt;
+            if (crowdCount <= 0) continue;
+            list.Add((slug, crowdAge));
+        }
+        return list
+            .OrderBy(t => t.CrowdAge)
+            .Take(3)
+            .ToList();
+    }
+
     public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
     {
         var order = GetRankingsOrder();
