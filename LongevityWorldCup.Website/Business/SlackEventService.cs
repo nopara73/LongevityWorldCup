@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Tools;
 
@@ -13,6 +14,8 @@ public sealed class SlackEventService : IDisposable
     private Timer? _timer;
     private readonly TimeSpan _window = TimeSpan.FromSeconds(5);
     private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)> _bio = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, string> _podcastBySlug = new(StringComparer.OrdinalIgnoreCase);
 
     public SlackEventService(SlackWebhookClient slack)
     {
@@ -24,6 +27,24 @@ public sealed class SlackEventService : IDisposable
         var map = new Dictionary<string, (string Name, int? Rank)>(StringComparer.OrdinalIgnoreCase);
         foreach (var i in items) map[i.Slug] = (i.Name, i.CurrentRank);
         lock (_lockObj) _athDir = map;
+    }
+    
+    public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge)> items)
+    {
+        var map = new Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items) map[i.Slug] = (i.ChronologicalAge, i.LowestPhenoAge);
+        lock (_lockObj) _bio = map;
+    }
+
+    public void SetPodcastLinks(IReadOnlyList<(string Slug, string PodcastLink)> items)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items)
+        {
+            if (!string.IsNullOrWhiteSpace(i.PodcastLink)) map[i.Slug] = i.PodcastLink.Trim();
+        }
+
+        lock (_lockObj) _podcastBySlug = map;
     }
 
     public async Task SendImmediateAsync(EventType type, string rawText)
@@ -52,6 +73,7 @@ public sealed class SlackEventService : IDisposable
                 _timer.Change(_window, Timeout.InfiniteTimeSpan);
             }
         }
+
         return Task.CompletedTask;
     }
 
@@ -71,6 +93,7 @@ public sealed class SlackEventService : IDisposable
                 _timer = null;
                 return;
             }
+
             toSend = new List<(EventType Type, string Raw)>(_buffer);
             _buffer.Clear();
             _timer?.Dispose();
@@ -87,12 +110,38 @@ public sealed class SlackEventService : IDisposable
                 list = new List<(EventType, string)>();
                 groups[slug] = list;
             }
+
             list.Add(item);
         }
 
+        Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)> bio;
+        Dictionary<string, string> podcastBySlug;
+        lock (_lockObj)
+        {
+            bio = _bio;
+            podcastBySlug = _podcastBySlug;
+        }
+
+        double? GetChrono(string s) => bio.TryGetValue(s, out var v) ? v.ChronoAge : null;
+        double? GetPheno(string s) => bio.TryGetValue(s, out var v) ? v.LowestPhenoAge : null;
+        string? GetPodcast(string s) => podcastBySlug.TryGetValue(s, out var url) ? url : null;
+
         foreach (var kv in groups)
         {
-            var message = SlackMessageBuilder.ForMergedGroup(kv.Value, SlugToNameResolve);
+            var list = kv.Value;
+            if (list.Count == 0) continue;
+
+            string message;
+            if (list.Count == 1)
+            {
+                var single = list[0];
+                message = SlackMessageBuilder.ForEventText(single.Type, single.Raw, SlugToNameResolve, getPodcastLinkForSlug: GetPodcast);
+            }
+            else
+            {
+                message = SlackMessageBuilder.ForMergedGroup(list, SlugToNameResolve, GetChrono, GetPheno, GetPodcast);
+            }
+
             if (string.IsNullOrWhiteSpace(message)) continue;
             try
             {
@@ -106,7 +155,15 @@ public sealed class SlackEventService : IDisposable
 
     private string BuildMessage(EventType type, string rawText)
     {
-        return SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve);
+        return SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve, getPodcastLinkForSlug: GetPodcastLinkForSlug);
+    }
+    
+    private string? GetPodcastLinkForSlug(string slug)
+    {
+        lock (_lockObj)
+        {
+            return _podcastBySlug.TryGetValue(slug, out var url) ? url : null;
+        }
     }
 
     private string SlugToNameResolve(string slug)
@@ -115,6 +172,7 @@ public sealed class SlackEventService : IDisposable
         {
             if (_athDir.TryGetValue(slug, out var v) && !string.IsNullOrWhiteSpace(v.Name)) return v.Name;
         }
+
         var spaced = slug.Replace('_', '-').Replace('-', ' ');
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
     }
@@ -127,6 +185,7 @@ public sealed class SlackEventService : IDisposable
             _timer = null;
             _buffer.Clear();
         }
+
         GC.SuppressFinalize(this);
     }
 }

@@ -559,3 +559,7 @@ window.setBadges = function (athlete, athleteCell) {
 };
 
 window.computeBadges = window.computeBadges || function () {};
+window.pickIconForServerBadge = pickIconForServerBadge;
+window.pickBackgroundForServerBadge = pickBackgroundForServerBadge;
+window.makeTooltipFromServerBadge = makeTooltipFromServerBadge;
+window.pickClickUrl = pickClickUrl;
