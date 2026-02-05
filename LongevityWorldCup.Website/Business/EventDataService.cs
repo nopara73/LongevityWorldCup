@@ -185,7 +185,13 @@ public sealed class EventDataService : IDisposable
         var list = _db.Run(sqlite =>
         {
             var filters = new List<string> { "XProcessed = 0", "Type != @customEvent" };
-            var parameters = new List<SqliteParameter> { new SqliteParameter("@customEvent", (int)EventType.CustomEvent) };
+            var parameters = new List<SqliteParameter>
+            {
+                new SqliteParameter("@customEvent", (int)EventType.CustomEvent),
+                new SqliteParameter("@joined", (int)EventType.Joined)
+            };
+
+            filters.Add("Type != @joined");
 
             if (fromUtc.HasValue)
             {
