@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -81,10 +82,7 @@ public class XApiClient
     {
         if (_env.IsDevelopment())
         {
-            if (mediaIds is { Count: > 0 })
-                _log.LogInformation("X (Development): would have posted: {Content} with mediaIds: {MediaIds}", text, string.Join(", ", mediaIds));
-            else
-                _log.LogInformation("X (Development): would have posted: {Content}", text);
+            await WriteDevPreviewAsync(text, mediaIds);
             return;
         }
 
@@ -137,6 +135,76 @@ public class XApiClient
             }
 
             res.EnsureSuccessStatusCode();
+        }
+    }
+
+    private async Task WriteDevPreviewAsync(string text, IReadOnlyList<string>? mediaIds)
+    {
+        try
+        {
+            var root = Path.Combine(Path.GetTempPath(), "LWC_XPreview");
+            Directory.CreateDirectory(root);
+
+            var nowUtc = DateTime.UtcNow;
+            foreach (var file in Directory.EnumerateFiles(root, "*.html"))
+            {
+                try
+                {
+                    var lastWrite = File.GetLastWriteTimeUtc(file);
+                    if (nowUtc - lastWrite > TimeSpan.FromDays(1))
+                        File.Delete(file);
+                }
+                catch
+                {
+                }
+            }
+
+            var ts = nowUtc.ToString("yyyyMMdd_HHmmss_fff");
+            var fileName = $"x_{ts}.html";
+            var fullPath = Path.Combine(root, fileName);
+
+            var sb = new StringBuilder();
+            sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>LWC X Preview</title>");
+            sb.Append("<style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px;background:#020209;color:#eee;}pre{white-space:pre-wrap;word-wrap:break-word;background:#050516;padding:16px;border-radius:8px;}small{color:#aaa;}</style>");
+            sb.Append("</head><body>");
+            sb.Append("<h2>LWC X Preview</h2>");
+            sb.Append("<small>");
+            sb.Append(WebUtility.HtmlEncode(nowUtc.ToString("u")));
+            sb.Append("</small>");
+            sb.Append("<pre>");
+            sb.Append(WebUtility.HtmlEncode(text ?? ""));
+            sb.Append("</pre>");
+            if (mediaIds is { Count: > 0 })
+            {
+                sb.Append("<p><strong>media_ids:</strong> ");
+                sb.Append(WebUtility.HtmlEncode(string.Join(", ", mediaIds)));
+                sb.Append("</p>");
+            }
+            sb.Append("</body></html>");
+
+            await File.WriteAllTextAsync(fullPath, sb.ToString(), Encoding.UTF8);
+
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = fullPath,
+                    UseShellExecute = true
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Failed to open X preview HTML in browser: {Path}", fullPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Failed to write X dev preview.");
+            if (mediaIds is { Count: > 0 })
+                _log.LogInformation("X (Development): would have posted: {Content} with mediaIds: {MediaIds}", text, string.Join(", ", mediaIds));
+            else
+                _log.LogInformation("X (Development): would have posted: {Content}", text);
         }
     }
 
