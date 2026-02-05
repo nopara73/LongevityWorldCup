@@ -12,14 +12,18 @@ public class XDailyPostJob : IJob
     private readonly XEventService _xEvents;
     private readonly AthleteDataService _athletes;
     private readonly XFillerPostLogService _fillerLog;
+    private readonly XImageService _images;
+    private readonly XApiClient _xApiClient;
 
-    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes, XFillerPostLogService fillerLog)
+    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes, XFillerPostLogService fillerLog, XImageService images, XApiClient xApiClient)
     {
         _logger = logger;
         _events = events;
         _xEvents = xEvents;
         _athletes = athletes;
         _fillerLog = fillerLog;
+        _images = images;
+        _xApiClient = xApiClient;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -49,7 +53,19 @@ public class XDailyPostJob : IJob
         var fillerMsg = _xEvents.TryBuildFillerMessage(fillerType, payloadText);
         if (!string.IsNullOrWhiteSpace(fillerMsg))
         {
-            await _xEvents.SendAsync(fillerMsg);
+            IReadOnlyList<string>? mediaIds = null;
+            if (fillerType == FillerType.Newcomers)
+            {
+                await using var imageStream = await _images.BuildNewcomersImageAsync();
+                if (imageStream != null)
+                {
+                    var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
+                    if (!string.IsNullOrWhiteSpace(mediaId))
+                        mediaIds = new[] { mediaId };
+                }
+            }
+
+            await _xEvents.SendAsync(fillerMsg, mediaIds);
             _fillerLog.LogPost(DateTime.UtcNow, fillerType, payloadText ?? "");
             _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
             return;
