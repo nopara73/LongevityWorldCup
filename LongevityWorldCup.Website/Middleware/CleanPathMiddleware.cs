@@ -1,4 +1,4 @@
-﻿using SQLitePCL;
+using SQLitePCL;
 
 namespace LongevityWorldCup.Website.Middleware
 {
@@ -33,6 +33,10 @@ namespace LongevityWorldCup.Website.Middleware
 
                     case "pheno-age":
                         context.Request.Path = "/onboarding/pheno-age.html";
+                        break;
+
+                    case "bortz-age":
+                        context.Request.Path = "/onboarding/bortz-age.html";
                         break;
                 }
             }
