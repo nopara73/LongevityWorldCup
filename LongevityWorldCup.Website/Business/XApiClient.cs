@@ -8,6 +8,7 @@ namespace LongevityWorldCup.Website.Business;
 public class XApiClient
 {
     private const string TweetsEndpoint = "https://api.twitter.com/2/tweets";
+    private const string MediaUploadEndpoint = "https://upload.twitter.com/1.1/media/upload.json";
     private const string TokenEndpoint = "https://api.twitter.com/2/oauth2/token";
     private readonly HttpClient _http;
     private readonly Config _config;
@@ -26,22 +27,82 @@ public class XApiClient
         _accessToken = config.XAccessToken;
     }
 
-    public async Task SendAsync(string text)
+    public async Task<string?> UploadMediaAsync(Stream content, string contentType)
     {
         if (_env.IsDevelopment())
         {
-            _log.LogInformation("X (Development): would have posted: {Content}", text);
+            _log.LogInformation("X (Development): would have uploaded media with contentType {ContentType}", contentType);
+            return null;
+        }
+
+        var token = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            _log.LogInformation("X credentials not configured. Would have uploaded media with contentType {ContentType}", contentType);
+            return null;
+        }
+
+        using var form = new MultipartFormDataContent();
+        var streamContent = new StreamContent(content);
+        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        form.Add(streamContent, "media", "media");
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, MediaUploadEndpoint);
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        req.Content = form;
+
+        var res = await _http.SendAsync(req);
+        var json = await res.Content.ReadAsStringAsync();
+
+        if (!res.IsSuccessStatusCode)
+        {
+            _log.LogError("X media upload failed: {StatusCode} {Body}", res.StatusCode, json);
+            return null;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("media_id_string", out var idEl))
+                return idEl.GetString();
+            if (root.TryGetProperty("media_id", out var idElNum))
+                return idElNum.GetRawText();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "X media upload response parse failed: {Json}", json);
+        }
+
+        return null;
+    }
+
+    public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds = null)
+    {
+        if (_env.IsDevelopment())
+        {
+            if (mediaIds is { Count: > 0 })
+                _log.LogInformation("X (Development): would have posted: {Content} with mediaIds: {MediaIds}", text, string.Join(", ", mediaIds));
+            else
+                _log.LogInformation("X (Development): would have posted: {Content}", text);
             return;
         }
 
         var token = GetAccessToken();
         if (string.IsNullOrWhiteSpace(token))
         {
-            _log.LogInformation("X credentials not configured. Would have posted: {Content}", text);
+            if (mediaIds is { Count: > 0 })
+                _log.LogInformation("X credentials not configured. Would have posted: {Content} with mediaIds: {MediaIds}", text, string.Join(", ", mediaIds));
+            else
+                _log.LogInformation("X credentials not configured. Would have posted: {Content}", text);
             return;
         }
 
-        var payload = JsonSerializer.Serialize(new { text });
+        object payloadObj = mediaIds is { Count: > 0 }
+            ? new { text, media = new { media_ids = mediaIds } }
+            : new { text };
+
+        var payload = JsonSerializer.Serialize(payloadObj);
         var maxAttempts = 3;
         var delayMs = 1000;
 

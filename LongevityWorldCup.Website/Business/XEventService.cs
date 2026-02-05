@@ -30,9 +30,14 @@ public class XEventService
 
     public async Task SendAsync(string text)
     {
+        await SendAsync(text, null);
+    }
+
+    public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds)
+    {
         try
         {
-            await _x.SendAsync(text);
+            await _x.SendAsync(text, mediaIds);
         }
         catch (Exception ex)
         {
