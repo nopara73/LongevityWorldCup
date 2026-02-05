@@ -37,6 +37,16 @@ public class XDailyPostJob : IJob
 
         foreach (var (id, type, text, occurredAtUtc, _, xPriority) in pending)
         {
+            if (type == EventType.BadgeAward)
+            {
+                if (EventHelpers.TryExtractBadgeLabel(text, out var label))
+                {
+                    var norm = EventHelpers.NormalizeBadgeLabel(label);
+                    if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                }
+            }
+
             if (xPriority <= EventDataService.XPriorityPrimaryMax && occurredAtUtc < freshCutoff)
                 continue;
 

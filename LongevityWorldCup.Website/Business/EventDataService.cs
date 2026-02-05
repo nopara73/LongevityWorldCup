@@ -583,6 +583,7 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
+        var podcastEvents = new List<(string Id, string Text)>();
 
         _db.Run(sqlite =>
         {
@@ -643,13 +644,18 @@ public sealed class EventDataService : IDisposable
 
                 if (!shouldInsert) continue;
 
-                pId.Value = Guid.NewGuid().ToString("N");
+                var id = Guid.NewGuid().ToString("N");
+                pId.Value = id;
                 pType.Value = (int)EventType.BadgeAward;
                 pText.Value = text;
                 pOcc.Value = occurredAt;
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
+
+                var norm = EventHelpers.NormalizeBadgeLabel(badgeLabel);
+                if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
+                    podcastEvents.Add((id, text));
             }
 
             tx.Commit();
@@ -658,6 +664,14 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
+        }
+
+        if (podcastEvents.Count > 0)
+        {
+            foreach (var (id, text) in podcastEvents)
+                _ = _xEvents.SendEventAsync(EventType.BadgeAward, text);
+
+            MarkEventsXProcessed(podcastEvents.Select(p => p.Id));
         }
     }
 
