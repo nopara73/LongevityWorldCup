@@ -1,0 +1,28 @@
+{
+  "Name": "dandv",
+  "DisplayName": null,
+  "MediaContact": "https://x.com/dandv",
+  "DateOfBirth": {
+    "Year": 1980,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-19",
+      "AlbGL": 47,
+      "CreatUmolL": 107.96,
+      "GluMmolL": 5.05,
+      "CrpMgL": 0.3,
+      "LymPc": 33.6,
+      "McvFL": 92.4,
+      "RdwPc": 12.2,
+      "AlpUL": 78,
+      "Wbc1000cellsuL": 4.3
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Romania",
+  "Why": "Seeing how humans vs. AI play out",
+  "PersonalLink": "https://dandv.me"
+}
