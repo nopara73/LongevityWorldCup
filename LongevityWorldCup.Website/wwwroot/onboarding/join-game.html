@@ -166,6 +166,30 @@
             border-radius: 6px;
         }
 
+        .track-card-badge.prize-money {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            color: #b8860b;
+            background: linear-gradient(135deg, rgba(247, 147, 26, 0.18) 0%, rgba(255, 193, 7, 0.12) 100%);
+            border: 1px solid rgba(247, 147, 26, 0.35);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(247, 147, 26, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.06em;
+        }
+
+        .track-card-badge.prize-money .btc-symbol {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #f7931a;
+            text-shadow: 0 0 8px rgba(247, 147, 26, 0.4);
+        }
+
         .track-card.pro {
             border-color: var(--main-action-color, #2e7d32);
             box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
@@ -223,7 +247,7 @@
                 </div>
             </article>
             <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
-                <span class="track-card-badge">More comprehensive</span>
+                <span class="track-card-badge prize-money"><span class="btc-symbol" aria-hidden="true">₿</span> Prize Money</span>
                 <h2>Professional Track</h2>
                 <p class="track-card-benefit">Full panel, two clocks — most complete picture.</p>
                 <div class="track-card-details">
