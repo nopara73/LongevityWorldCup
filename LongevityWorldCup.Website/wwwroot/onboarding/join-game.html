@@ -9,12 +9,21 @@
             display: none;
         }
 
+        /* Single content column so title, intro, and cards share the same width */
+        .join-game-content {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .join-game-content h1 {
+            margin-bottom: 0;
+        }
+
         .track-cards {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
-            max-width: 1100px;
-            margin: 2rem auto;
+            margin: 2rem 0;
         }
 
         @media (max-width: 700px) {
@@ -164,8 +173,7 @@
         }
 
         .lab-reassurance {
-            max-width: 1100px;
-            margin: 1.5rem auto 0;
+            margin: 1.5rem 0 0;
             padding: 1rem 1.25rem;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
@@ -178,6 +186,7 @@
     <!--HEADER-->
     <main>
         <!--MAIN-PROGRESS-BAR-->
+        <div class="join-game-content">
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">How Bad Do You Want It?</h1>
 
         <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test. Any lab will do.</div>
@@ -263,6 +272,7 @@
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
+        </div>
         </div>
     </main>
     <!--FOOTER-->
