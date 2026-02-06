@@ -8,6 +8,86 @@
         .join-game {
             display: none;
         }
+
+
+        .comparison-table {
+            width: 100%;
+            max-width: 1100px;
+            margin: 2rem auto;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+            .comparison-table th, .comparison-table td {
+                vertical-align: top;
+                text-align: left;
+                padding: 12px 14px;
+            }
+
+            .comparison-table thead th {
+                font-size: 1.1rem;
+                font-weight: 700;
+                border-bottom: 2px solid #ccc;
+            }
+
+            .comparison-table tbody tr:not(:last-child) td {
+                border-bottom: 1px solid #e0e0e0;
+            }
+
+            .comparison-table td:first-child {
+                width: 26%;
+                font-weight: 600;
+            }
+
+            .comparison-table td:nth-child(2), .comparison-table td:nth-child(3) {
+                width: 37%;
+            }
+
+        .biomarker-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .biomarker-count {
+            font-weight: 600;
+        }
+
+        details.bio-details {
+            margin-top: 6px;
+        }
+
+            details.bio-details > summary {
+                cursor: pointer;
+                user-select: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 600;
+            }
+
+                details.bio-details > summary::-webkit-details-marker {
+                    display: none;
+                }
+
+                details.bio-details > summary::before {
+                    content: "▸";
+                    display: inline-block;
+                    transform-origin: center;
+                }
+
+            details.bio-details[open] > summary::before {
+                content: "▾";
+            }
+
+        .bio-list {
+            margin: 8px 0 0;
+            padding-left: 18px;
+        }
+
+            .bio-list li {
+                margin: 2px 0;
+            }
     </style>
 </head>
 <body>
@@ -23,17 +103,92 @@
             </picture>
         </div>
         <p data-aos="fade" data-aos-duration="700" data-aos-delay="350">To calculate your biological age, get a blood test — but first, choose your track:</p>
-        <ul>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="400"><strong>White Blood Cell Count</strong> (WBC)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="450"><strong>Lymphocytes</strong></li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="500"><strong>Mean Corpuscular Volume</strong> (MCV)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="550"><strong>Red Cell Distribution Width</strong> (RDW)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="600"><strong>Albumin</strong></li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="650"><strong>Alkaline Phosphatase</strong> (ALP)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="700"><strong>Creatinine</strong></li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="750"><strong>Glucose</strong> (Blood Sugar)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="800"><strong>C-Reactive Protein</strong> (CRP)</li>
-        </ul>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Amateur Track</th>
+                    <th>Professional Track</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Clock</td>
+                    <td>Pheno Age</td>
+                    <td>Bortz Age + Pheno Age</td>
+                </tr>
+                <tr>
+                    <td>Visibility</td>
+                    <td>ranked after pros</td>
+                    <td>ranked ahead of amateurs</td>
+                </tr>
+                <tr>
+                    <td>Season</td>
+                    <td>all-Time</td>
+                    <td>2026</td>
+                </tr>
+                <tr>
+                    <td>Entry Fee</td>
+                    <td>free (for now)</td>
+                    <td>free (for now)</td>
+                </tr>
+                <tr>
+                    <td>Labs</td>
+                    <td>
+                        <div class="biomarker-summary">
+                            <div class="biomarker-count">9 biomarkers</div>
+                            <details class="bio-details">
+                                <summary>Show list</summary>
+                                <ul class="bio-list">
+                                    <li>White Blood Cell Count (WBC)</li>
+                                    <li>Lymphocytes</li>
+                                    <li>Mean Corpuscular Volume (MCV)</li>
+                                    <li>Red Cell Distribution Width (RDW)</li>
+                                    <li>Albumin</li>
+                                    <li>Alkaline Phosphatase (ALP)</li>
+                                    <li>Creatinine</li>
+                                    <li>Glucose (Blood Sugar)</li>
+                                    <li>C-Reactive Protein (CRP)</li>
+                                </ul>
+                            </details>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="biomarker-summary">
+                            <div class="biomarker-count">22 biomarkers</div>
+                            <details class="bio-details">
+                                <summary>Show list</summary>
+                                <ul class="bio-list">
+                                    <li>White Blood Cell Count (WBC)</li>
+                                    <li>Lymphocytes (LYM)</li>
+                                    <li>Neutrophils (absolute)</li>
+                                    <li>Monocytes (absolute)</li>
+                                    <li>Red Blood Cell Count (RBC)</li>
+                                    <li>Mean Corpuscular Volume (MCV)</li>
+                                    <li>Mean Corpuscular Hemoglobin (MCH)</li>
+                                    <li>Red Cell Distribution Width (RDW)</li>
+                                    <li>Albumin</li>
+                                    <li>Urea</li>
+                                    <li>Creatinine</li>
+                                    <li>Cystatin C</li>
+                                    <li>Glucose</li>
+                                    <li>HbA1c</li>
+                                    <li>Total Cholesterol</li>
+                                    <li>ApoA1</li>
+                                    <li>ALT</li>
+                                    <li>Alkaline Phosphatase (ALP)</li>
+                                    <li>GGT</li>
+                                    <li>CRP</li>
+                                    <li>SHBG</li>
+                                    <li>Vitamin D (25-OH)</li>
+                                </ul>
+                            </details>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
         <p data-aos="fade" data-aos-duration="700" data-aos-delay="825">Visit any lab for these tests — just pay the lab fee. It might even be covered by your healthcare provider.</p>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="850">
