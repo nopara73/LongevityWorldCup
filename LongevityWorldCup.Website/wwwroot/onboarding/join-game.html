@@ -9,85 +9,169 @@
             display: none;
         }
 
-
-        .comparison-table {
-            width: 100%;
+        .track-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
             max-width: 1100px;
             margin: 2rem auto;
-            border-collapse: collapse;
-            table-layout: fixed;
         }
 
-            .comparison-table th, .comparison-table td {
-                vertical-align: top;
-                text-align: left;
-                padding: 12px 14px;
+        @media (max-width: 700px) {
+            .track-cards {
+                grid-template-columns: 1fr;
             }
+        }
 
-            .comparison-table thead th {
-                font-size: 1.1rem;
-                font-weight: 700;
-                border-bottom: 2px solid #ccc;
-            }
-
-            .comparison-table tbody tr:not(:last-child) td {
-                border-bottom: 1px solid #e0e0e0;
-            }
-
-            .comparison-table td:first-child {
-                width: 26%;
-                font-weight: 600;
-            }
-
-            .comparison-table td:nth-child(2), .comparison-table td:nth-child(3) {
-                width: 37%;
-            }
-
-        .biomarker-summary {
+        .track-card {
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            background: #fff;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
 
-        .biomarker-count {
+        .track-card:hover {
+            border-color: #b0bec5;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .track-card:focus {
+            outline: none;
+        }
+
+        .track-card:focus-visible {
+            outline: 2px solid var(--primary-color, #3498db);
+            outline-offset: 2px;
+        }
+
+        .track-card.pro:hover {
+            border-color: var(--main-action-color, #2e7d32);
+            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.2);
+        }
+
+        .track-card.pro:focus-visible {
+            outline-color: var(--main-action-color, #2e7d32);
+        }
+
+        .track-card h2 {
+            margin: 0 0 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .track-card-benefit {
+            margin: 0 0 1rem;
+            font-size: 0.95rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .track-card .track-card-details {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .track-card .track-card-details > ul {
+            margin: 0 0 1rem;
+            padding-left: 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #555;
+        }
+
+        .track-card .track-card-details > ul strong {
             font-weight: 600;
+            color: inherit;
         }
 
-        details.bio-details {
-            margin-top: 6px;
+        .track-card li {
+            margin: 0.25rem 0;
         }
 
-            details.bio-details > summary {
-                cursor: pointer;
-                user-select: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                font-weight: 600;
-            }
+        .track-card .biomarker-count {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
 
-                details.bio-details > summary::-webkit-details-marker {
-                    display: none;
-                }
+        details.card-bio-details {
+            margin-top: 0.25rem;
+        }
 
-                details.bio-details > summary::before {
-                    content: "▸";
-                    display: inline-block;
-                    transform-origin: center;
-                }
+        details.card-bio-details > summary {
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
 
-            details.bio-details[open] > summary::before {
-                content: "▾";
-            }
+        details.card-bio-details > summary::-webkit-details-marker {
+            display: none;
+        }
 
-        .bio-list {
-            margin: 8px 0 0;
+        details.card-bio-details > summary::before {
+            content: "▸";
+            display: inline-block;
+        }
+
+        details.card-bio-details[open] > summary::before {
+            content: "▾";
+        }
+
+        .card-bio-list {
+            margin: 6px 0 0;
             padding-left: 18px;
         }
 
-            .bio-list li {
-                margin: 2px 0;
-            }
+        .card-bio-list li {
+            margin: 2px 0;
+            font-size: 0.9rem;
+        }
+
+        .track-card .card-cta {
+            margin-top: auto;
+            padding-top: 1.25rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .track-card-badge {
+            display: inline-block;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--main-action-color, #2e7d32);
+            background: rgba(46, 125, 50, 0.12);
+            border-radius: 6px;
+        }
+
+        .track-card.pro {
+            border-color: var(--main-action-color, #2e7d32);
+            box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
+            background: #f0fdf4;
+        }
+
+        .lab-reassurance {
+            max-width: 1100px;
+            margin: 1.5rem auto 0;
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
@@ -95,106 +179,88 @@
     <main>
         <!--MAIN-PROGRESS-BAR-->
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">How Bad Do You Want It?</h1>
-        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="../assets/content-images/amateur-pro.webp" type="image/webp">
-                <source srcset="../assets/content-images/amateur-pro.jpg" type="image/jpeg">
-                <img src="../assets/content-images/amateur-pro.jpg" alt="Lab" class="illustration" loading="lazy">
-            </picture>
+        <p data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test — but first, choose your track:</p>
+
+        <div class="track-cards" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <article class="track-card" data-track-url="/pheno-age" role="button" tabindex="0" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
+                <h2>Amateur Track</h2>
+                <p class="track-card-benefit">Simple panel, one clock — fewer tests, easier to start.</p>
+                <div class="track-card-details">
+                <ul>
+                    <li><strong>Clock:</strong> <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
+                    <li><strong>Visibility:</strong> ranked after pros</li>
+                    <li><strong>Season:</strong> All-Time</li>
+                    <li><strong>Entry:</strong> free (for now)</li>
+                </ul>
+                <div class="biomarker-count">9 biomarkers</div>
+                <details class="card-bio-details">
+                    <summary>View 9 biomarkers</summary>
+                    <ul class="card-bio-list">
+                        <li>White Blood Cell Count (WBC)</li>
+                        <li>Lymphocytes</li>
+                        <li>Mean Corpuscular Volume (MCV)</li>
+                        <li>Red Cell Distribution Width (RDW)</li>
+                        <li>Albumin</li>
+                        <li>Alkaline Phosphatase (ALP)</li>
+                        <li>Creatinine</li>
+                        <li>Glucose (Blood Sugar)</li>
+                        <li>C-Reactive Protein (CRP)</li>
+                    </ul>
+                </details>
+                </div>
+                <div class="card-cta">
+                    <button class="option-button" onclick="window.location.href='/pheno-age'">Go Amateur</button>
+                </div>
+            </article>
+            <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
+                <span class="track-card-badge">More comprehensive</span>
+                <h2>Professional Track</h2>
+                <p class="track-card-benefit">Full panel, two clocks — most complete picture.</p>
+                <div class="track-card-details">
+                <ul>
+                    <li><strong>Clock:</strong> <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
+                    <li><strong>Visibility:</strong> ranked ahead of amateurs</li>
+                    <li><strong>Season:</strong> 2026</li>
+                    <li><strong>Entry:</strong> free (for now)</li>
+                </ul>
+                <div class="biomarker-count">22 biomarkers</div>
+                <details class="card-bio-details">
+                    <summary>View 22 biomarkers</summary>
+                    <ul class="card-bio-list">
+                        <li>White Blood Cell Count (WBC)</li>
+                        <li>Lymphocytes (LYM)</li>
+                        <li>Neutrophils (absolute)</li>
+                        <li>Monocytes (absolute)</li>
+                        <li>Red Blood Cell Count (RBC)</li>
+                        <li>Mean Corpuscular Volume (MCV)</li>
+                        <li>Mean Corpuscular Hemoglobin (MCH)</li>
+                        <li>Red Cell Distribution Width (RDW)</li>
+                        <li>Albumin</li>
+                        <li>Urea</li>
+                        <li>Creatinine</li>
+                        <li>Cystatin C</li>
+                        <li>Glucose</li>
+                        <li>HbA1c</li>
+                        <li>Total Cholesterol</li>
+                        <li>ApoA1</li>
+                        <li>ALT</li>
+                        <li>Alkaline Phosphatase (ALP)</li>
+                        <li>GGT</li>
+                        <li>CRP</li>
+                        <li>SHBG</li>
+                        <li>Vitamin D (25-OH)</li>
+                    </ul>
+                </details>
+                </div>
+                <div class="card-cta">
+                    <button class="option-button green" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Go Pro</button>
+                </div>
+            </article>
         </div>
-        <p data-aos="fade" data-aos-duration="700" data-aos-delay="350">To calculate your biological age, get a blood test — but first, choose your track:</p>
-        <table class="comparison-table">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>Amateur Track</th>
-                    <th>Professional Track</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Clock</td>
-                    <td><a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></td>
-                    <td><a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></td>
-                </tr>
-                <tr>
-                    <td>Visibility</td>
-                    <td>ranked after pros</td>
-                    <td>ranked ahead of amateurs</td>
-                </tr>
-                <tr>
-                    <td>Season</td>
-                    <td>all-Time</td>
-                    <td>2026</td>
-                </tr>
-                <tr>
-                    <td>Entry Fee</td>
-                    <td>free (for now)</td>
-                    <td>free (for now)</td>
-                </tr>
-                <tr>
-                    <td>Labs</td>
-                    <td>
-                        <div class="biomarker-summary">
-                            <div class="biomarker-count">9 biomarkers</div>
-                            <details class="bio-details">
-                                <summary>Show list</summary>
-                                <ul class="bio-list">
-                                    <li>White Blood Cell Count (WBC)</li>
-                                    <li>Lymphocytes</li>
-                                    <li>Mean Corpuscular Volume (MCV)</li>
-                                    <li>Red Cell Distribution Width (RDW)</li>
-                                    <li>Albumin</li>
-                                    <li>Alkaline Phosphatase (ALP)</li>
-                                    <li>Creatinine</li>
-                                    <li>Glucose (Blood Sugar)</li>
-                                    <li>C-Reactive Protein (CRP)</li>
-                                </ul>
-                            </details>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="biomarker-summary">
-                            <div class="biomarker-count">22 biomarkers</div>
-                            <details class="bio-details">
-                                <summary>Show list</summary>
-                                <ul class="bio-list">
-                                    <li>White Blood Cell Count (WBC)</li>
-                                    <li>Lymphocytes (LYM)</li>
-                                    <li>Neutrophils (absolute)</li>
-                                    <li>Monocytes (absolute)</li>
-                                    <li>Red Blood Cell Count (RBC)</li>
-                                    <li>Mean Corpuscular Volume (MCV)</li>
-                                    <li>Mean Corpuscular Hemoglobin (MCH)</li>
-                                    <li>Red Cell Distribution Width (RDW)</li>
-                                    <li>Albumin</li>
-                                    <li>Urea</li>
-                                    <li>Creatinine</li>
-                                    <li>Cystatin C</li>
-                                    <li>Glucose</li>
-                                    <li>HbA1c</li>
-                                    <li>Total Cholesterol</li>
-                                    <li>ApoA1</li>
-                                    <li>ALT</li>
-                                    <li>Alkaline Phosphatase (ALP)</li>
-                                    <li>GGT</li>
-                                    <li>CRP</li>
-                                    <li>SHBG</li>
-                                    <li>Vitamin D (25-OH)</li>
-                                </ul>
-                            </details>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
 
-        <p data-aos="fade" data-aos-duration="700" data-aos-delay="825">Visit any lab for these tests — just pay the lab fee. It might even be covered by your healthcare provider.</p>
+        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="400">Any lab can run these tests. You pay the lab; insurance may cover it.</div>
 
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="850">
-            <button class="option-button green" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Go Pro</button>
-            <button class="option-button" onclick="window.location.href='/pheno-age'">Go Amateur</button>
-
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
@@ -203,6 +269,15 @@
     <!--FOOTER-->
     <script>
         updateMainProgress(1);
+        document.querySelectorAll('.track-card').forEach(function(card) {
+            card.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    var url = this.getAttribute('data-track-url');
+                    if (url) window.location.href = url;
+                }
+            });
+        });
     </script>
 </body>
 </html>
