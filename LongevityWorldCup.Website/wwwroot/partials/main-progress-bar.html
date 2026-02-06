@@ -1,4 +1,4 @@
-﻿<style>
+<style>
     .progress-container {
         width: calc(100% - 30px);
         max-width: 800px;
@@ -39,10 +39,10 @@
     }
 
     .stage-dot {
-        width: 24px;
-        height: 24px;
+        width: 16px;
+        height: 16px;
         background: var(--card-bg);
-        border: 3px solid var(--primary-color);
+        border: 2px solid var(--primary-color);
         border-radius: 50%;
         margin: 0 auto;
         transition: all 0.3s ease;
@@ -50,33 +50,18 @@
         top: 50%;
         transform: translateY(-50%);
         z-index: 2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: Arial, sans-serif;
-        font-weight: bold;
-        font-size: 14px;
-        color: var(--dark-text-color);
-    }
-
-    .stage-dot {
-        font-size: 16px;
-        color: var(--light-text-color);
-        text-shadow: 0 0 8px #fff, 0 0 16px #fff, 0 0 24px #fff, 0 0 32px #fff, 0 0 40px #fff;
     }
 
     .stage.completed .stage-dot {
         border-width: 2px;
         border-color: var(--primary-color);
         background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, var(--primary-color) 100%);
-        color: var(--light-text-color);
     }
 
     .stage.active .stage-dot {
         border-width: 2px;
         border-color: var(--secondary-color);
         background: radial-gradient(circle, var(--light-text-color) 20%, #ffd1dc 50%, var(--secondary-color) 100%);
-        color: var(--light-text-color);
     }
 
     .stage-label {
@@ -100,30 +85,23 @@
         color: var(--primary-color);
     }
 
-    @media (max-width: 768px) {
-        /* Adjusting the Convergence label position for small screens */
-        #stage3 .stage-label {
-            transform: translateX(-60%);
-            padding-right: 10px; /* Optional adjustment to fine-tune */
-        }
-    }
 </style>
 <div id="mainProgressBar" class="progress-container">
     <div class="progress-bar" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
         <div class="progress-fill" id="progressFill"></div>
     </div>
     <div class="stages">
-        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
-            <div class="stage-dot">⚔️</div>
-            <div class="stage-label">Hardship</div>
+        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200" role="group" aria-label="Test – Hardship" title="Hardship">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Test</div>
         </div>
-        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-            <div class="stage-dot">💡</div>
-            <div class="stage-label">Moment of Truth</div>
+        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250" role="group" aria-label="Calculate – Moment of Truth" title="Moment of Truth">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Calculate</div>
         </div>
-        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <div class="stage-dot">🏆</div>
-            <div class="stage-label">Convergence</div>
+        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300" role="group" aria-label="Submit – Convergence" title="Convergence">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Submit</div>
         </div>
     </div>
 </div>
