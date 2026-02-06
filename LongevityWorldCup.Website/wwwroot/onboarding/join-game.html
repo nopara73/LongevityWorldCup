@@ -190,6 +190,20 @@
             text-shadow: 0 0 8px rgba(247, 147, 26, 0.4);
         }
 
+        .track-card-badge.street-cred {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            letter-spacing: 0.06em;
+            border-radius: 8px;
+            color: #546e7a;
+            background: linear-gradient(135deg, rgba(84, 110, 122, 0.18) 0%, rgba(96, 125, 139, 0.12) 100%);
+            border: 1px solid rgba(84, 110, 122, 0.35);
+            box-shadow: 0 1px 3px rgba(84, 110, 122, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
         .track-card.pro {
             border-color: var(--main-action-color, #2e7d32);
             box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
@@ -213,12 +227,13 @@
         <div class="join-game-content">
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">How Bad Do You Want It?</h1>
 
-        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test. Any lab will do.</div>
+        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test. Any lab will do <i class="fas fa-syringe" aria-hidden="true"></i></div>
 
         <div class="track-cards" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <article class="track-card" data-track-url="/pheno-age" role="button" tabindex="0" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
+            <article class="track-card" data-track-url="/pheno-age" role="button" tabindex="0" aria-label="Choose Amateur Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
+                <span class="track-card-badge street-cred">Street cred</span>
                 <h2>Amateur Track</h2>
-                <p class="track-card-benefit">Simple panel, one clock — fewer tests, easier to start.</p>
+                <p class="track-card-benefit">Simple panel, one age clock — fewer tests, easier to start.</p>
                 <div class="track-card-details">
                 <ul>
                     <li><strong>Clock:</strong> <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
@@ -228,7 +243,7 @@
                 </ul>
                 <div class="biomarker-count">9 biomarkers</div>
                 <details class="card-bio-details">
-                    <summary>View 9 biomarkers</summary>
+                    <summary>Show 9 biomarkers</summary>
                     <ul class="card-bio-list">
                         <li>White Blood Cell Count (WBC)</li>
                         <li>Lymphocytes</li>
@@ -243,23 +258,23 @@
                 </details>
                 </div>
                 <div class="card-cta">
-                    <button class="option-button" onclick="window.location.href='/pheno-age'">Go Amateur</button>
+                    <button class="option-button green" onclick="window.location.href='/pheno-age'">Go Amateur</button>
                 </div>
             </article>
-            <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
+            <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" aria-label="Choose Professional Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
                 <span class="track-card-badge prize-money"><span class="btc-symbol" aria-hidden="true">₿</span> Prize Money</span>
                 <h2>Professional Track</h2>
-                <p class="track-card-benefit">Full panel, two clocks — most complete picture.</p>
+                <p class="track-card-benefit">Full panel, two age clocks — most complete picture.</p>
                 <div class="track-card-details">
                 <ul>
-                    <li><strong>Clock:</strong> <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
+                    <li><strong>Age clock:</strong> <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
                     <li><strong>Visibility:</strong> ranked ahead of amateurs</li>
                     <li><strong>Season:</strong> 2026</li>
                     <li><strong>Entry:</strong> free (for now)</li>
                 </ul>
                 <div class="biomarker-count">22 biomarkers</div>
                 <details class="card-bio-details">
-                    <summary>View 22 biomarkers</summary>
+                    <summary>Show 22 biomarkers</summary>
                     <ul class="card-bio-list">
                         <li>White Blood Cell Count (WBC)</li>
                         <li>Lymphocytes (LYM)</li>
