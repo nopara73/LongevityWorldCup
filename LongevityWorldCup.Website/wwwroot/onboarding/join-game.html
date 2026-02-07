@@ -32,21 +32,6 @@
         .track-cards {
           grid-template-columns: 1fr;
         }
-        /* Stack and center "Professional" + "Track" so Track stays under the name on small screens */
-        .track-card.pro h2 {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: 100%;
-          box-sizing: border-box;
-          padding-right: 0;
-          text-align: center;
-        }
-        .track-card.pro h2 .track-name,
-        .track-card.pro h2 .track-label {
-          display: block;
-          text-align: center;
-        }
       }
 
       .track-card {
@@ -122,6 +107,7 @@
       .track-card h2 {
         margin: 0 0 0.35rem;
         line-height: 1.2;
+        white-space: nowrap;
       }
 
       .track-card h2 .track-name {
