@@ -182,12 +182,15 @@
             top: 0;
             right: 0;
             overflow: hidden;
-            width: 115px;
-            height: 115px;
+            width: 100px;
+            height: 100px;
             z-index: 0;
+            pointer-events: none;
         }
 
-        .track-card.pro h2 {
+        .track-card.pro h2,
+        .track-card.pro .track-card-details,
+        .track-card.pro .card-cta {
             position: relative;
             z-index: 1;
         }
@@ -199,10 +202,10 @@
             justify-content: center;
             gap: 0.35rem;
             position: absolute;
-            right: -40px;
-            top: 26px;
-            width: 150px;
-            padding: 8px 14px;
+            right: -38px;
+            top: 24px;
+            width: 135px;
+            padding: 6px 12px;
             font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -287,8 +290,8 @@
                 </div>
             </article>
             <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" aria-label="Choose Professional Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
-                <h2><span class="track-name">Professional</span> <span class="track-label">Track</span></h2>
                 <span class="track-card-ribbon prize-money" aria-label="Prize money"><span><span class="btc-symbol" aria-hidden="true">₿</span> Prize money</span></span>
+                <h2><span class="track-name">Professional</span> <span class="track-label">Track</span></h2>
                 <div class="track-card-details">
                 <ul>
                     <li>Ranked ahead of amateurs in the <a href="/leaderboard">Ultimate League</a></li>
