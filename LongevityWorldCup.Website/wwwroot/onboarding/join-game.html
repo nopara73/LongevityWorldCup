@@ -32,6 +32,21 @@
         .track-cards {
           grid-template-columns: 1fr;
         }
+        /* Stack and center "Professional" + "Track" so Track stays under the name on small screens */
+        .track-card.pro h2 {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+          box-sizing: border-box;
+          padding-right: 0;
+          text-align: center;
+        }
+        .track-card.pro h2 .track-name,
+        .track-card.pro h2 .track-label {
+          display: block;
+          text-align: center;
+        }
       }
 
       .track-card {
@@ -42,7 +57,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         background: #fff;
         display: grid;
-        grid-template-rows: auto 1fr auto;
+        grid-template-rows: auto auto 1fr auto;
         min-height: 0;
         overflow: hidden;
         transition:
@@ -50,9 +65,9 @@
           box-shadow 0.2s ease;
       }
 
-      /* Pro card has 4 grid children (ribbon, h2, details, cta): reserve row 1 for ribbon (0 height), rows 2–4 for h2, details, cta */
+      /* Pro card has 5 grid children (ribbon, h2, tagline, details, cta): row 1 forced to 0 so content aligns with Amateur card */
       .track-card.pro {
-        grid-template-rows: 0 auto 1fr auto;
+        grid-template-rows: minmax(0, 0) auto auto 1fr auto;
       }
 
       /* Ribbon lives in a slot so it’s anchored to the card corner, not the grid area */
@@ -70,9 +85,16 @@
         top: -1.5rem;
         right: -1.5rem;
       }
+      /* Explicit row placement so content flows top-to-bottom with no stray gap */
+      .track-card h2 { grid-row: 1; }
+      .track-card .track-card-tagline { grid-row: 2; }
+      .track-card .track-card-details { grid-row: 3; }
+      .track-card .card-cta { grid-row: 4; }
+      .track-card.pro .track-card-ribbon-slot { grid-row: 1; }
       .track-card.pro h2 { grid-row: 2; }
-      .track-card.pro .track-card-details { grid-row: 3; }
-      .track-card.pro .card-cta { grid-row: 4; }
+      .track-card.pro .track-card-tagline { grid-row: 3; }
+      .track-card.pro .track-card-details { grid-row: 4; }
+      .track-card.pro .card-cta { grid-row: 5; }
 
       .track-card:hover {
         border-color: #b0bec5;
@@ -138,25 +160,69 @@
         line-height: 1.4;
       }
 
+      .track-card-tagline {
+        margin: 0.25rem 0 0.35rem;
+        font-size: 0.9rem;
+        color: #64748b;
+        line-height: 1.4;
+      }
+
+      .track-card-tagline a {
+        text-decoration: none;
+      }
+
+      .track-card-tagline a:hover {
+        text-decoration: underline;
+      }
+
+      .track-card:not(.pro) .track-card-tagline a,
+      .track-card:not(.pro) .track-card-meta a {
+        color: #475569;
+      }
+
+      .track-card:not(.pro) .track-card-tagline a:hover,
+      .track-card:not(.pro) .track-card-meta a:hover {
+        color: #334155;
+      }
+
+      .track-card.pro .track-card-tagline a,
+      .track-card.pro .track-card-meta a {
+        color: #166534;
+      }
+
+      .track-card.pro .track-card-tagline a:hover,
+      .track-card.pro .track-card-meta a:hover {
+        color: #14532d;
+        text-decoration: underline;
+      }
+
       .track-card .track-card-details {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #eee;
+        margin-top: 0.35rem;
+        padding-top: 0.5rem;
         min-height: 0;
         overflow-y: auto;
       }
 
-      .track-card .track-card-details > ul {
-        margin: 0 0 1rem;
-        padding-left: 1.25rem;
+      .track-card-meta {
+        margin: 0 0 0.5rem;
+        padding: 0;
         font-size: 0.9rem;
-        font-weight: 400;
         color: #555;
+        display: grid;
+        grid-template-columns: minmax(6.5em, auto) 1fr;
+        gap: 0.5rem 1rem;
+        align-items: baseline;
       }
 
-      .track-card .track-card-details > ul strong {
+      .track-card-meta dt {
         font-weight: 600;
-        color: inherit;
+        color: #64748b;
+      }
+
+      .track-card-meta dd {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1e293b;
       }
 
       .track-card li {
@@ -165,13 +231,27 @@
 
       /* Biomarkers section: distinct panel with label + list */
       .biomarkers-section {
-        margin-top: 1rem;
+        margin-top: 0.75rem;
         padding: 0.875rem 1rem 1rem;
         border-radius: 10px;
         border: 1px solid #e2e8f0;
         background: #f8fafc;
         border-left: 3px solid #64748b;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      .track-card:not(.pro) .biomarkers-section {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        border-left-color: #64748b;
+      }
+
+      .track-card:not(.pro) .biomarkers-section .biomarker-count {
+        color: #475569;
+      }
+
+      .track-card:not(.pro) .biomarkers-section .bio-icon {
+        color: #64748b;
       }
 
       .track-card.pro .biomarkers-section {
@@ -187,7 +267,7 @@
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: #475569;
-        margin: 0 0 0.5rem;
+        margin: 0 0 0.6rem;
       }
 
       .track-card.pro .biomarkers-section .biomarker-count {
@@ -241,6 +321,7 @@
         margin-right: 0.45rem;
         color: #5a6c7d;
         font-size: 0.9em;
+        vertical-align: middle;
       }
 
       .track-card .card-bio-list,
@@ -388,24 +469,26 @@
               <span class="track-name">Amateur</span>
               <span class="track-label">Track</span>
             </h2>
+            <p class="track-card-tagline">
+              Ranked after pros in the
+              <a href="/leaderboard">Ultimate League</a>
+            </p>
             <div class="track-card-details">
-              <ul>
-                <li>
-                  Ranked after pros in the
-                  <a href="/leaderboard">Ultimate League</a>
-                </li>
-                <li><strong>Test date:</strong> any</li>
-                <li><strong>Entry:</strong> free (for now)</li>
-                <li>
-                  <strong>Aging clock:</strong>
+              <dl class="track-card-meta">
+                <dt>Test date</dt>
+                <dd>any</dd>
+                <dt>Entry</dt>
+                <dd>free (for now)</dd>
+                <dt>Aging clock</dt>
+                <dd>
                   <a
                     href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
                     target="_blank"
                     rel="noopener"
                     >Pheno Age</a
                   >
-                </li>
-              </ul>
+                </dd>
+              </dl>
               <div class="biomarkers-section">
                 <div class="biomarker-count">9 biomarkers needed:</div>
                 <ul class="card-bio-list">
@@ -473,16 +556,18 @@
               <span class="track-name">Professional</span>
               <span class="track-label">Track</span>
             </h2>
+            <p class="track-card-tagline">
+              Ranked ahead of amateurs in the
+              <a href="/leaderboard">Ultimate League</a>
+            </p>
             <div class="track-card-details">
-              <ul>
-                <li>
-                  Ranked ahead of amateurs in the
-                  <a href="/leaderboard">Ultimate League</a>
-                </li>
-                <li><strong>Test date:</strong> in 2026</li>
-                <li><strong>Entry:</strong> free (for now)</li>
-                <li>
-                  <strong>Aging clocks:</strong>
+              <dl class="track-card-meta">
+                <dt>Test date</dt>
+                <dd>in 2026</dd>
+                <dt>Entry</dt>
+                <dd>free (for now)</dd>
+                <dt>Aging clocks</dt>
+                <dd>
                   <a
                     href="https://www.nature.com/articles/s42003-023-05456-z"
                     target="_blank"
@@ -496,8 +581,8 @@
                     rel="noopener"
                     >Pheno Age</a
                   >
-                </li>
-              </ul>
+                </dd>
+              </dl>
               <div class="biomarkers-section">
                 <div class="biomarker-count">22 biomarkers needed:</div>
                 <ul class="card-bio-list">
