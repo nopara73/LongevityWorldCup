@@ -1044,7 +1044,7 @@
     <!--FOOTER-->
     <!-- JavaScript -->
     <script defer>
-        history.pushState({}, '', '/bortz-age' + (window.location.search || '') + (window.location.hash || ''));
+        history.replaceState({}, '', '/bortz-age' + (window.location.search || '') + (window.location.hash || ''));
 
         // Check if the URL has the query parameter "fake=1"
         const urlParams = new URLSearchParams(window.location.search);
@@ -1817,7 +1817,7 @@
                 });
             }
             if (toStep1Btn) {
-                toStep1Btn.addEventListener('click', () => lwcSetStep(1));
+                toStep1Btn.addEventListener('click', () => window.goBackOrHome());
             }
 
             // Make wizard dots clickable (desktop) and keyboard accessible
@@ -1840,16 +1840,8 @@
                 });
             }
 
-            // Make the global Back button step-aware
-            const globalBackBtn = document.querySelector('.options-container .back-button');
-            if (globalBackBtn) {
-                globalBackBtn.addEventListener('click', (ev) => {
-                    if (lwcCurrentStep === 2) {
-                        ev.preventDefault();
-                        lwcSetStep(1);
-                    }
-                }, true);
-            }
+            // Back in .options-container (result section) always navigates away via onclick goBackOrHome();
+            // No intercept: when result is visible we want goBackOrHome; step-2 form Back is lwcToStep1Btn which now calls goBackOrHome().
 
             const unitSelects = document.querySelectorAll('.input-group select');
             let maxWidth = 0;
