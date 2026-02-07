@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Leaderboard</title>
@@ -20,7 +20,7 @@
 </html>
 
 <script>
-    history.pushState({}, '', '/leaderboard' + (window.location.search || '') + (window.location.hash || ''));
+    history.replaceState({}, '', '/leaderboard' + (window.location.search || '') + (window.location.hash || ''));
 
     document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {

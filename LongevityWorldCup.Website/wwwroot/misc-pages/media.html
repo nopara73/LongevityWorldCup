@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Media Kit - Longevity World Cup</title>
@@ -45,7 +45,7 @@
     <!-- JSZip (client-side unzip) -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
     <script>
-        history.pushState({ modal: 'details' }, "", `/media`);
+        history.replaceState({ modal: 'details' }, "", `/media`);
 
         const ZIP_PRIMARY = "https://cdn.jsdelivr.net/gh/nopara73/LongevityWorldCup@master/LongevityWorldCup.Documentation/MediaKit.zip";
         const ZIP_FALLBACK = "https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip";
