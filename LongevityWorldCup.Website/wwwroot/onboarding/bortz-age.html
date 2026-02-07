@@ -645,9 +645,9 @@
                         </button>
                     </div>
 
-                    <!-- Biomarkers grouped by category (same naming as Pheno Age where overlapping) -->
+                    <!-- Biomarkers grouped by domain (aligned with leaderboard Best Domain badges) -->
                     <fieldset>
-                        <legend>Hematology</legend>
+                        <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <!-- White Blood Cell Count (from Pheno Age page) -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
@@ -777,7 +777,7 @@
                     </fieldset>
 
                     <fieldset>
-                        <legend>Renal &amp; blood chemistry</legend>
+                        <legend><i class="fas fa-droplet category-icon" aria-hidden="true"></i>Liver</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">Albumin <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
@@ -794,116 +794,6 @@
                             </div>
                         </div>
 
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Urea <span class="toggle-icon">+</span></div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="urea" name="urea" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="ureaUnit" class="visually-hidden">Urea unit</label>
-                                    <select id="ureaUnit" aria-label="Urea unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">mmol/L</option>
-                                        <option value="6">Urea (mg/dL)</option>
-                                        <option value="2.801">BUN (mg/dL)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Creatinine <span class="toggle-icon">+</span></div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="creatinineUnit" class="visually-hidden">Creatinine unit</label>
-                                    <select id="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">µmol/L</option>
-                                        <option value="0.0113">mg/dL</option>
-                                        <option value="0.00113">mg/L</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Cystatin C <span class="toggle-icon">+</span></div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="cystatin_c" name="cystatin_c" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="cystatin_cUnit" class="visually-hidden">Cystatin C unit</label>
-                                    <select id="cystatin_cUnit" aria-label="Cystatin C unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">mg/L</option>
-                                        <option value="0.1">mg/dL</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Glucose <span class="toggle-icon">+</span></div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="glucoseUnit" class="visually-hidden">Glucose unit</label>
-                                    <select id="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">mmol/L</option>
-                                        <option value="18.016">mg/dL</option>
-                                        <option value="0.18016">mg%</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">HbA1c <span class="toggle-icon">+</span></div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="hba1c" name="hba1c" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="hba1cUnit" class="visually-hidden">HbA1c unit</label>
-                                    <select id="hba1cUnit" aria-label="HbA1c unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">mmol/mol (IFCC)</option>
-                                        <option value="0.0915">%</option>
-                                        <option value="1">eAG (mmol/L)</option>
-                                        <option value="1">eAG (mg/dL)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </fieldset>
-
-                    <fieldset>
-                        <legend>Lipids</legend>
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Total Cholesterol <span class="toggle-icon">+</span></div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="cholesterol" name="cholesterol" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="cholesterolUnit" class="visually-hidden">Cholesterol unit</label>
-                                    <select id="cholesterolUnit" aria-label="Cholesterol unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">mmol/L</option>
-                                        <option value="0.02586">mg/dL</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">ApoA1 <span class="toggle-icon">+</span></div>
-                            <div class="biomarker-card-content">
-                                <div class="input-group">
-                                    <input type="number" id="apoa1" name="apoa1" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="apoa1Unit" class="visually-hidden">ApoA1 unit</label>
-                                    <select id="apoa1Unit" aria-label="ApoA1 unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">g/L</option>
-                                        <option value="0.01">mg/dL</option>
-                                        <option value="0.001">mg/L</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </fieldset>
-
-                    <fieldset>
-                        <legend>Liver enzymes</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">ALT <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
@@ -948,7 +838,117 @@
                     </fieldset>
 
                     <fieldset>
-                        <legend>Inflammation</legend>
+                        <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">Urea <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="urea" name="urea" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="ureaUnit" class="visually-hidden">Urea unit</label>
+                                    <select id="ureaUnit" aria-label="Urea unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">mmol/L</option>
+                                        <option value="6">Urea (mg/dL)</option>
+                                        <option value="2.801">BUN (mg/dL)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">Creatinine <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="creatinineUnit" class="visually-hidden">Creatinine unit</label>
+                                    <select id="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">µmol/L</option>
+                                        <option value="0.0113">mg/dL</option>
+                                        <option value="0.00113">mg/L</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">Cystatin C <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="cystatin_c" name="cystatin_c" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="cystatin_cUnit" class="visually-hidden">Cystatin C unit</label>
+                                    <select id="cystatin_cUnit" aria-label="Cystatin C unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">mg/L</option>
+                                        <option value="0.1">mg/dL</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-fire category-icon" aria-hidden="true"></i>Metabolism</legend>
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">Glucose <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="glucoseUnit" class="visually-hidden">Glucose unit</label>
+                                    <select id="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">mmol/L</option>
+                                        <option value="18.016">mg/dL</option>
+                                        <option value="0.18016">mg%</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">HbA1c <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="hba1c" name="hba1c" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="hba1cUnit" class="visually-hidden">HbA1c unit</label>
+                                    <select id="hba1cUnit" aria-label="HbA1c unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">mmol/mol (IFCC)</option>
+                                        <option value="0.0915">%</option>
+                                        <option value="1">eAG (mmol/L)</option>
+                                        <option value="1">eAG (mg/dL)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">Total Cholesterol <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="cholesterol" name="cholesterol" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="cholesterolUnit" class="visually-hidden">Cholesterol unit</label>
+                                    <select id="cholesterolUnit" aria-label="Cholesterol unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">mmol/L</option>
+                                        <option value="0.02586">mg/dL</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="biomarker-card">
+                            <div class="biomarker-card-header" aria-expanded="false">ApoA1 <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-content">
+                                <div class="input-group">
+                                    <input type="number" id="apoa1" name="apoa1" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="apoa1Unit" class="visually-hidden">ApoA1 unit</label>
+                                    <select id="apoa1Unit" aria-label="ApoA1 unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">g/L</option>
+                                        <option value="0.01">mg/dL</option>
+                                        <option value="0.001">mg/L</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">CRP <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
@@ -978,7 +978,7 @@
                     </fieldset>
 
                     <fieldset>
-                        <legend>Hormones &amp; vitamins</legend>
+                        <legend><i class="fas fa-capsules category-icon" aria-hidden="true"></i>Hormones</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">SHBG <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
@@ -1814,18 +1814,22 @@
                 toStep2Btn.addEventListener('click', () => {
                     if (!lwcValidateStep1()) return;
                     lwcSetStep(2);
+                    try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {}
                 });
             }
             if (toStep1Btn) {
-                toStep1Btn.addEventListener('click', () => window.goBackOrHome());
+                toStep1Btn.addEventListener('click', () => {
+                    try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+                    window.goBackOrHome();
+                });
             }
 
             // Make wizard dots clickable (desktop) and keyboard accessible
             const dot1 = document.getElementById('lwcDot1');
             const dot2 = document.getElementById('lwcDot2');
 
-            function activateDot1() { lwcSetStep(1); }
-            function activateDot2() { if (lwcValidateStep1()) lwcSetStep(2); }
+            function activateDot1() { lwcSetStep(1); try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {} }
+            function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {} } }
 
             if (dot1) {
                 dot1.addEventListener('click', activateDot1);
@@ -1923,7 +1927,18 @@
 
             updateModeFormInitializerUnique();
 
-            lwcSetStep(1);
+            // Restore step 2 after refresh if user had navigated there and step 1 is valid
+            let restoredStep = false;
+            try {
+                if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1()) {
+                    lwcSetStep(2);
+                    restoredStep = true;
+                }
+            } catch (e) {}
+            if (!restoredStep) {
+                lwcSetStep(1);
+                try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+            }
         });
 
         function updateModeFormInitializerUnique() {
@@ -2127,6 +2142,7 @@
             sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
 
             sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
+            try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
 
             if (isUpdate) {
                 window.location.href = '/play/proof-upload.html';

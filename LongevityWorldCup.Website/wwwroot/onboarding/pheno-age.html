@@ -645,11 +645,9 @@
                         </button>
                     </div>
 
-                    <!-- Biomarker Fieldset -->
+                    <!-- Biomarkers grouped by domain (aligned with leaderboard Best Domain badges) -->
                     <fieldset>
-                        <legend>Biomarkers:</legend>
-
-                        <!-- White Blood Cell Count -->
+                        <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 White Blood Cell Count (WBC)
@@ -669,7 +667,6 @@
                             </div>
                         </div>
 
-                        <!-- Lymphocyte Percentage -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Lymphocytes (LYM)
@@ -688,7 +685,6 @@
                             </div>
                         </div>
 
-                        <!-- Mean Corpuscular Volume -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Mean Corpuscular Volume (MCV)
@@ -705,7 +701,6 @@
                             </div>
                         </div>
 
-                        <!-- Red Cell Distribution Width -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Red Cell Distribution Width (RDW, RDW-CV)
@@ -721,8 +716,10 @@
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- Albumin -->
+                    <fieldset>
+                        <legend><i class="fas fa-droplet category-icon" aria-hidden="true"></i>Liver</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Albumin
@@ -743,7 +740,6 @@
                             </div>
                         </div>
 
-                        <!-- Alkaline Phosphatase -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Alkaline Phosphatase (ALP)
@@ -760,8 +756,10 @@
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- Creatinine -->
+                    <fieldset>
+                        <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Creatinine
@@ -779,8 +777,10 @@
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- Glucose -->
+                    <fieldset>
+                        <legend><i class="fas fa-fire category-icon" aria-hidden="true"></i>Metabolism</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Glucose
@@ -798,8 +798,10 @@
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- C-Reactive Protein -->
+                    <fieldset>
+                        <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 C-Reactive Protein (CRP)
@@ -807,7 +809,6 @@
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="crp-container">
-                                    <!-- Label and Negative Toggle in the same line -->
                                     <div class="label-toggle-group">
                                         <span title="Check this box if your result is below your lab's 'the detection limit and this limit is unknown" class="bioageform-toggle-text">Set if negative:</span>
                                         <div title="Check this box if your result is below your lab's 'the detection limit and this limit is unknown" class="negative-toggle">
@@ -818,7 +819,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Input Group -->
                                     <div class="input-group">
                                         <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
