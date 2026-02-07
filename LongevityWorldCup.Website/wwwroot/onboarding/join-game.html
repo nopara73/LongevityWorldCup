@@ -1,356 +1,528 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
+  <head>
     <title>Longevity World Cup - Join Game</title>
     <!--HEAD-->
     <style>
-        /* Hide the join-game button in the header */
-        .join-game {
-            display: none;
-        }
+      /* Hide the join-game button in the header */
+      .join-game {
+        display: none;
+      }
 
-        /* Single content column so title, intro, and cards share the same width */
-        .join-game-content {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+      /* Single content column so title, intro, and cards share the same width */
+      .join-game-content {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
 
-        .join-game-content h1 {
-            margin-bottom: 0;
-            text-align: center;
-        }
+      .join-game-content h1 {
+        margin-bottom: 0;
+        text-align: center;
+      }
 
+      .track-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin: 2rem 0;
+      }
+
+      @media (max-width: 700px) {
         .track-cards {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin: 2rem 0;
+          grid-template-columns: 1fr;
         }
+      }
 
-        @media (max-width: 700px) {
-            .track-cards {
-                grid-template-columns: 1fr;
-            }
-        }
+      .track-card {
+        position: relative;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e8e8e8;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease;
+      }
 
-        .track-card {
-            position: relative;
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid #e8e8e8;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            background: #fff;
-            display: flex;
-            flex-direction: column;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
+      .track-card:hover {
+        border-color: #b0bec5;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
 
-        .track-card:hover {
-            border-color: #b0bec5;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
+      .track-card:focus {
+        outline: none;
+      }
 
-        .track-card:focus {
-            outline: none;
-        }
+      .track-card:focus-visible {
+        outline: 2px solid var(--primary-color, #3498db);
+        outline-offset: 2px;
+      }
 
-        .track-card:focus-visible {
-            outline: 2px solid var(--primary-color, #3498db);
-            outline-offset: 2px;
-        }
+      .track-card.pro:hover {
+        border-color: var(--main-action-color, #2e7d32);
+        box-shadow: 0 6px 20px rgba(46, 125, 50, 0.2);
+      }
 
-        .track-card.pro:hover {
-            border-color: var(--main-action-color, #2e7d32);
-            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.2);
-        }
+      .track-card.pro:focus-visible {
+        outline-color: var(--main-action-color, #2e7d32);
+      }
 
-        .track-card.pro:focus-visible {
-            outline-color: var(--main-action-color, #2e7d32);
-        }
+      .track-card h2 {
+        margin: 0 0 0.35rem;
+        line-height: 1.2;
+      }
 
-        .track-card h2 {
-            margin: 0 0 0.35rem;
-            line-height: 1.2;
-        }
+      .track-card h2 .track-name {
+        display: inline;
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #111;
+      }
 
+      .track-card h2 .track-label {
+        display: inline;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #555;
+      }
+
+      @media (min-width: 700px) {
         .track-card h2 .track-name {
-            display: inline;
-            font-size: 1.85rem;
-            font-weight: 800;
-            color: #111;
+          font-size: 2.1rem;
         }
+      }
 
+      @media (min-width: 900px) {
+        .track-card h2 .track-name {
+          font-size: 2.35rem;
+        }
         .track-card h2 .track-label {
-            display: inline;
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: #555;
+          font-size: 1.15rem;
         }
+      }
 
-        @media (min-width: 700px) {
-            .track-card h2 .track-name {
-                font-size: 2.1rem;
-            }
-        }
+      .track-card-benefit {
+        margin: 0 0 1rem;
+        font-size: 0.95rem;
+        color: #64748b;
+        line-height: 1.4;
+      }
 
-        @media (min-width: 900px) {
-            .track-card h2 .track-name {
-                font-size: 2.35rem;
-            }
-            .track-card h2 .track-label {
-                font-size: 1.15rem;
-            }
-        }
+      .track-card .track-card-details {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+      }
 
-        .track-card-benefit {
-            margin: 0 0 1rem;
-            font-size: 0.95rem;
-            color: #64748b;
-            line-height: 1.4;
-        }
+      .track-card .track-card-details > ul {
+        margin: 0 0 1rem;
+        padding-left: 1.25rem;
+        font-size: 0.9rem;
+        font-weight: 400;
+        color: #555;
+      }
 
-        .track-card .track-card-details {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #eee;
-        }
+      .track-card .track-card-details > ul strong {
+        font-weight: 600;
+        color: inherit;
+      }
 
-        .track-card .track-card-details > ul {
-            margin: 0 0 1rem;
-            padding-left: 1.25rem;
-            font-size: 0.9rem;
-            font-weight: 400;
-            color: #555;
-        }
+      .track-card li {
+        margin: 0.25rem 0;
+      }
 
-        .track-card .track-card-details > ul strong {
-            font-weight: 600;
-            color: inherit;
-        }
+      .track-card .biomarker-count {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
 
-        .track-card li {
-            margin: 0.25rem 0;
-        }
+      .card-bio-list {
+        margin: 6px 0 0;
+        padding-left: 0;
+        list-style: none;
+      }
 
-        .track-card .biomarker-count {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
+      .card-bio-list li {
+        margin: 2px 0;
+        font-size: 0.9rem;
+      }
 
-        .card-bio-list {
-            margin: 6px 0 0;
-            padding-left: 0;
-            list-style: none;
-        }
+      .card-bio-list .bio-icon {
+        display: inline-block;
+        width: 1.15em;
+        text-align: center;
+        margin-right: 0.45rem;
+        color: #5a6c7d;
+        font-size: 0.9em;
+      }
 
-        .card-bio-list li {
-            margin: 2px 0;
-            font-size: 0.9rem;
-        }
+      .track-card .card-bio-list,
+      .track-card .biomarker-count {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        user-select: text;
+        cursor: text;
+      }
 
-        .card-bio-list .bio-icon {
-            display: inline-block;
-            width: 1.15em;
-            text-align: center;
-            margin-right: 0.45rem;
-            color: #5a6c7d;
-            font-size: 0.9em;
-        }
+      .track-card .card-cta {
+        margin-top: auto;
+        padding-top: 1.25rem;
+        display: flex;
+        justify-content: center;
+      }
 
-        .track-card .card-bio-list,
-        .track-card .biomarker-count {
-            -webkit-user-select: text;
-            -moz-user-select: text;
-            user-select: text;
-            cursor: text;
-        }
+      .track-card-badge {
+        display: inline-block;
+        margin-bottom: 0;
+        margin-top: 0.35rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--main-action-color, #2e7d32);
+        background: rgba(46, 125, 50, 0.12);
+        border-radius: 6px;
+      }
 
-        .track-card .card-cta {
-            margin-top: auto;
-            padding-top: 1.25rem;
-            display: flex;
-            justify-content: center;
-        }
+      .track-card-ribbon.prize-money {
+        position: absolute;
+        top: 0;
+        right: 0;
+        overflow: hidden;
+        width: 100px;
+        height: 100px;
+        z-index: 0;
+        pointer-events: none;
+      }
 
-        .track-card-badge {
-            display: inline-block;
-            margin-bottom: 0;
-            margin-top: 0.35rem;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--main-action-color, #2e7d32);
-            background: rgba(46, 125, 50, 0.12);
-            border-radius: 6px;
-        }
+      .track-card.pro h2,
+      .track-card.pro .track-card-details,
+      .track-card.pro .card-cta {
+        position: relative;
+        z-index: 1;
+      }
 
-        .track-card-ribbon.prize-money {
-            position: absolute;
-            top: 0;
-            right: 0;
-            overflow: hidden;
-            width: 100px;
-            height: 100px;
-            z-index: 0;
-            pointer-events: none;
-        }
+      /* Only the direct child is the ribbon band; .btc-symbol stays inline on it */
+      .track-card-ribbon.prize-money > span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        position: absolute;
+        right: -38px;
+        top: 24px;
+        width: 135px;
+        padding: 6px 12px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #5c4a0a;
+        background: linear-gradient(
+          135deg,
+          #f7931a 0%,
+          #ffc107 50%,
+          #f7931a 100%
+        );
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        transform: rotate(45deg);
+      }
 
-        .track-card.pro h2,
-        .track-card.pro .track-card-details,
-        .track-card.pro .card-cta {
-            position: relative;
-            z-index: 1;
-        }
+      .track-card-ribbon.prize-money .btc-symbol {
+        font-size: 1em;
+        color: inherit;
+        display: inline;
+        margin-right: 0.05em;
+      }
 
-        /* Only the direct child is the ribbon band; .btc-symbol stays inline on it */
-        .track-card-ribbon.prize-money > span {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.35rem;
-            position: absolute;
-            right: -38px;
-            top: 24px;
-            width: 135px;
-            padding: 6px 12px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #5c4a0a;
-            background: linear-gradient(135deg, #f7931a 0%, #ffc107 50%, #f7931a 100%);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-            transform: rotate(45deg);
-        }
+      .track-card-badge.street-cred {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        border-radius: 6px;
+        color: #546e7a;
+        background: rgba(84, 110, 122, 0.1);
+        border: 1px solid rgba(84, 110, 122, 0.2);
+      }
 
-        .track-card-ribbon.prize-money .btc-symbol {
-            font-size: 1em;
-            color: inherit;
-            display: inline;
-            margin-right: 0.05em;
-        }
+      .track-card.pro {
+        border-color: var(--main-action-color, #2e7d32);
+        box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
+        background: #f0fdf4;
+      }
 
-        .track-card-badge.street-cred {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.7rem;
-            letter-spacing: 0.06em;
-            border-radius: 6px;
-            color: #546e7a;
-            background: rgba(84, 110, 122, 0.1);
-            border: 1px solid rgba(84, 110, 122, 0.2);
-        }
-
-        .track-card.pro {
-            border-color: var(--main-action-color, #2e7d32);
-            box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
-            background: #f0fdf4;
-        }
-
-        .lab-reassurance {
-            margin: 1.5rem 0 0;
-            padding: 1rem 1.25rem;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: #f8f9fa;
-            font-size: 0.95rem;
-            text-align: center;
-        }
-
+      .lab-reassurance {
+        margin: 1.5rem 0 0;
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        font-size: 0.95rem;
+        text-align: center;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!--HEADER-->
     <main>
-        <!--MAIN-PROGRESS-BAR-->
-        <div class="join-game-content">
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">How Bad Do You Want It?</h1>
+      <!--MAIN-PROGRESS-BAR-->
+      <div class="join-game-content">
+        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">
+          How Bad Do You Want It?
+        </h1>
 
-        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a <strong>blood test</strong>. Your next choice determines which biomarkers need testing:</div>
-
-        <div class="track-cards" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <article class="track-card">
-                <h2><span class="track-name">Amateur</span> <span class="track-label">Track</span></h2>
-                <div class="track-card-details">
-                <ul>
-                    <li>Ranked after pros in the <a href="/leaderboard">Ultimate League</a></li>
-                    <li><strong>Season:</strong> All-Time</li>
-                    <li><strong>Entry:</strong> free (for now)</li>
-                    <li><strong>Aging clock:</strong> <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
-                </ul>
-                <div class="biomarker-count">Biomarkers needed (9):</div>
-                <ul class="card-bio-list">
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>White Blood Cell Count (WBC)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Lymphocytes</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean Corpuscular Volume (MCV)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red Cell Distribution Width (RDW)</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Albumin</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline Phosphatase (ALP)</li>
-                    <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Creatinine</li>
-                    <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose (Blood Sugar)</li>
-                    <li><i class="fas fa-temperature-three-quarters bio-icon" aria-hidden="true"></i>C-Reactive Protein (CRP)</li>
-                </ul>
-                </div>
-                <div class="card-cta">
-                    <button class="option-button grey" onclick="window.location.href='/pheno-age'">Go Amateur</button>
-                </div>
-            </article>
-            <article class="track-card pro">
-                <span class="track-card-ribbon prize-money" aria-label="Prize money"><span><span class="btc-symbol" aria-hidden="true">₿</span> Prize money</span></span>
-                <h2><span class="track-name">Professional</span> <span class="track-label">Track</span></h2>
-                <div class="track-card-details">
-                <ul>
-                    <li>Ranked ahead of amateurs in the <a href="/leaderboard">Ultimate League</a></li>
-                    <li><strong>Season:</strong> 2026</li>
-                    <li><strong>Entry:</strong> free (for now)</li>
-                    <li><strong>Aging clocks:</strong> <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
-                </ul>
-                <div class="biomarker-count">Biomarkers needed (22):</div>
-                <ul class="card-bio-list">
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>White Blood Cell Count (WBC)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Lymphocytes (LYM)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Neutrophils (absolute)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Monocytes (absolute)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red Blood Cell Count (RBC)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean Corpuscular Volume (MCV)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean Corpuscular Hemoglobin (MCH)</li>
-                    <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red Cell Distribution Width (RDW)</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Albumin</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>ALT</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline Phosphatase (ALP)</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>GGT</li>
-                    <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Urea</li>
-                    <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Creatinine</li>
-                    <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Cystatin C</li>
-                    <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose</li>
-                    <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>HbA1c</li>
-                    <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>Total Cholesterol</li>
-                    <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>ApoA1</li>
-                    <li><i class="fas fa-temperature-three-quarters bio-icon" aria-hidden="true"></i>CRP</li>
-                    <li><i class="fas fa-capsules bio-icon" aria-hidden="true"></i>SHBG</li>
-                    <li><i class="fas fa-capsules bio-icon" aria-hidden="true"></i>Vitamin D (25-OH)</li>
-                </ul>
-                </div>
-                <div class="card-cta">
-                    <button class="option-button green" onclick="window.location.href='/bortz-age'">Go Pro</button>
-                </div>
-            </article>
+        <div
+          class="lab-reassurance"
+          data-aos="fade"
+          data-aos-duration="700"
+          data-aos-delay="300"
+        >
+          To calculate your biological age, get a <strong>blood test</strong>.
+          Your next choice determines which biomarkers need testing:
         </div>
 
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <button class="option-button back-button" onclick="window.goBackOrHome()">
-                <i class="fas fa-arrow-left"></i>&nbsp;Back
-            </button>
+        <div
+          class="track-cards"
+          data-aos="fade"
+          data-aos-duration="700"
+          data-aos-delay="350"
+        >
+          <article class="track-card">
+            <h2>
+              <span class="track-name">Amateur</span>
+              <span class="track-label">Track</span>
+            </h2>
+            <div class="track-card-details">
+              <ul>
+                <li>
+                  Ranked after pros in the
+                  <a href="/leaderboard">Ultimate League</a>
+                </li>
+                <li><strong>Test date:</strong> any</li>
+                <li><strong>Entry:</strong> free (for now)</li>
+                <li>
+                  <strong>Aging clock:</strong>
+                  <a
+                    href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
+                    target="_blank"
+                    rel="noopener"
+                    >Pheno Age</a
+                  >
+                </li>
+              </ul>
+              <div class="biomarker-count">Biomarkers needed (9):</div>
+              <ul class="card-bio-list">
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>White
+                  Blood Cell Count (WBC)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Lymphocytes
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean
+                  Corpuscular Volume (MCV)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red
+                  Cell Distribution Width (RDW)
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i
+                  >Albumin
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i
+                  >Alkaline Phosphatase (ALP)
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i
+                  >Creatinine
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose
+                  (Blood Sugar)
+                </li>
+                <li>
+                  <i
+                    class="fas fa-temperature-three-quarters bio-icon"
+                    aria-hidden="true"
+                  ></i
+                  >C-Reactive Protein (CRP)
+                </li>
+              </ul>
+            </div>
+            <div class="card-cta">
+              <button
+                class="option-button grey"
+                onclick="window.location.href = '/pheno-age'"
+              >
+                Go Amateur
+              </button>
+            </div>
+          </article>
+          <article class="track-card pro">
+            <span class="track-card-ribbon prize-money" aria-label="Prize money"
+              ><span
+                ><span class="btc-symbol" aria-hidden="true">₿</span> Prize
+                money</span
+              ></span
+            >
+            <h2>
+              <span class="track-name">Professional</span>
+              <span class="track-label">Track</span>
+            </h2>
+            <div class="track-card-details">
+              <ul>
+                <li>
+                  Ranked ahead of amateurs in the
+                  <a href="/leaderboard">Ultimate League</a>
+                </li>
+                <li><strong>Test date:</strong> in 2026</li>
+                <li><strong>Entry:</strong> free (for now)</li>
+                <li>
+                  <strong>Aging clocks:</strong>
+                  <a
+                    href="https://www.nature.com/articles/s42003-023-05456-z"
+                    target="_blank"
+                    rel="noopener"
+                    >Bortz Age</a
+                  >
+                  +
+                  <a
+                    href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
+                    target="_blank"
+                    rel="noopener"
+                    >Pheno Age</a
+                  >
+                </li>
+              </ul>
+              <div class="biomarker-count">Biomarkers needed (22):</div>
+              <ul class="card-bio-list">
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>White
+                  Blood Cell Count (WBC)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Lymphocytes (LYM)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Neutrophils (absolute)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Monocytes (absolute)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red
+                  Blood Cell Count (RBC)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean
+                  Corpuscular Volume (MCV)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean
+                  Corpuscular Hemoglobin (MCH)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red
+                  Cell Distribution Width (RDW)
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i
+                  >Albumin
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i>ALT
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i
+                  >Alkaline Phosphatase (ALP)
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i>GGT
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Urea
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i
+                  >Creatinine
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i
+                  >Cystatin C
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>HbA1c
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Total
+                  Cholesterol
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>ApoA1
+                </li>
+                <li>
+                  <i
+                    class="fas fa-temperature-three-quarters bio-icon"
+                    aria-hidden="true"
+                  ></i
+                  >CRP
+                </li>
+                <li>
+                  <i class="fas fa-capsules bio-icon" aria-hidden="true"></i
+                  >SHBG
+                </li>
+                <li>
+                  <i class="fas fa-capsules bio-icon" aria-hidden="true"></i
+                  >Vitamin D (25-OH)
+                </li>
+              </ul>
+            </div>
+            <div class="card-cta">
+              <button
+                class="option-button green"
+                onclick="window.location.href = '/bortz-age'"
+              >
+                Go Pro
+              </button>
+            </div>
+          </article>
         </div>
+
+        <div
+          class="options-container"
+          data-aos="fade"
+          data-aos-duration="700"
+          data-aos-delay="450"
+        >
+          <button
+            class="option-button back-button"
+            onclick="window.goBackOrHome()"
+          >
+            <i class="fas fa-arrow-left"></i>&nbsp;Back
+          </button>
         </div>
+      </div>
     </main>
     <!--FOOTER-->
     <script>
-        updateMainProgress(1);
+      updateMainProgress(1);
     </script>
-</body>
+  </body>
 </html>
