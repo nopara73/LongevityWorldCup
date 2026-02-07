@@ -33,6 +33,7 @@
         }
 
         .track-card {
+            position: relative;
             padding: 1.5rem;
             border-radius: 12px;
             border: 1px solid #e8e8e8;
@@ -176,26 +177,47 @@
             border-radius: 6px;
         }
 
-        .track-card-badge.prize-money {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.7rem;
-            color: #b8860b;
-            background: linear-gradient(135deg, rgba(247, 147, 26, 0.12) 0%, rgba(255, 193, 7, 0.08) 100%);
-            border: 1px solid rgba(247, 147, 26, 0.2);
-            border-radius: 6px;
-            letter-spacing: 0.06em;
+        .track-card-ribbon.prize-money {
+            position: absolute;
+            top: 0;
+            right: 0;
+            overflow: hidden;
+            width: 115px;
+            height: 115px;
+            z-index: 0;
         }
 
-        .track-card-badge.prize-money .btc-symbol {
-            display: inline-flex;
+        .track-card.pro h2 {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Only the direct child is the ribbon band; .btc-symbol stays inline on it */
+        .track-card-ribbon.prize-money > span {
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1em;
+            gap: 0.35rem;
+            position: absolute;
+            right: -40px;
+            top: 26px;
+            width: 150px;
+            padding: 8px 14px;
+            font-size: 0.7rem;
             font-weight: 700;
-            color: #b8860b;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #5c4a0a;
+            background: linear-gradient(135deg, #f7931a 0%, #ffc107 50%, #f7931a 100%);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            transform: rotate(45deg);
+        }
+
+        .track-card-ribbon.prize-money .btc-symbol {
+            font-size: 1em;
+            color: inherit;
+            display: inline;
+            margin-right: 0.05em;
         }
 
         .track-card-badge.street-cred {
@@ -266,7 +288,7 @@
             </article>
             <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" aria-label="Choose Professional Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
                 <h2><span class="track-name">Professional</span> <span class="track-label">Track</span></h2>
-                <span class="track-card-badge prize-money"><span class="btc-symbol" aria-hidden="true">₿</span> Prize money</span>
+                <span class="track-card-ribbon prize-money" aria-label="Prize money"><span><span class="btc-symbol" aria-hidden="true">₿</span> Prize money</span></span>
                 <div class="track-card-details">
                 <ul>
                     <li>Ranked ahead of amateurs in the <a href="/leaderboard">Ultimate League</a></li>
