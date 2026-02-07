@@ -109,33 +109,6 @@
             margin-bottom: 0.25rem;
         }
 
-        details.card-bio-details {
-            margin-top: 0.25rem;
-        }
-
-        details.card-bio-details > summary {
-            cursor: pointer;
-            user-select: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        details.card-bio-details > summary::-webkit-details-marker {
-            display: none;
-        }
-
-        details.card-bio-details > summary::before {
-            content: "▸";
-            display: inline-block;
-        }
-
-        details.card-bio-details[open] > summary::before {
-            content: "▾";
-        }
-
         .card-bio-list {
             margin: 6px 0 0;
             padding-left: 18px;
@@ -218,6 +191,7 @@
             background: #f8f9fa;
             font-size: 0.95rem;
         }
+
     </style>
 </head>
 <body>
@@ -227,13 +201,12 @@
         <div class="join-game-content">
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">How Bad Do You Want It?</h1>
 
-        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test. Any lab will do <i class="fas fa-syringe" aria-hidden="true"></i></div>
+        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test. Your choice determines which biomarkers need testing:</div>
 
         <div class="track-cards" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <article class="track-card" data-track-url="/pheno-age" role="button" tabindex="0" aria-label="Choose Amateur Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
-                <span class="track-card-badge street-cred">Street cred</span>
+            <article class="track-card" data-track-url="/pheno-age" role="button" tabindex="0" aria-label="Choose Amateur Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
+                <span class="track-card-badge street-cred">Simpler panel</span>
                 <h2>Amateur Track</h2>
-                <p class="track-card-benefit">Simple panel, one age clock — fewer tests, easier to start.</p>
                 <div class="track-card-details">
                 <ul>
                     <li><strong>Clock:</strong> <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
@@ -242,29 +215,25 @@
                     <li><strong>Entry:</strong> free (for now)</li>
                 </ul>
                 <div class="biomarker-count">9 biomarkers</div>
-                <details class="card-bio-details">
-                    <summary>Show 9 biomarkers</summary>
-                    <ul class="card-bio-list">
-                        <li>White Blood Cell Count (WBC)</li>
-                        <li>Lymphocytes</li>
-                        <li>Mean Corpuscular Volume (MCV)</li>
-                        <li>Red Cell Distribution Width (RDW)</li>
-                        <li>Albumin</li>
-                        <li>Alkaline Phosphatase (ALP)</li>
-                        <li>Creatinine</li>
-                        <li>Glucose (Blood Sugar)</li>
-                        <li>C-Reactive Protein (CRP)</li>
-                    </ul>
-                </details>
+                <ul class="card-bio-list">
+                    <li>White Blood Cell Count (WBC)</li>
+                    <li>Lymphocytes</li>
+                    <li>Mean Corpuscular Volume (MCV)</li>
+                    <li>Red Cell Distribution Width (RDW)</li>
+                    <li>Albumin</li>
+                    <li>Alkaline Phosphatase (ALP)</li>
+                    <li>Creatinine</li>
+                    <li>Glucose (Blood Sugar)</li>
+                    <li>C-Reactive Protein (CRP)</li>
+                </ul>
                 </div>
                 <div class="card-cta">
                     <button class="option-button green" onclick="window.location.href='/pheno-age'">Go Amateur</button>
                 </div>
             </article>
-            <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" aria-label="Choose Professional Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('details, button, a')) window.location.href=u">
-                <span class="track-card-badge prize-money"><span class="btc-symbol" aria-hidden="true">₿</span> Prize Money</span>
+            <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" aria-label="Choose Professional Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
+                <span class="track-card-badge prize-money"><span class="btc-symbol" aria-hidden="true">₿</span> Full panel · Prize money</span>
                 <h2>Professional Track</h2>
-                <p class="track-card-benefit">Full panel, two age clocks — most complete picture.</p>
                 <div class="track-card-details">
                 <ul>
                     <li><strong>Age clock:</strong> <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
@@ -273,33 +242,30 @@
                     <li><strong>Entry:</strong> free (for now)</li>
                 </ul>
                 <div class="biomarker-count">22 biomarkers</div>
-                <details class="card-bio-details">
-                    <summary>Show 22 biomarkers</summary>
-                    <ul class="card-bio-list">
-                        <li>White Blood Cell Count (WBC)</li>
-                        <li>Lymphocytes (LYM)</li>
-                        <li>Neutrophils (absolute)</li>
-                        <li>Monocytes (absolute)</li>
-                        <li>Red Blood Cell Count (RBC)</li>
-                        <li>Mean Corpuscular Volume (MCV)</li>
-                        <li>Mean Corpuscular Hemoglobin (MCH)</li>
-                        <li>Red Cell Distribution Width (RDW)</li>
-                        <li>Albumin</li>
-                        <li>Urea</li>
-                        <li>Creatinine</li>
-                        <li>Cystatin C</li>
-                        <li>Glucose</li>
-                        <li>HbA1c</li>
-                        <li>Total Cholesterol</li>
-                        <li>ApoA1</li>
-                        <li>ALT</li>
-                        <li>Alkaline Phosphatase (ALP)</li>
-                        <li>GGT</li>
-                        <li>CRP</li>
-                        <li>SHBG</li>
-                        <li>Vitamin D (25-OH)</li>
-                    </ul>
-                </details>
+                <ul class="card-bio-list">
+                    <li>White Blood Cell Count (WBC)</li>
+                    <li>Lymphocytes (LYM)</li>
+                    <li>Neutrophils (absolute)</li>
+                    <li>Monocytes (absolute)</li>
+                    <li>Red Blood Cell Count (RBC)</li>
+                    <li>Mean Corpuscular Volume (MCV)</li>
+                    <li>Mean Corpuscular Hemoglobin (MCH)</li>
+                    <li>Red Cell Distribution Width (RDW)</li>
+                    <li>Albumin</li>
+                    <li>Urea</li>
+                    <li>Creatinine</li>
+                    <li>Cystatin C</li>
+                    <li>Glucose</li>
+                    <li>HbA1c</li>
+                    <li>Total Cholesterol</li>
+                    <li>ApoA1</li>
+                    <li>ALT</li>
+                    <li>Alkaline Phosphatase (ALP)</li>
+                    <li>GGT</li>
+                    <li>CRP</li>
+                    <li>SHBG</li>
+                    <li>Vitamin D (25-OH)</li>
+                </ul>
                 </div>
                 <div class="card-cta">
                     <button class="option-button green" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Go Pro</button>
