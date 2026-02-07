@@ -42,14 +42,12 @@
             background: #fff;
             display: flex;
             flex-direction: column;
-            cursor: pointer;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .track-card:hover {
             border-color: #b0bec5;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
         }
 
         .track-card:focus {
@@ -275,7 +273,7 @@
         <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a <strong>blood test</strong>. Your next choice determines which biomarkers need testing:</div>
 
         <div class="track-cards" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <article class="track-card" data-track-url="/pheno-age" role="button" tabindex="0" aria-label="Choose Amateur Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
+            <article class="track-card">
                 <h2><span class="track-name">Amateur</span> <span class="track-label">Track</span></h2>
                 <div class="track-card-details">
                 <ul>
@@ -291,9 +289,9 @@
                     <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean Corpuscular Volume (MCV)</li>
                     <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red Cell Distribution Width (RDW)</li>
                     <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Albumin</li>
+                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline Phosphatase (ALP)</li>
                     <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Creatinine</li>
                     <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose (Blood Sugar)</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline Phosphatase (ALP)</li>
                     <li><i class="fas fa-temperature-three-quarters bio-icon" aria-hidden="true"></i>C-Reactive Protein (CRP)</li>
                 </ul>
                 </div>
@@ -301,7 +299,7 @@
                     <button class="option-button grey" onclick="window.location.href='/pheno-age'">Go Amateur</button>
                 </div>
             </article>
-            <article class="track-card pro" data-track-url="/bortz-age" role="button" tabindex="0" aria-label="Choose Professional Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
+            <article class="track-card pro">
                 <span class="track-card-ribbon prize-money" aria-label="Prize money"><span><span class="btc-symbol" aria-hidden="true">₿</span> Prize money</span></span>
                 <h2><span class="track-name">Professional</span> <span class="track-label">Track</span></h2>
                 <div class="track-card-details">
@@ -322,16 +320,16 @@
                     <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean Corpuscular Hemoglobin (MCH)</li>
                     <li><i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red Cell Distribution Width (RDW)</li>
                     <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Albumin</li>
+                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>ALT</li>
+                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline Phosphatase (ALP)</li>
+                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>GGT</li>
                     <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Urea</li>
                     <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Creatinine</li>
                     <li><i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Cystatin C</li>
                     <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose</li>
                     <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>HbA1c</li>
-                    <li><i class="fas fa-heart bio-icon" aria-hidden="true"></i>Total Cholesterol</li>
-                    <li><i class="fas fa-heart bio-icon" aria-hidden="true"></i>ApoA1</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>ALT</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline Phosphatase (ALP)</li>
-                    <li><i class="fas fa-droplet bio-icon" aria-hidden="true"></i>GGT</li>
+                    <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>Total Cholesterol</li>
+                    <li><i class="fas fa-fire bio-icon" aria-hidden="true"></i>ApoA1</li>
                     <li><i class="fas fa-temperature-three-quarters bio-icon" aria-hidden="true"></i>CRP</li>
                     <li><i class="fas fa-capsules bio-icon" aria-hidden="true"></i>SHBG</li>
                     <li><i class="fas fa-capsules bio-icon" aria-hidden="true"></i>Vitamin D (25-OH)</li>
@@ -353,15 +351,6 @@
     <!--FOOTER-->
     <script>
         updateMainProgress(1);
-        document.querySelectorAll('.track-card').forEach(function(card) {
-            card.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    var url = this.getAttribute('data-track-url');
-                    if (url) window.location.href = url;
-                }
-            });
-        });
     </script>
 </body>
 </html>
