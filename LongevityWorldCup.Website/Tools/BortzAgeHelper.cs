@@ -26,9 +26,9 @@ namespace LongevityWorldCup.Website.Tools
             new("cholesterol", "Total Cholesterol", 5.6177437, -0.0805656),
             new("creatinine", "Creatinine", 71.565605, -0.01095746), // no cap: PhenoAge has floor, Bortz would need ceiling
             new("cystatin_c", "Cystatin C", 0.900946, 1.859556436),
-            new("hba1c", "HbA1c", 35.4785711, 0.018116675),
-            new("crp", "C-reactive protein (hsCRP)", 0.3003624, 0.079109916, IsLog: true),
-            new("ggt", "Gamma-glutamyl transferase", 3.3795613, 0.265550311, IsLog: true),
+            new("hba1c", "Hemoglobin A1c (HbA1c)", 35.4785711, 0.018116675),
+            new("crp", "C-Reactive Protein (CRP)", 0.3003624, 0.079109916, IsLog: true),
+            new("ggt", "Gamma-Glutamyl Transferase (GGT)", 3.3795613, 0.265550311, IsLog: true),
             new("rbc", "Red blood cell count", 4.4994648, -0.204442153),
             new("mcv", "Mean corpuscular volume", 91.9251099, 0.017165356),
             new("rdw", "Red cell distribution width", 13.4342296, 0.202009895, Cap: 11.4, CapMode: CapMode.Floor),
@@ -36,11 +36,11 @@ namespace LongevityWorldCup.Website.Tools
             new("neutrophil_count", "Neutrophils", 4.1849454, 0.06679092),
             new("lymphocyte_percentage", "Lymphocytes (%)", 28.5817604, -0.0108158, Cap: 60, CapMode: CapMode.Ceiling),
             new("alt", "Alanine aminotransferase", 3.077868, -0.312442261, IsLog: true),
-            new("shbg", "SHBG", 3.8202787, 0.292323186, IsLog: true),
+            new("shbg", "Sex Hormone-Binding Globulin (SHBG)", 3.8202787, 0.292323186, IsLog: true),
             new("vitamin_d", "Vitamin D (25-OH)", 3.6052878, -0.265467867, IsLog: true),
             new("glucose", "Glucose", 4.9563054, 0.032171478, Cap: 4.44, CapMode: CapMode.Floor),
             new("mch", "Mean corpuscular hemoglobin", 31.8396206, 0.02746487),
-            new("apoa1", "Apolipoprotein A1", 1.5238771, -0.185139395),
+            new("apoa1", "Apolipoprotein A1 (ApoA1)", 1.5238771, -0.185139395),
         };
 
         private static double ApplyCap(double value, BortzFeature f) =>
