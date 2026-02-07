@@ -70,9 +70,36 @@
 
         .track-card h2 {
             margin: 0 0 0.35rem;
+            line-height: 1.2;
+        }
+
+        .track-card h2 .track-name {
+            display: inline;
             font-size: 1.85rem;
             font-weight: 800;
             color: #111;
+        }
+
+        .track-card h2 .track-label {
+            display: inline;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        @media (min-width: 700px) {
+            .track-card h2 .track-name {
+                font-size: 2.1rem;
+            }
+        }
+
+        @media (min-width: 900px) {
+            .track-card h2 .track-name {
+                font-size: 2.35rem;
+            }
+            .track-card h2 .track-label {
+                font-size: 1.15rem;
+            }
         }
 
         .track-card-benefit {
@@ -208,20 +235,20 @@
         <div class="join-game-content">
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">How Bad Do You Want It?</h1>
 
-        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test. Your choice determines which biomarkers need testing:</div>
+        <div class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">To calculate your biological age, get a blood test. Your next choice determines which biomarkers need testing:</div>
 
         <div class="track-cards" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <article class="track-card" data-track-url="/pheno-age" role="button" tabindex="0" aria-label="Choose Amateur Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
-                <h2>Amateur Track</h2>
+                <h2><span class="track-name">Amateur</span> <span class="track-label">Track</span></h2>
                 <span class="track-card-badge street-cred">Simpler panel</span>
                 <div class="track-card-details">
                 <ul>
-                    <li><strong>Clock:</strong> <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
-                    <li><strong>Visibility:</strong> ranked after pros</li>
+                    <li>Ranked after pros</li>
                     <li><strong>Season:</strong> All-Time</li>
                     <li><strong>Entry:</strong> free (for now)</li>
+                    <li><strong>Aging clock:</strong> <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
                 </ul>
-                <div class="biomarker-count">9 biomarkers</div>
+                <div class="biomarker-count">Biomarkers needed (9):</div>
                 <ul class="card-bio-list">
                     <li>White Blood Cell Count (WBC)</li>
                     <li>Lymphocytes</li>
@@ -239,16 +266,16 @@
                 </div>
             </article>
             <article class="track-card pro" data-track-url="/onboarding/waiting-for-lab.html?holding=veggies" role="button" tabindex="0" aria-label="Choose Professional Track" onclick="var u=this.getAttribute('data-track-url'); if(u && !event.target.closest('.card-bio-list, button, a')) window.location.href=u">
-                <h2>Professional Track</h2>
+                <h2><span class="track-name">Professional</span> <span class="track-label">Track</span></h2>
                 <span class="track-card-badge prize-money"><span class="btc-symbol" aria-hidden="true">₿</span> Full panel · Prize money</span>
                 <div class="track-card-details">
                 <ul>
-                    <li><strong>Age clock:</strong> <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
-                    <li><strong>Visibility:</strong> ranked ahead of amateurs</li>
+                    <li>Ranked ahead of amateurs</li>
                     <li><strong>Season:</strong> 2026</li>
                     <li><strong>Entry:</strong> free (for now)</li>
+                    <li><strong>Aging clocks:</strong> <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> + <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></li>
                 </ul>
-                <div class="biomarker-count">22 biomarkers</div>
+                <div class="biomarker-count">Biomarkers needed (22):</div>
                 <ul class="card-bio-list">
                     <li>White Blood Cell Count (WBC)</li>
                     <li>Lymphocytes (LYM)</li>

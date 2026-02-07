@@ -1,4 +1,4 @@
-﻿window.getIcon = function (link) {
+window.getIcon = function (link) {
     // Normalize the link to lowercase for case-insensitive matching
     const normalizedLink = link.toLowerCase().trim();
 
@@ -279,19 +279,11 @@ window.highlightText = function (element, searchTerms) {
 }
 
 window.goBackOrHome = function () {
-    try {
-        const ref = document.referrer;
-        const origin = new URL(ref).origin;
-        if (
-            ref &&
-            origin === window.location.origin &&
-            window.history.length > 1
-        ) {
-            window.history.back();
-        } else {
-            window.location.href = '/';
-        }
-    } catch (e) {
+    // Prefer history.back() whenever there is history (e.g. user came from join-game).
+    // Referrer can be empty or stripped, so do not rely on it; going back is safe for same-tab navigation.
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
         window.location.href = '/';
     }
 }
