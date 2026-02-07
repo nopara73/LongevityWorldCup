@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Event Board</title>
@@ -18,7 +18,7 @@
 <!--FOOTER-->
 
 <script>
-    history.pushState({}, '', '/events' + (window.location.search || '') + (window.location.hash || ''));
+    history.replaceState({}, '', '/events' + (window.location.search || '') + (window.location.hash || ''));
 
     function initEventBoard() {
         const titleEl = document.getElementById('eventBoardTitle');
