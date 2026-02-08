@@ -67,5 +67,49 @@ namespace LongevityWorldCup.Website.Business
         /// <summary>Monocytes as percentage of WBC. Store only %; derive count from WBC and % when needed (e.g. Bortz: count = Wbc1000cellsuL * MonocytePc / 100).</summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? MonocytePc { get; set; }
+
+        /// <summary>RBC in 10^12/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? Rbc10e12L { get; set; }
+
+        /// <summary>MCH in pg.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? MchPg { get; set; }
+
+        /// <summary>Urea in mmol/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? UreaMmolL { get; set; }
+
+        /// <summary>Cystatin C in mg/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? CystatinCMgL { get; set; }
+
+        /// <summary>HbA1c in mmol/mol.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? Hba1cMmolMol { get; set; }
+
+        /// <summary>Total cholesterol in mmol/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? CholesterolMmolL { get; set; }
+
+        /// <summary>Apolipoprotein A1 in g/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? ApoA1GL { get; set; }
+
+        /// <summary>ALT in U/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? AltUL { get; set; }
+
+        /// <summary>GGT in U/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? GgtUL { get; set; }
+
+        /// <summary>SHBG in nmol/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? ShbgNmolL { get; set; }
+
+        /// <summary>Vitamin D (25-OH) in nmol/L.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? VitaminDNmolL { get; set; }
     }
 }

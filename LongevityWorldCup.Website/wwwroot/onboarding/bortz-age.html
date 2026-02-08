@@ -687,9 +687,9 @@
                             <div class="biomarker-card-header" aria-expanded="false">Neutrophils <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="neutrophil_count" name="neutrophil_count" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="neutrophil_countUnit" class="visually-hidden">Neutrophils unit</label>
-                                    <select id="neutrophil_countUnit" aria-label="Neutrophils unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="neutrophil_percentage" name="neutrophil_percentage" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="neutrophil_percentageUnit" class="visually-hidden">Neutrophils unit</label>
+                                    <select id="neutrophil_percentageUnit" aria-label="Neutrophils unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
                                         <option value="1">10⁹/L</option>
                                         <option value="1">1000 cells/μL</option>
@@ -704,9 +704,9 @@
                             <div class="biomarker-card-header" aria-expanded="false">Monocytes <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="monocyte_count" name="monocyte_count" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="monocyte_countUnit" class="visually-hidden">Monocytes unit</label>
-                                    <select id="monocyte_countUnit" aria-label="Monocytes unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="monocyte_percentage" name="monocyte_percentage" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="monocyte_percentageUnit" class="visually-hidden">Monocytes unit</label>
+                                    <select id="monocyte_percentageUnit" aria-label="Monocytes unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
                                         <option value="1">10⁹/L</option>
                                         <option value="1">1000 cells/μL</option>
@@ -1086,7 +1086,7 @@
 
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
-        const bortzFieldIds = ['lymphocyte_percentage', 'neutrophil_count', 'monocyte_count', 'rbc', 'mcv', 'mch', 'rdw', 'albumin', 'urea', 'creatinine', 'cystatin_c', 'glucose', 'hba1c', 'cholesterol', 'apoa1', 'alt', 'alp', 'ggt', 'crp', 'shbg', 'vitamin_d'];
+        const bortzFieldIds = ['lymphocyte_percentage', 'neutrophil_percentage', 'monocyte_percentage', 'rbc', 'mcv', 'mch', 'rdw', 'albumin', 'urea', 'creatinine', 'cystatin_c', 'glucose', 'hba1c', 'cholesterol', 'apoa1', 'alt', 'alp', 'ggt', 'crp', 'shbg', 'vitamin_d'];
         [...bortzFieldIds, 'wbc'].forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
@@ -1119,33 +1119,33 @@
             }
             const propMap = {
                 lymphocyte_percentage: 'LymPc',
-                neutrophil_count: 'NeutrophilCount',
-                monocyte_count: 'MonocyteCount',
-                rbc: 'Rbc',
+                neutrophil_percentage: 'NeutrophilPc',
+                monocyte_percentage: 'MonocytePc',
+                rbc: 'Rbc10e12L',
                 mcv: 'McvFL',
-                mch: 'Mch',
+                mch: 'MchPg',
                 rdw: 'RdwPc',
                 albumin: 'AlbGL',
-                urea: 'Urea',
+                urea: 'UreaMmolL',
                 creatinine: 'CreatUmolL',
-                cystatin_c: 'CystatinC',
+                cystatin_c: 'CystatinCMgL',
                 glucose: 'GluMmolL',
-                hba1c: 'Hba1c',
-                cholesterol: 'Cholesterol',
-                apoa1: 'ApoA1',
-                alt: 'Alt',
+                hba1c: 'Hba1cMmolMol',
+                cholesterol: 'CholesterolMmolL',
+                apoa1: 'ApoA1GL',
+                alt: 'AltUL',
                 alp: 'AlpUL',
-                ggt: 'Ggt',
+                ggt: 'GgtUL',
                 crp: 'CrpMgL',
-                shbg: 'Shbg',
-                vitamin_d: 'VitaminD',
+                shbg: 'ShbgNmolL',
+                vitamin_d: 'VitaminDNmolL',
                 wbc: 'Wbc1000cellsuL'
             };
+            const legacyStoredKeys = { Rbc10e12L: 'Rbc', MchPg: 'Mch', UreaMmolL: 'Urea', CystatinCMgL: 'CystatinC', Hba1cMmolMol: 'Hba1c', CholesterolMmolL: 'Cholesterol', ApoA1GL: 'ApoA1', AltUL: 'Alt', GgtUL: 'Ggt', ShbgNmolL: 'Shbg', VitaminDNmolL: 'VitaminD' };
 
             Object.entries(propMap).forEach(([id, prop]) => {
-                if (latest[prop] != null && !isNaN(latest[prop])) {
-                    touchedBiomarkers.add(id);
-                }
+                const val = latest[prop] ?? (legacyStoredKeys[prop] != null ? latest[legacyStoredKeys[prop]] : undefined);
+                if (val != null && !isNaN(val)) touchedBiomarkers.add(id);
             });
         }
 
@@ -1292,8 +1292,8 @@
             }
 
             // Neutrophils: 10⁹/L ~1.5–7, cells/μL ~1500–7000; skip correction when unit is %
-            const neutEl = document.getElementById('neutrophil_count');
-            const neutUnitEl = document.getElementById('neutrophil_countUnit');
+            const neutEl = document.getElementById('neutrophil_percentage');
+            const neutUnitEl = document.getElementById('neutrophil_percentageUnit');
             if (neutEl && neutUnitEl) {
                 const neutUnitText = neutUnitEl.options[neutUnitEl.selectedIndex].text.trim();
                 if (neutUnitText !== '%') {
@@ -1309,8 +1309,8 @@
                 }
             }
             // Monocytes: 10⁹/L ~0.2–0.8, cells/μL ~200–800; skip correction when unit is %
-            const monoEl = document.getElementById('monocyte_count');
-            const monoUnitEl = document.getElementById('monocyte_countUnit');
+            const monoEl = document.getElementById('monocyte_percentage');
+            const monoUnitEl = document.getElementById('monocyte_percentageUnit');
             if (monoEl && monoUnitEl) {
                 const monoUnitText = monoUnitEl.options[monoUnitEl.selectedIndex].text.trim();
                 if (monoUnitText !== '%') {
@@ -1401,26 +1401,26 @@
                 });
                 const biomarkerDefaults = {
                     lymphocyte_percentage: { val: latestBiomarkerSet.LymPc, unit: '1' },
-                    neutrophil_count: { val: latestBiomarkerSet.NeutrophilCount, unit: '1' },
-                    monocyte_count: { val: latestBiomarkerSet.MonocyteCount, unit: '1' },
-                    rbc: { val: latestBiomarkerSet.Rbc, unit: '1' },
+                    neutrophil_percentage: { val: latestBiomarkerSet.NeutrophilPc, unit: '1' },
+                    monocyte_percentage: { val: latestBiomarkerSet.MonocytePc, unit: '1' },
+                    rbc: { val: latestBiomarkerSet.Rbc10e12L ?? latestBiomarkerSet.Rbc, unit: '1' },
                     mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
-                    mch: { val: latestBiomarkerSet.Mch, unit: '1' },
+                    mch: { val: latestBiomarkerSet.MchPg ?? latestBiomarkerSet.Mch, unit: '1' },
                     rdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
                     albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
-                    urea: { val: latestBiomarkerSet.Urea, unit: '1' },
+                    urea: { val: latestBiomarkerSet.UreaMmolL ?? latestBiomarkerSet.Urea, unit: '1' },
                     creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
-                    cystatin_c: { val: latestBiomarkerSet.CystatinC, unit: '1' },
+                    cystatin_c: { val: latestBiomarkerSet.CystatinCMgL ?? latestBiomarkerSet.CystatinC, unit: '1' },
                     glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
-                    hba1c: { val: latestBiomarkerSet.Hba1c, unit: '1' },
-                    cholesterol: { val: latestBiomarkerSet.Cholesterol, unit: '1' },
-                    apoa1: { val: latestBiomarkerSet.ApoA1, unit: '1' },
-                    alt: { val: latestBiomarkerSet.Alt, unit: '1' },
+                    hba1c: { val: latestBiomarkerSet.Hba1cMmolMol ?? latestBiomarkerSet.Hba1c, unit: '1' },
+                    cholesterol: { val: latestBiomarkerSet.CholesterolMmolL ?? latestBiomarkerSet.Cholesterol, unit: '1' },
+                    apoa1: { val: latestBiomarkerSet.ApoA1GL ?? latestBiomarkerSet.ApoA1, unit: '1' },
+                    alt: { val: latestBiomarkerSet.AltUL ?? latestBiomarkerSet.Alt, unit: '1' },
                     alp: { val: latestBiomarkerSet.AlpUL, unit: '1' },
-                    ggt: { val: latestBiomarkerSet.Ggt, unit: '1' },
+                    ggt: { val: latestBiomarkerSet.GgtUL ?? latestBiomarkerSet.Ggt, unit: '1' },
                     crp: { val: latestBiomarkerSet.CrpMgL, unit: '1' },
-                    shbg: { val: latestBiomarkerSet.Shbg, unit: '1' },
-                    vitamin_d: { val: latestBiomarkerSet.VitaminD, unit: '1' },
+                    shbg: { val: latestBiomarkerSet.ShbgNmolL ?? latestBiomarkerSet.Shbg, unit: '1' },
+                    vitamin_d: { val: latestBiomarkerSet.VitaminDNmolL ?? latestBiomarkerSet.VitaminD, unit: '1' },
                     wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' }
                 };
                 Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
@@ -1496,7 +1496,7 @@
                             return;
                         }
                     }
-                } else if (f.id === 'neutrophil_count') {
+                } else if (f.id === 'neutrophil_percentage') {
                     // Bortz expects count in 10⁹/L; convert from % using WBC when needed
                     if (unitText === '%') {
                         const wbcValEl = document.getElementById('wbc');
@@ -1517,7 +1517,7 @@
                     } else {
                         adjustedValue = rawValue / unitConversion;
                     }
-                } else if (f.id === 'monocyte_count') {
+                } else if (f.id === 'monocyte_percentage') {
                     // Bortz expects count in 10⁹/L; convert from % using WBC when needed
                     if (unitText === '%') {
                         const wbcValEl = document.getElementById('wbc');
@@ -1737,37 +1737,37 @@
                 albuminUnit: '0.1', creatinineUnit: '0.0113', glucoseUnit: '18.016', crpUnit: '1',
                 cholesterolUnit: '0.02586', cystatin_cUnit: '0.1', ureaUnit: '2.801', hba1cUnit: '0.0915',
                 apoa1Unit: '0.01', shbgUnit: '0.0347', vitamin_dUnit: '0.4',
-                lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1',
+                lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1',
                 rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1'
             },
             GB: {
                 albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1',
                 cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1',
                 apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1',
-                lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1',
+                lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1',
                 rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1'
             },
-            HU: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
-            AU: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
-            DE: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
-            FR: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
-            ES: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
-            BR: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            HU: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            AU: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            DE: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            FR: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            ES: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            BR: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
             HN: {
                 albuminUnit: '0.1', creatinineUnit: '0.0113', glucoseUnit: '18.016', crpUnit: '1',
                 cholesterolUnit: '0.02586', cystatin_cUnit: '0.1', ureaUnit: '2.801', hba1cUnit: '0.0915',
                 apoa1Unit: '0.01', shbgUnit: '0.0347', vitamin_dUnit: '0.4',
-                lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1',
+                lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1',
                 rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1'
             },
-            SG: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
-            CZ: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
-            CA: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            SG: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            CZ: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
+            CA: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
             default: {
                 albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1',
                 cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1',
                 apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1',
-                lymphocyte_percentageUnit: '1', neutrophil_countUnit: '1', monocyte_countUnit: '1',
+                lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1',
                 rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1'
             }
         };
@@ -2008,28 +2008,29 @@
 
             const idMapUnique = {
                 LymPc: 'lymphocyte_percentage',
-                NeutrophilCount: 'neutrophil_count',
-                MonocyteCount: 'monocyte_count',
-                Rbc: 'rbc',
+                NeutrophilPc: 'neutrophil_percentage',
+                MonocytePc: 'monocyte_percentage',
+                Rbc10e12L: 'rbc',
                 McvFL: 'mcv',
-                Mch: 'mch',
+                MchPg: 'mch',
                 RdwPc: 'rdw',
                 AlbGL: 'albumin',
-                Urea: 'urea',
+                UreaMmolL: 'urea',
                 CreatUmolL: 'creatinine',
-                CystatinC: 'cystatin_c',
+                CystatinCMgL: 'cystatin_c',
                 GluMmolL: 'glucose',
-                Hba1c: 'hba1c',
-                Cholesterol: 'cholesterol',
-                ApoA1: 'apoa1',
-                Alt: 'alt',
+                Hba1cMmolMol: 'hba1c',
+                CholesterolMmolL: 'cholesterol',
+                ApoA1GL: 'apoa1',
+                AltUL: 'alt',
                 AlpUL: 'alp',
-                Ggt: 'ggt',
+                GgtUL: 'ggt',
                 CrpMgL: 'crp',
-                Shbg: 'shbg',
-                VitaminD: 'vitamin_d',
+                ShbgNmolL: 'shbg',
+                VitaminDNmolL: 'vitamin_d',
                 Wbc1000cellsuL: 'wbc'
             };
+            const legacyRefillKeys = { Rbc10e12L: 'Rbc', MchPg: 'Mch', UreaMmolL: 'Urea', CystatinCMgL: 'CystatinC', Hba1cMmolMol: 'Hba1c', CholesterolMmolL: 'Cholesterol', ApoA1GL: 'ApoA1', AltUL: 'Alt', GgtUL: 'Ggt', ShbgNmolL: 'Shbg', VitaminDNmolL: 'VitaminD' };
 
             Object.values(idMapUnique).forEach(bioId => {
                 document.getElementById(bioId).value = '';
@@ -2066,24 +2067,22 @@
                     if (lymphUnitEl) lymphUnitEl.value = '1';
                 }
                 if (entry.NeutrophilPc != null) {
-                    document.getElementById('neutrophil_count').value = entry.NeutrophilPc;
-                    const neuUnitEl = document.getElementById('neutrophil_countUnit');
+                    document.getElementById('neutrophil_percentage').value = entry.NeutrophilPc;
+                    const neuUnitEl = document.getElementById('neutrophil_percentageUnit');
                     if (neuUnitEl) neuUnitEl.value = '1';
-                    expandFieldCard('neutrophil_count');
+                    expandFieldCard('neutrophil_percentage');
                 }
                 if (entry.MonocytePc != null) {
-                    document.getElementById('monocyte_count').value = entry.MonocytePc;
-                    const monoUnitEl = document.getElementById('monocyte_countUnit');
+                    document.getElementById('monocyte_percentage').value = entry.MonocytePc;
+                    const monoUnitEl = document.getElementById('monocyte_percentageUnit');
                     if (monoUnitEl) monoUnitEl.value = '1';
-                    expandFieldCard('monocyte_count');
+                    expandFieldCard('monocyte_percentage');
                 }
                 Object.keys(entry).forEach(prop => {
                     const id = idMapUnique[prop];
                     if (id) {
-                        // Use saved % for neutrophil/monocyte when present; otherwise use count
-                        if (prop === 'NeutrophilCount' && entry.NeutrophilPc != null) return;
-                        if (prop === 'MonocyteCount' && entry.MonocytePc != null) return;
-                        document.getElementById(id).value = entry[prop];
+                        const val = entry[prop] ?? (legacyRefillKeys[prop] != null ? entry[legacyRefillKeys[prop]] : undefined);
+                        if (val != null && !isNaN(val)) document.getElementById(id).value = val;
                         if (prop === 'Wbc1000cellsuL') {
                             const wbcUnitEl = document.getElementById('wbcUnit');
                             if (wbcUnitEl) wbcUnitEl.value = '1';
@@ -2159,9 +2158,9 @@
                 return parseFloat(lymphValueToStore.toFixed(2));
             });
             // Neutrophils: store only %; derive count from WBC and % when needed for calculation
-            if (touchedBiomarkers.has('neutrophil_count')) {
-                const raw = parseFloat(document.getElementById('neutrophil_count').value);
-                const unitEl = document.getElementById('neutrophil_countUnit');
+            if (touchedBiomarkers.has('neutrophil_percentage')) {
+                const raw = parseFloat(document.getElementById('neutrophil_percentage').value);
+                const unitEl = document.getElementById('neutrophil_percentageUnit');
                 const unitText = unitEl.options[unitEl.selectedIndex].text.trim();
                 if (unitText === '%') {
                     entry.NeutrophilPc = parseFloat(raw.toFixed(2));
@@ -2175,9 +2174,9 @@
                 }
             }
             // Monocytes: store only %; derive count from WBC and % when needed for calculation
-            if (touchedBiomarkers.has('monocyte_count')) {
-                const raw = parseFloat(document.getElementById('monocyte_count').value);
-                const unitEl = document.getElementById('monocyte_countUnit');
+            if (touchedBiomarkers.has('monocyte_percentage')) {
+                const raw = parseFloat(document.getElementById('monocyte_percentage').value);
+                const unitEl = document.getElementById('monocyte_percentageUnit');
                 const unitText = unitEl.options[unitEl.selectedIndex].text.trim();
                 if (unitText === '%') {
                     entry.MonocytePc = parseFloat(raw.toFixed(2));
@@ -2190,16 +2189,16 @@
                     entry.MonocytePc = wbcCanonical ? parseFloat(((count / wbcCanonical) * 100).toFixed(2)) : parseFloat(raw.toFixed(2));
                 }
             }
-            store('rbc', 'Rbc', () => parseFloat((parseFloat(document.getElementById('rbc').value) / parseFloat(document.getElementById('rbcUnit').value)).toFixed(2)));
+            store('rbc', 'Rbc10e12L', () => parseFloat((parseFloat(document.getElementById('rbc').value) / parseFloat(document.getElementById('rbcUnit').value)).toFixed(2)));
             store('mcv', 'McvFL', () => parseFloat(document.getElementById('mcv').value));
-            store('mch', 'Mch', () => parseFloat((parseFloat(document.getElementById('mch').value) / parseFloat(document.getElementById('mchUnit').value)).toFixed(2)));
+            store('mch', 'MchPg', () => parseFloat((parseFloat(document.getElementById('mch').value) / parseFloat(document.getElementById('mchUnit').value)).toFixed(2)));
             store('rdw', 'RdwPc', () => parseFloat(document.getElementById('rdw').value));
             store('albumin', 'AlbGL', () => parseFloat((parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2)));
-            store('urea', 'Urea', () => parseFloat((parseFloat(document.getElementById('urea').value) / parseFloat(document.getElementById('ureaUnit').value)).toFixed(2)));
+            store('urea', 'UreaMmolL', () => parseFloat((parseFloat(document.getElementById('urea').value) / parseFloat(document.getElementById('ureaUnit').value)).toFixed(2)));
             store('creatinine', 'CreatUmolL', () => parseFloat((parseFloat(document.getElementById('creatinine').value) / parseFloat(document.getElementById('creatinineUnit').value)).toFixed(2)));
-            store('cystatin_c', 'CystatinC', () => parseFloat((parseFloat(document.getElementById('cystatin_c').value) / parseFloat(document.getElementById('cystatin_cUnit').value)).toFixed(2)));
+            store('cystatin_c', 'CystatinCMgL', () => parseFloat((parseFloat(document.getElementById('cystatin_c').value) / parseFloat(document.getElementById('cystatin_cUnit').value)).toFixed(2)));
             store('glucose', 'GluMmolL', () => parseFloat((parseFloat(document.getElementById('glucose').value) / parseFloat(document.getElementById('glucoseUnit').value)).toFixed(2)));
-            store('hba1c', 'Hba1c', () => {
+            store('hba1c', 'Hba1cMmolMol', () => {
                 const el = document.getElementById('hba1c');
                 const unitEl = document.getElementById('hba1cUnit');
                 const raw = parseFloat(el.value);
@@ -2218,14 +2217,14 @@
                 }
                 return parseFloat(mmolMol.toFixed(2));
             });
-            store('cholesterol', 'Cholesterol', () => parseFloat((parseFloat(document.getElementById('cholesterol').value) / parseFloat(document.getElementById('cholesterolUnit').value)).toFixed(2)));
-            store('apoa1', 'ApoA1', () => parseFloat((parseFloat(document.getElementById('apoa1').value) / parseFloat(document.getElementById('apoa1Unit').value)).toFixed(2)));
-            store('alt', 'Alt', () => parseFloat((parseFloat(document.getElementById('alt').value) / parseFloat(document.getElementById('altUnit').value)).toFixed(2)));
+            store('cholesterol', 'CholesterolMmolL', () => parseFloat((parseFloat(document.getElementById('cholesterol').value) / parseFloat(document.getElementById('cholesterolUnit').value)).toFixed(2)));
+            store('apoa1', 'ApoA1GL', () => parseFloat((parseFloat(document.getElementById('apoa1').value) / parseFloat(document.getElementById('apoa1Unit').value)).toFixed(2)));
+            store('alt', 'AltUL', () => parseFloat((parseFloat(document.getElementById('alt').value) / parseFloat(document.getElementById('altUnit').value)).toFixed(2)));
             store('alp', 'AlpUL', () => parseFloat((parseFloat(document.getElementById('alp').value) / parseFloat(document.getElementById('alpUnit').value)).toFixed(2)));
-            store('ggt', 'Ggt', () => parseFloat((parseFloat(document.getElementById('ggt').value) / parseFloat(document.getElementById('ggtUnit').value)).toFixed(2)));
+            store('ggt', 'GgtUL', () => parseFloat((parseFloat(document.getElementById('ggt').value) / parseFloat(document.getElementById('ggtUnit').value)).toFixed(2)));
             store('crp', 'CrpMgL', () => parseFloat((parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value)).toFixed(2)));
-            store('shbg', 'Shbg', () => parseFloat((parseFloat(document.getElementById('shbg').value) / parseFloat(document.getElementById('shbgUnit').value)).toFixed(2)));
-            store('vitamin_d', 'VitaminD', () => parseFloat((parseFloat(document.getElementById('vitamin_d').value) / parseFloat(document.getElementById('vitamin_dUnit').value)).toFixed(2)));
+            store('shbg', 'ShbgNmolL', () => parseFloat((parseFloat(document.getElementById('shbg').value) / parseFloat(document.getElementById('shbgUnit').value)).toFixed(2)));
+            store('vitamin_d', 'VitaminDNmolL', () => parseFloat((parseFloat(document.getElementById('vitamin_d').value) / parseFloat(document.getElementById('vitamin_dUnit').value)).toFixed(2)));
 
             const biomarkerData = {
                 DateOfBirth: {
@@ -2274,8 +2273,8 @@
             fake('lymphocyte_percentage', 28.6);
             // WBC 6.54 (Pheno + Bortz); NEU 64.2%, MON 7.2% → counts 6.54×0.642≈4.2, 6.54×0.072≈0.47
             fake('wbc', 6.54, 'wbcUnit', 1);
-            fake('neutrophil_count', 64.2, 'neutrophil_countUnit', 1);
-            fake('monocyte_count', 7.2, 'monocyte_countUnit', 1);
+            fake('neutrophil_percentage', 64.2, 'neutrophil_percentageUnit', 1);
+            fake('monocyte_percentage', 7.2, 'monocyte_percentageUnit', 1);
             fake('rbc', 4.5);
             fake('mcv', 92);
             fake('mch', 31.8);
