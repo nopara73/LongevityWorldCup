@@ -2060,9 +2060,29 @@
                 if (bloodDrawDateInput) {
                     bloodDrawDateInput.value = entry.Date || '';
                 }
+                // Restore % values and units for Lymphocytes, Neutrophils, Monocytes when saved as %
+                if (entry.LymPc != null) {
+                    const lymphUnitEl = document.getElementById('lymphocyte_percentageUnit');
+                    if (lymphUnitEl) lymphUnitEl.value = '1';
+                }
+                if (entry.NeutrophilPc != null) {
+                    document.getElementById('neutrophil_count').value = entry.NeutrophilPc;
+                    const neuUnitEl = document.getElementById('neutrophil_countUnit');
+                    if (neuUnitEl) neuUnitEl.value = '1';
+                    expandFieldCard('neutrophil_count');
+                }
+                if (entry.MonocytePc != null) {
+                    document.getElementById('monocyte_count').value = entry.MonocytePc;
+                    const monoUnitEl = document.getElementById('monocyte_countUnit');
+                    if (monoUnitEl) monoUnitEl.value = '1';
+                    expandFieldCard('monocyte_count');
+                }
                 Object.keys(entry).forEach(prop => {
                     const id = idMapUnique[prop];
                     if (id) {
+                        // Use saved % for neutrophil/monocyte when present; otherwise use count
+                        if (prop === 'NeutrophilCount' && entry.NeutrophilPc != null) return;
+                        if (prop === 'MonocyteCount' && entry.MonocytePc != null) return;
                         document.getElementById(id).value = entry[prop];
                         if (prop === 'Wbc1000cellsuL') {
                             const wbcUnitEl = document.getElementById('wbcUnit');
@@ -2138,38 +2158,38 @@
                 }
                 return parseFloat(lymphValueToStore.toFixed(2));
             });
-            store('neutrophil_count', 'NeutrophilCount', () => {
+            // Neutrophils: store only %; derive count from WBC and % when needed for calculation
+            if (touchedBiomarkers.has('neutrophil_count')) {
                 const raw = parseFloat(document.getElementById('neutrophil_count').value);
                 const unitEl = document.getElementById('neutrophil_countUnit');
                 const unitText = unitEl.options[unitEl.selectedIndex].text.trim();
                 if (unitText === '%') {
+                    entry.NeutrophilPc = parseFloat(raw.toFixed(2));
+                } else {
                     const wbcEl = document.getElementById('wbc');
                     const wbcUnitEl = document.getElementById('wbcUnit');
                     const wbcRaw = wbcEl ? window.PhenoAge.parseInput(wbcEl.value) : NaN;
-                    const wbcUnit = wbcUnitEl ? parseFloat(wbcUnitEl.value) : 0;
-                    if (!isNaN(wbcRaw) && wbcUnit) {
-                        const wbcCanonical = wbcRaw / wbcUnit;
-                        return parseFloat((wbcCanonical * (raw / 100)).toFixed(2));
-                    }
+                    const wbcCanonical = wbcRaw && wbcUnitEl ? wbcRaw / parseFloat(wbcUnitEl.value) : NaN;
+                    const count = raw / parseFloat(unitEl.value);
+                    entry.NeutrophilPc = wbcCanonical ? parseFloat(((count / wbcCanonical) * 100).toFixed(2)) : parseFloat(raw.toFixed(2));
                 }
-                return parseFloat((raw / parseFloat(unitEl.value)).toFixed(2));
-            });
-            store('monocyte_count', 'MonocyteCount', () => {
+            }
+            // Monocytes: store only %; derive count from WBC and % when needed for calculation
+            if (touchedBiomarkers.has('monocyte_count')) {
                 const raw = parseFloat(document.getElementById('monocyte_count').value);
                 const unitEl = document.getElementById('monocyte_countUnit');
                 const unitText = unitEl.options[unitEl.selectedIndex].text.trim();
                 if (unitText === '%') {
+                    entry.MonocytePc = parseFloat(raw.toFixed(2));
+                } else {
                     const wbcEl = document.getElementById('wbc');
                     const wbcUnitEl = document.getElementById('wbcUnit');
                     const wbcRaw = wbcEl ? window.PhenoAge.parseInput(wbcEl.value) : NaN;
-                    const wbcUnit = wbcUnitEl ? parseFloat(wbcUnitEl.value) : 0;
-                    if (!isNaN(wbcRaw) && wbcUnit) {
-                        const wbcCanonical = wbcRaw / wbcUnit;
-                        return parseFloat((wbcCanonical * (raw / 100)).toFixed(2));
-                    }
+                    const wbcCanonical = wbcRaw && wbcUnitEl ? wbcRaw / parseFloat(wbcUnitEl.value) : NaN;
+                    const count = raw / parseFloat(unitEl.value);
+                    entry.MonocytePc = wbcCanonical ? parseFloat(((count / wbcCanonical) * 100).toFixed(2)) : parseFloat(raw.toFixed(2));
                 }
-                return parseFloat((raw / parseFloat(unitEl.value)).toFixed(2));
-            });
+            }
             store('rbc', 'Rbc', () => parseFloat((parseFloat(document.getElementById('rbc').value) / parseFloat(document.getElementById('rbcUnit').value)).toFixed(2)));
             store('mcv', 'McvFL', () => parseFloat(document.getElementById('mcv').value));
             store('mch', 'Mch', () => parseFloat((parseFloat(document.getElementById('mch').value) / parseFloat(document.getElementById('mchUnit').value)).toFixed(2)));
