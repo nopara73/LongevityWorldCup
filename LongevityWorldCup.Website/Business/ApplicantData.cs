@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace LongevityWorldCup.Website.Business
 {
@@ -59,5 +59,13 @@ namespace LongevityWorldCup.Website.Business
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? Wbc1000cellsuL { get; set; }
+
+        /// <summary>Neutrophils as percentage of WBC. Store only %; derive count from WBC and % when needed (e.g. Bortz: count = Wbc1000cellsuL * NeutrophilPc / 100).</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? NeutrophilPc { get; set; }
+
+        /// <summary>Monocytes as percentage of WBC. Store only %; derive count from WBC and % when needed (e.g. Bortz: count = Wbc1000cellsuL * MonocytePc / 100).</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? MonocytePc { get; set; }
     }
 }

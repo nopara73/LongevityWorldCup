@@ -58,11 +58,24 @@ namespace LongevityWorldCup.Website.Tools
         }
 
         /// <summary>
+        /// Derive neutrophil count (10^9/L) from WBC and neutrophil %. Matches frontend: we store only %; count = WBC * (Pc/100).
+        /// </summary>
+        public static double DeriveNeutrophilCountFromPc(double wbc1000CellsPerMicroL, double neutrophilPc) =>
+            wbc1000CellsPerMicroL * (neutrophilPc / 100.0);
+
+        /// <summary>
+        /// Derive monocyte count (10^9/L) from WBC and monocyte %. Matches frontend: we store only %; count = WBC * (Pc/100).
+        /// </summary>
+        public static double DeriveMonocyteCountFromPc(double wbc1000CellsPerMicroL, double monocytePc) =>
+            wbc1000CellsPerMicroL * (monocytePc / 100.0);
+
+        /// <summary>
         /// Compute Biological Age Acceleration (BAA). Values must be in model order and units:
         /// age (years), albumin (g/L), ALP (U/L), urea (mmol/L), cholesterol (mmol/L), creatinine (µmol/L),
         /// cystatin_c (mg/L), HbA1c (mmol/mol), CRP raw (mg/L), GGT raw (U/L), RBC (10^12/L), MCV (fL), RDW (%),
         /// monocytes (10^9/L), neutrophils (10^9/L), lymphocyte % (%), ALT raw (U/L), SHBG raw (nmol/L), Vitamin D raw (nmol/L),
         /// glucose (mmol/L), MCH (pg), ApoA1 (g/L).
+        /// When building the raw array from biomarker JSON, use DeriveMonocyteCountFromPc/DeriveNeutrophilCountFromPc when NeutrophilPc/MonocytePc are present (WBC in 10^9/L = Wbc1000cellsuL).
         /// CRP, GGT, ALT, SHBG, Vitamin D are log-transformed internally.
         /// </summary>
         public static double CalculateBAA(double[] values)

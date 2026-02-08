@@ -1449,7 +1449,7 @@ public class AthleteDataService : IDisposable
 
     private static string ComputeBiomarkerSignature(JsonObject athlete)
     {
-        // Canonicalize each biomarker record to "yyyy-MM-dd|AlbGL|CreatUmolL|GluMmolL|CrpMgL|Wbc1000cellsuL|LymPc|McvFL|RdwPc|AlpUL"
+        // Canonicalize each biomarker record to "yyyy-MM-dd|AlbGL|...|AlpUL|NeutrophilPc|MonocytePc". Store only % for neut/mono; count derived when needed.
         // Sort all lines and SHA-256 hash the result. Missing values are empty strings.
         if (athlete["Biomarkers"] is not JsonArray arr || arr.Count == 0)
             return Sha256Hex(string.Empty);
@@ -1492,8 +1492,10 @@ public class AthleteDataService : IDisposable
             var mcv = V("McvFL");
             var rdw = V("RdwPc");
             var alp = V("AlpUL");
+            var neutPc = V("NeutrophilPc");
+            var monoPc = V("MonocytePc");
 
-            var line = string.Join("|", new[] { dateStr, alb, creat, glu, crp, wbc, lym, mcv, rdw, alp });
+            var line = string.Join("|", new[] { dateStr, alb, creat, glu, crp, wbc, lym, mcv, rdw, alp, neutPc, monoPc });
             lines.Add(line);
         }
 
