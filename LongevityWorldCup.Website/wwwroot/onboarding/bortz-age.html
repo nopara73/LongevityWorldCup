@@ -101,6 +101,17 @@
             overflow: hidden;
         }
 
+        /* When result is not shown, collapse it so the Back button sits near the form on step 1 */
+        #bortzAgeResult:not(.show) {
+            height: 0;
+            min-height: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            border: none;
+            box-shadow: none;
+        }
+
         #bortzAgeResult.show {
             opacity: 1;
         }
