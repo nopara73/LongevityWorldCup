@@ -21,9 +21,9 @@ window.BortzAge.features = [
     { id: 'rbc', name: 'Red blood cell count', mean: 4.4994648, baaCoeff: -0.204442153, isLog: false },
     { id: 'mcv', name: 'Mean corpuscular volume', mean: 91.9251099, baaCoeff: 0.017165356, isLog: false },
     { id: 'rdw', name: 'Red cell distribution width', mean: 13.4342296, baaCoeff: 0.202009895, isLog: false, cap: 11.4, capMode: 'floor' },
-    // Monocytes and Neutrophils: model expects count in 10⁹/L; % input is supported in the Bortz form via conversion using WBC.
-    { id: 'monocyte_count', name: 'Monocytes', mean: 0.4746987, baaCoeff: 0.36937314, isLog: false },
-    { id: 'neutrophil_count', name: 'Neutrophils', mean: 4.1849454, baaCoeff: 0.06679092, isLog: false },
+    // Monocytes and Neutrophils: form stores % (NeutrophilPc, MonocytePc); model expects count in 10⁹/L, derived from WBC and % in the form.
+    { id: 'monocyte_percentage', name: 'Monocytes', mean: 0.4746987, baaCoeff: 0.36937314, isLog: false },
+    { id: 'neutrophil_percentage', name: 'Neutrophils', mean: 4.1849454, baaCoeff: 0.06679092, isLog: false },
     { id: 'lymphocyte_percentage', name: 'Lymphocytes (%)', mean: 28.5817604, baaCoeff: -0.0108158, isLog: false, cap: 60, capMode: 'ceiling' },
     { id: 'alt', name: 'Alanine aminotransferase', mean: 3.077868, baaCoeff: -0.312442261, isLog: true },
     { id: 'shbg', name: 'Sex Hormone-Binding Globulin (SHBG)', mean: 3.8202787, baaCoeff: 0.292323186, isLog: true },

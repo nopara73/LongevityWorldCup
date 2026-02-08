@@ -1449,7 +1449,7 @@ public class AthleteDataService : IDisposable
 
     private static string ComputeBiomarkerSignature(JsonObject athlete)
     {
-        // Canonicalize each biomarker record to "yyyy-MM-dd|AlbGL|...|AlpUL|NeutrophilPc|MonocytePc". Store only % for neut/mono; count derived when needed.
+        // Canonicalize each biomarker record: all Bortz biomarkers with unit-in-name keys (date + alphabetical keys).
         // Sort all lines and SHA-256 hash the result. Missing values are empty strings.
         if (athlete["Biomarkers"] is not JsonArray arr || arr.Count == 0)
             return Sha256Hex(string.Empty);
@@ -1484,18 +1484,29 @@ public class AthleteDataService : IDisposable
             }
 
             var alb = V("AlbGL");
+            var alp = V("AlpUL");
+            var alt = V("AltUL");
+            var apoa1 = V("ApoA1GL");
+            var cholesterol = V("CholesterolMmolL");
             var creat = V("CreatUmolL");
-            var glu = V("GluMmolL");
             var crp = V("CrpMgL");
-            var wbc = V("Wbc1000cellsuL");
+            var cystatin = V("CystatinCMgL");
+            var glu = V("GluMmolL");
+            var ggt = V("GgtUL");
+            var hba1c = V("Hba1cMmolMol");
             var lym = V("LymPc");
             var mcv = V("McvFL");
-            var rdw = V("RdwPc");
-            var alp = V("AlpUL");
-            var neutPc = V("NeutrophilPc");
+            var mch = V("MchPg");
             var monoPc = V("MonocytePc");
+            var neutPc = V("NeutrophilPc");
+            var rdw = V("RdwPc");
+            var rbc = V("Rbc10e12L");
+            var shbg = V("ShbgNmolL");
+            var urea = V("UreaMmolL");
+            var vitaminD = V("VitaminDNmolL");
+            var wbc = V("Wbc1000cellsuL");
 
-            var line = string.Join("|", new[] { dateStr, alb, creat, glu, crp, wbc, lym, mcv, rdw, alp, neutPc, monoPc });
+            var line = string.Join("|", new[] { dateStr, alb, alp, alt, apoa1, cholesterol, creat, crp, cystatin, glu, ggt, hba1c, lym, mcv, mch, monoPc, neutPc, rdw, rbc, shbg, urea, vitaminD, wbc });
             lines.Add(line);
         }
 
