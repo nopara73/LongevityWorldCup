@@ -133,24 +133,13 @@
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div style="text-align: center;">
                 <picture id="illustrationPicture" style="display:''">
-                    <source srcset="../assets/content-images/reaper.webp" type="image/webp">
-                    <source srcset="../assets/content-images/reaper.jpg" type="image/jpeg">
-                    <img id="illustrationImage" src="../assets/content-images/reaper.jpg" alt="Grim Reaper" class="illustration" loading="lazy">
+                    <source type="image/webp" srcset="">
+                    <source type="image/jpeg" srcset="">
+                    <img id="illustrationImage" src="/assets/HdLogo.png" alt="Longevity World Cup logo" class="illustration" loading="lazy">
                 </picture>
                 <img style="display:none" id="profileImage" src="" alt="Profile Picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
-            <div id="shadowsText" style="display:none">
-                <p>
-                    In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
-                    In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a heart bold enough to take a stand.
-                    Death will come — but who will stand in its path?<br />
-                </p>
-                <p>
-                    <em>Could it be you?</em>
-                </p>
-            </div>
-
             <div id="whyText" style="display:none">
                 <p>He who has a <em>why</em> can bear almost any <em>how.</em></p>
             </div>
@@ -367,7 +356,6 @@
             oldImg.parentNode.replaceChild(newImg, oldImg);
 
             // Clear visibility on all main form sections
-            document.getElementById('shadowsText').style.display = 'none';
             document.getElementById('whyText').style.display = 'none';
             document.getElementById('privacyText').style.display = 'none';
             document.getElementById('profilePicText').style.display = 'none';
@@ -411,10 +399,11 @@
                 case 1:
                     // Stage 1: Character Creation
                     document.querySelector('h1').textContent = "1. Character Creation";
-                    updateIllustration("reaper", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Grim Reaper";
+                    illustrationImage.src = "/assets/HdLogo.png";
+                    illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
-                    document.getElementById('shadowsText').style.display = '';
+                    webpSource.srcset = "";
+                    jpegSource.srcset = "";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
                     updateSubProgress(1);

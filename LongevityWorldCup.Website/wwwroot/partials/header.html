@@ -600,20 +600,11 @@
         const stickyHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
         const threshold = mainHeader ? Math.max(0, mainHeader.offsetHeight - stickyHeight) : -1;
         const willBeVisible = mainHeader && stickyHeader ? scrollPos >= threshold : false;
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/92a8922c-9606-4bf7-a476-7d8446ab8960',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'header.html:handleScroll',message:'sticky visibility',data:{scrollPos,mainHeaderExists:!!mainHeader,mainHeaderHeight:mainHeader?mainHeader.offsetHeight:null,stickyHeight,threshold,willBeVisible,hasSticky:!!stickyHeader},timestamp:Date.now(),hypothesisId:'A'})}).catch(function(){});
-        // #endregion
         if (mainHeader && stickyHeader) {
             if (willBeVisible) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/92a8922c-9606-4bf7-a476-7d8446ab8960',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'header.html:handleScroll',message:'branch add visible',data:{scrollPos,threshold},timestamp:Date.now(),hypothesisId:'B'})}).catch(function(){});
-                // #endregion
                 stickyHeader.classList.add('visible');
                 stickyHeader.setAttribute('aria-hidden', 'false');
             } else {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/92a8922c-9606-4bf7-a476-7d8446ab8960',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'header.html:handleScroll',message:'branch remove visible',data:{scrollPos,threshold},timestamp:Date.now(),hypothesisId:'C'})}).catch(function(){});
-                // #endregion
                 stickyHeader.classList.remove('visible');
                 stickyHeader.setAttribute('aria-hidden', 'true');
             }
