@@ -130,7 +130,7 @@
     <!--HEADER-->
     <main>
         <!--MAIN-PROGRESS-BAR-->
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the Arena</h1>
+        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the <span style="color:#b22222">Arena</span></h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div style="text-align: center;">
                 <picture id="illustrationPicture" style="display:''">
@@ -399,7 +399,7 @@
             switch (stage) {
                 case 1:
                     // Stage 1: Enter the Arena
-                    document.querySelector('h1').textContent = "1. Enter the Arena";
+                    document.querySelector('h1').innerHTML = "1. Enter the <span style=\"color:#b22222\">Arena</span>";
                     updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
