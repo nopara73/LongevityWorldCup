@@ -579,12 +579,7 @@
         <div class="lwc-steps-shell" id="lwcStepsShell">
             <!--MAIN-PROGRESS-BAR-->
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-                The Blood Pact
-                <span style="display: inline-flex; gap: 9px; align-items: center;">
-                    <i class="fas fa-tint"></i>
-                    <i class="fas fa-dna"></i>
-                    <i class="fas fa-scroll"></i>
-                </span>
+                This Is a Blood Sport
             </h1>
             <p id="mainInstructions" data-aos="fade" data-aos-duration="700" data-aos-delay="300" style="text-align:center">Calculate your biological age, known as <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">PhenoAge</a>:</p>
             <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
@@ -1528,7 +1523,10 @@
                 });
             }
             if (toStep1Btn) {
-                toStep1Btn.addEventListener('click', () => window.goBackOrHome());
+                toStep1Btn.addEventListener('click', () => {
+                    try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+                    lwcSetStep(1);
+                });
             }
 
             // Make wizard dots clickable (desktop) and keyboard accessible
@@ -1552,7 +1550,7 @@
             }
 
             // Back in .options-container (result section) always navigates away via onclick goBackOrHome();
-            // No intercept: when result is visible we want goBackOrHome; step-2 form Back is lwcToStep1Btn which now calls goBackOrHome().
+            // Step-2 Back (lwcToStep1Btn) goes to step 1 like the prev green dot.
 
             const unitSelects = document.querySelectorAll('.input-group select');
             let maxWidth = 0;
