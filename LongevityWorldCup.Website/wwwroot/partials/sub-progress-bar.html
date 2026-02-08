@@ -15,7 +15,7 @@
     /* Single track: bar and dots share height and are vertically centered together */
     .sub-progress-container .sub-progress-track {
         position: relative;
-        height: 28px;
+        height: 5px;
         display: flex;
         align-items: center;
     }
@@ -26,7 +26,7 @@
             right: 0;
             top: 50%;
             transform: translateY(-50%);
-            height: 6px;
+            height: 4px;
             background: #e0e0e0;
             border-radius: 3px;
             z-index: 1;
@@ -45,24 +45,28 @@
             position: relative;
             z-index: 2;
             width: 100%;
+            display: flex;
             justify-content: space-between;
+            align-items: center;
             gap: 4px;
         }
 
         .sub-progress-container .stage {
             min-width: 0;
             flex: 0 1 auto;
+            display: flex;
+            align-items: center;
         }
 
         .sub-progress-container .stage-dot {
-            width: 28px;
-            height: 28px;
+            width: 22px;
+            height: 22px;
             background: #e0e0e0;
             border-radius: 50%;
             margin: 0 auto;
             position: relative;
             color: #666;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
             display: flex;
             align-items: center;
