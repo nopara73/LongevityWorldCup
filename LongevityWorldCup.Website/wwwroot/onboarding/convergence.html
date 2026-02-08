@@ -134,9 +134,9 @@
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div style="text-align: center;">
                 <picture id="illustrationPicture" style="display:''">
-                    <source type="image/webp" srcset="">
-                    <source type="image/jpeg" srcset="">
-                    <img id="illustrationImage" src="/assets/HdLogo.png" alt="Longevity World Cup logo" class="illustration" loading="lazy">
+                    <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
+                    <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
+                    <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" loading="lazy">
                 </picture>
                 <img style="display:none" id="profileImage" src="" alt="Profile Picture" class="illustration" loading="lazy">
             </div>
@@ -400,11 +400,9 @@
                 case 1:
                     // Stage 1: Enter the Arena
                     document.querySelector('h1').textContent = "1. Enter the Arena";
-                    illustrationImage.src = "/assets/HdLogo.png";
+                    updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
-                    webpSource.srcset = "";
-                    jpegSource.srcset = "";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
                     updateSubProgress(1);
