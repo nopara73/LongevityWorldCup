@@ -1129,9 +1129,10 @@
                 // Apply unit conversion
                 let adjustedValue = rawValue / unitConversion;
 
-                // Special handling for CRP
+                // Special handling for CRP: PhenoAge expects ln(CRP in mg/dL) per Levine Table 1. Stored canonical is mg/L; convert by dividing by 10.
                 if (biomarker.id === 'crp') {
-                    adjustedValue = Math.log(adjustedValue);
+                    const crpMgL = (rawValue / unitConversion) * 10;
+                    adjustedValue = Math.log(crpMgL / 10);
                 }
 
                 // Special handling for lymphocytes
@@ -1813,47 +1814,43 @@
             }
         }
         function fillFakeData() {
-            // Set fake Date of Birth
+            // Aligned with bortz-age.html fake data: DOB and blood draw so age at test = 60
             document.getElementById('dob-year').value = 1966;
-            document.getElementById('dob-month').value = 7;
-            document.getElementById('dob-day').value = 12;
+            document.getElementById('dob-month').value = 2;
+            if (typeof updateDays === 'function') updateDays();
+            document.getElementById('dob-day').value = 2;
 
             if (bloodDrawDateInput) {
-                const nowLocalForFake = new Date();
-                const y2 = nowLocalForFake.getFullYear();
-                const m2 = String(nowLocalForFake.getMonth() + 1).padStart(2, '0');
-                const d2 = String(nowLocalForFake.getDate()).padStart(2, '0');
-                bloodDrawDateInput.value = bloodDrawDateInput.max || `${y2}-${m2}-${d2}`;
+                bloodDrawDateInput.value = '2026-02-02';
             }
 
+            // Same fake biomarker set as bortz-age.html: WBC 6.54, lymphocyte 28.6%, mcv 92, rdw 13.4, albumin 45, ap 83, creatinine 72, glucose 5, crp 1.35
+            document.getElementById('wbc').value = 6.54;
+            document.getElementById('wbcUnit').value = 1;
 
-            // Set fake values for all input fields
-            document.getElementById('wbc').value = 6; // 1000 cells/μL
-            document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
+            document.getElementById('lymphocyte').value = 28.6;
+            document.getElementById('lymphocyteUnit').value = 1;
 
-            document.getElementById('lymphocyte').value = 39; // %
-            document.getElementById('lymphocyteUnit').value = 1; // %
+            document.getElementById('mcv').value = 92;
+            document.getElementById('mcvUnit').value = 1;
 
-            document.getElementById('mcv').value = 85; // fL
-            document.getElementById('mcvUnit').value = 1; // fL
+            document.getElementById('rcdw').value = 13.4;
+            document.getElementById('rcdwUnit').value = 1;
 
-            document.getElementById('rcdw').value = 11; // %
-            document.getElementById('rcdwUnit').value = 1; // %
+            document.getElementById('albumin').value = 45;
+            document.getElementById('albuminUnit').value = 1;
 
-            document.getElementById('albumin').value = 45; // g/L
-            document.getElementById('albuminUnit').value = 1; // g/L
+            document.getElementById('ap').value = 83;
+            document.getElementById('apUnit').value = 1;
 
-            document.getElementById('ap').value = 12; // U/L
-            document.getElementById('apUnit').value = 1; // U/L
+            document.getElementById('creatinine').value = 72;
+            document.getElementById('creatinineUnit').value = 1;
 
-            document.getElementById('creatinine').value = 80; // µmol/L
-            document.getElementById('creatinineUnit').value = 1; // µmol/L
+            document.getElementById('glucose').value = 5;
+            document.getElementById('glucoseUnit').value = 1;
 
-            document.getElementById('glucose').value = 4.5; // mmol/L
-            document.getElementById('glucoseUnit').value = 1; // mmol/L
-
-            document.getElementById('crp').value = 1.8; // mg/L
-            document.getElementById('crpUnit').value = 10; // mg/L
+            document.getElementById('crp').value = 1.35;
+            document.getElementById('crpUnit').value = 10;
 
 
             // mark all biomarkers as touched in fake mode and expand them
