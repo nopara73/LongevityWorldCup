@@ -1577,12 +1577,13 @@
                     const rdwVal = parseFloat(document.getElementById('rdw').value);
                     const apVal = parseFloat(document.getElementById('alp').value) / parseFloat(document.getElementById('alpUnit').value);
                     if ([alb, creat, glu, crpMgL, lymphPc, mcvVal, rdwVal, apVal].every(v => !isNaN(v) && isFinite(v)) && crpMgL > 0) {
+                        // PhenoAge expects ln(CRP in mg/dL); crpMgL is in mg/L, so use ln(crpMgL/10)
                         const phenoMarkerValues = [
                             chronologicalAgeAtTimeOfTest,
                             alb,
                             creat,
                             glu,
-                            Math.log(crpMgL),
+                            Math.log(crpMgL / 10),
                             wbcCanonical,
                             lymphPc,
                             mcvVal,
@@ -2251,10 +2252,10 @@
                 if (u) u.value = String(unitVal !== undefined ? unitVal : 1);
             };
             fake('lymphocyte_percentage', 28.6);
-            // Neutrophils 4.2/6 = 70%; Monocytes 0.47/6 ≈ 7.8%. WBC=6 set below so %→count conversion matches reference.
-            fake('wbc', 6, 'wbcUnit', 1);
-            fake('neutrophil_count', 70, 'neutrophil_countUnit', 1);
-            fake('monocyte_count', 7.8, 'monocyte_countUnit', 1);
+            // WBC 6.54 (Pheno + Bortz); NEU 64.2%, MON 7.2% → counts 6.54×0.642≈4.2, 6.54×0.072≈0.47
+            fake('wbc', 6.54, 'wbcUnit', 1);
+            fake('neutrophil_count', 64.2, 'neutrophil_countUnit', 1);
+            fake('monocyte_count', 7.2, 'monocyte_countUnit', 1);
             fake('rbc', 4.5);
             fake('mcv', 92);
             fake('mch', 31.8);
