@@ -1252,12 +1252,9 @@
                                 animatedAgeElement.classList.remove('final-reveal');
                             }, 800);
                             
-                            // Update years text with celebratory emoji if bio age is better
-                            if (phenoAge < chronologicalAgeAtTimeOfTest) {
-                                yearsTextElement.innerHTML = `years 🚀`;
-                            } else {
-                                yearsTextElement.innerHTML = `years`;
-                            }
+                            // Update years text with year reduction/increase and celebratory emoji if bio age is better
+                            const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
+                            yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                             // Show the Next button after a brief delay
                             setTimeout(() => {
@@ -1279,7 +1276,8 @@
                     animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
                     animatedAgeElement.classList.add(ageCategory);
                     
-                    yearsTextElement.innerHTML = phenoAge < chronologicalAgeAtTimeOfTest ? `years 🚀` : `years`;
+                    const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
+                    yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                     // Show the Next button
                     setTimeout(() => {
