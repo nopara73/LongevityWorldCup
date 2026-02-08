@@ -160,9 +160,7 @@
                 <span id="subProofInstructions" class="smaller-text"></span>
             </div>
 
-            <div id="finalDetailsText" style="display:none">
-                <p style='text-align: center; font-weight: bold;'>Complete Your Profile</p>
-            </div>
+            <div id="finalDetailsText" style="display:none"></div>
             <div id="congratsText" style="display:none">
                 <p><strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.</p>
             </div>
@@ -492,7 +490,7 @@
                     break;
                 case 4:
                     // Stage 4: Almost There
-                    document.querySelector('h1').textContent = "4/a. Almost There";
+                    document.querySelector('h1').innerHTML = "4/a. <span style=\"color:#b22222\">Almost</span> There";
                     updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Headshot";
                     illustrationImage.loading = "lazy";
@@ -520,7 +518,7 @@
                     break;
                 case 5:
                     // Stage 5: Don't Trust Verify
-                    document.querySelector('h1').textContent = "4/b. Don't Trust Verify";
+                    document.querySelector('h1').innerHTML = "4/b. Don't Trust <span style=\"color:#b22222\">Verify</span>";
                     updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Proof Image";
                     illustrationImage.loading = "lazy";
@@ -558,8 +556,8 @@
                     break;
                 case 6:
                     // Stage 6: Final Details
-                    document.querySelector('h1').textContent = "5. Final Details";
-                    updateIllustration("finish", "jpg", webpSource, jpegSource, illustrationImage);
+                    document.querySelector('h1').innerHTML = "5. <span style=\"color:#b22222\">Final</span> Details";
+                    updateIllustration("finishv2", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Finish Line";
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
