@@ -141,10 +141,6 @@
                 <img style="display:none" id="profileImage" src="" alt="Profile Picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
-            <div id="whyText" style="display:none">
-                <p>He who has a <em>why</em> can bear almost any <em>how.</em></p>
-            </div>
-
             <div id="privacyText" style="display:none">
                 <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
                 <p>
@@ -357,7 +353,6 @@
             oldImg.parentNode.replaceChild(newImg, oldImg);
 
             // Clear visibility on all main form sections
-            document.getElementById('whyText').style.display = 'none';
             document.getElementById('privacyText').style.display = 'none';
             document.getElementById('profilePicText').style.display = 'none';
             document.getElementById('proofText').style.display = 'none';
@@ -460,11 +455,10 @@
                     break;
                 case 2:
                     // Stage 2: Finding Your Why
-                    document.querySelector('h1').textContent = "2. Finding Your Why";
+                    document.querySelector('h1').innerHTML = "2. Finding Your <span style=\"color:#b22222\">Why</span>";
                     updateIllustration("why", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Eye";
                     illustrationImage.loading = "lazy";
-                    document.getElementById('whyText').style.display = '';
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
                     updateSubProgress(2);
