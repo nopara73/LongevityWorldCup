@@ -6,6 +6,18 @@
     <link rel="preload" href="/css/bioageform.css" as="style">
     <link rel="stylesheet" href="/css/bioageform.css">
     <style>
+        /* Match join-game biological age intro styling; align width with .bioageform */
+        .lab-reassurance {
+            margin: 1.5rem auto 0;
+            max-width: 600px;
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
         /* Hide the join-game button in the header */
         .join-game {
             display: none;
@@ -581,7 +593,7 @@
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
                 This Is a Blood Sport
             </h1>
-            <p id="mainInstructions" data-aos="fade" data-aos-duration="700" data-aos-delay="300" style="text-align:center">Calculate your biological age, known as <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">BortzAge</a>:</p>
+            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong> with two clocks at once: <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">BortzAge</a> and <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">PhenoAge</a></p>
             <form id="bortzAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <div class="lwc-wizard-nav" aria-hidden="true">
                     <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
