@@ -142,9 +142,9 @@ public class XEventService
             return _bySlug.TryGetValue(slug, out var a) ? a.PhenoAgeDiffFromBaseline : null;
     }
 
-    public async Task SendRandomPvpBattleAsync(DateTime? asOfUtc, int biomarkerCount)
+    public async Task SendRandomPvpBattleAsync(DateTime? asOfUtc)
     {
-        var battle = _pvp.CreateRandomBattle(asOfUtc, biomarkerCount);
+        var battle = _pvp.CreateRandomBattle(asOfUtc, 3);
         if (battle == null) return;
         var text = XMessageBuilder.ForPvpBattle(battle, SlugToName);
         if (string.IsNullOrWhiteSpace(text)) return;

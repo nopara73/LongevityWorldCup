@@ -13,7 +13,7 @@ public sealed record PvpBattleResult(
     IReadOnlyList<PvpBattleRound> Rounds,
     int? RankA,
     int? RankB,
-    string WinnerSlug);
+    string? WinnerSlug);
 
 public sealed class PvpBattleService
 {
@@ -55,7 +55,10 @@ public sealed class PvpBattleService
         var valsA = statsMap[slugA].BestMarkerValues!;
         var valsB = statsMap[slugB].BestMarkerValues!;
 
-        var indices = Enumerable.Range(0, PhenoAgeHelper.Biomarkers.Length).OrderBy(_ => rnd.Next()).Take(biomarkerCount).ToList();
+        var startIndex = 1;
+        var availableCount = PhenoAgeHelper.Biomarkers.Length - startIndex;
+        var count = Math.Min(Math.Max(biomarkerCount, 1), availableCount);
+        var indices = Enumerable.Range(startIndex, availableCount).OrderBy(_ => rnd.Next()).Take(count).ToList();
         var rounds = new List<PvpBattleRound>();
         var scoreA = 0;
         var scoreB = 0;
@@ -70,16 +73,20 @@ public sealed class PvpBattleService
             {
                 if (vA < vB) { winner = slugA; scoreA++; }
                 else if (vB < vA) { winner = slugB; scoreB++; }
+                else { scoreA++; scoreB++; }
             }
             else
             {
                 if (vA > vB) { winner = slugA; scoreA++; }
                 else if (vB > vA) { winner = slugB; scoreB++; }
+                else { scoreA++; scoreB++; }
             }
             rounds.Add(new PvpBattleRound(b.Name, vA, vB, winner));
         }
 
-        var winnerSlug = scoreA > scoreB ? slugA : scoreB > scoreA ? slugB : (rnd.Next(2) == 0 ? slugA : slugB);
+        string? winnerSlug = null;
+        if (scoreA > scoreB) winnerSlug = slugA;
+        else if (scoreB > scoreA) winnerSlug = slugB;
         var ageA = (int)Math.Round(statsMap[slugA].ChronoAge ?? 0);
         var ageB = (int)Math.Round(statsMap[slugB].ChronoAge ?? 0);
         rankBySlug.TryGetValue(slugA, out var rankA);

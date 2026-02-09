@@ -260,22 +260,82 @@ public static class XMessageBuilder
     {
         var nameA = slugToName(battle.AthleteSlugA);
         var nameB = slugToName(battle.AthleteSlugB);
-        var winnerName = slugToName(battle.WinnerSlug);
-        var scoreA = battle.Rounds.Count(r => r.WinnerSlug == battle.AthleteSlugA);
-        var scoreB = battle.Rounds.Count(r => r.WinnerSlug == battle.AthleteSlugB);
+        var labelA = battle.RankA.HasValue ? $"{nameA} (#{battle.RankA.Value})" : nameA;
+        var labelB = battle.RankB.HasValue ? $"{nameB} (#{battle.RankB.Value})" : nameB;
         var lines = new List<string>
         {
-            $"Longevity World Cup PvP — {nameA} ({battle.AgeA}) vs {nameB} ({battle.AgeB})",
+            "Longevity World Cup: **Biomarker Duel** ⚔️",
             "",
-            $"{scoreA}-{scoreB} on {battle.Rounds.Count} biomarkers. Winner: {winnerName}."
+            $"Today’s matchup: **{labelA} vs {labelB}**.",
+            "Three random health biomarkers will decide who wins this head-to-head.",
+            "",
+            "Scroll this thread to see every round and the winner 👇"
         };
-        var underdog = battle.WinnerSlug == battle.AthleteSlugB && battle.RankA.HasValue && battle.RankB.HasValue && battle.RankB.Value > battle.RankA.Value
-            || battle.WinnerSlug == battle.AthleteSlugA && battle.RankA.HasValue && battle.RankB.HasValue && battle.RankA.Value > battle.RankB.Value;
-        if (underdog)
-            lines.Add("Underdog win on this stat battle.");
-        lines.Add("");
-        lines.Add($"📊 Leaderboard: {LeaderboardUrl}");
         return Truncate(string.Join("\n", lines));
+    }
+
+    public static IReadOnlyList<string> ForPvpRounds(PvpBattleResult battle, Func<string, string> slugToName)
+    {
+        var nameA = slugToName(battle.AthleteSlugA);
+        var nameB = slugToName(battle.AthleteSlugB);
+        var rounds = new List<string>();
+        var scoreA = 0;
+        var scoreB = 0;
+
+        for (var i = 0; i < battle.Rounds.Count; i++)
+        {
+            var r = battle.Rounds[i];
+            var roundIndex = i + 1;
+            var winnerName = r.WinnerSlug == battle.AthleteSlugA
+                ? nameA
+                : r.WinnerSlug == battle.AthleteSlugB
+                    ? nameB
+                    : null;
+
+            if (r.WinnerSlug == battle.AthleteSlugA) scoreA++;
+            else if (r.WinnerSlug == battle.AthleteSlugB) scoreB++;
+            else
+            {
+                scoreA++;
+                scoreB++;
+            }
+
+            var dir = "Lower is better here.";
+            var bmLower = r.BiomarkerName.ToLowerInvariant();
+            if (bmLower.Contains("albumin"))
+                dir = "Higher albumin is considered better here.";
+            else if (bmLower.Contains("lymphocyte"))
+                dir = "Higher lymphocyte percentage is considered better here.";
+            else if (bmLower.Contains("glucose"))
+                dir = "Lower glucose is better here.";
+            else if (bmLower.Contains("creatinine"))
+                dir = "Lower creatinine is better here.";
+            else if (bmLower.Contains("c-reactive protein"))
+                dir = "Lower CRP is better for inflammation risk.";
+
+            var scoreLabel = i == battle.Rounds.Count - 1
+                ? $"Final round score: {nameA} {scoreA} – {scoreB} {nameB}."
+                : $"Score: {nameA} {scoreA} – {scoreB} {nameB}.";
+
+            var lines = new List<string>
+            {
+                $"Round {roundIndex} — {r.BiomarkerName} 🧬",
+                "",
+                $"{nameA}: {r.ValueA.ToString("0.##", CultureInfo.InvariantCulture)}",
+                $"{nameB}: {r.ValueB.ToString("0.##", CultureInfo.InvariantCulture)}",
+                "",
+                dir
+            };
+
+            if (!string.IsNullOrWhiteSpace(winnerName))
+                lines.Add($"Round winner: **{winnerName}**. {scoreLabel}");
+            else
+                lines.Add($"This round is a tie. {scoreLabel}");
+
+            rounds.Add(Truncate(string.Join("\n", lines)));
+        }
+
+        return rounds;
     }
 
     public static string Truncate(string s)
