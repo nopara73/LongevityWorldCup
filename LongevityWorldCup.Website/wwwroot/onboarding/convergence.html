@@ -535,6 +535,8 @@
                     const proofImageContainer = document.getElementById('proofImageContainer');
                     const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
+                    // Proof Tracker: show only biomarkers present in sessionStorage, in bortz-age UI order
+                    var checklistLabels = window.getProofChecklistLabelsFromSession && window.getProofChecklistLabelsFromSession() || [];
                     window.setupProofUploadHTML(
                         nextButton,
                         uploadProofButton,
@@ -542,17 +544,7 @@
                         proofImageContainer,
                         proofPics,
                         biomarkerChecklistContainer,
-                        [
-                            'White Blood Cell Count (WBC)',
-                            'Lymphocytes',
-                            'Mean Corpuscular Volume (MCV)',
-                            'Red Cell Distribution Width (RDW)',
-                            'Albumin',
-                            'Alkaline Phosphatase (ALP)',
-                            'Creatinine',
-                            'Glucose',
-                            'C-Reactive Protein (CRP)'
-                        ]
+                        checklistLabels
                     );
 
                     break;
