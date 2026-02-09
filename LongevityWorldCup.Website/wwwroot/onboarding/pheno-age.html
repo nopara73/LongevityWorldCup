@@ -1826,33 +1826,11 @@
 
             sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
 
-            // DEBUG: dump everything being saved (and all sessionStorage) to console; navigation commented out
-            (function debugDumpSession() {
-                const dump = {
-                    savedNow: {
-                        chronoPhenoDifference: chronoPhenoDifference.toFixed(2),
-                        biomarkerData: biomarkerData,
-                        chronoAgeAtTimeOfTest,
-                        phenoAge
-                    },
-                    sessionStorage: {}
-                };
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    const key = sessionStorage.key(i);
-                    const raw = sessionStorage.getItem(key);
-                    try {
-                        dump.sessionStorage[key] = key === 'biomarkerData' || key === 'selectedAthlete' ? (raw ? JSON.parse(raw) : raw) : raw;
-                    } catch (e) {
-                        dump.sessionStorage[key] = '[parse error: ' + (raw != null ? String(raw).slice(0, 200) : 'null') + ']';
-                    }
-                }
-                console.log('[pheno-age Continue] DEBUG dump of data being saved and full sessionStorage:', dump);
-            })();
-            // if (isUpdate) {
-            //     window.location.href = '/play/proof-upload.html';
-            // } else {
-            //     window.location.href = '/onboarding/convergence.html';
-            // }
+             if (isUpdate) {
+                 window.location.href = '/play/proof-upload.html';
+             } else {
+                 window.location.href = '/onboarding/convergence.html';
+             }
         }
         function fillFakeData() {
             // Aligned with bortz-age.html fake data: DOB and blood draw so age at test = 60
