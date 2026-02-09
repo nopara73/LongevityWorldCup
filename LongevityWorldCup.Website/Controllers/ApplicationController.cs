@@ -151,9 +151,9 @@ namespace LongevityWorldCup.Website.Controllers
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
             var differenceLines = new List<string>();
             if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
-                differenceLines.Add($"PhenoAge difference: {chronoPhenoDifference}");
+                differenceLines.Add($"Pheno Age difference: {chronoPhenoDifference}");
             if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
-                differenceLines.Add($"BortzAge difference: {chronoBortzDifference}");
+                differenceLines.Add($"Bortz Age difference: {chronoBortzDifference}");
             var differenceBlock = differenceLines.Count > 0 ? string.Join("\n", differenceLines) : string.Empty;
 
             // Prepare the email body (excluding the images)
@@ -275,7 +275,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             else
             {
-                emailBody = $"\nAccount Email: {accountEmail}\n";
+                emailBody = $"\nAccount email: {accountEmail}\n";
                 if (!string.IsNullOrWhiteSpace(differenceBlock))
                     emailBody += differenceBlock;
             }
