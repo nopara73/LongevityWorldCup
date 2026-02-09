@@ -591,9 +591,9 @@
         <div class="lwc-steps-shell" id="lwcStepsShell">
             <!--MAIN-PROGRESS-BAR-->
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-                This Is <span style="color:#b22222">Blood</span> Sport
+                This is <span style="color:#b22222">blood</span> sport
             </h1>
-            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong>, known as <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">PhenoAge</a>:</p>
+            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong>, known as <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a>:</p>
             <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <div class="lwc-wizard-nav" aria-hidden="true">
                     <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
@@ -603,12 +603,12 @@
 
                     <!-- Date of Birth Fields -->
                     <fieldset id="dobFieldset">
-                        <h2 id="lwcStep1Title" class="visually-hidden">Step 1: Your Age & Blood Draw Date</h2>
+                        <h2 id="lwcStep1Title" class="visually-hidden">Step 1: Your age & blood draw date</h2>
 
-                        <legend>Date of Birth:</legend>
+                        <legend>Date of birth:</legend>
                         <label for="dob-year">Year <span style="font-weight: normal;">(required)</span></label>
                         <select id="dob-year" name="dob-year" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
-                            <option value="" disabled selected>Select Year</option>
+                            <option value="" disabled selected>Select year</option>
                             <!-- Generate year options dynamically here -->
                         </select>
 
@@ -634,7 +634,7 @@
                             Day <span style="font-weight: normal;">(optional)</span>
                         </label>
                         <select id="dob-day" name="dob-day" onchange="calculateResultIfResultAlreadyCalculated()">
-                            <option value="" disabled selected>Select Day</option>
+                            <option value="" disabled selected>Select day</option>
                         </select>
 
                         <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
@@ -642,7 +642,7 @@
 
                     <!-- Blood Draw Details -->
                     <fieldset>
-                        <legend>Blood Draw Date:</legend>
+                        <legend>Blood draw date:</legend>
                         <p class="privacy-note">When did you get your blood test done?</p>
                         <div class="input-group lwc-date-flex">
                             <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
@@ -668,13 +668,13 @@
                         <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                White Blood Cell Count (WBC)
+                                White blood cell count (WBC)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
+                                    <label for="wbcUnit" class="visually-hidden">Select unit for white blood cell count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">1000 cells/μL</option>
                                         <option value="1">10⁹ cells/L</option>
@@ -705,7 +705,7 @@
 
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                Mean Corpuscular Volume (MCV)
+                                Mean corpuscular volume (MCV)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
@@ -721,7 +721,7 @@
 
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                Red Cell Distribution Width (RDW, RDW-CV)
+                                Red cell distribution width (RDW, RDW-CV)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
@@ -760,13 +760,13 @@
 
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                Alkaline Phosphatase (ALP)
+                                Alkaline phosphatase (ALP)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
+                                    <label for="apUnit" class="visually-hidden">Select unit for alkaline phosphatase</label>
                                     <select id="apUnit" name="apUnit" aria-label="AP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">U/L</option>
                                         <option value="0.01667">μkat/L</option>
@@ -822,7 +822,7 @@
                         <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                C-Reactive Protein (CRP)
+                                C-reactive protein (CRP)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
@@ -839,7 +839,7 @@
 
                                     <div class="input-group">
                                         <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
+                                        <label for="crpUnit" class="visually-hidden">Select unit for C-reactive protein</label>
                                         <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                             <option value="10">mg/L</option>
                                             <option value="1">mg/dL</option>
@@ -854,7 +854,7 @@
 
                     <!-- Calculate Button -->
                     <button type="submit" class="option-button grey" aria-label="Calculate your biological age" style="width: 100%; display: block; box-sizing: border-box; margin-top: 1rem;">
-                        <i class="fas fa-heartbeat"></i>&nbsp;Calculate My Biological&nbsp;Age
+                        <i class="fas fa-heartbeat"></i>&nbsp;Calculate my biological&nbsp;age
                     </button>
                 </section>
             </form>
@@ -1087,7 +1087,7 @@
             try {
                 chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
                 if (chronologicalAgeAtTimeOfTest < 0) {
-                    throw new Error("Invalid Date of Birth: You cannot be born in the future.");
+                    throw new Error("Invalid date of birth: you cannot be born in the future.");
                 }
             } catch (error) {
                 customAlert(error.message);
@@ -1163,7 +1163,7 @@
                     if (isNaN(wbcRawValue)) {
                         expandFieldCard('wbc');
                         expandFieldCard('lymphocyte');
-                        customAlert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.").then(() => {
+                        customAlert("Please provide white blood cell count to calculate lymphocyte percentage.").then(() => {
                             document.getElementById('continueButton').classList.remove('show');
                             updateCalculateButton();
                         });
@@ -1887,7 +1887,7 @@
             const daySelect = document.getElementById('dob-day');
 
             // Clear existing options
-            daySelect.innerHTML = '<option value="" disabled selected>Select Day</option>';
+            daySelect.innerHTML = '<option value="" disabled selected>Select day</option>';
 
             if (month) {
                 const monthIndex = month - 1; // Adjust to 0-based index

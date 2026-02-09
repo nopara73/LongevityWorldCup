@@ -15,27 +15,27 @@ var PROOF_CHECKLIST_ORDER = [
 
 // Labels match bortz-age.html card headers.
 var PROOF_CHECKLIST_PROPERTY_TO_LABEL = {
-    Wbc1000cellsuL: 'White Blood Cell Count (WBC)',
+    Wbc1000cellsuL: 'White blood cell count (WBC)',
     LymPc: 'Lymphocytes',
     NeutrophilPc: 'Neutrophils',
     MonocytePc: 'Monocytes',
-    Rbc10e12L: 'Red Blood Cell Count (RBC)',
-    McvFL: 'Mean Corpuscular Volume (MCV)',
-    MchPg: 'Mean Corpuscular Hemoglobin (MCH)',
-    RdwPc: 'Red Cell Distribution Width (RDW)',
+    Rbc10e12L: 'Red blood cell count (RBC)',
+    McvFL: 'Mean corpuscular volume (MCV)',
+    MchPg: 'Mean corpuscular hemoglobin (MCH)',
+    RdwPc: 'Red cell distribution width (RDW)',
     AlbGL: 'Albumin',
-    AltUL: 'Alanine Aminotransferase (ALT)',
-    AlpUL: 'Alkaline Phosphatase (ALP)',
+    AltUL: 'Alanine aminotransferase (ALT)',
+    AlpUL: 'Alkaline phosphatase (ALP)',
     GgtUL: 'GGT',
     UreaMmolL: 'Urea',
     CreatUmolL: 'Creatinine',
     CystatinCMgL: 'Cystatin C',
     GluMmolL: 'Glucose',
     Hba1cMmolMol: 'Hemoglobin A1c (HbA1c)',
-    CholesterolMmolL: 'Total Cholesterol',
+    CholesterolMmolL: 'Total cholesterol',
     ApoA1GL: 'Apolipoprotein A1 (ApoA1)',
-    CrpMgL: 'C-Reactive Protein (CRP)',
-    ShbgNmolL: 'Sex Hormone-Binding Globulin (SHBG)',
+    CrpMgL: 'C-reactive protein (CRP)',
+    ShbgNmolL: 'Sex hormone-binding globulin (SHBG)',
     VitaminDNmolL: 'Vitamin D (25-OH)'
 };
 
@@ -209,7 +209,7 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
 
             let img = document.createElement('img');
             img.src = proofPics[i];
-            img.alt = 'Proof Image ' + (i + 1);
+            img.alt = 'Proof image ' + (i + 1);
             img.style = 'max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px;';
 
             let removeButton = document.createElement('button');
@@ -254,7 +254,7 @@ function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
 
     // Title
     const title = document.createElement('h4');
-    title.textContent = 'Proof Tracker';
+    title.textContent = 'Proof tracker';
     title.style.marginBottom = '4px';
     biomarkerChecklistContainer.appendChild(title);
 

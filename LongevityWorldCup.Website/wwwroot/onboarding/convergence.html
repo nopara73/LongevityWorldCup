@@ -130,7 +130,7 @@
     <!--HEADER-->
     <main>
         <!--MAIN-PROGRESS-BAR-->
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the Arena</h1>
+        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div style="text-align: center;">
                 <picture id="illustrationPicture" style="display:''">
@@ -138,7 +138,7 @@
                     <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
                     <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" loading="lazy">
                 </picture>
-                <img style="display:none" id="profileImage" src="" alt="Profile Picture" class="illustration" loading="lazy">
+                <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
             <div id="privacyText" style="display:none">
@@ -206,20 +206,20 @@
                     </ol>
                     <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
                         <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                        <button type="button" id="uploadButton" class="option-button grey">Upload Profile Picture</button>
+                        <button type="button" id="uploadButton" class="option-button grey">Upload profile picture</button>
                     </div>
                 </div>
                 <div id="croppingPart" style="display:none">
                     <img id="cropperImage" src="" style="max-width: 100%; display: block; margin: 0 auto;">
                     <button type="button" id="cropButton" class="option-button" style="margin-top: 1rem; display: block; margin: 1rem auto 0;">
-                        Crop & Save
+                        Crop and save
                     </button>
                 </div>
             </div>
             <div id="proofUploadSection" style="width:90%;">
                 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
-                    <button type="button" id="uploadProofButton" class="option-button grey">Upload Proofs</button>
+                    <button type="button" id="uploadProofButton" class="option-button grey">Upload proofs</button>
                 </div>
                 <!-- Proof Image Container -->
                 <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
@@ -227,14 +227,14 @@
             </div>
             <fieldset id="finalDetails">
                 <!-- Link to Personal Page (Optional) -->
-                <label for="personalLink">Link (Optional)</label>
+                <label for="personalLink">Link (optional)</label>
                 <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
                 <p style="margin-top: 0.5rem; color: #555;">
                     Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
                 </p>
 
                 <!-- Media Contact (Required) -->
-                <label for="mediaContact">Media Contact (Required)</label>
+                <label for="mediaContact">Media contact (required)</label>
                 <input id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@coolpeopleonly.com">
 
                 <p style="margin-top: 0.5rem; color: #555;">
@@ -245,7 +245,7 @@
             </fieldset>
             <fieldset id="applyDetails">
                 <!-- Email Field -->
-                <legend for="accountEmail">Contact Email</legend>
+                <legend for="accountEmail">Contact email</legend>
                 <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
@@ -394,7 +394,7 @@
             switch (stage) {
                 case 1:
                     // Stage 1: Enter the Arena
-                    document.querySelector('h1').innerHTML = "1. Enter the Arena";
+                    document.querySelector('h1').innerHTML = "1. Enter the arena";
                     updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
@@ -455,7 +455,7 @@
                     break;
                 case 2:
                     // Stage 2: Finding Your Why
-                    document.querySelector('h1').innerHTML = "2. Finding Your Why";
+                    document.querySelector('h1').innerHTML = "2. Finding your why";
                     updateIllustration("why", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Eye";
                     illustrationImage.loading = "lazy";
@@ -475,8 +475,8 @@
                     checkFormValidityStage2();
                     break;
                 case 3:
-                    // Stage 3: The Price of Glory
-                    document.querySelector('h1').innerHTML = "3. The Price of Glory";
+                    // Stage 3: The price of glory
+                    document.querySelector('h1').innerHTML = "3. The price of glory";
                     updateIllustration("cr7v2", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Cristiano Ronaldo";
                     illustrationImage.loading = "lazy";
@@ -492,7 +492,7 @@
                     break;
                 case 4:
                     // Stage 4: Almost There
-                    document.querySelector('h1').innerHTML = "4/a. Almost There";
+                    document.querySelector('h1').innerHTML = "4/a. Almost there";
                     updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Headshot";
                     illustrationImage.loading = "lazy";
@@ -520,9 +520,9 @@
                     break;
                 case 5:
                     // Stage 5: Don't Trust, Verify
-                    document.querySelector('h1').innerHTML = "4/b. Don't Trust, Verify";
+                    document.querySelector('h1').innerHTML = "4/b. Don't trust, verify";
                     updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Proof Image";
+                    illustrationImage.alt = "Proof image";
                     illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
@@ -550,9 +550,9 @@
                     break;
                 case 6:
                     // Stage 6: Final Details
-                    document.querySelector('h1').innerHTML = "5. Final Details";
+                    document.querySelector('h1').innerHTML = "5. Final details";
                     updateIllustration("finishv2", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Finish Line";
+                    illustrationImage.alt = "Finish line";
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
@@ -764,7 +764,7 @@
                     // Optionally, set a default value or prompt
                     const defaultOption = document.createElement('option');
                     defaultOption.value = '';
-                    defaultOption.textContent = '-- Select Division --';
+                    defaultOption.textContent = '-- Select division --';
                     defaultOption.disabled = true;
                     defaultOption.selected = true;
                     divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
