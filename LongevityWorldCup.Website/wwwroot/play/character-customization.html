@@ -86,7 +86,7 @@
 <body>
     <!--HEADER-->
     <main>
-        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete Selection</h1>
+        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
         <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
@@ -96,7 +96,7 @@
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <button class="option-button grey" onclick="window.location.href='/play/edit-profile.html'">
-                Edit Profile&nbsp;<i class="fas fa-pen"></i>
+                Edit profile&nbsp;<i class="fas fa-pen"></i>
             </button>
             <button id="characterBackButton" class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
@@ -140,12 +140,12 @@
 
                 if (isPro) {
                     const phenoButton = createButton(
-                        'Submit New Pheno&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
+                        'Submit new Pheno&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
                         '/pheno-age?update=1'
                     );
                     const bortzButton = createButton(
-                        'Submit New Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
+                        'Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
                         '/bortz-age?update=1'
                     );
@@ -153,12 +153,12 @@
                     optionsContainer.insertBefore(bortzButton, backButton);
                 } else {
                     const submitButton = createButton(
-                        'Submit New Results&nbsp;<i class="fas fa-rocket"></i>',
+                        'Submit new results&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
                         '/pheno-age?update=1'
                     );
                     const goProButton = createButton(
-                        'Go Pro (free for now)&nbsp;<i class="fas fa-bolt"></i>',
+                        'Go pro (free for now)&nbsp;<i class="fas fa-bolt"></i>',
                         'option-button green',
                         '/bortz-age?update=1'
                     );
