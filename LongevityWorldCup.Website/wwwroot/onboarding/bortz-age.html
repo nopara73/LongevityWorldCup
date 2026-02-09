@@ -1215,6 +1215,7 @@
         updateCalculateButton();
 
         let isResultCalculated = false;
+        let lastCalculatedPhenoAge = NaN;
         function calculateResultIfResultAlreadyCalculated() {
             if (isResultCalculated) {
                 calculateResult();
@@ -1577,7 +1578,7 @@
             // Calculate Bortz Age: BAA = 10 * sum(centered * coeff), biological age = chronological age + BAA
             const bortzAge = window.BortzAge.calculateBortzAge(markerValues);
 
-            // Optionally compute PhenoAge when WBC is provided (PhenoAge order: age, albumin, creatinine, glucose, crp, wbc, lymphocyte, mcv, rdw, ap)
+            // Compute PhenoAge (PhenoAge order: age, albumin, creatinine, glucose, crp, wbc, lymphocyte, mcv, rdw, ap)
             let phenoAge = NaN;
             const wbcEl = document.getElementById('wbc');
             const wbcUnitEl = document.getElementById('wbcUnit');
@@ -1624,6 +1625,7 @@
                     }
                 }
             }
+            lastCalculatedPhenoAge = phenoAge;
 
             // Display the result
             const resultElement = document.getElementById('bortzAgeResult');
@@ -2277,18 +2279,46 @@
 
             // Store the data in sessionStorage
             const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
-            const bioAge = parseFloat(document.getElementById('animatedAge').innerText);
-            const chronoBioDifference = bioAge - chronoAgeAtTimeOfTest;
-            sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
+            const bortzAge = parseFloat(document.getElementById('animatedAge').innerText);
+            const chronoBortzDifference = bortzAge - chronoAgeAtTimeOfTest;
+            const phenoAge = lastCalculatedPhenoAge;
+            const chronoPhenoDifference = phenoAge - chronoAgeAtTimeOfTest;
+            sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));
+            sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
 
             sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
             try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
 
-            if (isUpdate) {
-                window.location.href = '/play/proof-upload.html';
-            } else {
-                window.location.href = '/onboarding/convergence.html';
-            }
+            // DEBUG: dump everything being saved (and all sessionStorage) to console; navigation commented out
+            (function debugDumpSession() {
+                const dump = {
+                    savedNow: {
+                        chronoBortzDifference: chronoBortzDifference.toFixed(2),
+                        chronoPhenoDifference: chronoPhenoDifference.toFixed(2),
+                        biomarkerData: biomarkerData,
+                        chronoAgeAtTimeOfTest,
+                        bortzAge,
+                        phenoAge,
+                        lwcStep: '1'
+                    },
+                    sessionStorage: {}
+                };
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    const raw = sessionStorage.getItem(key);
+                    try {
+                        dump.sessionStorage[key] = key === 'biomarkerData' || key === 'selectedAthlete' ? (raw ? JSON.parse(raw) : raw) : raw;
+                    } catch (e) {
+                        dump.sessionStorage[key] = '[parse error: ' + (raw != null ? String(raw).slice(0, 200) : 'null') + ']';
+                    }
+                }
+                console.log('[bortz-age Continue] DEBUG dump of data being saved and full sessionStorage:', dump);
+            })();
+            // if (isUpdate) {
+            //     window.location.href = '/play/proof-upload.html';
+            // } else {
+            //     window.location.href = '/onboarding/convergence.html';
+            // }
         }
         // Reference: compare fake-data Bortz Age result with longevity-tools.com calculator (age 60, same biomarker set):
         // https://www.longevity-tools.com/humanitys-bortz-blood-age#age=60_years&LYM=28.6_%25&NEUabs=4.2_x10e9~L&MONOabs=0.47_x10e9~L&RBC=4.5_x10e12~L&MCV=92_fL&MCH=31.8_pg&RDW=13.4_%25&S-albumin=4.5_g~dL&S-urea=5.4_mmol~L&S-creatinine=72_umol~L&S-cystatin-C=0.9_mg~L&S-glucose=90_mg~dL&B-HbA1c=5.4_%25&S-cholesterol=5.6_mmol~L&S-ApoA1=1.52_g~L&S-ALT=22_IU~L&S-ALP=83_IU~L&S-GGT=29_IU~L&S-hsCRP=1.35_mg~L&S-SHBG=45.6_nmol~L&S-25-OH-D=20_ng~mL
