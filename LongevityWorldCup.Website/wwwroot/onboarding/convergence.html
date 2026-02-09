@@ -307,8 +307,9 @@
             const accountEmail = document.getElementById('accountEmail').value.trim();
             const personalLink = document.getElementById('personalLink').value.trim();
 
-            // Get the pheno age from sessionStorage
-            const chronoBioDifference = sessionStorage.getItem('chronoBioDifference');
+            // Get the differences from sessionStorage
+            const chronoPhenoDifference = sessionStorage.getItem('chronoPhenoDifference');
+            const chronoBortzDifference = sessionStorage.getItem('chronoBortzDifference');
 
             // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from sessionStorage
@@ -326,7 +327,8 @@
                 why: why,
                 mediaContact: mediaContact,
                 accountEmail: accountEmail,
-                chronoBioDifference: chronoBioDifference,
+                chronoPhenoDifference: chronoPhenoDifference,
+                chronoBortzDifference: chronoBortzDifference,
                 personalLink: personalLink,
                 dateOfBirth: biomarkerData.DateOfBirth,
                 biomarkers: biomarkerData.Biomarkers,

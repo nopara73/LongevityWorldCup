@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Character Selection</title>
@@ -136,7 +136,8 @@
                 const prevName = localStorage.getItem('selectedAthleteName');
                 if (!prevName || prevName !== currentAthlete.Name) {
                     sessionStorage.removeItem('biomarkerData');
-                    sessionStorage.removeItem('chronoBioDifference');
+                    sessionStorage.removeItem('chronoPhenoDifference');
+                    sessionStorage.removeItem('chronoBortzDifference');
                 }
 
                 localStorage.setItem('selectedAthleteName', currentAthlete.Name);
