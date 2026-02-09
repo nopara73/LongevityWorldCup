@@ -256,6 +256,28 @@ public static class XMessageBuilder
         return "";
     }
 
+    public static string ForPvpBattle(PvpBattleResult battle, Func<string, string> slugToName)
+    {
+        var nameA = slugToName(battle.AthleteSlugA);
+        var nameB = slugToName(battle.AthleteSlugB);
+        var winnerName = slugToName(battle.WinnerSlug);
+        var scoreA = battle.Rounds.Count(r => r.WinnerSlug == battle.AthleteSlugA);
+        var scoreB = battle.Rounds.Count(r => r.WinnerSlug == battle.AthleteSlugB);
+        var lines = new List<string>
+        {
+            $"Longevity World Cup PvP — {nameA} ({battle.AgeA}) vs {nameB} ({battle.AgeB})",
+            "",
+            $"{scoreA}-{scoreB} on {battle.Rounds.Count} biomarkers. Winner: {winnerName}."
+        };
+        var underdog = battle.WinnerSlug == battle.AthleteSlugB && battle.RankA.HasValue && battle.RankB.HasValue && battle.RankB.Value > battle.RankA.Value
+            || battle.WinnerSlug == battle.AthleteSlugA && battle.RankA.HasValue && battle.RankB.HasValue && battle.RankA.Value > battle.RankB.Value;
+        if (underdog)
+            lines.Add("Underdog win on this stat battle.");
+        lines.Add("");
+        lines.Add($"📊 Leaderboard: {LeaderboardUrl}");
+        return Truncate(string.Join("\n", lines));
+    }
+
     public static string Truncate(string s)
     {
         if (string.IsNullOrEmpty(s) || s.Length <= MaxLength) return s;

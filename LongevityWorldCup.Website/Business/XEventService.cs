@@ -8,14 +8,16 @@ public class XEventService
     private readonly XApiClient _x;
     private readonly ILogger<XEventService> _log;
     private readonly AthleteDataService _athletes;
+    private readonly PvpBattleService _pvp;
     private readonly object _lockObj = new();
     private Dictionary<string, AthleteForX> _bySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public XEventService(XApiClient x, ILogger<XEventService> log, AthleteDataService athletes)
+    public XEventService(XApiClient x, ILogger<XEventService> log, AthleteDataService athletes, PvpBattleService pvp)
     {
         _x = x;
         _log = log;
         _athletes = athletes ?? throw new ArgumentNullException(nameof(athletes));
+        _pvp = pvp ?? throw new ArgumentNullException(nameof(pvp));
     }
 
     public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
@@ -112,5 +114,14 @@ public class XEventService
     {
         lock (_lockObj)
             return _bySlug.TryGetValue(slug, out var a) ? a.PhenoAgeDiffFromBaseline : null;
+    }
+
+    public async Task SendRandomPvpBattleAsync(DateTime? asOfUtc, int biomarkerCount)
+    {
+        var battle = _pvp.CreateRandomBattle(asOfUtc, biomarkerCount);
+        if (battle == null) return;
+        var text = XMessageBuilder.ForPvpBattle(battle, SlugToName);
+        if (string.IsNullOrWhiteSpace(text)) return;
+        await SendAsync(text);
     }
 }
