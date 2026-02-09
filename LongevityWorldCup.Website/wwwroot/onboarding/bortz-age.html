@@ -2177,9 +2177,22 @@
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
             // Collect biomarkers the user touched (Bortz model fields). Overlapping with Pheno Age use same canonical units (LymPc, McvFL, RdwPc, AlbGL, CreatUmolL, GluMmolL, CrpMgL, AlpUL, Wbc1000cellsuL) so JSON/athlete data is shared.
-            const entry = { Date: bloodDrawDate };
+            // Build entry with key order matching pheno-age: AlbGL, AlpUL, CreatUmolL, CrpMgL, Date, GluMmolL, LymPc, McvFL, RdwPc, Wbc1000cellsuL, then Bortz-only keys.
+            const entry = {};
             const store = (id, prop, fn) => { if (touchedBiomarkers.has(id)) entry[prop] = fn(); };
-            store('wbc', 'Wbc1000cellsuL', () => parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2)));
+            // 1. AlbGL
+            store('albumin', 'AlbGL', () => parseFloat((parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2)));
+            // 2. AlpUL
+            store('alp', 'AlpUL', () => parseFloat((parseFloat(document.getElementById('alp').value) / parseFloat(document.getElementById('alpUnit').value)).toFixed(2)));
+            // 3. CreatUmolL
+            store('creatinine', 'CreatUmolL', () => parseFloat((parseFloat(document.getElementById('creatinine').value) / parseFloat(document.getElementById('creatinineUnit').value)).toFixed(2)));
+            // 4. CrpMgL
+            store('crp', 'CrpMgL', () => parseFloat((parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value)).toFixed(2)));
+            // 5. Date
+            entry.Date = bloodDrawDate;
+            // 6. GluMmolL
+            store('glucose', 'GluMmolL', () => parseFloat((parseFloat(document.getElementById('glucose').value) / parseFloat(document.getElementById('glucoseUnit').value)).toFixed(2)));
+            // 7. LymPc
             store('lymphocyte_percentage', 'LymPc', () => {
                 const lymphRawValue = parseFloat(document.getElementById('lymphocyte_percentage').value);
                 const lymphUnitEl = document.getElementById('lymphocyte_percentageUnit');
@@ -2199,7 +2212,13 @@
                 }
                 return parseFloat(lymphValueToStore.toFixed(2));
             });
-            // Neutrophils: store only %; derive count from WBC and % when needed for calculation
+            // 8. McvFL
+            store('mcv', 'McvFL', () => parseFloat(document.getElementById('mcv').value));
+            // 9. RdwPc
+            store('rdw', 'RdwPc', () => parseFloat(document.getElementById('rdw').value));
+            // 10. Wbc1000cellsuL
+            store('wbc', 'Wbc1000cellsuL', () => parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2)));
+            // Bortz-only keys in UI order: Immune (Neutrophil, Monocyte, RBC, MCH), Liver (ALT, GGT), Kidney (Urea, Cystatin C), Metabolism (HbA1c, Cholesterol, ApoA1), Hormones (SHBG, Vitamin D)
             if (touchedBiomarkers.has('neutrophil_percentage')) {
                 const raw = parseFloat(document.getElementById('neutrophil_percentage').value);
                 const unitEl = document.getElementById('neutrophil_percentageUnit');
@@ -2215,7 +2234,6 @@
                     entry.NeutrophilPc = wbcCanonical ? parseFloat(((count / wbcCanonical) * 100).toFixed(2)) : parseFloat(raw.toFixed(2));
                 }
             }
-            // Monocytes: store only %; derive count from WBC and % when needed for calculation
             if (touchedBiomarkers.has('monocyte_percentage')) {
                 const raw = parseFloat(document.getElementById('monocyte_percentage').value);
                 const unitEl = document.getElementById('monocyte_percentageUnit');
@@ -2232,14 +2250,11 @@
                 }
             }
             store('rbc', 'Rbc10e12L', () => parseFloat((parseFloat(document.getElementById('rbc').value) / parseFloat(document.getElementById('rbcUnit').value)).toFixed(2)));
-            store('mcv', 'McvFL', () => parseFloat(document.getElementById('mcv').value));
             store('mch', 'MchPg', () => parseFloat((parseFloat(document.getElementById('mch').value) / parseFloat(document.getElementById('mchUnit').value)).toFixed(2)));
-            store('rdw', 'RdwPc', () => parseFloat(document.getElementById('rdw').value));
-            store('albumin', 'AlbGL', () => parseFloat((parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2)));
+            store('alt', 'AltUL', () => parseFloat((parseFloat(document.getElementById('alt').value) / parseFloat(document.getElementById('altUnit').value)).toFixed(2)));
+            store('ggt', 'GgtUL', () => parseFloat((parseFloat(document.getElementById('ggt').value) / parseFloat(document.getElementById('ggtUnit').value)).toFixed(2)));
             store('urea', 'UreaMmolL', () => parseFloat((parseFloat(document.getElementById('urea').value) / parseFloat(document.getElementById('ureaUnit').value)).toFixed(2)));
-            store('creatinine', 'CreatUmolL', () => parseFloat((parseFloat(document.getElementById('creatinine').value) / parseFloat(document.getElementById('creatinineUnit').value)).toFixed(2)));
             store('cystatin_c', 'CystatinCMgL', () => parseFloat((parseFloat(document.getElementById('cystatin_c').value) / parseFloat(document.getElementById('cystatin_cUnit').value)).toFixed(2)));
-            store('glucose', 'GluMmolL', () => parseFloat((parseFloat(document.getElementById('glucose').value) / parseFloat(document.getElementById('glucoseUnit').value)).toFixed(2)));
             store('hba1c', 'Hba1cMmolMol', () => {
                 const el = document.getElementById('hba1c');
                 const unitEl = document.getElementById('hba1cUnit');
@@ -2261,10 +2276,6 @@
             });
             store('cholesterol', 'CholesterolMmolL', () => parseFloat((parseFloat(document.getElementById('cholesterol').value) / parseFloat(document.getElementById('cholesterolUnit').value)).toFixed(2)));
             store('apoa1', 'ApoA1GL', () => parseFloat((parseFloat(document.getElementById('apoa1').value) / parseFloat(document.getElementById('apoa1Unit').value)).toFixed(2)));
-            store('alt', 'AltUL', () => parseFloat((parseFloat(document.getElementById('alt').value) / parseFloat(document.getElementById('altUnit').value)).toFixed(2)));
-            store('alp', 'AlpUL', () => parseFloat((parseFloat(document.getElementById('alp').value) / parseFloat(document.getElementById('alpUnit').value)).toFixed(2)));
-            store('ggt', 'GgtUL', () => parseFloat((parseFloat(document.getElementById('ggt').value) / parseFloat(document.getElementById('ggtUnit').value)).toFixed(2)));
-            store('crp', 'CrpMgL', () => parseFloat((parseFloat(document.getElementById('crp').value) / parseFloat(document.getElementById('crpUnit').value)).toFixed(2)));
             store('shbg', 'ShbgNmolL', () => parseFloat((parseFloat(document.getElementById('shbg').value) / parseFloat(document.getElementById('shbgUnit').value)).toFixed(2)));
             store('vitamin_d', 'VitaminDNmolL', () => parseFloat((parseFloat(document.getElementById('vitamin_d').value) / parseFloat(document.getElementById('vitamin_dUnit').value)).toFixed(2)));
 
