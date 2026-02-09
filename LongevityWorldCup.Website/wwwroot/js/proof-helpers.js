@@ -39,6 +39,39 @@ var PROOF_CHECKLIST_PROPERTY_TO_LABEL = {
     VitaminDNmolL: 'Vitamin D (25-OH)'
 };
 
+// Bortz-only biomarkers (not required for PhenoAge).
+var BORTZ_ONLY_BIOMARKER_KEYS = [
+    'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'MchPg', 'UreaMmolL',
+    'CystatinCMgL', 'Hba1cMmolMol', 'CholesterolMmolL', 'ApoA1GL',
+    'AltUL', 'GgtUL', 'ShbgNmolL', 'VitaminDNmolL'
+];
+
+/**
+ * Determine if an athlete is Pro (has any Bortz-only biomarker in latest entry).
+ * @param {object} athlete
+ * @returns {boolean}
+ */
+window.isAthletePro = function (athlete) {
+    if (!athlete || !Array.isArray(athlete.Biomarkers) || athlete.Biomarkers.length === 0) return false;
+
+    var sorted = athlete.Biomarkers.slice().sort(function (a, b) {
+        var aDate = a && a.Date ? new Date(a.Date).getTime() : NaN;
+        var bDate = b && b.Date ? new Date(b.Date).getTime() : NaN;
+        if (isNaN(aDate) && isNaN(bDate)) return 0;
+        if (isNaN(aDate)) return 1;
+        if (isNaN(bDate)) return -1;
+        return bDate - aDate;
+    });
+
+    var latest = sorted[0] || athlete.Biomarkers[0] || {};
+    for (var i = 0; i < BORTZ_ONLY_BIOMARKER_KEYS.length; i++) {
+        var key = BORTZ_ONLY_BIOMARKER_KEYS[i];
+        var val = latest[key];
+        if (val !== undefined && val !== null && !isNaN(val)) return true;
+    }
+    return false;
+};
+
 /**
  * Build Proof Tracker checklist labels from sessionStorage.biomarkerData.
  * Only includes biomarkers present in the latest entry (valid number).
