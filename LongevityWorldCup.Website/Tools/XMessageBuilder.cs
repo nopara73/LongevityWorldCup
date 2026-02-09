@@ -338,6 +338,33 @@ public static class XMessageBuilder
         return rounds;
     }
 
+    public static string ForPvpFinal(PvpBattleResult battle, Func<string, string> slugToName)
+    {
+        var nameA = slugToName(battle.AthleteSlugA);
+        var nameB = slugToName(battle.AthleteSlugB);
+        var scoreA = 0;
+        var scoreB = 0;
+        foreach (var r in battle.Rounds)
+        {
+            if (r.WinnerSlug == battle.AthleteSlugA) scoreA++;
+            else if (r.WinnerSlug == battle.AthleteSlugB) scoreB++;
+            else
+            {
+                scoreA++;
+                scoreB++;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(battle.WinnerSlug))
+        {
+            var winnerName = slugToName(battle.WinnerSlug);
+            var loserName = battle.WinnerSlug.Equals(battle.AthleteSlugA, StringComparison.OrdinalIgnoreCase) ? nameB : nameA;
+            return Truncate($"{winnerName} is announced as the winner of today’s Biomarker Duel, {scoreA} – {scoreB} against {loserName}.");
+        }
+
+        return Truncate($"No winner is announced for this Biomarker Duel, as the final score stands at {scoreA} – {scoreB}.");
+    }
+
     public static string Truncate(string s)
     {
         if (string.IsNullOrEmpty(s) || s.Length <= MaxLength) return s;
