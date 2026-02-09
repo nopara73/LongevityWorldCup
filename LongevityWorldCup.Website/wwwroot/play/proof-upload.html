@@ -102,25 +102,8 @@
             const proofImageContainer = document.getElementById('proofImageContainer');
             const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
-            // build checklist from whatever biomarkers the user just submitted
-            const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
-            const latest = (biomarkerData.Biomarkers && biomarkerData.Biomarkers[0]) || {};
-            const propertyToLabel = {
-                Wbc1000cellsuL: 'White Blood Cell Count (WBC)',
-                LymPc: 'Lymphocytes',
-                McvFL: 'Mean Corpuscular Volume (MCV)',
-                RdwPc: 'Red Cell Distribution Width (RDW)',
-                AlbGL: 'Albumin',
-                AlpUL: 'Alkaline Phosphatase (ALP)',
-                CreatUmolL: 'Creatinine',
-                GluMmolL: 'Glucose',
-                CrpMgL: 'C-Reactive Protein (CRP)'
-            };
-
-            const checklistItems = Object.entries(propertyToLabel)
-                .filter(([prop, label]) => latest[prop] !== undefined && !isNaN(latest[prop]))
-                .map(([prop, label]) => label);
-
+            // Proof Tracker: biomarkers present in sessionStorage, ordered by bortz-age UI
+            const checklistItems = window.getProofChecklistLabelsFromSession && window.getProofChecklistLabelsFromSession() || [];
             window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems);
 
             submitButton.addEventListener('click', function () {

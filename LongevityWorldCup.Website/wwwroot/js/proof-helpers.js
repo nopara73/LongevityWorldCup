@@ -1,10 +1,70 @@
-﻿window.getMainProofInstructionsInnerHTML = function () {
+window.getMainProofInstructionsInnerHTML = function () {
     return "Upload <strong>proofs</strong> of your biomarkers (e.g., screenshots of PDF results or photos of physical documents)";
 }
 
 window.getSubProofInstructionsInnerHTML = function () {
     return "These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.";
 }
+
+// Canonical display order: matches bortz-age.html UI (card order in DOM). Pheno-age-only users see the same order for their 9 biomarkers.
+var PROOF_CHECKLIST_ORDER = [
+    'Wbc1000cellsuL', 'LymPc', 'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'McvFL', 'MchPg', 'RdwPc',
+    'AlbGL', 'AltUL', 'AlpUL', 'GgtUL', 'UreaMmolL', 'CreatUmolL', 'CystatinCMgL', 'GluMmolL',
+    'Hba1cMmolMol', 'CholesterolMmolL', 'ApoA1GL', 'CrpMgL', 'ShbgNmolL', 'VitaminDNmolL'
+];
+
+// Labels match bortz-age.html card headers.
+var PROOF_CHECKLIST_PROPERTY_TO_LABEL = {
+    Wbc1000cellsuL: 'White Blood Cell Count (WBC)',
+    LymPc: 'Lymphocytes',
+    NeutrophilPc: 'Neutrophils',
+    MonocytePc: 'Monocytes',
+    Rbc10e12L: 'Red Blood Cell Count (RBC)',
+    McvFL: 'Mean Corpuscular Volume (MCV)',
+    MchPg: 'Mean Corpuscular Hemoglobin (MCH)',
+    RdwPc: 'Red Cell Distribution Width (RDW)',
+    AlbGL: 'Albumin',
+    AltUL: 'Alanine Aminotransferase (ALT)',
+    AlpUL: 'Alkaline Phosphatase (ALP)',
+    GgtUL: 'GGT',
+    UreaMmolL: 'Urea',
+    CreatUmolL: 'Creatinine',
+    CystatinCMgL: 'Cystatin C',
+    GluMmolL: 'Glucose',
+    Hba1cMmolMol: 'Hemoglobin A1c (HbA1c)',
+    CholesterolMmolL: 'Total Cholesterol',
+    ApoA1GL: 'Apolipoprotein A1 (ApoA1)',
+    CrpMgL: 'C-Reactive Protein (CRP)',
+    ShbgNmolL: 'Sex Hormone-Binding Globulin (SHBG)',
+    VitaminDNmolL: 'Vitamin D (25-OH)'
+};
+
+/**
+ * Build Proof Tracker checklist labels from sessionStorage.biomarkerData.
+ * Only includes biomarkers present in the latest entry (valid number).
+ * Order follows bortz-age.html UI (card order in DOM).
+ * @returns {string[]} Array of display labels in canonical order.
+ */
+window.getProofChecklistLabelsFromSession = function () {
+    try {
+        var raw = sessionStorage.getItem('biomarkerData');
+        if (!raw) return [];
+        var data = JSON.parse(raw);
+        var latest = (data.Biomarkers && data.Biomarkers[0]) || {};
+        var labels = [];
+        for (var i = 0; i < PROOF_CHECKLIST_ORDER.length; i++) {
+            var prop = PROOF_CHECKLIST_ORDER[i];
+            var val = latest[prop];
+            if (val !== undefined && val !== null && !isNaN(val)) {
+                var label = PROOF_CHECKLIST_PROPERTY_TO_LABEL[prop];
+                if (label) labels.push(label);
+            }
+        }
+        return labels;
+    } catch (e) {
+        return [];
+    }
+};
 
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers) {
     nextButton.disabled = true;
