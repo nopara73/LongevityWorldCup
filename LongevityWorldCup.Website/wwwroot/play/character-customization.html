@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Character Customization</title>
@@ -98,10 +98,7 @@
             <button class="option-button grey" onclick="window.location.href='/play/edit-profile.html'">
                 Edit Profile&nbsp;<i class="fas fa-pen"></i>
             </button>
-            <button class="option-button grey" onclick="window.location.href='/pheno-age?update=1'">
-                Submit New Results&nbsp;<i class="fas fa-rocket"></i>
-            </button>
-            <button class="option-button back-button" onclick="window.goBackOrHome()">
+            <button id="characterBackButton" class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
         </div>
@@ -122,6 +119,53 @@
                                                                                                                                                                                                                                                 alt="${athlete.Name} headshot"
                                                                                                                                                                                                                                                 class="illustration"
                                                                                                                                                                                                                                                 loading="lazy">`;
+
+            const optionsContainer = document.querySelector('.options-container');
+            const backButton = document.getElementById('characterBackButton');
+            const ready = window.modulesReady || Promise.resolve();
+
+            ready.then(() => {
+                if (!optionsContainer || !backButton) return;
+
+                const urlParams = new URLSearchParams(window.location.search || '');
+                const isDemoPro = urlParams.get('demopro') === '1';
+                const isPro = isDemoPro || (window.isAthletePro ? window.isAthletePro(athlete) : false);
+                const createButton = (label, className, href) => {
+                    const button = document.createElement('button');
+                    button.className = className;
+                    button.innerHTML = label;
+                    button.addEventListener('click', () => { window.location.href = href; });
+                    return button;
+                };
+
+                if (isPro) {
+                    const phenoButton = createButton(
+                        'Submit New Results (Pheno Age)&nbsp;<i class="fas fa-rocket"></i>',
+                        'option-button grey',
+                        '/pheno-age?update=1'
+                    );
+                    const bortzButton = createButton(
+                        'Submit New Results (Bortz Age + Pheno Age)&nbsp;<i class="fas fa-rocket"></i>',
+                        'option-button grey',
+                        '/bortz-age?update=1'
+                    );
+                    optionsContainer.insertBefore(phenoButton, backButton);
+                    optionsContainer.insertBefore(bortzButton, backButton);
+                } else {
+                    const submitButton = createButton(
+                        'Submit New Results&nbsp;<i class="fas fa-rocket"></i>',
+                        'option-button grey',
+                        '/pheno-age?update=1'
+                    );
+                    const goProButton = createButton(
+                        'Go Pro (free for now)&nbsp;<i class="fas fa-bolt"></i>',
+                        'option-button green',
+                        '/bortz-age?update=1'
+                    );
+                    optionsContainer.insertBefore(submitButton, backButton);
+                    optionsContainer.insertBefore(goProButton, backButton);
+                }
+            });
         });
     </script>
 </body>
