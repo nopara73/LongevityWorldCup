@@ -61,25 +61,38 @@ public class XDailyPostJob : IJob
         }
 
         var (fillerType, payloadText) = _fillerLog.GetSuggestedNextFiller();
-        var fillerMsg = _xEvents.TryBuildFillerMessage(fillerType, payloadText);
-        if (!string.IsNullOrWhiteSpace(fillerMsg))
+        if (fillerType == FillerType.PvpBiomarkerDuel)
         {
-            IReadOnlyList<string>? mediaIds = null;
-            if (fillerType == FillerType.Newcomers)
+            var ok = await _xEvents.TrySendPvpDuelThreadAsync(null);
+            if (ok)
             {
-                await using var imageStream = await _images.BuildNewcomersImageAsync();
-                if (imageStream != null)
-                {
-                    var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
-                    if (!string.IsNullOrWhiteSpace(mediaId))
-                        mediaIds = new[] { mediaId };
-                }
+                _fillerLog.LogPost(DateTime.UtcNow, fillerType, payloadText ?? "");
+                _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
+                return;
             }
+        }
+        else
+        {
+            var fillerMsg = _xEvents.TryBuildFillerMessage(fillerType, payloadText);
+            if (!string.IsNullOrWhiteSpace(fillerMsg))
+            {
+                IReadOnlyList<string>? mediaIds = null;
+                if (fillerType == FillerType.Newcomers)
+                {
+                    await using var imageStream = await _images.BuildNewcomersImageAsync();
+                    if (imageStream != null)
+                    {
+                        var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
+                        if (!string.IsNullOrWhiteSpace(mediaId))
+                            mediaIds = new[] { mediaId };
+                    }
+                }
 
-            await _xEvents.SendAsync(fillerMsg, mediaIds);
-            _fillerLog.LogPost(DateTime.UtcNow, fillerType, payloadText ?? "");
-            _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
-            return;
+                await _xEvents.SendAsync(fillerMsg, mediaIds);
+                _fillerLog.LogPost(DateTime.UtcNow, fillerType, payloadText ?? "");
+                _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
+                return;
+            }
         }
 
         _logger.LogInformation("XDailyPostJob no postable event found");

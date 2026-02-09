@@ -150,4 +150,29 @@ public class XEventService
         if (string.IsNullOrWhiteSpace(text)) return;
         await SendAsync(text);
     }
+
+    public async Task<bool> TrySendPvpDuelThreadAsync(DateTime? asOfUtc)
+    {
+        var battle = _pvp.CreateRandomBattle(asOfUtc, 3);
+        if (battle == null) return false;
+
+        var intro = XMessageBuilder.ForPvpBattle(battle, SlugToName);
+        if (string.IsNullOrWhiteSpace(intro)) return false;
+
+        var rootId = await SendRootTweetAsync(intro);
+        if (string.IsNullOrWhiteSpace(rootId)) return false;
+
+        var rounds = XMessageBuilder.ForPvpRounds(battle, SlugToName);
+        foreach (var r in rounds)
+        {
+            if (string.IsNullOrWhiteSpace(r)) continue;
+            await SendReplyTweetAsync(rootId, r);
+        }
+
+        var finalText = XMessageBuilder.ForPvpFinal(battle, SlugToName);
+        if (!string.IsNullOrWhiteSpace(finalText))
+            await SendReplyTweetAsync(rootId, finalText);
+
+        return true;
+    }
 }

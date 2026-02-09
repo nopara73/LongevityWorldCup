@@ -7,7 +7,8 @@ public enum FillerType
     Top3Leaderboard,
     CrowdGuesses,
     Newcomers,
-    DomainTop
+    DomainTop,
+    PvpBiomarkerDuel
 }
 
 public class XFillerPostLogService
@@ -59,6 +60,7 @@ public class XFillerPostLogService
         options.Add((FillerType.Newcomers, ""));
         foreach (var dk in DomainKeys)
             options.Add((FillerType.DomainTop, $"domain[{dk}]"));
+        options.Add((FillerType.PvpBiomarkerDuel, ""));
 
         var lastByOption = _db.Run(sqlite =>
         {
