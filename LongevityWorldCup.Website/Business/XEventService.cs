@@ -47,6 +47,32 @@ public class XEventService
         }
     }
 
+    public async Task<string?> SendRootTweetAsync(string text, IReadOnlyList<string>? mediaIds = null)
+    {
+        try
+        {
+            return await _x.SendTweetAsync(text, mediaIds, null);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "X root tweet failed: {Text}", text);
+            return null;
+        }
+    }
+
+    public async Task<string?> SendReplyTweetAsync(string parentTweetId, string text, IReadOnlyList<string>? mediaIds = null)
+    {
+        try
+        {
+            return await _x.SendTweetAsync(text, mediaIds, parentTweetId);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "X reply tweet failed: {Text}", text);
+            return null;
+        }
+    }
+
     public async Task SendEventAsync(EventType type, string rawText)
     {
         var msg = BuildMessage(type, rawText);

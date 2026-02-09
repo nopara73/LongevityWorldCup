@@ -28,6 +28,11 @@ public class XApiClient
         _accessToken = config.XAccessToken;
     }
 
+    public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds = null)
+    {
+        await SendTweetAsync(text, mediaIds, null);
+    }
+
     public async Task<string?> UploadMediaAsync(Stream content, string contentType)
     {
         if (_env.IsDevelopment())
@@ -78,12 +83,12 @@ public class XApiClient
         return null;
     }
 
-    public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds = null)
+    public async Task<string?> SendTweetAsync(string text, IReadOnlyList<string>? mediaIds = null, string? inReplyToTweetId = null)
     {
         if (_env.IsDevelopment())
         {
-            await WriteDevPreviewAsync(text, mediaIds);
-            return;
+            await WriteDevPreviewAsync(text, mediaIds, inReplyToTweetId);
+            return null;
         }
 
         var token = GetAccessToken();
@@ -93,12 +98,18 @@ public class XApiClient
                 _log.LogInformation("X credentials not configured. Would have posted: {Content} with mediaIds: {MediaIds}", text, string.Join(", ", mediaIds));
             else
                 _log.LogInformation("X credentials not configured. Would have posted: {Content}", text);
-            return;
+            return null;
         }
 
-        object payloadObj = mediaIds is { Count: > 0 }
-            ? new { text, media = new { media_ids = mediaIds } }
-            : new { text };
+        object payloadObj;
+        if (mediaIds is { Count: > 0 } && !string.IsNullOrWhiteSpace(inReplyToTweetId))
+            payloadObj = new { text, media = new { media_ids = mediaIds }, reply = new { in_reply_to_tweet_id = inReplyToTweetId } };
+        else if (mediaIds is { Count: > 0 })
+            payloadObj = new { text, media = new { media_ids = mediaIds } };
+        else if (!string.IsNullOrWhiteSpace(inReplyToTweetId))
+            payloadObj = new { text, reply = new { in_reply_to_tweet_id = inReplyToTweetId } };
+        else
+            payloadObj = new { text };
 
         var payload = JsonSerializer.Serialize(payloadObj);
         var maxAttempts = 3;
@@ -113,7 +124,21 @@ public class XApiClient
             var res = await _http.SendAsync(req);
 
             if (res.IsSuccessStatusCode)
-                return;
+            {
+                try
+                {
+                    var json = await res.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("data", out var data) && data.TryGetProperty("id", out var idEl))
+                        return idEl.GetString();
+                }
+                catch (Exception ex)
+                {
+                    _log.LogWarning(ex, "X send succeeded but response parse failed.");
+                }
+                return null;
+            }
 
             if (res.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -136,9 +161,11 @@ public class XApiClient
 
             res.EnsureSuccessStatusCode();
         }
+
+        return null;
     }
 
-    private async Task WriteDevPreviewAsync(string text, IReadOnlyList<string>? mediaIds)
+    private async Task WriteDevPreviewAsync(string text, IReadOnlyList<string>? mediaIds, string? inReplyToTweetId)
     {
         try
         {
@@ -174,6 +201,12 @@ public class XApiClient
             sb.Append("<pre>");
             sb.Append(WebUtility.HtmlEncode(text ?? ""));
             sb.Append("</pre>");
+            if (!string.IsNullOrWhiteSpace(inReplyToTweetId))
+            {
+                sb.Append("<p><strong>reply to tweet id:</strong> ");
+                sb.Append(WebUtility.HtmlEncode(inReplyToTweetId));
+                sb.Append("</p>");
+            }
             if (mediaIds is { Count: > 0 })
             {
                 sb.Append("<p><strong>media_ids:</strong> ");
