@@ -387,18 +387,18 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
     }
 
     if (label === 'S25') {
-        if (place === 1) return 'LWC25 · Winner: finished 1st in the 2025 Longevity World Cup';
-        if (place === 2) return 'LWC25 · 2nd Place: finished 2nd in the 2025 Longevity World Cup';
-        if (place === 3) return 'LWC25 · 3rd Place: finished 3rd in the 2025 Longevity World Cup';
-        if (place && place >= 4 && place <= 10) return 'LWC25 · Top 10: finished among the top 10 in the 2025 Longevity World Cup';
-        if (place && place >= 11 && place <= 20) return 'LWC25 · Top 20: finished among the top 20 in the 2025 Longevity World Cup';
+        if (place === 1) return 'LWC25 · Winner: Finished 1st in the 2025 Longevity World Cup';
+        if (place === 2) return 'LWC25 · 2nd Place: Finished 2nd in the 2025 Longevity World Cup';
+        if (place === 3) return 'LWC25 · 3rd Place: Finished 3rd in the 2025 Longevity World Cup';
+        if (place && place >= 4 && place <= 10) return 'LWC25 · Top 10: Finished among the top 10 in the 2025 Longevity World Cup';
+        if (place && place >= 11 && place <= 20) return 'LWC25 · Top 20: Finished among the top 20 in the 2025 Longevity World Cup';
         return 'LWC25 · top 20';
     }
 
 
-    if (label === 'Podcast') return "Podcast: hear this athlete's story in depth";
+    if (label === 'Podcast') return "Podcast: Hear this athlete's story in depth";
     if (label === 'Pregnancy') return 'Baby on board';
-    if (label === 'Host') return 'Host: organizer of the Longevity World Cup';
+    if (label === 'Host') return 'Host: Organizer of the Longevity World Cup';
     if (label === 'Perfect Application') return 'Perfect Application: Most flawless entry form ever submitted';
 
     return place ? `${label}: #${place}` : `${label}`;
