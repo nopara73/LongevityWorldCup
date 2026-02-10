@@ -687,12 +687,8 @@
                                     <input type="number" id="wbc" name="wbc" step="any" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">10³ cells/µL</option>
-                                        <option value="1">1000 cells/µL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1">billion cells/L</option>
-                                        <option value="1000">cells/µL</option>
-                                        <option value="1000">cells/mm³</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
@@ -706,12 +702,8 @@
                                     <label for="lymphocyte_percentageUnit" class="visually-hidden">Select unit for Lymphocytes</label>
                                     <select id="lymphocyte_percentageUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
-                                        <option value="1">10³ cells/µL</option>
-                                        <option value="1">1000 cells/µL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1">billion cells/L</option>
-                                        <option value="1000">cells/µL</option>
-                                        <option value="1000">cells/mm³</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
@@ -725,12 +717,8 @@
                                     <label for="neutrophil_percentageUnit" class="visually-hidden">Neutrophils unit</label>
                                     <select id="neutrophil_percentageUnit" aria-label="Neutrophils unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
-                                        <option value="1">10³ cells/µL</option>
-                                        <option value="1">1000 cells/µL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1">billion cells/L</option>
-                                        <option value="1000">cells/µL</option>
-                                        <option value="1000">cells/mm³</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
@@ -744,12 +732,8 @@
                                     <label for="monocyte_percentageUnit" class="visually-hidden">Monocytes unit</label>
                                     <select id="monocyte_percentageUnit" aria-label="Monocytes unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
-                                        <option value="1">10³ cells/µL</option>
-                                        <option value="1">1000 cells/µL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1">billion cells/L</option>
-                                        <option value="1000">cells/µL</option>
-                                        <option value="1000">cells/mm³</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
@@ -762,14 +746,8 @@
                                     <input type="number" id="rbc" name="rbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="rbcUnit" class="visually-hidden">RBC unit</label>
                                     <select id="rbcUnit" aria-label="RBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">10⁶ cells/µL</option>
-                                        <option value="1">million cells/µL</option>
-                                        <option value="1">10⁶ cells/mm³</option>
-                                        <option value="1">million cells/mm³</option>
-                                        <option value="1">10¹² cells/L</option>
-                                        <option value="1">trillion cells/L</option>
-                                        <option value="1000000">cells/µL</option>
-                                        <option value="1000000">cells/mm³</option>
+                                        <option value="1">10¹²/L</option>
+                                        <option value="1">10⁶/µL</option>
                                     </select>
                                 </div>
                             </div>
@@ -796,9 +774,6 @@
                                     <label for="mchUnit" class="visually-hidden">MCH unit</label>
                                     <select id="mchUnit" aria-label="MCH unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">pg</option>
-                                        <option value="1">pg/cell</option>
-                                        <option value="15.5">fmol</option>
-                                        <option value="15.5">fmol/cell</option>
                                     </select>
                                 </div>
                             </div>
@@ -829,8 +804,6 @@
                                     <select id="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">g/L</option>
                                         <option value="0.1">g/dL</option>
-                                        <option value="0.1">g%</option>
-                                        <option value="15.0466">µmol/L</option>
                                     </select>
                                 </div>
                             </div>
@@ -905,7 +878,6 @@
                                     <select id="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">µmol/L</option>
                                         <option value="0.0113">mg/dL</option>
-                                        <option value="0.00113">mg/L</option>
                                     </select>
                                 </div>
                             </div>
@@ -937,7 +909,6 @@
                                     <select id="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
                                         <option value="18.016">mg/dL</option>
-                                        <option value="0.18016">mg%</option>
                                     </select>
                                 </div>
                             </div>
@@ -982,7 +953,6 @@
                                     <select id="apoa1Unit" aria-label="ApoA1 unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">g/L</option>
                                         <option value="0.01">mg/dL</option>
-                                        <option value="0.001">mg/L</option>
                                     </select>
                                 </div>
                             </div>
@@ -1010,8 +980,6 @@
                                         <select id="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                             <option value="1">mg/L</option>
                                             <option value="0.1">mg/dL</option>
-                                            <option value="0.001">mg/mL</option>
-                                            <option value="86.96">nmol/L</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1272,10 +1240,7 @@
             if (albuminEl && albuminUnitEl) {
                 const v = parse(albuminEl);
                 const u = parseFloat(albuminUnitEl.value);
-                if (!isNaN(v) && u !== 15.0466 && v > 300) {
-                    console.warn("Albumin is too high. Correcting the unit.");
-                    setUnit(albuminUnitEl, 15.0466);
-                } else if (!isNaN(v) && u !== 0.1 && v < 6) {
+                if (!isNaN(v) && u !== 0.1 && v < 6) {
                     console.warn("Albumin is too low. Correcting the unit.");
                     setUnit(albuminUnitEl, 0.1);
                 } else if (!isNaN(v) && u !== 1 && v > 10 && v < 60) {
@@ -1359,56 +1324,6 @@
                 } else if (!isNaN(v) && isPct && v > 15) {
                     console.warn("HbA1c value suggests mmol/mol. Correcting the unit.");
                     setUnit(hba1cUnitEl, 1);
-                }
-            }
-
-            // Neutrophils: 10⁹ cells/L ~1.5–7, cells/µL ~1500–7000; skip correction when unit is %
-            const neutEl = document.getElementById('neutrophil_percentage');
-            const neutUnitEl = document.getElementById('neutrophil_percentageUnit');
-            if (neutEl && neutUnitEl) {
-                const neutUnitText = neutUnitEl.options[neutUnitEl.selectedIndex].text.trim();
-                if (neutUnitText !== '%') {
-                    const v = parse(neutEl);
-                    const u = parseFloat(neutUnitEl.value);
-                    if (!isNaN(v) && u === 1 && v > 4000) {
-                        console.warn("Neutrophil value suggests cells/µL; correcting the unit.");
-                        setUnit(neutUnitEl, 1000);
-                    } else if (!isNaN(v) && u === 1000 && v < 5) {
-                        console.warn("Neutrophil value suggests 10⁹ cells/L; correcting the unit.");
-                        setUnit(neutUnitEl, 1);
-                    }
-                }
-            }
-            // Monocytes: 10⁹ cells/L ~0.2–0.8, cells/µL ~200–800; skip correction when unit is %
-            const monoEl = document.getElementById('monocyte_percentage');
-            const monoUnitEl = document.getElementById('monocyte_percentageUnit');
-            if (monoEl && monoUnitEl) {
-                const monoUnitText = monoUnitEl.options[monoUnitEl.selectedIndex].text.trim();
-                if (monoUnitText !== '%') {
-                    const v = parse(monoEl);
-                    const u = parseFloat(monoUnitEl.value);
-                    if (!isNaN(v) && u === 1 && v > 500) {
-                        console.warn("Monocyte value suggests cells/µL; correcting the unit.");
-                        setUnit(monoUnitEl, 1000);
-                    } else if (!isNaN(v) && u === 1000 && v < 1) {
-                        console.warn("Monocyte value suggests 10⁹ cells/L; correcting the unit.");
-                        setUnit(monoUnitEl, 1);
-                    }
-                }
-            }
-
-            // White Blood Cell Count (WBC) – from Pheno Age page
-            const wbcEl = document.getElementById('wbc');
-            const wbcUnitEl = document.getElementById('wbcUnit');
-            if (wbcEl && wbcUnitEl) {
-                const wbcValue = parseFloat(wbcEl.value);
-                const wbcUnit = parseFloat(wbcUnitEl.value);
-                if (!isNaN(wbcValue) && wbcUnit === 1 && wbcValue > 4000) {
-                    console.warn("WBC is too high. Correcting the unit.");
-                    setUnit(wbcUnitEl, 1000);
-                } else if (!isNaN(wbcValue) && wbcUnit === 1000 && wbcValue < 30) {
-                    console.warn("WBC is too low. Correcting the unit.");
-                    setUnit(wbcUnitEl, 1);
                 }
             }
 

@@ -676,12 +676,8 @@
                                     <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">10³ cells/µL</option>
-                                        <option value="1">1000 cells/µL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1">billion cells/L</option>
-                                        <option value="1000">cells/µL</option>
-                                        <option value="1000">cells/mm³</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
@@ -698,10 +694,8 @@
                                     <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
                                     <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
-                                        <option value="1">10³ cells/µL</option>
-                                        <option value="1">1000 cells/µL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1">billion cells/L</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
@@ -754,9 +748,6 @@
                                     <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">g/L</option>
                                         <option value="0.1">g/dL</option>
-                                        <option value="0.1">g%</option>
-                                        <!-- Albumin's molar mass can vary slightly depending on its source and exact composition, usually given as approximately 66,500 g/mol but sometimes noted as 66,430 g/mol or 66,563 g/mol in specific contexts. If we calculate using 66,430 g/mol as the molar mass, then it's: 15.0466µmol/L -->
-                                        <option value="15.0466">µmol/L</option>
                                     </select>
                                 </div>
                             </div>
@@ -794,7 +785,6 @@
                                     <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">µmol/L</option>
                                         <option value="0.0113">mg/dL</option>
-                                        <option value="0.00113">mg/L</option>
                                     </select>
                                 </div>
                             </div>
@@ -815,7 +805,6 @@
                                     <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
                                         <option value="18.016">mg/dL</option>
-                                        <option value="0.18016">mg%</option>
                                     </select>
                                 </div>
                             </div>
@@ -847,8 +836,6 @@
                                         <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                             <option value="10">mg/L</option>
                                             <option value="1">mg/dL</option>
-                                            <option value="10000">mg/mL</option>
-                                            <option value="86.96">nmol/L</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1045,29 +1032,13 @@
             // Albumin
             const albuminValue = parseFloat(document.getElementById('albumin').value);
             const albuminUnit = parseFloat(document.getElementById('albuminUnit').value);
-            if (albuminUnit != 15.0466 && albuminValue > 300) {
-                console.warn("Albumin is too high. Correcting the unit.");
-                document.getElementById('albuminUnit').value = 15.0466;
-            }
-            else if (albuminUnit != 0.1 && albuminValue < 6) {
+            if (albuminUnit != 0.1 && albuminValue < 6) {
                 console.warn("Albumin is too low. Correcting the unit.");
                 document.getElementById('albuminUnit').value = 0.1;
             }
             else if (albuminUnit != 1 && albuminValue > 10 && albuminValue < 60) {
-                console.warn("Albumin is too low. Correcting the unit.");
+                console.warn("Albumin range suggests g/L.");
                 document.getElementById('albuminUnit').value = 1;
-            }
-
-            // White Blood Cell Count (WBC)
-            const wbcValue = parseFloat(document.getElementById('wbc').value);
-            const wbcUnit = parseFloat(document.getElementById('wbcUnit').value);
-            if (wbcUnit === 1 && wbcValue > 4000) {
-                console.warn("WBC is too high. Correcting the unit.");
-                document.getElementById('wbcUnit').value = 1000;
-            }
-            else if (wbcUnit === 1000 && wbcValue < 30) {
-                console.warn("WBC is too low. Correcting the unit.");
-                document.getElementById('wbcUnit').value = 1;
             }
         }
 
