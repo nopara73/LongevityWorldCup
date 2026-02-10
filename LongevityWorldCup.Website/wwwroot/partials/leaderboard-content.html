@@ -2722,9 +2722,13 @@
 
                 updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, ultimateRank);
 
-                // Generate age visualization
-                const bioAge = athleteData.lowestPhenoAge;
-                const chronoAge = athleteData.chronoAtLowestPhenoAge;
+                // Generate age visualization (prefer Bortz age when available)
+                const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
+                    ? athleteData.lowestBortzAge
+                    : athleteData.lowestPhenoAge;
+                const chronoAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
+                    ? athleteData.chronoAtLowestBortzAge
+                    : athleteData.chronoAtLowestPhenoAge;
                 generateAgeVisualization(bioAge, chronoAge);
 
                 // Generate biomarker chart
