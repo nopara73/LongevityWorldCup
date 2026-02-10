@@ -421,7 +421,10 @@
 
 
     #ageReduction,
-    #ageReductionPercent{ white-space: nowrap; }
+    #ageReductionPercent,
+    #lowestBortzAge,
+    #bortzAgeReduction,
+    #bortzAgeReductionPercent{ white-space: nowrap; }
 
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
@@ -725,6 +728,11 @@
                                 <td><span id="yourGuess"></span></td>
                             </tr>
 
+                            <tr id="lowestBortzAgeContainer" style="display:none;">
+                                <th scope="row"><strong>Lowest Bortz Age:</strong></th>
+                                <td><span id="lowestBortzAge"></span> <span class="unit">years</span></td>
+                            </tr>
+
                             <tr>
                                 <th scope="row"><strong>Lowest Pheno Age:</strong></th>
                                 <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
@@ -736,9 +744,19 @@
                                 <td><span id="paceOfAging"></span> <span class="unit">years per year (pace rank: <span id="paceOfAgingRank"></span>)</span></td>
                             </tr>
 
+                            <tr id="bortzAgeReductionContainer" title="Derived from the lowest biological age of the season" style="display:none;">
+                                <th scope="row">
+                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz Age reduction:</span></strong>
+                                </th>
+                                <td>
+                                    <span id="bortzAgeReduction"></span> <span class="unit">years</span>
+                                    (<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)
+                                </td>
+                            </tr>
+
                             <tr title="Derived from the lowest biological age of the season">
                                 <th scope="row">
-                                    <strong><span id="ageReductionAccelerationLabel">Age reduction/acceleration:</span></strong>
+                                    <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction:</span></strong>
                                 </th>
                                 <td>
                                     <span id="ageReduction"></span> <span class="unit">years</span>
@@ -941,6 +959,35 @@
             set.CrpMgL
         ];
         return values.every(Number.isFinite) && set.CrpMgL > 0;
+    }
+
+    function isCompleteBortzBiomarkerSet(entry) {
+        if (!entry || !entry.Date) return false;
+        const values = [
+            entry.AlbGL,
+            entry.AlpUL,
+            entry.UreaMmolL,
+            entry.CholesterolMmolL,
+            entry.CreatUmolL,
+            entry.CystatinCMgL,
+            entry.Hba1cMmolMol,
+            entry.CrpMgL,
+            entry.GgtUL,
+            entry.Rbc10e12L,
+            entry.McvFL,
+            entry.RdwPc,
+            entry.Wbc1000cellsuL,
+            entry.MonocytePc,
+            entry.NeutrophilPc,
+            entry.LymPc,
+            entry.AltUL,
+            entry.ShbgNmolL,
+            entry.VitaminDNmolL,
+            entry.GluMmolL,
+            entry.MchPg,
+            entry.ApoA1GL
+        ];
+        return values.every(Number.isFinite) && entry.CrpMgL > 0;
     }
 
     function ensureRankChangeWrapper(imgEl) {
@@ -1218,6 +1265,59 @@
                     const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
                     const ageReductionPercent = (1 - biologicalAgePercent) * 100;
 
+                    // Lowest Bortz Age and Bortz Age reduction (only when submissions have full Bortz biomarkers)
+                    let lowestBortzAge = null;
+                    let chronoAtLowestBortzAge = null;
+                    let bortzAgeReduction = null;
+                    let bortzAgeReductionPercent = null;
+                    if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
+                        let bortzMin = Infinity;
+                        let chronoAtBortzMin = null;
+                        athlete.Biomarkers.forEach(entry => {
+                            if (!isCompleteBortzBiomarkerSet(entry)) return;
+                            const entryDate = new Date(entry.Date);
+                            const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
+                            const wbc = entry.Wbc1000cellsuL;
+                            const monoCount = wbc * entry.MonocytePc / 100;
+                            const neutCount = wbc * entry.NeutrophilPc / 100;
+                            const bortzValues = [
+                                ageAtEntry,
+                                entry.AlbGL,
+                                entry.AlpUL,
+                                entry.UreaMmolL,
+                                entry.CholesterolMmolL,
+                                entry.CreatUmolL,
+                                entry.CystatinCMgL,
+                                entry.Hba1cMmolMol,
+                                entry.CrpMgL,
+                                entry.GgtUL,
+                                entry.Rbc10e12L,
+                                entry.McvFL,
+                                entry.RdwPc,
+                                monoCount,
+                                neutCount,
+                                entry.LymPc,
+                                entry.AltUL,
+                                entry.ShbgNmolL,
+                                entry.VitaminDNmolL,
+                                entry.GluMmolL,
+                                entry.MchPg,
+                                entry.ApoA1GL
+                            ];
+                            const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
+                            if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
+                                bortzMin = bortzAge;
+                                chronoAtBortzMin = ageAtEntry;
+                            }
+                        });
+                        if (Number.isFinite(bortzMin) && chronoAtBortzMin != null) {
+                            lowestBortzAge = bortzMin;
+                            chronoAtLowestBortzAge = chronoAtBortzMin;
+                            bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
+                            bortzAgeReductionPercent = (1 - lowestBortzAge / chronoAtLowestBortzAge) * 100;
+                        }
+                    }
+
                     // Placements: [yesterday, last week, last month, last year]
                     // Store last month's rank (index 2). If missing or not a number, use null.
                     const lastMonthRank =
@@ -1239,6 +1339,10 @@
                         chronologicalAge: chronologicalAgeNow,
                         crowdAge: crowdAge,
                         crowdCount: crowdCount,
+                        lowestBortzAge: lowestBortzAge,
+                        chronoAtLowestBortzAge: chronoAtLowestBortzAge,
+                        bortzAgeReduction: bortzAgeReduction,
+                        bortzAgeReductionPercent: bortzAgeReductionPercent,
                         lowestPhenoAge: lowestPhenoAge,
                         chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                         ageReduction: ageReduction,
@@ -2808,8 +2912,26 @@
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
         updateYourGuess();
+        const lowestBortzAgeEl = document.getElementById('lowestBortzAge');
+        const lowestBortzAgeContainer = document.getElementById('lowestBortzAgeContainer');
+        if (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge)) {
+            lowestBortzAgeEl.textContent = athleteData.lowestBortzAge.toFixed(1);
+            lowestBortzAgeContainer.style.display = 'table-row';
+        } else {
+            lowestBortzAgeContainer.style.display = 'none';
+        }
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age reduction:" : "Age acceleration:";
+        const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
+        const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
+        if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
+            bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction:" : "Bortz Age acceleration:";
+            document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
+            document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
+            bortzAgeReductionContainer.style.display = 'table-row';
+        } else {
+            bortzAgeReductionContainer.style.display = 'none';
+        }
+        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
         document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
 
