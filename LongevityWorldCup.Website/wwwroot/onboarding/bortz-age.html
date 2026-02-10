@@ -679,12 +679,12 @@
                         <!-- White Blood Cell Count (from Pheno Age page) -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                White blood cell count (WBC)
+                                White blood cell count (WBC) <span style="font-weight: normal;">(required)</span>
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="wbc" name="wbc" step="any" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">10⁹/L</option>
@@ -1309,7 +1309,7 @@
                 }
             }
 
-            // HbA1c: mmol/mol typical 20–50, % 4–6 (so % rarely > 15); eAG (mmol/L or mg/dL) uses value 1, don't confuse with mmol/mol
+            // HbA1c: mmol/mol typical 20–50, max plausible ~140 (≈15%); % 4–6 (so % rarely > 15); eAG uses value 1
             const hba1cEl = document.getElementById('hba1c');
             const hba1cUnitEl = document.getElementById('hba1cUnit');
             if (hba1cEl && hba1cUnitEl) {
@@ -1318,7 +1318,7 @@
                 const unitText = hba1cUnitEl.options[hba1cUnitEl.selectedIndex].text;
                 const isPct = unitText.indexOf('%') !== -1;
                 const isEAG = unitText.indexOf('eAG') !== -1;
-                if (!isNaN(v) && !isPct && !isEAG && u === 1 && v > 100) {
+                if (!isNaN(v) && !isPct && !isEAG && u === 1 && v > 150) {
                     console.warn("HbA1c value suggests %. Correcting the unit.");
                     setUnit(hba1cUnitEl, 0.0915);
                 } else if (!isNaN(v) && isPct && v > 15) {
@@ -1346,6 +1346,21 @@
             if (!bloodDrawDate) {
                 document.getElementById('continueButton').classList.remove('show');
                 updateCalculateButton();
+                return;
+            }
+
+            // WBC is unconditionally required; no calculation without it
+            const wbcInputEl = document.getElementById('wbc');
+            const wbcUnitInputEl = document.getElementById('wbcUnit');
+            if (!wbcInputEl || !wbcUnitInputEl) {
+                customAlert('White Blood Cell Count (WBC) is required.');
+                return;
+            }
+            const wbcRaw = window.PhenoAge && typeof window.PhenoAge.parseInput === 'function' ? window.PhenoAge.parseInput(wbcInputEl.value) : parseFloat(wbcInputEl.value);
+            const wbcUnit = parseFloat(wbcUnitInputEl.value);
+            if (typeof wbcRaw !== 'number' || !Number.isFinite(wbcRaw) || wbcRaw <= 0 || !Number.isFinite(wbcUnit) || wbcUnit <= 0) {
+                expandFieldCard('wbc');
+                customAlert('Please enter a valid White Blood Cell Count (WBC).');
                 return;
             }
 
@@ -2217,9 +2232,9 @@
                 if (!isPercentageUnit) {
                     const wbcValueEl = document.getElementById('wbc');
                     const wbcUnitEl = document.getElementById('wbcUnit');
-                    const wbcRawValue = window.PhenoAge.parseInput(wbcValueEl.value);
-                    const wbcUnitConversion = parseFloat(wbcUnitEl.value);
-                    if (!isNaN(wbcRawValue) && wbcUnitConversion) {
+                    const wbcRawValue = wbcValueEl ? window.PhenoAge.parseInput(wbcValueEl.value) : NaN;
+                    const wbcUnitConversion = wbcUnitEl ? parseFloat(wbcUnitEl.value) : 0;
+                    if (Number.isFinite(wbcRawValue) && wbcUnitConversion > 0) {
                         const wbcAdjustedValue = wbcRawValue / wbcUnitConversion;
                         const lymphAdjustedValue = lymphRawValue / parseFloat(lymphUnitEl.value);
                         lymphValueToStore = (lymphAdjustedValue / wbcAdjustedValue) * 100;
@@ -2245,8 +2260,10 @@
                     const wbcUnitEl = document.getElementById('wbcUnit');
                     const wbcRaw = wbcEl ? window.PhenoAge.parseInput(wbcEl.value) : NaN;
                     const wbcCanonical = wbcRaw && wbcUnitEl ? wbcRaw / parseFloat(wbcUnitEl.value) : NaN;
-                    const count = raw / parseFloat(unitEl.value);
-                    entry.NeutrophilPc = wbcCanonical ? parseFloat(((count / wbcCanonical) * 100).toFixed(2)) : parseFloat(raw.toFixed(2));
+                    if (Number.isFinite(wbcCanonical) && wbcCanonical > 0) {
+                        const count = raw / parseFloat(unitEl.value);
+                        entry.NeutrophilPc = parseFloat(((count / wbcCanonical) * 100).toFixed(2));
+                    }
                 }
             }
             if (touchedBiomarkers.has('monocyte_percentage')) {
@@ -2260,8 +2277,10 @@
                     const wbcUnitEl = document.getElementById('wbcUnit');
                     const wbcRaw = wbcEl ? window.PhenoAge.parseInput(wbcEl.value) : NaN;
                     const wbcCanonical = wbcRaw && wbcUnitEl ? wbcRaw / parseFloat(wbcUnitEl.value) : NaN;
-                    const count = raw / parseFloat(unitEl.value);
-                    entry.MonocytePc = wbcCanonical ? parseFloat(((count / wbcCanonical) * 100).toFixed(2)) : parseFloat(raw.toFixed(2));
+                    if (Number.isFinite(wbcCanonical) && wbcCanonical > 0) {
+                        const count = raw / parseFloat(unitEl.value);
+                        entry.MonocytePc = parseFloat(((count / wbcCanonical) * 100).toFixed(2));
+                    }
                 }
             }
             store('rbc', 'Rbc10e12L', () => parseFloat((parseFloat(document.getElementById('rbc').value) / parseFloat(document.getElementById('rbcUnit').value)).toFixed(2)));
@@ -2581,15 +2600,15 @@
                 return;
             }
 
-            // calculate
-            calculateResult();
-
-            // let browser show validation bubbles (invalid events expand cards)
+            // Block submit if any required field (including WBC) is missing; show validation bubbles first
             if (!this.reportValidity()) {
                 return;
             }
 
-            // all valid → scroll the Calculate button into view
+            // calculate (only reached when form is valid)
+            calculateResult();
+
+            // scroll the Calculate button into view
             const calculateButton = this.querySelector('button[type="submit"]');
             if (calculateButton) {
                 calculateButton.scrollIntoView({ behavior: 'smooth', block: 'start' });
