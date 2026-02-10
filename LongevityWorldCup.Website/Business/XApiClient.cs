@@ -217,6 +217,8 @@ public class XApiClient
             sb.Append(".preview-content{padding:24px;font-size:1.15rem;line-height:1.6;white-space:pre-line;color:#e7e9ea;}");
             sb.Append(".preview-content a{color:#1d9bf0;text-decoration:none;font-weight:600;}");
             sb.Append(".preview-content a:hover{text-decoration:underline;color:#62b9ff;}");
+            sb.Append(".preview-media{padding:0 24px 24px;}");
+            sb.Append(".preview-media img{display:block;width:100%;height:auto;max-height:430px;object-fit:cover;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:#0b0f14;}");
             sb.Append(".x-token{color:#1d9bf0;font-weight:600;}");
             sb.Append("small{color:#7c8aa9;}");
             sb.Append("</style>");
@@ -230,7 +232,6 @@ public class XApiClient
             sb.Append("</div>");
             sb.Append("<div class=\"preview-content\">");
             sb.Append(RenderPreviewText(text ?? ""));
-            sb.Append("</div>");
             sb.Append("</div>");
             if (!string.IsNullOrWhiteSpace(inReplyToTweetId))
             {
@@ -263,9 +264,9 @@ public class XApiClient
                     {
                         var bytes = await File.ReadAllBytesAsync(path);
                         var b64 = Convert.ToBase64String(bytes);
-                        sb.Append("<img style=\"max-width:100%;margin-top:12px;border-radius:8px;\" src=\"data:image/png;base64,");
+                        sb.Append("<div class=\"preview-media\"><img src=\"data:image/png;base64,");
                         sb.Append(b64);
-                        sb.Append("\" />");
+                        sb.Append("\" /></div>");
                     }
                     catch (Exception ex)
                     {
@@ -273,6 +274,7 @@ public class XApiClient
                     }
                 }
             }
+            sb.Append("</div>");
             sb.Append("</body></html>");
 
             await File.WriteAllTextAsync(fullPath, sb.ToString(), Encoding.UTF8);

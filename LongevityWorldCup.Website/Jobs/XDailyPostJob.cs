@@ -1,4 +1,4 @@
-using LongevityWorldCup.Website.Business;
+﻿using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -32,6 +32,8 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
+        if (await XDailyPostJobTempTestHelper.TryPostTemporaryNewRankTestAsync(_events, _xEvents, _images, _xApiClient, _logger))
+            return;
 
         var pending = _events.GetPendingXEvents();
         var freshCutoff = DateTime.UtcNow.AddDays(-7);
@@ -54,7 +56,8 @@ public class XDailyPostJob : IJob
             var msg = _xEvents.TryBuildMessage(type, text);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
-            await _xEvents.SendAsync(msg);
+            var mediaIds = await XDailyPostMediaHelper.TryBuildMediaIdsAsync(type, text, _images, _xApiClient);
+            await _xEvents.SendAsync(msg, mediaIds);
             _events.MarkEventsXProcessed(new[] { id });
             _logger.LogInformation("XDailyPostJob posted event {Id}", id);
             return;
@@ -98,3 +101,4 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob no postable event found");
     }
 }
+
