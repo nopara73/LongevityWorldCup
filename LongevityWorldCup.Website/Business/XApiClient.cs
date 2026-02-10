@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 
 namespace LongevityWorldCup.Website.Business;
@@ -208,15 +209,29 @@ public class XApiClient
 
             var sb = new StringBuilder();
             sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>LWC X Preview</title>");
-            sb.Append("<style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px;background:#020209;color:#eee;}pre{white-space:pre-wrap;word-wrap:break-word;background:#050516;padding:16px;border-radius:8px;}small{color:#aaa;}</style>");
+            sb.Append("<style>");
+            sb.Append("body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;padding:24px;background:#010409;color:#e7e9ea;min-height:100vh;margin:0;}");
+            sb.Append(".preview-card{max-width:720px;margin:0 auto;border-radius:24px;background:#0f1419;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 45px rgba(0,0,0,.65);}");
+            sb.Append(".preview-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.08);font-size:.85rem;letter-spacing:1px;text-transform:uppercase;color:#8899a6;}");
+            sb.Append(".preview-header small{font-size:.7rem;opacity:.9;}");
+            sb.Append(".preview-content{padding:24px;font-size:1.15rem;line-height:1.6;white-space:pre-line;color:#e7e9ea;}");
+            sb.Append(".preview-content a{color:#1d9bf0;text-decoration:none;font-weight:600;}");
+            sb.Append(".preview-content a:hover{text-decoration:underline;color:#62b9ff;}");
+            sb.Append(".x-token{color:#1d9bf0;font-weight:600;}");
+            sb.Append("small{color:#7c8aa9;}");
+            sb.Append("</style>");
             sb.Append("</head><body>");
-            sb.Append("<h2>LWC X Preview</h2>");
+            sb.Append("<div class=\"preview-card\">");
+            sb.Append("<div class=\"preview-header\">");
+            sb.Append("<span>LWC X Preview</span>");
             sb.Append("<small>");
             sb.Append(WebUtility.HtmlEncode(nowUtc.ToString("u")));
             sb.Append("</small>");
-            sb.Append("<pre>");
-            sb.Append(WebUtility.HtmlEncode(text ?? ""));
-            sb.Append("</pre>");
+            sb.Append("</div>");
+            sb.Append("<div class=\"preview-content\">");
+            sb.Append(RenderPreviewText(text ?? ""));
+            sb.Append("</div>");
+            sb.Append("</div>");
             if (!string.IsNullOrWhiteSpace(inReplyToTweetId))
             {
                 sb.Append("<p><strong>reply to tweet id:</strong> ");
@@ -286,6 +301,55 @@ public class XApiClient
             else
                 _log.LogInformation("X (Development): would have posted: {Content}", text);
         }
+
+    }
+
+    private static readonly Regex PreviewTokenRegex = new(
+        @"(?<url>https?://[^\s]+)|(?<mention>@[A-Za-z0-9_]+)|(?<hashtag>#[A-Za-z0-9_]+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static string RenderPreviewText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
+        var builder = new StringBuilder();
+        var lastIndex = 0;
+        foreach (Match match in PreviewTokenRegex.Matches(text))
+        {
+            if (match.Index > lastIndex)
+                builder.Append(WebUtility.HtmlEncode(text.Substring(lastIndex, match.Index - lastIndex)));
+
+            if (match.Groups["url"].Success)
+            {
+                var url = match.Value;
+                var escaped = WebUtility.HtmlEncode(url);
+                builder.Append($"<a href=\"{escaped}\" target=\"_blank\" rel=\"noopener noreferrer\">{escaped}</a>");
+            }
+            else if (match.Groups["mention"].Success)
+            {
+                var mention = match.Value;
+                var handle = mention[1..];
+                var href = $"https://x.com/{handle}";
+                builder.Append($"<a class=\"x-token x-mention\" href=\"{WebUtility.HtmlEncode(href)}\" target=\"_blank\" rel=\"noopener noreferrer\">{WebUtility.HtmlEncode(mention)}</a>");
+            }
+            else if (match.Groups["hashtag"].Success)
+            {
+                var hashtag = match.Value;
+                var tag = hashtag[1..];
+                var href = $"https://x.com/hashtag/{Uri.EscapeDataString(tag)}";
+                builder.Append($"<a class=\"x-token x-hashtag\" href=\"{WebUtility.HtmlEncode(href)}\" target=\"_blank\" rel=\"noopener noreferrer\">{WebUtility.HtmlEncode(hashtag)}</a>");
+            }
+
+            lastIndex = match.Index + match.Length;
+        }
+
+        if (lastIndex < text.Length)
+            builder.Append(WebUtility.HtmlEncode(text.Substring(lastIndex)));
+
+        var html = builder.ToString();
+        html = html.Replace("\r\n", "\n").Replace("\n", "<br/>");
+        return html;
     }
 
     private string? GetAccessToken()
