@@ -938,7 +938,7 @@
                                     <label for="cholesterolUnit" class="visually-hidden">Cholesterol unit</label>
                                     <select id="cholesterolUnit" aria-label="Cholesterol unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
-                                        <option value="0.02586">mg/dL</option>
+                                        <option value="38.67">mg/dL</option>
                                     </select>
                                 </div>
                             </div>
@@ -1294,16 +1294,16 @@
                 }
             }
 
-            // Cholesterol: mmol/L typical 3–7, mg/dL 115–270
+            // Cholesterol: mmol/L typical 3–7 (< 15), mg/dL 115–270 (> 40–50). Only treat as mg/dL when value > 50 so e.g. 130 mg/dL is not mis-read as mmol/L.
             const cholEl = document.getElementById('cholesterol');
             const cholUnitEl = document.getElementById('cholesterolUnit');
             if (cholEl && cholUnitEl) {
                 const v = parse(cholEl);
                 const u = parseFloat(cholUnitEl.value);
-                if (!isNaN(v) && u === 1 && v > 15) {
+                if (!isNaN(v) && u === 1 && v > 50) {
                     console.warn("Cholesterol value suggests mg/dL. Correcting the unit.");
-                    setUnit(cholUnitEl, 0.02586);
-                } else if (!isNaN(v) && u === 0.02586 && v < 1 && v > 0) {
+                    setUnit(cholUnitEl, 38.67);
+                } else if (!isNaN(v) && u === 38.67 && v < 15 && v > 0) {
                     console.warn("Cholesterol value suggests mmol/L. Correcting the unit.");
                     setUnit(cholUnitEl, 1);
                 }
@@ -1781,7 +1781,7 @@
         const unitPreferences = {
             US: {
                 albuminUnit: '0.1', creatinineUnit: '0.0113', glucoseUnit: '18.016', crpUnit: '1',
-                cholesterolUnit: '0.02586', cystatin_cUnit: '0.1', ureaUnit: '2.801', hba1cUnit: '0.0915',
+                cholesterolUnit: '38.67', cystatin_cUnit: '0.1', ureaUnit: '2.801', hba1cUnit: '0.0915',
                 apoa1Unit: '0.01', shbgUnit: '0.0347', vitamin_dUnit: '0.4',
                 lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1',
                 rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1'
@@ -1801,7 +1801,7 @@
             BR: { albuminUnit: '1', creatinineUnit: '1', glucoseUnit: '1', crpUnit: '1', cholesterolUnit: '1', cystatin_cUnit: '1', ureaUnit: '1', hba1cUnit: '1', apoa1Unit: '1', shbgUnit: '1', vitamin_dUnit: '1', lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1', rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1' },
             HN: {
                 albuminUnit: '0.1', creatinineUnit: '0.0113', glucoseUnit: '18.016', crpUnit: '1',
-                cholesterolUnit: '0.02586', cystatin_cUnit: '0.1', ureaUnit: '2.801', hba1cUnit: '0.0915',
+                cholesterolUnit: '38.67', cystatin_cUnit: '0.1', ureaUnit: '2.801', hba1cUnit: '0.0915',
                 apoa1Unit: '0.01', shbgUnit: '0.0347', vitamin_dUnit: '0.4',
                 lymphocyte_percentageUnit: '1', neutrophil_percentageUnit: '1', monocyte_percentageUnit: '1',
                 rbcUnit: '1', mcvUnit: '1', mchUnit: '1', rdwUnit: '1', alpUnit: '1', altUnit: '1', ggtUnit: '1'
