@@ -793,7 +793,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Red cell distribution width (RDW) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" aria-expanded="false">Red cell distribution width (RDW, RDW-CV) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="rdw" name="rdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -870,12 +870,12 @@
                     <fieldset>
                         <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Urea <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" aria-expanded="false">Urea/BUN <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="urea" name="urea" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="ureaUnit" class="visually-hidden">Urea unit</label>
-                                    <select id="ureaUnit" aria-label="Urea unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="ureaUnit" class="visually-hidden">Urea/BUN unit</label>
+                                    <select id="ureaUnit" aria-label="Urea/BUN unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
                                         <option value="6">Urea (mg/dL)</option>
                                         <option value="2.801">BUN (mg/dL)</option>
