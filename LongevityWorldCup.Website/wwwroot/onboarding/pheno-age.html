@@ -1769,6 +1769,15 @@
                 document.querySelectorAll('.biomarker-card.active .toggle-icon')
                     .forEach(i => i.style.display = 'none');
             }
+            // Expand cards for any field filled from URL (when no sessionStorage or in addition)
+            ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value.trim() !== '') expandFieldCard(id);
+            });
+            if (isUpdate) {
+                document.querySelectorAll('.biomarker-card.active .toggle-icon')
+                    .forEach(i => i.style.display = 'none');
+            }
         }
 
         window.addEventListener('pageshow', updateModeFormInitializerUnique);
