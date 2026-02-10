@@ -687,8 +687,10 @@
                                     <input type="number" id="wbc" name="wbc" step="any" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">10³ cells/µL</option>
                                         <option value="1">1000 cells/µL</option>
                                         <option value="1">10⁹ cells/L</option>
+                                        <option value="1">billion cells/L</option>
                                         <option value="1000">cells/µL</option>
                                         <option value="1000">cells/mm³</option>
                                     </select>
@@ -704,8 +706,12 @@
                                     <label for="lymphocyte_percentageUnit" class="visually-hidden">Select unit for Lymphocytes</label>
                                     <select id="lymphocyte_percentageUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
+                                        <option value="1">10³ cells/µL</option>
                                         <option value="1">1000 cells/µL</option>
                                         <option value="1">10⁹ cells/L</option>
+                                        <option value="1">billion cells/L</option>
+                                        <option value="1000">cells/µL</option>
+                                        <option value="1000">cells/mm³</option>
                                     </select>
                                 </div>
                             </div>
@@ -719,8 +725,10 @@
                                     <label for="neutrophil_percentageUnit" class="visually-hidden">Neutrophils unit</label>
                                     <select id="neutrophil_percentageUnit" aria-label="Neutrophils unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
-                                        <option value="1">10⁹ cells/L</option>
+                                        <option value="1">10³ cells/µL</option>
                                         <option value="1">1000 cells/µL</option>
+                                        <option value="1">10⁹ cells/L</option>
+                                        <option value="1">billion cells/L</option>
                                         <option value="1000">cells/µL</option>
                                         <option value="1000">cells/mm³</option>
                                     </select>
@@ -736,8 +744,10 @@
                                     <label for="monocyte_percentageUnit" class="visually-hidden">Monocytes unit</label>
                                     <select id="monocyte_percentageUnit" aria-label="Monocytes unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
-                                        <option value="1">10⁹ cells/L</option>
+                                        <option value="1">10³ cells/µL</option>
                                         <option value="1">1000 cells/µL</option>
+                                        <option value="1">10⁹ cells/L</option>
+                                        <option value="1">billion cells/L</option>
                                         <option value="1000">cells/µL</option>
                                         <option value="1000">cells/mm³</option>
                                     </select>
@@ -752,10 +762,12 @@
                                     <input type="number" id="rbc" name="rbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="rbcUnit" class="visually-hidden">RBC unit</label>
                                     <select id="rbcUnit" aria-label="RBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">10¹²/L</option>
                                         <option value="1">10⁶ cells/µL</option>
                                         <option value="1">million cells/µL</option>
+                                        <option value="1">10⁶ cells/mm³</option>
                                         <option value="1">million cells/mm³</option>
+                                        <option value="1">10¹² cells/L</option>
+                                        <option value="1">trillion cells/L</option>
                                         <option value="1000000">cells/µL</option>
                                         <option value="1000000">cells/mm³</option>
                                     </select>
@@ -1506,7 +1518,7 @@
                         adjustedValue = rawValue / unitConversion;
                     }
                 } else if (f.id === 'lymphocyte_percentage') {
-                    // Bortz expects Lymphocytes in %; convert from absolute (1000 cells/µL or 10⁹ cells/L) using WBC when needed
+                    // Bortz expects Lymphocytes in %; convert from absolute (10³ cells/µL or 10⁹ cells/L) using WBC when needed
                     if (unitText === '%') {
                         adjustedValue = rawValue / unitConversion;
                     } else {
