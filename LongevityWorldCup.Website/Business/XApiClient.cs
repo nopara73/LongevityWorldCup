@@ -37,8 +37,24 @@ public class XApiClient
     {
         if (_env.IsDevelopment())
         {
-            _log.LogInformation("X (Development): would have uploaded media with contentType {ContentType}", contentType);
-            return null;
+            try
+            {
+                var root = Path.Combine(Path.GetTempPath(), "LWC_XPreview");
+                Directory.CreateDirectory(root);
+                var ts = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff");
+                var ext = contentType.Contains("png", StringComparison.OrdinalIgnoreCase) ? "png" : "bin";
+                var fileName = $"x_media_{ts}.{ext}";
+                var fullPath = Path.Combine(root, fileName);
+                await using var fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+                await content.CopyToAsync(fs);
+                _log.LogInformation("X (Development): wrote preview media {Path}", fullPath);
+                return "local:" + fullPath;
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "X (Development): failed to write preview media.");
+                return null;
+            }
         }
 
         var token = GetAccessToken();
@@ -209,9 +225,38 @@ public class XApiClient
             }
             if (mediaIds is { Count: > 0 })
             {
-                sb.Append("<p><strong>media_ids:</strong> ");
-                sb.Append(WebUtility.HtmlEncode(string.Join(", ", mediaIds)));
-                sb.Append("</p>");
+                var locals = new List<string>();
+                var other = new List<string>();
+                foreach (var id in mediaIds)
+                {
+                    if (!string.IsNullOrWhiteSpace(id) && id.StartsWith("local:", StringComparison.OrdinalIgnoreCase))
+                        locals.Add(id["local:".Length..]);
+                    else if (!string.IsNullOrWhiteSpace(id))
+                        other.Add(id);
+                }
+
+                if (other.Count > 0)
+                {
+                    sb.Append("<p><strong>media_ids:</strong> ");
+                    sb.Append(WebUtility.HtmlEncode(string.Join(", ", other)));
+                    sb.Append("</p>");
+                }
+
+                foreach (var path in locals)
+                {
+                    try
+                    {
+                        var bytes = await File.ReadAllBytesAsync(path);
+                        var b64 = Convert.ToBase64String(bytes);
+                        sb.Append("<img style=\"max-width:100%;margin-top:12px;border-radius:8px;\" src=\"data:image/png;base64,");
+                        sb.Append(b64);
+                        sb.Append("\" />");
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogWarning(ex, "Failed to embed preview media {Path}", path);
+                    }
+                }
             }
             sb.Append("</body></html>");
 
