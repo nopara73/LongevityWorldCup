@@ -1126,6 +1126,34 @@
             });
         }
 
+        function overwriteBortzFormFromUrlParams() {
+            var params = new URLSearchParams(window.location.search);
+            var y = params.get('Year'), m = params.get('Month'), d = params.get('Day'), bd = params.get('Date');
+            if (y) { var yEl = document.getElementById('dob-year'); if (yEl) yEl.value = y; }
+            if (m) { var mEl = document.getElementById('dob-month'); if (mEl) mEl.value = m; }
+            if (y || m || d) { if (typeof updateDays === 'function') updateDays(); }
+            if (d) { var dEl = document.getElementById('dob-day'); if (dEl) dEl.value = d; }
+            if (bd && bloodDrawDateInput) bloodDrawDateInput.value = bd;
+            var map = {
+                AlbGL: ['albumin', '1'], AlpUL: ['alp', '1'], CreatUmolL: ['creatinine', '1'], CrpMgL: ['crp', '1'],
+                GluMmolL: ['glucose', '1'], LymPc: ['lymphocyte_percentage', '1'], McvFL: ['mcv', '1'], RdwPc: ['rdw', '1'],
+                Wbc1000cellsuL: ['wbc', '1'], NeutrophilPc: ['neutrophil_percentage', '1'], MonocytePc: ['monocyte_percentage', '1'],
+                Rbc10e12L: ['rbc', '1'], MchPg: ['mch', '1'], AltUL: ['alt', '1'], GgtUL: ['ggt', '1'],
+                UreaMmolL: ['urea', '1'], CystatinCMgL: ['cystatin_c', '1'], Hba1cMmolMol: ['hba1c', '1'],
+                CholesterolMmolL: ['cholesterol', '1'], ApoA1GL: ['apoa1', '1'], ShbgNmolL: ['shbg', '1'], VitaminDNmolL: ['vitamin_d', '1']
+            };
+            Object.keys(map).forEach(function (key) {
+                var val = params.get(key);
+                if (val === null || val === '') return;
+                var num = parseFloat(val);
+                if (!Number.isFinite(num)) return;
+                var inputId = map[key][0], unitVal = map[key][1];
+                var el = document.getElementById(inputId);
+                var uEl = document.getElementById(inputId + 'Unit');
+                if (el && uEl) { el.value = num; uEl.value = unitVal; touchedBiomarkers.add(inputId); }
+            });
+        }
+
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
         const bortzFieldIds = ['lymphocyte_percentage', 'neutrophil_percentage', 'monocyte_percentage', 'rbc', 'mcv', 'mch', 'rdw', 'albumin', 'urea', 'creatinine', 'cystatin_c', 'glucose', 'hba1c', 'cholesterol', 'apoa1', 'alt', 'alp', 'ggt', 'crp', 'shbg', 'vitamin_d'];
@@ -1656,6 +1684,55 @@
                 validAgeInput.style.display = 'block';
             }
 
+            // Update URL from calculation result (merge so update=1, fake=1 are preserved)
+            (function updateUrlFromBortzResult() {
+                var two = function (n) { return Number.isFinite(n) ? parseFloat(Number(n).toFixed(2)) : n; };
+                var wbcEl = document.getElementById('wbc');
+                var wbcU = document.getElementById('wbcUnit');
+                var wbcCanonical = wbcEl && wbcU ? parseFloat(wbcEl.value) / parseFloat(wbcU.value) : NaN;
+                var formParams = {
+                    Year: year,
+                    Month: month + 1,
+                    Day: day,
+                    Date: bloodDrawDate,
+                    AlbGL: two(markerValues[1]),
+                    AlpUL: two(markerValues[2]),
+                    UreaMmolL: two(markerValues[3]),
+                    CholesterolMmolL: two(markerValues[4]),
+                    CreatUmolL: two(markerValues[5]),
+                    CystatinCMgL: two(markerValues[6]),
+                    Hba1cMmolMol: two(markerValues[7]),
+                    CrpMgL: two(markerValues[8]),
+                    GgtUL: two(markerValues[9]),
+                    Rbc10e12L: two(markerValues[10]),
+                    McvFL: two(markerValues[11]),
+                    RdwPc: two(markerValues[12]),
+                    GluMmolL: two(markerValues[19]),
+                    MchPg: two(markerValues[20]),
+                    ApoA1GL: two(markerValues[21]),
+                    LymPc: two(markerValues[15]),
+                    AltUL: two(markerValues[16]),
+                    ShbgNmolL: two(markerValues[17]),
+                    VitaminDNmolL: two(markerValues[18])
+                };
+                if (Number.isFinite(wbcCanonical) && wbcCanonical > 0) {
+                    formParams.Wbc1000cellsuL = two(wbcCanonical);
+                    formParams.MonocytePc = two((markerValues[13] / wbcCanonical) * 100);
+                    formParams.NeutrophilPc = two((markerValues[14] / wbcCanonical) * 100);
+                }
+                var BORTZ_URL_KEYS = ['Year', 'Month', 'Day', 'Date', 'AlbGL', 'AlpUL', 'CreatUmolL', 'CrpMgL', 'GluMmolL', 'LymPc', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'MchPg', 'AltUL', 'GgtUL', 'UreaMmolL', 'CystatinCMgL', 'Hba1cMmolMol', 'CholesterolMmolL', 'ApoA1GL', 'ShbgNmolL', 'VitaminDNmolL'];
+                var current = new URLSearchParams(window.location.search);
+                var next = new URLSearchParams();
+                current.forEach(function (val, key) {
+                    if (BORTZ_URL_KEYS.indexOf(key) === -1) next.set(key, val);
+                });
+                Object.keys(formParams).forEach(function (k) { if (formParams[k] != null && formParams[k] !== '') next.set(k, String(formParams[k])); });
+                var search = next.toString();
+                var base = '/bortz-age';
+                var hash = window.location.hash || '';
+                history.replaceState({}, '', base + (search ? '?' + search : '') + hash);
+            })();
+
             // Setting up the animated counter effect
             const animatedAgeElement = document.getElementById('animatedAge');
             const yearsTextElement = document.getElementById('yearsText');
@@ -1991,6 +2068,7 @@
             if (isFake) {
                 fillFakeData();
             }
+            overwriteBortzFormFromUrlParams();
 
             if (isUpdate) {
                 hideMainProgress();
@@ -2107,6 +2185,7 @@
             if (isFake) {
                 fillFakeData();
             }
+            overwriteBortzFormFromUrlParams();
 
             // refill only saved biomarkers
             const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));

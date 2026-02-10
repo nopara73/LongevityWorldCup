@@ -928,6 +928,26 @@
             });
         }
 
+        function overwritePhenoFormFromUrlParams() {
+            var params = new URLSearchParams(window.location.search);
+            var y = params.get('Year'), m = params.get('Month'), d = params.get('Day'), bd = params.get('Date');
+            if (y) { var yEl = document.getElementById('dob-year'); if (yEl) yEl.value = y; }
+            if (m) { var mEl = document.getElementById('dob-month'); if (mEl) mEl.value = m; }
+            if (y || m || d) { if (typeof updateDays === 'function') updateDays(); }
+            if (d) { var dEl = document.getElementById('dob-day'); if (dEl) dEl.value = d; }
+            if (bd && bloodDrawDateInput) bloodDrawDateInput.value = bd;
+            var map = { AlbGL: ['albumin', '1'], CreatUmolL: ['creatinine', '1'], GluMmolL: ['glucose', '1'], CrpMgL: ['crp', '10'], Wbc1000cellsuL: ['wbc', '1'], LymPc: ['lymphocyte', '1'], McvFL: ['mcv', '1'], RdwPc: ['rcdw', '1'], AlpUL: ['ap', '1'] };
+            Object.keys(map).forEach(function (key) {
+                var val = params.get(key);
+                if (val === null || val === '') return;
+                var num = parseFloat(val);
+                if (!Number.isFinite(num)) return;
+                var inputId = map[key][0], unitVal = map[key][1];
+                var el = document.getElementById(inputId), uEl = document.getElementById(inputId + 'Unit');
+                if (el && uEl) { el.value = num; uEl.value = unitVal; touchedBiomarkers.add(inputId); }
+            });
+        }
+
         //–– keep track of which fields the user actually edits (or clears)
         const touchedBiomarkers = new Set();
         ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']
@@ -1200,6 +1220,38 @@
                 ensureCorrectInputSuggestion.style.display = 'none';
                 validAgeInput.style.display = 'block';
             }
+
+            // Update URL from calculation result (merge so update=1, fake=1 are preserved)
+            (function updateUrlFromPhenoResult() {
+                const PHENO_URL_KEYS = ['Year', 'Month', 'Day', 'Date', 'AlbGL', 'CreatUmolL', 'GluMmolL', 'CrpMgL', 'Wbc1000cellsuL', 'LymPc', 'McvFL', 'RdwPc', 'AlpUL'];
+                const crpMgL = 10 * Math.exp(markerValues[4]);
+                const two = function (n) { return Number.isFinite(n) ? parseFloat(n.toFixed(2)) : n; };
+                const formParams = {
+                    Year: year,
+                    Month: month + 1,
+                    Day: day,
+                    Date: bloodDrawDate,
+                    AlbGL: two(markerValues[1]),
+                    CreatUmolL: two(markerValues[2]),
+                    GluMmolL: two(markerValues[3]),
+                    CrpMgL: two(crpMgL),
+                    Wbc1000cellsuL: two(markerValues[5]),
+                    LymPc: two(markerValues[6]),
+                    McvFL: two(markerValues[7]),
+                    RdwPc: two(markerValues[8]),
+                    AlpUL: two(markerValues[9])
+                };
+                const current = new URLSearchParams(window.location.search);
+                const next = new URLSearchParams();
+                current.forEach(function(val, key) {
+                    if (PHENO_URL_KEYS.indexOf(key) === -1) next.set(key, val);
+                });
+                Object.keys(formParams).forEach(function(k) { next.set(k, String(formParams[k])); });
+                const search = next.toString();
+                const base = '/pheno-age';
+                const hash = window.location.hash || '';
+                history.replaceState({}, '', base + (search ? '?' + search : '') + hash);
+            })();
 
             // Setting up the animated counter effect
             const animatedAgeElement = document.getElementById('animatedAge');
@@ -1605,6 +1657,7 @@
             if (isFake) {
                 fillFakeData();
             }
+            overwritePhenoFormFromUrlParams();
 
             if (isUpdate) {
                 hideMainProgress();
@@ -1696,6 +1749,7 @@
             if (isFake) {
                 fillFakeData();
             }
+            overwritePhenoFormFromUrlParams();
 
             // refill only saved biomarkers
             const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
