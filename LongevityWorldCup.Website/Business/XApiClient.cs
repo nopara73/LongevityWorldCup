@@ -221,8 +221,10 @@ public class XApiClient
             {
                 var psi = new ProcessStartInfo
                 {
-                    FileName = fullPath,
-                    UseShellExecute = true
+                    FileName = "cmd",
+                    Arguments = $"/c start \"\" \"{fullPath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
                 };
                 Process.Start(psi);
             }

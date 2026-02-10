@@ -1,5 +1,6 @@
 using System.Globalization;
 using LongevityWorldCup.Website.Tools;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -7,17 +8,15 @@ public class XEventService
 {
     private readonly XApiClient _x;
     private readonly ILogger<XEventService> _log;
-    private readonly AthleteDataService _athletes;
-    private readonly PvpBattleService _pvp;
+    private readonly IServiceProvider _services;
     private readonly object _lockObj = new();
     private Dictionary<string, AthleteForX> _bySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public XEventService(XApiClient x, ILogger<XEventService> log, AthleteDataService athletes, PvpBattleService pvp)
+    public XEventService(XApiClient x, ILogger<XEventService> log, IServiceProvider services)
     {
         _x = x;
         _log = log;
-        _athletes = athletes ?? throw new ArgumentNullException(nameof(athletes));
-        _pvp = pvp ?? throw new ArgumentNullException(nameof(pvp));
+        _services = services ?? throw new ArgumentNullException(nameof(services));
     }
 
     public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
@@ -88,14 +87,15 @@ public class XEventService
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)
     {
+        var athletes = GetAthletes();
         var msg = XMessageBuilder.ForFiller(
             fillerType,
             payloadText ?? "",
             SlugToName,
-            _athletes.GetTop3SlugsForLeague,
-            _athletes.GetCrowdLowestAgeTop3,
-            _athletes.GetRecentNewcomersForX,
-            _athletes.GetBestDomainWinnerSlug);
+            athletes.GetTop3SlugsForLeague,
+            athletes.GetCrowdLowestAgeTop3,
+            athletes.GetRecentNewcomersForX,
+            athletes.GetBestDomainWinnerSlug);
         return string.IsNullOrWhiteSpace(msg) ? null : msg;
     }
 
@@ -144,7 +144,7 @@ public class XEventService
 
     public async Task SendRandomPvpBattleAsync(DateTime? asOfUtc)
     {
-        var battle = _pvp.CreateRandomBattle(asOfUtc, 3);
+        var battle = GetPvp().CreateRandomBattle(asOfUtc, 3);
         if (battle == null) return;
         var text = XMessageBuilder.ForPvpBattle(battle, SlugToName);
         if (string.IsNullOrWhiteSpace(text)) return;
@@ -153,7 +153,7 @@ public class XEventService
 
     public async Task<bool> TrySendPvpDuelThreadAsync(DateTime? asOfUtc)
     {
-        var battle = _pvp.CreateRandomBattle(asOfUtc, 3);
+        var battle = GetPvp().CreateRandomBattle(asOfUtc, 3);
         if (battle == null) return false;
 
         var intro = XMessageBuilder.ForPvpBattle(battle, SlugToName);
@@ -174,5 +174,15 @@ public class XEventService
             await SendReplyTweetAsync(rootId, finalText);
 
         return true;
+    }
+
+    private AthleteDataService GetAthletes()
+    {
+        return _services.GetRequiredService<AthleteDataService>();
+    }
+
+    private PvpBattleService GetPvp()
+    {
+        return _services.GetRequiredService<PvpBattleService>();
     }
 }
