@@ -80,4 +80,4 @@ The inaugural Longevity World Cup concluded. The top 20 athletes by age reductio
 
 ## Special Mentions
 
-Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health), the [VO2 Max Leaderboard](https://www.joinzero.co/leaderboard) by JoinZero, and [Favies (previously Goaly)](https://favies.com/) and various fitness tracker-specific gamified leaderboards.
+Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health) and various fitness tracker-specific gamified leaderboards.
