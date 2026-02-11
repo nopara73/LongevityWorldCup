@@ -363,19 +363,19 @@
     }
     .athlete-info p{ margin:.3rem 0; }
 
-    /* Athlete info — clean two-column table (labels right, values left) */
+    /* Athlete info — clean two-column table (labels right, values left); uniform row spacing */
     .athlete-info-table {
         width: 100%;
         max-width: 100%;
         margin: 0 auto;
         border-collapse: separate;
-        border-spacing: 0.3rem .12rem;
+        border-spacing: 0.3rem 0;
         table-layout: fixed; /* prevents table from overflowing; columns share space */
     }
     .athlete-info-table th,
     .athlete-info-table td{
         text-align:left;
-        padding:.10rem 0 .10rem .5rem;
+        padding: 0.35rem 0 0.35rem 0.5rem;
         min-width:0;
         overflow-wrap:break-word;
         word-break:break-word;
@@ -391,7 +391,7 @@
         width: 38%; /* leaves room for values; long labels wrap */
         text-align:left;
         white-space:normal; /* wrap long labels so they never get cut off */
-        padding:.10rem .5rem .10rem 0;
+        padding: 0.35rem 0.5rem 0.35rem 0;
         font-weight:700;
         color:inherit !important;
         background:none !important;
@@ -402,7 +402,7 @@
     }
     .athlete-info-table td{
         text-align:left;
-        padding:.10rem 0 .10rem .5rem;
+        padding: 0.35rem 0 0.35rem 0.5rem;
         min-width:0;
         overflow-wrap:break-word;
         word-break:break-word;
@@ -421,9 +421,9 @@
         margin-left: .25ch;
     }
 
-    /* Visual break between identity (rank, division, flag) and age & performance */
+    /* Visual break (horizontal line) — same row spacing as other rows */
     .athlete-info-divider-row td {
-        padding: 0.6rem 0 0.5rem !important;
+        padding: 0.35rem 0 0.35rem 0.5rem !important;
         vertical-align: middle;
         border: 0;
         line-height: 0;
@@ -578,10 +578,10 @@
             padding: 0.5rem 0;
         }
         .athlete-info-table tr.athlete-info-divider-row {
-            padding: 0.4rem 0;
+            padding: 0.5rem 0;
         }
         .athlete-info-table tr.athlete-info-divider-row td {
-            padding: 0;
+            padding: 0 !important;
         }
         .athlete-info-table th,
         .athlete-info-table td {
@@ -2910,7 +2910,7 @@
                         : null;
                 if (Number.isFinite(bortzPaceOfAgingValue)) {
                     document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
-                    bortzPaceOfAgingContainer.style.display = 'table-row';
+                    bortzPaceOfAgingContainer.style.display = '';
                     const bortzPaceOfAgingRank = _.findIndex(athletesOrderedByBortzPace, ['name', athleteData.name]) + 1;
                     if (Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0) {
                         document.getElementById('bortzPaceOfAgingRank').textContent = '#' + bortzPaceOfAgingRank;
@@ -2926,7 +2926,7 @@
                         : null;
                 if (Number.isFinite(paceOfAgingValue)) {
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
-                    paceOfAgingContainer.style.display = 'table-row';
+                    paceOfAgingContainer.style.display = '';
 
                     const paceOfAgingRank = _.findIndex(athletesOrderedByPace, ['name', athleteData.name]) + 1;
                     if (Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0) {
@@ -3018,7 +3018,7 @@
         const lowestBortzAgeContainer = document.getElementById('lowestBortzAgeContainer');
         if (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge)) {
             lowestBortzAgeEl.textContent = athleteData.lowestBortzAge.toFixed(1);
-            lowestBortzAgeContainer.style.display = 'table-row';
+            lowestBortzAgeContainer.style.display = '';
         } else {
             lowestBortzAgeContainer.style.display = 'none';
         }
@@ -3029,7 +3029,7 @@
             bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz age reduction:" : "Bortz age acceleration:";
             document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
             document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
-            bortzAgeReductionContainer.style.display = 'table-row';
+            bortzAgeReductionContainer.style.display = '';
         } else {
             bortzAgeReductionContainer.style.display = 'none';
         }
