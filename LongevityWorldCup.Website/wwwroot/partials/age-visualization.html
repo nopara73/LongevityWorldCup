@@ -1,12 +1,154 @@
 <style>
-    #targetShootingVisualization{ animation:expandCircle 1s ease-in-out; }
-    
-    @keyframes expandCircle{ from{ transform:scale(.5); opacity:0;} to{ transform:scale(1); opacity:1;} }
+    .age-visualization {
+        margin-top: 1.75rem;
+        margin-bottom: 1.25rem;
+        text-align: center;
+        padding: 1.25rem 1rem;
+        background: var(--card-bg, #fff);
+        border-radius: 16px;
+        border: 1px solid var(--border-color, rgba(0,0,0,0.06));
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .age-radar-wrapper {
+        position: relative;
+        width: min(300px, 88vw);
+        margin: 0 auto;
+        aspect-ratio: 1;
+    }
+    .age-radar-wrapper canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    .age-radar-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+        min-width: 4em;
+    }
+    .age-radar-center .age-diff {
+        display: block;
+        font-size: 1.4em;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--dark-text-color, #1a1a1a);
+        line-height: 1.2;
+    }
+    .age-radar-center .age-diff-label {
+        display: block;
+        font-size: 0.6em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 0.2em;
+        color: var(--primary-color, #00bcd4);
+        opacity: 0.95;
+    }
+    .age-radar-fallback {
+        width: 160px;
+        height: 160px;
+        margin: 0 auto;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        background: linear-gradient(145deg, rgba(0,188,212,0.08) 0%, rgba(76,175,80,0.06) 100%);
+        border: 2px solid rgba(0,188,212,0.2);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .age-radar-fallback .age-diff {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--dark-text-color, #1a1a1a);
+    }
+    .age-radar-fallback .age-diff-label {
+        font-size: 0.7em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-top: 0.25em;
+        color: var(--primary-color, #00bcd4);
+        opacity: 0.9;
+    }
+    .age-radar-center.positive .age-diff { color: #2e7d32; }
+    .age-radar-center.positive .age-diff-label { color: #2e7d32; }
+    .age-radar-center.negative .age-diff { color: #c62828; }
+    .age-radar-center.negative .age-diff-label { color: #c62828; }
+    .age-radar-caption {
+        font-size: 0.7rem;
+        color: var(--muted-color, #64748b);
+        margin-top: 0.75rem;
+        max-width: 280px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.4;
+        letter-spacing: 0.02em;
+    }
+    .age-clock-switch {
+        display: none;
+        justify-content: center;
+        margin-bottom: 1rem;
+        gap: 0;
+    }
+    .age-clock-switch.visible {
+        display: flex;
+    }
+    .age-clock-switch [role="tablist"] {
+        display: inline-flex;
+        background: rgba(0,0,0,0.06);
+        border-radius: 999px;
+        padding: 3px;
+        gap: 2px;
+    }
+    .age-clock-switch [role="tab"] {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--dark-text-color, #1a1a1a);
+        background: transparent;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+    .age-clock-switch [role="tab"]:hover {
+        background: rgba(0,0,0,0.06);
+        color: var(--primary-color, #00bcd4);
+    }
+    .age-clock-switch [role="tab"][aria-selected="true"] {
+        background: var(--card-bg, #fff);
+        color: var(--primary-color, #00bcd4);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .age-clock-switch [role="tab"]:focus-visible {
+        outline: 2px solid var(--primary-color, #00bcd4);
+        outline-offset: 2px;
+    }
 </style>
 
-<div class="age-visualization" id="ageVisualization" style="margin-top: 2rem; text-align: center;">
-    <div id="targetShootingVisualization" style="width: 150px; height: 150px; margin: 0 auto;">
-        <!-- Visualization will be dynamically generated here -->
+<div class="age-visualization" id="ageVisualization" aria-label="Age profile radar chart">
+    <div class="age-clock-switch" id="ageClockSwitch" role="region" aria-label="Choose aging clock">
+        <div role="tablist" aria-label="Aging clock">
+            <button type="button" role="tab" id="ageTabBortz" aria-selected="true" aria-controls="ageRadarWrapper">Bortz Age</button>
+            <button type="button" role="tab" id="ageTabPheno" aria-selected="false" aria-controls="ageRadarWrapper">Pheno Age</button>
+        </div>
     </div>
+    <div class="age-radar-wrapper" id="ageRadarWrapper">
+        <canvas id="ageRadarChart" role="img" aria-label="Domain percentile radar chart"></canvas>
+        <div class="age-radar-center" id="ageRadarCenter" aria-hidden="true" data-diff-sign="">
+            <span class="age-diff" id="ageRadarCenterValue">—</span>
+            <span class="age-diff-label" id="ageRadarCenterLabel">Age diff</span>
+        </div>
+    </div>
+    <div class="age-radar-fallback" id="ageRadarFallback" style="display: none;">
+        <span class="age-diff" id="ageRadarFallbackValue">—</span>
+        <span class="age-diff-label" id="ageRadarFallbackLabel">Age diff</span>
+    </div>
+    <p class="age-radar-caption" id="ageRadarCaption" aria-hidden="true">Domain percentiles vs other athletes (higher = better)</p>
 </div>
-

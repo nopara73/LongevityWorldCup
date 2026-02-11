@@ -1347,6 +1347,7 @@
                     let chronoAtLowestBortzAge = null;
                     let bortzAgeReduction = null;
                     let bortzAgeReductionPercent = null;
+                    let bestBortzValues = null;
                     if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                         let bortzMin = Infinity;
                         let chronoAtBortzMin = null;
@@ -1385,6 +1386,7 @@
                             if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                                 bortzMin = bortzAge;
                                 chronoAtBortzMin = ageAtEntry;
+                                bestBortzValues = bortzValues;
                             }
                         });
                         if (Number.isFinite(bortzMin) && chronoAtBortzMin != null) {
@@ -1425,6 +1427,7 @@
                         ageReduction: ageReduction,
                         ageReductionPercent: ageReductionPercent,
                         bestBiomarkerValues: bestBiomarkerValues,
+                        bestBortzValues: bestBortzValues,
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
                         division: athlete.Division,
@@ -2140,6 +2143,9 @@
             window.biomarkerChartResizeObserver.disconnect();
             window.biomarkerChartResizeObserver = null;
         }
+        if (typeof window.destroyAgeRadarChart === 'function') {
+            window.destroyAgeRadarChart();
+        }
         
         modal.classList.add('fade-out');
         setTimeout(() => {
@@ -2808,14 +2814,13 @@
 
                 updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, ultimateRank);
 
-                // Generate age visualization (prefer Bortz age when available)
+                // Age visualization (radar + center) and biomarker chart are created after modal is shown so canvases have layout dimensions.
                 const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
                     ? athleteData.lowestBortzAge
                     : athleteData.lowestPhenoAge;
                 const chronoAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
                     ? athleteData.chronoAtLowestBortzAge
                     : athleteData.chronoAtLowestPhenoAge;
-                generateAgeVisualization(bioAge, chronoAge);
 
                 // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
@@ -2838,6 +2843,7 @@
                 const modalContent = document.querySelector('.modal-content');
                 // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
                 requestAnimationFrame(function() {
+                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
                     generateBiomarkerChart(fullAthleteData);
                     // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
                     requestAnimationFrame(function() {
