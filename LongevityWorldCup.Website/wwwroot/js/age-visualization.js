@@ -290,8 +290,8 @@
                             padding: 6,
                             z: 1
                         },
-                        grid: { color: 'rgba(0,0,0,0.06)', lineWidth: 1 },
-                        angleLines: { color: 'rgba(0,0,0,0.06)', lineWidth: 1 }
+                        grid: { color: 'rgba(0,0,0,0.08)', lineWidth: 1 },
+                        angleLines: { color: 'rgba(0,0,0,0.08)', lineWidth: 1 }
                     }
                 },
                 animation: { duration: 500 },
