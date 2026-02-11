@@ -17,6 +17,8 @@
 
     // Bortz: 6 divisions from bortz-age.html (Immune, Liver, Kidney, Metabolism, Inflammation, Hormones)
     // Feature indices in window.BortzAge.features: 0=age, 1=albumin, 2=alp, 3=urea, 4=cholesterol, 5=creatinine, 6=cystatin_c, 7=hba1c, 8=crp, 9=ggt, 10=rbc, 11=mcv, 12=rdw, 13=monocyte, 14=neutrophil, 15=lymphocyte, 16=alt, 17=shbg, 18=vitamin_d, 19=glucose, 20=mch, 21=apoa1
+    // Excluded from contribution only (controversial direction): urea, cholesterol, creatinine, alt, shbg
+    var BORTZ_CONTRIBUTION_EXCLUDED = { 3: 1, 4: 1, 5: 1, 16: 1, 17: 1 };
     var BORTZ_DOMAIN_INDICES = {
         Immune: [10, 11, 12, 13, 14, 15, 20],
         Liver: [1, 2, 9, 16],
@@ -34,13 +36,14 @@
         return value;
     }
 
-    /** Bortz domain contribution (sum of (x-mean)*coeff for indices in that domain). Lower = better. */
+    /** Bortz domain contribution (sum of (x-mean)*coeff for indices in that domain, excluding controversial biomarkers). Lower = better. */
     function getBortzDomainContribution(values, featureIndices) {
         if (!window.BortzAge || !window.BortzAge.features || !values || values.length !== window.BortzAge.features.length)
             return NaN;
         var sum = 0;
         for (var i = 0; i < featureIndices.length; i++) {
             var idx = featureIndices[i];
+            if (BORTZ_CONTRIBUTION_EXCLUDED[idx]) continue;
             var f = window.BortzAge.features[idx];
             var x = values[idx];
             if (f.isLog) {
