@@ -359,23 +359,26 @@
         width: 100%;
         max-width: 600px;
         margin: 1.5rem auto;
+        min-width: 0; /* allow shrinking inside flex so content doesn't overflow */
     }
     .athlete-info p{ margin:.3rem 0; }
 
     /* Athlete info — clean two-column table (labels right, values left) */
     .athlete-info-table {
-        width: auto;
+        width: 100%;
+        max-width: 100%;
         margin: 0 auto;
         border-collapse: separate;
         border-spacing: 0.3rem .12rem;
-        table-layout: auto;
+        table-layout: fixed; /* prevents table from overflowing; columns share space */
     }
     .athlete-info-table th,
     .athlete-info-table td{
         text-align:left;
         padding:.10rem 0 .10rem .5rem;
         min-width:0;
-        overflow-wrap:anywhere;
+        overflow-wrap:break-word;
+        word-break:break-word;
         background:none !important;
         border:0;
         font-weight:400;
@@ -385,8 +388,9 @@
     }
 
     .athlete-info-table th{
+        width: 38%; /* leaves room for values; long labels wrap */
         text-align:left;
-        white-space:nowrap;
+        white-space:normal; /* wrap long labels so they never get cut off */
         padding:.10rem .5rem .10rem 0;
         font-weight:700;
         color:inherit !important;
@@ -400,7 +404,8 @@
         text-align:left;
         padding:.10rem 0 .10rem .5rem;
         min-width:0;
-        overflow-wrap:anywhere;
+        overflow-wrap:break-word;
+        word-break:break-word;
         background:none !important;
         border:0;
         font-weight:400;
@@ -557,11 +562,65 @@
         .leaderboard .portrait{ width:40px; height:40px; }
 
         /* =========================
-           Athlete info table tweaks
+           Athlete info table — stacked layout so nothing is cut off
            ========================= */
         .athlete-info-table {
             font-size: 0.9rem;
-            border-spacing: 0.2rem .08rem;
+            border-spacing: 0;
+            table-layout: auto;
+            display: block;
+        }
+        .athlete-info-table tbody {
+            display: block;
+        }
+        .athlete-info-table tr {
+            display: block;
+            padding: 0.5rem 0;
+        }
+        .athlete-info-table tr.athlete-info-divider-row {
+            padding: 0.4rem 0;
+        }
+        .athlete-info-table tr.athlete-info-divider-row td {
+            padding: 0;
+        }
+        .athlete-info-table th,
+        .athlete-info-table td {
+            display: block;
+            width: 100%;
+            padding: 0.15rem 0 0.25rem 0;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.25;
+        }
+        .athlete-info-table th {
+            padding-bottom: 0.05rem;
+            font-size: 0.85em;
+            color: var(--secondary-color, #555);
+        }
+        .athlete-info-table td {
+            padding-top: 0;
+            padding-left: 0;
+            margin: 0;
+        }
+        /* Keep label-to-content gap consistent: no extra space from links or inline content */
+        .athlete-info-table td * {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        .athlete-info-table td .league-link {
+            display: inline;
+            vertical-align: baseline;
+        }
+        /* Pace/age rows: allow wrapping on mobile instead of nowrap */
+        #bortzPaceOfAgingContainer td,
+        #paceOfAgingContainer td,
+        #ageReduction,
+        #ageReductionPercent,
+        #lowestBortzAge,
+        #bortzAgeReduction,
+        #bortzAgeReductionPercent {
+            white-space: normal;
         }
 
         /* Mobile modal improvements */
@@ -591,12 +650,6 @@
         }
         .modal-sticky-header.visible::before{
             top:-30px; height:30px;
-        }
-        .athlete-info-table th {
-            padding-right: 0.1rem;
-        }
-        .athlete-info-table td {
-            padding-left: 0.4rem;
         }
     }
 
@@ -758,12 +811,12 @@
 
 
                             <tr id="bortzPaceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row"><strong>Bortz age pace of aging:</strong></th>
+                                <th scope="row"><strong>Bortz pace of aging:</strong></th>
                                 <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year (pace rank: <span id="bortzPaceOfAgingRank"></span>)</span></td>
                             </tr>
 
                             <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row"><strong>Pheno age pace of aging:</strong></th>
+                                <th scope="row"><strong>Pheno pace of aging:</strong></th>
                                 <td><span id="paceOfAging"></span> <span class="unit">years per year (pace rank: <span id="paceOfAgingRank"></span>)</span></td>
                             </tr>
 
@@ -2973,14 +3026,14 @@
         const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
         const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
         if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
-            bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction:" : "Bortz Age acceleration:";
+            bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz age reduction:" : "Bortz age acceleration:";
             document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
             document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
             bortzAgeReductionContainer.style.display = 'table-row';
         } else {
             bortzAgeReductionContainer.style.display = 'none';
         }
-        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:";
+        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno age reduction:" : "Pheno age acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
         document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
 
