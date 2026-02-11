@@ -416,6 +416,22 @@
         margin-left: .25ch;
     }
 
+    /* Visual break between identity (rank, division, flag) and age & performance */
+    .athlete-info-divider-row td {
+        padding: 0.6rem 0 0.5rem !important;
+        vertical-align: middle;
+        border: 0;
+        line-height: 0;
+    }
+    .athlete-info-divider {
+        display: block;
+        height: 1px;
+        min-width: 12rem;
+        max-width: 100%;
+        background: var(--border-color, rgba(0,0,0,.14));
+        border: 0;
+    }
+
     /* === FIX: Pace of Aging sor biztosan egy sorban === */
     #bortzPaceOfAgingContainer td{ white-space: nowrap; }
     #paceOfAgingContainer td{ white-space: nowrap; }
@@ -708,10 +724,11 @@
                             </tr>
                             <tr>
                                 <th scope="row"><strong>Chronological age:</strong></th>
-                                <td><span id="chronologicalAge"></span> <span class="unit">years</span></td>
+                                <td><span id="chronologicalAge"></span> <span class="unit">years old</span></td>
                             </tr>
-
-
+                            <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
+                                <td colspan="2"><span class="athlete-info-divider"></span></td>
+                            </tr>
                             <tr id="crowdAgeContainer">
                                 <th scope="row"><strong>Crowd age:</strong></th>
                                 <td>
@@ -2941,7 +2958,7 @@
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${athleteData.division}</a>${window.getRankText(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${window.getRankText(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
-        document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
+        document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(0);
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
         updateYourGuess();
         const lowestBortzAgeEl = document.getElementById('lowestBortzAge');
