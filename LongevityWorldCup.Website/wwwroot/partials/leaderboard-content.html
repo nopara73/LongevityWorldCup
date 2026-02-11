@@ -3155,29 +3155,79 @@
 
         const labels = completeData.map(entry => entry.Date);
         const phenoAges = [];
+        const bortzAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
 
         completeData.forEach((entry, entryIndex) => {
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
+            // Push in same order as bortz-age.html (WBC, Lymphocytes, Neutrophils, …)
             biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
             biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc);
+            biomarkersRaw['Neutrophils (%)'].push(entry.NeutrophilPc != null ? entry.NeutrophilPc : null);
+            biomarkersRaw['Monocytes (%)'].push(entry.MonocytePc != null ? entry.MonocytePc : null);
+            biomarkersRaw['RBC (10¹²/L)'].push(entry.Rbc10e12L != null ? entry.Rbc10e12L : null);
             biomarkersRaw['MCV (fL)'].push(entry.McvFL);
+            biomarkersRaw['MCH (pg)'].push(entry.MchPg != null ? entry.MchPg : null);
             biomarkersRaw['RDW (%)'].push(entry.RdwPc);
             biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL);
+            biomarkersRaw['ALT (U/L)'].push(entry.AltUL != null ? entry.AltUL : null);
             biomarkersRaw['ALP (U/L)'].push(entry.AlpUL);
+            biomarkersRaw['GGT (U/L)'].push(entry.GgtUL != null ? entry.GgtUL : null);
+            biomarkersRaw['Urea (mmol/L)'].push(entry.UreaMmolL != null ? entry.UreaMmolL : null);
             biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
+            biomarkersRaw['Cystatin C (mg/L)'].push(entry.CystatinCMgL != null ? entry.CystatinCMgL : null);
             biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
+            biomarkersRaw['HbA1c (mmol/mol)'].push(entry.Hba1cMmolMol != null ? entry.Hba1cMmolMol : null);
+            biomarkersRaw['Cholesterol (mmol/L)'].push(entry.CholesterolMmolL != null ? entry.CholesterolMmolL : null);
+            biomarkersRaw['ApoA1 (g/L)'].push(entry.ApoA1GL != null ? entry.ApoA1GL : null);
             biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
+            biomarkersRaw['SHBG (nmol/L)'].push(entry.ShbgNmolL != null ? entry.ShbgNmolL : null);
+            biomarkersRaw['Vitamin D (nmol/L)'].push(entry.VitaminDNmolL != null ? entry.VitaminDNmolL : null);
 
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
             phenoAges.push(phenoAge.toFixed(1));
+
+            // Bortz Age (when full Bortz set available)
+            let bortzAge = null;
+            if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function' && isCompleteBortzBiomarkerSet(entry)) {
+                const wbc = entry.Wbc1000cellsuL;
+                const monoCount = wbc * entry.MonocytePc / 100;
+                const neutCount = wbc * entry.NeutrophilPc / 100;
+                const bortzValues = [
+                    chronoAgeAtEntry,
+                    entry.AlbGL,
+                    entry.AlpUL,
+                    entry.UreaMmolL,
+                    entry.CholesterolMmolL,
+                    entry.CreatUmolL,
+                    entry.CystatinCMgL,
+                    entry.Hba1cMmolMol,
+                    entry.CrpMgL,
+                    entry.GgtUL,
+                    entry.Rbc10e12L,
+                    entry.McvFL,
+                    entry.RdwPc,
+                    monoCount,
+                    neutCount,
+                    entry.LymPc,
+                    entry.AltUL,
+                    entry.ShbgNmolL,
+                    entry.VitaminDNmolL,
+                    entry.GluMmolL,
+                    entry.MchPg,
+                    entry.ApoA1GL
+                ];
+                const computed = window.BortzAge.calculateBortzAge(chronoAgeAtEntry, bortzValues);
+                if (Number.isFinite(computed)) bortzAge = computed.toFixed(1);
+            }
+            bortzAges.push(bortzAge);
         });
 
         const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
-        const datasets = prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores);
+        const datasets = prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores);
 
         if (window.biomarkerChartInstance) {
             window.biomarkerChartInstance.destroy();
@@ -3193,17 +3243,31 @@
         });
     }
 
+    // Biomarker key order matches bortz-age.html card order (WBC, Lymphocytes, Neutrophils, …)
     function initializeBiomarkersRaw() {
         return {
             'WBC (10^3 cells/µL)': [],
             'Lymphocytes (%)': [],
+            'Neutrophils (%)': [],
+            'Monocytes (%)': [],
+            'RBC (10¹²/L)': [],
             'MCV (fL)': [],
+            'MCH (pg)': [],
             'RDW (%)': [],
             'Albumin (g/L)': [],
+            'ALT (U/L)': [],
             'ALP (U/L)': [],
+            'GGT (U/L)': [],
+            'Urea (mmol/L)': [],
             'Creatinine (µmol/L)': [],
+            'Cystatin C (mg/L)': [],
             'Glucose (mmol/L)': [],
-            'CRP (mg/L)': []
+            'HbA1c (mmol/mol)': [],
+            'Cholesterol (mmol/L)': [],
+            'ApoA1 (g/L)': [],
+            'CRP (mg/L)': [],
+            'SHBG (nmol/L)': [],
+            'Vitamin D (nmol/L)': []
         };
     }
 
@@ -3247,45 +3311,89 @@
     function calculateBiomarkerZScores(biomarkersRaw) {
         const biomarkersZScores = {};
         for (const [key, values] of Object.entries(biomarkersRaw)) {
-            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-            const stdDev = Math.sqrt(variance);
-
-            biomarkersZScores[key] = stdDev === 0
-                ? values.map(() => 0)
-                : values.map(val => ((val - mean) / stdDev).toFixed(2));
+            const hasNulls = values.some(v => v == null);
+            if (hasNulls) {
+                const valid = values.filter(v => v != null && Number.isFinite(v));
+                const n = valid.length;
+                if (n === 0) {
+                    biomarkersZScores[key] = values.map(() => null);
+                } else {
+                    const mean = valid.reduce((sum, val) => sum + val, 0) / n;
+                    const variance = valid.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+                    const stdDev = Math.sqrt(variance);
+                    biomarkersZScores[key] = values.map(val =>
+                        val == null || !Number.isFinite(val) ? null : (stdDev === 0 ? 0 : ((val - mean) / stdDev).toFixed(2))
+                    );
+                }
+            } else {
+                const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+                const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+                const stdDev = Math.sqrt(variance);
+                biomarkersZScores[key] = stdDev === 0
+                    ? values.map(() => 0)
+                    : values.map(val => ((val - mean) / stdDev).toFixed(2));
+            }
         }
         return biomarkersZScores;
     }
 
-    function prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores) {
-        const datasets = [
-            {
-                label: 'Pheno Age',
-                data: phenoAges,
-                borderColor: 'rgba(0, 0, 255, 1)',
-                backgroundColor: 'rgba(0, 0, 255, 0.1)',
+    function prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores) {
+        const hasBortzAge = bortzAges.some(v => v != null && Number.isFinite(Number(v)));
+        const datasets = [];
+        if (hasBortzAge) {
+            datasets.push({
+                label: 'Bortz Age',
+                data: bortzAges,
+                borderColor: 'rgba(0, 128, 0, 1)',
+                backgroundColor: 'rgba(0, 128, 0, 0.1)',
                 fill: false,
                 tension: 0.1,
                 borderWidth: 3,
-                yAxisID: 'y1'
-            }
-        ];
+                yAxisID: 'y1',
+                spanGaps: true
+            });
+        }
+        datasets.push({
+            label: 'Pheno Age',
+            data: phenoAges,
+            borderColor: 'rgba(0, 0, 255, 1)',
+            backgroundColor: 'rgba(0, 0, 255, 0.1)',
+            fill: false,
+            tension: 0.1,
+            borderWidth: 3,
+            yAxisID: 'y1'
+        });
 
         const biomarkerColors = {
             'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)',
             'Lymphocytes (%)': 'rgba(0, 100, 0, 1)',
+            'Neutrophils (%)': 'rgba(100, 149, 237, 1)',
+            'Monocytes (%)': 'rgba(148, 0, 211, 1)',
+            'RBC (10¹²/L)': 'rgba(178, 34, 34, 1)',
             'MCV (fL)': 'rgba(70, 130, 180, 1)',
+            'MCH (pg)': 'rgba(210, 105, 30, 1)',
             'RDW (%)': 'rgba(220, 20, 60, 1)',
             'Albumin (g/L)': 'rgba(0, 128, 255, 1)',
+            'ALT (U/L)': 'rgba(85, 107, 47, 1)',
             'ALP (U/L)': 'rgba(218, 165, 32, 1)',
+            'GGT (U/L)': 'rgba(139, 90, 43, 1)',
+            'Urea (mmol/L)': 'rgba(72, 61, 139, 1)',
             'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',
+            'Cystatin C (mg/L)': 'rgba(60, 179, 113, 1)',
             'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',
-            'CRP (mg/L)': 'rgba(255, 69, 0, 1)'
+            'HbA1c (mmol/mol)': 'rgba(255, 99, 71, 1)',
+            'Cholesterol (mmol/L)': 'rgba(184, 134, 11, 1)',
+            'ApoA1 (g/L)': 'rgba(0, 191, 255, 1)',
+            'CRP (mg/L)': 'rgba(255, 69, 0, 1)',
+            'SHBG (nmol/L)': 'rgba(199, 21, 133, 1)',
+            'Vitamin D (nmol/L)': 'rgba(255, 215, 0, 1)'
         };
 
         for (const [key, zScores] of Object.entries(biomarkersZScores)) {
             const actualValues = biomarkersRaw[key];
+            const hasAtLeastOneValue = actualValues.some(v => v != null && Number.isFinite(v));
+            if (!hasAtLeastOneValue) continue;
+
             const dataPoints = zScores.map((zScore, index) => ({
                 x: labels[index],
                 y: zScore,
@@ -3312,7 +3420,8 @@
                 fill: false,
                 tension: 0.1,
                 yAxisID: 'y2',
-                hidden: isHidden
+                hidden: isHidden,
+                spanGaps: true
             });
         }
         return datasets;
@@ -3333,11 +3442,13 @@
                             const label = context.dataset.label || '';
                             const yValue = context.parsed.y;
                             const actualValue = context.raw.actualValue;
-                            const formattedValue = actualValue !== undefined && !isNaN(actualValue)
+                            if (label === 'Pheno Age' || label === 'Bortz Age') {
+                                return yValue != null ? `${label}: ${yValue}` : `${label}: N/A`;
+                            }
+                            const formattedValue = actualValue !== undefined && actualValue != null && !isNaN(actualValue)
                                 ? (actualValue % 1 !== 0 ? actualValue.toFixed(2) : actualValue.toString())
                                 : 'N/A';
-
-                            return label === 'Pheno Age' ? `${label}: ${yValue}` : `${label}: ${formattedValue}`;
+                            return `${label}: ${formattedValue}`;
                         }
                     }
                 },
