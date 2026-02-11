@@ -264,7 +264,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                layout: { padding: 14 },
+                layout: { padding: 4 },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -293,7 +293,7 @@
                         pointLabels: {
                             font: { family: fontFamily, size: 11, weight: '500' },
                             color: 'rgba(0,0,0,0.7)',
-                            padding: 6,
+                            padding: 3,
                             z: 1
                         },
                         grid: { color: 'rgba(0,0,0,0.08)', lineWidth: 1 },
