@@ -417,6 +417,7 @@
     }
 
     /* === FIX: Pace of Aging sor biztosan egy sorban === */
+    #bortzPaceOfAgingContainer td{ white-space: nowrap; }
     #paceOfAgingContainer td{ white-space: nowrap; }
 
 
@@ -739,6 +740,11 @@
                             </tr>
 
 
+                            <tr id="bortzPaceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
+                                <th scope="row"><strong>Bortz age pace of aging:</strong></th>
+                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year (pace rank: <span id="bortzPaceOfAgingRank"></span>)</span></td>
+                            </tr>
+
                             <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
                                 <th scope="row"><strong>Pheno age pace of aging:</strong></th>
                                 <td><span id="paceOfAging"></span> <span class="unit">years per year (pace rank: <span id="paceOfAgingRank"></span>)</span></td>
@@ -824,6 +830,7 @@
 <script>
     let athleteResults = [];
     let athletesOrderedByPace;
+    let athletesOrderedByBortzPace;
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
@@ -1416,6 +1423,11 @@
                 });
 
                 athletesOrderedByPace = _.orderBy(athleteResults, 'ageReductionPercent', 'desc');
+                athletesOrderedByBortzPace = _.orderBy(
+                    athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
+                    a => a.lowestBortzAge / a.chronoAtLowestBortzAge,
+                    'asc'
+                );
 
                 const podiumCount = includePodium ? 3 : 0;
 
@@ -2819,6 +2831,22 @@
                     modalContent.classList.add('gma-fast');
                 } else {
                     sessionStorage.setItem('gmaSeen', 'true');
+                }
+
+                const bortzPaceOfAgingContainer = document.getElementById('bortzPaceOfAgingContainer');
+                const bortzPaceOfAgingValue =
+                    (athleteData.lowestBortzAge && athleteData.chronoAtLowestBortzAge)
+                        ? (athleteData.lowestBortzAge / athleteData.chronoAtLowestBortzAge)
+                        : null;
+                if (Number.isFinite(bortzPaceOfAgingValue)) {
+                    document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
+                    bortzPaceOfAgingContainer.style.display = 'table-row';
+                    const bortzPaceOfAgingRank = _.findIndex(athletesOrderedByBortzPace, ['name', athleteData.name]) + 1;
+                    if (Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0) {
+                        document.getElementById('bortzPaceOfAgingRank').textContent = '#' + bortzPaceOfAgingRank;
+                    }
+                } else {
+                    bortzPaceOfAgingContainer.style.display = 'none';
                 }
 
                 const paceOfAgingContainer = document.getElementById('paceOfAgingContainer');
