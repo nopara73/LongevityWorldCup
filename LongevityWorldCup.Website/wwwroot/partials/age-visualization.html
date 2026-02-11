@@ -41,11 +41,17 @@
         display: block;
         font-size: 0.6em;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.04em;
         margin-top: 0.2em;
         color: var(--primary-color, #00bcd4);
         opacity: 0.95;
+    }
+    .age-radar-center .age-bio-age {
+        display: block;
+        font-size: 0.55em;
+        font-weight: 500;
+        margin-top: 0.35em;
+        color: rgba(0,0,0,0.6);
     }
     .age-radar-fallback {
         width: 160px;
@@ -69,11 +75,16 @@
     .age-radar-fallback .age-diff-label {
         font-size: 0.7em;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.04em;
         margin-top: 0.25em;
         color: var(--primary-color, #00bcd4);
         opacity: 0.9;
+    }
+    .age-radar-fallback .age-bio-age {
+        font-size: 0.6em;
+        font-weight: 500;
+        margin-top: 0.3em;
+        color: rgba(0,0,0,0.6);
     }
     .age-radar-center.positive .age-diff { color: #2e7d32; }
     .age-radar-center.positive .age-diff-label { color: #2e7d32; }
@@ -143,12 +154,14 @@
         <canvas id="ageRadarChart" role="img" aria-label="Domain percentile radar chart"></canvas>
         <div class="age-radar-center" id="ageRadarCenter" aria-hidden="true" data-diff-sign="">
             <span class="age-diff" id="ageRadarCenterValue">—</span>
-            <span class="age-diff-label" id="ageRadarCenterLabel">Age diff</span>
+            <span class="age-diff-label" id="ageRadarCenterLabel">age reduction</span>
+            <span class="age-bio-age" id="ageRadarCenterBio">biological age: —</span>
         </div>
     </div>
     <div class="age-radar-fallback" id="ageRadarFallback" style="display: none;">
         <span class="age-diff" id="ageRadarFallbackValue">—</span>
-        <span class="age-diff-label" id="ageRadarFallbackLabel">Age diff</span>
+        <span class="age-diff-label" id="ageRadarFallbackLabel">age reduction</span>
+        <span class="age-bio-age" id="ageRadarFallbackBio">biological age: —</span>
     </div>
     <p class="age-radar-caption" id="ageRadarCaption" aria-hidden="true">Domain percentiles vs other athletes (higher = better)</p>
 </div>
