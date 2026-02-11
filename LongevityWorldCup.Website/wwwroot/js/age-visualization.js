@@ -217,8 +217,10 @@
         if (showChrono == null) showChrono = chronoAge;
         updateCenterAndFallback(showBio, showChrono, useBortz);
 
+        var centerEl = document.getElementById('ageRadarCenter');
         if (!data || !window.Chart || !canvas) {
             wrapper.style.display = 'none';
+            if (centerEl) centerEl.style.display = 'none';
             fallback.style.display = 'flex';
             fallback.style.flexDirection = 'column';
             fallback.style.alignItems = 'center';
@@ -227,6 +229,7 @@
         }
 
         wrapper.style.display = 'block';
+        if (centerEl) centerEl.style.display = 'flex';
         fallback.style.display = 'none';
 
         destroyRadarChart();

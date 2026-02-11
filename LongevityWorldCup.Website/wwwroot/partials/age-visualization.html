@@ -20,48 +20,45 @@
         width: 100% !important;
         height: 100% !important;
     }
-    .age-radar-center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        pointer-events: none;
-        min-width: 6.5rem;
-        max-width: 8rem;
-        padding: 0.5rem 0.6rem;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.92);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-        line-height: 1.35;
+    .age-radar-summary {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: center;
+        gap: 0.5rem 1rem;
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(0,188,212,0.06) 0%, rgba(0,188,212,0.02) 100%);
+        border: 1px solid rgba(0,188,212,0.12);
+        line-height: 1.4;
+        max-width: 320px;
+        margin-left: auto;
+        margin-right: auto;
     }
-    .age-radar-center .age-diff {
-        display: block;
-        font-size: 1.15rem;
+    .age-radar-summary .age-diff {
+        font-size: 1.35rem;
         font-weight: 800;
         font-variant-numeric: tabular-nums;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
         color: var(--dark-text-color, #1a1a1a);
         white-space: nowrap;
-        text-shadow: 0 0 1px rgba(255, 255, 255, 0.8);
     }
-    .age-radar-center .age-diff-label {
-        display: block;
-        font-size: 0.65rem;
+    .age-radar-summary .age-diff-label {
+        font-size: 0.75rem;
         font-weight: 600;
-        letter-spacing: 0.03em;
-        margin-top: 0.15rem;
+        letter-spacing: 0.02em;
         color: var(--primary-color, #00bcd4);
         white-space: nowrap;
     }
-    .age-radar-center .age-bio-age {
-        display: block;
-        font-size: 0.6rem;
+    .age-radar-summary .age-bio-age {
+        flex-basis: 100%;
+        font-size: 0.7rem;
         font-weight: 500;
         font-variant-numeric: tabular-nums;
-        margin-top: 0.3rem;
-        color: rgba(0, 0, 0, 0.65);
+        color: var(--muted-color, #64748b);
         white-space: nowrap;
+        margin-top: 0.25rem;
     }
     .age-radar-fallback {
         width: 160px;
@@ -100,14 +97,17 @@
         color: rgba(0, 0, 0, 0.65);
         white-space: nowrap;
     }
-    .age-radar-center.positive .age-diff { color: #2e7d32; }
-    .age-radar-center.positive .age-diff-label { color: #2e7d32; }
-    .age-radar-center.negative .age-diff { color: #c62828; }
-    .age-radar-center.negative .age-diff-label { color: #c62828; }
+    .age-radar-summary.positive .age-diff,
+    .age-radar-summary.positive .age-diff-label { color: #1b5e20; }
+    .age-radar-summary.positive { background: linear-gradient(135deg, rgba(46,125,50,0.08) 0%, rgba(46,125,50,0.02) 100%); border-color: rgba(46,125,50,0.2); }
+    .age-radar-summary.negative .age-diff,
+    .age-radar-summary.negative .age-diff-label { color: #b71c1c; }
+    .age-radar-summary.negative { background: linear-gradient(135deg, rgba(198,40,40,0.06) 0%, rgba(198,40,40,0.02) 100%); border-color: rgba(198,40,40,0.2); }
     .age-radar-caption {
         font-size: 0.7rem;
         color: var(--muted-color, #64748b);
-        margin-top: 0.75rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0;
         max-width: 280px;
         margin-left: auto;
         margin-right: auto;
@@ -166,16 +166,16 @@
     </div>
     <div class="age-radar-wrapper" id="ageRadarWrapper">
         <canvas id="ageRadarChart" role="img" aria-label="Domain percentile radar chart"></canvas>
-        <div class="age-radar-center" id="ageRadarCenter" aria-hidden="true" data-diff-sign="">
-            <span class="age-diff" id="ageRadarCenterValue">—</span>
-            <span class="age-diff-label" id="ageRadarCenterLabel">age reduction</span>
-            <span class="age-bio-age" id="ageRadarCenterBio">biological age: —</span>
-        </div>
+    </div>
+    <p class="age-radar-caption" id="ageRadarCaption" aria-hidden="true">Domain percentiles vs other athletes (higher = better)</p>
+    <div class="age-radar-summary" id="ageRadarCenter" aria-live="polite" data-diff-sign="">
+        <span class="age-diff" id="ageRadarCenterValue">—</span>
+        <span class="age-diff-label" id="ageRadarCenterLabel">age reduction</span>
+        <span class="age-bio-age" id="ageRadarCenterBio">biological age: —</span>
     </div>
     <div class="age-radar-fallback" id="ageRadarFallback" style="display: none;">
         <span class="age-diff" id="ageRadarFallbackValue">—</span>
         <span class="age-diff-label" id="ageRadarFallbackLabel">age reduction</span>
         <span class="age-bio-age" id="ageRadarFallbackBio">biological age: —</span>
     </div>
-    <p class="age-radar-caption" id="ageRadarCaption" aria-hidden="true">Domain percentiles vs other athletes (higher = better)</p>
 </div>
