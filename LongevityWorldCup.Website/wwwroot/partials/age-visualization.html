@@ -11,7 +11,7 @@
     }
     .age-radar-wrapper {
         position: relative;
-        width: min(300px, 88vw);
+        width: clamp(260px, 88vw, 440px);
         margin: 0 auto;
         aspect-ratio: 1;
     }
@@ -27,31 +27,41 @@
         transform: translate(-50%, -50%);
         text-align: center;
         pointer-events: none;
-        min-width: 4em;
+        min-width: 6.5rem;
+        max-width: 8rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        line-height: 1.35;
     }
     .age-radar-center .age-diff {
         display: block;
-        font-size: 1.4em;
+        font-size: 1.15rem;
         font-weight: 800;
-        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
         color: var(--dark-text-color, #1a1a1a);
-        line-height: 1.2;
+        white-space: nowrap;
+        text-shadow: 0 0 1px rgba(255, 255, 255, 0.8);
     }
     .age-radar-center .age-diff-label {
         display: block;
-        font-size: 0.6em;
+        font-size: 0.65rem;
         font-weight: 600;
-        letter-spacing: 0.04em;
-        margin-top: 0.2em;
+        letter-spacing: 0.03em;
+        margin-top: 0.15rem;
         color: var(--primary-color, #00bcd4);
-        opacity: 0.95;
+        white-space: nowrap;
     }
     .age-radar-center .age-bio-age {
         display: block;
-        font-size: 0.55em;
+        font-size: 0.6rem;
         font-weight: 500;
-        margin-top: 0.35em;
-        color: rgba(0,0,0,0.6);
+        font-variant-numeric: tabular-nums;
+        margin-top: 0.3rem;
+        color: rgba(0, 0, 0, 0.65);
+        white-space: nowrap;
     }
     .age-radar-fallback {
         width: 160px;
@@ -68,23 +78,27 @@
         box-shadow: 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
     }
     .age-radar-fallback .age-diff {
-        font-size: 1.35rem;
+        font-size: 1.2rem;
         font-weight: 800;
+        font-variant-numeric: tabular-nums;
         color: var(--dark-text-color, #1a1a1a);
+        white-space: nowrap;
     }
     .age-radar-fallback .age-diff-label {
-        font-size: 0.7em;
+        font-size: 0.7rem;
         font-weight: 600;
-        letter-spacing: 0.04em;
-        margin-top: 0.25em;
+        letter-spacing: 0.03em;
+        margin-top: 0.2rem;
         color: var(--primary-color, #00bcd4);
-        opacity: 0.9;
+        white-space: nowrap;
     }
     .age-radar-fallback .age-bio-age {
-        font-size: 0.6em;
+        font-size: 0.65rem;
         font-weight: 500;
-        margin-top: 0.3em;
-        color: rgba(0,0,0,0.6);
+        font-variant-numeric: tabular-nums;
+        margin-top: 0.25rem;
+        color: rgba(0, 0, 0, 0.65);
+        white-space: nowrap;
     }
     .age-radar-center.positive .age-diff { color: #2e7d32; }
     .age-radar-center.positive .age-diff-label { color: #2e7d32; }
