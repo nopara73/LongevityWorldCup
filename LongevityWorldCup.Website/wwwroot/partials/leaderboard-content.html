@@ -2136,6 +2136,10 @@
             modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
             modalContent._scrollProgressListener = null;
         }
+        if (window.biomarkerChartResizeObserver) {
+            window.biomarkerChartResizeObserver.disconnect();
+            window.biomarkerChartResizeObserver = null;
+        }
         
         modal.classList.add('fade-out');
         setTimeout(() => {
@@ -2813,14 +2817,17 @@
                     : athleteData.chronoAtLowestPhenoAge;
                 generateAgeVisualization(bioAge, chronoAge);
 
-                // Generate biomarker chart
-                generateBiomarkerChart(fullAthleteData);
+                // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
                 // Populate proofs gallery
                 populateProofsGallery(fullAthleteData);
 
                 // After populating the modal with athlete data but before showing it:
-                originalAthletelessURL = getAthletelessURL();
+                // Only update originalAthletelessURL when we're not already on an athlete URL, so a second open (e.g. URL sync with ?guessmyage=1) does not overwrite it with "/"
+                const pathnameBeforeOpen = window.location.pathname;
+                if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
+                    originalAthletelessURL = getAthletelessURL();
+                }
                 const athleteSlug = window.slugifyName(athleteNameText, true);
                 history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
 
@@ -2829,6 +2836,22 @@
                 lockBodyScroll();
 
                 const modalContent = document.querySelector('.modal-content');
+                // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
+                requestAnimationFrame(function() {
+                    generateBiomarkerChart(fullAthleteData);
+                    // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
+                    requestAnimationFrame(function() {
+                        if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
+                    });
+                    var chartContainer = document.getElementById('athlete-biomarkers');
+                    if (chartContainer && window.biomarkerChartInstance) {
+                        if (window.biomarkerChartResizeObserver) window.biomarkerChartResizeObserver.disconnect();
+                        window.biomarkerChartResizeObserver = new ResizeObserver(function() {
+                            if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
+                        });
+                        window.biomarkerChartResizeObserver.observe(chartContainer);
+                    }
+                });
                 if (!modalContent) {
                     console.error('Modal content element not found');
                     return;
