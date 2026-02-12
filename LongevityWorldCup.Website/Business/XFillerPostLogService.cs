@@ -39,19 +39,25 @@ public class XFillerPostLogService
 
     public void LogPost(DateTime postedAtUtc, FillerType type, string text)
     {
-        var t = text ?? "";
+        var infoToken = text ?? "";
         _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText = $"INSERT INTO {TableName} (PostedAtUtc, Type, Text) VALUES (@at, @type, @text)";
             cmd.Parameters.AddWithValue("@at", postedAtUtc.ToString("o"));
             cmd.Parameters.AddWithValue("@type", (int)type);
-            cmd.Parameters.AddWithValue("@text", t);
+            cmd.Parameters.AddWithValue("@text", infoToken);
             cmd.ExecuteNonQuery();
         });
     }
 
     public (FillerType Type, string PayloadText) GetSuggestedNextFiller()
+    {
+        var candidates = GetSuggestedFillersOrdered();
+        return candidates.Count > 0 ? candidates[0] : (FillerType.Top3Leaderboard, "league[ultimate]");
+    }
+
+    public IReadOnlyList<(FillerType Type, string PayloadText)> GetSuggestedFillersOrdered()
     {
         var options = new List<(FillerType Type, string Text)>();
         foreach (var slug in Top3LeagueSlugs)
@@ -64,9 +70,9 @@ public class XFillerPostLogService
 
         var lastByOption = _db.Run(sqlite =>
         {
-            var dict = new Dictionary<(FillerType, string), DateTime>();
+            var rows = new List<(FillerType Type, string Text, DateTime PostedAtUtc)>();
             using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"SELECT Type, Text, MAX(PostedAtUtc) FROM {TableName} GROUP BY Type, Text";
+            cmd.CommandText = $"SELECT Type, Text, PostedAtUtc FROM {TableName}";
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
@@ -75,22 +81,80 @@ public class XFillerPostLogService
                 var type = Enum.IsDefined(typeof(FillerType), typeInt) ? (FillerType)typeInt : (FillerType)(-1);
                 if (type < 0) continue;
                 if (DateTime.TryParse(r.GetString(2), null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
-                    dict[(type, text)] = dt;
+                    rows.Add((type, text, dt));
             }
-            return dict;
+            return rows;
         });
 
-        var minAt = DateTime.MaxValue;
-        var chosen = (options[0].Type, options[0].Text);
-        foreach (var (type, text) in options)
+        var dict = new Dictionary<(FillerType, string), DateTime>();
+        foreach (var (type, payloadText) in options)
         {
-            var last = lastByOption.TryGetValue((type, text), out var t) ? t : DateTime.MinValue;
-            if (last < minAt)
-            {
-                minAt = last;
-                chosen = (type, text);
-            }
+            var last = lastByOption
+                .Where(x => x.Type == type && TokenBelongsToOption(type, payloadText, x.Text))
+                .Select(x => x.PostedAtUtc)
+                .DefaultIfEmpty(DateTime.MinValue)
+                .Max();
+            dict[(type, payloadText)] = last;
         }
-        return chosen;
+
+        return options
+            .OrderBy(x => dict.TryGetValue((x.Type, x.Text), out var t) ? t : DateTime.MinValue)
+            .Select(x => (x.Type, x.Text))
+            .ToList();
+    }
+
+    public bool IsUnchangedFromLastForOption(FillerType type, string payloadText, string infoToken)
+    {
+        var payload = payloadText ?? "";
+        var token = infoToken ?? "";
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var candidates = _db.Run(sqlite =>
+        {
+            var rows = new List<(string Text, DateTime PostedAtUtc)>();
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"""
+                SELECT Text, PostedAtUtc
+                FROM {TableName}
+                WHERE Type = @type
+                ORDER BY PostedAtUtc DESC
+                """;
+            cmd.Parameters.AddWithValue("@type", (int)type);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var text = r.IsDBNull(0) ? "" : r.GetString(0);
+                var dt = DateTime.MinValue;
+                if (!r.IsDBNull(1))
+                    DateTime.TryParse(r.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind, out dt);
+                rows.Add((text, dt));
+            }
+            return rows;
+        });
+
+        var last = candidates
+            .Where(x => TokenBelongsToOption(type, payload, x.Text))
+            .Select(x => x.Text)
+            .FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(last))
+            return false;
+        return string.Equals(last, token, StringComparison.Ordinal);
+    }
+
+    private static bool TokenBelongsToOption(FillerType type, string payloadText, string tokenText)
+    {
+        var token = tokenText ?? "";
+        var payload = payloadText ?? "";
+
+        return type switch
+        {
+            FillerType.Top3Leaderboard => token.StartsWith(payload + " ", StringComparison.OrdinalIgnoreCase),
+            FillerType.DomainTop => token.StartsWith(payload + " ", StringComparison.OrdinalIgnoreCase),
+            FillerType.CrowdGuesses => token.StartsWith("slugs[", StringComparison.OrdinalIgnoreCase),
+            FillerType.Newcomers => token.StartsWith("slugs[", StringComparison.OrdinalIgnoreCase),
+            FillerType.PvpBiomarkerDuel => token.StartsWith("pair[", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
     }
 }

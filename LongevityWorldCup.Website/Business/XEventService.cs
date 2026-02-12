@@ -153,14 +153,24 @@ public class XEventService
 
     public async Task<bool> TrySendPvpDuelThreadAsync(DateTime? asOfUtc)
     {
+        var (sent, _) = await TrySendPvpDuelThreadWithInfoTokenAsync(asOfUtc);
+        return sent;
+    }
+
+    public async Task<(bool Sent, string? InfoToken)> TrySendPvpDuelThreadWithInfoTokenAsync(DateTime? asOfUtc, Func<string, bool>? shouldSkipToken = null)
+    {
         var battle = GetPvp().CreateRandomBattle(asOfUtc, 3);
-        if (battle == null) return false;
+        if (battle == null) return (false, null);
+
+        var infoToken = BuildPvpInfoToken(battle);
+        if (!string.IsNullOrWhiteSpace(infoToken) && shouldSkipToken?.Invoke(infoToken) == true)
+            return (false, infoToken);
 
         var intro = XMessageBuilder.ForPvpBattle(battle, SlugToName);
-        if (string.IsNullOrWhiteSpace(intro)) return false;
+        if (string.IsNullOrWhiteSpace(intro)) return (false, infoToken);
 
         var rootId = await SendRootTweetAsync(intro);
-        if (string.IsNullOrWhiteSpace(rootId)) return false;
+        if (string.IsNullOrWhiteSpace(rootId)) return (false, infoToken);
 
         var rounds = XMessageBuilder.ForPvpRounds(battle, SlugToName);
         foreach (var r in rounds)
@@ -173,7 +183,7 @@ public class XEventService
         if (!string.IsNullOrWhiteSpace(finalText))
             await SendReplyTweetAsync(rootId, finalText);
 
-        return true;
+        return (true, infoToken);
     }
 
     private AthleteDataService GetAthletes()
@@ -184,5 +194,24 @@ public class XEventService
     private PvpBattleService GetPvp()
     {
         return _services.GetRequiredService<PvpBattleService>();
+    }
+
+    private static string BuildPvpInfoToken(PvpBattleResult battle)
+    {
+        static string Norm(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return "";
+            return s.Trim().ToLowerInvariant().Replace(' ', '-');
+        }
+
+        var pair = new[] { battle.AthleteSlugA ?? "", battle.AthleteSlugB ?? "" }
+            .Select(Norm)
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToArray();
+        var rounds = battle.Rounds
+            .Select(r => Norm(r.BiomarkerName))
+            .Where(x => !string.IsNullOrWhiteSpace(x));
+        var winner = string.IsNullOrWhiteSpace(battle.WinnerSlug) ? "tie" : Norm(battle.WinnerSlug);
+        return $"pair[{string.Join(", ", pair)}] rounds[{string.Join(", ", rounds)}] winner[{winner}]";
     }
 }

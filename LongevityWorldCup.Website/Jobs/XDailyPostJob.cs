@@ -63,42 +63,96 @@ public class XDailyPostJob : IJob
             return;
         }
 
-        var (fillerType, payloadText) = _fillerLog.GetSuggestedNextFiller();
-        if (fillerType == FillerType.PvpBiomarkerDuel)
+        var fillerCandidates = _fillerLog.GetSuggestedFillersOrdered();
+        foreach (var (fillerType, payloadText) in fillerCandidates)
         {
-            var ok = await _xEvents.TrySendPvpDuelThreadAsync(null);
-            if (ok)
+            var payload = payloadText ?? "";
+            if (fillerType == FillerType.PvpBiomarkerDuel)
             {
-                _fillerLog.LogPost(DateTime.UtcNow, fillerType, payloadText ?? "");
-                _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
-                return;
-            }
-        }
-        else
-        {
-            var fillerMsg = _xEvents.TryBuildFillerMessage(fillerType, payloadText);
-            if (!string.IsNullOrWhiteSpace(fillerMsg))
-            {
-                IReadOnlyList<string>? mediaIds = null;
-                if (fillerType == FillerType.Newcomers)
+                var (ok, pvpInfoToken) = await _xEvents.TrySendPvpDuelThreadWithInfoTokenAsync(
+                    null,
+                    token => _fillerLog.IsUnchangedFromLastForOption(fillerType, payload, token));
+                if (ok && !string.IsNullOrWhiteSpace(pvpInfoToken))
                 {
-                    await using var imageStream = await _images.BuildNewcomersImageAsync();
-                    if (imageStream != null)
-                    {
-                        var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
-                        if (!string.IsNullOrWhiteSpace(mediaId))
-                            mediaIds = new[] { mediaId };
-                    }
+                    _fillerLog.LogPost(DateTime.UtcNow, fillerType, pvpInfoToken);
+                    _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
+                    return;
                 }
 
-                await _xEvents.SendAsync(fillerMsg, mediaIds);
-                _fillerLog.LogPost(DateTime.UtcNow, fillerType, payloadText ?? "");
-                _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
-                return;
+                continue;
             }
+
+            var fillerMsg = _xEvents.TryBuildFillerMessage(fillerType, payload);
+            if (string.IsNullOrWhiteSpace(fillerMsg))
+                continue;
+
+            var infoToken = TryBuildFillerInfoToken(fillerType, payload);
+            if (string.IsNullOrWhiteSpace(infoToken))
+                continue;
+
+            if (_fillerLog.IsUnchangedFromLastForOption(fillerType, payload, infoToken))
+            {
+                _logger.LogInformation("XDailyPostJob skipped unchanged filler {FillerType} {PayloadText}", fillerType, payloadText);
+                continue;
+            }
+
+            IReadOnlyList<string>? mediaIds = null;
+            if (fillerType == FillerType.Newcomers)
+            {
+                await using var imageStream = await _images.BuildNewcomersImageAsync();
+                if (imageStream != null)
+                {
+                    var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
+                    if (!string.IsNullOrWhiteSpace(mediaId))
+                        mediaIds = new[] { mediaId };
+                }
+            }
+
+            await _xEvents.SendAsync(fillerMsg, mediaIds);
+            _fillerLog.LogPost(DateTime.UtcNow, fillerType, infoToken);
+            _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
+            return;
         }
 
         _logger.LogInformation("XDailyPostJob no postable event found");
     }
-}
 
+    private string? TryBuildFillerInfoToken(FillerType fillerType, string payloadText)
+    {
+        static string Norm(string? s) => string.IsNullOrWhiteSpace(s) ? "" : s.Trim().ToLowerInvariant();
+
+        if (fillerType == FillerType.Top3Leaderboard)
+        {
+            if (!EventHelpers.TryExtractLeague(payloadText, out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
+                return null;
+            var top3 = _athletes.GetTop3SlugsForLeague(leagueSlug.Trim()).Take(3).Select(Norm).Where(s => s.Length > 0).ToList();
+            if (top3.Count == 0) return null;
+            return $"league[{Norm(leagueSlug)}] slugs[{string.Join(", ", top3)}]";
+        }
+
+        if (fillerType == FillerType.CrowdGuesses)
+        {
+            var top3 = _athletes.GetCrowdLowestAgeTop3().Take(3).Select(x => Norm(x.Slug)).Where(s => s.Length > 0).ToList();
+            if (top3.Count == 0) return null;
+            return $"slugs[{string.Join(", ", top3)}]";
+        }
+
+        if (fillerType == FillerType.Newcomers)
+        {
+            var slugs = _athletes.GetRecentNewcomersForX().Select(Norm).Where(s => s.Length > 0).Distinct(StringComparer.Ordinal).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            if (slugs.Count == 0) return null;
+            return $"slugs[{string.Join(", ", slugs)}]";
+        }
+
+        if (fillerType == FillerType.DomainTop)
+        {
+            if (!EventHelpers.TryExtractDomain(payloadText, out var domainKey) || string.IsNullOrWhiteSpace(domainKey))
+                return null;
+            var winner = _athletes.GetBestDomainWinnerSlug(domainKey.Trim());
+            if (string.IsNullOrWhiteSpace(winner)) return null;
+            return $"domain[{Norm(domainKey)}] winner[{Norm(winner)}]";
+        }
+
+        return null;
+    }
+}
