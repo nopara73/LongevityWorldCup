@@ -10,7 +10,7 @@
     var PHENO_DOMAINS = [
         { key: 'liver', label: 'Liver', contributor: 'calculateLiverPhenoAgeContributor' },
         { key: 'kidney', label: 'Kidney', contributor: 'calculateKidneyPhenoAgeContributor' },
-        { key: 'metabolic', label: 'Metabolic', contributor: 'calculateMetabolicPhenoAgeContributor' },
+        { key: 'metabolic', label: 'Metabolism', contributor: 'calculateMetabolicPhenoAgeContributor' },
         { key: 'inflammation', label: 'Inflammation', contributor: 'calculateInflammationPhenoAgeContributor' },
         { key: 'immune', label: 'Immune', contributor: 'calculateImmunePhenoAgeContributor' }
     ];
