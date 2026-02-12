@@ -9,6 +9,11 @@
         --arrow-left: -15px;            /* base arrow position */
         --arrow-hover-shift: calc((var(--portrait-size) * (var(--portrait-hover-scale) - 1)) / 2);
         --arrow-cover-extra: 24px;      /* arrow width (20) + ~4px safety */
+        /* Amateur (Pheno Age) tier styling only */
+        --tier-amateur-bg: rgba(59, 130, 246, 0.06);
+        --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
+        --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
+        --tier-amateur-hover: rgba(59, 130, 246, 0.12);
     }
 
     /* =========================
@@ -46,6 +51,38 @@
     }
     .leaderboard table th:nth-child(2){ text-align:left; }
     .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
+
+    /* Amateur (Pheno Age) tier – blueish hue; pro (Bortz) rows use default table styling */
+    .leaderboard table tbody tr.tier-amateur{
+        background-color: var(--tier-amateur-bg);
+        border-left: var(--tier-amateur-border);
+    }
+    .leaderboard table tbody tr.tier-amateur:nth-child(even){
+        background-color: var(--tier-amateur-bg-even);
+    }
+    .leaderboard table tbody tr.tier-amateur:hover{
+        background-color: var(--tier-amateur-hover);
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+    }
+    .leaderboard table tbody tr.tier-separator{
+        background: linear-gradient(90deg, rgba(240, 244, 248, 0.6), rgba(59, 130, 246, 0.12));
+        border-left: none;
+        cursor: default;
+        pointer-events: none;
+    }
+    .leaderboard table tbody tr.tier-separator:hover{ transform: none; box-shadow: none; }
+    .leaderboard table tbody tr.tier-separator .tier-separator-cell{
+        padding: 0.5rem 1rem;
+        text-align: left;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary-color);
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; }
 
     .leaderboard table tbody tr{ cursor:pointer; }
     .leaderboard table tbody tr:hover{ transform: scale(1.02); box-shadow:0 4px 10px rgba(0,0,0,.1); }
@@ -1647,9 +1684,24 @@
                 const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
+                let lastTier = null; // 'pro' | 'amateur' for inserting separator between Bortz and Pheno sections
                 remainingAthletes.forEach((athlete, index) => {
+                    const isPro = athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
+                    const tier = isPro ? 'pro' : 'amateur';
+                    if (lastTier === 'pro' && tier === 'amateur') {
+                        const sep = document.createElement('tr');
+                        sep.className = 'tier-separator';
+                        sep.setAttribute('aria-label', 'Start of Pheno Age athletes section');
+                        sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Pheno Age athletes</span></td>';
+                        tableBody.appendChild(sep);
+                    }
+                    lastTier = tier;
+
                     const template = document.getElementById('leaderboardRowTemplate');
                     const row = template.content.firstElementChild.cloneNode(true);
+
+                    row.classList.add('tier-' + tier);
+                    row.setAttribute('data-tier', tier);
 
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
@@ -2284,11 +2336,12 @@
             });
         }
 
-        // First, hide all rows
+        // First, hide all rows (including tier separator)
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         tableRows.forEach(row => {
             row.style.display = 'none';
         });
+        const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
 
         // Remove 'blurred' class from all podium items
         const podiumItems = document.querySelectorAll('.podium-item');
@@ -2319,6 +2372,21 @@
                 anyPodiumVisible = true;
             }
         });
+
+        // Show tier separator when both pro and amateur rows are visible (first amateur after at least one pro)
+        if (tierSeparatorRow) {
+            const visibleRows = Array.from(document.querySelectorAll('.leaderboard table tbody tr:not(.tier-separator)')).filter(r => r.style.display !== 'none');
+            let sawPro = false;
+            let separatorShouldShow = false;
+            for (const r of visibleRows) {
+                if (r.classList.contains('tier-pro')) sawPro = true;
+                else if (r.classList.contains('tier-amateur') && sawPro) {
+                    separatorShouldShow = true;
+                    break;
+                }
+            }
+            tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
+        }
 
         // Remove existing highlights
         window.removeAllHighlights();
