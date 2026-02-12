@@ -1580,7 +1580,7 @@
                                                 </a>` : ''}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
-                                            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
+                                            <div><span class="age-reduction">${Math.abs((athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction) ? athlete.bortzAgeReduction : athlete.ageReduction).toFixed(1))} years</span> reduced</div>
                                             <div class="podium-item-lower">
                                                 <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
                                                 <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
@@ -1674,8 +1674,9 @@
 
                     window.setBadges(athlete, athleteCell);
 
+                    const displayAgeReduction = (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction)) ? athlete.bortzAgeReduction : athlete.ageReduction;
                     const ageReductionSpan = row.querySelector('.age-reduction');
-                    ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years';
+                    ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(1) + ' years';
 
                     const mediaContactCell = row.querySelector('.media-contact-td');
                     mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
