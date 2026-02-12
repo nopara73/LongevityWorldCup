@@ -25,9 +25,9 @@
         Kidney: [3, 5, 6],
         Metabolism: [4, 7, 19, 21],
         Inflammation: [8],
-        Hormones: [17, 18]
+        'Vitamin D': [17, 18]
     };
-    var BORTZ_DOMAIN_LABELS = ['Immune', 'Liver', 'Kidney', 'Metabolism', 'Inflammation', 'Hormones'];
+    var BORTZ_DOMAIN_LABELS = ['Immune', 'Liver', 'Kidney', 'Metabolism', 'Inflammation', 'Vitamin D'];
 
     function applyBortzCap(value, f) {
         if (!f.capMode) return value;
