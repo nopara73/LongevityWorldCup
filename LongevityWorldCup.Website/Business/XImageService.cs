@@ -188,6 +188,59 @@ public class XImageService
         return output;
     }
 
+    public async Task<Stream?> BuildTop3LeaderboardPodiumImageAsync(IReadOnlyList<string> top3Slugs)
+    {
+        var slugs = (top3Slugs ?? Array.Empty<string>())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Take(3)
+            .ToList();
+        if (slugs.Count == 0)
+            return null;
+
+        const int canvasWidth = 1200;
+        const int canvasHeight = 675;
+        using var image = new Image<Rgba32>(canvasWidth, canvasHeight, new Rgba32(5, 5, 15));
+
+        // Podium layout: #1 center and higher, #2 left lower, #3 right lower.
+        var slots = new[]
+        {
+            new { X = canvasWidth / 2, Y = 180, Size = 320 }, // rank 1
+            new { X = canvasWidth / 2 - 280, Y = 270, Size = 250 }, // rank 2
+            new { X = canvasWidth / 2 + 280, Y = 270, Size = 250 }  // rank 3
+        };
+
+        for (var i = 0; i < slugs.Count && i < 3; i++)
+        {
+            var slot = slots[i];
+            if (!TryGetProfilePath(slugs[i], out var path))
+                continue;
+
+            try
+            {
+                using var profile = await Image.LoadAsync<Rgba32>(path);
+                profile.Mutate(ctx => ctx.Resize(new ResizeOptions
+                {
+                    Size = new Size(slot.Size, slot.Size),
+                    Mode = ResizeMode.Crop,
+                    Position = AnchorPositionMode.Center
+                }));
+
+                var x = slot.X - slot.Size / 2;
+                var y = slot.Y - slot.Size / 2;
+                image.Mutate(ctx => ctx.DrawImage(profile, new Point(x, y), 1f));
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Failed to load Top3 profile image {Path}", path);
+            }
+        }
+
+        var output = new MemoryStream();
+        await image.SaveAsPngAsync(output);
+        output.Position = 0;
+        return output;
+    }
+
     public Task<Stream?> BuildPvpDuelRootImageAsync(string slugA, string slugB)
     {
         return BuildPvpFaceoffImageAsync(slugA, slugB, "VS", grayLeft: false, grayRight: false);
