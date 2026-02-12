@@ -1904,11 +1904,12 @@
                 });
         }
 
-        function lwcValidateStep1() {
+        function lwcValidateStep1(silent) {
             // validate DOB year + blood draw date (reuse existing validation)
+            // silent: when true (e.g. restore-step check), return false without showing alerts
             const yearVal = document.getElementById('dob-year').value;
             if (!yearVal) {
-                customAlert('Please select your birth year.');
+                if (!silent) customAlert('Please select your birth year.');
                 return false;
             }
             const bd = getValidatedBloodDrawDate();
@@ -2043,7 +2044,7 @@
             // Restore step 2 after refresh if user had navigated there and step 1 is valid
             let restoredStep = false;
             try {
-                if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1()) {
+                if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true)) {
                     lwcSetStep(2);
                     restoredStep = true;
                 }
