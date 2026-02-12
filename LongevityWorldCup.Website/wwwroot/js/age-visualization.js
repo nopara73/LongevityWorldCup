@@ -14,6 +14,25 @@
         { key: 'metabolic', label: 'Metabolism', contributor: 'calculateMetabolicPhenoAgeContributor' },
         { key: 'inflammation', label: 'Inflammation', contributor: 'calculateInflammationPhenoAgeContributor' }
     ];
+    // Pheno biomarker index -> { shortName, unit, fromStored? } for tooltips. Stored order: age, albumin, creatinine, glucose, log(crp/10), wbc, lymphocyte, mcv, rcdw, ap
+    var PHENO_BIOMARKER_DISPLAY = {
+        1: { short: 'Albumin', unit: 'g/L' },
+        2: { short: 'Creatinine', unit: 'µmol/L' },
+        3: { short: 'Glucose', unit: 'mmol/L' },
+        4: { short: 'CRP', unit: 'mg/L', fromStored: function (v) { return 10 * Math.exp(v); } },
+        5: { short: 'WBC', unit: '10⁹/L' },
+        6: { short: 'Lymphocytes', unit: '%' },
+        7: { short: 'MCV', unit: 'fL' },
+        8: { short: 'RDW', unit: '%' },
+        9: { short: 'ALP', unit: 'U/L' }
+    };
+    var PHENO_DOMAIN_BIOMARKER_INDICES = {
+        immune: [5, 6, 7, 8],
+        liver: [1, 9],
+        kidney: [2],
+        metabolic: [3],
+        inflammation: [4]
+    };
 
     // Bortz: 6 divisions from bortz-age.html (Immune, Liver, Kidney, Metabolism, Inflammation, Hormones)
     // Feature indices in window.BortzAge.features: 0=age, 1=albumin, 2=alp, 3=urea, 4=cholesterol, 5=creatinine, 6=cystatin_c, 7=hba1c, 8=crp, 9=ggt, 10=rbc, 11=mcv, 12=rdw, 13=monocyte, 14=neutrophil, 15=lymphocyte, 16=alt, 17=shbg, 18=vitamin_d, 19=glucose, 20=mch, 21=apoa1
@@ -28,6 +47,12 @@
         'Vitamin D': [17, 18]
     };
     var BORTZ_DOMAIN_LABELS = ['Immune', 'Liver', 'Kidney', 'Metabolism', 'Inflammation', 'Vitamin D'];
+    // Bortz feature index -> unit for tooltips (indices match window.BortzAge.features)
+    var BORTZ_BIOMARKER_UNITS = {
+        0: 'years', 1: 'g/L', 2: 'U/L', 3: 'mmol/L', 4: 'mmol/L', 5: 'µmol/L', 6: 'mg/L', 7: 'mmol/mol',
+        8: 'mg/L', 9: 'U/L', 10: '10¹²/L', 11: 'fL', 12: '%', 13: '10⁹/L', 14: '10⁹/L', 15: '%',
+        16: 'U/L', 17: 'nmol/L', 18: 'nmol/L', 19: 'mmol/L', 20: 'pg', 21: 'g/L'
+    };
 
     function applyBortzCap(value, f) {
         if (!f.capMode) return value;
@@ -54,6 +79,12 @@
             sum += (x - f.mean) * f.baaCoeff;
         }
         return sum * 10;
+    }
+
+    function formatTooltipValue(val) {
+        if (val !== val || val === undefined) return '—';
+        if (Number.isInteger(val)) return String(val);
+        return Number(val).toFixed(2).replace(/\.?0+$/, '');
     }
 
     /** For a list of athletes with scores (lower = better), compute percentile for the current athlete. 0–100, higher = better. */
@@ -88,6 +119,7 @@
     function getPhenoRadarData(athleteData, athleteResults, currentChronoAge) {
         var labels = [];
         var values = [];
+        var tooltipContributors = [];
         var athletesWithPheno = getClosestAthletesByAge(
             currentChronoAge,
             (athleteResults || []).filter(function (a) { return a.bestBiomarkerValues && a.bestBiomarkerValues.length; }),
@@ -102,19 +134,35 @@
             var contributorFn = window.PhenoAge && window.PhenoAge[dom.contributor];
             if (typeof contributorFn !== 'function') {
                 values.push(50);
+                tooltipContributors.push([]);
                 continue;
             }
             var myScore = contributorFn(mv);
             var allScores = athletesWithPheno.map(function (a) { return contributorFn(a.bestBiomarkerValues); });
             var pct = scoreToPercentile(myScore, allScores);
             values.push(pct !== null ? pct : 50);
+            var indices = PHENO_DOMAIN_BIOMARKER_INDICES[dom.key];
+            var parts = [];
+            if (indices) {
+                for (var i = 0; i < indices.length; i++) {
+                    var idx = indices[i];
+                    var disp = PHENO_BIOMARKER_DISPLAY[idx];
+                    var v = mv[idx];
+                    if (disp) {
+                        var displayVal = disp.fromStored ? disp.fromStored(v) : v;
+                        parts.push(disp.short + ': ' + formatTooltipValue(displayVal) + ' ' + disp.unit);
+                    }
+                }
+            }
+            tooltipContributors.push(parts);
         }
-        return { labels: labels, values: values };
+        return { labels: labels, values: values, tooltipContributors: tooltipContributors };
     }
 
     function getBortzRadarData(athleteData, athleteResults, currentChronoAge) {
         var labels = BORTZ_DOMAIN_LABELS.slice();
         var values = [];
+        var tooltipContributors = [];
         var athletesWithBortz = getClosestAthletesByAge(
             currentChronoAge,
             (athleteResults || []).filter(function (a) { return a.bestBortzValues && a.bestBortzValues.length; }),
@@ -123,6 +171,7 @@
         if (athletesWithBortz.length === 0 || !athleteData || !athleteData.bestBortzValues) return null;
 
         var bv = athleteData.bestBortzValues;
+        var features = window.BortzAge && window.BortzAge.features;
         for (var i = 0; i < BORTZ_DOMAIN_LABELS.length; i++) {
             var name = BORTZ_DOMAIN_LABELS[i];
             var indices = BORTZ_DOMAIN_INDICES[name];
@@ -130,8 +179,20 @@
             var allScores = athletesWithBortz.map(function (a) { return getBortzDomainContribution(a.bestBortzValues, indices); });
             var pct = scoreToPercentile(myScore, allScores);
             values.push(pct !== null ? pct : 50);
+            var parts = [];
+            if (indices && features) {
+                for (var j = 0; j < indices.length; j++) {
+                    var idx = indices[j];
+                    var f = features[idx];
+                    var v = bv[idx];
+                    var shortName = f && f.id ? (f.id === 'alp' ? 'ALP' : f.id === 'crp' ? 'CRP' : f.id === 'hba1c' ? 'HbA1c' : f.id === 'ggt' ? 'GGT' : f.id === 'rbc' ? 'RBC' : f.id === 'mcv' ? 'MCV' : f.id === 'rdw' ? 'RDW' : f.id === 'alt' ? 'ALT' : f.id === 'apoa1' ? 'ApoA1' : f.id === 'monocyte_percentage' ? 'Monocytes' : f.id === 'neutrophil_percentage' ? 'Neutrophils' : f.id === 'lymphocyte_percentage' ? 'Lymphocytes' : f.id === 'cystatin_c' ? 'Cystatin C' : f.id === 'vitamin_d' ? 'Vitamin D' : f.id === 'shbg' ? 'SHBG' : f.id) : '—';
+                    var unit = BORTZ_BIOMARKER_UNITS[idx] || '';
+                    parts.push(shortName + ': ' + formatTooltipValue(v) + (unit ? ' ' + unit : ''));
+                }
+            }
+            tooltipContributors.push(parts);
         }
-        return { labels: labels, values: values };
+        return { labels: labels, values: values, tooltipContributors: tooltipContributors };
     }
 
     var radarChartInstance = null;
@@ -180,6 +241,7 @@
         if (!radarChartInstance || !data) return;
         radarChartInstance.data.labels = data.labels;
         radarChartInstance.data.datasets[0].data = data.values;
+        if (data.tooltipContributors) radarChartInstance._radarTooltipContributors = data.tooltipContributors;
         radarChartInstance.update('active');
     }
 
@@ -263,6 +325,7 @@
         var fontFamily = window.getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif';
         var primaryRgb = '0, 188, 212';
         var secondaryRgb = '255, 64, 129';
+        var contributors = data.tooltipContributors || [];
 
         radarChartInstance = new window.Chart(ctx, {
             type: 'radar',
@@ -297,8 +360,19 @@
                         titleFont: { size: 12, weight: '600' },
                         bodyFont: { size: 12 },
                         callbacks: {
-                            label: function (ctx) {
-                                return ctx.label + ': ' + ctx.raw + 'th percentile';
+                            title: function (tooltipItems) {
+                                if (!tooltipItems.length) return '';
+                                return tooltipItems[0].raw + 'th percentile';
+                            },
+                            label: function () { return null; },
+                            afterBody: function (tooltipItems) {
+                                if (!tooltipItems.length) return [];
+                                var chart = radarChartInstance;
+                                if (!chart) return [];
+                                var contrib = chart._radarTooltipContributors;
+                                var idx = tooltipItems[0].dataIndex;
+                                if (!contrib || !contrib[idx] || !contrib[idx].length) return [];
+                                return [''].concat(contrib[idx]);
                             }
                         }
                     }
@@ -327,6 +401,7 @@
                 hover: { mode: 'nearest' }
             }
         });
+        radarChartInstance._radarTooltipContributors = contributors;
         if (radarResizeObserver && wrapper) radarResizeObserver.disconnect();
         radarResizeObserver = new ResizeObserver(function () {
             if (radarChartInstance) radarChartInstance.resize();
