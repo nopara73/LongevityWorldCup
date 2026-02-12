@@ -70,10 +70,29 @@
         return Math.round((n - rank + 1) / n * 100);
     }
 
-    function getPhenoRadarData(athleteData, athleteResults) {
+    /** Returns up to 100 athletes closest by chronological age (absolute difference). */
+    function getClosestAthletesByAge(currentChronoAge, athletes, chronoKey) {
+        if (!Number.isFinite(currentChronoAge) || !Array.isArray(athletes)) return [];
+
+        return athletes
+            .filter(function (a) {
+                return a && Number.isFinite(a[chronoKey]);
+            })
+            .sort(function (a, b) {
+                return Math.abs(a[chronoKey] - currentChronoAge) - Math.abs(b[chronoKey] - currentChronoAge);
+            })
+            .slice(0, 100);
+    }
+
+
+    function getPhenoRadarData(athleteData, athleteResults, currentChronoAge) {
         var labels = [];
         var values = [];
-        var athletesWithPheno = (athleteResults || []).filter(function (a) { return a.bestBiomarkerValues && a.bestBiomarkerValues.length; });
+        var athletesWithPheno = getClosestAthletesByAge(
+            currentChronoAge,
+            (athleteResults || []).filter(function (a) { return a.bestBiomarkerValues && a.bestBiomarkerValues.length; }),
+            'chronoAtLowestPhenoAge'
+        );
         if (athletesWithPheno.length === 0 || !athleteData || !athleteData.bestBiomarkerValues) return null;
 
         var mv = athleteData.bestBiomarkerValues;
@@ -93,10 +112,14 @@
         return { labels: labels, values: values };
     }
 
-    function getBortzRadarData(athleteData, athleteResults) {
+    function getBortzRadarData(athleteData, athleteResults, currentChronoAge) {
         var labels = BORTZ_DOMAIN_LABELS.slice();
         var values = [];
-        var athletesWithBortz = (athleteResults || []).filter(function (a) { return a.bestBortzValues && a.bestBortzValues.length; });
+        var athletesWithBortz = getClosestAthletesByAge(
+            currentChronoAge,
+            (athleteResults || []).filter(function (a) { return a.bestBortzValues && a.bestBortzValues.length; }),
+            'chronoAtLowestBortzAge'
+        );
         if (athletesWithBortz.length === 0 || !athleteData || !athleteData.bestBortzValues) return null;
 
         var bv = athleteData.bestBortzValues;
@@ -198,8 +221,8 @@
             }
         }
 
-        var phenoData = hasPheno ? getPhenoRadarData(athleteData, athleteResults) : null;
-        var bortzData = hasBortz ? getBortzRadarData(athleteData, athleteResults) : null;
+        var phenoData = hasPheno ? getPhenoRadarData(athleteData, athleteResults, athleteData.chronoAtLowestPhenoAge) : null;
+        var bortzData = hasBortz ? getBortzRadarData(athleteData, athleteResults, athleteData.chronoAtLowestBortzAge) : null;
         var phenoBio = athleteData && Number.isFinite(athleteData.lowestPhenoAge) ? athleteData.lowestPhenoAge : null;
         var phenoChrono = athleteData && Number.isFinite(athleteData.chronoAtLowestPhenoAge) ? athleteData.chronoAtLowestPhenoAge : null;
         var bortzBio = athleteData && Number.isFinite(athleteData.lowestBortzAge) ? athleteData.lowestBortzAge : null;
