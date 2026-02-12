@@ -19,6 +19,28 @@ public class XApiClient
     private readonly object _tokenLock = new();
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
     private string? _accessToken;
+    private readonly object _devPreviewLock = new();
+    private long _devPreviewSeq;
+    private readonly Dictionary<string, DevPreviewThread> _devThreadsByRoot = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _devRootByTweetId = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _devOpenedRoots = new(StringComparer.Ordinal);
+
+    private sealed class DevPreviewPost
+    {
+        public required string TweetId { get; init; }
+        public required string Text { get; init; }
+        public required DateTime PostedAtUtc { get; init; }
+        public string? InReplyToTweetId { get; init; }
+        public List<string> LocalMediaPaths { get; init; } = new();
+        public List<string> OtherMediaIds { get; init; } = new();
+    }
+
+    private sealed class DevPreviewThread
+    {
+        public required string RootTweetId { get; init; }
+        public required string HtmlPath { get; init; }
+        public List<DevPreviewPost> Posts { get; } = new();
+    }
 
     public XApiClient(HttpClient http, Config config, IWebHostEnvironment env, ILogger<XApiClient> log)
     {
@@ -104,8 +126,10 @@ public class XApiClient
     {
         if (_env.IsDevelopment())
         {
-            await WriteDevPreviewAsync(text, mediaIds, inReplyToTweetId);
-            return null;
+            var seq = Interlocked.Increment(ref _devPreviewSeq);
+            var localTweetId = $"localdev_{DateTime.UtcNow:yyyyMMddHHmmssfff}_{seq}";
+            await WriteDevPreviewAsync(localTweetId, text, mediaIds, inReplyToTweetId);
+            return localTweetId;
         }
 
         var token = GetAccessToken();
@@ -182,7 +206,7 @@ public class XApiClient
         return null;
     }
 
-    private async Task WriteDevPreviewAsync(string text, IReadOnlyList<string>? mediaIds, string? inReplyToTweetId)
+    private async Task WriteDevPreviewAsync(string tweetId, string text, IReadOnlyList<string>? mediaIds, string? inReplyToTweetId)
     {
         try
         {
@@ -203,9 +227,60 @@ public class XApiClient
                 }
             }
 
-            var ts = nowUtc.ToString("yyyyMMdd_HHmmss_fff");
-            var fileName = $"x_{ts}.html";
-            var fullPath = Path.Combine(root, fileName);
+            var post = new DevPreviewPost
+            {
+                TweetId = tweetId,
+                Text = text ?? "",
+                PostedAtUtc = nowUtc,
+                InReplyToTweetId = string.IsNullOrWhiteSpace(inReplyToTweetId) ? null : inReplyToTweetId
+            };
+            if (mediaIds is { Count: > 0 })
+            {
+                foreach (var id in mediaIds)
+                {
+                    if (string.IsNullOrWhiteSpace(id)) continue;
+                    if (id.StartsWith("local:", StringComparison.OrdinalIgnoreCase))
+                        post.LocalMediaPaths.Add(id["local:".Length..]);
+                    else
+                        post.OtherMediaIds.Add(id);
+                }
+            }
+
+            string rootTweetId;
+            string fullPath;
+            List<DevPreviewPost> postsSnapshot;
+            var openBrowser = false;
+            lock (_devPreviewLock)
+            {
+                if (!string.IsNullOrWhiteSpace(inReplyToTweetId) && _devRootByTweetId.TryGetValue(inReplyToTweetId, out var knownRoot))
+                    rootTweetId = knownRoot;
+                else if (!string.IsNullOrWhiteSpace(inReplyToTweetId))
+                    rootTweetId = inReplyToTweetId!;
+                else
+                    rootTweetId = tweetId;
+
+                if (!_devThreadsByRoot.TryGetValue(rootTweetId, out var thread))
+                {
+                    var ts = nowUtc.ToString("yyyyMMdd_HHmmss_fff");
+                    var safeRoot = rootTweetId.Replace(':', '_').Replace('/', '_').Replace('\\', '_');
+                    var fileName = $"x_thread_{ts}_{safeRoot}.html";
+                    fullPath = Path.Combine(root, fileName);
+                    thread = new DevPreviewThread { RootTweetId = rootTweetId, HtmlPath = fullPath };
+                    _devThreadsByRoot[rootTweetId] = thread;
+                }
+                else
+                {
+                    fullPath = thread.HtmlPath;
+                }
+
+                thread.Posts.Add(post);
+                _devRootByTweetId[tweetId] = rootTweetId;
+                if (!string.IsNullOrWhiteSpace(inReplyToTweetId) && !_devRootByTweetId.ContainsKey(inReplyToTweetId))
+                    _devRootByTweetId[inReplyToTweetId] = rootTweetId;
+
+                postsSnapshot = thread.Posts.ToList();
+                openBrowser = _devOpenedRoots.Add(rootTweetId);
+            }
 
             var sb = new StringBuilder();
             sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>LWC X Preview</title>");
@@ -220,6 +295,12 @@ public class XApiClient
             sb.Append(".preview-media{padding:0 24px 24px;}");
             sb.Append(".preview-media img{display:block;width:100%;height:auto;max-height:430px;object-fit:cover;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:#0b0f14;}");
             sb.Append(".x-token{color:#1d9bf0;font-weight:600;}");
+            sb.Append(".thread{padding:16px;display:flex;flex-direction:column;gap:16px;}");
+            sb.Append(".tweet-card{background:#0b1016;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;}");
+            sb.Append(".tweet-meta{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.78rem;color:#93a4b8;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;}");
+            sb.Append(".tweet-body{padding:14px 14px 10px;font-size:1.05rem;line-height:1.55;white-space:pre-line;color:#e7e9ea;}");
+            sb.Append(".tweet-body a{color:#1d9bf0;text-decoration:none;font-weight:600;}");
+            sb.Append(".tweet-body a:hover{text-decoration:underline;color:#62b9ff;}");
             sb.Append("small{color:#7c8aa9;}");
             sb.Append("</style>");
             sb.Append("</head><body>");
@@ -230,35 +311,38 @@ public class XApiClient
             sb.Append(WebUtility.HtmlEncode(nowUtc.ToString("u")));
             sb.Append("</small>");
             sb.Append("</div>");
-            sb.Append("<div class=\"preview-content\">");
-            sb.Append(RenderPreviewText(text ?? ""));
-            sb.Append("</div>");
-            if (!string.IsNullOrWhiteSpace(inReplyToTweetId))
+            sb.Append("<div class=\"thread\">");
+            for (var idx = 0; idx < postsSnapshot.Count; idx++)
             {
-                sb.Append("<p><strong>reply to tweet id:</strong> ");
-                sb.Append(WebUtility.HtmlEncode(inReplyToTweetId));
-                sb.Append("</p>");
-            }
-            if (mediaIds is { Count: > 0 })
-            {
-                var locals = new List<string>();
-                var other = new List<string>();
-                foreach (var id in mediaIds)
+                var p = postsSnapshot[idx];
+                sb.Append("<article class=\"tweet-card\">");
+                sb.Append("<div class=\"tweet-meta\">");
+                sb.Append("<span>#");
+                sb.Append(idx + 1);
+                sb.Append(" · ");
+                sb.Append(WebUtility.HtmlEncode(p.PostedAtUtc.ToString("u")));
+                sb.Append("</span>");
+                sb.Append("<span>tweet_id: ");
+                sb.Append(WebUtility.HtmlEncode(p.TweetId));
+                if (!string.IsNullOrWhiteSpace(p.InReplyToTweetId))
                 {
-                    if (!string.IsNullOrWhiteSpace(id) && id.StartsWith("local:", StringComparison.OrdinalIgnoreCase))
-                        locals.Add(id["local:".Length..]);
-                    else if (!string.IsNullOrWhiteSpace(id))
-                        other.Add(id);
+                    sb.Append(" · reply_to: ");
+                    sb.Append(WebUtility.HtmlEncode(p.InReplyToTweetId));
+                }
+                sb.Append("</span>");
+                sb.Append("</div>");
+                sb.Append("<div class=\"tweet-body\">");
+                sb.Append(RenderPreviewText(p.Text));
+                sb.Append("</div>");
+
+                if (p.OtherMediaIds.Count > 0)
+                {
+                    sb.Append("<div class=\"preview-content\"><small>media_ids: ");
+                    sb.Append(WebUtility.HtmlEncode(string.Join(", ", p.OtherMediaIds)));
+                    sb.Append("</small></div>");
                 }
 
-                if (other.Count > 0)
-                {
-                    sb.Append("<p><strong>media_ids:</strong> ");
-                    sb.Append(WebUtility.HtmlEncode(string.Join(", ", other)));
-                    sb.Append("</p>");
-                }
-
-                foreach (var path in locals)
+                foreach (var path in p.LocalMediaPaths)
                 {
                     try
                     {
@@ -273,26 +357,31 @@ public class XApiClient
                         _log.LogWarning(ex, "Failed to embed preview media {Path}", path);
                     }
                 }
+                sb.Append("</article>");
             }
+            sb.Append("</div>");
             sb.Append("</div>");
             sb.Append("</body></html>");
 
             await File.WriteAllTextAsync(fullPath, sb.ToString(), Encoding.UTF8);
 
-            try
+            if (openBrowser)
             {
-                var psi = new ProcessStartInfo
+                try
                 {
-                    FileName = "cmd",
-                    Arguments = $"/c start \"\" \"{fullPath}\"",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                _log.LogWarning(ex, "Failed to open X preview HTML in browser: {Path}", fullPath);
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = "cmd",
+                        Arguments = $"/c start \"\" \"{fullPath}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    _log.LogWarning(ex, "Failed to open X preview HTML in browser: {Path}", fullPath);
+                }
             }
         }
         catch (Exception ex)
