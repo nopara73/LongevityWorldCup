@@ -32,7 +32,7 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
-        if (await XDailyPostJobTempTestHelper.TryPostTemporaryNewcomersTestAsync(_events, _xEvents, _images, _xApiClient, _logger))
+        if (await XDailyPostJobTempTestHelper.TryPostTemporaryBadgeAwardPhenoAgeLowestTestAsync(_events, _athletes, _xEvents, _images, _xApiClient, _logger))
             return;
 
         var pending = _events.GetPendingXEvents();

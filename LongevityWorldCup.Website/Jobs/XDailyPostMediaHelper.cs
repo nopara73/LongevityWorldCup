@@ -11,15 +11,34 @@ internal static class XDailyPostMediaHelper
         XImageService images,
         XApiClient xApiClient)
     {
-        if (type != EventType.NewRank)
+        if (type == EventType.NewRank)
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var winnerSlug))
+                return null;
+            if (!EventHelpers.TryExtractPrev(rawText, out var prevSlug))
+                return null;
+
+            await using var imageStream = await images.BuildNewRankImageAsync(winnerSlug, prevSlug);
+            return await UploadSinglePngAsync(imageStream, xApiClient);
+        }
+
+        if (type != EventType.BadgeAward)
             return null;
 
-        if (!EventHelpers.TryExtractSlug(rawText, out var winnerSlug))
+        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
             return null;
-        if (!EventHelpers.TryExtractPrev(rawText, out var prevSlug))
+        var normalized = EventHelpers.NormalizeBadgeLabel(label);
+        if (!string.Equals(normalized, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+            return null;
+        if (!EventHelpers.TryExtractSlug(rawText, out var slug))
             return null;
 
-        await using var imageStream = await images.BuildNewRankImageAsync(winnerSlug, prevSlug);
+        await using var singleImageStream = await images.BuildSingleAthleteImageAsync(slug);
+        return await UploadSinglePngAsync(singleImageStream, xApiClient);
+    }
+
+    private static async Task<IReadOnlyList<string>?> UploadSinglePngAsync(Stream? imageStream, XApiClient xApiClient)
+    {
         if (imageStream == null)
             return null;
 

@@ -3,78 +3,38 @@ namespace LongevityWorldCup.Website.Jobs;
 
 internal static class XDailyPostJobTempTestHelper
 {
-    private static readonly string[] TempNewcomerPool =
-    [
-        "alexander",
-        "andrea",
-        "arielv",
-        "brandon",
-        "daniel_snow",
-        "deelicious",
-        "juan_robalino",
-        "kelvin_nicholson",
-        "michael_lustgarten",
-        "sergey_vlasov"
-    ];
+    private const string TempBadgeLabel = "PhenoAge - Lowest";
 
-    public static async Task<bool> TryPostTemporaryNewcomersTestAsync(
+    public static async Task<bool> TryPostTemporaryBadgeAwardPhenoAgeLowestTestAsync(
         EventDataService _,
+        AthleteDataService athletes,
         XEventService xEvents,
         XImageService images,
         XApiClient xApiClient,
         ILogger logger)
     {
-        var count = Random.Shared.Next(2, 9);
-        var picks = TempNewcomerPool
-            .OrderBy(_ => Random.Shared.Next())
-            .Take(Math.Min(count, TempNewcomerPool.Length))
-            .ToList();
-        if (picks.Count == 0)
+        var lowestSlug = athletes
+            .GetAthletesForX()
+            .Where(a => !string.IsNullOrWhiteSpace(a.Slug) && a.LowestPhenoAge.HasValue)
+            .OrderBy(a => a.LowestPhenoAge!.Value)
+            .ThenBy(a => a.Slug, StringComparer.OrdinalIgnoreCase)
+            .Select(a => a.Slug)
+            .FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(lowestSlug))
             return false;
 
-        var msg = BuildTemporaryNewcomersMessage(picks);
+        var rawText = $"slug[{lowestSlug}] badge[{TempBadgeLabel}] cat[Global] val[] place[1]";
+        var msg = xEvents.TryBuildMessage(EventType.BadgeAward, rawText);
         if (string.IsNullOrWhiteSpace(msg))
             return false;
 
-        IReadOnlyList<string>? mediaIds = null;
-        await using var imageStream = await images.BuildNewcomersImageAsync(picks);
-        if (imageStream != null)
-        {
-            var mediaId = await xApiClient.UploadMediaAsync(imageStream, "image/png");
-            if (!string.IsNullOrWhiteSpace(mediaId))
-                mediaIds = new[] { mediaId };
-        }
-
+        var mediaIds = await XDailyPostMediaHelper.TryBuildMediaIdsAsync(EventType.BadgeAward, rawText, images, xApiClient);
         await xEvents.SendAsync(msg, mediaIds);
 
         logger.LogInformation(
-            "XDailyPostJob TEMP: posted Newcomers filler test with {Count} slugs: {Slugs}",
-            picks.Count,
-            string.Join(", ", picks));
+            "XDailyPostJob TEMP: posted BadgeAward test for {BadgeLabel} on slug {Slug}.",
+            TempBadgeLabel,
+            lowestSlug);
         return true;
-    }
-
-    private static string BuildTemporaryNewcomersMessage(IReadOnlyList<string> slugs)
-    {
-        static string Pretty(string slug)
-        {
-            var raw = (slug ?? "").Replace('_', ' ').Replace('-', ' ').Trim();
-            if (raw.Length == 0) return "";
-            var words = raw.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            return string.Join(" ", words.Select(w => char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
-        }
-
-        var names = slugs
-            .Select(Pretty)
-            .Where(n => n.Length > 0)
-            .Take(8)
-            .ToList();
-        if (names.Count == 0)
-            return "";
-
-        return
-            "Fresh faces on the Longevity World Cup leaderboard\n\n" +
-            string.Join(", ", names) + "\n\n" +
-            "View all athletes: https://longevityworldcup.com/leaderboard";
     }
 }

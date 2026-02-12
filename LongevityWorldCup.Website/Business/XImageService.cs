@@ -151,6 +151,43 @@ public class XImageService
         return output;
     }
 
+    public async Task<Stream?> BuildSingleAthleteImageAsync(string slug)
+    {
+        if (!TryGetProfilePath(slug, out var profilePath))
+            return null;
+
+        const int canvasWidth = 1200;
+        const int canvasHeight = 675;
+        const int margin = 60;
+
+        using var image = new Image<Rgba32>(canvasWidth, canvasHeight, new Rgba32(5, 5, 15));
+        var size = Math.Min(canvasWidth - margin * 2, canvasHeight - margin * 2);
+        var x = (canvasWidth - size) / 2;
+        var y = (canvasHeight - size) / 2;
+
+        try
+        {
+            using var profile = await Image.LoadAsync<Rgba32>(profilePath);
+            profile.Mutate(ctx => ctx.Resize(new ResizeOptions
+            {
+                Size = new Size(size, size),
+                Mode = ResizeMode.Crop,
+                Position = AnchorPositionMode.Center
+            }));
+            image.Mutate(ctx => ctx.DrawImage(profile, new Point(x, y), 1f));
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to load athlete profile image {Path}", profilePath);
+            return null;
+        }
+
+        var output = new MemoryStream();
+        await image.SaveAsPngAsync(output);
+        output.Position = 0;
+        return output;
+    }
+
     public Task<Stream?> BuildPvpDuelRootImageAsync(string slugA, string slugB)
     {
         return BuildPvpFaceoffImageAsync(slugA, slugB, "VS", grayLeft: false, grayRight: false);
