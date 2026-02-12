@@ -67,6 +67,13 @@ public class XDailyPostJob : IJob
         foreach (var (fillerType, payloadText) in fillerCandidates)
         {
             var payload = payloadText ?? "";
+            var cooldown = GetCooldownForFiller(fillerType);
+            if (_fillerLog.IsOnCooldownForOption(fillerType, payload, cooldown, DateTime.UtcNow))
+            {
+                _logger.LogInformation("XDailyPostJob skipped filler in cooldown {FillerType} {PayloadText} ({CooldownDays}d)", fillerType, payloadText, cooldown.TotalDays);
+                continue;
+            }
+
             if (fillerType == FillerType.PvpBiomarkerDuel)
             {
                 var (ok, pvpInfoToken) = await _xEvents.TrySendPvpDuelThreadWithInfoTokenAsync(
@@ -154,5 +161,14 @@ public class XDailyPostJob : IJob
         }
 
         return null;
+    }
+
+    private static TimeSpan GetCooldownForFiller(FillerType fillerType)
+    {
+        return fillerType switch
+        {
+            FillerType.CrowdGuesses => TimeSpan.FromDays(10),
+            _ => TimeSpan.FromDays(7)
+        };
     }
 }

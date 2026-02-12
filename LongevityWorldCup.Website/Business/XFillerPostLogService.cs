@@ -142,6 +142,46 @@ public class XFillerPostLogService
         return string.Equals(last, token, StringComparison.Ordinal);
     }
 
+    public bool IsOnCooldownForOption(FillerType type, string payloadText, TimeSpan cooldown, DateTime? nowUtc = null)
+    {
+        if (cooldown <= TimeSpan.Zero)
+            return false;
+
+        var payload = payloadText ?? "";
+        var lastAt = _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"""
+                SELECT Text, PostedAtUtc
+                FROM {TableName}
+                WHERE Type = @type
+                ORDER BY PostedAtUtc DESC
+                """;
+            cmd.Parameters.AddWithValue("@type", (int)type);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var text = r.IsDBNull(0) ? "" : r.GetString(0);
+                if (!TokenBelongsToOption(type, payload, text))
+                    continue;
+
+                if (r.IsDBNull(1))
+                    return (DateTime?)null;
+
+                if (DateTime.TryParse(r.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+                    return (DateTime?)dt;
+            }
+
+            return (DateTime?)null;
+        });
+
+        if (!lastAt.HasValue)
+            return false;
+
+        var now = nowUtc ?? DateTime.UtcNow;
+        return now - lastAt.Value < cooldown;
+    }
+
     private static bool TokenBelongsToOption(FillerType type, string payloadText, string tokenText)
     {
         var token = tokenText ?? "";
