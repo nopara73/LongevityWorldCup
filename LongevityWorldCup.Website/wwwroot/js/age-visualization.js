@@ -6,13 +6,13 @@
 (function () {
     'use strict';
 
-    // Pheno Age: 5 domains (aligned with Best Domain badges)
+    // Pheno Age: 5 domains (Immune first for radar; aligned with Best Domain badges)
     var PHENO_DOMAINS = [
+        { key: 'immune', label: 'Immune', contributor: 'calculateImmunePhenoAgeContributor' },
         { key: 'liver', label: 'Liver', contributor: 'calculateLiverPhenoAgeContributor' },
         { key: 'kidney', label: 'Kidney', contributor: 'calculateKidneyPhenoAgeContributor' },
         { key: 'metabolic', label: 'Metabolism', contributor: 'calculateMetabolicPhenoAgeContributor' },
-        { key: 'inflammation', label: 'Inflammation', contributor: 'calculateInflammationPhenoAgeContributor' },
-        { key: 'immune', label: 'Immune', contributor: 'calculateImmunePhenoAgeContributor' }
+        { key: 'inflammation', label: 'Inflammation', contributor: 'calculateInflammationPhenoAgeContributor' }
     ];
 
     // Bortz: 6 divisions from bortz-age.html (Immune, Liver, Kidney, Metabolism, Inflammation, Hormones)
