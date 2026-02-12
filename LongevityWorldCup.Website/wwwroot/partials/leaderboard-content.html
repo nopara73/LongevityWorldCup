@@ -70,6 +70,7 @@
         cursor: default;
         pointer-events: none;
     }
+    .leaderboard table tbody tr.tier-separator .tier-separator-link{ pointer-events: auto; }
     .leaderboard table tbody tr.tier-separator:hover{ transform: none; box-shadow: none; }
     .leaderboard table tbody tr.tier-separator .tier-separator-cell{
         padding: 0.5rem 1rem;
@@ -83,6 +84,12 @@
         border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
     .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; }
+    .tier-separator-cell .tier-separator-link{
+        color: var(--primary-color);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    .tier-separator-cell .tier-separator-link:hover{ color: var(--secondary-color); }
 
     .leaderboard table tbody tr{ cursor:pointer; }
     .leaderboard table tbody tr:hover{ transform: scale(1.02); box-shadow:0 4px 10px rgba(0,0,0,.1); }
@@ -1691,8 +1698,8 @@
                     if (lastTier === 'pro' && tier === 'amateur') {
                         const sep = document.createElement('tr');
                         sep.className = 'tier-separator';
-                        sep.setAttribute('aria-label', 'Start of Pheno Age athletes section');
-                        sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Pheno Age athletes</span></td>';
+                        sep.setAttribute('aria-label', 'Start of Amateur league (Pheno Age) section');
+                        sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur competition |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
                         tableBody.appendChild(sep);
                     }
                     lastTier = tier;
