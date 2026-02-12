@@ -21,14 +21,14 @@ public class XImageService
         _log = log;
     }
 
-    public async Task<Stream?> BuildNewcomersImageAsync()
+    public async Task<Stream?> BuildNewcomersImageAsync(IReadOnlyList<string>? slugs = null)
     {
-        var slugs = _athletes.GetRecentNewcomersForX();
-        if (slugs.Count == 0)
+        var sourceSlugs = slugs?.Where(s => !string.IsNullOrWhiteSpace(s)).ToList() ?? _athletes.GetRecentNewcomersForX().ToList();
+        if (sourceSlugs.Count == 0)
             return null;
 
         var files = new List<string>();
-        foreach (var slug in slugs)
+        foreach (var slug in sourceSlugs)
         {
             if (TryGetProfilePath(slug, out var fullPath))
                 files.Add(fullPath);
@@ -41,12 +41,14 @@ public class XImageService
         const int canvasWidth = 1200;
         const int canvasHeight = 675;
         const int margin = 40;
+        const int gap = 20;
 
         using var image = new Image<Rgba32>(canvasWidth, canvasHeight, new Rgba32(5, 5, 15));
 
         var availableWidth = canvasWidth - margin * 2;
-        var size = Math.Min(canvasHeight - margin * 2, availableWidth / count);
-        var totalWidth = size * count;
+        var totalGap = gap * Math.Max(0, count - 1);
+        var size = Math.Min(canvasHeight - margin * 2, (availableWidth - totalGap) / Math.Max(1, count));
+        var totalWidth = size * count + totalGap;
         var startX = margin + (availableWidth - totalWidth) / 2;
         var y = (canvasHeight - size) / 2;
 
@@ -56,8 +58,14 @@ public class XImageService
             try
             {
                 using var profile = await Image.LoadAsync<Rgba32>(path);
-                profile.Mutate(ctx => ctx.Resize(size, size));
-                var pos = new Point(startX + i * size, y);
+                profile.Mutate(ctx => ctx.Resize(new ResizeOptions
+                {
+                    Size = new Size(size, size),
+                    Mode = ResizeMode.Crop,
+                    Position = AnchorPositionMode.Center
+                }));
+                MakeCircular(profile);
+                var pos = new Point(startX + i * (size + gap), y);
                 image.Mutate(ctx => ctx.DrawImage(profile, pos, 1f));
             }
             catch (Exception ex)
@@ -70,6 +78,30 @@ public class XImageService
         await image.SaveAsPngAsync(output);
         output.Position = 0;
         return output;
+    }
+
+    private static void MakeCircular(Image<Rgba32> image)
+    {
+        var w = image.Width;
+        var h = image.Height;
+        var cx = (w - 1) / 2.0;
+        var cy = (h - 1) / 2.0;
+        var radius = Math.Min(w, h) / 2.0;
+        var radiusSq = radius * radius;
+
+        for (var y = 0; y < h; y++)
+        {
+            for (var x = 0; x < w; x++)
+            {
+                var dx = x - cx;
+                var dy = y - cy;
+                if (dx * dx + dy * dy <= radiusSq)
+                    continue;
+
+                var p = image[x, y];
+                image[x, y] = new Rgba32(p.R, p.G, p.B, 0);
+            }
+        }
     }
 
     public async Task<Stream?> BuildNewRankImageAsync(string winnerSlug, string prevSlug)
