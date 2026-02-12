@@ -3,39 +3,29 @@ namespace LongevityWorldCup.Website.Jobs;
 
 internal static class XDailyPostJobTempTestHelper
 {
-    private const string TempWinnerSlug = "juan_robalino";
-    private const string TempPrevSlug = "michael_lustgarten";
+    private const string TempSlugA = "juan-robalino";
+    private const string TempSlugB = "deelicious";
 
-    public static async Task<bool> TryPostTemporaryNewRankTestAsync(
-        EventDataService events,
+    public static async Task<bool> TryPostTemporaryPvpDuelTestAsync(
+        EventDataService _,
         XEventService xEvents,
-        XImageService images,
-        XApiClient xApiClient,
+        XImageService __,
+        XApiClient ___,
         ILogger logger)
     {
-        var rawText = $"slug[{TempWinnerSlug}] rank[1] prev[{TempPrevSlug}]";
+        var (sent, infoToken) = await xEvents.TrySendPvpDuelThreadWithInfoTokenAsync(
+            null,
+            TempSlugA,
+            TempSlugB);
 
-        events.CreateNewRankEvents(
-            new[] { (TempWinnerSlug, DateTime.UtcNow, 1, (string?)TempPrevSlug) },
-            skipIfExists: false);
-        logger.LogInformation("XDailyPostJob TEMP: inserted NewRank test event for {Winner} over {Previous}.", TempWinnerSlug, TempPrevSlug);
-
-        var msg = xEvents.TryBuildMessage(EventType.NewRank, rawText);
-        if (string.IsNullOrWhiteSpace(msg))
+        if (!sent)
             return false;
 
-        var mediaIds = await XDailyPostMediaHelper.TryBuildMediaIdsAsync(EventType.NewRank, rawText, images, xApiClient);
-        await xEvents.SendAsync(msg, mediaIds);
-
-        var pendingIds = events
-            .GetPendingXEvents(limit: 500)
-            .Where(e => e.Type == EventType.NewRank && string.Equals(e.Text, rawText, StringComparison.Ordinal))
-            .Select(e => e.Id)
-            .ToList();
-        if (pendingIds.Count > 0)
-            events.MarkEventsXProcessed(pendingIds);
-
-        logger.LogInformation("XDailyPostJob TEMP: posted NewRank test event.");
+        logger.LogInformation(
+            "XDailyPostJob TEMP: posted PvP filler duel thread for pair {SlugA} vs {SlugB}. InfoToken: {InfoToken}",
+            TempSlugA,
+            TempSlugB,
+            infoToken);
         return true;
     }
 

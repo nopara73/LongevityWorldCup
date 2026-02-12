@@ -31,7 +31,7 @@ public class XApiClient
 
     public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds = null)
     {
-        await SendTweetAsync(text, mediaIds, null);
+        await SendTweetAsync(text, mediaIds, null, true);
     }
 
     public async Task<string?> UploadMediaAsync(Stream content, string contentType)
@@ -81,10 +81,10 @@ public class XApiClient
         return null;
     }
 
-    public async Task<string?> SendTweetAsync(string text, IReadOnlyList<string>? mediaIds = null, string? inReplyToTweetId = null)
+    public async Task<string?> SendTweetAsync(string text, IReadOnlyList<string>? mediaIds = null, string? inReplyToTweetId = null, bool openPreviewInBrowser = true)
     {
         if (_env.IsDevelopment())
-            return await _preview.WriteTweetPreviewAsync(text, mediaIds, inReplyToTweetId);
+            return await _preview.WriteTweetPreviewAsync(text, mediaIds, inReplyToTweetId, openPreviewInBrowser);
 
         var token = GetAccessToken();
         if (string.IsNullOrWhiteSpace(token))
