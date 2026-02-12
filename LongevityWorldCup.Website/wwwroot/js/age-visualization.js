@@ -38,11 +38,12 @@
     // Feature indices in window.BortzAge.features: 0=age, 1=albumin, 2=alp, 3=urea, 4=cholesterol, 5=creatinine, 6=cystatin_c, 7=hba1c, 8=crp, 9=ggt, 10=rbc, 11=mcv, 12=rdw, 13=monocyte, 14=neutrophil, 15=lymphocyte, 16=alt, 17=shbg, 18=vitamin_d, 19=glucose, 20=mch, 21=apoa1
     // Excluded from contribution only (controversial direction): urea, cholesterol, creatinine, alt, shbg
     var BORTZ_CONTRIBUTION_EXCLUDED = { 3: 1, 4: 1, 5: 1, 16: 1, 17: 1 };
+    // Order matches bortz-age.html (Immune: Lymphocytes, Neutrophils, Monocytes, RBC, MCV, MCH, RDW; Liver: Albumin, ALT, ALP, GGT; etc.)
     var BORTZ_DOMAIN_INDICES = {
-        Immune: [10, 11, 12, 13, 14, 15, 20],
-        Liver: [1, 2, 9, 16],
+        Immune: [15, 14, 13, 10, 11, 20, 12],
+        Liver: [1, 16, 2, 9],
         Kidney: [3, 5, 6],
-        Metabolism: [4, 7, 19, 21],
+        Metabolism: [19, 7, 4, 21],
         Inflammation: [8],
         'Vitamin D': [17, 18]
     };
@@ -85,6 +86,12 @@
         if (val !== val || val === undefined) return '—';
         if (Number.isInteger(val)) return String(val);
         return Number(val).toFixed(2).replace(/\.?0+$/, '');
+    }
+
+    /** Capitalize biomarker id for tooltip (e.g. "glucose" -> "Glucose", "vitamin_d" -> "Vitamin D"). */
+    function formatBortzLabel(id) {
+        if (!id) return '—';
+        return id.split('_').map(function (part) { return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(); }).join(' ');
     }
 
     /** For a list of athletes with scores (lower = better), compute percentile for the current athlete. 0–100, higher = better. */
@@ -183,9 +190,10 @@
             if (indices && features) {
                 for (var j = 0; j < indices.length; j++) {
                     var idx = indices[j];
+                    if (BORTZ_CONTRIBUTION_EXCLUDED[idx]) continue;
                     var f = features[idx];
                     var v = bv[idx];
-                    var shortName = f && f.id ? (f.id === 'alp' ? 'ALP' : f.id === 'crp' ? 'CRP' : f.id === 'hba1c' ? 'HbA1c' : f.id === 'ggt' ? 'GGT' : f.id === 'rbc' ? 'RBC' : f.id === 'mcv' ? 'MCV' : f.id === 'rdw' ? 'RDW' : f.id === 'alt' ? 'ALT' : f.id === 'apoa1' ? 'ApoA1' : f.id === 'monocyte_percentage' ? 'Monocytes' : f.id === 'neutrophil_percentage' ? 'Neutrophils' : f.id === 'lymphocyte_percentage' ? 'Lymphocytes' : f.id === 'cystatin_c' ? 'Cystatin C' : f.id === 'vitamin_d' ? 'Vitamin D' : f.id === 'shbg' ? 'SHBG' : f.id) : '—';
+                    var shortName = f && f.id ? (f.id === 'alp' ? 'ALP' : f.id === 'crp' ? 'CRP' : f.id === 'hba1c' ? 'HbA1c' : f.id === 'ggt' ? 'GGT' : f.id === 'rbc' ? 'RBC' : f.id === 'mcv' ? 'MCV' : f.id === 'mch' ? 'MCH' : f.id === 'rdw' ? 'RDW' : f.id === 'alt' ? 'ALT' : f.id === 'apoa1' ? 'ApoA1' : f.id === 'monocyte_percentage' ? 'Monocytes' : f.id === 'neutrophil_percentage' ? 'Neutrophils' : f.id === 'lymphocyte_percentage' ? 'Lymphocytes' : f.id === 'cystatin_c' ? 'Cystatin C' : f.id === 'vitamin_d' ? 'Vitamin D' : f.id === 'shbg' ? 'SHBG' : formatBortzLabel(f.id)) : '—';
                     var unit = BORTZ_BIOMARKER_UNITS[idx] || '';
                     parts.push(shortName + ': ' + formatTooltipValue(v) + (unit ? ' ' + unit : ''));
                 }
