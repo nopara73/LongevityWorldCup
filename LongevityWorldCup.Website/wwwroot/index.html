@@ -472,13 +472,14 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            gap: 0.5rem;
+            gap: 0rem;
             flex: 1 1 auto;
             justify-content: center;
         }
 
         .lwc-countdown-details-text {
             margin-top: 0;
+            margin-bottom: 0;
             font-size: 1.2rem;
             line-height: 1.6;
             max-width: 100%;
@@ -845,13 +846,20 @@
                 <div class="lwc-countdown-inner">
                     <div class="lwc-countdown-header-row">
                         <span class="lwc-countdown-title">2026 Season</span>
-                        <span class="lwc-countdown-chip">Coming soon</span>
+                        <span class="lwc-countdown-chip">Started</span>
                     </div>
 
                     <div class="lwc-countdown-body">
                         <p class="lwc-countdown-details-text">
-                            In 2026, the pheno age competition continues as a secondary competition. <strong>A new season with a new aging clock is upcoming.</strong>
+                            The 2026 season begins, featuring <strong>Professional and Amateur</strong> tracks.
                         </p>
+                        <div style="text-align: center; margin-top: 0.25rem;">
+                            <button onclick="window.location.href='/play/menu.html'" class="join-game" aria-label="Play the game" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
+                                <strong>PLAY</strong>
+                                <span class="join-game-middle" style="font-size: 1rem;">THE</span>
+                                <strong class="join-game-end">GAME</strong>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
