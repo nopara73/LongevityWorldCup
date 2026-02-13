@@ -185,6 +185,27 @@
     .clear-icon:hover{ color:var(--secondary-color); }
 
     /* =========================
+       5b) Leaderboard view switcher (Bortz / Pheno)
+       ========================= */
+    .leaderboard-view-switcher{
+        display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
+    }
+    .leaderboard-view-switcher[role="tablist"]{ margin-left:0; }
+    .leaderboard-view-switcher .view-badge{
+        display:inline-flex; align-items:center; padding:.4rem .85rem; border-radius:25px;
+        border:2px solid var(--primary-color); background:var(--card-bg); color:var(--primary-color);
+        font-size:.9rem; font-weight:600; cursor:pointer; transition:background .2s ease, color .2s ease, border-color .2s ease;
+    }
+    .leaderboard-view-switcher .view-badge:hover{
+        background:rgba(0,188,212,.08); color:var(--secondary-color); border-color:var(--secondary-color);
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
+        background:var(--primary-color); color:var(--card-bg); border-color:var(--primary-color);
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge{ outline:2px solid var(--secondary-color); outline-offset:2px; }
+
+    /* =========================
        6) Portraits & rank indicators
        ========================= */
     /* TABLE portrait (fixed 60x60) */
@@ -808,6 +829,15 @@
             </button>
         </div>
 
+        <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
+            <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked>
+            <label for="view-ultimate" class="view-badge">Ultimate</label>
+            <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
+            <label for="view-bortz" class="view-badge">Bortz leaderboard</label>
+            <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
+            <label for="view-pheno" class="view-badge">Pheno leaderboard</label>
+        </div>
+
         <div class="leaderboard">
             <div class="sidebar">
                 <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-chevron-left" style="font-size: 12px;"></i></button>
@@ -827,6 +857,10 @@
                 </div>
                 <div class="filter-section" id="exclusive-filter-section">
                     <h3>Exclusive</h3>
+                    <ul></ul> <!-- This will be populated dynamically -->
+                </div>
+                <div class="filter-section" id="league-track-filter-section">
+                    <h3>League</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
             </div>
@@ -1582,6 +1616,7 @@
                 generateDivisionFilters(athleteResults);
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
+                generateLeagueTrackFilters(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
                 athleteResults.sort(window.compareAthleteRank);
@@ -1925,6 +1960,16 @@
                             });
                         });
                         searchOrFilterApplied = true;
+                    }
+
+                    const viewParam = new URLSearchParams(window.location.search).get('view');
+                    if (viewParam && (viewParam.toLowerCase() === 'bortz' || viewParam.toLowerCase() === 'pheno')) {
+                        const viewId = 'view-' + viewParam.toLowerCase();
+                        const viewRadio = document.getElementById(viewId);
+                        if (viewRadio) {
+                            viewRadio.checked = true;
+                            searchOrFilterApplied = true;
+                        }
                     }
 
                     if (searchOrFilterApplied) {
@@ -2378,6 +2423,29 @@
         const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
 
+        // Get selected league track (Amateur League / Professional League); only one selected means filter
+        const selectedLeagueTracks = Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
+            .map(checkbox => checkbox.value);
+        const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
+
+        // Get leaderboard view (ultimate | bortz | pheno)
+        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+        const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
+
+        const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+
+        // Step 1: Apply view inclusion and order
+        let baseList;
+        if (currentLeaderboardView === 'bortz') {
+            baseList = athleteResults.filter(hasBortz);
+            baseList.sort(window.compareAthleteRank);
+        } else if (currentLeaderboardView === 'pheno') {
+            baseList = athleteResults.slice();
+            baseList.sort(window.compareAthleteRankPhenoOnly);
+        } else {
+            baseList = athleteResults; // ultimate: already in rank order
+        }
+
         const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
@@ -2386,26 +2454,33 @@
 
         let filteredAthletes = [];
 
-        let anyMatch = false;
-
-        athleteResults.forEach(athlete => {
+        baseList.forEach(athlete => {
             const athleteNameNormalized = window.normalizeString(athlete.name);
 
             let matches = true;
 
+            // League track: when exactly one selected, keep only that tier
+            if (leagueTrackFilterActive) {
+                const isPro = hasBortz(athlete);
+                const wantAmateur = selectedLeagueTracks[0].toLowerCase() === 'amateur league';
+                const wantPro = selectedLeagueTracks[0].toLowerCase() === 'professional league';
+                if (wantAmateur && isPro) matches = false;
+                if (wantPro && !isPro) matches = false;
+            }
+
             // Check division match
-            if (selectedDivisions.length > 0) {
-                matches = matches && selectedDivisions.includes(athlete.division.toLowerCase());
+            if (matches && selectedDivisions.length > 0) {
+                matches = selectedDivisions.includes(athlete.division.toLowerCase());
             }
 
             // Check generation match
-            if (selectedGenerations.length > 0) {
-                matches = matches && selectedGenerations.includes(athlete.generation.toLowerCase());
+            if (matches && selectedGenerations.length > 0) {
+                matches = selectedGenerations.includes(athlete.generation.toLowerCase());
             }
 
             // Check exclusive league match
-            if (selectedExclusiveLeagues.length > 0) {
-                matches = matches && selectedExclusiveLeagues.includes((athlete.exclusiveLeague || "").toLowerCase());
+            if (matches && selectedExclusiveLeagues.length > 0) {
+                matches = selectedExclusiveLeagues.includes((athlete.exclusiveLeague || "").toLowerCase());
             }
 
             // Check search terms
@@ -2422,8 +2497,9 @@
 
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
 
-        // Determine if filters are used
-        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0;
+        // Determine if filters are used (league track counts only when exactly one selected)
+        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
+            leagueTrackFilterActive || currentLeaderboardView !== 'ultimate';
         const searchUsed = uniqueSearchTerms.length > 0;
 
         // If filters are used, reassign ranks starting from 1
@@ -2475,19 +2551,35 @@
             }
         });
 
-        // Show tier separator when both pro and amateur rows are visible (first amateur after at least one pro)
+        // Show tier separator when both pro and amateur rows are visible (first amateur after at least one pro); hide for Bortz/Pheno views
         if (tierSeparatorRow) {
-            const visibleRows = Array.from(document.querySelectorAll('.leaderboard table tbody tr:not(.tier-separator)')).filter(r => r.style.display !== 'none');
-            let sawPro = false;
             let separatorShouldShow = false;
-            for (const r of visibleRows) {
-                if (r.classList.contains('tier-pro')) sawPro = true;
-                else if (r.classList.contains('tier-amateur') && sawPro) {
-                    separatorShouldShow = true;
-                    break;
+            if (currentLeaderboardView === 'ultimate') {
+                const visibleRows = Array.from(document.querySelectorAll('.leaderboard table tbody tr:not(.tier-separator)')).filter(r => r.style.display !== 'none');
+                let sawPro = false;
+                for (const r of visibleRows) {
+                    if (r.classList.contains('tier-pro')) sawPro = true;
+                    else if (r.classList.contains('tier-amateur') && sawPro) {
+                        separatorShouldShow = true;
+                        break;
+                    }
                 }
             }
             tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
+        }
+
+        // When view is Bortz or Pheno, table was built in Ultimate order (pros first); reorder tbody so visible rows match filteredAthletes order (single DOM update for smooth UX)
+        if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno') {
+            const tableBody = document.querySelector('.leaderboard table tbody');
+            const allRows = Array.from(tableBody.querySelectorAll('tr'));
+            const visibleOrdered = filteredAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
+            const separator = allRows.find(r => r.classList.contains('tier-separator'));
+            const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
+            const fragment = document.createDocumentFragment();
+            visibleOrdered.forEach(r => fragment.appendChild(r));
+            if (separator) fragment.appendChild(separator);
+            hiddenRows.forEach(r => fragment.appendChild(r));
+            tableBody.appendChild(fragment);
         }
 
         // Remove existing highlights
@@ -2521,13 +2613,14 @@
             }
         });
 
-        updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues);
+        updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView);
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
 
         // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
-        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 && uniqueSearchTerms.length === 0) {
+        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
+            !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0) {
             document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
                 row.style.display = 'none';
             });
@@ -2547,10 +2640,11 @@
             url.searchParams.set('search', encodeURIComponent(query));
         }
 
-        const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues];
+        const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
         if (filters.length === 1 &&
             ([...url.searchParams].length === 0
-                || ([...url.searchParams].length === 1 && url.searchParams.has('filters')))) {
+                || ([...url.searchParams].length === 1 && url.searchParams.has('filters')))
+            && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
             const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
@@ -2564,13 +2658,27 @@
             }
         }
 
+        if (currentLeaderboardView === 'ultimate') {
+            url.searchParams.delete('view');
+        } else {
+            url.searchParams.set('view', currentLeaderboardView);
+        }
+
         history.replaceState({}, "", url.toString());
     }
 
-    function updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues) {
+    function updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
+        selectedLeagueTracks = selectedLeagueTracks || [];
+        currentLeaderboardView = currentLeaderboardView || 'ultimate';
+
         // Update the collapsed-title text based on selected filters
         let leagueText = '';
 
+        if (currentLeaderboardView === 'bortz') {
+            leagueText = 'BORTZ LEAGUE';
+        } else if (currentLeaderboardView === 'pheno') {
+            leagueText = 'PHENO LEAGUE';
+        } else {
         // If an exclusive league is selected, override the league text.
         if (selectedExclusiveLeagues.length > 0) {
             // If multiple exclusive leagues are selected, join them with " AND "
@@ -2643,12 +2751,13 @@
                 }
             }
 
-            // Default text if no filters are selected
+            // Default text if no filters are selected (or only league track)
             if (leagueText === '') {
-                leagueText = 'ULTIMATE';
+                leagueText = (selectedLeagueTracks.length === 1 ? selectedLeagueTracks[0].toUpperCase() : 'ULTIMATE');
             }
 
             leagueText += " LEAGUE";
+        }
         }
 
         // Update the text content of the collapsed-title element
@@ -2691,6 +2800,19 @@
         document.querySelectorAll('.filter-section label[data-generation]').forEach(label => {
             const generation = label.getAttribute('data-generation');
             const count = generationCounts[generation] || 0;
+            const countSpan = label.querySelector('.filter-count');
+            if (countSpan) {
+                countSpan.textContent = count;
+            }
+        });
+
+        // Update league track counts (Amateur / Professional by tier)
+        const hasBortzForCount = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const amateurCount = filteredAthletes.filter(a => !hasBortzForCount(a)).length;
+        const professionalCount = filteredAthletes.filter(a => hasBortzForCount(a)).length;
+        document.querySelectorAll('.filter-section label[data-league-track]').forEach(label => {
+            const track = label.getAttribute('data-league-track');
+            const count = (track === 'Amateur League') ? amateurCount : (track === 'Professional League') ? professionalCount : 0;
             const countSpan = label.querySelector('.filter-count');
             if (countSpan) {
                 countSpan.textContent = count;
@@ -2764,6 +2886,10 @@
     document.querySelector('.clear-icon').addEventListener('click', clearSearch);
     document.querySelector('.clear-icon').addEventListener('keypress', function (event) {
         if (event.key === 'Enter') clearSearch();
+    });
+
+    document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
+        radio.addEventListener('change', function () { performFilter(); });
     });
 
     function generateDivisionFilters(athletes) {
@@ -2858,6 +2984,35 @@
         }
     }
 
+    function generateLeagueTrackFilters(athletes) {
+        const filterSection = document.querySelector('#league-track-filter-section ul');
+        filterSection.innerHTML = ''; // Clear existing filters if any
+
+        const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const amateurCount = athletes.filter(a => !isPro(a)).length;
+        const professionalCount = athletes.filter(a => isPro(a)).length;
+
+        const tracks = [
+            { value: 'Amateur League', label: 'Amateur League', count: amateurCount },
+            { value: 'Professional League', label: 'Professional League', count: professionalCount }
+        ];
+
+        tracks.forEach(({ value, label, count }) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <label data-league-track="${value}">
+                    <input type="checkbox" name="leagueTrack" value="${value}">
+                    ${label} (<span class="filter-count">${count}</span>)
+                </label>
+            `;
+            filterSection.appendChild(li);
+            const input = li.querySelector('input[type="checkbox"]');
+            input.addEventListener('change', function (event) {
+                event.stopPropagation();
+                performFilter();
+            });
+        });
+    }
 
     function addFadeInEffectToElements() {
         document.querySelectorAll('.podium-item, .leaderboard table tbody tr').forEach(element => {

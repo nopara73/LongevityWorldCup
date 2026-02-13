@@ -143,7 +143,23 @@ window.compareAthleteRank = function (a, b) {
 
     // If all criteria are equal, which is impossible, then the athlete that registered first ranks higher.
     return 1;
-}
+};
+
+/**
+ * Pheno-only comparator: rank by Pheno age reduction only (no Bortz-first rule).
+ * Used for the Pheno leaderboard view. Order: ageReduction (more negative better), then DoB (older first), then name.
+ */
+window.compareAthleteRankPhenoOnly = function (a, b) {
+    const aRed = a.ageReduction != null && Number.isFinite(a.ageReduction) ? a.ageReduction : 0;
+    const bRed = b.ageReduction != null && Number.isFinite(b.ageReduction) ? b.ageReduction : 0;
+    if (aRed < bRed) return -1;
+    if (aRed > bRed) return 1;
+    if (a.dateOfBirth < b.dateOfBirth) return -1;
+    if (a.dateOfBirth > b.dateOfBirth) return 1;
+    if (a.name < b.name) return -1;
+    if (a.name > b.name) return 1;
+    return 0;
+};
 
 window.getGeneration = function (birthYear) {
     if (birthYear >= 1928 && birthYear <= 1945) {
