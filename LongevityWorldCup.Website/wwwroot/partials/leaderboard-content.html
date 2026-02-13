@@ -421,10 +421,26 @@
         backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
         pointer-events:none; z-index:-1;
     }
+    .modal-sticky-header .sticky-header-left{
+        display:flex; align-items:center; gap:0.5rem; min-width:0; flex:1;
+    }
     .modal-sticky-header .sticky-athlete-name{
         font-size:1.1rem; font-weight:600; color:var(--dark-text-color);
-        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
     }
+    .modal-sticky-header .sticky-pro-badge{
+        display:none;
+        flex-shrink:0;
+        font-size:0.7rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase;
+        padding:0.25em 0.5em;
+        color:#fff;
+        background:linear-gradient(160deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.75) 100%);
+        border:1px solid rgba(255,255,255,.2);
+        border-radius:4px;
+        box-shadow:0 1px 3px rgba(0,0,0,.3);
+        user-select:none;
+    }
+    .modal-sticky-header.is-pro .sticky-pro-badge{ display:inline-flex; }
     .modal-sticky-header .sticky-close-btn{
         background:none; border:none; font-size:1.5rem; color:#999;
         cursor:pointer; padding:0.5rem; margin-left:1rem; flex-shrink:0;
@@ -849,7 +865,10 @@
             <div class="modal-content">
                 <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
                 <div class="modal-sticky-header" id="modalStickyHeader">
-                    <span class="sticky-athlete-name" id="stickyAthleteName"></span>
+                    <div class="sticky-header-left">
+                        <span class="sticky-athlete-name" id="stickyAthleteName"></span>
+                        <span class="sticky-pro-badge" id="stickyProBadge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                    </div>
                     <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
                 </div>
                 <span id="closeAthleteDetailsModal" class="close">&times;</span>
@@ -3174,6 +3193,11 @@
         if (athleteProfileEl) {
             if (isPro) athleteProfileEl.classList.add('is-pro');
             else athleteProfileEl.classList.remove('is-pro');
+        }
+        const modalStickyHeader = document.getElementById('modalStickyHeader');
+        if (modalStickyHeader) {
+            if (isPro) modalStickyHeader.classList.add('is-pro');
+            else modalStickyHeader.classList.remove('is-pro');
         }
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
