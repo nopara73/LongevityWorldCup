@@ -2683,13 +2683,15 @@
         }
 
         const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
-        if (filters.length === 1 &&
-            ([...url.searchParams].length === 0
-                || ([...url.searchParams].length === 1 && url.searchParams.has('filters')))
-            && currentLeaderboardView === 'ultimate') {
+        const cleanSearch = ([...url.searchParams].length === 0)
+            || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
+        if (filters.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
             const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
+        } else if (filters.length === 0 && cleanSearch && (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno')) {
+            url.pathname = `/league/${currentLeaderboardView}`;
+            url.searchParams.delete('view');
         } else {
             url.pathname = originalLeaguelessURL.pathname;
             if (filters.length === 0) {
@@ -2702,7 +2704,7 @@
 
         if (currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('view');
-        } else {
+        } else if (url.pathname !== `/league/${currentLeaderboardView}`) {
             url.searchParams.set('view', currentLeaderboardView);
         }
 
