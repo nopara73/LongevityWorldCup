@@ -37,11 +37,17 @@ internal static class XDailyPostMediaHelper
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
             return null;
         var normalized = EventHelpers.NormalizeBadgeLabel(label);
+        var isNonGlobalLeagueLeader =
+            EventHelpers.TryExtractPlace(rawText, out var place) &&
+            place == 1 &&
+            EventHelpers.TryExtractCategory(rawText, out var category) &&
+            !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase);
         var isSupportedBadge =
             string.Equals(normalized, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase);
+            string.Equals(normalized, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase) ||
+            isNonGlobalLeagueLeader;
         if (!isSupportedBadge)
             return null;
         if (!EventHelpers.TryExtractSlug(rawText, out var slug))
