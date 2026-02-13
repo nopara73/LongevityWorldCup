@@ -289,9 +289,32 @@
     @media (min-width: 768px){
         .pro-badge{ right:2px; bottom:8px; font-size:11px; padding:3px 8px; }
     }
-    /* Modal: show PRO ribbon on profile pic when athlete is pro */
+    /* Modal: PRO ribbon on profile picture – on-image, scaled, premium look */
     #athlete-profile .pro-badge{ display:none; }
-    #athlete-profile.is-pro .pro-badge{ display:flex; right:10px; bottom:10px; font-size:12px; padding:4px 10px; }
+    /* Badge scales with portrait size (container); desktop cap at 2.25rem */
+    #athlete-profile.is-pro .pro-badge{
+        display:inline-flex;
+        right:6%; bottom:-8%;
+        font-size:2.25rem;
+        font-size:min(2.25rem, 11cqw);
+        font-weight:800;
+        letter-spacing:0.12em;
+        padding:0.4em 0.85em;
+        color:#fff;
+        text-shadow:0 1px 2px rgba(0,0,0,.6);
+        background:linear-gradient(160deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.75) 100%);
+        border:2px solid rgba(255,255,255,.2);
+        border-radius:0.5em;
+        box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
+        transform:rotate(-12deg);
+        line-height:1.2;
+        z-index:2;
+        pointer-events:auto;
+        user-select:none;
+    }
+    @media (min-width: 768px){
+        #athlete-profile.is-pro .pro-badge{ bottom:-7%; }
+    }
 
     /* =========================
        7) Podium cards
@@ -420,9 +443,25 @@
     }
     .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 
+    /* Modal portrait: wrapper defines picture bounds so PRO badge sits on the image */
+    #athlete-profile .portrait-wrapper{
+        position:relative;
+        display:block;
+        width:70%;
+        aspect-ratio:1/1;
+        max-width:320px;
+        margin:0 auto;
+        container-type:inline-size;
+        container-name:portrait;
+    }
     #modalProfilePic{
-        width:70%; aspect-ratio:1/1; height:auto; cursor:pointer; transition:transform .3s ease, border-color .3s ease;
-        border-radius:50%; object-fit:cover;
+        position:absolute;
+        inset:0;
+        width:100%; height:100%;
+        border-radius:50%;
+        object-fit:cover;
+        cursor:pointer;
+        transition:transform .3s ease, border-color .3s ease;
     }
     #modalProfilePic:hover{ transform: scale(1.05); }
 
@@ -707,7 +746,7 @@
         .modal-content.guess-mode{
             border-radius:0 !important; /* Also remove rounded corners in guess-mode on mobile */
         }
-        #modalProfilePic{ width:50%; }
+        #athlete-profile .portrait-wrapper{ width:50%; }
         .modal-scroll-progress{ height:2px; }
         
         /* Ensure minimum touch target sizes */
@@ -822,7 +861,7 @@
                              alt="Athlete profile picture"
                              class="illustration"
                              loading="lazy" />
-                        <span class="pro-badge" aria-label="Pro division">PRO</span>
+                        <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </span>
                     <h2 id="athleteName"></h2>
 
@@ -962,7 +1001,7 @@
         <td data-label="Athlete" class="athlete-td">
             <span class="portrait-wrapper">
                 <img src="" alt="" class="portrait" loading="lazy">
-                <span class="pro-badge" aria-label="Pro division">PRO</span>
+                <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
             </span>
             <span class="athlete-name" title="View stats"></span>
             <div class="badge-section"></div>
