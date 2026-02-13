@@ -3,9 +3,9 @@ namespace LongevityWorldCup.Website.Jobs;
 
 internal static class XDailyPostJobTempTestHelper
 {
-    private const string TempBadgeLabel = "Chronological Age - Oldest";
+    private const string TempBadgeLabel = "Chronological Age - Youngest";
 
-    public static async Task<bool> TryPostTemporaryBadgeAwardChronologicalAgeOldestTestAsync(
+    public static async Task<bool> TryPostTemporaryBadgeAwardChronologicalAgeYoungestTestAsync(
         EventDataService _,
         AthleteDataService athletes,
         XEventService xEvents,
@@ -13,17 +13,17 @@ internal static class XDailyPostJobTempTestHelper
         XApiClient xApiClient,
         ILogger logger)
     {
-        var oldestSlug = athletes
+        var youngestSlug = athletes
             .GetAthletesForX()
             .Where(a => !string.IsNullOrWhiteSpace(a.Slug) && a.ChronoAge.HasValue)
-            .OrderByDescending(a => a.ChronoAge!.Value)
+            .OrderBy(a => a.ChronoAge!.Value)
             .ThenBy(a => a.Slug, StringComparer.OrdinalIgnoreCase)
             .Select(a => a.Slug)
             .FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(oldestSlug))
+        if (string.IsNullOrWhiteSpace(youngestSlug))
             return false;
 
-        var rawText = $"slug[{oldestSlug}] badge[{TempBadgeLabel}] cat[Global] val[] place[1]";
+        var rawText = $"slug[{youngestSlug}] badge[{TempBadgeLabel}] cat[Global] val[] place[1]";
         var msg = xEvents.TryBuildMessage(EventType.BadgeAward, rawText);
         if (string.IsNullOrWhiteSpace(msg))
             return false;
@@ -34,7 +34,7 @@ internal static class XDailyPostJobTempTestHelper
         logger.LogInformation(
             "XDailyPostJob TEMP: posted BadgeAward test for {BadgeLabel} on slug {Slug}.",
             TempBadgeLabel,
-            oldestSlug);
+            youngestSlug);
         return true;
     }
 }
