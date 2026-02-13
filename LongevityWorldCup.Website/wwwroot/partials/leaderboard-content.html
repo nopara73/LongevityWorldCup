@@ -193,23 +193,36 @@
     .clear-icon:hover{ color:var(--secondary-color); }
 
     /* =========================
-       5b) Leaderboard view switcher (Bortz / Pheno)
+       5b) Leaderboard view switcher (Bortz / Pheno) – optional toggles
        ========================= */
     .leaderboard-view-switcher{
-        display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
+        display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; margin-left:.5rem;
     }
-    .leaderboard-view-switcher[role="tablist"]{ margin-left:0; }
+    .leaderboard-view-switcher[role="tablist"]{ margin-left:.5rem; }
+    .leaderboard-view-switcher .view-switcher-label{
+        font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#666; margin-right:.25rem;
+    }
+    .leaderboard-view-switcher .view-switcher-chips{
+        display:inline-flex; align-items:stretch; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px; padding:3px; gap:2px;
+    }
     .leaderboard-view-switcher .view-badge{
-        display:inline-flex; align-items:center; padding:.4rem .85rem; border-radius:25px;
-        border:2px solid var(--primary-color); background:var(--card-bg); color:var(--primary-color);
-        font-size:.9rem; font-weight:600; cursor:pointer; transition:background .2s ease, color .2s ease, border-color .2s ease;
+        display:inline-flex; align-items:center; padding:.35rem .75rem; border-radius:999px;
+        border:none; background:transparent; color:#555;
+        font-size:.85rem; font-weight:600; cursor:pointer; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
     }
     .leaderboard-view-switcher .view-badge:hover{
-        background:rgba(0,188,212,.08); color:var(--secondary-color); border-color:var(--secondary-color);
+        background:rgba(0,188,212,.06); color:var(--primary-color);
     }
     .leaderboard-view-switcher input[name="leaderboardView"]{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
-        background:var(--primary-color); color:var(--card-bg); border-color:var(--primary-color);
+        background:var(--card-bg); color:var(--primary-color); box-shadow:0 1px 3px rgba(0,0,0,.12);
+        padding-right:.5rem;
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge::after{
+        content:'×'; margin-left:.35rem; font-size:1rem; line-height:1; opacity:.7; font-weight:400;
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge:hover::after{
+        opacity:1;
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge{ outline:2px solid var(--secondary-color); outline-offset:2px; }
 
@@ -825,11 +838,14 @@
 
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
-                <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
-                <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
-                <label for="view-bortz" class="view-badge">Bortz Age</label>
-                <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
-                <label for="view-pheno" class="view-badge">Pheno Age</label>
+                <span class="view-switcher-label">View</span>
+                <div class="view-switcher-chips">
+                    <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
+                    <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
+                    <label for="view-bortz" class="view-badge" title="Rank by Bortz Age (biological age). Click again to show default ranking.">Bortz Age</label>
+                    <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
+                    <label for="view-pheno" class="view-badge" title="Rank by Pheno Age. Click again to show default ranking.">Pheno Age</label>
+                </div>
             </div>
             <div class="search-wrapper">
                 <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
