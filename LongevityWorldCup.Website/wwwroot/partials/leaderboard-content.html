@@ -196,9 +196,8 @@
        5b) Leaderboard view switcher (Bortz / Pheno) – optional toggles
        ========================= */
     .leaderboard-view-switcher{
-        display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; margin-left:.5rem;
+        display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
     }
-    .leaderboard-view-switcher[role="tablist"]{ margin-left:.5rem; }
     .leaderboard-view-switcher .view-switcher-label{
         font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#666; margin-right:.25rem;
     }
@@ -850,7 +849,6 @@
 
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
-                <span class="view-switcher-label">View</span>
                 <div class="view-switcher-chips">
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
                     <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
