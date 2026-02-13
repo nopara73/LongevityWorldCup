@@ -882,7 +882,11 @@
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
-                <div class="filter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <div class="filter-section" id="league-track-filter-section">
+                    <h3>Track</h3>
+                    <ul></ul> <!-- This will be populated dynamically -->
+                </div>
+                <div class="filter-section" id="division-filter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <h3>Divisions</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
@@ -893,10 +897,6 @@
                 </div>
                 <div class="filter-section" id="exclusive-filter-section">
                     <h3>Exclusive</h3>
-                    <ul></ul> <!-- This will be populated dynamically -->
-                </div>
-                <div class="filter-section" id="league-track-filter-section">
-                    <h3>League</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
             </div>
@@ -1864,8 +1864,8 @@
                     if (lastTier === 'pro' && tier === 'amateur') {
                         const sep = document.createElement('tr');
                         sep.className = 'tier-separator';
-                        sep.setAttribute('aria-label', 'Start of Amateur division (Pheno Age) section');
-                        sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur division |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
+                        sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
+                        sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
                         tableBody.appendChild(sep);
                     }
                     lastTier = tier;
@@ -2459,7 +2459,7 @@
         const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
 
-        // Get selected league track (Amateur League / Professional League); only one selected means filter
+        // Get selected league track (Amateur / Professional); only one selected means filter
         const selectedLeagueTracks = Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
             .map(checkbox => checkbox.value);
         const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
@@ -2498,8 +2498,8 @@
             // League track: when exactly one selected, keep only that tier
             if (leagueTrackFilterActive) {
                 const isPro = hasBortz(athlete);
-                const wantAmateur = selectedLeagueTracks[0].toLowerCase() === 'amateur league';
-                const wantPro = selectedLeagueTracks[0].toLowerCase() === 'professional league';
+                const wantAmateur = selectedLeagueTracks[0].toLowerCase() === 'amateur';
+                const wantPro = selectedLeagueTracks[0].toLowerCase() === 'professional';
                 if (wantAmateur && isPro) matches = false;
                 if (wantPro && !isPro) matches = false;
             }
@@ -2797,7 +2797,10 @@
 
             // Default text if no filters are selected (or only league track)
             if (leagueText === '') {
-                leagueText = (selectedLeagueTracks.length === 1 ? selectedLeagueTracks[0].toUpperCase() : 'ULTIMATE');
+                const trackLabel = selectedLeagueTracks.length === 1
+                    ? (selectedLeagueTracks[0] === 'Professional' ? 'Pro' : selectedLeagueTracks[0])
+                    : null;
+                leagueText = trackLabel ? trackLabel.toUpperCase() : 'ULTIMATE';
             }
 
             leagueText += " LEAGUE";
@@ -2856,7 +2859,7 @@
         const professionalCount = filteredAthletes.filter(a => hasBortzForCount(a)).length;
         document.querySelectorAll('.filter-section label[data-league-track]').forEach(label => {
             const track = label.getAttribute('data-league-track');
-            const count = (track === 'Amateur League') ? amateurCount : (track === 'Professional League') ? professionalCount : 0;
+            const count = (track === 'Amateur') ? amateurCount : (track === 'Professional') ? professionalCount : 0;
             const countSpan = label.querySelector('.filter-count');
             if (countSpan) {
                 countSpan.textContent = count;
@@ -2948,7 +2951,7 @@
     });
 
     function generateDivisionFilters(athletes) {
-        const filterSection = document.querySelector('.filter-section ul');
+        const filterSection = document.querySelector('#division-filter-section ul');
         filterSection.innerHTML = ''; // Clear existing filters if any
 
         // Count occurrences of each division
@@ -3048,16 +3051,17 @@
         const professionalCount = athletes.filter(a => isPro(a)).length;
 
         const tracks = [
-            { value: 'Amateur League', label: 'Amateur League', count: amateurCount },
-            { value: 'Professional League', label: 'Professional League', count: professionalCount }
+            { value: 'Amateur', label: 'Amateur', count: amateurCount },
+            { value: 'Professional', label: 'Pro', count: professionalCount }
         ];
 
         tracks.forEach(({ value, label, count }) => {
+            const icon = window.TryGetLeagueTrackIcon ? window.TryGetLeagueTrackIcon(value) : '';
             const li = document.createElement('li');
             li.innerHTML = `
                 <label data-league-track="${value}">
                     <input type="checkbox" name="leagueTrack" value="${value}">
-                    ${label} (<span class="filter-count">${count}</span>)
+                    ${icon} ${label} (<span class="filter-count">${count}</span>)
                 </label>
             `;
             filterSection.appendChild(li);
