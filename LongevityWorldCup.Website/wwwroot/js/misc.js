@@ -147,7 +147,7 @@ window.compareAthleteRank = function (a, b) {
 
 /**
  * Pheno-only comparator: rank by Pheno age reduction only (no Bortz-first rule).
- * Used for the Pheno leaderboard view. Order: ageReduction (more negative better), then DoB (older first), then name.
+ * Used for the Pheno Age view. Order: ageReduction (more negative better), then DoB (older first), then name.
  */
 window.compareAthleteRankPhenoOnly = function (a, b) {
     const aRed = a.ageReduction != null && Number.isFinite(a.ageReduction) ? a.ageReduction : 0;
