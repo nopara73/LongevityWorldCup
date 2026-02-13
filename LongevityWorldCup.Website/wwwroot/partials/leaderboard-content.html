@@ -262,6 +262,37 @@
     .podium .rank-arrow, .podium-item .rank-arrow{ display:none !important; }
     .podium .new-bubble, .podium-item .new-bubble{ display:none !important; }
 
+    /* PRO badge overlay – table only (not on podium); white text, black frame */
+    .portrait-wrapper{ position:relative; display:inline-block; }
+    .pro-badge{
+        display:none;
+        position:absolute;
+        right:2px; bottom:2px;
+        padding:2px 6px;
+        font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+        color:#fff;
+        text-shadow: 0 0 1px #000, 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+        background:linear-gradient(145deg, rgba(0,0,0,.78), rgba(0,0,0,.92));
+        border:1px solid #000;
+        border-radius:2px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.35);
+        align-items:center; justify-content:center;
+        pointer-events:none;
+        z-index:2;
+        line-height:1.2;
+        transform:rotate(-8deg);
+    }
+    tr.tier-pro .pro-badge{ display:flex; }
+    /* Hide PRO ribbon on leaderboard/podium; show only in modal when profile is opened */
+    .leaderboard .pro-badge{ display:none !important; }
+    .podium .pro-badge{ display:none !important; }
+    @media (min-width: 768px){
+        .pro-badge{ right:2px; bottom:8px; font-size:11px; padding:3px 8px; }
+    }
+    /* Modal: show PRO ribbon on profile pic when athlete is pro */
+    #athlete-profile .pro-badge{ display:none; }
+    #athlete-profile.is-pro .pro-badge{ display:flex; right:10px; bottom:10px; font-size:12px; padding:4px 10px; }
+
     /* =========================
        7) Podium cards
        ========================= */
@@ -785,11 +816,14 @@
                 <span id="closeAthleteDetailsModal" class="close">&times;</span>
 
                 <div class="athlete-profile" id="athlete-profile">
-                    <img id="modalProfilePic"
-                         src=""
-                         alt="Athlete profile picture"
-                         class="illustration"
-                         loading="lazy" />
+                    <span class="portrait-wrapper">
+                        <img id="modalProfilePic"
+                             src=""
+                             alt="Athlete profile picture"
+                             class="illustration"
+                             loading="lazy" />
+                        <span class="pro-badge" aria-label="Pro division">PRO</span>
+                    </span>
                     <h2 id="athleteName"></h2>
 
                     <!--GUESS-MY-AGE-->
@@ -926,7 +960,10 @@
             <span class="rank"></span>
         </td>
         <td data-label="Athlete" class="athlete-td">
-            <img src="" alt="" class="portrait" loading="lazy">
+            <span class="portrait-wrapper">
+                <img src="" alt="" class="portrait" loading="lazy">
+                <span class="pro-badge" aria-label="Pro division">PRO</span>
+            </span>
             <span class="athlete-name" title="View stats"></span>
             <div class="badge-section"></div>
         </td>
@@ -3092,6 +3129,13 @@
         profilePic.src = fullAthleteData.ProfilePic;
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
+
+        const athleteProfileEl = document.getElementById('athlete-profile');
+        const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
+        if (athleteProfileEl) {
+            if (isPro) athleteProfileEl.classList.add('is-pro');
+            else athleteProfileEl.classList.remove('is-pro');
+        }
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
