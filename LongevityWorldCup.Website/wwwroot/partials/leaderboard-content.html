@@ -2587,15 +2587,16 @@
             }
         });
 
-        // Show tier separator when both pro and amateur rows are visible (first amateur after at least one pro); hide for Bortz/Pheno views
+        // Show tier separator when both pro and amateur rows are visible (first amateur after at least one pro); hide for Bortz/Pheno views.
+        // Use filteredAthletes order (not DOM order) so switching from Pheno/Bortz back to Ultimate shows the separator correctly.
         if (tierSeparatorRow) {
             let separatorShouldShow = false;
             if (currentLeaderboardView === 'ultimate') {
-                const visibleRows = Array.from(document.querySelectorAll('.leaderboard table tbody tr:not(.tier-separator)')).filter(r => r.style.display !== 'none');
+                const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
                 let sawPro = false;
-                for (const r of visibleRows) {
-                    if (r.classList.contains('tier-pro')) sawPro = true;
-                    else if (r.classList.contains('tier-amateur') && sawPro) {
+                for (const a of filteredAthletes) {
+                    if (isPro(a)) sawPro = true;
+                    else if (sawPro) {
                         separatorShouldShow = true;
                         break;
                     }
@@ -2611,8 +2612,17 @@
         const separator = allRows.find(r => r.classList.contains('tier-separator'));
         const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
         const fragment = document.createDocumentFragment();
-        visibleOrdered.forEach(r => fragment.appendChild(r));
-        if (separator) fragment.appendChild(separator);
+        const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const firstAmateurIndex = filteredAthletes.findIndex(a => !isProForOrder(a));
+        const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
+        if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
+            visibleOrdered.slice(0, firstAmateurIndex).forEach(r => fragment.appendChild(r));
+            fragment.appendChild(separator);
+            visibleOrdered.slice(firstAmateurIndex).forEach(r => fragment.appendChild(r));
+        } else {
+            visibleOrdered.forEach(r => fragment.appendChild(r));
+            if (separator) fragment.appendChild(separator);
+        }
         hiddenRows.forEach(r => fragment.appendChild(r));
         tableBody.appendChild(fragment);
 
