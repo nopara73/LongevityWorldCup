@@ -167,8 +167,16 @@
     .filter-section input[type="checkbox"]:checked + label{ font-weight:bold; color:var(--secondary-color); }
 
     /* =========================
-       5) Search
+       5) Search & toolbar (search + view badges on one line on desktop)
        ========================= */
+    .leaderboard-toolbar{
+        display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem;
+    }
+    .leaderboard-toolbar .search-wrapper{ margin-bottom:0; }
+    .leaderboard-toolbar .leaderboard-view-switcher{ margin-bottom:0; }
+    @media (min-width: 769px){
+        .leaderboard-toolbar{ flex-wrap:nowrap; }
+    }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; margin-right:.5rem; }
     #athleteSearch{
@@ -815,27 +823,28 @@
             <!-- Podium items will be dynamically inserted here -->
         </div>
 
-        <div class="search-wrapper">
-            <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
-                <label for="athleteSearch" class="visually-hidden">Search athletes</label>
-                <input type="text" id="athleteSearch" placeholder="Search athlete..." aria-label="Search athletes">
-                <span class="search-icon"><i class="fa fa-search"></i></span>
-                <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
-                    <i class="fa fa-times"></i>
-                </span>
+        <div class="leaderboard-toolbar">
+            <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
+                <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked>
+                <label for="view-ultimate" class="view-badge">Ultimate</label>
+                <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
+                <label for="view-bortz" class="view-badge">Bortz leaderboard</label>
+                <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
+                <label for="view-pheno" class="view-badge">Pheno leaderboard</label>
             </div>
-            <button class="sidebar-toggle" aria-label="Toggle sidebar" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
-                <i class="fa fa-sliders-h"></i>
-            </button>
-        </div>
-
-        <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
-            <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked>
-            <label for="view-ultimate" class="view-badge">Ultimate</label>
-            <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
-            <label for="view-bortz" class="view-badge">Bortz leaderboard</label>
-            <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
-            <label for="view-pheno" class="view-badge">Pheno leaderboard</label>
+            <div class="search-wrapper">
+                <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
+                    <label for="athleteSearch" class="visually-hidden">Search athletes</label>
+                    <input type="text" id="athleteSearch" placeholder="Search athlete..." aria-label="Search athletes">
+                    <span class="search-icon"><i class="fa fa-search"></i></span>
+                    <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
+                        <i class="fa fa-times"></i>
+                    </span>
+                </div>
+                <button class="sidebar-toggle" aria-label="Toggle sidebar" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
+                    <i class="fa fa-sliders-h"></i>
+                </button>
+            </div>
         </div>
 
         <div class="leaderboard">
