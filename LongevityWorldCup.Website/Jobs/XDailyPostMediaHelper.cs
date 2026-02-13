@@ -22,6 +22,15 @@ internal static class XDailyPostMediaHelper
             return await UploadSinglePngAsync(imageStream, xApiClient);
         }
 
+        if (type == EventType.AthleteCountMilestone)
+        {
+            if (!EventHelpers.TryExtractAthleteCount(rawText, out var count) || count <= 0)
+                return null;
+
+            await using var imageStream = await images.BuildAthleteCountMilestoneImageAsync(count);
+            return await UploadSinglePngAsync(imageStream, xApiClient);
+        }
+
         if (type != EventType.BadgeAward)
             return null;
 

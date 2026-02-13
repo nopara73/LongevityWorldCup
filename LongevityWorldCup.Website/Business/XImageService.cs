@@ -241,6 +241,39 @@ public class XImageService
         return output;
     }
 
+    public async Task<Stream?> BuildAthleteCountMilestoneImageAsync(int athleteCount)
+    {
+        if (athleteCount <= 0)
+            return null;
+
+        const int canvasWidth = 1200;
+        const int canvasHeight = 675;
+        using var image = new Image<Rgba32>(canvasWidth, canvasHeight, new Rgba32(5, 5, 15));
+
+        var text = athleteCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var glyphs = BuildGlyphMap();
+        var pixelSize = 22;
+        const int glyphSpacing = 6;
+        var maxWidth = canvasWidth - 140;
+
+        while (pixelSize > 8 && MeasurePixelTextWidth(text, pixelSize, glyphSpacing, glyphs) > maxWidth)
+            pixelSize--;
+
+        DrawPixelText(
+            image,
+            text,
+            canvasWidth / 2,
+            canvasHeight / 2,
+            pixelSize: pixelSize,
+            glyphSpacing: glyphSpacing,
+            color: new Rgba32(245, 245, 245));
+
+        var output = new MemoryStream();
+        await image.SaveAsPngAsync(output);
+        output.Position = 0;
+        return output;
+    }
+
     public Task<Stream?> BuildPvpDuelRootImageAsync(string slugA, string slugB)
     {
         return BuildPvpFaceoffImageAsync(slugA, slugB, "VS", grayLeft: false, grayRight: false);
