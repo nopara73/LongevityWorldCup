@@ -3,7 +3,9 @@ namespace LongevityWorldCup.Website.Jobs;
 
 internal static class XDailyPostJobTempTestHelper
 {
-    public static async Task<bool> TryPostTemporaryCrowdGuessesTestAsync(
+    private static readonly string[] DomainKeys = ["liver", "kidney", "metabolic", "inflammation", "immune"];
+
+    public static async Task<bool> TryPostTemporaryDomainTopTestAsync(
         EventDataService _,
         AthleteDataService athletes,
         XEventService xEvents,
@@ -11,20 +13,29 @@ internal static class XDailyPostJobTempTestHelper
         XApiClient xApiClient,
         ILogger logger)
     {
-        var top3 = athletes.GetCrowdLowestAgeTop3()
-            .Select(x => x.Slug)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Take(3)
-            .ToList();
-        if (top3.Count == 0)
+        var randomizedDomains = DomainKeys.OrderBy(_ => Random.Shared.Next()).ToList();
+        string? selectedDomain = null;
+        string? winnerSlug = null;
+        foreach (var domain in randomizedDomains)
+        {
+            var winner = athletes.GetBestDomainWinnerSlug(domain);
+            if (string.IsNullOrWhiteSpace(winner))
+                continue;
+            selectedDomain = domain;
+            winnerSlug = winner;
+            break;
+        }
+
+        if (string.IsNullOrWhiteSpace(selectedDomain) || string.IsNullOrWhiteSpace(winnerSlug))
             return false;
 
-        var msg = xEvents.TryBuildFillerMessage(FillerType.CrowdGuesses, "");
+        var payload = $"domain[{selectedDomain}]";
+        var msg = xEvents.TryBuildFillerMessage(FillerType.DomainTop, payload);
         if (string.IsNullOrWhiteSpace(msg))
             return false;
 
         IReadOnlyList<string>? mediaIds = null;
-        await using var imageStream = await images.BuildTop3LeaderboardPodiumImageAsync(top3);
+        await using var imageStream = await images.BuildSingleAthleteImageAsync(winnerSlug);
         if (imageStream != null)
         {
             var mediaId = await xApiClient.UploadMediaAsync(imageStream, "image/png");
@@ -35,8 +46,9 @@ internal static class XDailyPostJobTempTestHelper
         await xEvents.SendAsync(msg, mediaIds);
 
         logger.LogInformation(
-            "XDailyPostJob TEMP: posted CrowdGuesses filler test with slugs {Slugs}.",
-            string.Join(", ", top3));
+            "XDailyPostJob TEMP: posted DomainTop filler test for domain {Domain} winner {Winner}.",
+            selectedDomain,
+            winnerSlug);
         return true;
     }
 }

@@ -32,7 +32,7 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
-        if (await XDailyPostJobTempTestHelper.TryPostTemporaryCrowdGuessesTestAsync(_events, _athletes, _xEvents, _images, _xApiClient, _logger))
+        if (await XDailyPostJobTempTestHelper.TryPostTemporaryDomainTopTestAsync(_events, _athletes, _xEvents, _images, _xApiClient, _logger))
             return;
 
         var pending = _events.GetPendingXEvents();
@@ -122,6 +122,23 @@ public class XDailyPostJob : IJob
                     if (top3.Count > 0)
                     {
                         await using var imageStream = await _images.BuildTop3LeaderboardPodiumImageAsync(top3);
+                        if (imageStream != null)
+                        {
+                            var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
+                            if (!string.IsNullOrWhiteSpace(mediaId))
+                                mediaIds = new[] { mediaId };
+                        }
+                    }
+                }
+            }
+            else if (fillerType == FillerType.DomainTop)
+            {
+                if (EventHelpers.TryExtractDomain(payload, out var domainKey) && !string.IsNullOrWhiteSpace(domainKey))
+                {
+                    var winnerSlug = _athletes.GetBestDomainWinnerSlug(domainKey.Trim());
+                    if (!string.IsNullOrWhiteSpace(winnerSlug))
+                    {
+                        await using var imageStream = await _images.BuildSingleAthleteImageAsync(winnerSlug);
                         if (imageStream != null)
                         {
                             var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
