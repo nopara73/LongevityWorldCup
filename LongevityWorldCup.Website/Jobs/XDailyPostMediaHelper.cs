@@ -37,7 +37,10 @@ internal static class XDailyPostMediaHelper
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
             return null;
         var normalized = EventHelpers.NormalizeBadgeLabel(label);
-        if (!string.Equals(normalized, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+        var isSupportedBadge =
+            string.Equals(normalized, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase);
+        if (!isSupportedBadge)
             return null;
         if (!EventHelpers.TryExtractSlug(rawText, out var slug))
             return null;
