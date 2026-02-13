@@ -825,12 +825,11 @@
 
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
-                <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked>
-                <label for="view-ultimate" class="view-badge">Ultimate</label>
+                <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
                 <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
-                <label for="view-bortz" class="view-badge">Bortz leaderboard</label>
+                <label for="view-bortz" class="view-badge">Bortz Age</label>
                 <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
-                <label for="view-pheno" class="view-badge">Pheno leaderboard</label>
+                <label for="view-pheno" class="view-badge">Pheno Age</label>
             </div>
             <div class="search-wrapper">
                 <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
@@ -2577,19 +2576,17 @@
             tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
         }
 
-        // When view is Bortz or Pheno, table was built in Ultimate order (pros first); reorder tbody so visible rows match filteredAthletes order (single DOM update for smooth UX)
-        if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno') {
-            const tableBody = document.querySelector('.leaderboard table tbody');
-            const allRows = Array.from(tableBody.querySelectorAll('tr'));
-            const visibleOrdered = filteredAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
-            const separator = allRows.find(r => r.classList.contains('tier-separator'));
-            const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
-            const fragment = document.createDocumentFragment();
-            visibleOrdered.forEach(r => fragment.appendChild(r));
-            if (separator) fragment.appendChild(separator);
-            hiddenRows.forEach(r => fragment.appendChild(r));
-            tableBody.appendChild(fragment);
-        }
+        // Reorder tbody so visible rows match filteredAthletes order (fixes wrong order when switching from Bortz/Pheno back to Ultimate)
+        const tableBody = document.querySelector('.leaderboard table tbody');
+        const allRows = Array.from(tableBody.querySelectorAll('tr'));
+        const visibleOrdered = filteredAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
+        const separator = allRows.find(r => r.classList.contains('tier-separator'));
+        const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
+        const fragment = document.createDocumentFragment();
+        visibleOrdered.forEach(r => fragment.appendChild(r));
+        if (separator) fragment.appendChild(separator);
+        hiddenRows.forEach(r => fragment.appendChild(r));
+        tableBody.appendChild(fragment);
 
         // Remove existing highlights
         window.removeAllHighlights();
@@ -2899,6 +2896,17 @@
 
     document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
         radio.addEventListener('change', function () { performFilter(); });
+    });
+    // Clicking the active Bortz or Pheno badge again deselects it (none = Ultimate view)
+    document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(label => {
+        label.addEventListener('click', function (e) {
+            const radio = document.getElementById(label.getAttribute('for'));
+            if (radio && radio.checked) {
+                e.preventDefault();
+                document.getElementById('view-ultimate').checked = true;
+                performFilter();
+            }
+        });
     });
 
     function generateDivisionFilters(athletes) {
