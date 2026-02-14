@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Edit Profile</title>
@@ -188,7 +188,7 @@
 <body>
     <!--HEADER-->
     <main>
-        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete Selection</h1>
+        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
         <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
@@ -199,16 +199,16 @@
         <div id="editOptionsGroup" cdata-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <div id="changeProfilePicWrapper" class="options-container inline-option-group">
                 <button id="changeProfilePicButton" class="option-button grey">
-                    Change Profile Picture
+                    Change profile picture
                 </button>
                 <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
-                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore Profile Picture">
+                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <select id="divisionDisplaySelect"></select>
-                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore Division">
+                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
@@ -218,7 +218,7 @@
                        name="flagDisplay"
                        autocomplete="off"
                        placeholder="Type or select a flag…">
-                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore Flag">
+                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
@@ -228,7 +228,7 @@
                        name="personalLink"
                        autocomplete="off"
                        placeholder="Enter personal link…">
-                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore Personal Link">
+                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
@@ -238,7 +238,7 @@
                        name="mediaContact"
                        autocomplete="off"
                        placeholder="Enter media contact…">
-                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore Media Contact">
+                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
@@ -248,7 +248,7 @@
                           rows="3"
                           placeholder="What drives you?"></textarea>
 
-                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore Your Why">
+                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
@@ -263,7 +263,7 @@
         <div id="changeProfileCropperModal" style="display:none">
             <img id="changeProfileCropperImage" src="" alt="Cropper Preview">
             <div class="options-container">
-                <button id="changeProfileCropButton" class="option-button green">Crop & Save</button>
+                <button id="changeProfileCropButton" class="option-button green">Crop and save</button>
                 <button id="changeProfileCancelButton" class="option-button grey">Cancel</button>
             </div>
         </div>
@@ -511,7 +511,7 @@
                         hideLoading();
                         customAlert(`Submission failed:\n\n${err}`).then(() => {
                             submitButton.disabled = false;
-                            submitButton.innerHTML = 'Submit Change Request <i class="fa fa-rocket"></i>';
+                            submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
                         });
                     });
             });
@@ -675,7 +675,7 @@
 
         function setSubmitChangeRequestButton() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = 'Submit Change Request&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.innerHTML = 'Submit change request&nbsp;<i class="fa fa-rocket"></i>';
             submitButton.setAttribute('type', 'submit');
         }
 

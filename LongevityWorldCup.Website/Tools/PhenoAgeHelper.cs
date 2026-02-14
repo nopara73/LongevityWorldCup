@@ -48,6 +48,7 @@ namespace LongevityWorldCup.Website.Tools
             double alpUL)
         {
             if (crpMgL <= 0) return double.NaN;
+            // PhenoAge expects ln(CRP in mg/dL) per Levine Table 1; stored value is mg/L, so divide by 10.
             var lnCrpOver10 = Math.Log(crpMgL / 10.0);
             var values = new[]
             {

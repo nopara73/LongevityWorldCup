@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -48,6 +48,14 @@ namespace LongevityWorldCup.Website.Controllers
             else if (normalizedLeagueName == "prosperan")
             {
                 return Redirect($"/?filters=prosperan");
+            }
+            else if (normalizedLeagueName == "bortz")
+            {
+                return Redirect("/?view=bortz");
+            }
+            else if (normalizedLeagueName == "pheno")
+            {
+                return Redirect("/?view=pheno");
             }
 
             return Redirect("/error/404");

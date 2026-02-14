@@ -1,4 +1,4 @@
-﻿window.TryGetDivisionIcon = function (division) {
+window.TryGetDivisionIcon = function (division) {
     const divisionIcons = {
         "men's": "💪",
         "women's": "👠",
@@ -8,6 +8,14 @@
     // Return the icon if it exists, or an empty string if not
     return divisionIcons[division.toLowerCase()] || '';
 }
+
+window.TryGetLeagueTrackIcon = function (leagueTrack) {
+    const leagueTrackIcons = {
+        "amateur": "🎓",
+        "professional": "🏆"
+    };
+    return leagueTrackIcons[(leagueTrack || '').toLowerCase()] || '';
+};
 
 window.TryGetGenerationIcon = function (generation) {
     const generationIcons = {
