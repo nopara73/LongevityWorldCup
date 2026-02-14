@@ -1,0 +1,28 @@
+{
+  "Name": "Polina",
+  "DisplayName": null,
+  "MediaContact": "https://www.instagram.com/its.a.polly.thing/",
+  "DateOfBirth": {
+    "Year": 1998,
+    "Month": 7,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-02-12",
+      "AlbGL": 49.1,
+      "CreatUmolL": 58.5,
+      "GluMmolL": 5.1,
+      "CrpMgL": 1.51,
+      "LymPc": 31.5,
+      "McvFL": 88,
+      "RdwPc": 12.2,
+      "AlpUL": 47.7,
+      "Wbc1000cellsuL": 5.31
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Bulgaria",
+  "Why": "Having fun in this life for as long as possible. Loving people and dogs - all about mental wellbeing.",
+  "PersonalLink": null
+}
