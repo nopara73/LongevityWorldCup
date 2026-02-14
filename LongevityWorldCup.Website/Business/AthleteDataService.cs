@@ -1506,7 +1506,7 @@ public class AthleteDataService : IDisposable
             var vitaminD = V("VitaminDNmolL");
             var wbc = V("Wbc1000cellsuL");
 
-            var line = string.Join("|", new[] { dateStr, alb, alp, alt, apoa1, cholesterol, creat, crp, cystatin, glu, ggt, hba1c, lym, mcv, mch, monoPc, neutPc, rdw, rbc, shbg, urea, vitaminD, wbc });
+            var line = string.Join("|", new[] { dateStr, alb, alp, alt, apoa1, cholesterol, creat, crp, cystatin, glu, ggt, hba1c, lym, mch, mcv, monoPc, neutPc, rbc, rdw, shbg, urea, vitaminD, wbc });
             lines.Add(line);
         }
 
