@@ -1072,20 +1072,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        var inflammationCandidates = stats.Values
-            .Where(s => s.BestMarkerValues is not null)
-            .Select(s => (s.Slug, Score: (double?)PhenoAgeHelper.CalculateInflammationPhenoAgeContributor(s.BestMarkerValues!)))
-            .Where(x => x.Score.HasValue)
-            .Select(x => (x.Slug, Score: x.Score!.Value))
-            .ToList();
-        AddBestDomainHolders(inflammationCandidates, "Best Domain – Inflammation", "inflammation", awards);
-
         var bortzDomains = new[]
         {
             (Label: "Best Domain – Liver", Key: "liver", Indices: new[] { 1, 16, 2, 9 }),
             (Label: "Best Domain – Kidney", Key: "kidney", Indices: new[] { 3, 5, 6 }),
             (Label: "Best Domain – Metabolic", Key: "metabolic", Indices: new[] { 19, 7, 4, 21 }),
             (Label: "Best Domain – Immune", Key: "immune", Indices: new[] { 15, 14, 13, 10, 11, 20, 12 }),
+            (Label: "Best Domain – Inflammation", Key: "inflammation", Indices: new[] { 8 }),
             (Label: "Best Domain – Vitamin D", Key: "vitamin_d", Indices: new[] { 17, 18 }),
         };
 
