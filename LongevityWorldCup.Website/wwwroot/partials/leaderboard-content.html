@@ -1634,6 +1634,8 @@
                         bestBortzValues: bestBortzValues,
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
+                        flag: athlete.Flag || '',
+                        why: athlete.Why || '',
                         division: athlete.Division,
                         generation: generation,
                         exclusiveLeague: athlete.ExclusiveLeague,
@@ -2509,6 +2511,16 @@
         baseList.forEach(athlete => {
             const athleteNameNormalized = window.normalizeString(athlete.name);
             const athleteBadgeTextNormalized = athleteBadgeTextByName.get(athlete.name) || '';
+            const athleteMediaContactNormalized = window.normalizeString((athlete.mediaContact || '').toLowerCase());
+            const displayAgeReduction = (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction)) ? athlete.bortzAgeReduction : athlete.ageReduction;
+            const displayAgeReductionPercent = (athlete.bortzAgeReductionPercent != null && Number.isFinite(athlete.bortzAgeReductionPercent)) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent;
+            const ageReductionSearchParts = [];
+            if (Number.isFinite(displayAgeReduction)) ageReductionSearchParts.push(displayAgeReduction.toFixed(1));
+            if (Number.isFinite(displayAgeReductionPercent)) ageReductionSearchParts.push(displayAgeReductionPercent.toFixed(1));
+            const athleteAgeReductionNormalized = window.normalizeString(ageReductionSearchParts.join(' ').toLowerCase());
+            const athleteRankNormalized = window.normalizeString(String(athlete.rank != null ? athlete.rank : '').toLowerCase());
+            const athleteFlagNormalized = window.normalizeString((athlete.flag || '').toLowerCase());
+            const athleteWhyNormalized = window.normalizeString((athlete.why || '').toLowerCase());
 
             let matches = true;
 
@@ -2539,7 +2551,7 @@
             // Check search terms
             if (matches && !showAll) {
                 matches = uniqueSearchTerms.every(term =>
-                    athleteNameNormalized.includes(term) || athleteBadgeTextNormalized.includes(term)
+                    athleteNameNormalized.includes(term) || athleteBadgeTextNormalized.includes(term) || athleteMediaContactNormalized.includes(term) || athleteAgeReductionNormalized.includes(term) || athleteRankNormalized.includes(term) || athleteFlagNormalized.includes(term) || athleteWhyNormalized.includes(term)
                 );
             }
 
