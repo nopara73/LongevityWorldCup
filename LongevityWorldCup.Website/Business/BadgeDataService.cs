@@ -1000,7 +1000,11 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     private static int CompareNullable<T>(T? a, T? b, Func<T, T, int> cmp) where T : struct
     {
         bool ha = a.HasValue, hb = b.HasValue;
-        if (ha && hb) return cmp(a.Value, b.Value);
+        if (ha && hb)
+        {
+            T aVal = a.Value, bVal = b.Value;
+            return cmp(aVal, bVal);
+        }
         if (ha && !hb) return -1;
         if (!ha && hb) return 1;
         return 0;
