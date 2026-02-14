@@ -4135,8 +4135,8 @@
         const guessData = allGuesses[athleteSlug];
 
         if (guessData && guessData.value != null) {
-            // show the container
-            yourGuessContainer.style.display = 'inline-block';
+            // show the row (use '' so table layout is preserved; mobile CSS overrides tr to block)
+            yourGuessContainer.style.display = '';
 
             // convert guess to a number
             const guess = Number(guessData.value);

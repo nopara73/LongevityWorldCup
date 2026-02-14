@@ -79,7 +79,8 @@
     }
 
     /* during guess mode, hide everything under athlete-profile except pic, name & slider */
-    .modal-content.guess-mode .athlete-profile > *:not(#modalProfilePic):not(#guessAgeContainer) {
+    /* .portrait-wrapper contains #modalProfilePic; keep it visible so the picture shows */
+    .modal-content.guess-mode .athlete-profile > *:not(#modalProfilePic):not(#guessAgeContainer):not(.portrait-wrapper) {
         display: none;
     }
 
