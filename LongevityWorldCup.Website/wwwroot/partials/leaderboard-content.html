@@ -1704,6 +1704,16 @@
                     });
                 });
 
+                // Assign ranks based on exclusive leagues (e.g. Prosperan)
+                const exclusiveLeagues = [...new Set(athleteResults.map(a => a.exclusiveLeague).filter(Boolean))];
+                exclusiveLeagues.forEach(exclusiveLeague => {
+                    const athletesInExclusive = athleteResults.filter(a => a.exclusiveLeague === exclusiveLeague);
+                    athletesInExclusive.sort(window.compareAthleteRank);
+                    athletesInExclusive.forEach((athlete, index) => {
+                        athlete.ranks[exclusiveLeague] = index + 1;
+                    });
+                });
+
                 athletesOrderedByPace = _.orderBy(athleteResults, 'ageReductionPercent', 'desc');
                 athletesOrderedByBortzPace = _.orderBy(
                     athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
@@ -3389,45 +3399,85 @@
     }
 
     function computeBestLeagueRank(athleteData) {
-        // Arrays of divisions and generations for reference
+        // Arrays of divisions and generations for league type detection.
         const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
         const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
 
-        let bestLeagueRank = Infinity;
-        let bestLeagueName = '';
-        let bestLeagueType = '';
+        const getLeagueType = (league) => {
+            if (league === 'Ultimate League') return 'ultimate';
+            if (league === 'Amateur League') return 'amateur';
+            if (divisions.includes(league)) return 'division';
+            if (generations.includes(league)) return 'generation';
+            if (league.includes('_')) return 'combination';
+            return 'other';
+        };
 
-        for (const [league, rank] of Object.entries(athleteData.ranks)) {
-            if (rank < bestLeagueRank) {
-                bestLeagueRank = rank;
-                bestLeagueName = league;
-
-                // Determine league type
-                if (divisions.includes(league)) {
-                    bestLeagueType = 'division';
-                } else if (generations.includes(league)) {
-                    bestLeagueType = 'generation';
-                } else if (league.includes('_')) {
-                    bestLeagueType = 'combination';
-                } else {
-                    bestLeagueType = 'other';
-                }
-            }
+        const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
+        let amateurRank = null;
+        if (!isPro) {
+            const amateurAthletes = athleteResults.filter(a => !(a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction)));
+            amateurAthletes.sort(window.compareAthleteRankPhenoOnly);
+            const idx = amateurAthletes.findIndex(a => (a.name || a.Name) === (athleteData.name || athleteData.Name));
+            amateurRank = idx >= 0 ? idx + 1 : null;
         }
-        const ultimateRank = athleteData.rank;
 
-        return { ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType };
+        const candidates = [];
+        const ultimateRank = athleteData.rank;
+        if (Number.isFinite(ultimateRank)) {
+            candidates.push({
+                rank: ultimateRank,
+                leagueName: 'Ultimate League',
+                leagueType: 'ultimate',
+                // Tie-break only: Amateur #N wins over Ultimate #N.
+                tiePriority: 1
+            });
+        }
+
+        for (const [league, rank] of Object.entries(athleteData.ranks || {})) {
+            if (!Number.isFinite(rank)) continue;
+            candidates.push({
+                rank,
+                leagueName: league,
+                leagueType: getLeagueType(league),
+                tiePriority: 1
+            });
+        }
+
+        if (Number.isFinite(amateurRank)) {
+            candidates.push({
+                rank: amateurRank,
+                leagueName: 'Amateur League',
+                leagueType: 'amateur',
+                tiePriority: 0
+            });
+        }
+
+        let best = null;
+        candidates.forEach(candidate => {
+            if (!best) {
+                best = candidate;
+                return;
+            }
+            if (candidate.rank < best.rank) {
+                best = candidate;
+                return;
+            }
+            if (candidate.rank === best.rank && candidate.tiePriority < best.tiePriority) {
+                best = candidate;
+            }
+        });
+
+        return {
+            ultimateRank,
+            bestLeagueRank: best ? best.rank : ultimateRank,
+            bestLeagueName: best ? best.leagueName : 'Ultimate League',
+            bestLeagueType: best ? best.leagueType : 'ultimate'
+        };
     }
 
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
-        let amateurRank = 0;
-        if (!isPro) {
-            const amateurAthletes = athleteResults.filter(a => !(a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction)));
-            amateurAthletes.sort(window.compareAthleteRankPhenoOnly);
-            amateurRank = amateurAthletes.findIndex(a => (a.name || a.Name) === (athleteData.name || athleteData.Name)) + 1;
-        }
         const athleteNameWithRank = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
         const athleteNameElement = document.getElementById('athleteName');
         athleteNameElement.textContent = athleteNameWithRank;
@@ -3458,22 +3508,21 @@
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
         let rankText;
-        if (isPro) {
-            rankText = `#${ultimateRank} in the <a href="/leaderboard" class="league-link" target="_blank" rel="noopener noreferrer">Ultimate League</a>`;
-            if (bestLeagueRank !== ultimateRank) {
-                const leagueLabel = bestLeagueName.replace('_', ' ');
-                if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
-                    const slug = window.slugifyName(bestLeagueName, true);
-                    rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
-                } else if (bestLeagueType === 'combination') {
-                    const filters = bestLeagueName.split('_').map(f => encodeURIComponent(f)).join('%2C');
-                    rankText = `#${bestLeagueRank} in the <a href="/?filters=${filters}" class="league-link">${leagueLabel} League</a>`;
-                } else {
-                    rankText = `#${bestLeagueRank} in the ${leagueLabel} League`;
-                }
-            }
+        const leagueLabel = (bestLeagueName || '').replace('_', ' ');
+        if (bestLeagueType === 'ultimate') {
+            rankText = `#${bestLeagueRank} in the <a href="/leaderboard" class="league-link" target="_blank" rel="noopener noreferrer">Ultimate League</a>`;
+        } else if (bestLeagueType === 'amateur') {
+            rankText = `#${bestLeagueRank} in the <a href="/leaderboard?filters=${encodeURIComponent('Amateur')}" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
+        } else if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
+            const slug = window.slugifyName(bestLeagueName, true);
+            rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
+        } else if (bestLeagueType === 'combination') {
+            const filters = bestLeagueName.split('_').map(f => encodeURIComponent(f)).join('%2C');
+            rankText = `#${bestLeagueRank} in the <a href="/?filters=${filters}" class="league-link">${leagueLabel} League</a>`;
+        } else if (bestLeagueType === 'other') {
+            rankText = `#${bestLeagueRank} in the <a href="/leaderboard?filters=${encodeURIComponent(bestLeagueName)}" class="league-link" target="_blank" rel="noopener noreferrer">${leagueLabel} League</a>`;
         } else {
-            rankText = `#${amateurRank} in the <a href="/leaderboard" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
+            rankText = `#${bestLeagueRank} in the ${leagueLabel} League`;
         }
 
         document.getElementById('athleteRank').innerHTML = rankText;
