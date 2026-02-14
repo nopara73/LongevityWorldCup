@@ -78,7 +78,7 @@ function pickIconForServerBadge(b) {
     const place = getPlace(b);
     const val = getVal(b);
 
-    if (label === 'Age Reduction' && cat === 'global' && place) {
+    if (label === 'Age Reduction' && (cat === 'global' || cat === 'amateur') && place) {
         if (place === 1) return 'fa-crown';
         if (place === 2) return 'fa-medal';
         if (place === 3) return 'fa-award';
@@ -211,9 +211,9 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
             return 'Age reduction';
         }
         if (cat === 'amateur') {
-            if (place === 1) return 'Amateur Ace: #1 in Amateur League';
-            if (place === 2) return 'Amateur Elite: #2 in Amateur League';
-            if (place === 3) return 'Amateur Rising: #3 in Amateur League';
+            if (place === 1) return 'Upstart: #1 in Amateur League';
+            if (place === 2) return 'Challenger: #2 in Amateur League';
+            if (place === 3) return 'Harbinger of Change: #3 in Amateur League';
             return '# in Amateur League';
         }
         if (cat === 'division') {
@@ -407,7 +407,7 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
             if (label === 'Best Domain – Metabolic') return 'Glucose Gladiator: Top metabolic profile';
             if (label === 'Best Domain – Inflammation') return 'Inflammation Whisperer: Top inflammation profile';
             if (label === 'Best Domain – Immune') return 'Pathogen Punisher: Top immune profile';
-            if (label === 'Best Domain – Vitamin D') return 'Sun Sovereign: Top vitamin D profile';
+            if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile';
         }
 
         const best = athlete?.bestBiomarkerValues || athlete?.BestMarkerValues;
@@ -428,7 +428,7 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
             if (label === 'Best Domain – Inflammation') return `Inflammation Whisperer: Top inflammation profile (CRP ${crp} mg/L)`;
             if (label === 'Best Domain – Immune') return `Pathogen Punisher: Top immune profile (WBC ${wbc} 10³ cells/µL, lymphocyte ${lym}%, MCV ${mcv} fL, RDW ${rdw}%)`;
         }
-        if (label === 'Best Domain – Vitamin D') return 'Sun Sovereign: Top vitamin D profile';
+        if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile';
     }
 
     if (label === 'First Applicants') {
