@@ -3428,12 +3428,7 @@
             amateurAthletes.sort(window.compareAthleteRankPhenoOnly);
             amateurRank = amateurAthletes.findIndex(a => (a.name || a.Name) === (athleteData.name || athleteData.Name)) + 1;
         }
-        let athleteNameWithRank;
-        if (isPro) {
-            athleteNameWithRank = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
-        } else {
-            athleteNameWithRank = amateurRank > 0 ? `${modalDisplayName} (#${amateurRank} | Amateur)` : `${modalDisplayName} (Amateur)`;
-        }
+        const athleteNameWithRank = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
         const athleteNameElement = document.getElementById('athleteName');
         athleteNameElement.textContent = athleteNameWithRank;
         
