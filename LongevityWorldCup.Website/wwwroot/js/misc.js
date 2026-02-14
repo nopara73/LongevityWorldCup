@@ -141,8 +141,8 @@ window.compareAthleteRank = function (a, b) {
         return 1; // Athlete 'b' comes first alphabetically
     }
 
-    // If all criteria are equal, which is impossible, then the athlete that registered first ranks higher.
-    return 1;
+    // If all criteria are equal, preserve original order (stable sort behavior).
+    return 0;
 };
 
 /**
