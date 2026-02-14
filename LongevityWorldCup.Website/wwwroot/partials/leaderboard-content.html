@@ -1715,7 +1715,7 @@
 
                 if (includePodium) {
                     // Fetch the total prize fund from the backend API and calculate prize money
-                    fetch(`/api/bitcoin/total-received?address=${window.bitcoinDonationAddress}`)
+                    fetch('/api/bitcoin/total-received')
                         .then(response => response.json())
                         .then(data => {
                             const totalReceivedSatoshis = data.totalReceivedSatoshis;
