@@ -1084,12 +1084,45 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
         foreach (var (label, key, indices) in bortzDomains)
         {
-            var candidates = stats.Values
-                .Where(s => s.BestBortzValues is not null && s.BestBortzValues.Length == BortzAgeHelper.Features.Length)
-                .Select(s => (s.Slug, Score: ComputeBortzDomainContribution(s.BestBortzValues!, indices)))
-                .Where(x => x.Score.HasValue)
-                .Select(x => (x.Slug, Score: x.Score!.Value))
-                .ToList();
+            List<(string Slug, double Score)> candidates;
+
+            // Inflammation Whisperer: lowest CRP overall (include PhenoAge-only athletes who have CRP but no full Bortz panel).
+            if (label == "Best Domain – Inflammation" && key == "inflammation")
+            {
+                candidates = stats.Values
+                    .Select(s =>
+                    {
+                        double? crpMgL = null;
+                        if (s.BestBortzValues is not null && s.BestBortzValues.Length > 8 &&
+                            double.IsFinite(s.BestBortzValues[8]) && s.BestBortzValues[8] > 0)
+                            crpMgL = s.BestBortzValues[8];
+                        if (!crpMgL.HasValue && s.BestMarkerValues is not null && s.BestMarkerValues.Length > 4)
+                        {
+                            // PhenoAge stores ln(CRP/10) at index 4; CRP = 10 * exp(lnCrpOver10)
+                            var lnCrpOver10 = s.BestMarkerValues[4];
+                            if (double.IsFinite(lnCrpOver10))
+                            {
+                                var crp = 10.0 * Math.Exp(lnCrpOver10);
+                                if (crp > 0 && double.IsFinite(crp)) crpMgL = crp;
+                            }
+                        }
+                        return (s.Slug, CrpMgL: crpMgL);
+                    })
+                    .Where(x => x.CrpMgL.HasValue)
+                    .Select(x => (x.Slug, Score: x.CrpMgL!.Value))
+                    .ToList();
+                // Lower CRP is better, so we pass CRP as score and AddBestDomainHolders picks Min(Score).
+            }
+            else
+            {
+                candidates = stats.Values
+                    .Where(s => s.BestBortzValues is not null && s.BestBortzValues.Length == BortzAgeHelper.Features.Length)
+                    .Select(s => (s.Slug, Score: ComputeBortzDomainContribution(s.BestBortzValues!, indices)))
+                    .Where(x => x.Score.HasValue)
+                    .Select(x => (x.Slug, Score: x.Score!.Value))
+                    .ToList();
+            }
+
             AddBestDomainHolders(candidates, label, key, awards);
         }
     }
