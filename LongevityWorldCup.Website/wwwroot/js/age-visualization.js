@@ -263,6 +263,7 @@
         var tabBortz = document.getElementById('ageTabBortz');
 
         if (!wrapper || !fallback) {
+            destroyRadarChart();
             var legacy = document.getElementById('targetShootingVisualization') || document.querySelector('#ageVisualization #targetShootingVisualization');
             if (legacy) {
                 generateAgeVisualizationInternal(legacy, bioAge, chronoAge);
@@ -314,6 +315,7 @@
 
         var centerEl = document.getElementById('ageRadarCenter');
         if (!data || !window.Chart || !canvas) {
+            destroyRadarChart();
             wrapper.style.display = 'none';
             if (centerEl) centerEl.style.display = 'none';
             fallback.style.display = 'flex';
