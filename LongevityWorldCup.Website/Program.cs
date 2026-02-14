@@ -46,8 +46,6 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddQuartz(q =>
             {
-                q.UseMicrosoftDependencyInjectionJobFactory();
-
                 var dailyKey = new JobKey("DailyJob");
                 var weeklyKey = new JobKey("WeeklyJob");
                 var monthlyKey = new JobKey("MonthlyJob");

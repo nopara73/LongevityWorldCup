@@ -1002,7 +1002,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         bool ha = a.HasValue, hb = b.HasValue;
         if (ha && hb)
         {
-            T aVal = a.Value, bVal = b.Value;
+            T aVal = a!.Value, bVal = b!.Value;
             return cmp(aVal, bVal);
         }
         if (ha && !hb) return -1;

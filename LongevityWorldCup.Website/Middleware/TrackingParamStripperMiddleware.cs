@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -45,8 +45,8 @@ namespace LongevityWorldCup.Website.Middleware
             // rebuild query string
             var pairs = dict.SelectMany(kvp =>
                 kvp.Value.Count == 0
-                    ? new[] { Uri.EscapeDataString(kvp.Key) }
-                    : kvp.Value.Select(v => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(v)}"));
+                    ? new[] { Uri.EscapeDataString(kvp.Key ?? "") }
+                    : kvp.Value.Select(v => $"{Uri.EscapeDataString(kvp.Key ?? "")}={Uri.EscapeDataString(v ?? "")}"));
 
             var newQuery = pairs.Any() ? "?" + string.Join("&", pairs) : string.Empty;
             var newUrl = context.Request.PathBase.Add(context.Request.Path).ToString() + newQuery;
