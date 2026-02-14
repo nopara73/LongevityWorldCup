@@ -860,7 +860,7 @@
             <div class="search-wrapper">
                 <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
                     <label for="athleteSearch" class="visually-hidden">Search athletes</label>
-                    <input type="text" id="athleteSearch" placeholder="Search athlete..." aria-label="Search athletes">
+                    <input type="text" id="athleteSearch" placeholder="Search..." aria-label="Search athletes">
                     <span class="search-icon"><i class="fa fa-search"></i></span>
                     <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
                         <i class="fa fa-times"></i>
@@ -2486,10 +2486,29 @@
 
         const showAll = uniqueSearchTerms.length === 0;
 
+        const athleteBadgeTextByName = new Map();
+        document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
+            const athleteName = row.getAttribute('data-athlete-name');
+            if (!athleteName) return;
+
+            const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class'))
+                .map(badge => {
+                    const title = badge.getAttribute('title') || '';
+                    const ariaLabel = badge.getAttribute('aria-label') || '';
+                    const text = badge.textContent || '';
+                    return `${title} ${ariaLabel} ${text}`.trim();
+                })
+                .filter(Boolean)
+                .join(' ');
+
+            athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
+        });
+
         let filteredAthletes = [];
 
         baseList.forEach(athlete => {
             const athleteNameNormalized = window.normalizeString(athlete.name);
+            const athleteBadgeTextNormalized = athleteBadgeTextByName.get(athlete.name) || '';
 
             let matches = true;
 
@@ -2519,7 +2538,9 @@
 
             // Check search terms
             if (matches && !showAll) {
-                matches = uniqueSearchTerms.every(term => athleteNameNormalized.includes(term));
+                matches = uniqueSearchTerms.every(term =>
+                    athleteNameNormalized.includes(term) || athleteBadgeTextNormalized.includes(term)
+                );
             }
 
             if (matches) {
