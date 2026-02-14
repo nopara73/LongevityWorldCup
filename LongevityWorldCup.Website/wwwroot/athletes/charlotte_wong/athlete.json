@@ -21,18 +21,6 @@
     },
 	{
 	  "Date": "2026-01-13",
-	  "AlbGL": 45.0,
-	  "CreatUmolL": 79.0,
-	  "GluMmolL": 5.2,
-	  "CrpMgL": 0.3,
-	  "LymPc": 23.3,
-	  "McvFL": 91.0,
-	  "RdwPc": 12.3,
-	  "AlpUL": 117.0,
-	  "Wbc1000cellsuL": 5.1
-	},
-	{
-	  "Date": "2026-01-13",
 	  "AlbGL": 45,
 	  "CreatUmolL": 79,
 	  "GluMmolL": 5.2,
