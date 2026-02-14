@@ -404,28 +404,43 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
         if (suppressValues) {
             if (label === 'Best Domain – Liver') return 'Liver King: Top liver profile';
             if (label === 'Best Domain – Kidney') return 'Kidney Overlord: Top kidney profile';
-            if (label === 'Best Domain – Metabolic') return 'Glucose Gladiator: Top metabolic profile';
+            if (label === 'Best Domain – Metabolic') return 'Metabolic Machine: Top metabolic profile';
             if (label === 'Best Domain – Inflammation') return 'Inflammation Whisperer: Top inflammation profile';
             if (label === 'Best Domain – Immune') return 'Pathogen Punisher: Top immune profile';
             if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile';
         }
 
+        // Best Domain awards use domain contribution; biomarkers from athlete profile (age-visualization), not onboarding.
+        const bortz = athlete?.bestBortzValues || athlete?.BestBortzValues;
+        if (typeof window.getBestDomainBiomarkerTooltip === 'function' && Array.isArray(bortz) && bortz.length >= 22) {
+            const biomarkerPart = window.getBestDomainBiomarkerTooltip(label, bortz);
+            if (biomarkerPart) {
+                if (label === 'Best Domain – Liver') return 'Liver King: Top liver profile ' + biomarkerPart;
+                if (label === 'Best Domain – Kidney') return 'Kidney Overlord: Top kidney profile ' + biomarkerPart;
+                if (label === 'Best Domain – Metabolic') return 'Metabolic Machine: Top metabolic profile ' + biomarkerPart;
+                if (label === 'Best Domain – Immune') return 'Pathogen Punisher: Top immune profile ' + biomarkerPart;
+                if (label === 'Best Domain – Inflammation') return 'Inflammation Whisperer: Top inflammation profile ' + biomarkerPart;
+                if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile ' + biomarkerPart;
+            }
+        }
+
+        // Fallback when bestBortzValues not available (e.g. Pheno-only data).
         const best = athlete?.bestBiomarkerValues || athlete?.BestMarkerValues;
         if (Array.isArray(best) && best.length >= 10) {
+            const crp = (Math.exp(Number(best[4])) * 10).toFixed(2);
+            if (label === 'Best Domain – Inflammation') return `Inflammation Whisperer: Top inflammation profile (CRP ${crp} mg/L)`;
+
             const alb = Number(best[1]).toFixed(1);
             const creat = Number(best[2]).toFixed(1);
             const glu = Number(best[3]).toFixed(1);
-            const crp = (Math.exp(Number(best[4])) * 10).toFixed(2);
             const wbc = Number(best[5]).toFixed(1);
             const lym = Number(best[6]).toFixed(1);
             const mcv = Number(best[7]).toFixed(1);
             const rdw = Number(best[8]).toFixed(1);
             const alp = Number(best[9]).toFixed(1);
-
             if (label === 'Best Domain – Liver') return `Liver King: Top liver profile (albumin ${alb} g/L, ALP ${alp} U/L)`;
             if (label === 'Best Domain – Kidney') return `Kidney Overlord: Top kidney profile (creatinine ${creat} µmol/L)`;
-            if (label === 'Best Domain – Metabolic') return `Glucose Gladiator: Top metabolic profile (glucose ${glu} mmol/L)`;
-            if (label === 'Best Domain – Inflammation') return `Inflammation Whisperer: Top inflammation profile (CRP ${crp} mg/L)`;
+            if (label === 'Best Domain – Metabolic') return `Metabolic Machine: Top metabolic profile (glucose ${glu} mmol/L)`;
             if (label === 'Best Domain – Immune') return `Pathogen Punisher: Top immune profile (WBC ${wbc} 10³ cells/µL, lymphocyte ${lym}%, MCV ${mcv} fL, RDW ${rdw}%)`;
         }
         if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile';

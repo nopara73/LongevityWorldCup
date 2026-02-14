@@ -34,11 +34,10 @@
         inflammation: [4]
     };
 
-    // Bortz: 6 divisions from bortz-age.html (Immune, Liver, Kidney, Metabolism, Inflammation, Hormones)
+    // Bortz: 6 domains used for athlete profile radar and Best Domain badges (aligned with BadgeDataService.cs).
     // Feature indices in window.BortzAge.features: 0=age, 1=albumin, 2=alp, 3=urea, 4=cholesterol, 5=creatinine, 6=cystatin_c, 7=hba1c, 8=crp, 9=ggt, 10=rbc, 11=mcv, 12=rdw, 13=monocyte, 14=neutrophil, 15=lymphocyte, 16=alt, 17=shbg, 18=vitamin_d, 19=glucose, 20=mch, 21=apoa1
     // Excluded from contribution only (controversial direction): urea, cholesterol, creatinine, alt, shbg
     var BORTZ_CONTRIBUTION_EXCLUDED = { 3: 1, 4: 1, 5: 1, 16: 1, 17: 1 };
-    // Order matches bortz-age.html (Immune: Lymphocytes, Neutrophils, Monocytes, RBC, MCV, MCH, RDW; Liver: Albumin, ALT, ALP, GGT; etc.)
     var BORTZ_DOMAIN_INDICES = {
         Immune: [15, 14, 13, 10, 11, 20, 12],
         Liver: [1, 16, 2, 9],
@@ -473,7 +472,38 @@
         visualizationContainer.innerHTML = '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--light-text-color);font-weight:bold;">' + text + '</span>';
     }
 
+    /** Badge label -> Bortz domain key (same as athlete profile radar). Used so Best Domain badge tooltips show the same biomarkers as the profile. */
+    var BEST_DOMAIN_LABEL_TO_KEY = {
+        'Best Domain – Liver': 'Liver',
+        'Best Domain – Kidney': 'Kidney',
+        'Best Domain – Metabolic': 'Metabolism',
+        'Best Domain – Immune': 'Immune',
+        'Best Domain – Inflammation': 'Inflammation',
+        'Best Domain – Vitamin D': 'Vitamin D'
+    };
+
+    /** Returns the biomarker part of a Best Domain tooltip, e.g. "(albumin 45 g/L, ALP 82 U/L, GGT 3.2 U/L)". Uses same indices and exclusions as athlete profile radar. */
+    function getBestDomainBiomarkerTooltip(badgeLabel, bestBortzValues) {
+        if (!bestBortzValues || bestBortzValues.length < 22) return null;
+        var key = BEST_DOMAIN_LABEL_TO_KEY[badgeLabel];
+        if (!key || !BORTZ_DOMAIN_INDICES[key]) return null;
+        var indices = BORTZ_DOMAIN_INDICES[key];
+        var features = window.BortzAge && window.BortzAge.features;
+        var parts = [];
+        for (var j = 0; j < indices.length; j++) {
+            var idx = indices[j];
+            if (BORTZ_CONTRIBUTION_EXCLUDED[idx]) continue;
+            var f = features && features[idx];
+            var v = bestBortzValues[idx];
+            var shortName = f && f.id ? (f.id === 'alp' ? 'ALP' : f.id === 'crp' ? 'CRP' : f.id === 'hba1c' ? 'HbA1c' : f.id === 'ggt' ? 'GGT' : f.id === 'rbc' ? 'RBC' : f.id === 'mcv' ? 'MCV' : f.id === 'mch' ? 'MCH' : f.id === 'rdw' ? 'RDW' : f.id === 'alt' ? 'ALT' : f.id === 'apoa1' ? 'ApoA1' : f.id === 'monocyte_percentage' ? 'Monocytes' : f.id === 'neutrophil_percentage' ? 'Neutrophils' : f.id === 'lymphocyte_percentage' ? 'Lymphocytes' : f.id === 'cystatin_c' ? 'Cystatin C' : f.id === 'vitamin_d' ? 'Vitamin D' : f.id === 'shbg' ? 'SHBG' : formatBortzLabel(f.id)) : '—';
+            var unit = BORTZ_BIOMARKER_UNITS[idx] || '';
+            parts.push(shortName + ' ' + formatTooltipValue(v) + (unit ? ' ' + unit : ''));
+        }
+        return parts.length ? '(' + parts.join(', ') + ')' : null;
+    }
+
     window.generateAgeVisualization = generateAgeVisualization;
     window.generateAgeVisualizationInternal = generateAgeVisualizationInternal;
     window.destroyAgeRadarChart = destroyRadarChart;
+    window.getBestDomainBiomarkerTooltip = getBestDomainBiomarkerTooltip;
 })();
