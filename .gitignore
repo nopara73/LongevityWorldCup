@@ -31,3 +31,6 @@ AppData
 # JetBrains / Rider
 .idea/
 *.iml
+
+# VS Code
+.vscode/

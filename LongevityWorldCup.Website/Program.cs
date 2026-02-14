@@ -38,11 +38,17 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<SeasonFinalizerService>();
             builder.Services.AddSingleton<BitcoinDataService>();
             builder.Services.AddSingleton<BadgeDataService>();
-            
+            builder.Services.AddSingleton<XImageService>();
+            builder.Services.AddSingleton<PvpBattleService>();
+
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
             builder.Services.AddHttpClient<SlackWebhookClient>();
             builder.Services.AddSingleton<SlackEventService>();
+            builder.Services.AddSingleton<XDevPreviewService>();
+            builder.Services.AddHttpClient<XApiClient>();
+            builder.Services.AddSingleton<XEventService>();
+            builder.Services.AddSingleton<XFillerPostLogService>();
 
             builder.Services.AddQuartz(q =>
             {
@@ -55,6 +61,7 @@ namespace LongevityWorldCup.Website
                 var donationKey = new JobKey("BitcoinDonationCheckJob");
                 var backupKey = new JobKey("DatabaseBackupJob");
                 var seasonFinalizerKey = new JobKey("SeasonFinalizerJob");
+                var xDailyPostKey = new JobKey("XDailyPostJob");
 
                 // Every day 00:00
                 q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
@@ -109,6 +116,16 @@ namespace LongevityWorldCup.Website
                     .WithIdentity("SeasonFinalizerTrigger_Immediate")
                     .StartNow()
                     .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+
+                q.AddJob<XDailyPostJob>(o => o.WithIdentity(xDailyPostKey));
+                q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                    .WithIdentity("XDailyPostTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                // TODO: remove – run X job on startup for testing only
+                q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                    .WithIdentity("XDailyPostTrigger_Immediate")
+                    .StartNow()
+                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
             });
             builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
 
@@ -131,7 +148,7 @@ namespace LongevityWorldCup.Website
 
             // TODO: remove later
             app.Services.GetRequiredService<BadgeDataService>();
-            
+
             var lf = app.Services.GetRequiredService<ILoggerFactory>();
             EnvironmentHelpers.Log = lf.CreateLogger(nameof(EnvironmentHelpers));
 
