@@ -520,7 +520,9 @@
         cursor:pointer;
         transition:transform .3s ease, border-color .3s ease;
     }
-    #modalProfilePic:hover{ transform: scale(1.05); }
+    #athlete-profile .portrait-wrapper:hover #modalProfilePic{ transform: scale(1.05); }
+    #athlete-profile.is-pro .pro-badge{ transition:transform .3s ease; }
+    #athlete-profile .portrait-wrapper:hover .pro-badge{ transform:rotate(-12deg) scale(1.05); }
 
     .athlete-info {
         text-align: left;
