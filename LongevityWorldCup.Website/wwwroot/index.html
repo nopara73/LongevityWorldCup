@@ -467,7 +467,7 @@
 
         /* body styling */
         .lwc-countdown-body {
-            padding: 16px 24px 18px;
+            padding: 24px 24px 26px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -480,14 +480,22 @@
         .lwc-countdown-details-text {
             margin-top: 0;
             margin-bottom: 0;
-            font-size: 1.2rem;
+            font-size: 1.125rem;
             line-height: 1.6;
-            max-width: 100%;
+            max-width: 28em;
             padding: 0 1rem;
             margin-left: auto;
             margin-right: auto;
-            color: var(--dark-text-color);
-            opacity: 0.9;
+            color: #4a5568;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+        }
+
+        .lwc-countdown-details-text strong {
+            font-weight: 600;
+            color: #2d3748;
+            position: relative;
+            white-space: nowrap;
         }
 
         /* mobile: stack the cards */
@@ -504,7 +512,22 @@
                 }
 
             .lwc-countdown-body {
-                padding: 14px 16px 16px;
+                padding: 20px 18px 22px;
+            }
+
+            .lwc-countdown-details-text {
+                font-size: 1.05rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .lwc-countdown-details-text {
+                font-size: 0.975rem;
+                padding: 0 0.75rem;
+            }
+
+            .lwc-countdown-body {
+                padding: 18px 14px 20px;
             }
         }
 
@@ -853,13 +876,6 @@
                         <p class="lwc-countdown-details-text">
                             The 2026 season begins, featuring <strong>Professional and Amateur</strong> tracks.
                         </p>
-                        <div style="text-align: center; margin-top: 0.25rem;">
-                            <button onclick="window.location.href='/play/menu.html'" class="join-game" aria-label="Play the game" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-                                <strong>PLAY</strong>
-                                <span class="join-game-middle" style="font-size: 1rem;">THE</span>
-                                <strong class="join-game-end">GAME</strong>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
