@@ -464,6 +464,51 @@
         .col-date{font-size:.72rem;opacity:.6;padding-left:6px}
         .events-board table tbody tr:hover{transform:none;box-shadow:0 4px 10px rgba(0,0,0,.08)}
         .events-board td.event-message{align-items:center;align-content:center}
+
+        /* Homepage/mobile highlights: prevent table-width blowout from single-line rows. */
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell{
+            white-space:normal;
+            overflow-x:hidden;
+            flex-wrap:wrap;
+            row-gap:.15rem;
+        }
+        .events-board:not(.athlete-scroll) td.col-avatar{
+            width:34px;
+            padding-right:8px;
+        }
+        .events-board:not(.athlete-scroll) td.col-date{
+            width:58px;
+            padding-left:6px;
+            white-space:nowrap;
+        }
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell *{
+            white-space:normal;
+        }
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .name-and-rank,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .rank-badge,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-class,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-chip,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .more-link{
+            white-space:nowrap;
+        }
+
+        /* Mobile athlete profile: avoid per-row horizontal scrolling/overlap in highlights. */
+        .events-board.athlete-scroll td.event-message .event-message-cell{
+            white-space:normal;
+            overflow-x:hidden;
+            flex-wrap:wrap;
+            row-gap:.15rem;
+        }
+        .events-board.athlete-scroll td.event-message .event-message-cell *{
+            white-space:normal;
+        }
+        .events-board.athlete-scroll td.event-message .event-message-cell .name-and-rank,
+        .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
+        .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
+        .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
+        .events-board.athlete-scroll td.event-message .event-message-cell .more-link{
+            white-space:nowrap;
+        }
     }
 
     @media (max-width:360px){
