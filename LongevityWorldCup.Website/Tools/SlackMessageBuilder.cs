@@ -421,7 +421,7 @@ public static class SlackMessageBuilder
         if (n > 9000 && n < 10000)
             return $"Over nine thousand, {C} in the tournament 🔥";
 
-        return $"The compatation reach {C} athletes";
+        return $"The competition reached {C} athletes";
     }
 
     private static string LeaderboardUrl() =>

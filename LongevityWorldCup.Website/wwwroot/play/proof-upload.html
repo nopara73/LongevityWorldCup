@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Proof Upload</title>
@@ -43,7 +43,7 @@
 <body>
     <!--HEADER-->
     <main>
-        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete Selection</h1>
+        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
         <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/proof.webp" type="image/webp">
@@ -57,7 +57,7 @@
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
             <button type="button" id="uploadProofButton" class="option-button grey green">
-                Upload Proofs
+                Upload proofs
             </button>
         </div>
 
@@ -102,25 +102,8 @@
             const proofImageContainer = document.getElementById('proofImageContainer');
             const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
-            // build checklist from whatever biomarkers the user just submitted
-            const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
-            const latest = (biomarkerData.Biomarkers && biomarkerData.Biomarkers[0]) || {};
-            const propertyToLabel = {
-                Wbc1000cellsuL: 'White Blood Cell Count (WBC)',
-                LymPc: 'Lymphocytes (LYM)',
-                McvFL: 'Mean Corpuscular Volume (MCV)',
-                RdwPc: 'Red Cell Distribution Width (RDW)',
-                AlbGL: 'Albumin',
-                AlpUL: 'Alkaline Phosphatase (ALP)',
-                CreatUmolL: 'Creatinine',
-                GluMmolL: 'Glucose',
-                CrpMgL: 'C-Reactive Protein (CRP)'
-            };
-
-            const checklistItems = Object.entries(propertyToLabel)
-                .filter(([prop, label]) => latest[prop] !== undefined && !isNaN(latest[prop]))
-                .map(([prop, label]) => label);
-
+            // Proof Tracker: biomarkers present in sessionStorage, ordered by bortz-age UI
+            const checklistItems = window.getProofChecklistLabelsFromSession && window.getProofChecklistLabelsFromSession() || [];
             window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems);
 
             submitButton.addEventListener('click', function () {
@@ -138,7 +121,8 @@
                 const applicantData = {
                     name: athlete.Name,
                     accountEmail: sessionStorage.getItem('contactEmail') || null,
-                    chronoBioDifference: sessionStorage.getItem('chronoBioDifference') || null,
+                    chronoPhenoDifference: sessionStorage.getItem('chronoPhenoDifference') || null,
+                    chronoBortzDifference: sessionStorage.getItem('chronoBortzDifference') || null,
                     biomarkers: biomarkerData.Biomarkers,
                     proofPics: proofPics
                 };
@@ -187,7 +171,7 @@
 
         function setSubmitButtonLabel() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = 'Submit New Results&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.innerHTML = 'Submit new results&nbsp;<i class="fa fa-rocket"></i>';
             submitButton.setAttribute('type', 'submit');
         }
     </script>
