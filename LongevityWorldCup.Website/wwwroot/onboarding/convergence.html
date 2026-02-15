@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Convergence</title>
@@ -123,38 +123,24 @@
         #profileUploadSection {
             width: 100%;
         }
+
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main>
         <!--MAIN-PROGRESS-BAR-->
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Character Creation</h1>
+        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div style="text-align: center;">
                 <picture id="illustrationPicture" style="display:''">
-                    <source srcset="../assets/content-images/reaper.webp" type="image/webp">
-                    <source srcset="../assets/content-images/reaper.jpg" type="image/jpeg">
-                    <img id="illustrationImage" src="../assets/content-images/reaper.jpg" alt="Grim Reaper" class="illustration" loading="lazy">
+                    <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
+                    <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
+                    <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" loading="lazy">
                 </picture>
-                <img style="display:none" id="profileImage" src="" alt="Profile Picture" class="illustration" loading="lazy">
+                <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
-            <div id="shadowsText" style="display:none">
-                <p>
-                    In the shadows beyond our world, <strong>Death awaits</strong>, silent and relentless. It lurks at the edge of every breath, ready to claim its due.
-                    In these darkening times, we need a <strong>hero to rise</strong> — a mind sharp enough to craft a plan, a heart bold enough to take a stand.
-                    Death will come — but who will stand in its path?<br />
-                </p>
-                <p>
-                    <em>Could it be you?</em>
-                </p>
-            </div>
-
-            <div id="whyText" style="display:none">
-                <p>He who has a <em>why</em> can bear almost any <em>how.</em></p>
-            </div>
-
             <div id="privacyText" style="display:none">
                 <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
                 <p>
@@ -174,9 +160,7 @@
                 <span id="subProofInstructions" class="smaller-text"></span>
             </div>
 
-            <div id="finalDetailsText" style="display:none">
-                <p style='text-align: center; font-weight: bold;'>Complete Your Profile</p>
-            </div>
+            <div id="finalDetailsText" style="display:none"></div>
             <div id="congratsText" style="display:none">
                 <p><strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.</p>
             </div>
@@ -222,20 +206,20 @@
                     </ol>
                     <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
                         <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                        <button type="button" id="uploadButton" class="option-button grey">Upload Profile Picture</button>
+                        <button type="button" id="uploadButton" class="option-button grey">Upload profile picture</button>
                     </div>
                 </div>
                 <div id="croppingPart" style="display:none">
                     <img id="cropperImage" src="" style="max-width: 100%; display: block; margin: 0 auto;">
                     <button type="button" id="cropButton" class="option-button" style="margin-top: 1rem; display: block; margin: 1rem auto 0;">
-                        Crop & Save
+                        Crop and save
                     </button>
                 </div>
             </div>
             <div id="proofUploadSection" style="width:90%;">
                 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
-                    <button type="button" id="uploadProofButton" class="option-button grey">Upload Proofs</button>
+                    <button type="button" id="uploadProofButton" class="option-button grey">Upload proofs</button>
                 </div>
                 <!-- Proof Image Container -->
                 <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
@@ -243,14 +227,14 @@
             </div>
             <fieldset id="finalDetails">
                 <!-- Link to Personal Page (Optional) -->
-                <label for="personalLink">Link (Optional)</label>
+                <label for="personalLink">Link (optional)</label>
                 <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
                 <p style="margin-top: 0.5rem; color: #555;">
                     Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
                 </p>
 
                 <!-- Media Contact (Required) -->
-                <label for="mediaContact">Media Contact (Required)</label>
+                <label for="mediaContact">Media contact (required)</label>
                 <input id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@coolpeopleonly.com">
 
                 <p style="margin-top: 0.5rem; color: #555;">
@@ -261,7 +245,7 @@
             </fieldset>
             <fieldset id="applyDetails">
                 <!-- Email Field -->
-                <legend for="accountEmail">Contact Email</legend>
+                <legend for="accountEmail">Contact email</legend>
                 <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
@@ -323,8 +307,9 @@
             const accountEmail = document.getElementById('accountEmail').value.trim();
             const personalLink = document.getElementById('personalLink').value.trim();
 
-            // Get the pheno age from sessionStorage
-            const chronoBioDifference = sessionStorage.getItem('chronoBioDifference');
+            // Get the differences from sessionStorage
+            const chronoPhenoDifference = sessionStorage.getItem('chronoPhenoDifference');
+            const chronoBortzDifference = sessionStorage.getItem('chronoBortzDifference');
 
             // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from sessionStorage
@@ -342,7 +327,8 @@
                 why: why,
                 mediaContact: mediaContact,
                 accountEmail: accountEmail,
-                chronoBioDifference: chronoBioDifference,
+                chronoPhenoDifference: chronoPhenoDifference,
+                chronoBortzDifference: chronoBortzDifference,
                 personalLink: personalLink,
                 dateOfBirth: biomarkerData.DateOfBirth,
                 biomarkers: biomarkerData.Biomarkers,
@@ -367,8 +353,6 @@
             oldImg.parentNode.replaceChild(newImg, oldImg);
 
             // Clear visibility on all main form sections
-            document.getElementById('shadowsText').style.display = 'none';
-            document.getElementById('whyText').style.display = 'none';
             document.getElementById('privacyText').style.display = 'none';
             document.getElementById('profilePicText').style.display = 'none';
             document.getElementById('proofText').style.display = 'none';
@@ -409,12 +393,11 @@
 
             switch (stage) {
                 case 1:
-                    // Stage 1: Character Creation
-                    document.querySelector('h1').textContent = "1. Character Creation";
-                    updateIllustration("reaper", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Grim Reaper";
+                    // Stage 1: Enter the Arena
+                    document.querySelector('h1').innerHTML = "1. Enter the arena";
+                    updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
-                    document.getElementById('shadowsText').style.display = '';
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
                     updateSubProgress(1);
@@ -472,11 +455,10 @@
                     break;
                 case 2:
                     // Stage 2: Finding Your Why
-                    document.querySelector('h1').textContent = "2. Finding Your Why";
+                    document.querySelector('h1').innerHTML = "2. Finding your why";
                     updateIllustration("why", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Eye";
                     illustrationImage.loading = "lazy";
-                    document.getElementById('whyText').style.display = '';
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
                     updateSubProgress(2);
@@ -493,9 +475,9 @@
                     checkFormValidityStage2();
                     break;
                 case 3:
-                    // Stage 3: The Price of Glory
-                    document.querySelector('h1').textContent = "3. The Price of Glory";
-                    updateIllustration("cr7", "jpg", webpSource, jpegSource, illustrationImage);
+                    // Stage 3: The price of glory
+                    document.querySelector('h1').innerHTML = "3. The price of glory";
+                    updateIllustration("cr7v2", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Cristiano Ronaldo";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
@@ -510,7 +492,7 @@
                     break;
                 case 4:
                     // Stage 4: Almost There
-                    document.querySelector('h1').textContent = "4/a. Almost There";
+                    document.querySelector('h1').innerHTML = "4/a. Almost there";
                     updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Headshot";
                     illustrationImage.loading = "lazy";
@@ -537,10 +519,10 @@
                     attachUploadEventListeners();
                     break;
                 case 5:
-                    // Stage 5: Don't Trust Verify
-                    document.querySelector('h1').textContent = "4/b. Don't Trust Verify";
+                    // Stage 5: Don't Trust, Verify
+                    document.querySelector('h1').innerHTML = "4/b. Don't trust, verify";
                     updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Proof Image";
+                    illustrationImage.alt = "Proof image";
                     illustrationImage.loading = "lazy";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
@@ -553,6 +535,8 @@
                     const proofImageContainer = document.getElementById('proofImageContainer');
                     const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
+                    // Proof Tracker: show only biomarkers present in sessionStorage, in bortz-age UI order
+                    var checklistLabels = window.getProofChecklistLabelsFromSession && window.getProofChecklistLabelsFromSession() || [];
                     window.setupProofUploadHTML(
                         nextButton,
                         uploadProofButton,
@@ -560,25 +544,15 @@
                         proofImageContainer,
                         proofPics,
                         biomarkerChecklistContainer,
-                        [
-                            'White Blood Cell Count (WBC)',
-                            'Lymphocytes (LYM)',
-                            'Mean Corpuscular Volume (MCV)',
-                            'Red Cell Distribution Width (RDW)',
-                            'Albumin',
-                            'Alkaline Phosphatase (ALP)',
-                            'Creatinine',
-                            'Glucose',
-                            'C-Reactive Protein (CRP)'
-                        ]
+                        checklistLabels
                     );
 
                     break;
                 case 6:
                     // Stage 6: Final Details
-                    document.querySelector('h1').textContent = "5. Final Details";
-                    updateIllustration("finish", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Finish Line";
+                    document.querySelector('h1').innerHTML = "5. Final details";
+                    updateIllustration("finishv2", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Finish line";
                     illustrationImage.loading = "lazy";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
@@ -790,7 +764,7 @@
                     // Optionally, set a default value or prompt
                     const defaultOption = document.createElement('option');
                     defaultOption.value = '';
-                    defaultOption.textContent = '-- Select Division --';
+                    defaultOption.textContent = '-- Select division --';
                     defaultOption.disabled = true;
                     defaultOption.selected = true;
                     divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);

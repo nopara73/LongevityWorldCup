@@ -31,18 +31,31 @@
       "AlpUL": 62,
       "Wbc1000cellsuL": 3.2
     },
-    {
-      "Date": "2026-01-13",
-      "AlbGL": 44,
-      "CreatUmolL": 73,
-      "GluMmolL": 4.8,
-      "CrpMgL": 0.2,
-      "LymPc": 39.5,
-      "McvFL": 86,
-      "RdwPc": 13.4,
-      "AlpUL": 65,
-      "Wbc1000cellsuL": 3.8
-    }
+	{
+	  "Date": "2026-01-13",
+	  "AlbGL": 44,
+	  "CreatUmolL": 73,
+	  "GluMmolL": 4.8,
+	  "CrpMgL": 0.2,
+	  "LymPc": 39.5,
+	  "McvFL": 86,
+	  "RdwPc": 13.4,
+	  "AlpUL": 65,
+	  "Wbc1000cellsuL": 3.8,
+	  "NeutrophilPc": 49.7,
+	  "MonocytePc": 9.5,
+	  "Rbc10e12L": 4.5,
+	  "MchPg": 28,
+	  "UreaMmolL": 4.5,
+	  "CystatinCMgL": 0.77,
+	  "Hba1cMmolMol": 38,
+	  "CholesterolMmolL": 5.1,
+	  "ApoA1GL": 1.66,
+	  "AltUL": 25,
+	  "GgtUL": 20,
+	  "ShbgNmolL": 98.3,
+	  "VitaminDNmolL": 91.6
+	}
   ],
   "Division": "Women's",
   "Flag": "Singapore",

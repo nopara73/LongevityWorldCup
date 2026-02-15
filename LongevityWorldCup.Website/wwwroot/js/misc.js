@@ -1,4 +1,4 @@
-﻿window.getIcon = function (link) {
+window.getIcon = function (link) {
     // Normalize the link to lowercase for case-insensitive matching
     const normalizedLink = link.toLowerCase().trim();
 
@@ -97,22 +97,32 @@ window.escapeHTML = function (string) {
 /**
  * Comparator function to rank athletes based on competition rules.
  * The ranking is determined by:
- * 1. Age Reduction (more negative value indicates greater reversal)
- * 2. Chronological Age (older athletes rank higher)
- * 3. Alphabetical Order (as a last resort, hopefully it'll never have to come down to this)
+ * 1. Bortz age presence (athletes with Bortz age rank ahead of those with only Pheno age)
+ * 2. Age Reduction (more negative value indicates greater reversal; uses Bortz when present, else Pheno)
+ * 3. Chronological Age (older athletes rank higher)
+ * 4. Alphabetical Order (as a last resort)
  */
 window.compareAthleteRank = function (a, b) {
-    // First Criterion: Age Reduction (more negative is better)
-    // Since ageReduction = PhenoAge - ChronologicalAge,
-    // a more negative value indicates a greater reversal.
-    if (a.ageReduction < b.ageReduction) {
-        return -1; // Athlete 'a' ranks higher
-    }
-    if (a.ageReduction > b.ageReduction) {
-        return 1; // Athlete 'b' ranks higher
-    }
+    const hasBortz = function (x) {
+        return x.bortzAgeReduction != null && Number.isFinite(x.bortzAgeReduction);
+    };
+    const getAgeReduction = function (x) {
+        return hasBortz(x) ? x.bortzAgeReduction : x.ageReduction;
+    };
 
-    // Second Criterion: Date of Birth
+    // First Criterion: Athletes with Bortz age rank ahead of those with only Pheno age
+    const aHasBortz = hasBortz(a);
+    const bHasBortz = hasBortz(b);
+    if (aHasBortz && !bHasBortz) return -1; // 'a' ranks higher
+    if (!aHasBortz && bHasBortz) return 1;  // 'b' ranks higher
+
+    // Second Criterion: Age Reduction (more negative is better)
+    const aRed = getAgeReduction(a);
+    const bRed = getAgeReduction(b);
+    if (aRed < bRed) return -1; // Athlete 'a' ranks higher
+    if (aRed > bRed) return 1;  // Athlete 'b' ranks higher
+
+    // Third Criterion: Date of Birth
     // Older athletes rank higher when age reversal is equal.
     // Credit goes to Dave Pascoe for the idea of using date of birth as a tiebreaker.
     if (a.dateOfBirth < b.dateOfBirth) {
@@ -122,7 +132,7 @@ window.compareAthleteRank = function (a, b) {
         return 1; // Athlete 'b' is older; ranks higher
     }
 
-    // Third Criterion: Alphabetical Order of Names
+    // Fourth Criterion: Alphabetical Order of Names
     // As a last resort, sort alphabetically by athlete's name.
     if (a.name < b.name) {
         return -1; // Athlete 'a' comes first alphabetically
@@ -131,9 +141,25 @@ window.compareAthleteRank = function (a, b) {
         return 1; // Athlete 'b' comes first alphabetically
     }
 
-    // If all criteria are equal, which is impossible, then the athlete that registered first ranks higher.
-    return 1;
-}
+    // If all criteria are equal, preserve original order (stable sort behavior).
+    return 0;
+};
+
+/**
+ * Pheno-only comparator: rank by Pheno age reduction only (no Bortz-first rule).
+ * Used for the Pheno Age view. Order: ageReduction (more negative better), then DoB (older first), then name.
+ */
+window.compareAthleteRankPhenoOnly = function (a, b) {
+    const aRed = a.ageReduction != null && Number.isFinite(a.ageReduction) ? a.ageReduction : 0;
+    const bRed = b.ageReduction != null && Number.isFinite(b.ageReduction) ? b.ageReduction : 0;
+    if (aRed < bRed) return -1;
+    if (aRed > bRed) return 1;
+    if (a.dateOfBirth < b.dateOfBirth) return -1;
+    if (a.dateOfBirth > b.dateOfBirth) return 1;
+    if (a.name < b.name) return -1;
+    if (a.name > b.name) return 1;
+    return 0;
+};
 
 window.getGeneration = function (birthYear) {
     if (birthYear >= 1928 && birthYear <= 1945) {
@@ -279,19 +305,11 @@ window.highlightText = function (element, searchTerms) {
 }
 
 window.goBackOrHome = function () {
-    try {
-        const ref = document.referrer;
-        const origin = new URL(ref).origin;
-        if (
-            ref &&
-            origin === window.location.origin &&
-            window.history.length > 1
-        ) {
-            window.history.back();
-        } else {
-            window.location.href = '/';
-        }
-    } catch (e) {
+    // Prefer history.back() whenever there is history (e.g. user came from join-game).
+    // Referrer can be empty or stripped, so do not rely on it; going back is safe for same-tab navigation.
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
         window.location.href = '/';
     }
 }

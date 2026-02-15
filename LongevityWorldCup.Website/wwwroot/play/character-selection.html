@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Character Selection</title>
@@ -86,7 +86,7 @@
 <body>
     <!--HEADER-->
     <main>
-        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete Selection</h1>
+        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
         <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
@@ -136,7 +136,8 @@
                 const prevName = localStorage.getItem('selectedAthleteName');
                 if (!prevName || prevName !== currentAthlete.Name) {
                     sessionStorage.removeItem('biomarkerData');
-                    sessionStorage.removeItem('chronoBioDifference');
+                    sessionStorage.removeItem('chronoPhenoDifference');
+                    sessionStorage.removeItem('chronoBortzDifference');
                 }
 
                 localStorage.setItem('selectedAthleteName', currentAthlete.Name);

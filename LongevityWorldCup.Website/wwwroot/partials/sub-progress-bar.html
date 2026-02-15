@@ -1,38 +1,73 @@
-﻿<meta charset="UTF-8">
-<title>Sub Progress Bar</title>
+<meta charset="UTF-8">
+<title>Sub progress bar</title>
 <style>
     .sub-progress-container {
-        width: 80%;
-        max-width: 640px;
-        margin: 10px auto 40px;
+        width: 100%;
+        max-width: none;
+        margin: 8px 0 24px 0;
+        padding: 12px 16px 8px;
         position: relative;
-        padding: 20px 5px 10px 5px;
         background: rgba(0, 188, 212, 0.05);
-        border-radius: 15px;
+        border-radius: 12px;
+        box-sizing: border-box;
+    }
+
+    /* Single track: bar and dots share height and are vertically centered together */
+    .sub-progress-container .sub-progress-track {
+        position: relative;
+        height: 5px;
+        display: flex;
+        align-items: center;
     }
 
         .sub-progress-container .progress-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 4px;
             background: #e0e0e0;
+            border-radius: 3px;
+            z-index: 1;
         }
 
         .sub-progress-container .progress-fill {
             height: 100%;
             width: 0;
-            background: var(--primary-color); /* Solid color */
+            background: var(--primary-color);
             transition: width 1.5s ease-in-out;
             position: relative;
+            border-radius: 3px;
+        }
+
+        .sub-progress-container .stages {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sub-progress-container .stage {
+            min-width: 0;
+            flex: 0 1 auto;
+            display: flex;
+            align-items: center;
         }
 
         .sub-progress-container .stage-dot {
-            width: 16px;
-            height: 16px;
-            background: #e0e0e0; /* Default background */
+            width: 22px;
+            height: 22px;
+            background: #e0e0e0;
             border-radius: 50%;
-            margin: -3px auto 0 auto;
+            margin: 0 auto;
             position: relative;
-            z-index: 2;
             color: #666;
-            font-size: 12px;
+            font-size: 11px;
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -41,24 +76,22 @@
         }
 
         .sub-progress-container .stage.completed .stage-dot {
-            background: var(--primary-color); /* Solid color for completed stages */
+            background: var(--primary-color);
             color: var(--light-text-color);
         }
 
         .sub-progress-container .stage.active .stage-dot {
             background: var(--secondary-color);
             color: var(--light-text-color);
-        }
-
-        .sub-progress-container .stages {
-            margin-top: -7px; /* Adjusted value for the sub-progress bar */
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
         }
 </style>
 <div id="subProgressContainerItem" class="sub-progress-container">
-    <div class="progress-bar">
-        <div class="progress-fill" id="subProgressFill"></div>
-    </div>
-    <div class="stages">
+    <div class="sub-progress-track">
+        <div class="progress-bar">
+            <div class="progress-fill" id="subProgressFill"></div>
+        </div>
+        <div class="stages">
         <div class="stage" id="subStage1">
             <div class="stage-dot">1</div>
         </div>
@@ -73,6 +106,7 @@
         </div>
         <div class="stage" id="subStage5">
             <div class="stage-dot">5</div>
+        </div>
         </div>
     </div>
 </div>

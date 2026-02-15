@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace LongevityWorldCup.Website.Controllers
@@ -11,7 +11,7 @@ namespace LongevityWorldCup.Website.Controllers
         {
             var query = HttpContext.Request.Query
                 .Where(kvp => kvp.Key != "athlete") // drop any existing athlete param
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+                .ToDictionary(kvp => kvp.Key, kvp => (string?)kvp.Value.ToString());
 
             var url = QueryHelpers.AddQueryString("/", query);
             url = QueryHelpers.AddQueryString(url, "athlete", athleteName);

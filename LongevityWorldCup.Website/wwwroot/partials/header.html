@@ -20,21 +20,24 @@
         font-family: 'Roboto';
         font-style: normal;
         font-weight: 300;
-        src: url('/assets/fonts/Roboto-Light.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Roboto-Light.woff2') format('woff2');
     }
 
     @font-face {
         font-family: 'Roboto';
         font-style: normal;
         font-weight: 400;
-        src: url('/assets/fonts/Roboto-Regular.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Roboto-Regular.woff2') format('woff2');
     }
 
     @font-face {
         font-family: 'Roboto';
         font-style: normal;
         font-weight: 700;
-        src: url('/assets/fonts/Roboto-Bold.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Roboto-Bold.woff2') format('woff2');
     }
 
     /* Orbitron Font Face */
@@ -42,7 +45,8 @@
         font-family: 'Orbitron';
         font-style: normal;
         font-weight: 700;
-        src: url('/assets/fonts/Orbitron-Bold.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Orbitron-Bold.woff2') format('woff2');
     }
 
     .tagline {
@@ -542,12 +546,12 @@
             Race To Longevity Escape Velocity <i class="fa-solid fa-rocket"></i>
         </span>
     </a>
-    <button onclick="window.location.href='/play/menu.html'" class="join-game" aria-label="Play the Game" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+    <button onclick="window.location.href='/play/menu.html'" class="join-game" aria-label="Play the game" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
         <strong>PLAY</strong>
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
         <strong class="join-game-end">GAME</strong>
     </button>
-    <button onclick="window.location.href='/play/menu.html'" class="join-game scrolled-button" aria-label="Play the Game" style="display: none;" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+    <button onclick="window.location.href='/play/menu.html'" class="join-game scrolled-button" aria-label="Play the game" style="display: none;" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
         <strong>PLAY</strong>
     </button>
     <dialog id="custom-alert">
@@ -596,9 +600,11 @@
         }
         const mainHeader = document.querySelector('header[role="banner"]');
         const stickyHeader = document.getElementById('site-sticky-header');
+        /* Show when scroll header would completely cover the main header: main header is entirely under the sticky bar. Sticky height when visible; fallback 52 if not yet measured. */
+        const stickyHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
+        const threshold = mainHeader ? Math.max(0, mainHeader.offsetHeight - stickyHeight) : -1;
+        const willBeVisible = mainHeader && stickyHeader ? scrollPos >= threshold : false;
         if (mainHeader && stickyHeader) {
-            const threshold = mainHeader.offsetHeight - 30;
-            const willBeVisible = scrollPos > threshold;
             if (willBeVisible) {
                 stickyHeader.classList.add('visible');
                 stickyHeader.setAttribute('aria-hidden', 'false');

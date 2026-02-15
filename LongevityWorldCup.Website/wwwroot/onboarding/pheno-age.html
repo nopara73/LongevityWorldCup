@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Longevity World Cup - Pheno Age</title>
@@ -6,6 +6,18 @@
     <link rel="preload" href="/css/bioageform.css" as="style">
     <link rel="stylesheet" href="/css/bioageform.css">
     <style>
+        /* Match join-game biological age intro styling; align width with .bioageform */
+        .lab-reassurance {
+            margin: 1.5rem auto 0;
+            max-width: 600px;
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
         /* Hide the join-game button in the header */
         .join-game {
             display: none;
@@ -99,6 +111,17 @@
             transition: opacity 1s;
             position: relative;
             overflow: hidden;
+        }
+
+        /* When result is not shown, collapse it so the Back button sits near the form on step 1 */
+        #phenoAgeResult:not(.show) {
+            height: 0;
+            min-height: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            border: none;
+            box-shadow: none;
         }
 
         #phenoAgeResult.show {
@@ -568,14 +591,9 @@
         <div class="lwc-steps-shell" id="lwcStepsShell">
             <!--MAIN-PROGRESS-BAR-->
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-                The Blood Pact
-                <span style="display: inline-flex; gap: 9px; align-items: center;">
-                    <i class="fas fa-tint"></i>
-                    <i class="fas fa-dna"></i>
-                    <i class="fas fa-scroll"></i>
-                </span>
+                This is <span style="color:#b22222">blood</span> sport
             </h1>
-            <p id="mainInstructions" data-aos="fade" data-aos-duration="700" data-aos-delay="300" style="text-align:center">Calculate your biological age, known as <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">PhenoAge</a>:</p>
+            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong>, known as <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a>:</p>
             <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <div class="lwc-wizard-nav" aria-hidden="true">
                     <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
@@ -585,12 +603,12 @@
 
                     <!-- Date of Birth Fields -->
                     <fieldset id="dobFieldset">
-                        <h2 id="lwcStep1Title" class="visually-hidden">Step 1: Your Age & Blood Draw Date</h2>
+                        <h2 id="lwcStep1Title" class="visually-hidden">Step 1: Your age & blood draw date</h2>
 
-                        <legend>Date of Birth:</legend>
+                        <legend>Date of birth:</legend>
                         <label for="dob-year">Year <span style="font-weight: normal;">(required)</span></label>
                         <select id="dob-year" name="dob-year" required aria-required="true" onchange="calculateResultIfResultAlreadyCalculated()">
-                            <option value="" disabled selected>Select Year</option>
+                            <option value="" disabled selected>Select year</option>
                             <!-- Generate year options dynamically here -->
                         </select>
 
@@ -616,7 +634,7 @@
                             Day <span style="font-weight: normal;">(optional)</span>
                         </label>
                         <select id="dob-day" name="dob-day" onchange="calculateResultIfResultAlreadyCalculated()">
-                            <option value="" disabled selected>Select Day</option>
+                            <option value="" disabled selected>Select day</option>
                         </select>
 
                         <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
@@ -624,7 +642,7 @@
 
                     <!-- Blood Draw Details -->
                     <fieldset>
-                        <legend>Blood Draw Date:</legend>
+                        <legend>Blood draw date:</legend>
                         <p class="privacy-note">When did you get your blood test done?</p>
                         <div class="input-group lwc-date-flex">
                             <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
@@ -645,14 +663,12 @@
                         </button>
                     </div>
 
-                    <!-- Biomarker Fieldset -->
+                    <!-- Biomarkers grouped by domain (aligned with leaderboard Best Domain badges) -->
                     <fieldset>
-                        <legend>Biomarkers:</legend>
-
-                        <!-- White Blood Cell Count -->
+                        <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                White Blood Cell Count (WBC)
+                                White blood cell count (WBC)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
@@ -660,19 +676,16 @@
                                     <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <option value="1">1000 cells/μL</option>
-                                        <option value="1">10⁹ cells/L</option>
-                                        <option value="1000">cells/μL</option>
-                                        <option value="1000">cells/mm³</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Lymphocyte Percentage -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                Lymphocytes (LYM)
+                                Lymphocytes
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
@@ -681,23 +694,22 @@
                                     <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
                                     <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
-                                        <option value="1">1000 cells/μL</option>
-                                        <option value="1">10⁹ cells/L</option>
+                                        <option value="1">10⁹/L</option>
+                                        <option value="1">10³/µL</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Mean Corpuscular Volume -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                Mean Corpuscular Volume (MCV)
+                                Mean corpuscular volume (MCV)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="mcvUnit" class="visually-hidden">Select unit for MCV</label>
+                                    <label for="mcvUnit" class="visually-hidden">MCV unit</label>
                                     <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">fL</option>
                                     </select>
@@ -705,24 +717,25 @@
                             </div>
                         </div>
 
-                        <!-- Red Cell Distribution Width -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                Red Cell Distribution Width (RDW, RDW-CV)
+                                Red cell distribution width (RDW, RDW-CV)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="rcdw" name="rcdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="rcdwUnit" class="visually-hidden">Select unit for RDW</label>
+                                    <label for="rcdwUnit" class="visually-hidden">RDW unit</label>
                                     <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- Albumin -->
+                    <fieldset>
+                        <legend><i class="fas fa-droplet category-icon" aria-hidden="true"></i>Liver</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Albumin
@@ -731,37 +744,35 @@
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="albuminUnit" class="visually-hidden">Select unit for Albumin</label>
+                                    <label for="albuminUnit" class="visually-hidden">Albumin unit</label>
                                     <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">g/L</option>
                                         <option value="0.1">g/dL</option>
-                                        <option value="0.1">g%</option>
-                                        <!-- Albumin's molar mass can vary slightly depending on its source and exact composition, usually given as approximately 66,500 g/mol but sometimes noted as 66,430 g/mol or 66,563 g/mol in specific contexts. If we calculate using 66,430 g/mol as the molar mass, then it's: 15.0466µmol/L -->
-                                        <option value="15.0466">µmol/L</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Alkaline Phosphatase -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                Alkaline Phosphatase (ALP)
+                                Alkaline phosphatase (ALP)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="apUnit" class="visually-hidden">Select unit for Alkaline Phosphatase</label>
-                                    <select id="apUnit" name="apUnit" aria-label="AP unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="apUnit" class="visually-hidden">ALP unit</label>
+                                    <select id="apUnit" name="apUnit" aria-label="ALP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">U/L</option>
-                                        <option value="0.01667">μkat/L</option>
+                                        <option value="0.01667">µkat/L</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- Creatinine -->
+                    <fieldset>
+                        <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Creatinine
@@ -770,17 +781,18 @@
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="creatinineUnit" class="visually-hidden">Select unit for Creatinine</label>
+                                    <label for="creatinineUnit" class="visually-hidden">Creatinine unit</label>
                                     <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">µmol/L</option>
                                         <option value="0.0113">mg/dL</option>
-                                        <option value="0.00113">mg/L</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- Glucose -->
+                    <fieldset>
+                        <legend><i class="fas fa-fire category-icon" aria-hidden="true"></i>Metabolism</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 Glucose
@@ -789,25 +801,25 @@
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                    <label for="glucoseUnit" class="visually-hidden">Select unit for Glucose</label>
+                                    <label for="glucoseUnit" class="visually-hidden">Glucose unit</label>
                                     <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
                                         <option value="18.016">mg/dL</option>
-                                        <option value="0.18016">mg%</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
+                    </fieldset>
 
-                        <!-- C-Reactive Protein -->
+                    <fieldset>
+                        <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
-                                C-Reactive Protein (CRP)
+                                C-reactive protein (CRP)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="crp-container">
-                                    <!-- Label and Negative Toggle in the same line -->
                                     <div class="label-toggle-group">
                                         <span title="Check this box if your result is below your lab's 'the detection limit and this limit is unknown" class="bioageform-toggle-text">Set if negative:</span>
                                         <div title="Check this box if your result is below your lab's 'the detection limit and this limit is unknown" class="negative-toggle">
@@ -818,15 +830,12 @@
                                         </div>
                                     </div>
 
-                                    <!-- Input Group -->
                                     <div class="input-group">
                                         <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <label for="crpUnit" class="visually-hidden">Select unit for C-Reactive Protein</label>
+                                        <label for="crpUnit" class="visually-hidden">CRP unit</label>
                                         <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                             <option value="10">mg/L</option>
                                             <option value="1">mg/dL</option>
-                                            <option value="10000">mg/mL</option>
-                                            <option value="86.96">nmol/L</option>
                                         </select>
                                     </div>
                                 </div>
@@ -836,7 +845,7 @@
 
                     <!-- Calculate Button -->
                     <button type="submit" class="option-button grey" aria-label="Calculate your biological age" style="width: 100%; display: block; box-sizing: border-box; margin-top: 1rem;">
-                        <i class="fas fa-heartbeat"></i>&nbsp;Calculate My Biological&nbsp;Age
+                        <i class="fas fa-heartbeat"></i>&nbsp;Calculate my biological&nbsp;age
                     </button>
                 </section>
             </form>
@@ -868,7 +877,7 @@
     <!--FOOTER-->
     <!-- JavaScript -->
     <script defer>
-        history.pushState({}, '', '/pheno-age' + (window.location.search || '') + (window.location.hash || ''));
+        history.replaceState({}, '', '/pheno-age' + (window.location.search || '') + (window.location.hash || ''));
 
         // Check if the URL has the query parameter "fake=1"
         const urlParams = new URLSearchParams(window.location.search);
@@ -903,6 +912,26 @@
             bloodDrawDateInput.addEventListener('beforeinput', e => {
                 // Allow programmatic changes only
                 if (!e.inputType || e.inputType !== 'insertReplacementText') e.preventDefault();
+            });
+        }
+
+        function overwritePhenoFormFromUrlParams() {
+            var params = new URLSearchParams(window.location.search);
+            var y = params.get('Year'), m = params.get('Month'), d = params.get('Day'), bd = params.get('Date');
+            if (y) { var yEl = document.getElementById('dob-year'); if (yEl) yEl.value = y; }
+            if (m) { var mEl = document.getElementById('dob-month'); if (mEl) mEl.value = m; }
+            if (y || m || d) { if (typeof updateDays === 'function') updateDays(); }
+            if (d) { var dEl = document.getElementById('dob-day'); if (dEl) dEl.value = d; }
+            if (bd && bloodDrawDateInput) bloodDrawDateInput.value = bd;
+            var map = { AlbGL: ['albumin', '1'], CreatUmolL: ['creatinine', '1'], GluMmolL: ['glucose', '1'], CrpMgL: ['crp', '10'], Wbc1000cellsuL: ['wbc', '1'], LymPc: ['lymphocyte', '1'], McvFL: ['mcv', '1'], RdwPc: ['rcdw', '1'], AlpUL: ['ap', '1'] };
+            Object.keys(map).forEach(function (key) {
+                var val = params.get(key);
+                if (val === null || val === '') return;
+                var num = parseFloat(val);
+                if (!Number.isFinite(num)) return;
+                var inputId = map[key][0], unitVal = map[key][1];
+                var el = document.getElementById(inputId), uEl = document.getElementById(inputId + 'Unit');
+                if (el && uEl) { el.value = num; uEl.value = unitVal; touchedBiomarkers.add(inputId); }
             });
         }
 
@@ -1003,29 +1032,13 @@
             // Albumin
             const albuminValue = parseFloat(document.getElementById('albumin').value);
             const albuminUnit = parseFloat(document.getElementById('albuminUnit').value);
-            if (albuminUnit != 15.0466 && albuminValue > 300) {
-                console.warn("Albumin is too high. Correcting the unit.");
-                document.getElementById('albuminUnit').value = 15.0466;
-            }
-            else if (albuminUnit != 0.1 && albuminValue < 6) {
+            if (albuminUnit != 0.1 && albuminValue < 6) {
                 console.warn("Albumin is too low. Correcting the unit.");
                 document.getElementById('albuminUnit').value = 0.1;
             }
             else if (albuminUnit != 1 && albuminValue > 10 && albuminValue < 60) {
-                console.warn("Albumin is too low. Correcting the unit.");
+                console.warn("Albumin range suggests g/L.");
                 document.getElementById('albuminUnit').value = 1;
-            }
-
-            // White Blood Cell Count (WBC)
-            const wbcValue = parseFloat(document.getElementById('wbc').value);
-            const wbcUnit = parseFloat(document.getElementById('wbcUnit').value);
-            if (wbcUnit === 1 && wbcValue > 4000) {
-                console.warn("WBC is too high. Correcting the unit.");
-                document.getElementById('wbcUnit').value = 1000;
-            }
-            else if (wbcUnit === 1000 && wbcValue < 30) {
-                console.warn("WBC is too low. Correcting the unit.");
-                document.getElementById('wbcUnit').value = 1;
             }
         }
 
@@ -1069,7 +1082,7 @@
             try {
                 chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
                 if (chronologicalAgeAtTimeOfTest < 0) {
-                    throw new Error("Invalid Date of Birth: You cannot be born in the future.");
+                    throw new Error("Invalid date of birth: you cannot be born in the future.");
                 }
             } catch (error) {
                 customAlert(error.message);
@@ -1129,9 +1142,10 @@
                 // Apply unit conversion
                 let adjustedValue = rawValue / unitConversion;
 
-                // Special handling for CRP
+                // Special handling for CRP: PhenoAge expects ln(CRP in mg/dL) per Levine Table 1. Stored canonical is mg/L; convert by dividing by 10.
                 if (biomarker.id === 'crp') {
-                    adjustedValue = Math.log(adjustedValue);
+                    const crpMgL = (rawValue / unitConversion) * 10;
+                    adjustedValue = Math.log(crpMgL / 10);
                 }
 
                 // Special handling for lymphocytes
@@ -1144,7 +1158,7 @@
                     if (isNaN(wbcRawValue)) {
                         expandFieldCard('wbc');
                         expandFieldCard('lymphocyte');
-                        customAlert("Please provide White Blood Cell Count to calculate Lymphocyte percentage.").then(() => {
+                        customAlert("Please provide white blood cell count to calculate lymphocyte percentage.").then(() => {
                             document.getElementById('continueButton').classList.remove('show');
                             updateCalculateButton();
                         });
@@ -1177,6 +1191,38 @@
                 ensureCorrectInputSuggestion.style.display = 'none';
                 validAgeInput.style.display = 'block';
             }
+
+            // Update URL from calculation result (merge so update=1, fake=1 are preserved)
+            (function updateUrlFromPhenoResult() {
+                const PHENO_URL_KEYS = ['Year', 'Month', 'Day', 'Date', 'AlbGL', 'CreatUmolL', 'GluMmolL', 'CrpMgL', 'Wbc1000cellsuL', 'LymPc', 'McvFL', 'RdwPc', 'AlpUL'];
+                const crpMgL = 10 * Math.exp(markerValues[4]);
+                const two = function (n) { return Number.isFinite(n) ? parseFloat(n.toFixed(2)) : n; };
+                const formParams = {
+                    Year: year,
+                    Month: month + 1,
+                    Day: day,
+                    Date: bloodDrawDate,
+                    AlbGL: two(markerValues[1]),
+                    CreatUmolL: two(markerValues[2]),
+                    GluMmolL: two(markerValues[3]),
+                    CrpMgL: two(crpMgL),
+                    Wbc1000cellsuL: two(markerValues[5]),
+                    LymPc: two(markerValues[6]),
+                    McvFL: two(markerValues[7]),
+                    RdwPc: two(markerValues[8]),
+                    AlpUL: two(markerValues[9])
+                };
+                const current = new URLSearchParams(window.location.search);
+                const next = new URLSearchParams();
+                current.forEach(function(val, key) {
+                    if (PHENO_URL_KEYS.indexOf(key) === -1) next.set(key, val);
+                });
+                Object.keys(formParams).forEach(function(k) { next.set(k, String(formParams[k])); });
+                const search = next.toString();
+                const base = '/pheno-age';
+                const hash = window.location.hash || '';
+                history.replaceState({}, '', base + (search ? '?' + search : '') + hash);
+            })();
 
             // Setting up the animated counter effect
             const animatedAgeElement = document.getElementById('animatedAge');
@@ -1233,12 +1279,9 @@
                                 animatedAgeElement.classList.remove('final-reveal');
                             }, 800);
                             
-                            // Update years text with celebratory emoji if bio age is better
-                            if (phenoAge < chronologicalAgeAtTimeOfTest) {
-                                yearsTextElement.innerHTML = `years 🚀`;
-                            } else {
-                                yearsTextElement.innerHTML = `years`;
-                            }
+                            // Update years text with year reduction/increase and celebratory emoji if bio age is better
+                            const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
+                            yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                             // Show the Next button after a brief delay
                             setTimeout(() => {
@@ -1260,7 +1303,8 @@
                     animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
                     animatedAgeElement.classList.add(ageCategory);
                     
-                    yearsTextElement.innerHTML = phenoAge < chronologicalAgeAtTimeOfTest ? `years 🚀` : `years`;
+                    const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
+                    yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                     // Show the Next button
                     setTimeout(() => {
@@ -1284,7 +1328,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             GB: {
                 albuminUnit: '1',         // g/L (SI unit, common in the UK)
@@ -1295,7 +1339,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             HU: {
                 albuminUnit: '1',         // g/L
@@ -1306,7 +1350,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             AU: {
                 albuminUnit: '1',         // g/L
@@ -1317,7 +1361,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             DE: {
                 albuminUnit: '1',         // g/L
@@ -1328,7 +1372,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             FR: {
                 albuminUnit: '1',         // g/L
@@ -1339,7 +1383,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             ES: {
                 albuminUnit: '1',         // g/L
@@ -1350,7 +1394,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             BR: {
                 albuminUnit: '1',         // g/L
@@ -1361,7 +1405,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             HN: {
                 albuminUnit: '0.1',       // g/dL
@@ -1372,7 +1416,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             SG: {
                 albuminUnit: '1',         // g/L
@@ -1383,7 +1427,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             CZ: {
                 albuminUnit: '1',         // g/L
@@ -1394,7 +1438,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             CA: {
                 albuminUnit: '1',         // g/L
@@ -1405,7 +1449,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             },
             default: {
                 albuminUnit: '1',         // g/L
@@ -1416,7 +1460,7 @@
                 mcvUnit: '1',             // fL
                 rcdwUnit: '1',            // %
                 apUnit: '1',              // U/L
-                wbcUnit: '1'              // 1000 cells/μL
+                wbcUnit: '1'              // 10³ cells/µL
             }
         };
 
@@ -1516,7 +1560,10 @@
                 });
             }
             if (toStep1Btn) {
-                toStep1Btn.addEventListener('click', () => lwcSetStep(1));
+                toStep1Btn.addEventListener('click', () => {
+                    try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+                    lwcSetStep(1);
+                });
             }
 
             // Make wizard dots clickable (desktop) and keyboard accessible
@@ -1539,16 +1586,8 @@
                 });
             }
 
-            // Make the global Back button step-aware
-            const globalBackBtn = document.querySelector('.options-container .back-button');
-            if (globalBackBtn) {
-                globalBackBtn.addEventListener('click', (ev) => {
-                    if (lwcCurrentStep === 2) {
-                        ev.preventDefault();
-                        lwcSetStep(1);
-                    }
-                }, true);
-            }
+            // Back in .options-container (result section) always navigates away via onclick goBackOrHome();
+            // Step-2 Back (lwcToStep1Btn) goes to step 1 like the prev green dot.
 
             const unitSelects = document.querySelectorAll('.input-group select');
             let maxWidth = 0;
@@ -1589,6 +1628,7 @@
             if (isFake) {
                 fillFakeData();
             }
+            overwritePhenoFormFromUrlParams();
 
             if (isUpdate) {
                 hideMainProgress();
@@ -1680,6 +1720,7 @@
             if (isFake) {
                 fillFakeData();
             }
+            overwritePhenoFormFromUrlParams();
 
             // refill only saved biomarkers
             const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
@@ -1696,6 +1737,15 @@
                     }
                 });
                 // hide toggle icons on expanded cards
+                document.querySelectorAll('.biomarker-card.active .toggle-icon')
+                    .forEach(i => i.style.display = 'none');
+            }
+            // Expand cards for any field filled from URL (when no sessionStorage or in addition)
+            ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value.trim() !== '') expandFieldCard(id);
+            });
+            if (isUpdate) {
                 document.querySelectorAll('.biomarker-card.active .toggle-icon')
                     .forEach(i => i.style.display = 'none');
             }
@@ -1808,60 +1858,56 @@
 
             // Store the data in sessionStorage
             const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
-            const bioAge = parseFloat(document.getElementById('animatedAge').innerText);
-            const chronoBioDifference = bioAge - chronoAgeAtTimeOfTest;
-            sessionStorage.setItem('chronoBioDifference', chronoBioDifference.toFixed(2));
+            const phenoAge = parseFloat(document.getElementById('animatedAge').innerText);
+            const chronoPhenoDifference = phenoAge - chronoAgeAtTimeOfTest;
+            sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
 
             sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
 
-            if (isUpdate) {
-                window.location.href = '/play/proof-upload.html';
-            } else {
-                window.location.href = '/onboarding/convergence.html';
-            }
+             if (isUpdate) {
+                 window.location.href = '/play/proof-upload.html';
+             } else {
+                 window.location.href = '/onboarding/convergence.html';
+             }
         }
         function fillFakeData() {
-            // Set fake Date of Birth
+            // Aligned with bortz-age.html fake data: DOB and blood draw so age at test = 60
             document.getElementById('dob-year').value = 1966;
-            document.getElementById('dob-month').value = 7;
-            document.getElementById('dob-day').value = 12;
+            document.getElementById('dob-month').value = 2;
+            if (typeof updateDays === 'function') updateDays();
+            document.getElementById('dob-day').value = 2;
 
             if (bloodDrawDateInput) {
-                const nowLocalForFake = new Date();
-                const y2 = nowLocalForFake.getFullYear();
-                const m2 = String(nowLocalForFake.getMonth() + 1).padStart(2, '0');
-                const d2 = String(nowLocalForFake.getDate()).padStart(2, '0');
-                bloodDrawDateInput.value = bloodDrawDateInput.max || `${y2}-${m2}-${d2}`;
+                bloodDrawDateInput.value = '2026-02-02';
             }
 
+            // Same fake biomarker set as bortz-age.html: WBC 6.54, lymphocyte 28.6%, mcv 92, rdw 13.4, albumin 45, ap 83, creatinine 72, glucose 5, crp 1.35
+            document.getElementById('wbc').value = 6.54;
+            document.getElementById('wbcUnit').value = 1;
 
-            // Set fake values for all input fields
-            document.getElementById('wbc').value = 6; // 1000 cells/μL
-            document.getElementById('wbcUnit').value = 1; // 1000 cells/μL
+            document.getElementById('lymphocyte').value = 28.6;
+            document.getElementById('lymphocyteUnit').value = 1;
 
-            document.getElementById('lymphocyte').value = 39; // %
-            document.getElementById('lymphocyteUnit').value = 1; // %
+            document.getElementById('mcv').value = 92;
+            document.getElementById('mcvUnit').value = 1;
 
-            document.getElementById('mcv').value = 85; // fL
-            document.getElementById('mcvUnit').value = 1; // fL
+            document.getElementById('rcdw').value = 13.4;
+            document.getElementById('rcdwUnit').value = 1;
 
-            document.getElementById('rcdw').value = 11; // %
-            document.getElementById('rcdwUnit').value = 1; // %
+            document.getElementById('albumin').value = 45;
+            document.getElementById('albuminUnit').value = 1;
 
-            document.getElementById('albumin').value = 45; // g/L
-            document.getElementById('albuminUnit').value = 1; // g/L
+            document.getElementById('ap').value = 83;
+            document.getElementById('apUnit').value = 1;
 
-            document.getElementById('ap').value = 12; // U/L
-            document.getElementById('apUnit').value = 1; // U/L
+            document.getElementById('creatinine').value = 72;
+            document.getElementById('creatinineUnit').value = 1;
 
-            document.getElementById('creatinine').value = 80; // µmol/L
-            document.getElementById('creatinineUnit').value = 1; // µmol/L
+            document.getElementById('glucose').value = 5;
+            document.getElementById('glucoseUnit').value = 1;
 
-            document.getElementById('glucose').value = 4.5; // mmol/L
-            document.getElementById('glucoseUnit').value = 1; // mmol/L
-
-            document.getElementById('crp').value = 1.8; // mg/L
-            document.getElementById('crpUnit').value = 10; // mg/L
+            document.getElementById('crp').value = 1.35;
+            document.getElementById('crpUnit').value = 10;
 
 
             // mark all biomarkers as touched in fake mode and expand them
@@ -1879,7 +1925,7 @@
             const daySelect = document.getElementById('dob-day');
 
             // Clear existing options
-            daySelect.innerHTML = '<option value="" disabled selected>Select Day</option>';
+            daySelect.innerHTML = '<option value="" disabled selected>Select day</option>';
 
             if (month) {
                 const monthIndex = month - 1; // Adjust to 0-based index

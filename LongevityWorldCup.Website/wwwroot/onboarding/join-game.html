@@ -1,55 +1,695 @@
-﻿<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
+  <head>
     <title>Longevity World Cup - Join Game</title>
     <!--HEAD-->
     <style>
-        /* Hide the join-game button in the header */
-        .join-game {
-            display: none;
+      /* Hide the join-game button in the header */
+      .join-game {
+        display: none;
+      }
+
+      /* Single content column so title, intro, and cards share the same width */
+      .join-game-content {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .join-game-content h1 {
+        margin-bottom: 0;
+        text-align: center;
+      }
+
+      .track-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin: 2rem 0;
+        align-items: stretch;
+      }
+
+      @media (max-width: 700px) {
+        .track-cards {
+          grid-template-columns: 1fr;
         }
+      }
+
+      .track-card {
+        position: relative;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e8e8e8;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        background: #fff;
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        min-height: 0;
+        overflow: hidden;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      /* Pro card has 5 grid children (ribbon, h2, tagline, details, cta): row 1 forced to 0 so content aligns with Amateur card */
+      .track-card.pro {
+        grid-template-rows: minmax(0, 0) auto auto 1fr auto;
+      }
+
+      /* Ribbon lives in a slot so it’s anchored to the card corner, not the grid area */
+      .track-card.pro .track-card-ribbon-slot {
+        grid-row: 1;
+        position: relative;
+        width: 100%;
+        height: 0;
+        min-height: 0;
+        overflow: visible;
+      }
+      .track-card.pro .track-card-ribbon-slot .track-card-ribbon {
+        position: absolute;
+        /* Card has padding 1.5rem; slot is in content box so offset ribbon to card corner */
+        top: -1.5rem;
+        right: -1.5rem;
+      }
+      /* Explicit row placement so content flows top-to-bottom with no stray gap */
+      .track-card h2 { grid-row: 1; }
+      .track-card .track-card-tagline { grid-row: 2; }
+      .track-card .track-card-details { grid-row: 3; }
+      .track-card .card-cta { grid-row: 4; }
+      .track-card.pro .track-card-ribbon-slot { grid-row: 1; }
+      .track-card.pro h2 { grid-row: 2; }
+      .track-card.pro .track-card-tagline { grid-row: 3; }
+      .track-card.pro .track-card-details { grid-row: 4; }
+      .track-card.pro .card-cta { grid-row: 5; }
+
+      .track-card:hover {
+        border-color: #b0bec5;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .track-card:focus {
+        outline: none;
+      }
+
+      .track-card:focus-visible {
+        outline: 2px solid var(--primary-color, #3498db);
+        outline-offset: 2px;
+      }
+
+      .track-card.pro:hover {
+        border-color: var(--main-action-color, #2e7d32);
+        box-shadow: 0 6px 20px rgba(46, 125, 50, 0.2);
+      }
+
+      .track-card.pro:focus-visible {
+        outline-color: var(--main-action-color, #2e7d32);
+      }
+
+      .track-card h2 {
+        margin: 0 0 0.35rem;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+
+      .track-card h2 .track-name {
+        display: inline;
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #111;
+      }
+
+      .track-card h2 .track-label {
+        display: inline;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #555;
+      }
+
+      @media (min-width: 700px) {
+        .track-card h2 .track-name {
+          font-size: 2.1rem;
+        }
+      }
+
+      @media (min-width: 900px) {
+        .track-card h2 .track-name {
+          font-size: 2.35rem;
+        }
+        .track-card h2 .track-label {
+          font-size: 1.15rem;
+        }
+      }
+
+      .track-card-benefit {
+        margin: 0 0 1rem;
+        font-size: 0.95rem;
+        color: #64748b;
+        line-height: 1.4;
+      }
+
+      .track-card-tagline {
+        margin: 0.25rem 0 0.35rem;
+        font-size: 0.9rem;
+        color: #64748b;
+        line-height: 1.4;
+      }
+
+      .track-card-tagline a {
+        text-decoration: underline;
+      }
+
+      .track-card-tagline a:hover {
+        text-decoration: underline;
+      }
+
+      .track-card:not(.pro) .track-card-tagline a,
+      .track-card:not(.pro) .track-card-meta a {
+        color: #475569;
+      }
+
+      .track-card:not(.pro) .track-card-tagline a:hover,
+      .track-card:not(.pro) .track-card-meta a:hover {
+        color: #334155;
+      }
+
+      .track-card.pro .track-card-tagline a,
+      .track-card.pro .track-card-meta a {
+        color: #166534;
+      }
+
+      .track-card.pro .track-card-tagline a:hover,
+      .track-card.pro .track-card-meta a:hover {
+        color: #14532d;
+        text-decoration: underline;
+      }
+
+      .track-card .track-card-details {
+        margin-top: 0.35rem;
+        padding-top: 0.5rem;
+        min-height: 0;
+        overflow-y: auto;
+      }
+
+      .track-card-meta {
+        margin: 0 0 0.5rem;
+        padding: 0;
+        font-size: 0.9rem;
+        color: #555;
+        display: grid;
+        grid-template-columns: minmax(6.5em, auto) 1fr;
+        gap: 0.5rem 1rem;
+        align-items: baseline;
+      }
+
+      .track-card-meta dt {
+        font-weight: 600;
+        color: #64748b;
+      }
+
+      .track-card-meta dd {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1e293b;
+      }
+
+      /* "limited time" as a smaller, muted aside */
+      .entry-aside {
+        font-size: 0.82em;
+        font-style: italic;
+        color: #64748b;
+        font-weight: 400;
+      }
+
+      .track-card.pro .track-card-meta .entry-aside {
+        color: #4b7c59;
+      }
+      }
+
+      .track-card li {
+        margin: 0.25rem 0;
+      }
+
+      /* Biomarkers section: distinct panel with label + list */
+      .biomarkers-section {
+        margin-top: 0.75rem;
+        padding: 0.875rem 1rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        border-left: 3px solid #64748b;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      .track-card:not(.pro) .biomarkers-section {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        border-left-color: #64748b;
+      }
+
+      .track-card:not(.pro) .biomarkers-section .biomarker-count {
+        color: #475569;
+      }
+
+      .track-card:not(.pro) .biomarkers-section .bio-icon {
+        color: #64748b;
+      }
+
+      .track-card.pro .biomarkers-section {
+        background: #ecfdf5;
+        border-color: #bbf7d0;
+        border-left-color: var(--main-action-color, #16a34a);
+        box-shadow: 0 1px 2px rgba(22, 163, 74, 0.08);
+      }
+
+      .track-card .biomarkers-section .biomarker-count {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #475569;
+        margin: 0 0 0.6rem;
+      }
+
+      .track-card.pro .biomarkers-section .biomarker-count {
+        color: #166534;
+      }
+
+      .track-card .biomarker-count {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      .card-bio-list {
+        margin: 6px 0 0;
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .biomarkers-section .card-bio-list {
+        margin: 0;
+        padding-left: 0;
+      }
+
+      .biomarkers-section .card-bio-list li {
+        margin: 0.2rem 0;
+        font-size: 0.8rem;
+        line-height: 1.35;
+        color: #334155;
+      }
+
+      .track-card.pro .biomarkers-section .card-bio-list li {
+        color: #14532d;
+      }
+
+      .biomarkers-section .card-bio-list .bio-icon {
+        font-size: 0.85em;
+      }
+
+      .track-card.pro .biomarkers-section .bio-icon {
+        color: #15803d;
+      }
+
+      .card-bio-list li {
+        margin: 2px 0;
+        font-size: 0.9rem;
+      }
+
+      .card-bio-list .bio-icon {
+        display: inline-block;
+        width: 1.15em;
+        text-align: center;
+        margin-right: 0.45rem;
+        color: #5a6c7d;
+        font-size: 0.9em;
+        vertical-align: middle;
+      }
+
+      .track-card .card-bio-list,
+      .track-card .biomarker-count {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        user-select: text;
+        cursor: text;
+      }
+
+      .track-card .card-cta {
+        margin-top: auto;
+        padding-top: 1.25rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .track-card-badge {
+        display: inline-block;
+        margin-bottom: 0;
+        margin-top: 0.35rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--main-action-color, #2e7d32);
+        background: rgba(46, 125, 50, 0.12);
+        border-radius: 6px;
+      }
+
+      .track-card-ribbon.prize-money {
+        position: absolute;
+        top: 0;
+        right: 0;
+        overflow: hidden;
+        width: 100px;
+        height: 100px;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .track-card.pro h2,
+      .track-card.pro .track-card-details,
+      .track-card.pro .card-cta {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Keep title clear of the prize-money ribbon */
+      .track-card.pro h2 {
+        padding-right: 4rem;
+      }
+
+      /* Only the direct child is the ribbon band; .btc-symbol stays inline on it */
+      .track-card-ribbon.prize-money > span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        position: absolute;
+        right: -38px;
+        top: 24px;
+        width: 135px;
+        padding: 6px 12px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #5c4a0a;
+        background: linear-gradient(
+          135deg,
+          #f7931a 0%,
+          #ffc107 50%,
+          #f7931a 100%
+        );
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        transform: rotate(45deg);
+      }
+
+      .track-card-ribbon.prize-money .btc-symbol {
+        font-size: 1em;
+        color: inherit;
+        display: inline;
+        margin-right: 0.05em;
+      }
+
+      .track-card-badge.street-cred {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        border-radius: 6px;
+        color: #546e7a;
+        background: rgba(84, 110, 122, 0.1);
+        border: 1px solid rgba(84, 110, 122, 0.2);
+      }
+
+      .track-card.pro {
+        border-color: var(--main-action-color, #2e7d32);
+        box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
+        background: #f0fdf4;
+      }
+
+      .lab-reassurance {
+        margin: 1.5rem 0 0;
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        font-size: 0.95rem;
+        text-align: center;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!--HEADER-->
     <main>
-        <!--MAIN-PROGRESS-BAR-->
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Your Journey Starts In The Lab <i class="fas fa-syringe"></i></h1>
-        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="../assets/content-images/lab.webp" type="image/webp">
-                <source srcset="../assets/content-images/lab.jpg" type="image/jpeg">
-                <img src="../assets/content-images/lab.jpg" alt="Lab" class="illustration" loading="lazy">
-            </picture>
-        </div>
-        <p data-aos="fade" data-aos-duration="700" data-aos-delay="350">Acquire a blood test from which we can compute your biological age, called <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">PhenoAge</a>. You need the following biomarkers:</p>
-        <ul>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="400"><strong>White Blood Cell Count</strong> (WBC)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="450"><strong>Lymphocytes</strong></li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="500"><strong>Mean Corpuscular Volume</strong> (MCV)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="550"><strong>Red Cell Distribution Width</strong> (RDW)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="600"><strong>Albumin</strong></li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="650"><strong>Alkaline Phosphatase</strong> (ALP)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="700"><strong>Creatinine</strong></li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="750"><strong>Glucose</strong> (Blood Sugar)</li>
-            <li data-aos="fade" data-aos-duration="700" data-aos-delay="800"><strong>C-Reactive Protein</strong> (CRP)</li>
-        </ul>
-        <p data-aos="fade" data-aos-duration="700" data-aos-delay="825">You can visit any lab for these tests — just pay the lab fee. It might even be covered by your healthcare provider.</p>
+      <!--MAIN-PROGRESS-BAR-->
+      <div class="join-game-content">
+        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">
+          How bad do you want it?
+        </h1>
 
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="850">
-            <button class="option-button grey" style="margin-bottom: 0px;" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beer'">Hold My Beer&nbsp;<i class="fas fa-beer"></i></button>
-            <button class="option-button grey" style="margin-bottom: 0px;" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=beef'">Hold My Beef&nbsp;<i class="fas fa-utensils"></i></button>
-            <button class="option-button grey" onclick="window.location.href='/onboarding/waiting-for-lab.html?holding=veggies'">Hold My Veggies&nbsp;<i class="fas fa-carrot"></i></button>
-            <button class="option-button green" onclick="window.location.href='/pheno-age'">Already Have These Biomarkers</button>
-
-            <button class="option-button back-button" onclick="window.goBackOrHome()">
-                <i class="fas fa-arrow-left"></i>&nbsp;Back
-            </button>
+        <div
+          class="lab-reassurance"
+          data-aos="fade"
+          data-aos-duration="700"
+          data-aos-delay="300"
+        >
+          To calculate your biological age, get a <strong>blood test</strong>.
+          Your next choice determines which biomarkers need testing:
         </div>
+
+        <div
+          class="track-cards"
+          data-aos="fade"
+          data-aos-duration="700"
+          data-aos-delay="350"
+        >
+          <article class="track-card">
+            <h2>
+              <span class="track-name">Amateur</span>
+              <span class="track-label">athlete</span>
+            </h2>
+            <p class="track-card-tagline">
+              Ranked after pros in the
+              <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
+            </p>
+            <div class="track-card-details">
+              <dl class="track-card-meta">
+                <dt>Testing window:</dt>
+                <dd>unrestricted</dd>
+                <dt>Entry:</dt>
+                <dd>free <span class="entry-aside">limited time</span></dd>
+                <dt>Aging clock:</dt>
+                <dd>
+                  <a
+                    href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
+                    target="_blank"
+                    rel="noopener"
+                    >Pheno Age</a
+                  >
+                </dd>
+              </dl>
+              <div class="biomarkers-section">
+                <div class="biomarker-count">9 biomarkers needed:</div>
+                <ul class="card-bio-list">
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>White blood cell count (WBC)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Lymphocytes
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean corpuscular volume (MCV)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red cell distribution width (RDW)
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i
+                  >Albumin
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline phosphatase (ALP)
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i
+                  >Creatinine
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose
+                  (Blood Sugar)
+                </li>
+                <li>
+                  <i
+                    class="fas fa-temperature-three-quarters bio-icon"
+                    aria-hidden="true"
+                  ></i
+                  >C-reactive protein (CRP)
+                </li>
+              </ul>
+            </div>
+            </div>
+            <div class="card-cta">
+              <button
+                class="option-button grey"
+                onclick="window.location.href = '/pheno-age'"
+              >
+                Start amateur
+              </button>
+            </div>
+          </article>
+          <article class="track-card pro">
+            <div class="track-card-ribbon-slot" aria-hidden="true">
+              <span class="track-card-ribbon prize-money" aria-label="Prize money"
+                ><span
+                  ><span class="btc-symbol" aria-hidden="true">₿</span> Prize
+                  money</span
+                ></span
+              >
+            </div>
+            <h2>
+              <span class="track-name">Professional</span>
+              <span class="track-label">athlete</span>
+            </h2>
+            <p class="track-card-tagline">
+              Ranked ahead of amateurs in the
+              <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
+            </p>
+            <div class="track-card-details">
+              <dl class="track-card-meta">
+                <dt>Testing window:</dt>
+                <dd>2026</dd>
+                <dt>Entry:</dt>
+                <dd>free <span class="entry-aside">limited time</span></dd>
+                <dt>Aging clocks:</dt>
+                <dd>
+                  <a
+                    href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
+                    target="_blank"
+                    rel="noopener"
+                    >Pheno Age</a
+                  >
+                  +
+                  <a
+                    href="https://www.nature.com/articles/s42003-023-05456-z"
+                    target="_blank"
+                    rel="noopener"
+                    >Bortz Age</a
+                  >
+                </dd>
+              </dl>
+              <div class="biomarkers-section">
+                <div class="biomarker-count">22 biomarkers needed:</div>
+                <ul class="card-bio-list">
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>White blood cell count (WBC)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Lymphocytes
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Neutrophils
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i
+                  >Monocytes
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red blood cell count (RBC)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean corpuscular volume (MCV)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Mean corpuscular hemoglobin (MCH)
+                </li>
+                <li>
+                  <i class="fas fa-virus bio-icon" aria-hidden="true"></i>Red cell distribution width (RDW)
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i
+                  >Albumin
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alanine aminotransferase (ALT)
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Alkaline phosphatase (ALP)
+                </li>
+                <li>
+                  <i class="fas fa-droplet bio-icon" aria-hidden="true"></i>Gamma-glutamyl transferase (GGT)
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i>Urea
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i
+                  >Creatinine
+                </li>
+                <li>
+                  <i class="fas fa-toilet bio-icon" aria-hidden="true"></i
+                  >Cystatin C
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Glucose
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Hemoglobin A1c (HbA1c)
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Total cholesterol
+                </li>
+                <li>
+                  <i class="fas fa-fire bio-icon" aria-hidden="true"></i>Apolipoprotein A1 (ApoA1)
+                </li>
+                <li>
+                  <i
+                    class="fas fa-temperature-three-quarters bio-icon"
+                    aria-hidden="true"
+                  ></i
+                  >C-reactive protein (CRP)
+                </li>
+                <li>
+                  <i class="fas fa-capsules bio-icon" aria-hidden="true"></i>Sex hormone-binding globulin (SHBG)
+                </li>
+                <li>
+                  <i class="fas fa-capsules bio-icon" aria-hidden="true"></i
+                  >Vitamin D (25-OH)
+                </li>
+                </ul>
+              </div>
+            </div>
+            <div class="card-cta">
+              <button
+                class="option-button green"
+                onclick="window.location.href = '/bortz-age'"
+              >
+                Go pro
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <div
+          class="options-container"
+          data-aos="fade"
+          data-aos-duration="700"
+          data-aos-delay="450"
+        >
+          <button
+            class="option-button back-button"
+            onclick="window.goBackOrHome()"
+          >
+            <i class="fas fa-arrow-left"></i>&nbsp;Back
+          </button>
+        </div>
+      </div>
     </main>
     <!--FOOTER-->
     <script>
-        updateMainProgress(1);
+      updateMainProgress(1);
     </script>
-</body>
+  </body>
 </html>
