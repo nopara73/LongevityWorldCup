@@ -9,7 +9,7 @@ window.BortzAge = window.BortzAge || {};
 // cap: value; capMode: 'floor' | 'ceiling' (PhenoAge-style; no creatinine cap in Bortz)
 window.BortzAge.features = [
     { id: 'age', name: 'Age', mean: 56.0487752, baaCoeff: 0.074763266 - 0.100432393, isLog: false },
-    { id: 'albumin', name: 'Albumin', mean: 45.1238763, baaCoeff: -0.011331946, isLog: false },
+    { id: 'albumin', name: 'Albumin', mean: 45.1238763, baaCoeff: -0.011331946, isLog: false, cap: 54, capMode: 'ceiling' },
     { id: 'alp', name: 'Alkaline phosphatase', mean: 82.6847975, baaCoeff: 0.00164946, isLog: false },
     { id: 'urea', name: 'Urea', mean: 5.3547152, baaCoeff: -0.029554872, isLog: false },
     { id: 'cholesterol', name: 'Total cholesterol', mean: 5.6177437, baaCoeff: -0.0805656, isLog: false },

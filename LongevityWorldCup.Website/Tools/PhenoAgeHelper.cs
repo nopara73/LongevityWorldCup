@@ -10,7 +10,7 @@ namespace LongevityWorldCup.Website.Tools
         public static readonly Biomarker[] Biomarkers =
         {
             new("age","Age",0.0804),
-            new("albumin","Albumin",-0.0336),
+            new("albumin","Albumin",-0.0336,54,CapMode.Ceiling),
             new("creatinine","Creatinine",0.0095,44,CapMode.Floor),
             new("glucose","Glucose",0.1953,4.44,CapMode.Floor),
             new("crp","C-reactive protein",0.0954),
@@ -60,7 +60,7 @@ namespace LongevityWorldCup.Website.Tools
 
         public static double CalculateLiverScore(double[] markerValues)
         {
-            var albumin = markerValues[1];
+            var albumin = ApplyCap(markerValues[1], Biomarkers[1]);
             var ap = markerValues[9];
             var coeffAlbumin = Biomarkers[1].Coeff;
             var coeffAP = Biomarkers[9].Coeff;
