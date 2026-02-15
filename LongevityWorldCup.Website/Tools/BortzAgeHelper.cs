@@ -20,7 +20,7 @@ namespace LongevityWorldCup.Website.Tools
         public static readonly BortzFeature[] Features =
         {
             new("age", "Age", 56.0487752, 0.074763266 - 0.100432393),
-            new("albumin", "Albumin", 45.1238763, -0.011331946),
+            new("albumin", "Albumin", 45.1238763, -0.011331946, Cap: 54, CapMode: CapMode.Ceiling),
             new("alp", "Alkaline phosphatase", 82.6847975, 0.00164946),
             new("urea", "Urea", 5.3547152, -0.029554872),
             new("cholesterol", "Total cholesterol", 5.6177437, -0.0805656),

@@ -1,11 +1,11 @@
-﻿// Create a namespace
+// Create a namespace
 window.PhenoAge = window.PhenoAge || {};
 
 // Attach biomarkers to the namespace
 // https://github.com/nopara73/LongevityWorldCup/issues/136
 window.PhenoAge.biomarkers = [
     { id: 'age', name: 'Age', coeff: 0.0804 }, // Age has no known lower cap
-    { id: 'albumin', name: 'Albumin', coeff: -0.0336 }, // No upper cap
+    { id: 'albumin', name: 'Albumin', coeff: -0.0336, cap: 54 }, // Ceiling cap
     { id: 'creatinine', name: 'Creatinine', coeff: 0.0095, cap: 44 },
     { id: 'glucose', name: 'Glucose', coeff: 0.1953, cap: 4.44 },
     { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 }, // CRP has no known lower cap
@@ -24,10 +24,12 @@ window.PhenoAge.parseInput = function (value) {
 // Liver: Albumin (index 1) and Alkaline phosphatase (index 9)
 window.PhenoAge.calculateLiverScore = function (markerValues) {
     const albumin = markerValues[1];
+    const albuminCap = window.PhenoAge.biomarkers[1].cap;
     const ap = markerValues[9];
     const coeffAlbumin = window.PhenoAge.biomarkers[1].coeff;
     const coeffAP = window.PhenoAge.biomarkers[9].coeff;
-    return albumin * coeffAlbumin + ap * coeffAP;
+    const cappedAlbumin = Math.min(albumin, albuminCap);
+    return cappedAlbumin * coeffAlbumin + ap * coeffAP;
 };
 
 // Kidney: Creatinine (index 2) with a positive coefficient so use Math.max to ensure at least the cap value.
