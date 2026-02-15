@@ -112,9 +112,21 @@
 
         .game-description {
             text-align: center;
-            margin: 0.5rem 0 2rem; /* top 0.5rem, sides 0, bottom 2rem for extra space below */
-            line-height: 1.6;
-            color: var(--dark-text-color);
+            margin: 0.5rem 0 2rem;
+            line-height: 1.7;
+            color: #4a5568;
+            font-size: 1.05rem;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+            max-width: 42em;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 1rem;
+        }
+
+        .game-description strong {
+            font-weight: 600;
+            color: #2d3748;
         }
 
         /* Common container for sections */
@@ -138,9 +150,16 @@
             /* Paragraph style */
             .section-container p {
                 font-size: 1rem;
-                color: var(--dark-text-color);
+                color: #4a5568;
                 margin-bottom: 1.5rem;
-                line-height: 1.6;
+                line-height: 1.7;
+                font-weight: 400;
+                letter-spacing: 0.005em;
+            }
+
+            .section-container p strong {
+                font-weight: 600;
+                color: #2d3748;
             }
 
             /* Input field style */
@@ -268,8 +287,16 @@
 
         .contribute-section h3,
         .contribute-section p {
-            color: var(--dark-text-color);
+            color: #4a5568;
             text-align: center;
+            line-height: 1.7;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+        }
+
+        .contribute-section strong {
+            font-weight: 600;
+            color: #2d3748;
         }
 
         .newsletter-section {
@@ -283,7 +310,15 @@
 
             .newsletter-section h3,
             .newsletter-section p {
-                color: var(--dark-text-color); /* Ensure headings and text are readable */
+                color: #4a5568;
+                line-height: 1.7;
+                font-weight: 400;
+                letter-spacing: 0.005em;
+            }
+
+            .newsletter-section strong {
+                font-weight: 600;
+                color: #2d3748;
             }
 
             .newsletter-section input[type="email"] {
@@ -581,10 +616,10 @@
         .archive-table thead th {
             background: linear-gradient(rgba(0,188,212,.12), rgba(0,188,212,.12));
             color: var(--primary-color);
-            font-weight: 700;
+            font-weight: 600;
             text-transform: uppercase;
-            font-size: .9rem;
-            letter-spacing: 1px;
+            font-size: .85rem;
+            letter-spacing: 0.08em;
             padding: 1rem 1.5rem;
             text-align: center;
             border-bottom: 1px solid rgba(0,0,0,.03);
@@ -637,18 +672,20 @@
         .archive-table td {
             padding: 1rem 1.5rem;
             text-align: center;
-            font-size: 1rem;
-            color: var(--dark-text-color);
+            font-size: 0.975rem;
+            color: #4a5568;
             vertical-align: middle;
+            font-weight: 400;
+            letter-spacing: 0.005em;
         }
 
         /* Links in Table Cells */
         .archive-table td a {
             color: var(--primary-color);
             text-decoration: underline;
-            text-decoration-color: rgba(0, 188, 212, 0.5);
+            text-decoration-color: rgba(0, 188, 212, 0.4);
             text-underline-offset: 2px;
-            font-weight: 600;
+            font-weight: 500;
             transition: color 0.3s ease, text-decoration-color 0.3s ease;
         }
 
@@ -665,9 +702,9 @@
 
         /* Age Reduction Styling */
         .archive-table .age-reduction {
-            color: #4caf50;
-            font-weight: bold;
-            font-size: 1rem;
+            color: #48bb78;
+            font-weight: 600;
+            font-size: 0.9rem;
             display: block;
             margin-top: 0.25rem;
             margin-left: 0;
@@ -737,14 +774,15 @@
             }
 
             .archive-mobile-card-year {
-                font-weight: 700;
+                font-weight: 600;
                 font-size: 1rem;
-                color: var(--dark-text-color);
+                color: #2d3748;
             }
 
             .archive-mobile-card-clock {
                 font-size: 0.85rem;
                 color: var(--primary-color);
+                font-weight: 500;
             }
 
             .archive-mobile-card-clock a {
@@ -767,7 +805,7 @@
             }
 
             .archive-mobile-card-place {
-                font-weight: 700;
+                font-weight: 600;
                 font-size: 0.85rem;
                 color: var(--primary-color);
                 min-width: 2rem;
@@ -792,14 +830,14 @@
             .archive-mobile-card-winner-name a {
                 color: var(--primary-color);
                 text-decoration: underline;
-                text-decoration-color: rgba(0, 188, 212, 0.5);
-                font-weight: 600;
+                text-decoration-color: rgba(0, 188, 212, 0.4);
+                font-weight: 500;
                 font-size: 0.9rem;
             }
 
             .archive-mobile-card-age-reduction {
-                color: #4caf50;
-                font-weight: bold;
+                color: #48bb78;
+                font-weight: 600;
                 font-size: 0.85rem;
                 display: inline;
             }
