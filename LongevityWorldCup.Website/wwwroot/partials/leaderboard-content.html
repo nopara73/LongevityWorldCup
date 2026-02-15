@@ -733,9 +733,15 @@
         .podium-item.third{ order:3; }
         .podium-rank{ left:5%; }
 
-        .leaderboard table{ width:100%; table-layout:fixed; }
+        .leaderboard table{ width:100%; table-layout:auto; }
         .leaderboard table th:last-child,
         .leaderboard table td:last-child{ padding-right:0.5rem; }
+        .leaderboard table .sponsor-th,
+        .leaderboard table .sponsor-td{ display:none; }
+        .leaderboard table .media-contact-th,
+        .leaderboard table .media-contact-td{ display:none; }
+        .leaderboard table th:nth-child(4),
+        .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
         .leaderboard table td .badge-section{ display:none; }
         .leaderboard table th{ font-size:.6rem; }
         .leaderboard table td{ font-size:.8rem; }
@@ -905,7 +911,7 @@
                 <tr>
                     <th>Rank</th>
                     <th>Athlete</th>
-                    <th>
+                    <th class="sponsor-th">
                         Sponsor<br />
                         <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
                            onmouseover="this.style.color='var(--secondary-color)';"
@@ -922,7 +928,7 @@
                             Age reduction
                         </a>
                     </th>
-                    <th>Media contact</th>
+                    <th class="media-contact-th">Media contact</th>
                 </tr>
                 </thead>
                 <tbody>
