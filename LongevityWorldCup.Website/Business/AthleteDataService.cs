@@ -1449,8 +1449,9 @@ public class AthleteDataService : IDisposable
 
     private static string ComputeBiomarkerSignature(JsonObject athlete)
     {
-        // Canonicalize each biomarker record: all Bortz biomarkers with unit-in-name keys (date + alphabetical keys).
-        // Sort all lines and SHA-256 hash the result. Missing values are empty strings.
+        // Canonicalize each biomarker record from present values only:
+        // Date + numeric biomarker key/value pairs sorted by key.
+        // This keeps signatures stable when new optional biomarker fields are introduced.
         if (athlete["Biomarkers"] is not JsonArray arr || arr.Count == 0)
             return Sha256Hex(string.Empty);
 
@@ -1467,46 +1468,19 @@ public class AthleteDataService : IDisposable
                 dateStr = d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             }
 
-            string V(string key)
+            var parts = new List<string> { dateStr };
+            foreach (var kv in node.OrderBy(kv => kv.Key, StringComparer.Ordinal))
             {
-                try
-                {
-                    var v = node[key];
-                    if (v is null) return "";
-                    var dval = v.GetValue<double>();
-                    // round-trip, invariant string for stable hashing
-                    return dval.ToString("R", CultureInfo.InvariantCulture);
-                }
-                catch
-                {
-                    return "";
-                }
+                if (string.Equals(kv.Key, "Date", StringComparison.OrdinalIgnoreCase)) continue;
+                if (kv.Value is not JsonValue jv) continue;
+                if (!jv.TryGetValue<double>(out var num)) continue;
+                if (double.IsNaN(num) || double.IsInfinity(num)) continue;
+
+                var val = num.ToString("R", CultureInfo.InvariantCulture);
+                parts.Add($"{kv.Key}={val}");
             }
 
-            var alb = V("AlbGL");
-            var alp = V("AlpUL");
-            var alt = V("AltUL");
-            var apoa1 = V("ApoA1GL");
-            var cholesterol = V("CholesterolMmolL");
-            var creat = V("CreatUmolL");
-            var crp = V("CrpMgL");
-            var cystatin = V("CystatinCMgL");
-            var glu = V("GluMmolL");
-            var ggt = V("GgtUL");
-            var hba1c = V("Hba1cMmolMol");
-            var lym = V("LymPc");
-            var mcv = V("McvFL");
-            var mch = V("MchPg");
-            var monoPc = V("MonocytePc");
-            var neutPc = V("NeutrophilPc");
-            var rdw = V("RdwPc");
-            var rbc = V("Rbc10e12L");
-            var shbg = V("ShbgNmolL");
-            var urea = V("UreaMmolL");
-            var vitaminD = V("VitaminDNmolL");
-            var wbc = V("Wbc1000cellsuL");
-
-            var line = string.Join("|", new[] { dateStr, alb, alp, alt, apoa1, cholesterol, creat, crp, cystatin, glu, ggt, hba1c, lym, mch, mcv, monoPc, neutPc, rbc, rdw, shbg, urea, vitaminD, wbc });
+            var line = string.Join("|", parts);
             lines.Add(line);
         }
 
