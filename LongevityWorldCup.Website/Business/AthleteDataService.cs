@@ -661,7 +661,7 @@ public class AthleteDataService : IDisposable
     {
         var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
         var athletesSnapshot = GetAthletesSnapshot();
-        var results = new List<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
+        var results = new List<(bool HasBortz, double EffectiveReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
 
         var statsMap = PhenoStatsCalculator.BuildAll(athletesSnapshot, asOf);
 
@@ -676,7 +676,11 @@ public class AthleteDataService : IDisposable
 
             var chronoToday = r.ChronoAge.HasValue ? Math.Round(r.ChronoAge.Value, 2) : 0;
             var lowestPheno = r.LowestPhenoAge.HasValue ? Math.Round(r.LowestPhenoAge.Value, 2) : chronoToday;
-            var ageDiff = Math.Round(r.AgeReduction ?? 0, 2);
+            var phenoDiff = Math.Round(r.AgeReduction ?? 0, 2);
+            var hasBortz = r.BortzAgeReduction.HasValue &&
+                           !double.IsNaN(r.BortzAgeReduction.Value) &&
+                           !double.IsInfinity(r.BortzAgeReduction.Value);
+            var effectiveDiff = hasBortz ? Math.Round(r.BortzAgeReduction!.Value, 2) : phenoDiff;
 
             var obj = new JsonObject
             {
@@ -684,10 +688,10 @@ public class AthleteDataService : IDisposable
                 ["Name"] = name,
                 ["ChronologicalAge"] = chronoToday,
                 ["LowestPhenoAge"] = lowestPheno,
-                ["AgeDifference"] = ageDiff
+                ["AgeDifference"] = effectiveDiff
             };
 
-            results.Add((ageDiff, dobUtc, name, obj));
+            results.Add((hasBortz, effectiveDiff, dobUtc, name, obj));
         }
 
         var arr = new JsonArray();
@@ -697,13 +701,14 @@ public class AthleteDataService : IDisposable
         return arr;
     }
 
-    private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>
-        SortByCompetitionRules(IEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
+    private static IOrderedEnumerable<(bool HasBortz, double EffectiveReduction, DateTime DobUtc, string Name, JsonObject Obj)>
+        SortByCompetitionRules(IEnumerable<(bool HasBortz, double EffectiveReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
     {
         return rows
-            .OrderBy(t => t.AgeReduction) // 1) more negative is better
-            .ThenBy(t => t.DobUtc) // 2) older (earlier DOB) wins
-            .ThenBy(t => t.Name, StringComparer.Ordinal); // 3) alphabetical
+            .OrderByDescending(t => t.HasBortz) // 1) Bortz participants are ranked ahead of Pheno-only
+            .ThenBy(t => t.EffectiveReduction) // 2) more negative is better
+            .ThenBy(t => t.DobUtc) // 3) older (earlier DOB) wins
+            .ThenBy(t => t.Name, StringComparer.Ordinal); // 4) alphabetical
     }
 
     public int?[] GetPlacements(string athleteSlug)
