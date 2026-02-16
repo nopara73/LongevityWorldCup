@@ -34,6 +34,15 @@
         }
       }
 
+      /* Align "Aging clock(s)" row between cards when side-by-side: same min-height for Entry row */
+      @media (min-width: 701px) {
+        .track-card-meta .entry-cell,
+        .track-card-meta .pro-entry-cell {
+          min-height: 4rem;
+          align-self: start;
+        }
+      }
+
       .track-card {
         position: relative;
         padding: 1.5rem;
@@ -275,7 +284,7 @@
 
       .track-card .biomarker-count {
         font-weight: 600;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
       }
 
       .card-bio-list {
@@ -436,6 +445,65 @@
         font-size: 0.95rem;
         text-align: center;
       }
+
+      .pro-entry-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+      }
+
+      .pro-discount-note {
+        margin-top: 0;
+        padding: 0.5rem 0.6rem;
+        border: 1px solid #cde7d2;
+        border-radius: 6px;
+        background: #f3faf3;
+        color: #18461f;
+        font-size: 0.82rem;
+        line-height: 1.35;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .pro-discount-note p {
+        margin: 0;
+      }
+
+      #proDiscountBreakdown {
+        text-align: left;
+        white-space: pre-line;
+      }
+
+      #proDiscountBreakdown .pro-discount-line {
+        display: flex;
+        align-items: center;
+        gap: 0.42rem;
+        margin-bottom: 0.5rem;
+      }
+
+      #proDiscountBreakdown .pro-discount-line:last-child {
+        margin-bottom: 0;
+      }
+
+      #proDiscountBreakdown .pro-discount-badge-slot {
+        width: 22px;
+        min-width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pro-old-price {
+        text-decoration: line-through;
+        opacity: 0.75;
+        margin-right: 0.2rem;
+      }
+
+      .pro-new-price {
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
@@ -477,7 +545,7 @@
                 <dt>Testing window:</dt>
                 <dd>unrestricted</dd>
                 <dt>Entry:</dt>
-                <dd>$10</dd>
+                <dd class="entry-cell"><span class="pro-new-price">$10</span></dd>
                 <dt>Aging clock:</dt>
                 <dd>
                   <a
@@ -534,7 +602,7 @@
                 class="option-button grey"
                 onclick="window.location.href = '/pheno-age'"
               >
-                Start amateur - $10
+                Start amateur
               </button>
             </div>
           </article>
@@ -560,7 +628,12 @@
                 <dt>Testing window:</dt>
                 <dd>2026</dd>
                 <dt>Entry:</dt>
-                <dd>$100</dd>
+                <dd class="pro-entry-cell">
+                  <span id="proEntryPrice">$100</span>
+                  <div id="proDiscountNote" class="pro-discount-note" aria-live="polite" style="display:none">
+                    <p id="proDiscountBreakdown"></p>
+                  </div>
+                </dd>
                 <dt>Aging clocks:</dt>
                 <dd>
                   <a
@@ -663,10 +736,11 @@
             </div>
             <div class="card-cta">
               <button
+                id="goProJoinButton"
                 class="option-button green"
                 onclick="window.location.href = '/bortz-age'"
               >
-                Go pro - $100
+                Go pro
               </button>
             </div>
           </article>
@@ -690,6 +764,72 @@
     <!--FOOTER-->
     <script>
       updateMainProgress(1);
+
+      function createPriceHtmlFallback(result) {
+        const oldText = `$${result.basePriceUsd}`;
+        if (result.finalPriceUsd < result.basePriceUsd) {
+          return `<span class="pro-old-price">${oldText}</span> <span class="pro-new-price">${result.finalPriceText}</span>`;
+        }
+        return `<span class="pro-new-price">${oldText}</span>`;
+      }
+
+      function renderProDiscountNote() {
+        if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== "function") return;
+
+        // Join-game is athlete-agnostic; only use browser-global discounts here.
+        const result = window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false });
+
+        const note = document.getElementById("proDiscountNote");
+        const breakdown = document.getElementById("proDiscountBreakdown");
+        const proEntryPrice = document.getElementById("proEntryPrice");
+        const goProJoinButton = document.getElementById("goProJoinButton");
+        if (!note || !breakdown || !proEntryPrice || !goProJoinButton) return;
+
+        const priceHtml = typeof window.proDiscounts.createPriceHtml === "function"
+          ? window.proDiscounts.createPriceHtml(result)
+          : createPriceHtmlFallback(result);
+        proEntryPrice.innerHTML = priceHtml;
+        goProJoinButton.textContent = "Go pro";
+
+        if (!Array.isArray(result.components) || result.components.length === 0) {
+          breakdown.textContent = "";
+          note.style.display = "none";
+          return;
+        }
+
+        if (typeof window.proDiscounts.createBreakdownHtml === "function") {
+          breakdown.innerHTML = window.proDiscounts.createBreakdownHtml(result);
+        } else {
+          breakdown.textContent = window.proDiscounts.createBreakdownText(result);
+        }
+        note.style.display = "";
+      }
+
+      function ensureProDiscountsLoaded() {
+        if (window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === "function") {
+          return Promise.resolve();
+        }
+        return new Promise((resolve) => {
+          const existing = document.querySelector('script[data-pro-discounts-loader="1"]');
+          if (existing) {
+            existing.addEventListener("load", () => resolve(), { once: true });
+            existing.addEventListener("error", () => resolve(), { once: true });
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = `/js/pro-discounts.js?v=${Date.now()}`;
+          script.defer = true;
+          script.setAttribute("data-pro-discounts-loader", "1");
+          script.addEventListener("load", () => resolve(), { once: true });
+          script.addEventListener("error", () => resolve(), { once: true });
+          document.head.appendChild(script);
+        });
+      }
+
+      const ready = window.modulesReady || Promise.resolve();
+      ready
+        .then(() => ensureProDiscountsLoaded())
+        .then(() => renderProDiscountNote());
     </script>
   </body>
 </html>
