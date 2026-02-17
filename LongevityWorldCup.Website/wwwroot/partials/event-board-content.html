@@ -120,6 +120,22 @@
     .events-board.athlete-scroll #eventsTable td.col-date{width:76px}
 
     .events-board.athlete-scroll td.event-message .event-message-cell > *{min-width:0}
+    .events-board.athlete-scroll td.event-message .event-message-cell{
+        white-space:normal;
+        overflow-x:hidden;
+        flex-wrap:wrap;
+        row-gap:.15rem;
+    }
+    .events-board.athlete-scroll td.event-message .event-message-cell *{
+        white-space:normal;
+    }
+    .events-board.athlete-scroll td.event-message .event-message-cell .name-and-rank,
+    .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
+    .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
+    .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
+    .events-board.athlete-scroll td.event-message .event-message-cell .more-link{
+        white-space:nowrap;
+    }
 
     .events-board.athlete-scroll tbody tr.custom-event-details{display:none}
     .events-board.athlete-scroll tbody tr.custom-event-row.is-open + tr.custom-event-details{display:table}
