@@ -204,12 +204,10 @@ public static class SlackMessageBuilder
             return BuildNewRank(slug, newRank.Value, prevSlug, slugToName);
         }
 
-        var rankVerb = Pick("climbed to #", "rose to #", "reached #", "moved up to #");
         var sb = new StringBuilder();
         sb.Append("In the Ultimate League, ");
         sb.Append(nameLink);
-        sb.Append(' ');
-        sb.Append(rankVerb);
+        sb.Append(" is now #");
         sb.Append(newRank.Value);
         sb.Append(MedalOrTrend(newRank.Value));
 
@@ -217,8 +215,7 @@ public static class SlackMessageBuilder
         {
             var prevName = slugToName(prevSlug);
             var prevLink = Link(AthleteUrl(prevSlug), prevName);
-            var overtakePhrase = Pick(", overtaking ", ", passing ", ", leapfrogging ", ", edging past ", ", displacing ");
-            sb.Append(overtakePhrase);
+            sb.Append(", ahead of ");
             sb.Append(prevLink);
         }
 
@@ -227,16 +224,12 @@ public static class SlackMessageBuilder
         // In that case we intentionally skip the "also #1 in ..." wording.
         if (hasLeagueExtras)
         {
-            var leagueIntro = Pick(", and is also currently #1 in ", ", and now leads ", ", and tops ", ", and is #1 in ");
-            sb.Append(leagueIntro);
+            sb.Append(", and also #1 in ");
             sb.Append(JoinList(leagueParts));
         }
         else if (!string.IsNullOrWhiteSpace(awardText))
         {
-            var awardIntro = awardUsesHasVerb
-                ? Pick(", and now has ", ", and holds ", ", and claims ")
-                : Pick(", and is also currently the ", ", and is now the ", ", and is the ");
-            sb.Append(awardIntro);
+            sb.Append(awardUsesHasVerb ? ", and has " : ", and is also the ");
             sb.Append(awardText);
         }
 
@@ -247,11 +240,7 @@ public static class SlackMessageBuilder
             var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
             var episodeLink = !string.IsNullOrWhiteSpace(podcastUrl) ? Link(podcastUrl, "episode") : "episode";
 
-            var podcastLine = Pick(
-                $"If you're curious who {nameLink} is beyond the stats, check out the new podcast {episodeLink}",
-                $"To hear more from {nameLink}, check out the new podcast {episodeLink}",
-                $"Get to know {nameLink} beyond the numbers in the new podcast {episodeLink}"
-            );
+            var podcastLine = $"Learn more about {nameLink} in the new podcast {episodeLink}";
             sb.Append('\n');
             sb.Append(podcastLine);
             var trimmed = podcastLine.TrimEnd();
@@ -307,31 +296,13 @@ public static class SlackMessageBuilder
 
         if (prev is null)
         {
-            return Pick(
-                $"{currNameLink} is now {rankWithMedal} in Ultimate League",
-                $"{currNameLink} takes {rankWithMedal} in Ultimate League",
-                $"{currNameLink} secures {rankWithMedal} in Ultimate League",
-                $"{currNameLink} locks in {rankWithMedal} in Ultimate League",
-                $"{currNameLink} claims {rankWithMedal} in Ultimate League",
-                $"{currNameLink} now at {rankWithMedal} in Ultimate League"
-            );
+            return $"{currNameLink} is now {rankWithMedal} in Ultimate League";
         }
 
         var prevName = slugToName(prev);
         var prevNameLink = Link(AthleteUrl(prev), prevName);
 
-        return Pick(
-            $"{currNameLink} took {rankWithMedal} in Ultimate League from {prevNameLink}",
-            $"{currNameLink} grabbed {rankWithMedal} in Ultimate League from {prevNameLink}",
-            $"{currNameLink} overtook {prevNameLink} for {rankWithMedal} in Ultimate League",
-            $"{currNameLink} edged past {prevNameLink} into {rankWithMedal} in Ultimate League",
-            $"{currNameLink} passed {prevNameLink} for {rankWithMedal} in Ultimate League",
-            $"{currNameLink} displaced {prevNameLink} at {rankWithMedal} in Ultimate League",
-            $"{currNameLink} leapt ahead of {prevNameLink} to {rankWithMedal} in Ultimate League",
-            $"{currNameLink} snatched {rankWithMedal} from {prevNameLink} in Ultimate League",
-            $"{currNameLink} nudged ahead of {prevNameLink} for {rankWithMedal} in Ultimate League",
-            $"{currNameLink} outpaced {prevNameLink} for {rankWithMedal} in Ultimate League"
-        );
+        return $"{currNameLink} is now {rankWithMedal} in Ultimate League, ahead of {prevNameLink}";
     }
 
     private static string BuildDonation(string rawText)
