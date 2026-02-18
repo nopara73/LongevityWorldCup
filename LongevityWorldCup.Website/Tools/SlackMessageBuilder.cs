@@ -32,6 +32,7 @@ public static class SlackMessageBuilder
         Func<string, string> slugToName,
         Func<string, double?>? getChronoAgeForSlug = null,
         Func<string, double?>? getLowestPhenoAgeForSlug = null,
+        Func<string, double?>? getLowestBortzAgeForSlug = null,
         Func<string, string?>? getPodcastLinkForSlug = null)
     {
         var list = items as List<(EventType Type, string Raw)> ?? items.ToList();
@@ -59,8 +60,10 @@ public static class SlackMessageBuilder
         string? divisionVal = null;
         string? generationVal = null;
         string? exclusiveVal = null;
+        string? amateurVal = null;
 
         bool hasPhenoLowest = false;
+        bool hasBortzLowest = false;
         bool hasChronoYoungest = false;
         bool hasChronoOldest = false;
 
@@ -111,12 +114,24 @@ public static class SlackMessageBuilder
                     continue;
                 }
 
+                if (string.Equals(cat, "Amateur", StringComparison.OrdinalIgnoreCase))
+                {
+                    amateurVal = string.IsNullOrWhiteSpace(val) ? "Amateur" : val.Trim();
+                    continue;
+                }
+
                 continue;
             }
 
             if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
             {
                 if (place == 1) hasPhenoLowest = true;
+                continue;
+            }
+
+            if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+            {
+                if (place == 1) hasBortzLowest = true;
                 continue;
             }
 
@@ -153,10 +168,17 @@ public static class SlackMessageBuilder
 
         string ExclusiveName(string v) => (v ?? "").Trim();
 
+        string AmateurName(string v)
+        {
+            var t = (v ?? "").Trim();
+            return string.Equals(t, "Amateur", StringComparison.OrdinalIgnoreCase) ? "Amateur" : t;
+        }
+
         var leagueParts = new List<string>();
         if (!string.IsNullOrWhiteSpace(divisionVal)) leagueParts.Add($"the {DivisionName(divisionVal)} division");
         if (!string.IsNullOrWhiteSpace(generationVal)) leagueParts.Add($"the {GenerationName(generationVal)} league");
         if (!string.IsNullOrWhiteSpace(exclusiveVal)) leagueParts.Add($"the {ExclusiveName(exclusiveVal)} league");
+        if (!string.IsNullOrWhiteSpace(amateurVal)) leagueParts.Add($"the {AmateurName(amateurVal)} League");
 
         string? awardText = null;
         bool awardUsesHasVerb = false;
@@ -168,8 +190,16 @@ public static class SlackMessageBuilder
                 var ph = getLowestPhenoAgeForSlug?.Invoke(slug);
                 awardUsesHasVerb = true;
                 awardText = ph.HasValue
-                    ? $"the lowest biological age in the field, at {F2(ph.Value)} years"
-                    : "the lowest biological age in the field";
+                    ? $"the lowest PhenoAge in the field, at {F2(ph.Value)} years"
+                    : "the lowest PhenoAge in the field";
+            }
+            else if (hasBortzLowest)
+            {
+                var ba = getLowestBortzAgeForSlug?.Invoke(slug);
+                awardUsesHasVerb = true;
+                awardText = ba.HasValue
+                    ? $"the lowest Bortz age in the field, at {F2(ba.Value)} years"
+                    : "the lowest Bortz age in the field";
             }
             else if (hasChronoYoungest || hasChronoOldest)
             {

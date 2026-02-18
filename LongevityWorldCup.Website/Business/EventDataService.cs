@@ -805,7 +805,8 @@ public sealed class EventDataService : IDisposable
 
             if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+                || string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
             {
                 _ = _slackEvents.BufferAsync(type, rawText);
                 return;
