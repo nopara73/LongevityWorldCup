@@ -1,0 +1,28 @@
+{
+  "Name": "Majoros Gábor",
+  "DisplayName": null,
+  "MediaContact": "gmajoros80@gmail.com",
+  "DateOfBirth": {
+    "Year": 1980,
+    "Month": 5,
+    "Day": 11
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-05",
+      "AlbGL": 44,
+      "CreatUmolL": 101,
+      "GluMmolL": 4.6,
+      "CrpMgL": 18,
+      "LymPc": 20.8,
+      "McvFL": 90,
+      "RdwPc": 13,
+      "AlpUL": 49,
+      "Wbc1000cellsuL": 6.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "I want to be able to ride the bycicle around the lake Balaton at my age of 80.",
+  "PersonalLink": null
+}
