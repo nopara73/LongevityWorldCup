@@ -120,9 +120,8 @@ public static class XMessageBuilder
             var ageStr = bortzAge.HasValue ? $" at {bortzAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(bortzSlug);
             return Truncate(
-                $"Lowest Bortz age in the Longevity World Cup field 🧬\n" +
-                $"{bortzAthlete} holds it{ageStr}.\n" +
-                $"📊 Profile: {athleteUrl}");
+                $"{bortzAthlete} currently holds the lowest Bortz Age in the Longevity World Cup field{ageStr} 🧬\n\n" +
+                $"👤 Learn more: {athleteUrl}");
         }
 
         if (string.Equals(normLabel, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
@@ -135,9 +134,8 @@ public static class XMessageBuilder
             var athlete = slugToName(diffSlug);
             var url = AthleteUrl(diffSlug);
             return Truncate(
-                $"Best Bortz age improvement in the Longevity World Cup field 🧬\n" +
-                $"{athlete} — biological age improved by {yearsStr} years vs baseline.\n" +
-                $"📊 Profile: {url}");
+                $"The biggest Bortz Age improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test 🧬\n\n" +
+                $"👤 Learn more: {url}");
         }
 
         if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
