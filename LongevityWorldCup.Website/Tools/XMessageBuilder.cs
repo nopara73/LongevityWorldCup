@@ -98,11 +98,9 @@ public static class XMessageBuilder
             var ageStr = phenoAge.HasValue ? $" at {phenoAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(phenoSlug);
             return Truncate(
-                $"Lowest biological age in the Longevity World Cup field 🧬\n" +
-                $"{phenoAthlete} holds it{ageStr}.\n" +
-                $"📊 Profile: {athleteUrl}");
+                $"{phenoAthlete} currently holds the lowest PhenoAge in the Longevity World Cup field{ageStr} 🧬\n\n" +
+                $"👤 Learn more: {athleteUrl}");
         }
-
         if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractSlug(rawText, out var diffSlug)) return "";
@@ -111,11 +109,7 @@ public static class XMessageBuilder
             var years = Math.Abs(diffVal.Value);
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
-            var url = AthleteUrl(diffSlug);
-            return Truncate(
-                $"Best PhenoAge improvement in the Longevity World Cup field 🧬\n" +
-                $"{athlete} — biological age improved by {yearsStr} years vs baseline.\n" +
-                $"📊 Profile: {url}");
+            return Truncate($"The biggest PhenoAge improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test 🧬");
         }
 
         if (string.Equals(normLabel, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
