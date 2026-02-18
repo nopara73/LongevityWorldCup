@@ -1159,7 +1159,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         if (values.Length != BortzAgeHelper.Features.Length) return null;
 
         // Keep aligned with profile/radar domain contribution logic.
-        var excluded = new HashSet<int> { 3, 4, 5, 16, 17 };
+        var excluded = new HashSet<int> { 3, 4, 5, 16, 17, 20 };
         double sum = 0;
         for (int i = 0; i < indices.Length; i++)
         {
