@@ -68,7 +68,11 @@ public static class EventHelpers
     }
 
     public static string NormalizeBadgeLabel(string? label) =>
-        (label ?? string.Empty).Replace('–', '-').Trim();
+        (label ?? string.Empty)
+            .Replace("â€“", "-", StringComparison.Ordinal)
+            .Replace('–', '-')
+            .Replace('—', '-')
+            .Trim();
 
     public static string ExtractDomainFromLabel(string? label)
     {
