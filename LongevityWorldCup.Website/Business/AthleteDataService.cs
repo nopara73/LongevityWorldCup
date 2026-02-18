@@ -1385,6 +1385,7 @@ public class AthleteDataService : IDisposable
         var athletesSnapshot = GetAthletesSnapshot();
         var list = new List<(string Slug, string Name, int? CurrentRank)>();
         var podcastList = new List<(string Slug, string PodcastLink)>();
+        var bioList = new List<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)>();
         foreach (var o in athletesSnapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
@@ -1398,10 +1399,28 @@ public class AthleteDataService : IDisposable
             var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(link))
                 podcastList.Add((slug, link.Trim()));
+
+            double? chrono = null;
+            double? pheno = null;
+            double? bortz = null;
+
+            if (o["ChronoAge"] is JsonValue chronoVal && chronoVal.TryGetValue<double>(out var chronoOut))
+                chrono = chronoOut;
+            else if (o["ChronologicalAge"] is JsonValue chronologicalAgeVal && chronologicalAgeVal.TryGetValue<double>(out var chronologicalAgeOut))
+                chrono = chronologicalAgeOut;
+
+            if (o["LowestPhenoAge"] is JsonValue phenoVal && phenoVal.TryGetValue<double>(out var phenoOut))
+                pheno = phenoOut;
+
+            if (o["LowestBortzAge"] is JsonValue bortzVal && bortzVal.TryGetValue<double>(out var bortzOut))
+                bortz = bortzOut;
+
+            bioList.Add((slug, chrono, pheno, bortz));
         }
 
         _eventDataService.SetAthleteDirectory(list);
         _eventDataService.SetPodcastLinks(podcastList);
+        _eventDataService.SetAthleteBio(bioList);
     }
 
     // ===== biomarker/test signature helpers (single-column persistence) =====

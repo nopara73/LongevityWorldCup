@@ -168,6 +168,11 @@ public sealed class EventDataService : IDisposable
         _slackEvents.SetPodcastLinks(items);
     }
 
+    public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)> items)
+    {
+        _slackEvents.SetAthleteBio(items);
+    }
+
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,
