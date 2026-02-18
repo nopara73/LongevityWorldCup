@@ -178,7 +178,7 @@ public sealed class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
-    public const int XPriorityPrimaryMax = 7;
+    public const int XPriorityPrimaryMax = 8;
 
     public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
     {
@@ -239,22 +239,40 @@ public sealed class EventDataService : IDisposable
 
     private static int GetXPriority(EventType type, string text)
     {
-        if (type == EventType.NewRank) return 0;
+        if (type == EventType.NewRank)
+        {
+            if (EventHelpers.TryExtractRank(text, out var rank) && rank >= 1 && rank <= 3)
+                return 0;
+            return 99;
+        }
+
         if (type == EventType.BadgeAward)
         {
             if (!EventHelpers.TryExtractBadgeLabel(text, out var label)) return 99;
             var norm = EventHelpers.NormalizeBadgeLabel(label);
-            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase)) return 1;
+
+            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase)) return 99;
+
             if (EventHelpers.TryExtractPlace(text, out var place) && place == 1
-                && EventHelpers.TryExtractCategory(text, out var cat) && !string.Equals(cat, "Global", StringComparison.OrdinalIgnoreCase))
-                return 2;
-            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)) return 3;
-            if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase)) return 4;
-            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)) return 5;
-            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)) return 6;
+                && EventHelpers.TryExtractCategory(text, out var cat)
+                && !string.Equals(cat, "Global", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+                return 1;
+
+            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)) return 2;
+            if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase)) return 3;
+            if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase)) return 4;
+            if (string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase)) return 5;
+            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)) return 6;
+            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)) return 7;
             return 99;
         }
-        if (type == EventType.AthleteCountMilestone) return 7;
+
+        if (type == EventType.AthleteCountMilestone)
+        {
+            return 8;
+        }
+
         return 99;
     }
 

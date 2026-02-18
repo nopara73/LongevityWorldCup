@@ -45,9 +45,11 @@ internal static class XDailyPostMediaHelper
         var isSupportedBadge =
             string.Equals(normalized, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase) ||
-            isNonGlobalLeagueLeader;
+            (isNonGlobalLeagueLeader && string.Equals(normalized, "Age Reduction", StringComparison.OrdinalIgnoreCase));
         if (!isSupportedBadge)
             return null;
         if (!EventHelpers.TryExtractSlug(rawText, out var slug))

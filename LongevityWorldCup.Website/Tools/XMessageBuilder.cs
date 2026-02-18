@@ -14,6 +14,7 @@ public static class XMessageBuilder
     private static readonly Dictionary<string, (string DisplayName, string Url)> LeagueBySlug = new(StringComparer.OrdinalIgnoreCase)
     {
         ["ultimate"] = ("Ultimate League", LeaderboardUrl),
+        ["amateur"] = ("Amateur League", "https://longevityworldcup.com/league/amateur"),
         ["mens"] = ("Men's Division", "https://longevityworldcup.com/league/mens"),
         ["womens"] = ("Women's Division", "https://longevityworldcup.com/league/womens"),
         ["open"] = ("Open Division", "https://longevityworldcup.com/league/open"),
@@ -38,6 +39,7 @@ public static class XMessageBuilder
         ["Generation|Gen Z"] = "gen-z",
         ["Generation|Gen Alpha"] = "gen-alpha",
         ["Exclusive|Prosperan"] = "prosperan",
+        ["Amateur|Amateur"] = "amateur",
         ["Global|"] = "ultimate"
     };
 
@@ -57,8 +59,10 @@ public static class XMessageBuilder
         Func<string, string> slugToName,
         Func<string, string?>? getPodcastLinkForSlug = null,
         Func<string, double?>? getLowestPhenoAgeForSlug = null,
+        Func<string, double?>? getLowestBortzAgeForSlug = null,
         Func<string, double?>? getChronoAgeForSlug = null,
-        Func<string, double?>? getPhenoDiffForSlug = null)
+        Func<string, double?>? getPhenoDiffForSlug = null,
+        Func<string, double?>? getBortzDiffForSlug = null)
     {
         if (type == EventType.AthleteCountMilestone)
         {
@@ -115,6 +119,34 @@ public static class XMessageBuilder
                 $"📊 Profile: {url}");
         }
 
+        if (string.Equals(normLabel, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var bortzSlug)) return "";
+            var bortzAthlete = slugToName(bortzSlug);
+            var bortzAge = getLowestBortzAgeForSlug?.Invoke(bortzSlug);
+            var ageStr = bortzAge.HasValue ? $" at {bortzAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
+            var athleteUrl = AthleteUrl(bortzSlug);
+            return Truncate(
+                $"Lowest Bortz age in the Longevity World Cup field 🧬\n" +
+                $"{bortzAthlete} holds it{ageStr}.\n" +
+                $"📊 Profile: {athleteUrl}");
+        }
+
+        if (string.Equals(normLabel, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var diffSlug)) return "";
+            var diffVal = getBortzDiffForSlug?.Invoke(diffSlug);
+            if (!diffVal.HasValue) return "";
+            var years = Math.Abs(diffVal.Value);
+            var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
+            var athlete = slugToName(diffSlug);
+            var url = AthleteUrl(diffSlug);
+            return Truncate(
+                $"Best Bortz age improvement in the Longevity World Cup field 🧬\n" +
+                $"{athlete} — biological age improved by {yearsStr} years vs baseline.\n" +
+                $"📊 Profile: {url}");
+        }
+
         if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractSlug(rawText, out var chronoSlug)) return "";
@@ -137,7 +169,8 @@ public static class XMessageBuilder
             return Truncate($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} 🏃‍♂️\n📊 Profile: {url}");
         }
 
-        if (EventHelpers.TryExtractPlace(rawText, out var place) && place == 1
+        if (string.Equals(normLabel, "Age Reduction", StringComparison.OrdinalIgnoreCase)
+            && EventHelpers.TryExtractPlace(rawText, out var place) && place == 1
             && EventHelpers.TryExtractCategory(rawText, out var leagueCat) && !string.Equals(leagueCat, "Global", StringComparison.OrdinalIgnoreCase)
             && EventHelpers.TryExtractSlug(rawText, out var leagueSlug))
         {
@@ -254,115 +287,6 @@ public static class XMessageBuilder
         }
 
         return "";
-    }
-
-    public static string ForPvpBattle(PvpBattleResult battle, Func<string, string> slugToName)
-    {
-        var nameA = slugToName(battle.AthleteSlugA);
-        var nameB = slugToName(battle.AthleteSlugB);
-        var labelA = battle.RankA.HasValue ? $"{nameA} (#{battle.RankA.Value})" : nameA;
-        var labelB = battle.RankB.HasValue ? $"{nameB} (#{battle.RankB.Value})" : nameB;
-        var lines = new List<string>
-        {
-            "Longevity World Cup: **Biomarker Duel** ⚔️",
-            "",
-            $"Today’s matchup: **{labelA} vs {labelB}**.",
-            "Three random health biomarkers will decide who wins this head-to-head.",
-            "",
-            "Scroll this thread to see every round and the winner 👇"
-        };
-        return Truncate(string.Join("\n", lines));
-    }
-
-    public static IReadOnlyList<string> ForPvpRounds(PvpBattleResult battle, Func<string, string> slugToName)
-    {
-        var nameA = slugToName(battle.AthleteSlugA);
-        var nameB = slugToName(battle.AthleteSlugB);
-        var rounds = new List<string>();
-        var scoreA = 0;
-        var scoreB = 0;
-
-        for (var i = 0; i < battle.Rounds.Count; i++)
-        {
-            var r = battle.Rounds[i];
-            var roundIndex = i + 1;
-            var winnerName = r.WinnerSlug == battle.AthleteSlugA
-                ? nameA
-                : r.WinnerSlug == battle.AthleteSlugB
-                    ? nameB
-                    : null;
-
-            if (r.WinnerSlug == battle.AthleteSlugA) scoreA++;
-            else if (r.WinnerSlug == battle.AthleteSlugB) scoreB++;
-            else
-            {
-                scoreA++;
-                scoreB++;
-            }
-
-            var dir = "Lower is better here.";
-            var bmLower = r.BiomarkerName.ToLowerInvariant();
-            if (bmLower.Contains("albumin"))
-                dir = "Higher albumin is considered better here.";
-            else if (bmLower.Contains("lymphocyte"))
-                dir = "Higher lymphocyte percentage is considered better here.";
-            else if (bmLower.Contains("glucose"))
-                dir = "Lower glucose is better here.";
-            else if (bmLower.Contains("creatinine"))
-                dir = "Lower creatinine is better here.";
-            else if (bmLower.Contains("c-reactive protein"))
-                dir = "Lower CRP is better for inflammation risk.";
-
-            var scoreLabel = i == battle.Rounds.Count - 1
-                ? $"Final round score: {nameA} {scoreA} – {scoreB} {nameB}."
-                : $"Score: {nameA} {scoreA} – {scoreB} {nameB}.";
-
-            var lines = new List<string>
-            {
-                $"Round {roundIndex} — {r.BiomarkerName} 🧬",
-                "",
-                $"{nameA}: {r.ValueA.ToString("0.##", CultureInfo.InvariantCulture)}",
-                $"{nameB}: {r.ValueB.ToString("0.##", CultureInfo.InvariantCulture)}",
-                "",
-                dir
-            };
-
-            if (!string.IsNullOrWhiteSpace(winnerName))
-                lines.Add($"Round winner: **{winnerName}**. {scoreLabel}");
-            else
-                lines.Add($"This round is a tie. {scoreLabel}");
-
-            rounds.Add(Truncate(string.Join("\n", lines)));
-        }
-
-        return rounds;
-    }
-
-    public static string ForPvpFinal(PvpBattleResult battle, Func<string, string> slugToName)
-    {
-        var nameA = slugToName(battle.AthleteSlugA);
-        var nameB = slugToName(battle.AthleteSlugB);
-        var scoreA = 0;
-        var scoreB = 0;
-        foreach (var r in battle.Rounds)
-        {
-            if (r.WinnerSlug == battle.AthleteSlugA) scoreA++;
-            else if (r.WinnerSlug == battle.AthleteSlugB) scoreB++;
-            else
-            {
-                scoreA++;
-                scoreB++;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(battle.WinnerSlug))
-        {
-            var winnerName = slugToName(battle.WinnerSlug);
-            var loserName = battle.WinnerSlug.Equals(battle.AthleteSlugA, StringComparison.OrdinalIgnoreCase) ? nameB : nameA;
-            return Truncate($"{winnerName} is announced as the winner of today’s Biomarker Duel, {scoreA} – {scoreB} against {loserName}.");
-        }
-
-        return Truncate($"No winner is announced for this Biomarker Duel, as the final score stands at {scoreA} – {scoreB}.");
     }
 
     public static string Truncate(string s)

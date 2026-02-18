@@ -5,7 +5,9 @@ public record AthleteForX(
     string Name,
     int? CurrentRank,
     double? LowestPhenoAge,
+    double? LowestBortzAge,
     double? ChronoAge,
     double? PhenoAgeDiffFromBaseline,
+    double? BortzAgeDiffFromBaseline,
     string? PodcastLink,
     string? XHandle);

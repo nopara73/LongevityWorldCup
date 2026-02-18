@@ -9,8 +9,6 @@ internal static class XDailyPostJobTempTestHelper
         EventDataService _,
         AthleteDataService athletes,
         XEventService xEvents,
-        XImageService images,
-        XApiClient xApiClient,
         ILogger logger)
     {
         var randomizedDomains = DomainKeys.OrderBy(_ => Random.Shared.Next()).ToList();
@@ -34,16 +32,7 @@ internal static class XDailyPostJobTempTestHelper
         if (string.IsNullOrWhiteSpace(msg))
             return false;
 
-        IReadOnlyList<string>? mediaIds = null;
-        await using var imageStream = await images.BuildSingleAthleteImageAsync(winnerSlug);
-        if (imageStream != null)
-        {
-            var mediaId = await xApiClient.UploadMediaAsync(imageStream, "image/png");
-            if (!string.IsNullOrWhiteSpace(mediaId))
-                mediaIds = new[] { mediaId };
-        }
-
-        await xEvents.SendAsync(msg, mediaIds);
+        await xEvents.SendAsync(msg);
 
         logger.LogInformation(
             "XDailyPostJob TEMP: posted DomainTop filler test for domain {Domain} winner {Winner}.",

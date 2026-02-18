@@ -13,18 +13,14 @@ public class XDailyPostJob : IJob
     private readonly XEventService _xEvents;
     private readonly AthleteDataService _athletes;
     private readonly XFillerPostLogService _fillerLog;
-    private readonly XImageService _images;
-    private readonly XApiClient _xApiClient;
 
-    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes, XFillerPostLogService fillerLog, XImageService images, XApiClient xApiClient)
+    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes, XFillerPostLogService fillerLog)
     {
         _logger = logger;
         _events = events;
         _xEvents = xEvents;
         _athletes = athletes;
         _fillerLog = fillerLog;
-        _images = images;
-        _xApiClient = xApiClient;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -32,7 +28,7 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
-        if (await XDailyPostJobTempTestHelper.TryPostTemporaryDomainTopTestAsync(_events, _athletes, _xEvents, _images, _xApiClient, _logger))
+        if (await XDailyPostJobTempTestHelper.TryPostTemporaryDomainTopTestAsync(_events, _athletes, _xEvents, _logger))
             return;
 
         var pending = _events.GetPendingXEvents();
@@ -56,8 +52,7 @@ public class XDailyPostJob : IJob
             var msg = _xEvents.TryBuildMessage(type, text);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
-            var mediaIds = await XDailyPostMediaHelper.TryBuildMediaIdsAsync(type, text, _images, _xApiClient);
-            await _xEvents.SendAsync(msg, mediaIds);
+            await _xEvents.SendAsync(msg);
             _events.MarkEventsXProcessed(new[] { id });
             _logger.LogInformation("XDailyPostJob posted event {Id}", id);
             return;
@@ -71,21 +66,6 @@ public class XDailyPostJob : IJob
             if (_fillerLog.IsOnCooldownForOption(fillerType, payload, cooldown, DateTime.UtcNow))
             {
                 _logger.LogInformation("XDailyPostJob skipped filler in cooldown {FillerType} {PayloadText} ({CooldownDays}d)", fillerType, payloadText, cooldown.TotalDays);
-                continue;
-            }
-
-            if (fillerType == FillerType.PvpBiomarkerDuel)
-            {
-                var (ok, pvpInfoToken) = await _xEvents.TrySendPvpDuelThreadWithInfoTokenAsync(
-                    null,
-                    token => _fillerLog.IsUnchangedFromLastForOption(fillerType, payload, token));
-                if (ok && !string.IsNullOrWhiteSpace(pvpInfoToken))
-                {
-                    _fillerLog.LogPost(DateTime.UtcNow, fillerType, pvpInfoToken);
-                    _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
-                    return;
-                }
-
                 continue;
             }
 
@@ -103,53 +83,7 @@ public class XDailyPostJob : IJob
                 continue;
             }
 
-            IReadOnlyList<string>? mediaIds = null;
-            if (fillerType == FillerType.Newcomers)
-            {
-                await using var imageStream = await _images.BuildNewcomersImageAsync();
-                if (imageStream != null)
-                {
-                    var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
-                    if (!string.IsNullOrWhiteSpace(mediaId))
-                        mediaIds = new[] { mediaId };
-                }
-            }
-            else if (fillerType == FillerType.Top3Leaderboard)
-            {
-                if (EventHelpers.TryExtractLeague(payload, out var leagueSlug) && !string.IsNullOrWhiteSpace(leagueSlug))
-                {
-                    var top3 = _athletes.GetTop3SlugsForLeague(leagueSlug).Take(3).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-                    if (top3.Count > 0)
-                    {
-                        await using var imageStream = await _images.BuildTop3LeaderboardPodiumImageAsync(top3);
-                        if (imageStream != null)
-                        {
-                            var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
-                            if (!string.IsNullOrWhiteSpace(mediaId))
-                                mediaIds = new[] { mediaId };
-                        }
-                    }
-                }
-            }
-            else if (fillerType == FillerType.DomainTop)
-            {
-                if (EventHelpers.TryExtractDomain(payload, out var domainKey) && !string.IsNullOrWhiteSpace(domainKey))
-                {
-                    var winnerSlug = _athletes.GetBestDomainWinnerSlug(domainKey.Trim());
-                    if (!string.IsNullOrWhiteSpace(winnerSlug))
-                    {
-                        await using var imageStream = await _images.BuildSingleAthleteImageAsync(winnerSlug);
-                        if (imageStream != null)
-                        {
-                            var mediaId = await _xApiClient.UploadMediaAsync(imageStream, "image/png");
-                            if (!string.IsNullOrWhiteSpace(mediaId))
-                                mediaIds = new[] { mediaId };
-                        }
-                    }
-                }
-            }
-
-            await _xEvents.SendAsync(fillerMsg, mediaIds);
+            await _xEvents.SendAsync(fillerMsg);
             _fillerLog.LogPost(DateTime.UtcNow, fillerType, infoToken);
             _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
             return;

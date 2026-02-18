@@ -690,8 +690,12 @@ public class AthleteDataService : IDisposable
                 ["LowestPhenoAge"] = lowestPheno,
                 ["AgeDifference"] = effectiveDiff
             };
+            if (r.LowestBortzAge.HasValue)
+                obj["LowestBortzAge"] = Math.Round(r.LowestBortzAge.Value, 2);
             if (r.PhenoAgeDiffFromBaseline.HasValue)
                 obj["PhenoAgeDiffFromBaseline"] = Math.Round(r.PhenoAgeDiffFromBaseline.Value, 2);
+            if (r.BortzAgeDiffFromBaseline.HasValue)
+                obj["BortzAgeDiffFromBaseline"] = Math.Round(r.BortzAgeDiffFromBaseline.Value, 2);
 
             results.Add((hasBortz, effectiveDiff, dobUtc, name, obj));
         }
@@ -727,12 +731,16 @@ public class AthleteDataService : IDisposable
             var name = o["Name"]?.GetValue<string>() ?? "";
             double? lowestPheno = null;
             if (o["LowestPhenoAge"] is JsonValue pv && pv.TryGetValue<double>(out var p)) lowestPheno = p;
+            double? lowestBortz = null;
+            if (o["LowestBortzAge"] is JsonValue bv && bv.TryGetValue<double>(out var b)) lowestBortz = b;
             double? chrono = null;
             if (o["ChronologicalAge"] is JsonValue cv && cv.TryGetValue<double>(out var c)) chrono = c;
-            double? diff = null;
-            if (o["PhenoAgeDiffFromBaseline"] is JsonValue dv && dv.TryGetValue<double>(out var d)) diff = d;
+            double? phenoDiff = null;
+            if (o["PhenoAgeDiffFromBaseline"] is JsonValue pdv && pdv.TryGetValue<double>(out var pd)) phenoDiff = pd;
+            double? bortzDiff = null;
+            if (o["BortzAgeDiffFromBaseline"] is JsonValue bdv && bdv.TryGetValue<double>(out var bd)) bortzDiff = bd;
             extBySlug.TryGetValue(slug, out var ext);
-            list.Add(new AthleteForX(slug, name, rank, lowestPheno, chrono, diff, ext.PodcastLink, ext.XHandle));
+            list.Add(new AthleteForX(slug, name, rank, lowestPheno, lowestBortz, chrono, phenoDiff, bortzDiff, ext.PodcastLink, ext.XHandle));
         }
         return list;
     }
@@ -853,7 +861,8 @@ public class AthleteDataService : IDisposable
             _ => null
         };
         string? targetExclusive = string.Equals(leagueSlug, "prosperan", StringComparison.OrdinalIgnoreCase) ? "Prosperan" : null;
-        if (targetDivision == null && targetGeneration == null && targetExclusive == null)
+        var isAmateur = string.Equals(leagueSlug, "amateur", StringComparison.OrdinalIgnoreCase);
+        if (targetDivision == null && targetGeneration == null && targetExclusive == null && !isAmateur)
             return Array.Empty<string>();
         var list = new List<string>();
         foreach (var o in order.OfType<JsonObject>())
@@ -862,7 +871,8 @@ public class AthleteDataService : IDisposable
             if (string.IsNullOrWhiteSpace(slug)) continue;
             var match = targetDivision != null && divisionBySlug.TryGetValue(slug, out var d) && string.Equals(d, targetDivision, StringComparison.OrdinalIgnoreCase)
                 || targetGeneration != null && generationBySlug.TryGetValue(slug, out var g) && string.Equals(g, targetGeneration, StringComparison.OrdinalIgnoreCase)
-                || targetExclusive != null && exclusiveBySlug.TryGetValue(slug, out var e) && string.Equals(e, targetExclusive, StringComparison.OrdinalIgnoreCase);
+                || targetExclusive != null && exclusiveBySlug.TryGetValue(slug, out var e) && string.Equals(e, targetExclusive, StringComparison.OrdinalIgnoreCase)
+                || isAmateur && o["LowestBortzAge"] is not JsonValue;
             if (match) { list.Add(slug); if (list.Count >= 3) break; }
         }
         return list;
