@@ -68,9 +68,8 @@ public static class XMessageBuilder
         {
             if (!EventHelpers.TryExtractAthleteCount(rawText, out var count) || count <= 0) return "";
             var countLabel = count.ToString("N0", CultureInfo.InvariantCulture);
-            return Truncate(
-                $"Longevity World Cup just hit {countLabel} athletes on the leaderboard 🏁\n" +
-                $"📊 View the board: {LeaderboardUrl}");
+            var lead = BuildAthleteCountMilestoneLine(count, countLabel);
+            return Truncate($"{lead}\n\n📊 Leaderboard: {LeaderboardUrl}");
         }
 
         if (type == EventType.NewRank)
@@ -81,8 +80,8 @@ public static class XMessageBuilder
             EventHelpers.TryExtractPrev(rawText, out var prevSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
             var newRankMsg = !string.IsNullOrWhiteSpace(prev)
-                ? $"New #{rank} in the Longevity World Cup Ultimate League 🏆\n{current} overtakes {prev} for the spot.\n📊 Leaderboard: {LeaderboardUrl}"
-                : $"New #{rank} in the Longevity World Cup Ultimate League 🏆\n{current} takes #{rank}.\n📊 Leaderboard: {LeaderboardUrl}";
+                ? $"New #{rank} in the Ultimate League 🏆\n{current} is now ahead of {prev}.\n\n📊 Leaderboard: {LeaderboardUrl}"
+                : $"New #{rank} in the Ultimate League 🏆\n{current} now holds the spot.\n\n📊 Leaderboard: {LeaderboardUrl}";
             return Truncate(newRankMsg);
         }
 
@@ -293,6 +292,34 @@ public static class XMessageBuilder
     {
         if (string.IsNullOrEmpty(s) || s.Length <= MaxLength) return s;
         return s[..(MaxLength - 3)] + "...";
+    }
+
+    private static string BuildAthleteCountMilestoneLine(int count, string countLabel)
+    {
+        return count switch
+        {
+            10 => $"{countLabel} athletes are now on the leaderboard, our first two digit checkpoint.",
+            42 => $"{countLabel} athletes are now on the leaderboard, a number with legendary status in pop culture.",
+            69 => $"{countLabel} athletes are now on the leaderboard, one of the internet's most recognizable numbers.",
+            100 => $"{countLabel} athletes are now on the leaderboard, marking the first triple digit milestone.",
+            123 => $"{countLabel} athletes are now on the leaderboard, counting up in order.",
+            256 => $"{countLabel} athletes are now on the leaderboard, a clean power of two milestone.",
+            300 => $"{countLabel} athletes are now on the leaderboard, a proper Sparta-number moment.",
+            404 => $"{countLabel} athletes are now on the leaderboard, and this time nothing is missing.",
+            500 => $"{countLabel} athletes are now on the leaderboard, a solid half K milestone.",
+            666 => $"{countLabel} athletes are now on the leaderboard, the classic devil number milestone.",
+            777 => $"{countLabel} athletes are now on the leaderboard, a classic lucky number milestone.",
+            1000 => $"{countLabel} athletes are now on the leaderboard, marking the first four digit milestone.",
+            1337 => $"{countLabel} athletes are now on the leaderboard, a nod to early internet culture.",
+            1618 => $"{countLabel} athletes are now on the leaderboard, right on the golden ratio milestone.",
+            2000 => $"{countLabel} athletes are now on the leaderboard, and the board just crossed 2K.",
+            3141 => $"{countLabel} athletes are now on the leaderboard, a neat Pi adjacent milestone.",
+            5000 => $"{countLabel} athletes are now on the leaderboard, marking a major growth milestone.",
+            6969 => $"{countLabel} athletes are now on the leaderboard, a true meme number milestone.",
+            9001 => $"{countLabel} athletes are now on the leaderboard, comfortably over nine thousand.",
+            10000 => $"{countLabel} athletes are now on the leaderboard, marking the first five digit milestone.",
+            _ => $"{countLabel} athletes are now on the leaderboard."
+        };
     }
 
     private static string LeagueDisplay(string? cat, string? val)
