@@ -10,11 +10,13 @@ public class DailyJob : IJob
 {
     private readonly ILogger<DailyJob> _logger;
     private readonly AthleteDataService _athletes;
+    private readonly AgentApplicationDataService _agentAppService;
 
-    public DailyJob(ILogger<DailyJob> logger, AthleteDataService athletes)
+    public DailyJob(ILogger<DailyJob> logger, AthleteDataService athletes, AgentApplicationDataService agentAppService)
     {
         _logger = logger;
         _athletes = athletes;
+        _agentAppService = agentAppService;
     }
 
     public Task Execute(IJobExecutionContext context)
@@ -38,6 +40,16 @@ public class DailyJob : IJob
         }
 
         _logger.LogInformation("Daily placements stored for {count} athletes", updated);
+
+        try
+        {
+            _agentAppService.CleanupOld();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cleanup old agent application tokens");
+        }
+
         return Task.CompletedTask;
     }
 

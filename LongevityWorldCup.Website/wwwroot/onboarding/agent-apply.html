@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Longevity World Cup - Apply via AI Agent</title>
+    <!--HEAD-->
+    <style>
+        .join-game {
+            display: none;
+        }
+        .agent-section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .agent-section h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        .code-block {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            margin: 12px 0;
+            word-break: break-all;
+        }
+        .status-checker {
+            display: flex;
+            gap: 10px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+        .status-checker input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 1rem;
+        }
+        .status-checker input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        .status-result {
+            margin-top: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: none;
+        }
+        .status-result.pending {
+            background: rgba(255,193,7,0.15);
+            border: 1px solid rgba(255,193,7,0.3);
+            color: #ffc107;
+        }
+        .status-result.approved {
+            background: rgba(76,175,80,0.15);
+            border: 1px solid rgba(76,175,80,0.3);
+            color: #4caf50;
+        }
+        .status-result.rejected {
+            background: rgba(244,67,54,0.15);
+            border: 1px solid rgba(244,67,54,0.3);
+            color: #f44336;
+        }
+        .status-result.error {
+            background: rgba(244,67,54,0.1);
+            border: 1px solid rgba(244,67,54,0.2);
+            color: #ef9a9a;
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Apply via AI Agent <i class="fas fa-robot"></i></h1>
+
+        <p data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            Instead of filling out forms, you can apply to the Longevity World Cup through a conversational AI agent.
+            The agent will guide you through entering your biomarkers, calculating your PhenoAge, and submitting your application.
+        </p>
+
+        <div class="agent-section" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <h2><i class="fas fa-terminal"></i>&nbsp;Option 1: Claude Code</h2>
+            <p>If you have <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" rel="noopener">Claude Code</a> installed, run the following command in the project directory:</p>
+            <div class="code-block">/lwc-apply</div>
+            <p>Claude will walk you through the entire application process conversationally.</p>
+        </div>
+
+        <div class="agent-section" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <h2><i class="fas fa-brain"></i>&nbsp;Option 2: OpenClaw</h2>
+            <p>Install the Longevity World Cup skill for <a href="https://github.com/anthropics/openclaw" target="_blank" rel="noopener">OpenClaw</a>:</p>
+            <div class="code-block">openclaw skill install longevity-world-cup</div>
+            <p>Then start a conversation with your preferred messaging platform (WhatsApp, Telegram, Slack) and the agent will guide you through the process.</p>
+        </div>
+
+        <div class="agent-section" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+            <h2><i class="fas fa-hand-pointer"></i>&nbsp;Option 3: Manual Application</h2>
+            <p>Prefer to do it yourself? No problem.</p>
+            <button class="option-button green" onclick="window.location.href='/pheno-age'">Apply Manually</button>
+        </div>
+
+        <div class="agent-section" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
+            <h2><i class="fas fa-search"></i>&nbsp;Track Your Application</h2>
+            <p>If you've already applied via an AI agent, enter your tracking token to check the status:</p>
+            <div class="status-checker">
+                <input type="text" id="tokenInput" placeholder="Paste your tracking token here..." />
+                <button class="option-button grey" style="margin: 0; min-width: auto; padding: 10px 20px;" onclick="checkStatus()">Check Status</button>
+            </div>
+            <div id="statusResult" class="status-result"></div>
+        </div>
+
+        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="550">
+            <button class="option-button back-button" onclick="window.goBackOrHome()">
+                <i class="fas fa-arrow-left"></i>&nbsp;Back
+            </button>
+        </div>
+    </main>
+    <!--FOOTER-->
+    <script>
+        async function checkStatus() {
+            const token = document.getElementById('tokenInput').value.trim();
+            const resultDiv = document.getElementById('statusResult');
+
+            if (!token) {
+                resultDiv.className = 'status-result error';
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Please enter a tracking token.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/agent/status/${encodeURIComponent(token)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = `status-result ${data.status}`;
+                    resultDiv.style.display = 'block';
+
+                    let statusText = '';
+                    switch (data.status) {
+                        case 'pending':
+                            statusText = 'Your application is pending review.';
+                            break;
+                        case 'approved':
+                            statusText = 'Your application has been approved! Welcome to the Longevity World Cup!';
+                            break;
+                        case 'rejected':
+                            statusText = 'Your application was not approved. Please contact us for more information.';
+                            break;
+                        default:
+                            statusText = `Status: ${data.status}`;
+                    }
+                    resultDiv.innerHTML = `<strong>${data.name}</strong> &mdash; ${statusText}`;
+                } else if (response.status === 404) {
+                    resultDiv.className = 'status-result error';
+                    resultDiv.style.display = 'block';
+                    resultDiv.textContent = 'No application found for this token. Please check and try again.';
+                } else {
+                    throw new Error('Unexpected response');
+                }
+            } catch (e) {
+                resultDiv.className = 'status-result error';
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Failed to check status. Please try again later.';
+            }
+        }
+
+        document.getElementById('tokenInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkStatus();
+        });
+    </script>
+</body>
+</html>
