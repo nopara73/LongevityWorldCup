@@ -112,9 +112,21 @@
 
         .game-description {
             text-align: center;
-            margin: 0.5rem 0 2rem; /* top 0.5rem, sides 0, bottom 2rem for extra space below */
-            line-height: 1.6;
-            color: var(--dark-text-color);
+            margin: 0.5rem 0 2rem;
+            line-height: 1.7;
+            color: #4a5568;
+            font-size: 1.05rem;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+            max-width: 42em;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 1rem;
+        }
+
+        .game-description strong {
+            font-weight: 600;
+            color: #2d3748;
         }
 
         /* Common container for sections */
@@ -138,9 +150,16 @@
             /* Paragraph style */
             .section-container p {
                 font-size: 1rem;
-                color: var(--dark-text-color);
+                color: #4a5568;
                 margin-bottom: 1.5rem;
-                line-height: 1.6;
+                line-height: 1.7;
+                font-weight: 400;
+                letter-spacing: 0.005em;
+            }
+
+            .section-container p strong {
+                font-weight: 600;
+                color: #2d3748;
             }
 
             /* Input field style */
@@ -268,8 +287,16 @@
 
         .contribute-section h3,
         .contribute-section p {
-            color: var(--dark-text-color);
+            color: #4a5568;
             text-align: center;
+            line-height: 1.7;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+        }
+
+        .contribute-section strong {
+            font-weight: 600;
+            color: #2d3748;
         }
 
         .newsletter-section {
@@ -283,7 +310,15 @@
 
             .newsletter-section h3,
             .newsletter-section p {
-                color: var(--dark-text-color); /* Ensure headings and text are readable */
+                color: #4a5568;
+                line-height: 1.7;
+                font-weight: 400;
+                letter-spacing: 0.005em;
+            }
+
+            .newsletter-section strong {
+                font-weight: 600;
+                color: #2d3748;
             }
 
             .newsletter-section input[type="email"] {
@@ -467,26 +502,35 @@
 
         /* body styling */
         .lwc-countdown-body {
-            padding: 16px 24px 18px;
+            padding: 24px 24px 26px;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            gap: 0.5rem;
+            gap: 0rem;
             flex: 1 1 auto;
             justify-content: center;
         }
 
         .lwc-countdown-details-text {
             margin-top: 0;
-            font-size: 1.2rem;
+            margin-bottom: 0;
+            font-size: 1.125rem;
             line-height: 1.6;
-            max-width: 100%;
+            max-width: 28em;
             padding: 0 1rem;
             margin-left: auto;
             margin-right: auto;
-            color: var(--dark-text-color);
-            opacity: 0.9;
+            color: #4a5568;
+            font-weight: 400;
+            letter-spacing: 0.005em;
+        }
+
+        .lwc-countdown-details-text strong {
+            font-weight: 600;
+            color: #2d3748;
+            position: relative;
+            white-space: nowrap;
         }
 
         /* mobile: stack the cards */
@@ -503,7 +547,22 @@
                 }
 
             .lwc-countdown-body {
-                padding: 14px 16px 16px;
+                padding: 20px 18px 22px;
+            }
+
+            .lwc-countdown-details-text {
+                font-size: 1.05rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .lwc-countdown-details-text {
+                font-size: 0.975rem;
+                padding: 0 0.75rem;
+            }
+
+            .lwc-countdown-body {
+                padding: 18px 14px 20px;
             }
         }
 
@@ -557,10 +616,10 @@
         .archive-table thead th {
             background: linear-gradient(rgba(0,188,212,.12), rgba(0,188,212,.12));
             color: var(--primary-color);
-            font-weight: 700;
+            font-weight: 600;
             text-transform: uppercase;
-            font-size: .9rem;
-            letter-spacing: 1px;
+            font-size: .85rem;
+            letter-spacing: 0.08em;
             padding: 1rem 1.5rem;
             text-align: center;
             border-bottom: 1px solid rgba(0,0,0,.03);
@@ -613,18 +672,20 @@
         .archive-table td {
             padding: 1rem 1.5rem;
             text-align: center;
-            font-size: 1rem;
-            color: var(--dark-text-color);
+            font-size: 0.975rem;
+            color: #4a5568;
             vertical-align: middle;
+            font-weight: 400;
+            letter-spacing: 0.005em;
         }
 
         /* Links in Table Cells */
         .archive-table td a {
             color: var(--primary-color);
             text-decoration: underline;
-            text-decoration-color: rgba(0, 188, 212, 0.5);
+            text-decoration-color: rgba(0, 188, 212, 0.4);
             text-underline-offset: 2px;
-            font-weight: 600;
+            font-weight: 500;
             transition: color 0.3s ease, text-decoration-color 0.3s ease;
         }
 
@@ -641,9 +702,9 @@
 
         /* Age Reduction Styling */
         .archive-table .age-reduction {
-            color: #4caf50;
-            font-weight: bold;
-            font-size: 1rem;
+            color: #48bb78;
+            font-weight: 600;
+            font-size: 0.9rem;
             display: block;
             margin-top: 0.25rem;
             margin-left: 0;
@@ -713,14 +774,15 @@
             }
 
             .archive-mobile-card-year {
-                font-weight: 700;
+                font-weight: 600;
                 font-size: 1rem;
-                color: var(--dark-text-color);
+                color: #2d3748;
             }
 
             .archive-mobile-card-clock {
                 font-size: 0.85rem;
                 color: var(--primary-color);
+                font-weight: 500;
             }
 
             .archive-mobile-card-clock a {
@@ -743,7 +805,7 @@
             }
 
             .archive-mobile-card-place {
-                font-weight: 700;
+                font-weight: 600;
                 font-size: 0.85rem;
                 color: var(--primary-color);
                 min-width: 2rem;
@@ -768,14 +830,14 @@
             .archive-mobile-card-winner-name a {
                 color: var(--primary-color);
                 text-decoration: underline;
-                text-decoration-color: rgba(0, 188, 212, 0.5);
-                font-weight: 600;
+                text-decoration-color: rgba(0, 188, 212, 0.4);
+                font-weight: 500;
                 font-size: 0.9rem;
             }
 
             .archive-mobile-card-age-reduction {
-                color: #4caf50;
-                font-weight: bold;
+                color: #48bb78;
+                font-weight: 600;
                 font-size: 0.85rem;
                 display: inline;
             }
@@ -845,12 +907,12 @@
                 <div class="lwc-countdown-inner">
                     <div class="lwc-countdown-header-row">
                         <span class="lwc-countdown-title">2026 Season</span>
-                        <span class="lwc-countdown-chip">Coming soon</span>
+                        <span class="lwc-countdown-chip">Started</span>
                     </div>
 
                     <div class="lwc-countdown-body">
                         <p class="lwc-countdown-details-text">
-                            In 2026, the pheno age competition continues as a secondary competition. <strong>A new season with a new aging clock is upcoming.</strong>
+                            The 2026 season begins, featuring <strong>Professional and Amateur</strong> tracks.
                         </p>
                     </div>
                 </div>
@@ -861,19 +923,19 @@
         <!--LEADERBOARD-CONTENT-->
         <div style="text-align: center; margin-top: 20px;">
             <button id="viewAllAthletesBtn" onclick="window.location.href='/leaderboard'" class="rankings-btn" aria-label="View all athletes on the leaderboard" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-                VIEW ALL ATHLETES
+                View all athletes
             </button>
         </div>
 
         <!-- 2025 Season Archive Section -->
         <div class="section-container archive-section" data-aos="fade" data-aos-duration="700" data-aos-delay="325">
-            <h2><i class="fas fa-trophy"></i> Hall of Fame</h2>
+            <h2><i class="fas fa-trophy"></i> Hall of fame</h2>
             <div class="archive-table-wrapper">
-                <table class="archive-table" aria-label="Historical Archive of Longevity World Cup Champions">
+                <table class="archive-table" aria-label="Historical archive of Longevity World Cup champions">
                     <thead>
                         <tr>
                             <th scope="col">Year</th>
-                            <th scope="col">Aging Clock</th>
+                            <th scope="col">Aging clock</th>
                             <th scope="col">1st</th>
                             <th scope="col">2nd</th>
                             <th scope="col">3rd</th>
@@ -930,7 +992,7 @@
             </div>
             <p style="margin-top: 1.5rem; font-size: 1rem; color: var(--dark-text-color);">
                 <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;"><i class="fas fa-book-open"></i> </a>
-                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline;">History of Longevity as a Sport</a>
+                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline;">History of longevity as a sport</a>
             </p>
         </div>
 
@@ -957,7 +1019,7 @@
                     </div>
                 </div>
                 <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                    <img src="/assets/Donation25QR.png" alt="Donate with Bitcoin QR Code" class="qr-code-img">
+                    <img src="/assets/Donation25QR.png" alt="Donate with Bitcoin QR code" class="qr-code-img">
                 </div>
                 <div class="btc-address">
                     <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
@@ -966,7 +1028,7 @@
                     <span id="copiedText" style="display: none;">
                         Copied <i class="fas fa-check" style="color: green;"></i>
                     </span>
-                    <span class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin Address">
+                    <span class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address">
                         <i class="fas fa-copy"></i>
                     </span>
                 </div>
@@ -975,7 +1037,7 @@
 
         <!-- Minimal Newsletter Subscription Section -->
         <div class="section-container newsletter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <h2><i class="fas fa-calendar-alt"></i> Once/Year Newsletter</h2>
+            <h2><i class="fas fa-calendar-alt"></i> Once/year newsletter</h2>
             <p>
                 <span class="smaller-text">
                     Want to know who wins? Get last&nbsp;year’s&nbsp;winner and next&nbsp;year’s&nbsp;competition&nbsp;announcements — no spam, just the essentials.

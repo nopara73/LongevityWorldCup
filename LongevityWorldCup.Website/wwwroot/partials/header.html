@@ -1,4 +1,4 @@
-﻿<style>
+<style>
     :root {
         --primary-color: #00bcd4;
         --secondary-color: #ff4081;
@@ -20,21 +20,24 @@
         font-family: 'Roboto';
         font-style: normal;
         font-weight: 300;
-        src: url('/assets/fonts/Roboto-Light.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Roboto-Light.woff2') format('woff2');
     }
 
     @font-face {
         font-family: 'Roboto';
         font-style: normal;
         font-weight: 400;
-        src: url('/assets/fonts/Roboto-Regular.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Roboto-Regular.woff2') format('woff2');
     }
 
     @font-face {
         font-family: 'Roboto';
         font-style: normal;
         font-weight: 700;
-        src: url('/assets/fonts/Roboto-Bold.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Roboto-Bold.woff2') format('woff2');
     }
 
     /* Orbitron Font Face */
@@ -42,7 +45,8 @@
         font-family: 'Orbitron';
         font-style: normal;
         font-weight: 700;
-        src: url('/assets/fonts/Orbitron-Bold.ttf') format('truetype');
+        font-display: swap;
+        src: url('/assets/fonts/Orbitron-Bold.woff2') format('woff2');
     }
 
     .tagline {
@@ -468,6 +472,66 @@
             transform: rotate(360deg);
         }
     }
+
+    /* Sticky header bar (phoenix + title) when main header scrolls out of view */
+    .site-sticky-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        background: var(--background-color);
+        color: var(--light-text-color);
+        padding: 0.5rem 1rem;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .site-sticky-header.visible {
+        display: flex;
+    }
+    .site-sticky-header.visible::before {
+        content: '';
+        position: absolute;
+        top: -40px;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        pointer-events: none;
+        z-index: -1;
+    }
+    .site-sticky-header-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: inherit;
+    }
+    .site-sticky-header-logo {
+        width: 32px;
+        height: 32px;
+    }
+    .site-sticky-header-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: capitalize;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .site-sticky-header {
+            transition: none;
+        }
+    }
+    /* Always reserve space so scrollIntoView/anchor links are not covered by the sticky bar (works on load and when sticky is visible) */
+    html {
+        scroll-padding-top: 52px;
+    }
 </style>
 
 <header role="banner">
@@ -482,12 +546,12 @@
             Race To Longevity Escape Velocity <i class="fa-solid fa-rocket"></i>
         </span>
     </a>
-    <button onclick="window.location.href='/play/menu.html'" class="join-game" aria-label="Play the Game" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+    <button onclick="window.location.href='/play/menu.html'" class="join-game" aria-label="Play the game" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
         <strong>PLAY</strong>
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
         <strong class="join-game-end">GAME</strong>
     </button>
-    <button onclick="window.location.href='/play/menu.html'" class="join-game scrolled-button" aria-label="Play the Game" style="display: none;" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+    <button onclick="window.location.href='/play/menu.html'" class="join-game scrolled-button" aria-label="Play the game" style="display: none;" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
         <strong>PLAY</strong>
     </button>
     <dialog id="custom-alert">
@@ -498,6 +562,15 @@
         <div class="loader"></div>
     </dialog>
 </header>
+<div id="site-sticky-header" class="site-sticky-header" aria-hidden="true">
+    <a href="/" class="site-sticky-header-link">
+        <img src="/assets/favicon-128x128.png"
+             alt="Longevity World Cup logo, a phoenix symbolizing a new life"
+             class="main-logo-image site-sticky-header-logo"
+             loading="lazy">
+        <span class="site-sticky-header-title">Longevity World&nbsp;Cup</span>
+    </a>
+</div>
 
 <script>
     const scrolledJoinButton = document.querySelector('.scrolled-button');
@@ -517,12 +590,28 @@
             ticking = true;
         }
     });
+    handleScroll(window.scrollY);
 
     function handleScroll(scrollPos) {
         if (scrollPos > 100 && window.getComputedStyle(joinGameBtn).display !== 'none') {
             scrolledJoinButton.style.display = 'block';
         } else {
             scrolledJoinButton.style.display = 'none';
+        }
+        const mainHeader = document.querySelector('header[role="banner"]');
+        const stickyHeader = document.getElementById('site-sticky-header');
+        /* Show when scroll header would completely cover the main header: main header is entirely under the sticky bar. Sticky height when visible; fallback 52 if not yet measured. */
+        const stickyHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
+        const threshold = mainHeader ? Math.max(0, mainHeader.offsetHeight - stickyHeight) : -1;
+        const willBeVisible = mainHeader && stickyHeader ? scrollPos >= threshold : false;
+        if (mainHeader && stickyHeader) {
+            if (willBeVisible) {
+                stickyHeader.classList.add('visible');
+                stickyHeader.setAttribute('aria-hidden', 'false');
+            } else {
+                stickyHeader.classList.remove('visible');
+                stickyHeader.setAttribute('aria-hidden', 'true');
+            }
         }
     }
 

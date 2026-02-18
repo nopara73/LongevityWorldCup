@@ -286,6 +286,11 @@ public sealed class EventDataService : IDisposable
         _slackEvents.SetPodcastLinks(items.Where(a => !string.IsNullOrWhiteSpace(a.PodcastLink)).Select(a => (a.Slug, a.PodcastLink!)).ToList());
     }
 
+    public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)> items)
+    {
+        _slackEvents.SetAthleteBio(items);
+    }
+
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,
@@ -937,7 +942,8 @@ public sealed class EventDataService : IDisposable
 
             if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+                || string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
             {
                 _ = _slackEvents.BufferAsync(type, rawText);
                 return;

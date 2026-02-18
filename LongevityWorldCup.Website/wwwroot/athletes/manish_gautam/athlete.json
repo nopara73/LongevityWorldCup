@@ -1,7 +1,7 @@
 {
   "Name": "Manish Gautam",
   "DisplayName": null,
-  "MediaContact": "https://www.linkedin.com/in/manishgautam2420/",
+  "MediaContact": "mggoeasy@gmail.com",
   "DateOfBirth": {
     "Year": 1993,
     "Month": 10,
@@ -19,6 +19,18 @@
       "RdwPc": 12.6,
       "AlpUL": 72,
       "Wbc1000cellsuL": 10.44
+    },
+    {
+      "Date": "2026-02-01",
+      "AlbGL": 47,
+      "CreatUmolL": 92.92,
+      "GluMmolL": 4.68,
+      "CrpMgL": 1.1,
+      "LymPc": 43.5,
+      "McvFL": 86.5,
+      "RdwPc": 12.8,
+      "AlpUL": 66.56,
+      "Wbc1000cellsuL": 9.75
     }
   ],
   "Division": "Men's",

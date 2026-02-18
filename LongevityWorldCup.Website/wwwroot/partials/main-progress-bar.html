@@ -1,4 +1,5 @@
-﻿<style>
+<style>
+    /* In-page progress: compact dots, no bar, all three labels (full journey) */
     .progress-container {
         width: calc(100% - 30px);
         max-width: 800px;
@@ -8,84 +9,54 @@
     }
 
     .progress-bar {
-        width: calc(100% - 15px);
-        height: 4px;
-        background: linear-gradient(90deg, #e0e0e0, #cfcfcf);
-        position: relative;
-        z-index: 1;
-        margin: 0 auto;
+        display: none; /* Bar removed for cleaner look */
     }
 
     .stages {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
         position: relative;
-        margin-top: -16px;
     }
 
     .stage {
         position: relative;
         text-align: center;
-        width: 30px;
         z-index: 2;
-    }
-
-    .progress-fill {
-        height: 100%;
-        width: 0;
-        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-        transition: width 1.5s ease-in-out;
-        position: relative;
+        min-width: 80px; /* enough room for each label so Test / Calculate / Submit don't overlap */
     }
 
     .stage-dot {
-        width: 24px;
-        height: 24px;
+        width: 14px;
+        height: 14px;
         background: var(--card-bg);
-        border: 3px solid var(--primary-color);
+        border: 2px solid #999;
         border-radius: 50%;
         margin: 0 auto;
         transition: all 0.3s ease;
         position: relative;
-        top: 50%;
-        transform: translateY(-50%);
         z-index: 2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: Arial, sans-serif;
-        font-weight: bold;
-        font-size: 14px;
-        color: var(--dark-text-color);
-    }
-
-    .stage-dot {
-        font-size: 16px;
-        color: var(--light-text-color);
-        text-shadow: 0 0 8px #fff, 0 0 16px #fff, 0 0 24px #fff, 0 0 32px #fff, 0 0 40px #fff;
     }
 
     .stage.completed .stage-dot {
-        border-width: 2px;
-        border-color: var(--primary-color);
-        background: radial-gradient(circle, #fff 20%, #e0f7fa 50%, var(--primary-color) 100%);
-        color: var(--light-text-color);
+        border-color: #666;
+        background: #666;
     }
 
     .stage.active .stage-dot {
-        border-width: 2px;
-        border-color: var(--secondary-color);
-        background: radial-gradient(circle, var(--light-text-color) 20%, #ffd1dc 50%, var(--secondary-color) 100%);
-        color: var(--light-text-color);
+        border-color: var(--dark-text-color);
+        background: var(--dark-text-color);
     }
 
+    /* In-page: all three labels visible (full journey) */
     .stage-label {
         position: absolute;
-        top: 30px;
+        top: 24px;
         left: 50%;
         transform: translateX(-50%);
         white-space: nowrap;
-        color: #666;
+        color: #999;
         font-family: Arial, sans-serif;
         font-size: 14px;
         font-weight: bold;
@@ -93,64 +64,192 @@
     }
 
     .stage.active .stage-label {
-        color: var(--secondary-color);
+        color: var(--dark-text-color);
     }
 
     .stage.completed .stage-label {
-        color: var(--primary-color);
+        color: #666;
     }
 
-    @media (max-width: 768px) {
-        /* Adjusting the Convergence label position for small screens */
-        #stage3 .stage-label {
-            transform: translateX(-60%);
-            padding-right: 10px; /* Optional adjustment to fine-tune */
-        }
+    /* Sticky progress row (under LWC bar): same dark strip as header */
+    #site-sticky-progress {
+        position: fixed;
+        top: 52px; /* fallback; JS sets to stickyHeader.offsetHeight when visible */
+        left: 0;
+        right: 0;
+        z-index: 998;
+        background: var(--background-color);
+        color: var(--light-text-color);
+        padding: 0.4rem 1rem;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        transition: opacity 0.2s ease;
     }
+
+    #site-sticky-progress.visible {
+        display: flex;
+    }
+
+    #site-sticky-progress .sticky-progress-dots {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #site-sticky-progress .sticky-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+
+    #site-sticky-progress .sticky-dot.completed {
+        border-color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.7);
+    }
+
+    #site-sticky-progress .sticky-dot.active {
+        border-color: #fff;
+        background: #fff;
+    }
+
+    #site-sticky-progress .sticky-stage-label {
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        font-weight: bold;
+        color: var(--light-text-color);
+    }
+
 </style>
 <div id="mainProgressBar" class="progress-container">
-    <div class="progress-bar" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+    <div class="progress-bar" data-aos="fade" data-aos-duration="700" data-aos-delay="350" aria-hidden="true">
         <div class="progress-fill" id="progressFill"></div>
     </div>
     <div class="stages">
-        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
-            <div class="stage-dot">⚔️</div>
-            <div class="stage-label">Hardship</div>
+        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200" role="group" aria-label="Test – hardship" title="Hardship">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Test</div>
         </div>
-        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-            <div class="stage-dot">💡</div>
-            <div class="stage-label">Moment of Truth</div>
+        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250" role="group" aria-label="Calculate – moment of truth" title="Moment of truth">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Calculate</div>
         </div>
-        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <div class="stage-dot">🏆</div>
-            <div class="stage-label">Convergence</div>
+        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300" role="group" aria-label="Submit – convergence" title="Convergence">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Submit</div>
         </div>
     </div>
 </div>
 
+<!-- Sticky progress row: shown on scroll under LWC bar -->
+<div id="site-sticky-progress" class="site-sticky-progress" aria-label="Current step" aria-hidden="true">
+    <div class="sticky-progress-dots" aria-hidden="true">
+        <span class="sticky-dot" data-stage="1"></span>
+        <span class="sticky-dot" data-stage="2"></span>
+        <span class="sticky-dot" data-stage="3"></span>
+    </div>
+    <span class="sticky-stage-label" id="stickyStageLabel">Test</span>
+</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(() => {
-            const viewTarget = document.getElementById('mainProgressBar');
-            viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 500);
-    });
+    var MAIN_PROGRESS_STAGE_LABELS = ['Test', 'Calculate', 'Submit'];
+
+    (function () {
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(function () {
+                // Scroll to the content under the progress bar so it sits just below the sticky header + progress bar (no overscroll)
+                var stickyHeader = document.getElementById('site-sticky-header');
+                var stickyProgress = document.getElementById('site-sticky-progress');
+                var contentStart = stickyProgress && stickyProgress.nextElementSibling;
+                if (contentStart && contentStart.tagName === 'SCRIPT') contentStart = contentStart.nextElementSibling;
+                if (contentStart) {
+                    var headerHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
+                    var progressHeight = 44; /* #site-sticky-progress when visible */
+                    var topOffset = headerHeight + progressHeight;
+                    var contentTop = contentStart.getBoundingClientRect().top + (window.scrollY || window.pageYOffset);
+                    var targetScroll = contentTop - topOffset;
+                    window.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+                }
+            }, 500);
+
+            // Sticky progress: show only when it would completely cover the in-page progress bar (not the main site header)
+            var mainProgressBar = document.getElementById('mainProgressBar');
+            var stickyHeader = document.getElementById('site-sticky-header');
+            var stickyProgress = document.getElementById('site-sticky-progress');
+            if (!stickyProgress) return;
+
+            var lastScroll = 0;
+            var ticking = false;
+            var progressBarStickyHeight = 44; /* #site-sticky-progress when visible */
+
+            function updateStickyVisibility() {
+                var scrollY = window.scrollY || window.pageYOffset;
+                var lwcHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
+                var combinedStickyBottom = lwcHeight + progressBarStickyHeight;
+                var progressBarBottomDoc = mainProgressBar && mainProgressBar.offsetHeight
+                    ? mainProgressBar.getBoundingClientRect().bottom + scrollY
+                    : 1e9;
+                var threshold = mainProgressBar && mainProgressBar.offsetHeight
+                    ? Math.max(0, progressBarBottomDoc - combinedStickyBottom)
+                    : 1e9;
+                if (scrollY >= threshold) {
+                    stickyProgress.classList.add('visible');
+                    stickyProgress.setAttribute('aria-hidden', 'false');
+                    document.documentElement.classList.add('sticky-progress-visible');
+                    // Flush under LWC bar: no gap
+                    if (stickyHeader) {
+                        stickyProgress.style.top = stickyHeader.offsetHeight + 'px';
+                        document.documentElement.style.scrollPaddingTop = (stickyHeader.offsetHeight + stickyProgress.offsetHeight) + 'px';
+                    }
+                } else {
+                    stickyProgress.classList.remove('visible');
+                    stickyProgress.setAttribute('aria-hidden', 'true');
+                    document.documentElement.classList.remove('sticky-progress-visible');
+                    document.documentElement.style.scrollPaddingTop = '';
+                    stickyProgress.style.top = '';
+                }
+                lastScroll = scrollY;
+            }
+
+            window.addEventListener('scroll', function () {
+                lastScroll = window.scrollY || window.pageYOffset;
+                if (!ticking) {
+                    requestAnimationFrame(function () {
+                        updateStickyVisibility();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+            updateStickyVisibility();
+        });
+    })();
 
     // Hides the entire progress‐bar container
     function hideMainProgress() {
-        const container = document.getElementById('mainProgressBar');
-        if (container) {
-            container.style.display = 'none';
+        var container = document.getElementById('mainProgressBar');
+        var stickyProgress = document.getElementById('site-sticky-progress');
+        if (container) container.style.display = 'none';
+        if (stickyProgress) {
+            stickyProgress.classList.remove('visible');
+            stickyProgress.setAttribute('aria-hidden', 'true');
         }
+        document.documentElement.classList.remove('sticky-progress-visible');
     }
 
-    // Function to update main progress bar based on the current stage
+    // Function to update main progress bar and sticky row based on the current stage
     function updateMainProgress(currentStage) {
-        const progressFill = document.getElementById('progressFill');
-        const stages = document.querySelectorAll('.progress-container .stage');
+        var progressFill = document.getElementById('progressFill');
+        var stages = document.querySelectorAll('.progress-container .stage');
 
-        // Update main progress stages
-        stages.forEach((s, index) => {
+        if (stages.length === 0) return;
+
+        // Update in-page stages
+        stages.forEach(function (s, index) {
             if (index < currentStage - 1) {
                 s.className = 'stage completed';
             } else if (index === currentStage - 1) {
@@ -160,11 +259,28 @@
             }
         });
 
-        // Update main progress bar fill
-        const mainProgressPercentage = ((currentStage - 1) / (stages.length - 1)) * 100;
-        progressFill.style.width = `${mainProgressPercentage}%`;
-    }
+        // Progress fill (kept for any code that may rely on it; bar is hidden)
+        var mainProgressPercentage = ((currentStage - 1) / (stages.length - 1)) * 100;
+        if (progressFill) progressFill.style.width = mainProgressPercentage + '%';
 
-    // Example usage:
-    // updateMainProgress(2);
+        // Update sticky progress row: label + dot states
+        var stickyLabel = document.getElementById('stickyStageLabel');
+        var stickyDots = document.querySelectorAll('#site-sticky-progress .sticky-dot');
+        var stickyRow = document.getElementById('site-sticky-progress');
+
+        if (stickyLabel && stickyRow && currentStage >= 1 && currentStage <= 3) {
+            var label = MAIN_PROGRESS_STAGE_LABELS[currentStage - 1];
+            stickyLabel.textContent = label;
+            stickyRow.setAttribute('aria-label', 'Current step: ' + label);
+        }
+
+        if (stickyDots && stickyDots.length === 3) {
+            stickyDots.forEach(function (dot, index) {
+                var i = index + 1;
+                dot.classList.remove('completed', 'active');
+                if (i < currentStage) dot.classList.add('completed');
+                else if (i === currentStage) dot.classList.add('active');
+            });
+        }
+    }
 </script>

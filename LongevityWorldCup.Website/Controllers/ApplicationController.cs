@@ -1,4 +1,4 @@
-﻿using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Business;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.AspNetCore.Mvc;
@@ -147,7 +147,14 @@ namespace LongevityWorldCup.Website.Controllers
 
             // Get AccountEmail from the json and trim it
             string? accountEmail = applicantData.AccountEmail?.Trim();
-            string? chronoBioDifference = applicantData.ChronoBioDifference?.Trim();
+            string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
+            string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
+            var differenceLines = new List<string>();
+            if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
+                differenceLines.Add($"Pheno Age difference: {chronoPhenoDifference}");
+            if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
+                differenceLines.Add($"Bortz Age difference: {chronoBortzDifference}");
+            var differenceBlock = differenceLines.Count > 0 ? string.Join("\n", differenceLines) : string.Empty;
 
             // Prepare the email body (excluding the images)
             // Moved this block after processing images to include paths
@@ -259,7 +266,8 @@ namespace LongevityWorldCup.Website.Controllers
             if (isResultSubmissionOnly)
             {
                 emailBody = $"Someone’s been bullying Father Time again...\n";
-                emailBody += $"Age Difference: {chronoBioDifference}";
+                if (!string.IsNullOrWhiteSpace(differenceBlock))
+                    emailBody += differenceBlock;
             }
             else if (isEditSubmissionOnly)
             {
@@ -267,8 +275,9 @@ namespace LongevityWorldCup.Website.Controllers
             }
             else
             {
-                emailBody = $"\nAccount Email: {accountEmail}\n";
-                emailBody += $"Age Difference: {chronoBioDifference}";
+                emailBody = $"\nAccount email: {accountEmail}\n";
+                if (!string.IsNullOrWhiteSpace(differenceBlock))
+                    emailBody += differenceBlock;
             }
             builder.TextBody = emailBody;
 

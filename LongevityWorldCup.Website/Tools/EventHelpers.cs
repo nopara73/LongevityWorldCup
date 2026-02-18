@@ -72,7 +72,11 @@ public static class EventHelpers
     public static bool TryExtractDomain(string raw, out string domain) => TryExtractField(raw, "domain", out domain);
 
     public static string NormalizeBadgeLabel(string? label) =>
-        (label ?? string.Empty).Replace('–', '-').Trim();
+        (label ?? string.Empty)
+            .Replace("â€“", "-", StringComparison.Ordinal)
+            .Replace('–', '-')
+            .Replace('—', '-')
+            .Trim();
 
     public static string ExtractDomainFromLabel(string? label)
     {

@@ -1,4 +1,4 @@
-﻿/* Add these styles inside your <style> tag */
+/* Add these styles inside your <style> tag */
 .bioageform {
     max-width: 600px;
     margin: 2rem auto;
@@ -47,6 +47,11 @@
 .bioageform legend {
     font-weight: bold;
     padding: 0 0.5rem;
+}
+
+.bioageform legend .category-icon {
+    margin-right: 0.5rem;
+    color: #5a6c7d;
 }
 
 .bioageform textarea {
