@@ -26,19 +26,27 @@ public sealed class CycleParticipationDataService
                     AgentToken        TEXT
                 )";
             cmd.ExecuteNonQuery();
+
+            using var idx1 = conn.CreateCommand();
+            idx1.CommandText = "CREATE INDEX IF NOT EXISTS IX_CycleParticipation_Cycle_Slug ON CycleParticipation(CycleId, AthleteSlug)";
+            idx1.ExecuteNonQuery();
+
+            using var idx2 = conn.CreateCommand();
+            idx2.CommandText = "CREATE INDEX IF NOT EXISTS IX_CycleParticipation_Cycle_Type ON CycleParticipation(CycleId, ParticipationType)";
+            idx2.ExecuteNonQuery();
         });
     }
 
     /// <summary>
     /// Returns the current cycle/season ID based on the date.
-    /// The 2025 season closed on 2026-01-16. Anything after that is 2026.
+    /// Uses SeasonFinalizerService.SeasonClosesAtUtcConst for the 2025 close date.
     /// </summary>
     public static string GetCurrentCycleId()
     {
         var now = DateTime.UtcNow;
-        // Season 2025 closed 2026-01-16T07:41:50Z. After that, we're in the 2026 cycle.
-        var season2025Close = new DateTime(2026, 1, 16, 7, 41, 50, DateTimeKind.Utc);
-        return now >= season2025Close ? "2026" : "2025";
+        return now >= SeasonFinalizerService.SeasonClosesAtUtcConst
+            ? (SeasonFinalizerService.SeasonIdConst + 1).ToString()
+            : SeasonFinalizerService.SeasonIdConst.ToString();
     }
 
     public void RecordParticipation(string cycleId, string athleteSlug, string participationType, string? details = null, string? agentToken = null)
@@ -155,7 +163,7 @@ public sealed class CycleParticipationDataService
     public int BackfillSeason2025(IEnumerable<string> athleteSlugs)
     {
         var inserted = 0;
-        var seasonClose = new DateTime(2026, 1, 16, 7, 41, 50, DateTimeKind.Utc).ToString("o");
+        var seasonClose = SeasonFinalizerService.SeasonClosesAtUtcConst.ToString("o");
 
         _db.Run(conn =>
         {

@@ -73,15 +73,10 @@ public class AgentController : ControllerBase
             return BadRequest(new { errors });
 
         // Check name uniqueness against existing athletes
-        var snapshot = _athleteDataService.GetAthletesSnapshot();
         var slug = ApplicationService.SanitizeFileName(data.Name!);
-        foreach (var node in snapshot.OfType<JsonObject>())
+        if (FindAthleteBySlug(slug) is not null)
         {
-            var athleteSlug = node["AthleteSlug"]?.GetValue<string>();
-            if (string.Equals(athleteSlug, slug, StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest(new { errors = new[] { $"An athlete with the name '{data.Name}' (or a similar name) already exists." } });
-            }
+            return BadRequest(new { errors = new[] { $"An athlete with the name '{data.Name}' (or a similar name) already exists." } });
         }
 
         // Process the application through the shared pipeline
@@ -90,7 +85,7 @@ public class AgentController : ControllerBase
         if (!success)
         {
             _logger.LogError("Agent application failed for {Name}: {Error}", data.Name, error);
-            return StatusCode(500, new { error = error ?? "Application processing failed." });
+            return StatusCode(500, new { error = SanitizeApplicationError(error, "Application processing failed.") });
         }
 
         // Create tracking token
@@ -200,6 +195,63 @@ public class AgentController : ControllerBase
         });
     }
 
+    private static string SanitizeApplicationError(string? raw, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return fallback;
+
+        // Don't expose internal server details (parameter names, stack traces, credentials)
+        if (raw.Contains("Parameter '", StringComparison.OrdinalIgnoreCase) ||
+            raw.Contains("password", StringComparison.OrdinalIgnoreCase) ||
+            raw.Contains("authentication", StringComparison.OrdinalIgnoreCase) ||
+            raw.Contains("SmtpClient", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Application submission was saved locally but the notification email could not be sent. An administrator will review it shortly.";
+        }
+
+        return raw;
+    }
+
+    private static void CheckBiomarkerRange(JsonObject entry, string key, string label, double min, double max, string unit, List<string> oor, List<string> missing)
+    {
+        var node = entry[key];
+        if (node is null)
+        {
+            missing.Add(label);
+            return;
+        }
+
+        try
+        {
+            var val = node.GetValue<double>();
+            if (double.IsNaN(val) || double.IsInfinity(val))
+            {
+                missing.Add(label);
+                return;
+            }
+
+            if (val < min)
+                oor.Add($"{label} = {val} {unit} is below expected range ({min}-{max}).");
+            else if (val > max)
+                oor.Add($"{label} = {val} {unit} is above expected range ({min}-{max}).");
+        }
+        catch
+        {
+            missing.Add(label);
+        }
+    }
+
+    private JsonObject? FindAthleteBySlug(string slug)
+    {
+        var snapshot = _athleteDataService.GetAthletesSnapshot();
+        return snapshot
+            .OfType<JsonObject>()
+            .FirstOrDefault(o => string.Equals(
+                o["AthleteSlug"]?.GetValue<string>(),
+                slug,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
     /// <summary>
     /// GET /api/agent/athlete/{slug} - Fetch full athlete profile for confirmation screen.
     /// </summary>
@@ -209,13 +261,7 @@ public class AgentController : ControllerBase
         if (string.IsNullOrWhiteSpace(slug))
             return BadRequest(new { error = "Athlete slug is required." });
 
-        var snapshot = _athleteDataService.GetAthletesSnapshot();
-        var athleteNode = snapshot
-            .OfType<JsonObject>()
-            .FirstOrDefault(o => string.Equals(
-                o["AthleteSlug"]?.GetValue<string>(),
-                slug,
-                StringComparison.OrdinalIgnoreCase));
+        var athleteNode = FindAthleteBySlug(slug);
 
         if (athleteNode is null)
             return NotFound(new { error = $"Athlete '{slug}' not found." });
@@ -244,18 +290,81 @@ public class AgentController : ControllerBase
         // Extract biomarkers array
         var biomarkers = athleteNode["Biomarkers"]?.DeepClone();
 
+        // Compute effective display name and data quality hints
+        var rawName = athleteNode["Name"]?.GetValue<string>();
+        var rawDisplayName = athleteNode["DisplayName"]?.GetValue<string>();
+        var effectiveDisplayName = !string.IsNullOrWhiteSpace(rawDisplayName) ? rawDisplayName : rawName;
+        var rawFlag = athleteNode["Flag"]?.GetValue<string>();
+        var rawWhy = athleteNode["Why"]?.GetValue<string>();
+        var rawPersonalLink = athleteNode["PersonalLink"]?.GetValue<string>();
+        var rawMediaContact = athleteNode["MediaContact"]?.GetValue<string>();
+
+        // Data quality: identify fields the skill should prompt the user to improve
+        var suggestions = new List<string>();
+        var warnings = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(rawName) && !rawName.Contains(' '))
+            suggestions.Add("Name appears to be a single word. Consider updating with your full name.");
+        if (string.IsNullOrWhiteSpace(rawWhy))
+            suggestions.Add("The 'Why I compete' statement is empty. Consider adding one.");
+        if (string.IsNullOrWhiteSpace(rawPersonalLink))
+            suggestions.Add("No personal link on your profile. Consider adding a website or social link.");
+        if (stats.SubmissionCount <= 1)
+            suggestions.Add("Only 1 biomarker submission on file. Submitting new results can improve your ranking.");
+
+        // Proofs check
+        var proofsNode = athleteNode["Proofs"];
+        if (proofsNode is null || (proofsNode is JsonArray pa && pa.Count == 0))
+            warnings.Add("No proof images on file. Proof of lab results is required for verification.");
+
+        // Positive ageDifference (biologically older)
+        if (stats.AgeReduction.HasValue && stats.AgeReduction.Value > 0)
+            suggestions.Add("Your biological age is currently higher than your chronological age. Submitting improved results could change this.");
+
+        // Biomarker range validation
+        if (athleteNode["Biomarkers"] is JsonArray bioArr)
+        {
+            var incompleteSets = 0;
+            foreach (var entry in bioArr.OfType<JsonObject>())
+            {
+                var date = entry["Date"]?.GetValue<string>() ?? "unknown";
+                var oor = new List<string>();
+                var missing = new List<string>();
+
+                CheckBiomarkerRange(entry, "AlbGL", "Albumin", 30, 55, "g/L", oor, missing);
+                CheckBiomarkerRange(entry, "CreatUmolL", "Creatinine", 40, 130, "umol/L", oor, missing);
+                CheckBiomarkerRange(entry, "GluMmolL", "Glucose", 3, 8, "mmol/L", oor, missing);
+                CheckBiomarkerRange(entry, "CrpMgL", "CRP", 0, 20, "mg/L", oor, missing);
+                CheckBiomarkerRange(entry, "LymPc", "Lymphocytes", 10, 60, "%", oor, missing);
+                CheckBiomarkerRange(entry, "McvFL", "MCV", 70, 110, "fL", oor, missing);
+                CheckBiomarkerRange(entry, "RdwPc", "RDW", 10, 20, "%", oor, missing);
+                CheckBiomarkerRange(entry, "AlpUL", "ALP", 20, 200, "U/L", oor, missing);
+                CheckBiomarkerRange(entry, "Wbc1000cellsuL", "WBC", 2, 15, "10^3/uL", oor, missing);
+
+                if (missing.Count > 0)
+                {
+                    incompleteSets++;
+                    warnings.Add($"Biomarker set ({date}): incomplete -- missing {string.Join(", ", missing)}.");
+                }
+
+                foreach (var flag in oor)
+                    warnings.Add($"Biomarker set ({date}): {flag}");
+            }
+        }
+
         // Build response
         return Ok(new
         {
             athleteSlug = slug,
-            name = athleteNode["Name"]?.GetValue<string>(),
-            displayName = athleteNode["DisplayName"]?.GetValue<string>(),
+            name = rawName,
+            displayName = rawDisplayName,
+            effectiveDisplayName,
             division = stats.Division,
-            flag = athleteNode["Flag"]?.GetValue<string>(),
+            flag = rawFlag,
             dateOfBirth = athleteNode["DateOfBirth"]?.DeepClone(),
-            why = athleteNode["Why"]?.GetValue<string>(),
-            mediaContact = athleteNode["MediaContact"]?.GetValue<string>(),
-            personalLink = athleteNode["PersonalLink"]?.GetValue<string>(),
+            why = rawWhy,
+            mediaContact = rawMediaContact,
+            personalLink = rawPersonalLink,
             profilePic = athleteNode["ProfilePic"]?.GetValue<string>(),
             proofs = athleteNode["Proofs"]?.DeepClone(),
             biomarkers,
@@ -266,7 +375,9 @@ public class AgentController : ControllerBase
             currentRank = rank,
             totalRanked,
             currentCycle,
-            hasParticipatedThisCycle = hasParticipated
+            hasParticipatedThisCycle = hasParticipated,
+            suggestions,
+            warnings
         });
     }
 
@@ -285,15 +396,7 @@ public class AgentController : ControllerBase
             return BadRequest(new { error = "Action must be 'confirm', 'update', or 'new_results'." });
 
         // Verify athlete exists
-        var snapshot = _athleteDataService.GetAthletesSnapshot();
-        var exists = snapshot
-            .OfType<JsonObject>()
-            .Any(o => string.Equals(
-                o["AthleteSlug"]?.GetValue<string>(),
-                data.AthleteSlug,
-                StringComparison.OrdinalIgnoreCase));
-
-        if (!exists)
+        if (FindAthleteBySlug(data.AthleteSlug) is null)
             return NotFound(new { error = $"Athlete '{data.AthleteSlug}' not found." });
 
         var currentCycle = CycleParticipationDataService.GetCurrentCycleId();
@@ -339,7 +442,7 @@ public class AgentController : ControllerBase
             if (!success)
             {
                 _logger.LogError("Agent update failed for {Slug}: {Error}", data.AthleteSlug, error);
-                return StatusCode(500, new { error = error ?? "Update processing failed." });
+                return StatusCode(500, new { error = SanitizeApplicationError(error, "Update processing failed.") });
             }
 
             token = _agentDataService.CreateApplication(
@@ -387,7 +490,7 @@ public class AgentController : ControllerBase
         if (!resultSuccess)
         {
             _logger.LogError("Agent new_results failed for {Slug}: {Error}", data.AthleteSlug, resultError);
-            return StatusCode(500, new { error = resultError ?? "New results processing failed." });
+            return StatusCode(500, new { error = SanitizeApplicationError(resultError, "New results processing failed.") });
         }
 
         token = _agentDataService.CreateApplication(

@@ -126,7 +126,7 @@ Also collect the **test date** (YYYY-MM-DD).
 - All in range: "Every value in range. Clean sheet."
 Use sparingly -- highlight 1-2 standouts. Skip for terse users and clinical-register users -- **exception:** RDW 14+% gets a brief note even for efficient users (heaviest coefficient, 0.3306): "RDW [value]% -- heaviest coefficient in PhenoAge." For supportive-register users, skip negative reactions (CRP elevated, RDW wide).
 
-**CRP = 0 or "< X" or "undetectable":** CRP must be > 0 (we take ln(CRP)). Use half the detection limit. If "<0.5" -> use 0.25 mg/L. If no limit given, use 0.1 mg/L. "Your CRP is so low the lab couldn't measure it. I'll use [value] for the calculation."
+**CRP = 0 or "< X" or "undetectable":** CRP must be > 0 (we take ln(CRP)). Use the detection limit value (e.g., "< 0.4" -> use 0.4, "< 0.20" -> use 0.2). If no limit given, use 0.1 mg/L. "Your CRP is so low the lab couldn't measure it. I'll use [value] for the calculation."
 
 **Lymphocytes as absolute count:** If given as absolute (e.g., 2.1 x10^3/uL), calculate: lymph% = (absolute / WBC) * 100. Round to 1 decimal place. Always show the formula and ask the user to verify: "Lymph % = ([abs] / [WBC]) * 100 = [result]%. Does that match your lab report?" If they have a lab-reported lymph %, use that instead. **If both absolute and % provided:** Use the % directly -- skip the calculation.
 
@@ -156,16 +156,74 @@ Use sparingly -- highlight 1-2 standouts. Skip for terse users and clinical-regi
 
 **Images sent early:** If a user sends an image before Step 7, acknowledge and store it: "Got the image -- I'll use it at the proof/profile step." Continue the current step. If they don't specify whether it's a profile pic or proof pic (and it's not obvious from context), ask: "Is this your profile photo or a proof image of lab results?"
 
-**Lab report file reading:** If the user shares a lab report file path (image or PDF screenshot):
-1. Use the `Read` tool to view the image file
-2. Extract all 9 biomarker values from the visible lab results
-3. Identify the units shown and convert to the standard units in the table above
-4. Present extracted values in a confirmation table: "I read these values from your lab report -- please confirm they're correct:"
-5. If any values are ambiguous, partially visible, or unclear, ask the user to clarify those specific values
-6. Once confirmed, proceed as normal with unit validation and PhenoAge calculation
-7. Store the lab report image for use as a proof picture in Step 7
+**Lab report file reading (file paths only):**
+If the user shares a lab report **file path** (image on their machine), you can use the Read tool to view the image and extract biomarker values:
+1. Use the `Read` tool to view the image file (supports jpeg, jpg, png, webp formats)
+2. Identify the lab report format, language, and provider
+3. Extract all 9 biomarker values from the visible lab results
+4. Identify the units shown on the report and convert to the standard units using the conversion table below
+5. Assign a confidence level to the extraction (see below)
+6. Present extracted values in a confirmation table: "I read these values from your lab report -- please confirm they're correct:"
+7. If any values are ambiguous, partially visible, or unclear, ask the user to clarify those specific values
+8. Once confirmed, proceed as normal with unit validation and PhenoAge calculation
+9. Store the lab report image for use as a proof picture in Step 7
 
-**Note:** Lab file reading works with file paths to images on the user's machine. If the user pastes an image inline (not a file path), and you cannot read it, fall back to: "I can't read values from that image -- please type them out. The photo is great for proof though."
+**Lab report unit conversion reference:**
+When extracting from lab reports, many labs (especially US) use conventional units that differ from the stored SI format. Apply these conversions:
+
+| Biomarker | From (common) | To (stored) | Formula |
+|---|---|---|---|
+| Albumin | g/dL | g/L | multiply by 10 |
+| Creatinine | mg/dL | umol/L | multiply by 88.42 |
+| Glucose | mg/dL | mmol/L | divide by 18.016 |
+| ALP | ukat/L | U/L | multiply by 60 |
+| RDW | ratio (e.g. 0.120) | % | multiply by 100 |
+| WBC | giga/L or 10^9/L | 10^3/uL | 1:1 (same value) |
+| CRP, MCV, Lymphocytes % | mg/L, fL, % | same | no conversion |
+
+**Non-English lab report biomarker aliases:**
+When the lab report is in another language, map these terms to the 9 target biomarkers:
+- **Czech:** B_Leukocyty = WBC, Lymfocyty = Lymphocytes, MCV = MCV, RDW = RDW, S_Glukoza = Glucose, S_Kreatinin = Creatinine, S_ALP = ALP, S_Albumin = Albumin, S_CRP = CRP
+- **Spanish / Latin American:** Globulos blancos / Leucocitos = WBC, Linfocitos = Lymphocytes, Volumen corpuscular medio / V.C.M. / V.M.C. = MCV, Amplitud de Distribucion Eritrocitaria = RDW, Glucosa = Glucose, Creatinina = Creatinine, Fosfatasa alcalina = ALP, Albumina = Albumin, Proteina C reactiva / P.C. Reactiva = CRP. **WBC unit alias:** "mm3" or "/mm3" = cells/uL (divide by 1000 to get 10^3/uL)
+- **German:** Leukozyten = WBC, Lymphozyten = Lymphocytes, Mittleres Zellvolumen = MCV, Erythrozyten-Verteilungsbreite = RDW, Glukose = Glucose, Kreatinin = Creatinine, Alkalische Phosphatase = ALP, wrCRP (Wide-Range CRP) = CRP, CRP = CRP. **WBC unit aliases:** "Tsd./uL" (Tausend/uL) = 10^3/uL (use directly); "Zellen/nl" (cells/nanoliter) = 10^3/uL (same numeric value). **Glucose caution:** Some German labs (e.g., GANZIMMUN) report "Mittlere Glucosekonzentration" (HbA1c-estimated mean glucose) instead of direct fasting glucose. PhenoAge requires direct fasting glucose -- flag if only estimated value available. **Albumin caution:** Some German integrative labs report albumin only as electrophoresis fraction (%). Derive: (total protein g/dL x albumin%) / 10 = g/L. Flag derivation for user confirmation.
+- **Portuguese (Brazilian):** Leucocitos = WBC, Linfocitos = Lymphocytes, VCM (Volume Corpuscular Medio) = MCV, RDW = RDW, Glicose/Glicemia = Glucose, Creatinina = Creatinine, Fosfatase Alcalina = ALP, Albumina = Albumin, Proteina C Reativa / Proteina C Reativa Ultra Sensivel = CRP
+- **Indian labs:** WBC unit "cells/cumm" = cells/uL (same value; divide by 1000 to get 10^3/uL)
+- **British English / UAE / portal variants:** "Leucocytes" = WBC (British spelling), "RCDW-CV" = RDW-CV (portal abbreviation variant). Some portals show per-biomarker crop screenshots or two-column comparison tables -- extract each value individually and aggregate.
+- **Australian labs:** Use SI units natively (g/L, umol/L, mmol/L, mg/L, fL). No conversions needed. WBC: x10^9/L = x10^3/uL (1:1). **Lymphocytes:** Australian FBE reports show absolute count (x10^9/L) not %. Derive: lymph% = (lymph_absolute / WBC) x 100. Show derivation for user confirmation.
+- **Russian:** Альбумин=Albumin, Креатинин=Creatinine, Глюкоза=Glucose, СРБ/СРБ высокочувствительный=CRP, Лейкоциты=WBC, Лимфоциты=Lymphocytes, Ср. объем эритр.=MCV, Широ. распред. эритр.=RDW, Фосфатаза щелочная=ALP. **Units:** г/л=g/L, мкмоль/л=umol/L, ммоль/л=mmol/L, мг/л=mg/L, фл=fL, Ед/л=U/L, тыс/мкл=10^3/uL. All SI-native -- no conversions needed.
+- For other languages, use medical context to identify the correct values.
+
+**Extraction confidence levels:**
+- **HIGH** -- Clean tabular lab printouts (Quest, Labcorp, Dorevitch, Orbito Asia, ALTA Diagnosticos, Innoquest Diagnostics, Australian Clinical Labs, MVZ GANZIMMUN, Sabin Diagnostico e Saude, INVITRO (Russia), standard pathology). Present values directly.
+- **MEDIUM** -- Non-English reports, dashboard formats, app-based reports (e.g., Superpower Health), small text. Note: "I extracted these from a [language/format] report -- please double-check." **App-based reports:** Health apps may truncate long biomarker names (e.g., "Red Blood Cell Distribu..." for RDW). Match by partial name + unit + plausible range.
+- **LOW** -- Web reports with badge overlays, blurry images, handwritten results. Tell user: "Some values are hard to read. Please verify each one carefully or provide numbers manually."
+
+**Self-generated summary documents:**
+Self-compiled summaries (spreadsheets, typed lists) are valid data sources at HIGH confidence for extraction, but cannot serve as proof images: "I can read the values, but the admin will need original lab report photos as proof."
+
+**RDW-SD vs RDW-CV on lab reports:**
+Many labs show both RDW-SD (fL, 35-56) and RDW-CV (%, 11-16). PhenoAge requires RDW-CV only. If only RDW-SD is visible, ask: "I see RDW-SD but not RDW-CV. Is it on the next page?" Do NOT convert between them.
+
+**Date format awareness:**
+Non-US lab reports often use DD/MM/YYYY. Use country/language context: US = MM/DD/YYYY, most others = DD/MM/YYYY. For ambiguous dates (e.g., 03/04/2025), check the lab's country. If still ambiguous, ask the user.
+
+**Below-detection-limit values:**
+If a lab value shows "< X" (e.g., "< 0.20 mg/L" for CRP), store the detection limit value (0.2). Tell the user: "Your CRP shows as below the detection limit. I'll use 0.2 as the value."
+
+**Multi-page lab reports:**
+If the user provides multiple images, read each, aggregate biomarkers across pages, and flag any still missing.
+
+**"Previous result" columns:**
+Some labs (notably INVITRO) include a "Previous result" column alongside current results. Always extract from the **"Result" column only** (current values). Note which column you extracted from: "I read the 'Result' column (current test), not the 'Previous result' column."
+
+**Cross-validation (returning athletes only):**
+When extracting from a returning athlete's lab report, compare extracted values against their registered data. Flag significant differences. Also flag if extracted values are **identical** to a prior entry: "These values are identical to your [date] entry. Is this a new test, or the same data?" This prevents accidental resubmission.
+
+**Chronological ordering check (returning athletes):**
+When a returning athlete submits new results, verify the test date is more recent than their latest registered entry. If older, alert: "This test is dated [new date], before your latest entry from [registered date]. Sure you want to submit older results?" Proceed if confirmed.
+
+**Inline images (no file path):**
+If a user sends/pastes an image inline (not as a file path) and expects you to read biomarker values from it, explain: "I can't read values from inline images -- I'll need you to type out the numbers. The photo is great for proof though; an admin will review it to verify your values."
 
 ### 3. Date of Birth
 Ask for year, month, day. Calculate chronological age in decimal years **at the test date** (not current date).
@@ -429,7 +487,12 @@ After submission (Step 9), corrections require a new application.
 
 When a returning athlete is identified (name match via `GET {baseUrl}/api/data/athletes`):
 
-1. Call `GET {baseUrl}/api/agent/athlete/{slug}` to fetch full profile with PhenoAge, rank, and biomarkers.
+1. Call `GET {baseUrl}/api/agent/athlete/{slug}` to fetch full profile with PhenoAge, rank, biomarkers, and data quality hints.
+
+The response includes:
+- `effectiveDisplayName` -- always-usable display name (prefers displayName, falls back to name). Use this in the card.
+- `suggestions` -- array of actionable data quality hints. Present these AFTER the card as gentle nudges.
+- `warnings` -- array of data integrity flags (out-of-range biomarkers, missing proofs, incomplete sets). Present these prominently BEFORE asking the user to confirm.
 
 2. Display the confirmation card:
 
@@ -437,7 +500,7 @@ When a returning athlete is identified (name match via `GET {baseUrl}/api/data/a
 ================================================
    RETURNING ATHLETE - DATA CONFIRMATION
 ================================================
-Name:           [name]
+Name:           [effectiveDisplayName]
 Division:       [division]
 Flag:           [flag]
 Date of Birth:  [YYYY-MM-DD]
@@ -458,9 +521,13 @@ Options: CONFIRM | UPDATE | NEW RESULTS
 
 If the athlete has already participated this cycle (`hasParticipatedThisCycle` is true), note it: "You've already confirmed for [cycle]. You can still update or submit new results."
 
+If `warnings` is non-empty, present them BEFORE the options as "Data Alerts". Frame clearly: "I noticed some issues with your data on file:" -- then list. For biomarker range warnings, suggest verifying lab values or submitting corrected results.
+
+If `suggestions` is non-empty, present them as "Profile Tips" after the card. Frame positively: "A couple of quick things that could strengthen your profile:" -- then list. Don't force action. If the user acts on a suggestion, route to UPDATE flow.
+
 3. Process based on the user's choice:
 
-**CONFIRM** -- Pure data confirmation (no changes). Submit:
+**CONFIRM** -- Pure data confirmation (no changes). Collect account email if not already known. Submit:
 ```bash
 curl -s -X POST {baseUrl}/api/agent/confirm \
   -H "Content-Type: application/json" \
@@ -468,23 +535,23 @@ curl -s -X POST {baseUrl}/api/agent/confirm \
 ```
 Show: "You're confirmed for the [cycle] season. Your profile and rankings carry forward."
 
-**UPDATE** -- Profile field changes. Collect which fields the user wants to change (Name, DisplayName, Division, Flag, Why, MediaContact, PersonalLink, ProfilePic). Then submit:
+**UPDATE** -- Profile field changes. Collect which fields the user wants to change (Name, DisplayName, Division, Flag, Why, MediaContact, PersonalLink, ProfilePic). Collect account email. Then submit:
 ```bash
 curl -s -X POST {baseUrl}/api/agent/confirm \
   -H "Content-Type: application/json" \
   -d @/tmp/lwc_update.json
 ```
-The JSON includes `"action":"update"` plus only the changed fields. Null fields stay unchanged. Creates a tracking token for admin review.
+Write the JSON to a temp file first. The JSON includes `"action":"update"` plus only the changed fields. Null fields stay unchanged. Creates a tracking token for admin review.
 
-**NEW RESULTS** -- New biomarker submission. Enter the standard biomarker collection flow (Step 2) to collect all 9 biomarkers + test date + proof pictures. Then submit:
+**NEW RESULTS** -- New biomarker submission. Enter the standard biomarker collection flow (Step 2) to collect all 9 biomarkers + test date + proof pictures. Skip Steps 3-6 (DOB, sharing, profile info) since these are already on file -- go directly from Step 2 to proof image collection, then review and submit:
 ```bash
 curl -s -X POST {baseUrl}/api/agent/confirm \
   -H "Content-Type: application/json" \
   -d @/tmp/lwc_new_results.json
 ```
-The JSON includes `"action":"new_results"`, biomarkers array, and proof pics. Creates a tracking token. Show comparison with previous PhenoAge if available: "Previous PhenoAge: [old]. New PhenoAge: [new]. Delta: [change]."
+Write the JSON to a temp file first. The JSON includes `"action":"new_results"`, biomarkers array, proof pics, and account email. Creates a tracking token. Show comparison with previous PhenoAge if available: "Previous PhenoAge: [old]. New PhenoAge: [new]. Delta: [change]."
 
-4. After any action, offer sharing (Step 5 rules apply -- skip if user is terse or result is worse).
+4. After any action, show a brief review summary of what was submitted (action taken, key data points). Then offer sharing (Step 5 rules apply -- skip if user is terse or result is worse).
 
 ### 13. Season Participation Stats
 
@@ -510,4 +577,10 @@ Current Cycle: [year]
 ## Platform Iterations
 - v1 (2025): Manual web form applications only
 - v2 (2025): AI agent skill for new applications (/lwc-apply)
-- v3 (2026): Returning athlete confirmation flow, lab file reading, participation tracking
+- v3.0 (2026): Returning athlete confirmation flow, lab file reading, participation tracking
+- v3.1 (2026): Data quality suggestions, effectiveDisplayName, sanitized error messages
+- v3.2 (2026): Biomarker range validation, warnings array, incomplete set detection
+- v3.3 (2026): Enhanced lab report vision extraction -- unit conversion tables, non-English aliases, confidence levels, cross-validation, multi-page aggregation
+- v3.4 (2026): International lab coverage -- Portuguese/Brazilian aliases, Indian unit conventions, German WBC alias, app-based report handling, RDW-SD/CV disambiguation, date format awareness, self-generated document support
+- v3.5 (2026): Expanded alias coverage -- German Zellen/nl WBC unit + wrCRP + albumin electrophoresis + HbA1c glucose warning, Spanish/Latin American V.M.C./P.C. Reactiva/mm3 aliases, British Leucocytes + RCDW-CV, Australian SI-native lab handling + lymphocyte derivation, duplicate submission detection, chronological ordering check
+- v3.6 (2026): Russian lab support -- Cyrillic biomarker aliases + Russian unit aliases (тыс/мкл, г/л, etc.), INVITRO as HIGH confidence provider, "Previous result" column extraction trap, CRP below-detection-limit rule harmonization

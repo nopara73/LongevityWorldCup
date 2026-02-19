@@ -24,8 +24,8 @@ public sealed class SeasonFinalizerService
     private readonly EventDataService _events;
     private readonly DatabaseManager _db;
 
-    private const int SeasonIdConst = 2025;
-    private static readonly DateTime SeasonClosesAtUtcConst = new(2026, 1, 16, 7, 41, 50, DateTimeKind.Utc);
+    public const int SeasonIdConst = 2025;
+    public static readonly DateTime SeasonClosesAtUtcConst = new(2026, 1, 16, 7, 41, 50, DateTimeKind.Utc);
     private const string ClockIdConst = "PhenoAge";
 
     public SeasonFinalizerService(AthleteDataService athletes, EventDataService events, DatabaseManager db)
