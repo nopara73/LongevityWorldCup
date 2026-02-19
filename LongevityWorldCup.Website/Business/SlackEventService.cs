@@ -14,7 +14,7 @@ public sealed class SlackEventService : IDisposable
     private Timer? _timer;
     private readonly TimeSpan _window = TimeSpan.FromSeconds(5);
     private Dictionary<string, (string Name, int? Rank)> _athDir = new(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)> _bio = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, (double? ChronoAge, double? LowestPhenoAge, double? LowestBortzAge)> _bio = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, string> _podcastBySlug = new(StringComparer.OrdinalIgnoreCase);
 
     public SlackEventService(SlackWebhookClient slack)
@@ -29,10 +29,10 @@ public sealed class SlackEventService : IDisposable
         lock (_lockObj) _athDir = map;
     }
     
-    public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge)> items)
+    public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)> items)
     {
-        var map = new Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)>(StringComparer.OrdinalIgnoreCase);
-        foreach (var i in items) map[i.Slug] = (i.ChronologicalAge, i.LowestPhenoAge);
+        var map = new Dictionary<string, (double? ChronoAge, double? LowestPhenoAge, double? LowestBortzAge)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in items) map[i.Slug] = (i.ChronologicalAge, i.LowestPhenoAge, i.LowestBortzAge);
         lock (_lockObj) _bio = map;
     }
 
@@ -114,7 +114,7 @@ public sealed class SlackEventService : IDisposable
             list.Add(item);
         }
 
-        Dictionary<string, (double? ChronoAge, double? LowestPhenoAge)> bio;
+        Dictionary<string, (double? ChronoAge, double? LowestPhenoAge, double? LowestBortzAge)> bio;
         Dictionary<string, string> podcastBySlug;
         lock (_lockObj)
         {
@@ -124,6 +124,7 @@ public sealed class SlackEventService : IDisposable
 
         double? GetChrono(string s) => bio.TryGetValue(s, out var v) ? v.ChronoAge : null;
         double? GetPheno(string s) => bio.TryGetValue(s, out var v) ? v.LowestPhenoAge : null;
+        double? GetBortz(string s) => bio.TryGetValue(s, out var v) ? v.LowestBortzAge : null;
         string? GetPodcast(string s) => podcastBySlug.TryGetValue(s, out var url) ? url : null;
 
         foreach (var kv in groups)
@@ -139,7 +140,7 @@ public sealed class SlackEventService : IDisposable
             }
             else
             {
-                message = SlackMessageBuilder.ForMergedGroup(list, SlugToNameResolve, GetChrono, GetPheno, GetPodcast);
+                message = SlackMessageBuilder.ForMergedGroup(list, SlugToNameResolve, GetChrono, GetPheno, GetBortz, GetPodcast);
             }
 
             if (string.IsNullOrWhiteSpace(message)) continue;
