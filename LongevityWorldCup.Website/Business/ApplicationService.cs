@@ -162,7 +162,14 @@ public partial class ApplicationService
             && applicantData.DateOfBirth is null;
 
         string? accountEmail = applicantData.AccountEmail?.Trim();
-        string? chronoBioDifference = applicantData.ChronoBioDifference?.Trim();
+        string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
+        string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
+        var differenceLines = new List<string>();
+        if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
+            differenceLines.Add($"Pheno Age difference: {chronoPhenoDifference}");
+        if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
+            differenceLines.Add($"Bortz Age difference: {chronoBortzDifference}");
+        var differenceBlock = differenceLines.Count > 0 ? string.Join("\n", differenceLines) : string.Empty;
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(applicantData.Name, _config.EmailFrom));
@@ -268,7 +275,8 @@ public partial class ApplicationService
         if (isResultSubmissionOnly)
         {
             emailBody = $"Someone's been bullying Father Time again...\n";
-            emailBody += $"Age Difference: {chronoBioDifference}";
+            if (!string.IsNullOrWhiteSpace(differenceBlock))
+                emailBody += differenceBlock;
         }
         else if (isEditSubmissionOnly)
         {
@@ -277,7 +285,8 @@ public partial class ApplicationService
         else
         {
             emailBody = $"\nAccount Email: {accountEmail}\n";
-            emailBody += $"Age Difference: {chronoBioDifference}";
+            if (!string.IsNullOrWhiteSpace(differenceBlock))
+                emailBody += differenceBlock;
         }
         builder.TextBody = emailBody;
 

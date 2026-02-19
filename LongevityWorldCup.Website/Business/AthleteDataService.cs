@@ -661,7 +661,7 @@ public class AthleteDataService : IDisposable
     {
         var asOf = (asOfUtc ?? DateTime.UtcNow).Date;
         var athletesSnapshot = GetAthletesSnapshot();
-        var results = new List<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
+        var results = new List<(bool HasBortz, double EffectiveReduction, DateTime DobUtc, string Name, JsonObject Obj)>();
 
         var statsMap = PhenoStatsCalculator.BuildAll(athletesSnapshot, asOf);
 
@@ -676,7 +676,11 @@ public class AthleteDataService : IDisposable
 
             var chronoToday = r.ChronoAge.HasValue ? Math.Round(r.ChronoAge.Value, 2) : 0;
             var lowestPheno = r.LowestPhenoAge.HasValue ? Math.Round(r.LowestPhenoAge.Value, 2) : chronoToday;
-            var ageDiff = Math.Round(r.AgeReduction ?? 0, 2);
+            var phenoDiff = Math.Round(r.AgeReduction ?? 0, 2);
+            var hasBortz = r.BortzAgeReduction.HasValue &&
+                           !double.IsNaN(r.BortzAgeReduction.Value) &&
+                           !double.IsInfinity(r.BortzAgeReduction.Value);
+            var effectiveDiff = hasBortz ? Math.Round(r.BortzAgeReduction!.Value, 2) : phenoDiff;
 
             var obj = new JsonObject
             {
@@ -684,10 +688,10 @@ public class AthleteDataService : IDisposable
                 ["Name"] = name,
                 ["ChronologicalAge"] = chronoToday,
                 ["LowestPhenoAge"] = lowestPheno,
-                ["AgeDifference"] = ageDiff
+                ["AgeDifference"] = effectiveDiff
             };
 
-            results.Add((ageDiff, dobUtc, name, obj));
+            results.Add((hasBortz, effectiveDiff, dobUtc, name, obj));
         }
 
         var arr = new JsonArray();
@@ -697,13 +701,14 @@ public class AthleteDataService : IDisposable
         return arr;
     }
 
-    private static IOrderedEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)>
-        SortByCompetitionRules(IEnumerable<(double AgeReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
+    private static IOrderedEnumerable<(bool HasBortz, double EffectiveReduction, DateTime DobUtc, string Name, JsonObject Obj)>
+        SortByCompetitionRules(IEnumerable<(bool HasBortz, double EffectiveReduction, DateTime DobUtc, string Name, JsonObject Obj)> rows)
     {
         return rows
-            .OrderBy(t => t.AgeReduction) // 1) more negative is better
-            .ThenBy(t => t.DobUtc) // 2) older (earlier DOB) wins
-            .ThenBy(t => t.Name, StringComparer.Ordinal); // 3) alphabetical
+            .OrderByDescending(t => t.HasBortz) // 1) Bortz participants are ranked ahead of Pheno-only
+            .ThenBy(t => t.EffectiveReduction) // 2) more negative is better
+            .ThenBy(t => t.DobUtc) // 3) older (earlier DOB) wins
+            .ThenBy(t => t.Name, StringComparer.Ordinal); // 4) alphabetical
     }
 
     public int?[] GetPlacements(string athleteSlug)
@@ -1380,6 +1385,7 @@ public class AthleteDataService : IDisposable
         var athletesSnapshot = GetAthletesSnapshot();
         var list = new List<(string Slug, string Name, int? CurrentRank)>();
         var podcastList = new List<(string Slug, string PodcastLink)>();
+        var bioList = new List<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)>();
         foreach (var o in athletesSnapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
@@ -1393,10 +1399,28 @@ public class AthleteDataService : IDisposable
             var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(link))
                 podcastList.Add((slug, link.Trim()));
+
+            double? chrono = null;
+            double? pheno = null;
+            double? bortz = null;
+
+            if (o["ChronoAge"] is JsonValue chronoVal && chronoVal.TryGetValue<double>(out var chronoOut))
+                chrono = chronoOut;
+            else if (o["ChronologicalAge"] is JsonValue chronologicalAgeVal && chronologicalAgeVal.TryGetValue<double>(out var chronologicalAgeOut))
+                chrono = chronologicalAgeOut;
+
+            if (o["LowestPhenoAge"] is JsonValue phenoVal && phenoVal.TryGetValue<double>(out var phenoOut))
+                pheno = phenoOut;
+
+            if (o["LowestBortzAge"] is JsonValue bortzVal && bortzVal.TryGetValue<double>(out var bortzOut))
+                bortz = bortzOut;
+
+            bioList.Add((slug, chrono, pheno, bortz));
         }
 
         _eventDataService.SetAthleteDirectory(list);
         _eventDataService.SetPodcastLinks(podcastList);
+        _eventDataService.SetAthleteBio(bioList);
     }
 
     // ===== biomarker/test signature helpers (single-column persistence) =====
@@ -1449,8 +1473,9 @@ public class AthleteDataService : IDisposable
 
     private static string ComputeBiomarkerSignature(JsonObject athlete)
     {
-        // Canonicalize each biomarker record to "yyyy-MM-dd|AlbGL|CreatUmolL|GluMmolL|CrpMgL|Wbc1000cellsuL|LymPc|McvFL|RdwPc|AlpUL"
-        // Sort all lines and SHA-256 hash the result. Missing values are empty strings.
+        // Canonicalize each biomarker record from present values only:
+        // Date + numeric biomarker key/value pairs sorted by key.
+        // This keeps signatures stable when new optional biomarker fields are introduced.
         if (athlete["Biomarkers"] is not JsonArray arr || arr.Count == 0)
             return Sha256Hex(string.Empty);
 
@@ -1467,33 +1492,19 @@ public class AthleteDataService : IDisposable
                 dateStr = d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             }
 
-            string V(string key)
+            var parts = new List<string> { dateStr };
+            foreach (var kv in node.OrderBy(kv => kv.Key, StringComparer.Ordinal))
             {
-                try
-                {
-                    var v = node[key];
-                    if (v is null) return "";
-                    var dval = v.GetValue<double>();
-                    // round-trip, invariant string for stable hashing
-                    return dval.ToString("R", CultureInfo.InvariantCulture);
-                }
-                catch
-                {
-                    return "";
-                }
+                if (string.Equals(kv.Key, "Date", StringComparison.OrdinalIgnoreCase)) continue;
+                if (kv.Value is not JsonValue jv) continue;
+                if (!jv.TryGetValue<double>(out var num)) continue;
+                if (double.IsNaN(num) || double.IsInfinity(num)) continue;
+
+                var val = num.ToString("R", CultureInfo.InvariantCulture);
+                parts.Add($"{kv.Key}={val}");
             }
 
-            var alb = V("AlbGL");
-            var creat = V("CreatUmolL");
-            var glu = V("GluMmolL");
-            var crp = V("CrpMgL");
-            var wbc = V("Wbc1000cellsuL");
-            var lym = V("LymPc");
-            var mcv = V("McvFL");
-            var rdw = V("RdwPc");
-            var alp = V("AlpUL");
-
-            var line = string.Join("|", new[] { dateStr, alb, creat, glu, crp, wbc, lym, mcv, rdw, alp });
+            var line = string.Join("|", parts);
             lines.Add(line);
         }
 

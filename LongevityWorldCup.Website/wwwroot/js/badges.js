@@ -32,6 +32,7 @@ const LEGACY_BG = {
     metabolic:    "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;",
     inflammation: "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;",
     immune:       "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;",
+    vitaminD:     "background: linear-gradient(135deg, #f9a825, #f57f17); border: 2px solid #8d5b00;",
     personal:     "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;",
     black:        "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;"
 };
@@ -42,17 +43,20 @@ const BASE_ICONS = {
     'Chronological Age – Oldest': 'fa-infinity',
     'Chronological Age – Youngest': 'fa-baby',
     'PhenoAge – Lowest': 'fa-feather',
+    'Bortz Age – Lowest': 'fa-feather-pointed',
     'Most Submissions': 'fa-skull-crossbones',
     '≥2 Submissions': 'fa-calendar-check',
     'Crowd – Most Guessed': 'fa-users',
     'Crowd – Age Gap (Chrono−Crowd)': 'fa-user-ninja',
     'Crowd – Lowest Crowd Age': 'fa-baby',
     'PhenoAge Best Improvement': 'fa-clock',
+    'Bortz Age Best Improvement': 'fa-clock',
     'Best Domain – Liver': 'fa-droplet',
     'Best Domain – Kidney': 'fa-toilet',
     'Best Domain – Metabolic': 'fa-fire',
     'Best Domain – Inflammation': 'fa-temperature-three-quarters',
     'Best Domain – Immune': 'fa-virus',
+    'Best Domain – Vitamin D': 'fa-sun',
     'Podcast': 'fa-microphone',
     'First Applicants': 'fa-dove',
     'S25': 'fa-ranking-star',
@@ -74,7 +78,7 @@ function pickIconForServerBadge(b) {
     const place = getPlace(b);
     const val = getVal(b);
 
-    if (label === 'Age Reduction' && cat === 'global' && place) {
+    if (label === 'Age Reduction' && (cat === 'global' || cat === 'amateur') && place) {
         if (place === 1) return 'fa-crown';
         if (place === 2) return 'fa-medal';
         if (place === 3) return 'fa-award';
@@ -106,6 +110,11 @@ function pickIconForServerBadge(b) {
         if (place === 2) return 'fa-portrait';
         if (place === 3) return 'fa-hourglass-start';
     }
+    if (label === 'Bortz Age – Lowest' && place) {
+        if (place === 1) return 'fa-feather-pointed';
+        if (place === 2) return 'fa-portrait';
+        if (place === 3) return 'fa-hourglass-start';
+    }
 
     if (label === 'First Applicants') {
         if (place === 1) return 'fa-circle-notch';
@@ -134,7 +143,8 @@ function pickBackgroundForServerBadge(b) {
     if (
         label === 'Chronological Age – Oldest' ||
         label === 'Chronological Age – Youngest' ||
-        label === 'PhenoAge – Lowest'
+        label === 'PhenoAge – Lowest' ||
+        label === 'Bortz Age – Lowest'
     ) {
         return LEGACY_BG.default;
     }
@@ -155,8 +165,10 @@ function pickBackgroundForServerBadge(b) {
     if (label === 'Best Domain – Metabolic')    return LEGACY_BG.metabolic;
     if (label === 'Best Domain – Inflammation') return LEGACY_BG.inflammation;
     if (label === 'Best Domain – Immune')       return LEGACY_BG.immune;
+    if (label === 'Best Domain – Vitamin D')    return LEGACY_BG.vitaminD;
 
     if (label === 'PhenoAge Best Improvement')  return LEGACY_BG.default;
+    if (label === 'Bortz Age Best Improvement') return LEGACY_BG.default;
 
     return LEGACY_BG.default;
 }
@@ -168,7 +180,8 @@ function pickClickUrl(b, athlete) {
     const val = getVal(b);
 
     if (label === 'Age Reduction') {
-        if (cat === 'global') return '/leaderboard/leaderboard';
+        if (cat === 'global') return '/';
+        if (cat === 'amateur') return '/?filters=amateur';
         if ((cat === 'division' || cat === 'generation' || cat === 'exclusive') && val) {
             const slug = (typeof window.slugifyName === 'function') ? window.slugifyName(String(val), true) : null;
             return slug ? `/league/${slug}` : null;
@@ -194,8 +207,14 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
         if (cat === 'global') {
             if (place === 1) return 'Ultimate Lifeform: #1 in the Ultimate League';
             if (place === 2) return 'Near Immortal: #2 in the Ultimate League';
-            if (place === 3) return 'Third and Threatening: #3 in the Ultimate League';
-            return 'Age Reduction';
+            if (place === 3) return 'Third and threatening: #3 in the Ultimate League';
+            return 'Age reduction';
+        }
+        if (cat === 'amateur') {
+            if (place === 1) return 'Upstart: #1 in Amateur League';
+            if (place === 2) return 'Challenger: #2 in Amateur League';
+            if (place === 3) return 'Harbinger of Change: #3 in Amateur League';
+            return '# in Amateur League';
         }
         if (cat === 'division') {
             if (place === 1) {
@@ -225,85 +244,105 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
 
     if (label === 'Chronological Age – Oldest' && place) {
         if (suppressValues) {
-            if (place === 1) return 'Yoda: Chronologically Oldest';
-            if (place === 2) return 'Master Roshi: Chronologically 2nd Oldest';
-            if (place === 3) return 'Mr. Miyagi: Chronologically 3rd Oldest';
+            if (place === 1) return 'Yoda: Chronologically oldest';
+            if (place === 2) return 'Master Roshi: Chronologically 2nd oldest';
+            if (place === 3) return 'Mr. Miyagi: Chronologically 3rd oldest';
         }
 
         const age = (athlete?.chronologicalAge ?? athlete?.ChronoAge ?? athlete?.chronological_age);
         const hasAge = Number.isFinite(Number(age));
         const ageText = hasAge ? Number(age).toFixed(1) : '';
         if (!hasAge) {
-            if (place === 1) return 'Yoda: Chronologically Oldest';
-            if (place === 2) return 'Master Roshi: Chronologically 2nd Oldest';
-            if (place === 3) return 'Mr. Miyagi: Chronologically 3rd Oldest';
+            if (place === 1) return 'Yoda: Chronologically oldest';
+            if (place === 2) return 'Master Roshi: Chronologically 2nd oldest';
+            if (place === 3) return 'Mr. Miyagi: Chronologically 3rd oldest';
         }
-        if (place === 1) return `Yoda: Chronologically Oldest (Age: ${ageText} years)`;
-        if (place === 2) return `Master Roshi: Chronologically 2nd Oldest (Age: ${ageText})`;
-        if (place === 3) return `Mr. Miyagi: Chronologically 3rd Oldest (Age: ${ageText})`;
+        if (place === 1) return `Yoda: Chronologically oldest (age: ${ageText} years)`;
+        if (place === 2) return `Master Roshi: Chronologically 2nd oldest (age: ${ageText})`;
+        if (place === 3) return `Mr. Miyagi: Chronologically 3rd oldest (age: ${ageText})`;
     }
 
     if (label === 'Chronological Age – Youngest' && place) {
         if (suppressValues) {
-            if (place === 1) return 'Son Goten: Chronologically Youngest';
-            if (place === 2) return 'Son Gohan: Chronologically 2nd Youngest';
-            if (place === 3) return 'Son Goku: Chronologically 3rd Youngest';
+            if (place === 1) return 'Son Goten: Chronologically youngest';
+            if (place === 2) return 'Son Gohan: Chronologically 2nd youngest';
+            if (place === 3) return 'Son Goku: Chronologically 3rd youngest';
         }
 
         const age = (athlete?.chronologicalAge ?? athlete?.ChronoAge ?? athlete?.chronological_age);
         const hasAge = Number.isFinite(Number(age));
         const ageText = hasAge ? Number(age).toFixed(1) : '';
         if (!hasAge) {
-            if (place === 1) return 'Son Goten: Chronologically Youngest';
-            if (place === 2) return 'Son Gohan: Chronologically 2nd Youngest';
-            if (place === 3) return 'Son Goku: Chronologically 3rd Youngest';
+            if (place === 1) return 'Son Goten: Chronologically youngest';
+            if (place === 2) return 'Son Gohan: Chronologically 2nd youngest';
+            if (place === 3) return 'Son Goku: Chronologically 3rd youngest';
         }
-        if (place === 1) return `Son Goten: Chronologically Youngest (Age: ${ageText} years)`;
-        if (place === 2) return `Son Gohan: Chronologically 2nd Youngest (Age: ${ageText})`;
-        if (place === 3) return `Son Goku: Chronologically 3rd Youngest (Age: ${ageText})`;
+        if (place === 1) return `Son Goten: Chronologically youngest (age: ${ageText} years)`;
+        if (place === 2) return `Son Gohan: Chronologically 2nd youngest (age: ${ageText})`;
+        if (place === 3) return `Son Goku: Chronologically 3rd youngest (age: ${ageText})`;
     }
 
     if (label === 'PhenoAge – Lowest' && place) {
         if (suppressValues) {
-            if (place === 1) return 'Peter Pan: Biologically Youngest';
-            if (place === 2) return 'Dorian Gray: Biologically 2nd Youngest';
-            if (place === 3) return 'Benjamin Button: Biologically 3rd Youngest';
+            if (place === 1) return 'Peter Pan: Biologically youngest according to Pheno Age';
+            if (place === 2) return 'Dorian Gray: Biologically 2nd youngest according to Pheno Age';
+            if (place === 3) return 'Benjamin Button: Biologically 3rd youngest according to Pheno Age';
         }
 
         const ph = (athlete?.lowestPhenoAge ?? athlete?.LowestPhenoAge);
         const hasPh = Number.isFinite(Number(ph));
         const phText = hasPh ? Number(ph).toFixed(1) : '';
         if (!hasPh) {
-            if (place === 1) return 'Peter Pan: Biologically Youngest';
-            if (place === 2) return 'Dorian Gray: Biologically 2nd Youngest';
-            if (place === 3) return 'Benjamin Button: Biologically 3rd Youngest';
+            if (place === 1) return 'Peter Pan: Biologically youngest according to Pheno Age';
+            if (place === 2) return 'Dorian Gray: Biologically 2nd youngest according to Pheno Age';
+            if (place === 3) return 'Benjamin Button: Biologically 3rd youngest according to Pheno Age';
         }
-        if (place === 1) return `Peter Pan: Biologically Youngest (Pheno Age: ${phText} years)`;
-        if (place === 2) return `Dorian Gray: Biologically 2nd Youngest (Pheno Age: ${phText})`;
-        if (place === 3) return `Benjamin Button: Biologically 3rd Youngest (Pheno Age: ${phText})`;
+        if (place === 1) return `Peter Pan: Biologically youngest according to Pheno Age: ${phText} years old`;
+        if (place === 2) return `Dorian Gray: Biologically 2nd youngest according to Pheno Age: ${phText} years old`;
+        if (place === 3) return `Benjamin Button: Biologically 3rd youngest according to Pheno Age: ${phText} years old`;
+    }
+
+    if (label === 'Bortz Age – Lowest' && place) {
+        if (suppressValues) {
+            if (place === 1) return 'Peter Pan: Biologically youngest according to Bortz Age';
+            if (place === 2) return 'Dorian Gray: Biologically 2nd youngest according to Bortz Age';
+            if (place === 3) return 'Benjamin Button: Biologically 3rd youngest according to Bortz Age';
+        }
+
+        const ba = (athlete?.lowestBortzAge ?? athlete?.LowestBortzAge);
+        const hasBa = Number.isFinite(Number(ba));
+        const baText = hasBa ? Number(ba).toFixed(1) : '';
+        if (!hasBa) {
+            if (place === 1) return 'Peter Pan: Biologically youngest according to Bortz Age';
+            if (place === 2) return 'Dorian Gray: Biologically 2nd youngest according to Bortz Age';
+            if (place === 3) return 'Benjamin Button: Biologically 3rd youngest according to Bortz Age';
+        }
+        if (place === 1) return `Peter Pan: Biologically youngest according to Bortz Age: ${baText} years old`;
+        if (place === 2) return `Dorian Gray: Biologically 2nd youngest according to Bortz Age: ${baText} years old`;
+        if (place === 3) return `Benjamin Button: Biologically 3rd youngest according to Bortz Age: ${baText} years old`;
     }
 
     if (label === 'Most Submissions') {
-        if (suppressValues) return 'The Submittinator: Most Tests Submitted';
+        if (suppressValues) return 'The Submittinator: Most tests submitted';
         const c = (athlete?.submissionCount ?? athlete?.SubmissionCount ?? 0);
-        return `The Submittinator: Most Tests Submitted: ${c}`;
+        return `The Submittinator: Most tests submitted: ${c}`;
     }
 
     if (label === '≥2 Submissions') {
-        return 'The Regular: Two or More Tests Submitted';
+        return 'The Regular: Two or more tests submitted';
     }
 
     if (typeof label === 'string' && label.startsWith('Crowd – ')) {
         if (label.endsWith('Most Guessed') && place) {
             if (suppressValues) {
-                if (place === 1) return 'Popular AF: Most Age Guesses Received';
-                if (place === 2) return 'Pretty Damn Popular: 2nd Most Age Guesses Received';
-                if (place === 3) return 'Shockingly Popular: 3rd Most Age Guesses Received';
+                if (place === 1) return 'Popular AF: Most age guesses received';
+                if (place === 2) return 'Pretty damn popular: 2nd most age guesses received';
+                if (place === 3) return 'Shockingly popular: 3rd most age guesses received';
             }
             const count = (athlete?.crowdCount ?? athlete?.CrowdCount ?? 0);
-            if (place === 1) return `Popular AF: Most Age Guesses Received (${count})`;
-            if (place === 2) return `Pretty Damn Popular: 2nd Most Age Guesses Received (${count})`;
-            if (place === 3) return `Shockingly Popular: 3rd Most Age Guesses Received (${count})`;
+            if (place === 1) return `Popular AF: Most age guesses received (${count})`;
+            if (place === 2) return `Pretty damn popular: 2nd most age guesses received (${count})`;
+            if (place === 3) return `Shockingly popular: 3rd most age guesses received (${count})`;
         }
 
         if (label.includes('Age Gap') && place) {
@@ -324,82 +363,111 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
 
         if (label.endsWith('Lowest Crowd Age') && place) {
             if (suppressValues) {
-                if (place === 1) return 'Baby Boss: Youngest Looking';
-                if (place === 2) return 'Lullaby Lord: 2nd Youngest Looking';
-                if (place === 3) return 'Diaper Don: 3rd Youngest Looking';
+                if (place === 1) return 'Baby Boss: Youngest looking';
+                if (place === 2) return 'Lullaby Lord: 2nd youngest looking';
+                if (place === 3) return 'Diaper Don: 3rd youngest looking';
             }
             const cr = Number(athlete?.crowdAge ?? athlete?.CrowdAge ?? 0);
             const ageText = Number.isFinite(cr) ? cr.toFixed(1) : '';
             const yearWord = ageText === '1.0' ? 'year' : 'years';
-            if (place === 1) return `Baby Boss: Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
-            if (place === 2) return `Lullaby Lord: 2nd Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
-            if (place === 3) return `Diaper Don: 3rd Youngest Looking (Crowd Age: ${ageText} ${yearWord})`;
+            if (place === 1) return `Baby Boss: Youngest looking (Crowd age: ${ageText} ${yearWord})`;
+            if (place === 2) return `Lullaby Lord: 2nd youngest looking (Crowd age: ${ageText} ${yearWord})`;
+            if (place === 3) return `Diaper Don: 3rd youngest looking (Crowd age: ${ageText} ${yearWord})`;
         }
     }
 
     if (label === 'PhenoAge Best Improvement') {
-        if (suppressValues) return 'Redemption Arc: Greatest Age Reversal from First Submission (Baseline)';
+        if (suppressValues) return 'Redemption Arc: Greatest age reversal from first submission according to Pheno Age';
         let delta = null;
         if (athlete && typeof athlete.phenoAgeDifference === 'number') delta = athlete.phenoAgeDifference;
         else if (athlete && typeof athlete.PhenoAgeDiffFromBaseline === 'number') delta = athlete.PhenoAgeDiffFromBaseline;
         if (Number.isFinite(delta)) {
             const years = Number(delta).toFixed(1);
-            return `Redemption Arc: Greatest Age Reversal from First Submission (Baseline) (${years} years)`;
+            return `Redemption Arc: Greatest age reversal from first submission according to Pheno Age: ${years} years`;
         }
-        return 'Redemption Arc: Greatest Age Reversal from First Submission (Baseline)';
+        return 'Redemption Arc: Greatest age reversal from first submission according to Pheno Age';
+    }
+
+    if (label === 'Bortz Age Best Improvement') {
+        if (suppressValues) return 'Redemption Arc: Greatest age reversal from first submission according to Bortz Age';
+        let delta = null;
+        if (athlete && typeof athlete.bortzAgeDifference === 'number') delta = athlete.bortzAgeDifference;
+        else if (athlete && typeof athlete.BortzAgeDiffFromBaseline === 'number') delta = athlete.BortzAgeDiffFromBaseline;
+        if (Number.isFinite(delta)) {
+            const years = Number(delta).toFixed(1);
+            return `Redemption Arc: Greatest age reversal from first submission according to Bortz Age: ${years} years`;
+        }
+        return 'Redemption Arc: Greatest age reversal from first submission according to Bortz Age';
     }
 
     if (typeof label === 'string' && label.startsWith('Best Domain')) {
         if (suppressValues) {
-            if (label === 'Best Domain – Liver') return 'Liver King: Top Liver Profile';
-            if (label === 'Best Domain – Kidney') return 'Kidney Overlord: Top Kidney Profile';
-            if (label === 'Best Domain – Metabolic') return 'Glucose Gladiator: Top Metabolic Profile';
-            if (label === 'Best Domain – Inflammation') return 'Inflammation Whisperer: Top Inflammation Profile';
-            if (label === 'Best Domain – Immune') return 'Pathogen Punisher: Top Immune Profile';
+            if (label === 'Best Domain – Liver') return 'Liver King: Top liver profile';
+            if (label === 'Best Domain – Kidney') return 'Kidney Overlord: Top kidney profile';
+            if (label === 'Best Domain – Metabolic') return 'Metabolic Machine: Top metabolic profile';
+            if (label === 'Best Domain – Inflammation') return 'Inflammation Whisperer: Top inflammation profile';
+            if (label === 'Best Domain – Immune') return 'Pathogen Punisher: Top immune profile';
+            if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile';
         }
 
+        // Best Domain awards use domain contribution; biomarkers from athlete profile (age-visualization), not onboarding.
+        const bortz = athlete?.bestBortzValues || athlete?.BestBortzValues;
+        if (typeof window.getBestDomainBiomarkerTooltip === 'function' && Array.isArray(bortz) && bortz.length >= 22) {
+            const biomarkerPart = window.getBestDomainBiomarkerTooltip(label, bortz);
+            if (biomarkerPart) {
+                if (label === 'Best Domain – Liver') return 'Liver King: Top liver profile ' + biomarkerPart;
+                if (label === 'Best Domain – Kidney') return 'Kidney Overlord: Top kidney profile ' + biomarkerPart;
+                if (label === 'Best Domain – Metabolic') return 'Metabolic Machine: Top metabolic profile ' + biomarkerPart;
+                if (label === 'Best Domain – Immune') return 'Pathogen Punisher: Top immune profile ' + biomarkerPart;
+                if (label === 'Best Domain – Inflammation') return 'Inflammation Whisperer: Top inflammation profile ' + biomarkerPart;
+                if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile ' + biomarkerPart;
+            }
+        }
+
+        // Fallback when bestBortzValues not available (e.g. Pheno-only data).
         const best = athlete?.bestBiomarkerValues || athlete?.BestMarkerValues;
         if (Array.isArray(best) && best.length >= 10) {
+            const crp = (Math.exp(Number(best[4])) * 10).toFixed(2);
+            if (label === 'Best Domain – Inflammation') return `Inflammation Whisperer: Top inflammation profile (CRP ${crp} mg/L)`;
+
             const alb = Number(best[1]).toFixed(1);
             const creat = Number(best[2]).toFixed(1);
             const glu = Number(best[3]).toFixed(1);
-            const crp = (Math.exp(Number(best[4])) * 10).toFixed(2);
             const wbc = Number(best[5]).toFixed(1);
             const lym = Number(best[6]).toFixed(1);
             const mcv = Number(best[7]).toFixed(1);
             const rdw = Number(best[8]).toFixed(1);
             const alp = Number(best[9]).toFixed(1);
-
-            if (label === 'Best Domain – Liver') return `Liver King: Top Liver Profile (Albumin ${alb} g/L, ALP ${alp} U/L)`;
-            if (label === 'Best Domain – Kidney') return `Kidney Overlord: Top Kidney Profile (Creatinine ${creat} µmol/L)`;
-            if (label === 'Best Domain – Metabolic') return `Glucose Gladiator: Top Metabolic Profile (Glucose ${glu} mmol/L)`;
-            if (label === 'Best Domain – Inflammation') return `Inflammation Whisperer: Top Inflammation Profile (CRP ${crp} mg/L)`;
-            if (label === 'Best Domain – Immune') return `Pathogen Punisher: Top Immune Profile (WBC ${wbc} 10³ cells/µL, Lymphocyte ${lym}%, MCV ${mcv} fL, RDW ${rdw}%)`;
+            if (label === 'Best Domain – Liver') return `Liver King: Top liver profile (albumin ${alb} g/L, ALP ${alp} U/L)`;
+            if (label === 'Best Domain – Kidney') return `Kidney Overlord: Top kidney profile (creatinine ${creat} µmol/L)`;
+            if (label === 'Best Domain – Metabolic') return `Metabolic Machine: Top metabolic profile (glucose ${glu} mmol/L)`;
+            if (label === 'Best Domain – Immune') return `Pathogen Punisher: Top immune profile (WBC ${wbc} 10³ cells/µL, lymphocyte ${lym}%, MCV ${mcv} fL, RDW ${rdw}%)`;
         }
+        if (label === 'Best Domain – Vitamin D') return 'Sun God: Top vitamin D profile';
     }
 
     if (label === 'First Applicants') {
-        if (place === 1) return 'Athlete Zero: 1st Athlete to Join the Longevity World Cup';
-        if (place === 2) return 'Athlete Beta: 2nd Athlete to Join the Longevity World Cup';
-        if (place === 3) return 'Athlete Gamma: 3rd Athlete to Join the Longevity World Cup';
-        if (place && place >= 4 && place <= 10) return 'Early Bird: Among the First 10 Athletes to Join the Longevity World Cup';
-        return 'First Applicants';
+        if (place === 1) return 'Athlete Zero: 1st athlete to join the Longevity World Cup';
+        if (place === 2) return 'Athlete Beta: 2nd athlete to join the Longevity World Cup';
+        if (place === 3) return 'Athlete Gamma: 3rd athlete to join the Longevity World Cup';
+        if (place && place >= 4 && place <= 10) return 'Early Bird: among the first 10 athletes to join the Longevity World Cup';
+        return 'First applicants';
     }
 
     if (label === 'S25') {
         if (place === 1) return 'LWC25 · Winner: Finished 1st in the 2025 Longevity World Cup';
         if (place === 2) return 'LWC25 · 2nd Place: Finished 2nd in the 2025 Longevity World Cup';
         if (place === 3) return 'LWC25 · 3rd Place: Finished 3rd in the 2025 Longevity World Cup';
-        if (place && place >= 4 && place <= 10) return 'LWC25 · Top 10: Finished among the Top 10 in the 2025 Longevity World Cup';
-        if (place && place >= 11 && place <= 20) return 'LWC25 · Top 20: Finished among the Top 20 in the 2025 Longevity World Cup';
-        return 'LWC25 · Top 20';
+        if (place && place >= 4 && place <= 10) return 'LWC25 · Top 10: Finished among the top 10 in the 2025 Longevity World Cup';
+        if (place && place >= 11 && place <= 20) return 'LWC25 · Top 20: Finished among the top 20 in the 2025 Longevity World Cup';
+        return 'LWC25 · top 20';
     }
 
 
-    if (label === 'Podcast') return "Podcast: hear to this athlete's story in depth";
-    if (label === 'Pregnancy') return 'Baby on Board';
+    if (label === 'Podcast') return "Podcast: Hear this athlete's story in depth";
+    if (label === 'Pregnancy') return 'Baby on board';
     if (label === 'Host') return 'Host: Organizer of the Longevity World Cup';
-    if (label === 'Perfect Application') return 'Perfect Application: Most Flawless Entry Form Ever Submitted';
+    if (label === 'Perfect Application') return 'Perfect Application: Most flawless entry form ever submitted';
 
     return place ? `${label}: #${place}` : `${label}`;
 }
@@ -437,6 +505,7 @@ function computeOrder(b) {
     if (label === 'Chronological Age – Oldest')   return 1.12;
     if (label === 'Chronological Age – Youngest') return 1.13;
     if (label === 'PhenoAge – Lowest')            return 1.14;
+    if (label === 'Bortz Age – Lowest')           return 1.141;
 
     if (label === 'First Applicants')     return 1.19;
     if (label === 'Pregnancy')            return 1.191;
@@ -447,6 +516,7 @@ function computeOrder(b) {
     if (label === '≥2 Submissions') return 1.21;
 
     if (label === 'PhenoAge Best Improvement') return 1.30;
+    if (label === 'Bortz Age Best Improvement') return 1.3005;
     if (label === 'S25' && place) return 1.301;
 
     if (label === 'Best Domain – Liver')        return 1.31;
@@ -454,6 +524,7 @@ function computeOrder(b) {
     if (label === 'Best Domain – Metabolic')    return 1.33;
     if (label === 'Best Domain – Inflammation') return 1.34;
     if (label === 'Best Domain – Immune')       return 1.35;
+    if (label === 'Best Domain – Vitamin D')    return 1.36;
 
     return 1.50;
 }
@@ -496,7 +567,7 @@ window.setBadges = function (athlete, athleteCell) {
         items.push({
             order: 0,
             html: `<a class="badge-class badge-clickable" ${spanA11y} href="${href}" target="_blank" rel="noopener"
-               title="Personal Page" style="${LEGACY_BG.personal}">
+               title="Personal page" style="${LEGACY_BG.personal}">
                <i class="fa fa-link"></i>
              </a>`
         });
@@ -530,7 +601,7 @@ window.setBadges = function (athlete, athleteCell) {
             if (Number.isInteger(guessed) && Number.isInteger(actualInt) && (guessed - actualInt === 0)) {
                 items.push({
                     order: 1.194,
-                    html: `<span class="badge-class" title="Bullseye: You Guessed Their Age Perfectly!" style="${LEGACY_BG.black}">
+                    html: `<span class="badge-class" title="Bullseye: You guessed their age perfectly!" style="${LEGACY_BG.black}">
                                <i class="fa fa-bullseye"></i>
                            </span>`
                 });

@@ -130,15 +130,15 @@
         <div class="progress-fill" id="progressFill"></div>
     </div>
     <div class="stages">
-        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200" role="group" aria-label="Test – Hardship" title="Hardship">
+        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200" role="group" aria-label="Test – hardship" title="Hardship">
             <div class="stage-dot"></div>
             <div class="stage-label">Test</div>
         </div>
-        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250" role="group" aria-label="Calculate – Moment of Truth" title="Moment of Truth">
+        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250" role="group" aria-label="Calculate – moment of truth" title="Moment of truth">
             <div class="stage-dot"></div>
             <div class="stage-label">Calculate</div>
         </div>
-        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300" role="group" aria-label="Submit – Convergence" title="Convergence">
+        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300" role="group" aria-label="Submit – convergence" title="Convergence">
             <div class="stage-dot"></div>
             <div class="stage-label">Submit</div>
         </div>
@@ -176,19 +176,27 @@
                 }
             }, 500);
 
-            // Sticky progress: same threshold as LWC header (main header scrolls out of view)
-            var mainHeader = document.querySelector('header[role="banner"]');
+            // Sticky progress: show only when it would completely cover the in-page progress bar (not the main site header)
+            var mainProgressBar = document.getElementById('mainProgressBar');
             var stickyHeader = document.getElementById('site-sticky-header');
             var stickyProgress = document.getElementById('site-sticky-progress');
-            if (!mainHeader || !stickyProgress) return;
+            if (!stickyProgress) return;
 
-            var threshold = mainHeader.offsetHeight - 30;
             var lastScroll = 0;
             var ticking = false;
+            var progressBarStickyHeight = 44; /* #site-sticky-progress when visible */
 
             function updateStickyVisibility() {
                 var scrollY = window.scrollY || window.pageYOffset;
-                if (scrollY > threshold) {
+                var lwcHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
+                var combinedStickyBottom = lwcHeight + progressBarStickyHeight;
+                var progressBarBottomDoc = mainProgressBar && mainProgressBar.offsetHeight
+                    ? mainProgressBar.getBoundingClientRect().bottom + scrollY
+                    : 1e9;
+                var threshold = mainProgressBar && mainProgressBar.offsetHeight
+                    ? Math.max(0, progressBarBottomDoc - combinedStickyBottom)
+                    : 1e9;
+                if (scrollY >= threshold) {
                     stickyProgress.classList.add('visible');
                     stickyProgress.setAttribute('aria-hidden', 'false');
                     document.documentElement.classList.add('sticky-progress-visible');

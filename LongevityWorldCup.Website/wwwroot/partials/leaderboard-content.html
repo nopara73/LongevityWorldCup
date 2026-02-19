@@ -9,6 +9,11 @@
         --arrow-left: -15px;            /* base arrow position */
         --arrow-hover-shift: calc((var(--portrait-size) * (var(--portrait-hover-scale) - 1)) / 2);
         --arrow-cover-extra: 24px;      /* arrow width (20) + ~4px safety */
+        /* Amateur (Pheno Age) tier styling only */
+        --tier-amateur-bg: rgba(59, 130, 246, 0.06);
+        --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
+        --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
+        --tier-amateur-hover: rgba(59, 130, 246, 0.12);
     }
 
     /* =========================
@@ -46,6 +51,45 @@
     }
     .leaderboard table th:nth-child(2){ text-align:left; }
     .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
+
+    /* Amateur (Pheno Age) tier – blueish hue; pro (Bortz) rows use default table styling */
+    .leaderboard table tbody tr.tier-amateur{
+        background-color: var(--tier-amateur-bg);
+        border-left: var(--tier-amateur-border);
+    }
+    .leaderboard table tbody tr.tier-amateur:nth-child(even){
+        background-color: var(--tier-amateur-bg-even);
+    }
+    .leaderboard table tbody tr.tier-amateur:hover{
+        background-color: var(--tier-amateur-hover);
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+    }
+    .leaderboard table tbody tr.tier-separator{
+        background: linear-gradient(90deg, rgba(240, 244, 248, 0.6), rgba(59, 130, 246, 0.12));
+        border-left: none;
+        cursor: default;
+        pointer-events: none;
+    }
+    .leaderboard table tbody tr.tier-separator .tier-separator-link{ pointer-events: auto; }
+    .leaderboard table tbody tr.tier-separator:hover{ transform: none; box-shadow: none; }
+    .leaderboard table tbody tr.tier-separator .tier-separator-cell{
+        padding: 0.5rem 1rem;
+        text-align: left;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary-color);
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; }
+    .tier-separator-cell .tier-separator-link{
+        color: var(--primary-color);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    .tier-separator-cell .tier-separator-link:hover{ color: var(--secondary-color); }
 
     .leaderboard table tbody tr{ cursor:pointer; }
     .leaderboard table tbody tr:hover{ transform: scale(1.02); box-shadow:0 4px 10px rgba(0,0,0,.1); }
@@ -123,8 +167,16 @@
     .filter-section input[type="checkbox"]:checked + label{ font-weight:bold; color:var(--secondary-color); }
 
     /* =========================
-       5) Search
+       5) Search & toolbar (search + view badges on one line on desktop)
        ========================= */
+    .leaderboard-toolbar{
+        display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem;
+    }
+    .leaderboard-toolbar .search-wrapper{ margin-bottom:0; }
+    .leaderboard-toolbar .leaderboard-view-switcher{ margin-bottom:0; }
+    @media (min-width: 769px){
+        .leaderboard-toolbar{ flex-wrap:nowrap; }
+    }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; margin-right:.5rem; }
     #athleteSearch{
@@ -139,6 +191,39 @@
     }
     .clear-icon.visible{ opacity:1; visibility:visible; }
     .clear-icon:hover{ color:var(--secondary-color); }
+
+    /* =========================
+       5b) Leaderboard view switcher (Bortz / Pheno) – optional toggles
+       ========================= */
+    .leaderboard-view-switcher{
+        display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
+    }
+    .leaderboard-view-switcher .view-switcher-label{
+        font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#666; margin-right:.25rem;
+    }
+    .leaderboard-view-switcher .view-switcher-chips{
+        display:inline-flex; align-items:stretch; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px; padding:3px; gap:2px;
+    }
+    .leaderboard-view-switcher .view-badge{
+        display:inline-flex; align-items:center; padding:.35rem .75rem; border-radius:999px;
+        border:none; background:transparent; color:#555;
+        font-size:.85rem; font-weight:600; cursor:pointer; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+    .leaderboard-view-switcher .view-badge:hover{
+        background:rgba(0,188,212,.06); color:var(--primary-color);
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
+        background:var(--card-bg); color:var(--primary-color); box-shadow:0 1px 3px rgba(0,0,0,.12);
+        padding-right:.5rem;
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge::after{
+        content:'×'; margin-left:.35rem; font-size:1rem; line-height:1; opacity:.7; font-weight:400;
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge:hover::after{
+        opacity:1;
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge{ outline:2px solid var(--secondary-color); outline-offset:2px; }
 
     /* =========================
        6) Portraits & rank indicators
@@ -218,6 +303,60 @@
     .podium .rank-arrow, .podium-item .rank-arrow{ display:none !important; }
     .podium .new-bubble, .podium-item .new-bubble{ display:none !important; }
 
+    /* PRO badge overlay – table only (not on podium); white text, black frame */
+    .portrait-wrapper{ position:relative; display:inline-block; }
+    .pro-badge{
+        display:none;
+        position:absolute;
+        right:2px; bottom:2px;
+        padding:2px 6px;
+        font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+        color:#fff;
+        text-shadow: 0 0 1px #000, 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+        background:linear-gradient(145deg, rgba(0,0,0,.78), rgba(0,0,0,.92));
+        border:1px solid #000;
+        border-radius:2px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.35);
+        align-items:center; justify-content:center;
+        pointer-events:none;
+        z-index:2;
+        line-height:1.2;
+        transform:rotate(-8deg);
+    }
+    tr.tier-pro .pro-badge{ display:flex; }
+    /* Hide PRO ribbon on leaderboard/podium; show only in modal when profile is opened */
+    .leaderboard .pro-badge{ display:none !important; }
+    .podium .pro-badge{ display:none !important; }
+    @media (min-width: 768px){
+        .pro-badge{ right:2px; bottom:8px; font-size:11px; padding:3px 8px; }
+    }
+    /* Modal: PRO ribbon on profile picture – on-image, scaled, premium look */
+    #athlete-profile .pro-badge{ display:none; }
+    /* Badge scales with portrait size (container); desktop cap at 2.25rem */
+    #athlete-profile.is-pro .pro-badge{
+        display:inline-flex;
+        right:6%; bottom:-8%;
+        font-size:2.25rem;
+        font-size:min(2.25rem, 11cqw);
+        font-weight:800;
+        letter-spacing:0.12em;
+        padding:0.4em 0.85em;
+        color:#fff;
+        text-shadow:0 1px 2px rgba(0,0,0,.6);
+        background:linear-gradient(160deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.75) 100%);
+        border:2px solid rgba(255,255,255,.2);
+        border-radius:0.5em;
+        box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
+        transform:rotate(-12deg);
+        line-height:1.2;
+        z-index:2;
+        pointer-events:auto;
+        user-select:none;
+    }
+    @media (min-width: 768px){
+        #athlete-profile.is-pro .pro-badge{ bottom:-7%; }
+    }
+
     /* =========================
        7) Podium cards
        ========================= */
@@ -245,11 +384,8 @@
     .podium-item.first .podium-item-lower{ background:#FFF9C4; }
     .podium-item.second .podium-item-lower{ background:#E0E0E0; }
     .podium-item.third .podium-item-lower{ background:#D9C3A3; }
-    /* Temporarily hide prize money text - uncomment to show */
-    /* .prize-money{ font-weight:bold; font-size:2rem; color:#4caf50; margin-top:2px; } */
-    /* .btc-amount{ margin-top:1rem; font-weight:normal; font-size:.8rem; color:var(--dark-text-color); } */
-    .prize-money{ visibility:hidden; }
-    .btc-amount{ visibility:hidden; }
+    .prize-money{ font-weight:bold; font-size:2rem; color:#4caf50; margin-top:2px; }
+    .btc-amount{ margin-top:1rem; font-weight:normal; font-size:.8rem; color:var(--dark-text-color); }
 
     .podium-rank{
         position:absolute; top:-6px; left:10%; transform:translateX(-50%); background:#fff;
@@ -326,10 +462,26 @@
         backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
         pointer-events:none; z-index:-1;
     }
+    .modal-sticky-header .sticky-header-left{
+        display:flex; align-items:center; gap:0.5rem; min-width:0; flex:1;
+    }
     .modal-sticky-header .sticky-athlete-name{
         font-size:1.1rem; font-weight:600; color:var(--dark-text-color);
-        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
     }
+    .modal-sticky-header .sticky-pro-badge{
+        display:none;
+        flex-shrink:0;
+        font-size:0.7rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase;
+        padding:0.25em 0.5em;
+        color:#fff;
+        background:linear-gradient(160deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.75) 100%);
+        border:1px solid rgba(255,255,255,.2);
+        border-radius:4px;
+        box-shadow:0 1px 3px rgba(0,0,0,.3);
+        user-select:none;
+    }
+    .modal-sticky-header.is-pro .sticky-pro-badge{ display:inline-flex; }
     .modal-sticky-header .sticky-close-btn{
         background:none; border:none; font-size:1.5rem; color:#999;
         cursor:pointer; padding:0.5rem; margin-left:1rem; flex-shrink:0;
@@ -348,34 +500,55 @@
     }
     .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 
-    #modalProfilePic{
-        width:70%; aspect-ratio:1/1; height:auto; cursor:pointer; transition:transform .3s ease, border-color .3s ease;
-        border-radius:50%; object-fit:cover;
+    /* Modal portrait: wrapper defines picture bounds so PRO badge sits on the image */
+    #athlete-profile .portrait-wrapper{
+        position:relative;
+        display:block;
+        width:70%;
+        aspect-ratio:1/1;
+        max-width:320px;
+        margin:0 auto;
+        container-type:inline-size;
+        container-name:portrait;
     }
-    #modalProfilePic:hover{ transform: scale(1.05); }
+    #modalProfilePic{
+        position:absolute;
+        inset:0;
+        width:100%; height:100%;
+        border-radius:50%;
+        object-fit:cover;
+        cursor:pointer;
+        transition:transform .3s ease, border-color .3s ease;
+    }
+    #athlete-profile .portrait-wrapper:hover #modalProfilePic{ transform: scale(1.05); }
+    #athlete-profile.is-pro .pro-badge{ transition:transform .3s ease; }
+    #athlete-profile .portrait-wrapper:hover .pro-badge{ transform:rotate(-12deg) scale(1.05); }
 
     .athlete-info {
         text-align: left;
         width: 100%;
         max-width: 600px;
         margin: 1.5rem auto;
+        min-width: 0; /* allow shrinking inside flex so content doesn't overflow */
     }
     .athlete-info p{ margin:.3rem 0; }
 
-    /* Athlete info — clean two-column table (labels right, values left) */
+    /* Athlete info — clean two-column table (labels right, values left); uniform row spacing */
     .athlete-info-table {
-        width: auto;
+        width: 100%;
+        max-width: 100%;
         margin: 0 auto;
         border-collapse: separate;
-        border-spacing: 0.3rem .12rem;
-        table-layout: auto;
+        border-spacing: 0.3rem 0;
+        table-layout: fixed; /* prevents table from overflowing; columns share space */
     }
     .athlete-info-table th,
     .athlete-info-table td{
         text-align:left;
-        padding:.10rem 0 .10rem .5rem;
+        padding: 0.35rem 0 0.35rem 0.5rem;
         min-width:0;
-        overflow-wrap:anywhere;
+        overflow-wrap:break-word;
+        word-break:break-word;
         background:none !important;
         border:0;
         font-weight:400;
@@ -385,9 +558,10 @@
     }
 
     .athlete-info-table th{
+        width: 38%; /* leaves room for values; long labels wrap */
         text-align:left;
-        white-space:nowrap;
-        padding:.10rem .5rem .10rem 0;
+        white-space:normal; /* wrap long labels so they never get cut off */
+        padding: 0.35rem 0.5rem 0.35rem 0;
         font-weight:700;
         color:inherit !important;
         background:none !important;
@@ -398,9 +572,10 @@
     }
     .athlete-info-table td{
         text-align:left;
-        padding:.10rem 0 .10rem .5rem;
+        padding: 0.35rem 0 0.35rem 0.5rem;
         min-width:0;
-        overflow-wrap:anywhere;
+        overflow-wrap:break-word;
+        word-break:break-word;
         background:none !important;
         border:0;
         font-weight:400;
@@ -416,12 +591,32 @@
         margin-left: .25ch;
     }
 
+    /* Visual break (horizontal line) — same row spacing as other rows */
+    .athlete-info-divider-row td {
+        padding: 0.35rem 0 0.35rem 0.5rem !important;
+        vertical-align: middle;
+        border: 0;
+        line-height: 0;
+    }
+    .athlete-info-divider {
+        display: block;
+        height: 1px;
+        min-width: 12rem;
+        max-width: 100%;
+        background: var(--border-color, rgba(0,0,0,.14));
+        border: 0;
+    }
+
     /* === FIX: Pace of Aging sor biztosan egy sorban === */
+    #bortzPaceOfAgingContainer td{ white-space: nowrap; }
     #paceOfAgingContainer td{ white-space: nowrap; }
 
 
     #ageReduction,
-    #ageReductionPercent{ white-space: nowrap; }
+    #ageReductionPercent,
+    #lowestBortzAge,
+    #bortzAgeReduction,
+    #bortzAgeReductionPercent{ white-space: nowrap; }
 
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
@@ -470,18 +665,18 @@
 
     .fade-in-element{ animation:fadeIn .6s ease-in-out; }
 
-    /* Guess-My-Age stamps */
-    .first-guess-stamp{
-        display:inline-block; padding:.3rem .6rem; border:1px solid currentColor; border-radius:4px; background:transparent;
-        letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease;
+    /* Guess-My-Age stamps — applied to the value span inside the table so the row stays aligned */
+    .athlete-info-table .first-guess-stamp{
+        display:inline-block; padding:.2rem .5rem; border:1px solid currentColor; border-radius:4px; background:transparent;
+        letter-spacing:.5px; margin:0; box-shadow:0 1px 2px rgba(0,0,0,.08);
     }
-    .primary-stamp{
-        display:inline-block; padding:.3rem .6rem; border:1px solid var(--primary-color); border-radius:4px; background:transparent;
-        letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease; color:var(--primary-color);
+    .athlete-info-table .primary-stamp{
+        display:inline-block; padding:.2rem .5rem; border:1px solid var(--primary-color); border-radius:4px; background:rgba(0,188,212,.08);
+        letter-spacing:.5px; margin:0; box-shadow:0 1px 2px rgba(0,0,0,.08); color:var(--primary-color);
     }
-    .golden-stamp{
-        display:inline-block; padding:.3rem .6rem; border:1px solid #FFD700; border-radius:4px; background:#FFD700;
-        letter-spacing:.5px; margin:.25rem 0; box-shadow:0 1px 2px rgba(0,0,0,.1); transition:transform .2s ease; color:#000;
+    .athlete-info-table .golden-stamp{
+        display:inline-block; padding:.2rem .5rem; border:1px solid #c9a227; border-radius:4px; background:rgba(255,215,0,.2);
+        letter-spacing:.5px; margin:0; box-shadow:0 1px 2px rgba(0,0,0,.08); color:inherit;
     }
 
     @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
@@ -501,13 +696,23 @@
        13) Mobile
        ========================= */
     @media (max-width: 768px){
-        .search-container{ max-width:100%; margin-top:1rem; }
+        .content{
+            padding-left:max(1rem, env(safe-area-inset-left));
+            padding-right:max(1rem, env(safe-area-inset-right));
+        }
+        .leaderboard-toolbar{
+            flex-direction:column; align-items:stretch; gap:.75rem; margin-top:1.25rem;
+        }
+        .leaderboard-view-switcher{
+            margin-left:0; order:1;
+        }
+        .search-container{ max-width:100%; margin-top:0; }
         #athleteSearch{ padding:.5rem 2.5rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
         .clear-icon{ right:3rem; }
-        .search-wrapper{ display:flex; align-items:center; }
+        .search-wrapper{ display:flex; align-items:center; flex:1; min-width:0; width:100%; order:2; }
 
-        .sidebar-toggle{ align-self:center; margin-top:1rem; height:40px; }
+        .sidebar-toggle{ align-self:center; height:40px; flex-shrink:0; }
 
         .main-container{ flex-direction:column; }
         .sidebar{
@@ -528,7 +733,15 @@
         .podium-item.third{ order:3; }
         .podium-rank{ left:5%; }
 
-        .leaderboard table{ width:100%; table-layout:fixed; }
+        .leaderboard table{ width:100%; table-layout:auto; }
+        .leaderboard table th:last-child,
+        .leaderboard table td:last-child{ padding-right:0.5rem; }
+        .leaderboard table .sponsor-th,
+        .leaderboard table .sponsor-td{ display:none; }
+        .leaderboard table .media-contact-th,
+        .leaderboard table .media-contact-td{ display:none; }
+        .leaderboard table th:nth-child(4),
+        .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
         .leaderboard table td .badge-section{ display:none; }
         .leaderboard table th{ font-size:.6rem; }
         .leaderboard table td{ font-size:.8rem; }
@@ -537,11 +750,65 @@
         .leaderboard .portrait{ width:40px; height:40px; }
 
         /* =========================
-           Athlete info table tweaks
+           Athlete info table — stacked layout so nothing is cut off
            ========================= */
         .athlete-info-table {
             font-size: 0.9rem;
-            border-spacing: 0.2rem .08rem;
+            border-spacing: 0;
+            table-layout: auto;
+            display: block;
+        }
+        .athlete-info-table tbody {
+            display: block;
+        }
+        .athlete-info-table tr {
+            display: block;
+            padding: 0.25rem 0;
+        }
+        .athlete-info-table tr.athlete-info-divider-row {
+            padding: 0.25rem 0;
+        }
+        .athlete-info-table tr.athlete-info-divider-row td {
+            padding: 0 !important;
+        }
+        .athlete-info-table th,
+        .athlete-info-table td {
+            display: block;
+            width: 100%;
+            padding: 0.08rem 0 0.12rem 0;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.25;
+        }
+        .athlete-info-table th {
+            padding-bottom: 0.04rem;
+            font-size: 0.85em;
+            color: var(--secondary-color, #555);
+        }
+        .athlete-info-table td {
+            padding-top: 0;
+            padding-left: 0;
+            margin: 0;
+        }
+        /* Keep label-to-content gap consistent: no extra space from links or inline content */
+        .athlete-info-table td * {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        .athlete-info-table td .league-link {
+            display: inline;
+            vertical-align: baseline;
+        }
+        /* Pace/age rows: allow wrapping on mobile instead of nowrap */
+        #bortzPaceOfAgingContainer td,
+        #paceOfAgingContainer td,
+        #ageReduction,
+        #ageReductionPercent,
+        #lowestBortzAge,
+        #bortzAgeReduction,
+        #bortzAgeReductionPercent {
+            white-space: normal;
         }
 
         /* Mobile modal improvements */
@@ -556,7 +823,7 @@
         .modal-content.guess-mode{
             border-radius:0 !important; /* Also remove rounded corners in guess-mode on mobile */
         }
-        #modalProfilePic{ width:50%; }
+        #athlete-profile .portrait-wrapper{ width:50%; }
         .modal-scroll-progress{ height:2px; }
         
         /* Ensure minimum touch target sizes */
@@ -571,12 +838,6 @@
         }
         .modal-sticky-header.visible::before{
             top:-30px; height:30px;
-        }
-        .athlete-info-table th {
-            padding-right: 0.1rem;
-        }
-        .athlete-info-table td {
-            padding-left: 0.4rem;
         }
     }
 
@@ -594,29 +855,44 @@
             <!-- Podium items will be dynamically inserted here -->
         </div>
 
-        <div class="search-wrapper">
-            <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
-                <label for="athleteSearch" class="visually-hidden">Search Athletes</label>
-                <input type="text" id="athleteSearch" placeholder="Search Athlete..." aria-label="Search Athletes">
-                <span class="search-icon"><i class="fa fa-search"></i></span>
-                <span class="clear-icon" tabindex="0" role="button" aria-label="Clear Search">
-                    <i class="fa fa-times"></i>
-                </span>
+        <div class="leaderboard-toolbar">
+            <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
+                <div class="view-switcher-chips">
+                    <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
+                    <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
+                    <label for="view-bortz" class="view-badge" title="Rank by Bortz Age (biological age). Click again to show default ranking.">Bortz Age</label>
+                    <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
+                    <label for="view-pheno" class="view-badge" title="Rank by Pheno Age. Click again to show default ranking.">Pheno Age</label>
+                </div>
             </div>
-            <button class="sidebar-toggle" aria-label="Toggle Sidebar" title="Show Leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
-                <i class="fa fa-sliders-h"></i>
-            </button>
+            <div class="search-wrapper">
+                <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
+                    <label for="athleteSearch" class="visually-hidden">Search athletes</label>
+                    <input type="text" id="athleteSearch" placeholder="Search..." aria-label="Search athletes">
+                    <span class="search-icon"><i class="fa fa-search"></i></span>
+                    <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
+                        <i class="fa fa-times"></i>
+                    </span>
+                </div>
+                <button class="sidebar-toggle" aria-label="Toggle sidebar" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
+                    <i class="fa fa-sliders-h"></i>
+                </button>
+            </div>
         </div>
 
         <div class="leaderboard">
             <div class="sidebar">
-                <button class="sidebar-close" aria-label="Hide Leagues" title="Hide Leagues"><i class="fa fa-chevron-left" style="font-size: 12px;"></i></button>
+                <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-chevron-left" style="font-size: 12px;"></i></button>
                 <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
-                <div class="filter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <div class="filter-section" id="league-track-filter-section">
+                    <h3>Track</h3>
+                    <ul></ul> <!-- This will be populated dynamically -->
+                </div>
+                <div class="filter-section" id="division-filter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <h3>Divisions</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
@@ -635,7 +911,7 @@
                 <tr>
                     <th>Rank</th>
                     <th>Athlete</th>
-                    <th>
+                    <th class="sponsor-th">
                         Sponsor<br />
                         <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
                            onmouseover="this.style.color='var(--secondary-color)';"
@@ -649,10 +925,10 @@
                         <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
                            onmouseover="this.style.color='var(--secondary-color)';"
                            onmouseout="this.style.color='var(--primary-color)';">
-                            Age Reduction
+                            Age reduction
                         </a>
                     </th>
-                    <th>Media Contact</th>
+                    <th class="media-contact-th">Media contact</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -665,17 +941,23 @@
             <div class="modal-content">
                 <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
                 <div class="modal-sticky-header" id="modalStickyHeader">
-                    <span class="sticky-athlete-name" id="stickyAthleteName"></span>
+                    <div class="sticky-header-left">
+                        <span class="sticky-athlete-name" id="stickyAthleteName"></span>
+                        <span class="sticky-pro-badge" id="stickyProBadge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                    </div>
                     <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
                 </div>
                 <span id="closeAthleteDetailsModal" class="close">&times;</span>
 
                 <div class="athlete-profile" id="athlete-profile">
-                    <img id="modalProfilePic"
-                         src=""
-                         alt="Athlete Profile Picture"
-                         class="illustration"
-                         loading="lazy" />
+                    <span class="portrait-wrapper">
+                        <img id="modalProfilePic"
+                             src=""
+                             alt="Athlete profile picture"
+                             class="illustration"
+                             loading="lazy" />
+                        <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                    </span>
                     <h2 id="athleteName"></h2>
 
                     <!--GUESS-MY-AGE-->
@@ -687,7 +969,7 @@
                         <table class="athlete-info-table">
                             <tbody>
                             <tr>
-                                <th scope="row"><strong>Best Rank:</strong></th>
+                                <th scope="row"><strong>Best rank:</strong></th>
                                 <td><span id="athleteRank"></span></td>
                             </tr>
                             <tr>
@@ -703,13 +985,14 @@
                                 <td><span id="athleteFlag"></span></td>
                             </tr>
                             <tr>
-                                <th scope="row"><strong>Chronological Age:</strong></th>
-                                <td><span id="chronologicalAge"></span> <span class="unit">years</span></td>
+                                <th scope="row"><strong>Chronological age:</strong></th>
+                                <td><span id="chronologicalAge"></span> <span class="unit">years old</span></td>
                             </tr>
-
-
+                            <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
+                                <td colspan="2"><span class="athlete-info-divider"></span></td>
+                            </tr>
                             <tr id="crowdAgeContainer">
-                                <th scope="row"><strong>Crowd Age:</strong></th>
+                                <th scope="row"><strong>Crowd age:</strong></th>
                                 <td>
                                     <span id="emptyCrowdAgeContainer">Crickets...</span>
                                     <span id="notEmptyCrowdAgeContainer" style="display:none;">
@@ -721,24 +1004,44 @@
 
 
                             <tr id="yourGuessContainer" style="display:none;">
-                                <th scope="row"><strong>Your Guess:</strong></th>
+                                <th scope="row"><strong>Your guess:</strong></th>
                                 <td><span id="yourGuess"></span></td>
                             </tr>
 
+                            <tr id="lowestBortzAgeContainer" style="display:none;">
+                                <th scope="row"><strong>Lowest Bortz age:</strong></th>
+                                <td><span id="lowestBortzAge"></span> <span class="unit">years</span></td>
+                            </tr>
+
                             <tr>
-                                <th scope="row"><strong>Lowest PhenoAge:</strong></th>
+                                <th scope="row"><strong>Lowest Pheno age:</strong></th>
                                 <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
                             </tr>
 
 
+                            <tr id="bortzPaceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
+                                <th scope="row"><strong>Bortz pace of aging:</strong></th>
+                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year (pace rank: <span id="bortzPaceOfAgingRank"></span>)</span></td>
+                            </tr>
+
                             <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row"><strong>Pace of Aging:</strong></th>
+                                <th scope="row"><strong>Pheno pace of aging:</strong></th>
                                 <td><span id="paceOfAging"></span> <span class="unit">years per year (pace rank: <span id="paceOfAgingRank"></span>)</span></td>
+                            </tr>
+
+                            <tr id="bortzAgeReductionContainer" title="Derived from the lowest biological age of the season" style="display:none;">
+                                <th scope="row">
+                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz age reduction:</span></strong>
+                                </th>
+                                <td>
+                                    <span id="bortzAgeReduction"></span> <span class="unit">years</span>
+                                    (<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)
+                                </td>
                             </tr>
 
                             <tr title="Derived from the lowest biological age of the season">
                                 <th scope="row">
-                                    <strong><span id="ageReductionAccelerationLabel">Age Reduction/Acceleration:</span></strong>
+                                    <strong><span id="ageReductionAccelerationLabel">Pheno age reduction:</span></strong>
                                 </th>
                                 <td>
                                     <span id="ageReduction"></span> <span class="unit">years</span>
@@ -750,10 +1053,10 @@
                     </div>
                     <div class="athlete-links">
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
-                            <i class="fa fa-link"></i> Personal Page
+                            <i class="fa fa-link"></i> Personal page
                         </a>
                         <a id="mediaContact" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Contact the athlete">
-                            <i class="fa fa-envelope"></i> Media Contact
+                            <i class="fa fa-envelope"></i> Media contact
                         </a>
                     </div>
                 </div>
@@ -763,7 +1066,7 @@
                 </div>
 
                 <div class="biomarkers-section" id="athlete-biomarkers">
-                    <h3>Biomarkers Over Time</h3>
+                    <h3>Biomarkers over time</h3>
                     <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
                 </div>
 
@@ -791,21 +1094,25 @@
             <span class="rank"></span>
         </td>
         <td data-label="Athlete" class="athlete-td">
-            <img src="" alt="" class="portrait" loading="lazy">
+            <span class="portrait-wrapper">
+                <img src="" alt="" class="portrait" loading="lazy">
+                <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+            </span>
             <span class="athlete-name" title="View stats"></span>
             <div class="badge-section"></div>
         </td>
         <td data-label="Sponsor" class="sponsor-td"></td>
-        <td data-label="Age Reduction" class="age-reduction-td">
+        <td data-label="Age reduction" class="age-reduction-td">
             <span class="age-reduction"></span>
         </td>
-        <td data-label="Media Contact" class="media-contact-td"></td>
+        <td data-label="Media contact" class="media-contact-td"></td>
     </tr>
 </template>
 
 <script>
     let athleteResults = [];
     let athletesOrderedByPace;
+    let athletesOrderedByBortzPace;
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
@@ -941,6 +1248,35 @@
             set.CrpMgL
         ];
         return values.every(Number.isFinite) && set.CrpMgL > 0;
+    }
+
+    function isCompleteBortzBiomarkerSet(entry) {
+        if (!entry || !entry.Date) return false;
+        const values = [
+            entry.AlbGL,
+            entry.AlpUL,
+            entry.UreaMmolL,
+            entry.CholesterolMmolL,
+            entry.CreatUmolL,
+            entry.CystatinCMgL,
+            entry.Hba1cMmolMol,
+            entry.CrpMgL,
+            entry.GgtUL,
+            entry.Rbc10e12L,
+            entry.McvFL,
+            entry.RdwPc,
+            entry.Wbc1000cellsuL,
+            entry.MonocytePc,
+            entry.NeutrophilPc,
+            entry.LymPc,
+            entry.AltUL,
+            entry.ShbgNmolL,
+            entry.VitaminDNmolL,
+            entry.GluMmolL,
+            entry.MchPg,
+            entry.ApoA1GL
+        ];
+        return values.every(Number.isFinite) && entry.CrpMgL > 0;
     }
 
     function ensureRankChangeWrapper(imgEl) {
@@ -1218,6 +1554,61 @@
                     const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
                     const ageReductionPercent = (1 - biologicalAgePercent) * 100;
 
+                    // Lowest Bortz Age and Bortz Age reduction (only when submissions have full Bortz biomarkers)
+                    let lowestBortzAge = null;
+                    let chronoAtLowestBortzAge = null;
+                    let bortzAgeReduction = null;
+                    let bortzAgeReductionPercent = null;
+                    let bestBortzValues = null;
+                    if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
+                        let bortzMin = Infinity;
+                        let chronoAtBortzMin = null;
+                        athlete.Biomarkers.forEach(entry => {
+                            if (!isCompleteBortzBiomarkerSet(entry)) return;
+                            const entryDate = new Date(entry.Date);
+                            const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
+                            const wbc = entry.Wbc1000cellsuL;
+                            const monoCount = wbc * entry.MonocytePc / 100;
+                            const neutCount = wbc * entry.NeutrophilPc / 100;
+                            const bortzValues = [
+                                ageAtEntry,
+                                entry.AlbGL,
+                                entry.AlpUL,
+                                entry.UreaMmolL,
+                                entry.CholesterolMmolL,
+                                entry.CreatUmolL,
+                                entry.CystatinCMgL,
+                                entry.Hba1cMmolMol,
+                                entry.CrpMgL,
+                                entry.GgtUL,
+                                entry.Rbc10e12L,
+                                entry.McvFL,
+                                entry.RdwPc,
+                                monoCount,
+                                neutCount,
+                                entry.LymPc,
+                                entry.AltUL,
+                                entry.ShbgNmolL,
+                                entry.VitaminDNmolL,
+                                entry.GluMmolL,
+                                entry.MchPg,
+                                entry.ApoA1GL
+                            ];
+                            const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
+                            if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
+                                bortzMin = bortzAge;
+                                chronoAtBortzMin = ageAtEntry;
+                                bestBortzValues = bortzValues;
+                            }
+                        });
+                        if (Number.isFinite(bortzMin) && chronoAtBortzMin != null) {
+                            lowestBortzAge = bortzMin;
+                            chronoAtLowestBortzAge = chronoAtBortzMin;
+                            bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
+                            bortzAgeReductionPercent = (1 - lowestBortzAge / chronoAtLowestBortzAge) * 100;
+                        }
+                    }
+
                     // Placements: [yesterday, last week, last month, last year]
                     // Store last month's rank (index 2). If missing or not a number, use null.
                     const lastMonthRank =
@@ -1239,13 +1630,20 @@
                         chronologicalAge: chronologicalAgeNow,
                         crowdAge: crowdAge,
                         crowdCount: crowdCount,
+                        lowestBortzAge: lowestBortzAge,
+                        chronoAtLowestBortzAge: chronoAtLowestBortzAge,
+                        bortzAgeReduction: bortzAgeReduction,
+                        bortzAgeReductionPercent: bortzAgeReductionPercent,
                         lowestPhenoAge: lowestPhenoAge,
                         chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                         ageReduction: ageReduction,
                         ageReductionPercent: ageReductionPercent,
                         bestBiomarkerValues: bestBiomarkerValues,
+                        bestBortzValues: bestBortzValues,
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
+                        flag: athlete.Flag || '',
+                        why: athlete.Why || '',
                         division: athlete.Division,
                         generation: generation,
                         exclusiveLeague: athlete.ExclusiveLeague,
@@ -1262,6 +1660,7 @@
                 generateDivisionFilters(athleteResults);
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
+                generateLeagueTrackFilters(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
                 athleteResults.sort(window.compareAthleteRank);
@@ -1311,13 +1710,28 @@
                     });
                 });
 
+                // Assign ranks based on exclusive leagues (e.g. Prosperan)
+                const exclusiveLeagues = [...new Set(athleteResults.map(a => a.exclusiveLeague).filter(Boolean))];
+                exclusiveLeagues.forEach(exclusiveLeague => {
+                    const athletesInExclusive = athleteResults.filter(a => a.exclusiveLeague === exclusiveLeague);
+                    athletesInExclusive.sort(window.compareAthleteRank);
+                    athletesInExclusive.forEach((athlete, index) => {
+                        athlete.ranks[exclusiveLeague] = index + 1;
+                    });
+                });
+
                 athletesOrderedByPace = _.orderBy(athleteResults, 'ageReductionPercent', 'desc');
+                athletesOrderedByBortzPace = _.orderBy(
+                    athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
+                    a => a.lowestBortzAge / a.chronoAtLowestBortzAge,
+                    'asc'
+                );
 
                 const podiumCount = includePodium ? 3 : 0;
 
                 if (includePodium) {
                     // Fetch the total prize fund from the backend API and calculate prize money
-                    fetch(`/api/bitcoin/total-received?address=${window.bitcoinDonationAddress}`)
+                    fetch('/api/bitcoin/total-received')
                         .then(response => response.json())
                         .then(data => {
                             const totalReceivedSatoshis = data.totalReceivedSatoshis;
@@ -1391,7 +1805,7 @@
                                                 </a>` : ''}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
-                                            <div><span class="age-reduction">${Math.abs(athlete.ageReduction.toFixed(1))} years</span> reduced</div>
+                                            <div><span class="age-reduction">${Math.abs((athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction) ? athlete.bortzAgeReduction : athlete.ageReduction).toFixed(1))} years</span> reduced</div>
                                             <div class="podium-item-lower">
                                                 <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
                                                 <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
@@ -1461,9 +1875,24 @@
                 const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
+                let lastTier = null; // 'pro' | 'amateur' for inserting separator between Bortz and Pheno sections
                 remainingAthletes.forEach((athlete, index) => {
+                    const isPro = athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
+                    const tier = isPro ? 'pro' : 'amateur';
+                    if (lastTier === 'pro' && tier === 'amateur') {
+                        const sep = document.createElement('tr');
+                        sep.className = 'tier-separator';
+                        sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
+                        sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
+                        tableBody.appendChild(sep);
+                    }
+                    lastTier = tier;
+
                     const template = document.getElementById('leaderboardRowTemplate');
                     const row = template.content.firstElementChild.cloneNode(true);
+
+                    row.classList.add('tier-' + tier);
+                    row.setAttribute('data-tier', tier);
 
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
@@ -1485,8 +1914,9 @@
 
                     window.setBadges(athlete, athleteCell);
 
+                    const displayAgeReduction = (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction)) ? athlete.bortzAgeReduction : athlete.ageReduction;
                     const ageReductionSpan = row.querySelector('.age-reduction');
-                    ageReductionSpan.textContent = (athlete.ageReduction > 0 ? '+' : '') + athlete.ageReduction.toFixed(1) + ' years';
+                    ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(1) + ' years';
 
                     const mediaContactCell = row.querySelector('.media-contact-td');
                     mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
@@ -1584,6 +2014,16 @@
                             });
                         });
                         searchOrFilterApplied = true;
+                    }
+
+                    const viewParam = new URLSearchParams(window.location.search).get('view');
+                    if (viewParam && (viewParam.toLowerCase() === 'bortz' || viewParam.toLowerCase() === 'pheno')) {
+                        const viewId = 'view-' + viewParam.toLowerCase();
+                        const viewRadio = document.getElementById(viewId);
+                        if (viewRadio) {
+                            viewRadio.checked = true;
+                            searchOrFilterApplied = true;
+                        }
                     }
 
                     if (searchOrFilterApplied) {
@@ -1950,6 +2390,13 @@
             modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
             modalContent._scrollProgressListener = null;
         }
+        if (window.biomarkerChartResizeObserver) {
+            window.biomarkerChartResizeObserver.disconnect();
+            window.biomarkerChartResizeObserver = null;
+        }
+        if (typeof window.destroyAgeRadarChart === 'function') {
+            window.destroyAgeRadarChart();
+        }
         
         modal.classList.add('fade-out');
         setTimeout(() => {
@@ -2030,39 +2477,100 @@
         const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
 
+        // Get selected league track (Amateur / Professional); only one selected means filter
+        const selectedLeagueTracks = Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
+            .map(checkbox => checkbox.value);
+        const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
+
+        // Get leaderboard view (ultimate | bortz | pheno)
+        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+        const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
+
+        const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+
+        // Step 1: Apply view inclusion and order
+        let baseList;
+        if (currentLeaderboardView === 'bortz') {
+            baseList = athleteResults.filter(hasBortz);
+            baseList.sort(window.compareAthleteRank);
+        } else if (currentLeaderboardView === 'pheno') {
+            baseList = athleteResults.slice();
+            baseList.sort(window.compareAthleteRankPhenoOnly);
+        } else {
+            baseList = athleteResults; // ultimate: already in rank order
+        }
+
         const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
 
         const showAll = uniqueSearchTerms.length === 0;
 
+        const athleteBadgeTextByName = new Map();
+        document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
+            const athleteName = row.getAttribute('data-athlete-name');
+            if (!athleteName) return;
+
+            const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class'))
+                .map(badge => {
+                    const title = badge.getAttribute('title') || '';
+                    const ariaLabel = badge.getAttribute('aria-label') || '';
+                    const text = badge.textContent || '';
+                    return `${title} ${ariaLabel} ${text}`.trim();
+                })
+                .filter(Boolean)
+                .join(' ');
+
+            athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
+        });
+
         let filteredAthletes = [];
 
-        let anyMatch = false;
-
-        athleteResults.forEach(athlete => {
+        baseList.forEach(athlete => {
             const athleteNameNormalized = window.normalizeString(athlete.name);
+            const athleteBadgeTextNormalized = athleteBadgeTextByName.get(athlete.name) || '';
+            const athleteMediaContactNormalized = window.normalizeString((athlete.mediaContact || '').toLowerCase());
+            const displayAgeReduction = (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction)) ? athlete.bortzAgeReduction : athlete.ageReduction;
+            const displayAgeReductionPercent = (athlete.bortzAgeReductionPercent != null && Number.isFinite(athlete.bortzAgeReductionPercent)) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent;
+            const ageReductionSearchParts = [];
+            if (Number.isFinite(displayAgeReduction)) ageReductionSearchParts.push(displayAgeReduction.toFixed(1));
+            if (Number.isFinite(displayAgeReductionPercent)) ageReductionSearchParts.push(displayAgeReductionPercent.toFixed(1));
+            const athleteAgeReductionNormalized = window.normalizeString(ageReductionSearchParts.join(' ').toLowerCase());
+            const athleteRankNormalized = window.normalizeString(String(athlete.rank != null ? athlete.rank : '').toLowerCase());
+            const athleteFlagNormalized = window.normalizeString((athlete.flag || '').toLowerCase());
+            const athleteWhyNormalized = window.normalizeString((athlete.why || '').toLowerCase());
 
             let matches = true;
 
+            // League track: when exactly one selected, keep only that tier
+            if (leagueTrackFilterActive) {
+                const isPro = hasBortz(athlete);
+                const wantAmateur = selectedLeagueTracks[0].toLowerCase() === 'amateur';
+                const wantPro = selectedLeagueTracks[0].toLowerCase() === 'professional';
+                if (wantAmateur && isPro) matches = false;
+                if (wantPro && !isPro) matches = false;
+            }
+
             // Check division match
-            if (selectedDivisions.length > 0) {
-                matches = matches && selectedDivisions.includes(athlete.division.toLowerCase());
+            if (matches && selectedDivisions.length > 0) {
+                matches = selectedDivisions.includes(athlete.division.toLowerCase());
             }
 
             // Check generation match
-            if (selectedGenerations.length > 0) {
-                matches = matches && selectedGenerations.includes(athlete.generation.toLowerCase());
+            if (matches && selectedGenerations.length > 0) {
+                matches = selectedGenerations.includes(athlete.generation.toLowerCase());
             }
 
             // Check exclusive league match
-            if (selectedExclusiveLeagues.length > 0) {
-                matches = matches && selectedExclusiveLeagues.includes((athlete.exclusiveLeague || "").toLowerCase());
+            if (matches && selectedExclusiveLeagues.length > 0) {
+                matches = selectedExclusiveLeagues.includes((athlete.exclusiveLeague || "").toLowerCase());
             }
 
             // Check search terms
             if (matches && !showAll) {
-                matches = uniqueSearchTerms.every(term => athleteNameNormalized.includes(term));
+                matches = uniqueSearchTerms.every(term =>
+                    athleteNameNormalized.includes(term) || athleteBadgeTextNormalized.includes(term) || athleteMediaContactNormalized.includes(term) || athleteAgeReductionNormalized.includes(term) || athleteRankNormalized.includes(term) || athleteFlagNormalized.includes(term) || athleteWhyNormalized.includes(term)
+                );
             }
 
             if (matches) {
@@ -2074,8 +2582,9 @@
 
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
 
-        // Determine if filters are used
-        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0;
+        // Determine if filters are used (league track counts only when exactly one selected)
+        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
+            leagueTrackFilterActive || currentLeaderboardView !== 'ultimate';
         const searchUsed = uniqueSearchTerms.length > 0;
 
         // If filters are used, reassign ranks starting from 1
@@ -2090,11 +2599,12 @@
             });
         }
 
-        // First, hide all rows
+        // First, hide all rows (including tier separator)
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         tableRows.forEach(row => {
             row.style.display = 'none';
         });
+        const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
 
         // Remove 'blurred' class from all podium items
         const podiumItems = document.querySelectorAll('.podium-item');
@@ -2125,6 +2635,45 @@
                 anyPodiumVisible = true;
             }
         });
+
+        // Show tier separator when both pro and amateur rows are visible (first amateur after at least one pro); hide for Bortz/Pheno views.
+        // Use filteredAthletes order (not DOM order) so switching from Pheno/Bortz back to Ultimate shows the separator correctly.
+        if (tierSeparatorRow) {
+            let separatorShouldShow = false;
+            if (currentLeaderboardView === 'ultimate') {
+                const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+                let sawPro = false;
+                for (const a of filteredAthletes) {
+                    if (isPro(a)) sawPro = true;
+                    else if (sawPro) {
+                        separatorShouldShow = true;
+                        break;
+                    }
+                }
+            }
+            tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
+        }
+
+        // Reorder tbody so visible rows match filteredAthletes order (fixes wrong order when switching from Bortz/Pheno back to Ultimate)
+        const tableBody = document.querySelector('.leaderboard table tbody');
+        const allRows = Array.from(tableBody.querySelectorAll('tr'));
+        const visibleOrdered = filteredAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
+        const separator = allRows.find(r => r.classList.contains('tier-separator'));
+        const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
+        const fragment = document.createDocumentFragment();
+        const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const firstAmateurIndex = filteredAthletes.findIndex(a => !isProForOrder(a));
+        const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
+        if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
+            visibleOrdered.slice(0, firstAmateurIndex).forEach(r => fragment.appendChild(r));
+            fragment.appendChild(separator);
+            visibleOrdered.slice(firstAmateurIndex).forEach(r => fragment.appendChild(r));
+        } else {
+            visibleOrdered.forEach(r => fragment.appendChild(r));
+            if (separator) fragment.appendChild(separator);
+        }
+        hiddenRows.forEach(r => fragment.appendChild(r));
+        tableBody.appendChild(fragment);
 
         // Remove existing highlights
         window.removeAllHighlights();
@@ -2157,13 +2706,14 @@
             }
         });
 
-        updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues);
+        updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView);
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
 
         // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
-        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 && uniqueSearchTerms.length === 0) {
+        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
+            !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0) {
             document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
                 row.style.display = 'none';
             });
@@ -2183,13 +2733,16 @@
             url.searchParams.set('search', encodeURIComponent(query));
         }
 
-        const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues];
-        if (filters.length === 1 &&
-            ([...url.searchParams].length === 0
-                || ([...url.searchParams].length === 1 && url.searchParams.has('filters')))) {
+        const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
+        const cleanSearch = ([...url.searchParams].length === 0)
+            || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
+        if (filters.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
             const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
+        } else if (filters.length === 0 && cleanSearch && (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno')) {
+            url.pathname = `/league/${currentLeaderboardView}`;
+            url.searchParams.delete('view');
         } else {
             url.pathname = originalLeaguelessURL.pathname;
             if (filters.length === 0) {
@@ -2200,13 +2753,27 @@
             }
         }
 
+        if (currentLeaderboardView === 'ultimate') {
+            url.searchParams.delete('view');
+        } else if (url.pathname !== `/league/${currentLeaderboardView}`) {
+            url.searchParams.set('view', currentLeaderboardView);
+        }
+
         history.replaceState({}, "", url.toString());
     }
 
-    function updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues) {
+    function updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
+        selectedLeagueTracks = selectedLeagueTracks || [];
+        currentLeaderboardView = currentLeaderboardView || 'ultimate';
+
         // Update the collapsed-title text based on selected filters
         let leagueText = '';
 
+        if (currentLeaderboardView === 'bortz') {
+            leagueText = 'BORTZ AGE LEAGUE';
+        } else if (currentLeaderboardView === 'pheno') {
+            leagueText = 'PHENO AGE LEAGUE';
+        } else {
         // If an exclusive league is selected, override the league text.
         if (selectedExclusiveLeagues.length > 0) {
             // If multiple exclusive leagues are selected, join them with " AND "
@@ -2279,12 +2846,16 @@
                 }
             }
 
-            // Default text if no filters are selected
+            // Default text if no filters are selected (or only league track)
             if (leagueText === '') {
-                leagueText = 'ULTIMATE';
+                const trackLabel = selectedLeagueTracks.length === 1
+                    ? (selectedLeagueTracks[0] === 'Professional' ? 'Pro' : selectedLeagueTracks[0])
+                    : null;
+                leagueText = trackLabel ? trackLabel.toUpperCase() : 'ULTIMATE';
             }
 
             leagueText += " LEAGUE";
+        }
         }
 
         // Update the text content of the collapsed-title element
@@ -2327,6 +2898,19 @@
         document.querySelectorAll('.filter-section label[data-generation]').forEach(label => {
             const generation = label.getAttribute('data-generation');
             const count = generationCounts[generation] || 0;
+            const countSpan = label.querySelector('.filter-count');
+            if (countSpan) {
+                countSpan.textContent = count;
+            }
+        });
+
+        // Update league track counts (Amateur / Professional by tier)
+        const hasBortzForCount = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const amateurCount = filteredAthletes.filter(a => !hasBortzForCount(a)).length;
+        const professionalCount = filteredAthletes.filter(a => hasBortzForCount(a)).length;
+        document.querySelectorAll('.filter-section label[data-league-track]').forEach(label => {
+            const track = label.getAttribute('data-league-track');
+            const count = (track === 'Amateur') ? amateurCount : (track === 'Professional') ? professionalCount : 0;
             const countSpan = label.querySelector('.filter-count');
             if (countSpan) {
                 countSpan.textContent = count;
@@ -2402,8 +2986,23 @@
         if (event.key === 'Enter') clearSearch();
     });
 
+    document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
+        radio.addEventListener('change', function () { performFilter(); });
+    });
+    // Clicking the active Bortz or Pheno badge again deselects it (none = Ultimate view)
+    document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(label => {
+        label.addEventListener('click', function (e) {
+            const radio = document.getElementById(label.getAttribute('for'));
+            if (radio && radio.checked) {
+                e.preventDefault();
+                document.getElementById('view-ultimate').checked = true;
+                performFilter();
+            }
+        });
+    });
+
     function generateDivisionFilters(athletes) {
-        const filterSection = document.querySelector('.filter-section ul');
+        const filterSection = document.querySelector('#division-filter-section ul');
         filterSection.innerHTML = ''; // Clear existing filters if any
 
         // Count occurrences of each division
@@ -2494,6 +3093,36 @@
         }
     }
 
+    function generateLeagueTrackFilters(athletes) {
+        const filterSection = document.querySelector('#league-track-filter-section ul');
+        filterSection.innerHTML = ''; // Clear existing filters if any
+
+        const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const amateurCount = athletes.filter(a => !isPro(a)).length;
+        const professionalCount = athletes.filter(a => isPro(a)).length;
+
+        const tracks = [
+            { value: 'Amateur', label: 'Amateur', count: amateurCount },
+            { value: 'Professional', label: 'Pro', count: professionalCount }
+        ];
+
+        tracks.forEach(({ value, label, count }) => {
+            const icon = window.TryGetLeagueTrackIcon ? window.TryGetLeagueTrackIcon(value) : '';
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <label data-league-track="${value}">
+                    <input type="checkbox" name="leagueTrack" value="${value}">
+                    ${icon} ${label} (<span class="filter-count">${count}</span>)
+                </label>
+            `;
+            filterSection.appendChild(li);
+            const input = li.querySelector('input[type="checkbox"]');
+            input.addEventListener('change', function (event) {
+                event.stopPropagation();
+                performFilter();
+            });
+        });
+    }
 
     function addFadeInEffectToElements() {
         document.querySelectorAll('.podium-item, .leaderboard table tbody tr').forEach(element => {
@@ -2618,19 +3247,25 @@
 
                 updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, ultimateRank);
 
-                // Generate age visualization
-                const bioAge = athleteData.lowestPhenoAge;
-                const chronoAge = athleteData.chronoAtLowestPhenoAge;
-                generateAgeVisualization(bioAge, chronoAge);
+                // Age visualization (radar + center) and biomarker chart are created after modal is shown so canvases have layout dimensions.
+                const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
+                    ? athleteData.lowestBortzAge
+                    : athleteData.lowestPhenoAge;
+                const chronoAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
+                    ? athleteData.chronoAtLowestBortzAge
+                    : athleteData.chronoAtLowestPhenoAge;
 
-                // Generate biomarker chart
-                generateBiomarkerChart(fullAthleteData);
+                // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
                 // Populate proofs gallery
                 populateProofsGallery(fullAthleteData);
 
                 // After populating the modal with athlete data but before showing it:
-                originalAthletelessURL = getAthletelessURL();
+                // Only update originalAthletelessURL when we're not already on an athlete URL, so a second open (e.g. URL sync with ?guessmyage=1) does not overwrite it with "/"
+                const pathnameBeforeOpen = window.location.pathname;
+                if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
+                    originalAthletelessURL = getAthletelessURL();
+                }
                 const athleteSlug = window.slugifyName(athleteNameText, true);
                 history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
 
@@ -2639,6 +3274,23 @@
                 lockBodyScroll();
 
                 const modalContent = document.querySelector('.modal-content');
+                // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
+                requestAnimationFrame(function() {
+                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
+                    generateBiomarkerChart(fullAthleteData);
+                    // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
+                    requestAnimationFrame(function() {
+                        if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
+                    });
+                    var chartContainer = document.getElementById('athlete-biomarkers');
+                    if (chartContainer && window.biomarkerChartInstance) {
+                        if (window.biomarkerChartResizeObserver) window.biomarkerChartResizeObserver.disconnect();
+                        window.biomarkerChartResizeObserver = new ResizeObserver(function() {
+                            if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
+                        });
+                        window.biomarkerChartResizeObserver.observe(chartContainer);
+                    }
+                });
                 if (!modalContent) {
                     console.error('Modal content element not found');
                     return;
@@ -2713,6 +3365,22 @@
                     sessionStorage.setItem('gmaSeen', 'true');
                 }
 
+                const bortzPaceOfAgingContainer = document.getElementById('bortzPaceOfAgingContainer');
+                const bortzPaceOfAgingValue =
+                    (athleteData.lowestBortzAge && athleteData.chronoAtLowestBortzAge)
+                        ? (athleteData.lowestBortzAge / athleteData.chronoAtLowestBortzAge)
+                        : null;
+                if (Number.isFinite(bortzPaceOfAgingValue)) {
+                    document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
+                    bortzPaceOfAgingContainer.style.display = '';
+                    const bortzPaceOfAgingRank = _.findIndex(athletesOrderedByBortzPace, ['name', athleteData.name]) + 1;
+                    if (Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0) {
+                        document.getElementById('bortzPaceOfAgingRank').textContent = '#' + bortzPaceOfAgingRank;
+                    }
+                } else {
+                    bortzPaceOfAgingContainer.style.display = 'none';
+                }
+
                 const paceOfAgingContainer = document.getElementById('paceOfAgingContainer');
                 const paceOfAgingValue =
                     (athleteData.lowestPhenoAge && athleteData.chronoAtLowestPhenoAge)
@@ -2720,7 +3388,7 @@
                         : null;
                 if (Number.isFinite(paceOfAgingValue)) {
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
-                    paceOfAgingContainer.style.display = 'table-row';
+                    paceOfAgingContainer.style.display = '';
 
                     const paceOfAgingRank = _.findIndex(athletesOrderedByPace, ['name', athleteData.name]) + 1;
                     if (Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0) {
@@ -2737,38 +3405,85 @@
     }
 
     function computeBestLeagueRank(athleteData) {
-        // Arrays of divisions and generations for reference
+        // Arrays of divisions and generations for league type detection.
         const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
         const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
 
-        let bestLeagueRank = Infinity;
-        let bestLeagueName = '';
-        let bestLeagueType = '';
+        const getLeagueType = (league) => {
+            if (league === 'Ultimate League') return 'ultimate';
+            if (league === 'Amateur League') return 'amateur';
+            if (divisions.includes(league)) return 'division';
+            if (generations.includes(league)) return 'generation';
+            if (league.includes('_')) return 'combination';
+            return 'other';
+        };
 
-        for (const [league, rank] of Object.entries(athleteData.ranks)) {
-            if (rank < bestLeagueRank) {
-                bestLeagueRank = rank;
-                bestLeagueName = league;
-
-                // Determine league type
-                if (divisions.includes(league)) {
-                    bestLeagueType = 'division';
-                } else if (generations.includes(league)) {
-                    bestLeagueType = 'generation';
-                } else if (league.includes('_')) {
-                    bestLeagueType = 'combination';
-                } else {
-                    bestLeagueType = 'other';
-                }
-            }
+        const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
+        let amateurRank = null;
+        if (!isPro) {
+            const amateurAthletes = athleteResults.filter(a => !(a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction)));
+            amateurAthletes.sort(window.compareAthleteRankPhenoOnly);
+            const idx = amateurAthletes.findIndex(a => (a.name || a.Name) === (athleteData.name || athleteData.Name));
+            amateurRank = idx >= 0 ? idx + 1 : null;
         }
-        const ultimateRank = athleteData.rank;
 
-        return { ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType };
+        const candidates = [];
+        const ultimateRank = athleteData.rank;
+        if (Number.isFinite(ultimateRank)) {
+            candidates.push({
+                rank: ultimateRank,
+                leagueName: 'Ultimate League',
+                leagueType: 'ultimate',
+                // Tie-break only: Amateur #N wins over Ultimate #N.
+                tiePriority: 1
+            });
+        }
+
+        for (const [league, rank] of Object.entries(athleteData.ranks || {})) {
+            if (!Number.isFinite(rank)) continue;
+            candidates.push({
+                rank,
+                leagueName: league,
+                leagueType: getLeagueType(league),
+                tiePriority: 1
+            });
+        }
+
+        if (Number.isFinite(amateurRank)) {
+            candidates.push({
+                rank: amateurRank,
+                leagueName: 'Amateur League',
+                leagueType: 'amateur',
+                tiePriority: 0
+            });
+        }
+
+        let best = null;
+        candidates.forEach(candidate => {
+            if (!best) {
+                best = candidate;
+                return;
+            }
+            if (candidate.rank < best.rank) {
+                best = candidate;
+                return;
+            }
+            if (candidate.rank === best.rank && candidate.tiePriority < best.tiePriority) {
+                best = candidate;
+            }
+        });
+
+        return {
+            ultimateRank,
+            bestLeagueRank: best ? best.rank : ultimateRank,
+            bestLeagueName: best ? best.leagueName : 'Ultimate League',
+            bestLeagueType: best ? best.leagueType : 'ultimate'
+        };
     }
 
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
+        const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
         const athleteNameWithRank = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
         const athleteNameElement = document.getElementById('athleteName');
         athleteNameElement.textContent = athleteNameWithRank;
@@ -2785,31 +3500,64 @@
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
 
+        const athleteProfileEl = document.getElementById('athlete-profile');
+        if (athleteProfileEl) {
+            if (isPro) athleteProfileEl.classList.add('is-pro');
+            else athleteProfileEl.classList.remove('is-pro');
+        }
+        const modalStickyHeader = document.getElementById('modalStickyHeader');
+        if (modalStickyHeader) {
+            if (isPro) modalStickyHeader.classList.add('is-pro');
+            else modalStickyHeader.classList.remove('is-pro');
+        }
+
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
-        let rankText = `#${ultimateRank} in the <a href="/leaderboard" class="league-link">Ultimate League</a>`;
-        if (bestLeagueRank !== ultimateRank) {
-            const leagueLabel = bestLeagueName.replace('_', ' ');
-            if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
-                const slug = window.slugifyName(bestLeagueName, true);
-                rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
-            } else if (bestLeagueType === 'combination') {
-                const filters = bestLeagueName.split('_').map(f => encodeURIComponent(f)).join('%2C');
-                rankText = `#${bestLeagueRank} in the <a href="/?filters=${filters}" class="league-link">${leagueLabel} League</a>`;
-            } else {
-                rankText = `#${bestLeagueRank} in the ${leagueLabel} League`;
-            }
+        let rankText;
+        const leagueLabel = (bestLeagueName || '').replace('_', ' ');
+        if (bestLeagueType === 'ultimate') {
+            rankText = `#${bestLeagueRank} in the <a href="/leaderboard" class="league-link" target="_blank" rel="noopener noreferrer">Ultimate League</a>`;
+        } else if (bestLeagueType === 'amateur') {
+            rankText = `#${bestLeagueRank} in the <a href="/?filters=${encodeURIComponent('Amateur')}" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
+        } else if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
+            const slug = window.slugifyName(bestLeagueName, true);
+            rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
+        } else if (bestLeagueType === 'combination') {
+            const filters = bestLeagueName.split('_').map(f => encodeURIComponent(f)).join('%2C');
+            rankText = `#${bestLeagueRank} in the <a href="/?filters=${filters}" class="league-link">${leagueLabel} League</a>`;
+        } else if (bestLeagueType === 'other') {
+            rankText = `#${bestLeagueRank} in the <a href="/leaderboard?filters=${encodeURIComponent(bestLeagueName)}" class="league-link" target="_blank" rel="noopener noreferrer">${leagueLabel} League</a>`;
+        } else {
+            rankText = `#${bestLeagueRank} in the ${leagueLabel} League`;
         }
 
         document.getElementById('athleteRank').innerHTML = rankText;
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${athleteData.division}</a>${window.getRankText(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${window.getRankText(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
-        document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(1);
+        document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(0);
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
         updateYourGuess();
+        const lowestBortzAgeEl = document.getElementById('lowestBortzAge');
+        const lowestBortzAgeContainer = document.getElementById('lowestBortzAgeContainer');
+        if (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge)) {
+            lowestBortzAgeEl.textContent = athleteData.lowestBortzAge.toFixed(1);
+            lowestBortzAgeContainer.style.display = '';
+        } else {
+            lowestBortzAgeContainer.style.display = 'none';
+        }
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Age Reduction:" : "Age Acceleration:";
+        const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
+        const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
+        if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
+            bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz age reduction:" : "Bortz age acceleration:";
+            document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
+            document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
+            bortzAgeReductionContainer.style.display = '';
+        } else {
+            bortzAgeReductionContainer.style.display = 'none';
+        }
+        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno age reduction:" : "Pheno age acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
         document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
 
@@ -2828,7 +3576,7 @@
         if (athleteData.mediaContact) {
             const isEmail = athleteData.mediaContact.includes('@');
             mediaContactElement.href = isEmail ? `mailto:${athleteData.mediaContact}` : (athleteData.mediaContact.startsWith('http') ? athleteData.mediaContact : 'https://' + athleteData.mediaContact);
-            mediaContactElement.innerHTML = `${window.getIcon(athleteData.mediaContact)} Media Contact`;
+            mediaContactElement.innerHTML = `${window.getIcon(athleteData.mediaContact)} Media contact`;
             mediaContactElement.style.display = 'flex';
             mediaContactElement.title = isEmail ? `Email ${modalDisplayName}` : `Contact ${modalDisplayName}`;
         } else {
@@ -2908,29 +3656,79 @@
 
         const labels = completeData.map(entry => entry.Date);
         const phenoAges = [];
+        const bortzAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
 
         completeData.forEach((entry, entryIndex) => {
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
+            // Push in same order as bortz-age.html (WBC, Lymphocytes, Neutrophils, …)
             biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
             biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc);
+            biomarkersRaw['Neutrophils (%)'].push(entry.NeutrophilPc != null ? entry.NeutrophilPc : null);
+            biomarkersRaw['Monocytes (%)'].push(entry.MonocytePc != null ? entry.MonocytePc : null);
+            biomarkersRaw['RBC (10¹²/L)'].push(entry.Rbc10e12L != null ? entry.Rbc10e12L : null);
             biomarkersRaw['MCV (fL)'].push(entry.McvFL);
+            biomarkersRaw['MCH (pg)'].push(entry.MchPg != null ? entry.MchPg : null);
             biomarkersRaw['RDW (%)'].push(entry.RdwPc);
             biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL);
+            biomarkersRaw['ALT (U/L)'].push(entry.AltUL != null ? entry.AltUL : null);
             biomarkersRaw['ALP (U/L)'].push(entry.AlpUL);
+            biomarkersRaw['GGT (U/L)'].push(entry.GgtUL != null ? entry.GgtUL : null);
+            biomarkersRaw['Urea (mmol/L)'].push(entry.UreaMmolL != null ? entry.UreaMmolL : null);
             biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
+            biomarkersRaw['Cystatin C (mg/L)'].push(entry.CystatinCMgL != null ? entry.CystatinCMgL : null);
             biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
+            biomarkersRaw['HbA1c (mmol/mol)'].push(entry.Hba1cMmolMol != null ? entry.Hba1cMmolMol : null);
+            biomarkersRaw['Cholesterol (mmol/L)'].push(entry.CholesterolMmolL != null ? entry.CholesterolMmolL : null);
+            biomarkersRaw['ApoA1 (g/L)'].push(entry.ApoA1GL != null ? entry.ApoA1GL : null);
             biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
+            biomarkersRaw['SHBG (nmol/L)'].push(entry.ShbgNmolL != null ? entry.ShbgNmolL : null);
+            biomarkersRaw['Vitamin D (nmol/L)'].push(entry.VitaminDNmolL != null ? entry.VitaminDNmolL : null);
 
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
             phenoAges.push(phenoAge.toFixed(1));
+
+            // Bortz Age (when full Bortz set available)
+            let bortzAge = null;
+            if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function' && isCompleteBortzBiomarkerSet(entry)) {
+                const wbc = entry.Wbc1000cellsuL;
+                const monoCount = wbc * entry.MonocytePc / 100;
+                const neutCount = wbc * entry.NeutrophilPc / 100;
+                const bortzValues = [
+                    chronoAgeAtEntry,
+                    entry.AlbGL,
+                    entry.AlpUL,
+                    entry.UreaMmolL,
+                    entry.CholesterolMmolL,
+                    entry.CreatUmolL,
+                    entry.CystatinCMgL,
+                    entry.Hba1cMmolMol,
+                    entry.CrpMgL,
+                    entry.GgtUL,
+                    entry.Rbc10e12L,
+                    entry.McvFL,
+                    entry.RdwPc,
+                    monoCount,
+                    neutCount,
+                    entry.LymPc,
+                    entry.AltUL,
+                    entry.ShbgNmolL,
+                    entry.VitaminDNmolL,
+                    entry.GluMmolL,
+                    entry.MchPg,
+                    entry.ApoA1GL
+                ];
+                const computed = window.BortzAge.calculateBortzAge(chronoAgeAtEntry, bortzValues);
+                if (Number.isFinite(computed)) bortzAge = computed.toFixed(1);
+            }
+            bortzAges.push(bortzAge);
         });
 
         const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
-        const datasets = prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores);
+        const datasets = prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores);
 
         if (window.biomarkerChartInstance) {
             window.biomarkerChartInstance.destroy();
@@ -2946,17 +3744,31 @@
         });
     }
 
+    // Biomarker key order matches bortz-age.html card order (WBC, Lymphocytes, Neutrophils, …)
     function initializeBiomarkersRaw() {
         return {
             'WBC (10^3 cells/µL)': [],
             'Lymphocytes (%)': [],
+            'Neutrophils (%)': [],
+            'Monocytes (%)': [],
+            'RBC (10¹²/L)': [],
             'MCV (fL)': [],
+            'MCH (pg)': [],
             'RDW (%)': [],
             'Albumin (g/L)': [],
+            'ALT (U/L)': [],
             'ALP (U/L)': [],
+            'GGT (U/L)': [],
+            'Urea (mmol/L)': [],
             'Creatinine (µmol/L)': [],
+            'Cystatin C (mg/L)': [],
             'Glucose (mmol/L)': [],
-            'CRP (mg/L)': []
+            'HbA1c (mmol/mol)': [],
+            'Cholesterol (mmol/L)': [],
+            'ApoA1 (g/L)': [],
+            'CRP (mg/L)': [],
+            'SHBG (nmol/L)': [],
+            'Vitamin D (nmol/L)': []
         };
     }
 
@@ -3000,45 +3812,89 @@
     function calculateBiomarkerZScores(biomarkersRaw) {
         const biomarkersZScores = {};
         for (const [key, values] of Object.entries(biomarkersRaw)) {
-            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-            const stdDev = Math.sqrt(variance);
-
-            biomarkersZScores[key] = stdDev === 0
-                ? values.map(() => 0)
-                : values.map(val => ((val - mean) / stdDev).toFixed(2));
+            const hasNulls = values.some(v => v == null);
+            if (hasNulls) {
+                const valid = values.filter(v => v != null && Number.isFinite(v));
+                const n = valid.length;
+                if (n === 0) {
+                    biomarkersZScores[key] = values.map(() => null);
+                } else {
+                    const mean = valid.reduce((sum, val) => sum + val, 0) / n;
+                    const variance = valid.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+                    const stdDev = Math.sqrt(variance);
+                    biomarkersZScores[key] = values.map(val =>
+                        val == null || !Number.isFinite(val) ? null : (stdDev === 0 ? 0 : ((val - mean) / stdDev).toFixed(2))
+                    );
+                }
+            } else {
+                const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+                const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+                const stdDev = Math.sqrt(variance);
+                biomarkersZScores[key] = stdDev === 0
+                    ? values.map(() => 0)
+                    : values.map(val => ((val - mean) / stdDev).toFixed(2));
+            }
         }
         return biomarkersZScores;
     }
 
-    function prepareBiomarkerDatasets(labels, phenoAges, biomarkersRaw, biomarkersZScores) {
-        const datasets = [
-            {
-                label: 'PhenoAge',
-                data: phenoAges,
-                borderColor: 'rgba(0, 0, 255, 1)',
-                backgroundColor: 'rgba(0, 0, 255, 0.1)',
+    function prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores) {
+        const hasBortzAge = bortzAges.some(v => v != null && Number.isFinite(Number(v)));
+        const datasets = [];
+        if (hasBortzAge) {
+            datasets.push({
+                label: 'Bortz Age',
+                data: bortzAges,
+                borderColor: 'rgba(0, 128, 0, 1)',
+                backgroundColor: 'rgba(0, 128, 0, 0.1)',
                 fill: false,
                 tension: 0.1,
                 borderWidth: 3,
-                yAxisID: 'y1'
-            }
-        ];
+                yAxisID: 'y1',
+                spanGaps: true
+            });
+        }
+        datasets.push({
+            label: 'Pheno Age',
+            data: phenoAges,
+            borderColor: 'rgba(0, 0, 255, 1)',
+            backgroundColor: 'rgba(0, 0, 255, 0.1)',
+            fill: false,
+            tension: 0.1,
+            borderWidth: 3,
+            yAxisID: 'y1'
+        });
 
         const biomarkerColors = {
             'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)',
             'Lymphocytes (%)': 'rgba(0, 100, 0, 1)',
+            'Neutrophils (%)': 'rgba(100, 149, 237, 1)',
+            'Monocytes (%)': 'rgba(148, 0, 211, 1)',
+            'RBC (10¹²/L)': 'rgba(178, 34, 34, 1)',
             'MCV (fL)': 'rgba(70, 130, 180, 1)',
+            'MCH (pg)': 'rgba(210, 105, 30, 1)',
             'RDW (%)': 'rgba(220, 20, 60, 1)',
             'Albumin (g/L)': 'rgba(0, 128, 255, 1)',
+            'ALT (U/L)': 'rgba(85, 107, 47, 1)',
             'ALP (U/L)': 'rgba(218, 165, 32, 1)',
+            'GGT (U/L)': 'rgba(139, 90, 43, 1)',
+            'Urea (mmol/L)': 'rgba(72, 61, 139, 1)',
             'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',
+            'Cystatin C (mg/L)': 'rgba(60, 179, 113, 1)',
             'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',
-            'CRP (mg/L)': 'rgba(255, 69, 0, 1)'
+            'HbA1c (mmol/mol)': 'rgba(255, 99, 71, 1)',
+            'Cholesterol (mmol/L)': 'rgba(184, 134, 11, 1)',
+            'ApoA1 (g/L)': 'rgba(0, 191, 255, 1)',
+            'CRP (mg/L)': 'rgba(255, 69, 0, 1)',
+            'SHBG (nmol/L)': 'rgba(199, 21, 133, 1)',
+            'Vitamin D (nmol/L)': 'rgba(255, 215, 0, 1)'
         };
 
         for (const [key, zScores] of Object.entries(biomarkersZScores)) {
             const actualValues = biomarkersRaw[key];
+            const hasAtLeastOneValue = actualValues.some(v => v != null && Number.isFinite(v));
+            if (!hasAtLeastOneValue) continue;
+
             const dataPoints = zScores.map((zScore, index) => ({
                 x: labels[index],
                 y: zScore,
@@ -3065,7 +3921,8 @@
                 fill: false,
                 tension: 0.1,
                 yAxisID: 'y2',
-                hidden: isHidden
+                hidden: isHidden,
+                spanGaps: true
             });
         }
         return datasets;
@@ -3086,11 +3943,13 @@
                             const label = context.dataset.label || '';
                             const yValue = context.parsed.y;
                             const actualValue = context.raw.actualValue;
-                            const formattedValue = actualValue !== undefined && !isNaN(actualValue)
+                            if (label === 'Pheno Age' || label === 'Bortz Age') {
+                                return yValue != null ? `${label}: ${yValue}` : `${label}: N/A`;
+                            }
+                            const formattedValue = actualValue !== undefined && actualValue != null && !isNaN(actualValue)
                                 ? (actualValue % 1 !== 0 ? actualValue.toFixed(2) : actualValue.toString())
                                 : 'N/A';
-
-                            return label === 'PhenoAge' ? `${label}: ${yValue}` : `${label}: ${formattedValue}`;
+                            return `${label}: ${formattedValue}`;
                         }
                     }
                 },
@@ -3233,8 +4092,8 @@
             sidebarToggle.classList.add('active')
         }
 
-        sidebarToggle.title = "Hide Leagues";
-        sidebarToggle.setAttribute('aria-label', 'Hide Sidebar');
+        sidebarToggle.title = "Hide leagues";
+        sidebarToggle.setAttribute('aria-label', 'Hide sidebar');
 
         // Scroll to the leaderboard table
         if (canAutoScroll()) {
@@ -3252,8 +4111,8 @@
         if (!sidebar.classList.contains('button-collapsed')) {
             sidebar.classList.add('button-collapsed');
         }
-        sidebarToggle.title = "Show Leagues";
-        sidebarToggle.setAttribute('aria-label', 'Show Sidebar');
+        sidebarToggle.title = "Show leagues";
+        sidebarToggle.setAttribute('aria-label', 'Show sidebar');
 
         setTimeout(() => {
             sidebar.classList.remove('button-collapsed');
@@ -3344,8 +4203,8 @@
         const guessData = allGuesses[athleteSlug];
 
         if (guessData && guessData.value != null) {
-            // show the container
-            yourGuessContainer.style.display = 'inline-block';
+            // show the row (use '' so table layout is preserved; mobile CSS overrides tr to block)
+            yourGuessContainer.style.display = '';
 
             // convert guess to a number
             const guess = Number(guessData.value);
@@ -3368,19 +4227,14 @@
             const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
             yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
 
-            // remove any existing stamp classes
-            yourGuessContainer.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
-            // exact match → golden stamp
+            // apply stamp to the value span only so the row stays a normal table row
+            yourGuessSpan.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
             if (diffYou === 0) {
-                yourGuessContainer.classList.add('golden-stamp');
-            }
-            // better than crowd → primary-color stamp
-            else if (diffYou < diffCrowd) {
-                yourGuessContainer.classList.add('primary-stamp');
-            }
-            // first-to-guess (fallback) → default black stamp
-            else if (guessData.first) {
-                yourGuessContainer.classList.add('first-guess-stamp');
+                yourGuessSpan.classList.add('golden-stamp');
+            } else if (diffYou < diffCrowd) {
+                yourGuessSpan.classList.add('primary-stamp');
+            } else if (guessData.first) {
+                yourGuessSpan.classList.add('first-guess-stamp');
             }
 
         } else {

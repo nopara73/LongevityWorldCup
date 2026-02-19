@@ -120,6 +120,22 @@
     .events-board.athlete-scroll #eventsTable td.col-date{width:76px}
 
     .events-board.athlete-scroll td.event-message .event-message-cell > *{min-width:0}
+    .events-board.athlete-scroll td.event-message .event-message-cell{
+        white-space:normal;
+        overflow-x:hidden;
+        flex-wrap:wrap;
+        row-gap:.15rem;
+    }
+    .events-board.athlete-scroll td.event-message .event-message-cell *{
+        white-space:normal;
+    }
+    .events-board.athlete-scroll td.event-message .event-message-cell .name-and-rank,
+    .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
+    .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
+    .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
+    .events-board.athlete-scroll td.event-message .event-message-cell .more-link{
+        white-space:nowrap;
+    }
 
     .events-board.athlete-scroll tbody tr.custom-event-details{display:none}
     .events-board.athlete-scroll tbody tr.custom-event-row.is-open + tr.custom-event-details{display:table}
@@ -221,7 +237,7 @@
         display:flex;
         align-items:center;
         align-content:center;
-        flex-wrap:wrap;
+        flex-wrap:nowrap;
         gap:var(--badge-gap);
         line-height:1.35;
         min-height:calc(var(--event-row-min) - (var(--row-pad-y) * 2));
@@ -229,9 +245,16 @@
         padding-bottom:var(--row-pad-y);
         box-sizing:border-box;
         min-width:0;
+        overflow-x:auto;
+        overflow-y:hidden;
+        white-space:nowrap;
+    }
+    .events-board td.event-message .event-message-cell *{
+        white-space:nowrap;
     }
 
     .event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
+    .events-board td.event-message .event-message-cell a{overflow-wrap:normal;word-break:normal}
     .event-message a:hover,
     .event-message a:focus{color:var(--secondary-color,#ff4f87);text-decoration-color:var(--secondary-color,#ff4f87)}
     .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
@@ -247,6 +270,8 @@
         font-size:.85em;
         text-decoration:none;
         text-decoration-color:rgba(122,138,153,.55);
+        white-space:nowrap;
+        flex-shrink:0;
     }
     .event-message a.more-link:hover,
     .event-message a.more-link:focus{
@@ -455,6 +480,51 @@
         .col-date{font-size:.72rem;opacity:.6;padding-left:6px}
         .events-board table tbody tr:hover{transform:none;box-shadow:0 4px 10px rgba(0,0,0,.08)}
         .events-board td.event-message{align-items:center;align-content:center}
+
+        /* Homepage/mobile highlights: prevent table-width blowout from single-line rows. */
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell{
+            white-space:normal;
+            overflow-x:hidden;
+            flex-wrap:wrap;
+            row-gap:.15rem;
+        }
+        .events-board:not(.athlete-scroll) td.col-avatar{
+            width:34px;
+            padding-right:8px;
+        }
+        .events-board:not(.athlete-scroll) td.col-date{
+            width:58px;
+            padding-left:6px;
+            white-space:nowrap;
+        }
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell *{
+            white-space:normal;
+        }
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .name-and-rank,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .rank-badge,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-class,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-chip,
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .more-link{
+            white-space:nowrap;
+        }
+
+        /* Mobile athlete profile: avoid per-row horizontal scrolling/overlap in highlights. */
+        .events-board.athlete-scroll td.event-message .event-message-cell{
+            white-space:normal;
+            overflow-x:hidden;
+            flex-wrap:wrap;
+            row-gap:.15rem;
+        }
+        .events-board.athlete-scroll td.event-message .event-message-cell *{
+            white-space:normal;
+        }
+        .events-board.athlete-scroll td.event-message .event-message-cell .name-and-rank,
+        .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
+        .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
+        .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
+        .events-board.athlete-scroll td.event-message .event-message-cell .more-link{
+            white-space:nowrap;
+        }
     }
 
     @media (max-width:360px){
@@ -469,7 +539,7 @@
             <th colspan="3">
                 <div class="header-bar">
                     <span>Highlights</span>
-                    <a class="view-all" id="eventsViewAll" href="/events" target="_top">View All</a>
+                    <a class="view-all" id="eventsViewAll" href="/events" target="_top">View all</a>
                 </div>
             </th>
         </tr>
@@ -1221,10 +1291,10 @@
                             })
                             : items;
 
-                        const icons = orderedItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
-
                         const totalCount = Number.isFinite(r.totalBadgeCount) ? r.totalBadgeCount : orderedItems.length;
-                        const moreCount = totalCount - orderedItems.length;
+                        const visibleItems = orderedItems;
+                        const icons = visibleItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
+                        const moreCount = totalCount - visibleItems.length;
 
                         const moreLink = (moreCount > 0 && url)
                             ? ` <a href="${url}" class="more-link"${openLinksInNewTab ? ` target="_blank" rel="noopener"` : ` target="_top"`}>(+${moreCount} more)</a>`
@@ -1324,7 +1394,7 @@
 
                     const clockRaw = r.clockId ? String(r.clockId).trim() : "";
                     const clockNorm = clockRaw.toLowerCase().replace(/\s+/g,"");
-                    const clockText = clockNorm === "phenoage" ? "PhenoAge" : (clockRaw || "PhenoAge");
+                    const clockText = clockNorm === "phenoage" ? "Pheno Age" : (clockRaw || "Pheno Age");
 
                     const ageDiffN = Number.isFinite(r.ageDiff) ? r.ageDiff : null;
                     const dir = (ageDiffN !== null && ageDiffN < 0) ? "younger" : "older";
@@ -1467,14 +1537,16 @@
             if(key==="age reduction"){
                 if(!isTop3Place(place)) return false;
                 const cat = normalizeBadgeKey(leagueCategory);
-                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive";
+                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive" || cat==="amateur";
             }
 
             if(
                 key==="chronological age - oldest" ||
                 key==="chronological age - youngest" ||
                 key==="phenoage - lowest" ||
-                key==="phenoage best improvement"
+                key==="bortz age - lowest" ||
+                key==="phenoage best improvement" ||
+                key==="bortz age best improvement"
             ){
                 return isTop3Place(place);
             }

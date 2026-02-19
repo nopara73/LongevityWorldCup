@@ -49,8 +49,8 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddQuartz(q =>
             {
-                q.UseMicrosoftDependencyInjectionJobFactory();
-
+                // UseMicrosoftDependencyInjectionJobFactory() was intentionally removed: as of Quartz.NET 3.3.2
+                // the default job factory is already DI/scoped; calling it is redundant and docs recommend against it.
                 var dailyKey = new JobKey("DailyJob");
                 var weeklyKey = new JobKey("WeeklyJob");
                 var monthlyKey = new JobKey("MonthlyJob");
