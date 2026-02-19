@@ -266,9 +266,17 @@ namespace LongevityWorldCup.Website.Controllers
 
             // 3a) Prepare email body based on submission type
             string emailBody;
+            var paymentAmountUsd = applicantData.PaymentOffer?.AmountUsd ?? 0m;
+            var paymentCurrency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
+                ? "USD"
+                : applicantData.PaymentOffer!.Currency!.Trim().ToUpperInvariant();
+            var paymentDueText = paymentAmountUsd <= 0m
+                ? $"free ({paymentCurrency})"
+                : $"{paymentCurrency} {paymentAmountUsd:0.##}";
+
             if (isResultSubmissionOnly)
             {
-                emailBody = $"Someone’s been bullying Father Time again...\n";
+                emailBody = $"Someone’s been bullying Father Time again...\nPayment due: {paymentDueText}\n";
                 if (!string.IsNullOrWhiteSpace(differenceBlock))
                     emailBody += differenceBlock;
             }
@@ -278,14 +286,6 @@ namespace LongevityWorldCup.Website.Controllers
             }
             else
             {
-                var paymentAmountUsd = applicantData.PaymentOffer?.AmountUsd ?? 0m;
-                var paymentCurrency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
-                    ? "USD"
-                    : applicantData.PaymentOffer!.Currency!.Trim().ToUpperInvariant();
-                var paymentDueText = paymentAmountUsd <= 0m
-                    ? $"free ({paymentCurrency})"
-                    : $"{paymentCurrency} {paymentAmountUsd:0.##}";
-
                 emailBody = $"\nAccount email: {accountEmail}\nPayment due: {paymentDueText}\n";
                 if (!string.IsNullOrWhiteSpace(differenceBlock))
                     emailBody += differenceBlock;
