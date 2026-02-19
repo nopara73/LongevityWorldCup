@@ -278,7 +278,15 @@ namespace LongevityWorldCup.Website.Controllers
             }
             else
             {
-                emailBody = $"\nAccount email: {accountEmail}\n";
+                var paymentAmountUsd = applicantData.PaymentOffer?.AmountUsd ?? 0m;
+                var paymentCurrency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
+                    ? "USD"
+                    : applicantData.PaymentOffer!.Currency!.Trim().ToUpperInvariant();
+                var paymentDueText = paymentAmountUsd <= 0m
+                    ? $"free ({paymentCurrency})"
+                    : $"{paymentCurrency} {paymentAmountUsd:0.##}";
+
+                emailBody = $"\nAccount email: {accountEmail}\nPayment due: {paymentDueText}\n";
                 if (!string.IsNullOrWhiteSpace(differenceBlock))
                     emailBody += differenceBlock;
             }
