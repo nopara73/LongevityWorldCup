@@ -1292,8 +1292,7 @@
                             : items;
 
                         const totalCount = Number.isFinite(r.totalBadgeCount) ? r.totalBadgeCount : orderedItems.length;
-                        const maxVisibleIcons = 2;
-                        const visibleItems = orderedItems.slice(0, maxVisibleIcons);
+                        const visibleItems = orderedItems;
                         const icons = visibleItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
                         const moreCount = totalCount - visibleItems.length;
 
@@ -1538,14 +1537,16 @@
             if(key==="age reduction"){
                 if(!isTop3Place(place)) return false;
                 const cat = normalizeBadgeKey(leagueCategory);
-                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive";
+                return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive" || cat==="amateur";
             }
 
             if(
                 key==="chronological age - oldest" ||
                 key==="chronological age - youngest" ||
                 key==="phenoage - lowest" ||
-                key==="phenoage best improvement"
+                key==="bortz age - lowest" ||
+                key==="phenoage best improvement" ||
+                key==="bortz age best improvement"
             ){
                 return isTop3Place(place);
             }

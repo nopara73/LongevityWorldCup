@@ -11,7 +11,6 @@ public static class SlackMessageBuilder
         EventType type,
         string rawText,
         Func<string, string> slugToName,
-        Func<string, int?>? getRankForSlug = null,
         Func<string, string?>? getPodcastLinkForSlug = null)
     {
         var (slug, rank, prev) = ParseTokens(rawText);
@@ -21,7 +20,7 @@ public static class SlackMessageBuilder
             EventType.Joined => BuildJoined(slug, slugToName),
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
-            EventType.BadgeAward => BuildBadgeAward(rawText, slugToName, getPodcastLinkForSlug),
+            EventType.BadgeAward => BuildBadgeAward(rawText, getPodcastLinkForSlug),
             EventType.CustomEvent => BuildCustomEvent(rawText),
             EventType.General => BuildCustomEvent(rawText),
             _ => Escape(rawText)
@@ -33,6 +32,7 @@ public static class SlackMessageBuilder
         Func<string, string> slugToName,
         Func<string, double?>? getChronoAgeForSlug = null,
         Func<string, double?>? getLowestPhenoAgeForSlug = null,
+        Func<string, double?>? getLowestBortzAgeForSlug = null,
         Func<string, string?>? getPodcastLinkForSlug = null)
     {
         var list = items as List<(EventType Type, string Raw)> ?? items.ToList();
@@ -60,8 +60,10 @@ public static class SlackMessageBuilder
         string? divisionVal = null;
         string? generationVal = null;
         string? exclusiveVal = null;
+        string? amateurVal = null;
 
         bool hasPhenoLowest = false;
+        bool hasBortzLowest = false;
         bool hasChronoYoungest = false;
         bool hasChronoOldest = false;
 
@@ -112,12 +114,24 @@ public static class SlackMessageBuilder
                     continue;
                 }
 
+                if (string.Equals(cat, "Amateur", StringComparison.OrdinalIgnoreCase))
+                {
+                    amateurVal = string.IsNullOrWhiteSpace(val) ? "Amateur" : val.Trim();
+                    continue;
+                }
+
                 continue;
             }
 
             if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
             {
                 if (place == 1) hasPhenoLowest = true;
+                continue;
+            }
+
+            if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+            {
+                if (place == 1) hasBortzLowest = true;
                 continue;
             }
 
@@ -154,10 +168,17 @@ public static class SlackMessageBuilder
 
         string ExclusiveName(string v) => (v ?? "").Trim();
 
+        string AmateurName(string v)
+        {
+            var t = (v ?? "").Trim();
+            return string.Equals(t, "Amateur", StringComparison.OrdinalIgnoreCase) ? "Amateur" : t;
+        }
+
         var leagueParts = new List<string>();
         if (!string.IsNullOrWhiteSpace(divisionVal)) leagueParts.Add($"the {DivisionName(divisionVal)} division");
         if (!string.IsNullOrWhiteSpace(generationVal)) leagueParts.Add($"the {GenerationName(generationVal)} league");
         if (!string.IsNullOrWhiteSpace(exclusiveVal)) leagueParts.Add($"the {ExclusiveName(exclusiveVal)} league");
+        if (!string.IsNullOrWhiteSpace(amateurVal)) leagueParts.Add($"the {AmateurName(amateurVal)} League");
 
         string? awardText = null;
         bool awardUsesHasVerb = false;
@@ -169,8 +190,16 @@ public static class SlackMessageBuilder
                 var ph = getLowestPhenoAgeForSlug?.Invoke(slug);
                 awardUsesHasVerb = true;
                 awardText = ph.HasValue
-                    ? $"the lowest biological age in the field, at {F2(ph.Value)} years"
-                    : "the lowest biological age in the field";
+                    ? $"the lowest PhenoAge in the field, at {F2(ph.Value)} years"
+                    : "the lowest PhenoAge in the field";
+            }
+            else if (hasBortzLowest)
+            {
+                var ba = getLowestBortzAgeForSlug?.Invoke(slug);
+                awardUsesHasVerb = true;
+                awardText = ba.HasValue
+                    ? $"the lowest Bortz age in the field, at {F2(ba.Value)} years"
+                    : "the lowest Bortz age in the field";
             }
             else if (hasChronoYoungest || hasChronoOldest)
             {
@@ -265,18 +294,7 @@ public static class SlackMessageBuilder
         if (slug is null) return "A new athlete joined the leaderboard";
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
-        return Pick(
-            $"{nameLink} joined the leaderboard",
-            $"Welcome {nameLink} to the leaderboard",
-            $"New contender: {nameLink} just joined the leaderboard",
-            $"{nameLink} has entered the leaderboard",
-            $"Say hi to {nameLink} - new on the leaderboard",
-            $"{nameLink} steps onto the leaderboard",
-            $"{nameLink} appears on the leaderboard",
-            $"{nameLink} is now on the leaderboard",
-            $"{nameLink} just made the leaderboard",
-            $"A warm welcome to {nameLink} on the leaderboard"
-        );
+        return $"{nameLink} joined the leaderboard";
     }
 
     private static string BuildNewRank(
@@ -307,41 +325,17 @@ public static class SlackMessageBuilder
 
     private static string BuildDonation(string rawText)
     {
-        var (tx, sats) = ParseDonationTokens(rawText);
-        if (sats is null || sats <= 0) return Escape(rawText);
+        if (!EventHelpers.TryExtractSats(rawText, out var sats)) return Escape(rawText);
+        if (sats <= 0) return Escape(rawText);
 
-        var btc = SatsToBtc(sats.Value);
+        var btc = SatsToBtc(sats);
         var btcFormatted = btc.ToString("0.########", CultureInfo.InvariantCulture);
 
         string donationUrl = "https://longevityworldcup.com/#donation-section";
         string amountMd = $"<{donationUrl}|{btcFormatted} BTC>";
 
         const string Gap = "  ";
-        return Pick(
-            $"Someone has donated {amountMd}{Gap}:tada:",
-            $"Donation of {amountMd} received{Gap}:tada:",
-            $"A generous donor contributed {amountMd}{Gap}:raised_hands:",
-            $"We just received {amountMd} - thank you{Gap}:yellow_heart:",
-            $"Support came in: {amountMd}{Gap}:rocket:",
-            $"{amountMd} donated - much appreciated{Gap}:sparkles:",
-            $"New donation: {amountMd}{Gap}:dizzy:",
-            $"Thanks for the {amountMd} gift{Gap}:pray:",
-            $"A kind supporter sent {amountMd}{Gap}:gift:",
-            $"Donation confirmed: {amountMd}{Gap}:white_check_mark:",
-            $"Appreciate your support - {amountMd}{Gap}:star2:",
-            $"Your generosity fueled us: {amountMd}{Gap}:fire:"
-        );
-    }
-
-    private static (string? tx, long? sats) ParseDonationTokens(string text)
-    {
-        string? tx = null;
-        long? sats = null;
-
-        if (EventHelpers.TryExtractTx(text, out var txOut)) tx = txOut;
-        if (EventHelpers.TryExtractSats(text, out var satsOut)) sats = satsOut;
-
-        return (tx, sats);
+        return $"Someone has donated {amountMd}{Gap}:tada:";
     }
 
     private static decimal SatsToBtc(long sats) => sats / 100_000_000m;
@@ -398,7 +392,7 @@ public static class SlackMessageBuilder
     private static string LeaderboardUrl() =>
         "https://longevityworldcup.com/leaderboard";
 
-    private static string BuildBadgeAward(string rawText, Func<string, string> slugToName, Func<string, string?>? getPodcastLinkForSlug = null)
+    private static string BuildBadgeAward(string rawText, Func<string, string?>? getPodcastLinkForSlug = null)
     {
         if (!EventHelpers.TryExtractSlug(rawText, out var slug)) return Escape(rawText);
 
@@ -408,65 +402,13 @@ public static class SlackMessageBuilder
         if (!string.Equals(normLabel, "Podcast", StringComparison.OrdinalIgnoreCase))
             return "";
 
-        _ = slugToName;
-
         var displaySlug = slug.Replace('_', '-');
         var slugLink = Link(AthleteUrl(slug), displaySlug);
 
         var podcastUrl = getPodcastLinkForSlug?.Invoke(slug);
         var episodeLink = !string.IsNullOrWhiteSpace(podcastUrl) ? Link(podcastUrl, "episode") : "episode";
 
-        return Pick(
-            $"{slugLink} just dropped in on a brand new podcast {episodeLink}",
-            $"Fresh {episodeLink} out now featuring {slugLink}",
-            $"New podcast {episodeLink} with {slugLink} on the mic",
-            $"{slugLink} takes the spotlight in our latest podcast {episodeLink}",
-            $"Hear {slugLink} in a newly released podcast {episodeLink}"
-        );
-    }
-
-    private static string LeagueDisplay(string? cat, string? val)
-    {
-        var c = (cat ?? "").Trim();
-        var v = (val ?? "").Trim();
-
-        if (string.Equals(c, "Global", StringComparison.OrdinalIgnoreCase))
-            return "Ultimate League";
-
-        if (c == "Division")
-        {
-            return v switch
-            {
-                "Men" => "Men's Division",
-                "Women" => "Women's Division",
-                "Open" => "Open Division",
-                _ => $"{v} Division"
-            };
-        }
-
-        if (c == "Generation")
-        {
-            return v switch
-            {
-                "Silent Generation" => "Silent Generation",
-                "Baby Boomers" => "Baby Boomers Generation",
-                "Gen X" => "Gen X Generation",
-                "Millennials" => "Millennials Generation",
-                "Gen Z" => "Gen Z Generation",
-                "Gen Alpha" => "Gen Alpha Generation",
-                _ => $"{v} Generation"
-            };
-        }
-
-        if (c == "Exclusive")
-        {
-            return "Prosperan Exclusive League";
-        }
-
-        if (string.IsNullOrWhiteSpace(c) && string.IsNullOrWhiteSpace(v)) return "league";
-        if (string.IsNullOrWhiteSpace(c)) return v;
-        if (string.IsNullOrWhiteSpace(v)) return c;
-        return $"{v} {c}";
+        return $"{slugLink} just dropped in on a brand new podcast {episodeLink}";
     }
 
     private static (string? slug, int? rank, string? prev) ParseTokens(string text)
@@ -497,16 +439,6 @@ public static class SlackMessageBuilder
 
     private static string MedalOrTrend(int n) =>
         n switch { 1 => " 🥇", 2 => " 🥈", 3 => " 🥉", _ => "" };
-
-    private static string RankWithMedal(int? place)
-    {
-        var o = place > 0 ? Ordinal(place!.Value) : "ranked";
-        var m = place > 0 ? MedalOrTrend(place!.Value) : "";
-        return $"{o}{m}";
-    }
-
-    private static string Pick(params string[] options) =>
-        options.Length == 0 ? "" : options[Random.Shared.Next(options.Length)];
 
     private static string BuildCustomEvent(string rawText)
     {
