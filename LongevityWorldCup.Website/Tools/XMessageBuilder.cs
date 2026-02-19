@@ -53,6 +53,25 @@ public static class XMessageBuilder
         return LeaderboardUrl;
     }
 
+    private static string BuildAthleteCtaLine(string athleteName, string url)
+    {
+        var options = new[]
+        {
+            $"👤 See profile: {url}",
+            $"🔎 Details: {url}",
+            $"👉 Take a look: {url}",
+            $"📄 Full profile: {url}"
+        };
+
+        var key = athleteName ?? string.Empty;
+        var hash = 0;
+        for (var i = 0; i < key.Length; i++)
+            hash = unchecked(hash * 31 + key[i]);
+        if (hash < 0) hash = -hash;
+
+        return options[hash % options.Length];
+    }
+
     public static string ForEventText(
         EventType type,
         string rawText,
@@ -99,7 +118,7 @@ public static class XMessageBuilder
             var athleteUrl = AthleteUrl(phenoSlug);
             return Truncate(
                 $"{phenoAthlete} currently holds the lowest PhenoAge in the Longevity World Cup field{ageStr} 🧬\n\n" +
-                $"👤 Learn more: {athleteUrl}");
+                BuildAthleteCtaLine(phenoAthlete, athleteUrl));
         }
         if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
         {
@@ -121,7 +140,7 @@ public static class XMessageBuilder
             var athleteUrl = AthleteUrl(bortzSlug);
             return Truncate(
                 $"{bortzAthlete} currently holds the lowest Bortz Age in the Longevity World Cup field{ageStr} 🧬\n\n" +
-                $"👤 Learn more: {athleteUrl}");
+                BuildAthleteCtaLine(bortzAthlete, athleteUrl));
         }
 
         if (string.Equals(normLabel, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
@@ -135,7 +154,7 @@ public static class XMessageBuilder
             var url = AthleteUrl(diffSlug);
             return Truncate(
                 $"The biggest Bortz Age improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test 🧬\n\n" +
-                $"👤 Learn more: {url}");
+                BuildAthleteCtaLine(athlete, url));
         }
 
         if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
@@ -146,7 +165,7 @@ public static class XMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return Truncate($"{chronoAthlete} is now the oldest in the Longevity World Cup field at {ageStr} 🏃‍♂️\n📊 Profile: {url}");
+            return Truncate($"{chronoAthlete} is currently the oldest athlete in the Longevity World Cup field at {ageStr} years.\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
         if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
@@ -157,7 +176,7 @@ public static class XMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return Truncate($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} 🏃‍♂️\n📊 Profile: {url}");
+            return Truncate($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} years.\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
         if (string.Equals(normLabel, "Age Reduction", StringComparison.OrdinalIgnoreCase)
@@ -173,8 +192,8 @@ public static class XMessageBuilder
             var leaguePrev = !string.IsNullOrWhiteSpace(leaguePrevSlug) ? slugToName(leaguePrevSlug) : null;
             var leagueBoardUrl = LeagueUrl(leagueCat, leagueVal);
             var msg = !string.IsNullOrWhiteSpace(leaguePrev)
-                ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} 🏆\n📊 Leaderboard: {leagueBoardUrl}"
-                : $"{leagueAthlete} is now #1 in the {leagueName} 🏆\n📊 Leaderboard: {leagueBoardUrl}";
+                ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} 🏆\n\n📊 Leaderboard: {leagueBoardUrl}"
+                : $"{leagueAthlete} is now #1 in the {leagueName} 🏆\n\n📊 Leaderboard: {leagueBoardUrl}";
             return Truncate(msg);
         }
 
@@ -272,7 +291,7 @@ public static class XMessageBuilder
             {
                 line1,
                 "",
-                $"📊 Profile: {url}"
+                $"Full profile: {url}"
             };
             return Truncate(string.Join("\n", lines));
         }
@@ -327,3 +346,8 @@ public static class XMessageBuilder
         return $"{v} {c}";
     }
 }
+
+
+
+
+
