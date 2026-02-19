@@ -130,22 +130,22 @@ public class AgentController : ControllerBase
     }
 
     [HttpPost("notify")]
-    public async Task<IActionResult> Notify([FromBody] AgentNotifyRequest request)
+    public Task<IActionResult> Notify([FromBody] AgentNotifyRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.AdminKey) || request.AdminKey != _config.AgentAdminKey)
-            return Unauthorized(new { error = "Invalid admin key." });
+            return Task.FromResult<IActionResult>(Unauthorized(new { error = "Invalid admin key." }));
 
         if (string.IsNullOrWhiteSpace(request.Token))
-            return BadRequest(new { error = "Token is required." });
+            return Task.FromResult<IActionResult>(BadRequest(new { error = "Token is required." }));
 
         if (string.IsNullOrWhiteSpace(request.Status) ||
             (request.Status != "approved" && request.Status != "rejected"))
-            return BadRequest(new { error = "Status must be 'approved' or 'rejected'." });
+            return Task.FromResult<IActionResult>(BadRequest(new { error = "Status must be 'approved' or 'rejected'." }));
 
         var (updated, webhookUrl) = _agentDataService.UpdateStatus(request.Token, request.Status);
 
         if (!updated)
-            return NotFound(new { error = "Application not found for the given token." });
+            return Task.FromResult<IActionResult>(NotFound(new { error = "Application not found for the given token." }));
 
         // Fire webhook if configured (best-effort)
         if (!string.IsNullOrWhiteSpace(webhookUrl))
@@ -172,7 +172,7 @@ public class AgentController : ControllerBase
             });
         }
 
-        return Ok(new { token = request.Token, status = request.Status, message = "Status updated." });
+        return Task.FromResult<IActionResult>(Ok(new { token = request.Token, status = request.Status, message = "Status updated." }));
     }
 
     [HttpGet("lookup")]
