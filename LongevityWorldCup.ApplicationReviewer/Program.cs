@@ -1,23 +1,35 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.ApplicationReviewer;
 
 internal class Program
 {
+    private static readonly string ServerUrl = "https://localhost:7080";
+    private static string? _adminKey;
+
     private static void Main()
     {
         // get back up to your solution folder
         var solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-        // now point at the Website's wwwroot/athletes folder
+
+        // Read admin key from environment or prompt
+        _adminKey = Environment.GetEnvironmentVariable("LWC_ADMIN_KEY");
+        if (string.IsNullOrWhiteSpace(_adminKey))
+        {
+            Console.Write("Enter agent admin key (or press Enter to skip agent status updates): ");
+            _adminKey = Console.ReadLine()?.Trim();
+        }
 
         // -- ensure the Website is up --
-        var serverUrl = "https://localhost:7080";
-        if (!IsServerRunning(serverUrl))
+        if (!IsServerRunning(ServerUrl))
         {
             var websiteProject = Path.Combine(solutionRoot, "LongevityWorldCup.Website");
 
@@ -58,7 +70,7 @@ internal class Program
                 var folderName = Path.GetFileNameWithoutExtension(zip);
                 var athleteFolder = Path.Combine(athletesFolder, folderName);
 
-                // build URL (underscores → dashes) and open in default browser
+                // build URL (underscores -> dashes) and open in default browser
                 var key = folderName.Replace('_', '-');
                 var url = $"https://localhost:7080/athlete/{key}";
 
@@ -84,7 +96,118 @@ internal class Program
 
                 // open the extracted folder in Explorer/Finder
                 Process.Start(new ProcessStartInfo { FileName = athleteFolder, UseShellExecute = true });
+
+                // Prompt for agent application status update
+                PromptAgentStatusUpdate(folderName, athleteFolder);
             }
+        }
+    }
+
+    private static void PromptAgentStatusUpdate(string folderName, string athleteFolder)
+    {
+        if (string.IsNullOrWhiteSpace(_adminKey))
+            return;
+
+        // Read athlete name from athlete.json if available
+        var athleteJsonPath = Path.Combine(athleteFolder, "athlete.json");
+        string? athleteName = null;
+        if (File.Exists(athleteJsonPath))
+        {
+            try
+            {
+                var json = JObject.Parse(File.ReadAllText(athleteJsonPath));
+                athleteName = json["Name"]?.ToString();
+            }
+            catch { /* ignore parse errors */ }
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"Application for \"{athleteName ?? folderName}\" extracted.");
+        Console.WriteLine("Update agent application status? [a]pprove / [r]eject / [s]kip:");
+        Console.Write("> ");
+
+        var input = Console.ReadLine()?.Trim().ToLowerInvariant();
+        if (input != "a" && input != "r")
+            return;
+
+        var status = input == "a" ? "approved" : "rejected";
+
+        try
+        {
+            // Look up the token by name slug
+            var token = LookupAgentToken(folderName);
+            if (token == null)
+            {
+                Console.WriteLine("No agent application found for this athlete (may be a manual submission). Skipping.");
+                return;
+            }
+
+            // Update the status
+            var success = NotifyAgentStatus(token, status);
+            if (success)
+            {
+                Console.WriteLine($"Agent application status updated to '{status}' for token {token}.");
+            }
+            else
+            {
+                Console.WriteLine("Failed to update agent application status.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating agent status: {ex.Message}");
+        }
+    }
+
+    private static string? LookupAgentToken(string slug)
+    {
+        try
+        {
+            using var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+            };
+            using var client = new HttpClient(handler);
+            var response = client.GetAsync(
+                $"{ServerUrl}/api/agent/lookup?name={Uri.EscapeDataString(slug)}&adminKey={Uri.EscapeDataString(_adminKey!)}")
+                .GetAwaiter().GetResult();
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            var doc = JsonDocument.Parse(json);
+            return doc.RootElement.GetProperty("token").GetString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool NotifyAgentStatus(string token, string status)
+    {
+        try
+        {
+            using var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+            };
+            using var client = new HttpClient(handler);
+            var payload = new { Token = token, Status = status, AdminKey = _adminKey };
+            var content = new StringContent(
+                JsonSerializer.Serialize(payload),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = client.PostAsync($"{ServerUrl}/api/agent/notify", content)
+                .GetAwaiter().GetResult();
+
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -172,7 +295,11 @@ internal class Program
     {
         try
         {
-            using var httpClient = new HttpClient();
+            using var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+            };
+            using var httpClient = new HttpClient(handler);
             var response = httpClient.Send(new HttpRequestMessage(HttpMethod.Head, url));
             return response.IsSuccessStatusCode;
         }
