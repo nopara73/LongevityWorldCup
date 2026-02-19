@@ -161,6 +161,15 @@
     <!--FOOTER-->
     <script>
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
+
+        function setPendingPaymentOffer(offer) {
+            sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(offer));
+        }
+
+        function clearPendingPaymentOffer() {
+            sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+        }
 
         document.addEventListener('DOMContentLoaded', function () {
             const createPriceHtmlFallback = (result) => {
@@ -212,11 +221,14 @@
                 const urlParams = new URLSearchParams(window.location.search || '');
                 const isDemoPro = urlParams.get('demopro') === '1';
                 const isPro = isDemoPro || (window.isAthletePro ? window.isAthletePro(athlete) : false);
-                const createButton = (label, className, href) => {
+                const createButton = (label, className, href, beforeNavigate) => {
                     const button = document.createElement('button');
                     button.className = className;
                     button.innerHTML = label;
-                    button.addEventListener('click', () => { window.location.href = href; });
+                    button.addEventListener('click', () => {
+                        if (typeof beforeNavigate === 'function') beforeNavigate();
+                        window.location.href = href;
+                    });
                     return button;
                 };
                 const createGoProDiscountSummary = (result) => {
@@ -242,12 +254,14 @@
                     const phenoButton = createButton(
                         'Submit new Pheno&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
-                        '/pheno-age?update=1'
+                        '/pheno-age?update=1',
+                        () => clearPendingPaymentOffer()
                     );
                     const bortzButton = createButton(
                         'Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
-                        '/bortz-age?update=1'
+                        '/bortz-age?update=1',
+                        () => clearPendingPaymentOffer()
                     );
                     optionsContainer.insertBefore(phenoButton, backButton);
                     optionsContainer.insertBefore(bortzButton, backButton);
@@ -255,7 +269,8 @@
                     const submitButton = createButton(
                         'Submit new results&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
-                        '/pheno-age?update=1'
+                        '/pheno-age?update=1',
+                        () => clearPendingPaymentOffer()
                     );
                     const goProDiscountResult =
                         window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
@@ -266,7 +281,19 @@
                             ? `Go pro for&nbsp;${typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult)}&nbsp;<i class="fas fa-bolt"></i>`
                             : 'Go pro for&nbsp;<i class="fas fa-bolt"></i>',
                         'option-button green',
-                        '/bortz-age?update=1'
+                        '/bortz-age?update=1',
+                        () => {
+                            const amountUsd =
+                                goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)
+                                    ? goProDiscountResult.finalPriceUsd
+                                    : 100;
+                            setPendingPaymentOffer({
+                                source: 'go-pro-upgrade',
+                                offerType: 'pro',
+                                currency: 'USD',
+                                amountUsd
+                            });
+                        }
                     );
                     optionsContainer.insertBefore(submitButton, backButton);
                     optionsContainer.insertBefore(goProButton, backButton);

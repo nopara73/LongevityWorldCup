@@ -600,7 +600,7 @@
             <div class="card-cta">
               <button
                 class="option-button grey"
-                onclick="window.location.href = '/pheno-age'"
+                onclick="startAmateurApplication()"
               >
                 Start amateur
               </button>
@@ -738,7 +738,7 @@
               <button
                 id="goProJoinButton"
                 class="option-button green"
-                onclick="window.location.href = '/bortz-age'"
+                onclick="startProApplication()"
               >
                 Go pro
               </button>
@@ -764,6 +764,35 @@
     <!--FOOTER-->
     <script>
       updateMainProgress(1);
+      const PENDING_PAYMENT_OFFER_KEY = "pendingPaymentOffer";
+
+      function setPendingPaymentOffer(offer) {
+        sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(offer));
+      }
+
+      function startAmateurApplication() {
+        setPendingPaymentOffer({
+          source: "join-game",
+          offerType: "amateur",
+          currency: "USD",
+          amountUsd: 10
+        });
+        window.location.href = "/pheno-age";
+      }
+
+      function startProApplication() {
+        const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === "function"
+          ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
+          : null;
+        const amountUsd = result && Number.isFinite(result.finalPriceUsd) ? result.finalPriceUsd : 100;
+        setPendingPaymentOffer({
+          source: "join-game",
+          offerType: "pro",
+          currency: "USD",
+          amountUsd
+        });
+        window.location.href = "/bortz-age";
+      }
 
       function createPriceHtmlFallback(result) {
         const oldText = `$${result.basePriceUsd}`;
