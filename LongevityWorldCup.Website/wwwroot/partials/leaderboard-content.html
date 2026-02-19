@@ -3518,7 +3518,7 @@
         if (bestLeagueType === 'ultimate') {
             rankText = `#${bestLeagueRank} in the <a href="/leaderboard" class="league-link" target="_blank" rel="noopener noreferrer">Ultimate League</a>`;
         } else if (bestLeagueType === 'amateur') {
-            rankText = `#${bestLeagueRank} in the <a href="/leaderboard?filters=${encodeURIComponent('Amateur')}" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
+            rankText = `#${bestLeagueRank} in the <a href="/?filters=${encodeURIComponent('Amateur')}" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
         } else if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
             const slug = window.slugifyName(bestLeagueName, true);
             rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
