@@ -277,21 +277,21 @@ public static class XMessageBuilder
             var (label, emoji) = domainKey.ToLowerInvariant() switch
             {
                 "liver" => ("liver", "🧬"),
-                "kidney" => ("kidneys", "💧"),
-                "metabolic" => ("metabolic profile", "🔥"),
-                "inflammation" => ("inflammation profile", ""),
-                "immune" => ("immune profile", "🛡️"),
+                "kidney" => ("kidney", "💧"),
+                "metabolic" => ("metabolic", "🔥"),
+                "inflammation" => ("inflammation", ""),
+                "immune" => ("immune", "🛡️"),
                 _ => ("domain", "")
             };
             var line1 = string.IsNullOrEmpty(emoji)
-                ? $"{name} currently has the best {label} in the Longevity World Cup field."
-                : $"{name} currently has the best {label} in the Longevity World Cup field {emoji}";
+                ? $"{name} currently has the strongest {label} profile in the Longevity World Cup field."
+                : $"{name} currently has the strongest {label} profile in the Longevity World Cup field {emoji}";
             var url = AthleteUrl(winnerSlug);
             var lines = new List<string>
             {
                 line1,
                 "",
-                $"Full profile: {url}"
+                BuildAthleteCtaLine(name, url)
             };
             return Truncate(string.Join("\n", lines));
         }
@@ -346,6 +346,7 @@ public static class XMessageBuilder
         return $"{v} {c}";
     }
 }
+
 
 
 
