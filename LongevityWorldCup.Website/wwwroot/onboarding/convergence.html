@@ -270,6 +270,9 @@
         var currentStage = 1;
         let profilePic = null;
         let proofPics = [];
+        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
+        const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
+        const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
 
         // Update the progress bar to the appropriate stage
         // Assuming updateMainProgress and updateSubProgress are defined elsewhere
@@ -319,6 +322,13 @@
                 return;
             }
 
+            let paymentOffer = null;
+            try {
+                paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
+            } catch (_) {
+                paymentOffer = null;
+            }
+
             // Create the applicant data object
             const applicantData = {
                 name: name,
@@ -333,7 +343,8 @@
                 dateOfBirth: biomarkerData.DateOfBirth,
                 biomarkers: biomarkerData.Biomarkers,
                 profilePic: profilePic, // Base64 string
-                proofPics: proofPics // Array of Base64 strings
+                proofPics: proofPics, // Array of Base64 strings
+                paymentOffer: paymentOffer
             };
 
             return applicantData;
@@ -861,13 +872,36 @@
                         .then(response => {
                             hideLoading();
                             if (response.ok) {
-                                customAlert('Application submitted successfully!').then(() => {
-                                    sessionStorage.setItem('contactEmail', applicantData.accountEmail);
-                                    // Clear the image variables
-                                    profilePic = null;
-                                    proofPics = [];
-                                    // Redirect or reset the form
-                                    window.location.href = '/onboarding/application-review.html';
+                                response.json().catch(() => ({})).then(submitResult => {
+                                    const nextStepMessage =
+                                        submitResult && submitResult.paymentRequired && submitResult.checkoutLink
+                                            ? 'Your application was received. Next, you will be redirected to the payment page.'
+                                            : 'Your application was received. Next, we will take you to application review.';
+                                    customAlert(nextStepMessage).then(() => {
+                                        sessionStorage.setItem('contactEmail', applicantData.accountEmail);
+                                        localStorage.setItem('contactEmail', applicantData.accountEmail);
+                                        sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+                                        // Clear the image variables
+                                        profilePic = null;
+                                        proofPics = [];
+                                        // Redirect to BTCPay invoice if required, otherwise to review.
+                                        if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
+                                            if (submitResult.invoiceId) {
+                                                const pendingInvoiceInfo = JSON.stringify({
+                                                    invoiceId: submitResult.invoiceId,
+                                                    applicantName: applicantData.name || null,
+                                                    accountEmail: applicantData.accountEmail || null
+                                                });
+                                                sessionStorage.setItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                                                localStorage.setItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                                            }
+                                            window.location.href = submitResult.checkoutLink;
+                                            return;
+                                        }
+                                        sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
+                                        localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                        window.location.href = '/onboarding/application-review.html';
+                                    });
                                 });
                             } else {
                                 response.text().then(badResponse => {

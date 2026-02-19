@@ -21,6 +21,15 @@ namespace LongevityWorldCup.Website.Business
         public DateOfBirthData? DateOfBirth { get; set; }
 
         public List<BiomarkerData>? Biomarkers { get; set; }
+        public PaymentOfferData? PaymentOffer { get; set; }
+    }
+
+    public class PaymentOfferData
+    {
+        public string? Source { get; set; }
+        public string? OfferType { get; set; }
+        public string? Currency { get; set; }
+        public decimal? AmountUsd { get; set; }
     }
 
     public class DateOfBirthData
