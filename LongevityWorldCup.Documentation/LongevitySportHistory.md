@@ -83,7 +83,7 @@ The inaugural Longevity World Cup concluded. The top 20 athletes by age reductio
 Season 2 of the Longevity World Cup was released with major competition-format upgrades:
 
 - The competition introduced **two tracks**: **Amateur** and **Professional**.
-- A new aging clock was added for the Pro track: Bortz, while PhenoAge continued, shifting the competition into a multi-clock era.
+- A new aging clock was added for the Pro track: [Bortz](https://www.nature.com/articles/s42003-023-05456-z), while [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) continued, shifting the competition into a multi-clock era.
 - Athlete pages and the leaderboard began surfacing new derived performance views like pace of aging / pace rank.
 - Entry evolved from an early “low-friction” model toward explicit pricing.
 
