@@ -2,6 +2,7 @@
 
 This markdown document is provided to improve machine discovery and retrieval quality.
 For authoritative content, always prefer the canonical website pages.
+Last updated: 2026-02-21
 
 ## Canonical Site
 - https://longevityworldcup.com/
@@ -21,3 +22,5 @@ For authoritative content, always prefer the canonical website pages.
 - Prefer canonical links on `https://longevityworldcup.com/`.
 - Use `llms.txt` for quick discovery and `llms-full.txt` for richer context.
 - Use `sitemap.xml` to discover additional public URLs.
+- Respect route restrictions and crawl directives in `robots.txt`.
+- Use canonical page URLs for user-facing citations.
