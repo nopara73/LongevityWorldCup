@@ -50,6 +50,8 @@
     <script>
         const isNewResultsUploaded = sessionStorage.getItem("came-from") === "proof-upload";
         const isEditRequest = sessionStorage.getItem("came-from") === "edit-profile";
+        const PENDING_PAYMENT_INVOICE_KEY = "pendingPaymentInvoice";
+        const PENDING_PAYMENT_INVOICE_STORAGE_KEY = "pendingPaymentInvoicePersistent";
         sessionStorage.removeItem("came-from");
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -66,10 +68,26 @@
                 document.getElementById("appReviewText").textContent = "Edit review";
                 document.getElementById("whatAreWeReviewing").textContent = "your edit request";
             }
+
+            maybeNotifyPaidInvoice();
         });
 
         // Retrieve the contact email
-        const contactEmail = sessionStorage.getItem('contactEmail');
+        const contactEmail =
+            sessionStorage.getItem('contactEmail')
+            || localStorage.getItem('contactEmail')
+            || (() => {
+                try {
+                    const pending = JSON.parse(
+                        sessionStorage.getItem(PENDING_PAYMENT_INVOICE_KEY)
+                        || localStorage.getItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
+                        || "null"
+                    );
+                    return pending && pending.accountEmail ? pending.accountEmail : null;
+                } catch (_) {
+                    return null;
+                }
+            })();
         if (contactEmail) {
             // Insert it into the placeholder
             document.getElementById('contactEmailPlaceholder').textContent = contactEmail;
@@ -80,6 +98,43 @@
 
         // mark that they’ve submitted an application
         localStorage.setItem('hasApplication', 'true');
+
+        function maybeNotifyPaidInvoice() {
+            let pending;
+            try {
+                pending = JSON.parse(
+                    sessionStorage.getItem(PENDING_PAYMENT_INVOICE_KEY)
+                    || localStorage.getItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
+                    || "null"
+                );
+            } catch (_) {
+                pending = null;
+            }
+
+            if (!pending || !pending.invoiceId) return;
+
+            fetchWithTimeout('/api/application/payment-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    invoiceId: pending.invoiceId,
+                    applicantName: pending.applicantName || null,
+                    accountEmail: pending.accountEmail || null
+                })
+            }, 12000)
+                .then(response => response.ok ? response.json() : null)
+                .then(result => {
+                    if (!result) return;
+                    // If we confirmed paid + notified (or already notified), we can stop checking.
+                    if (result.isPaid && (result.notificationSent || result.alreadyNotified)) {
+                        sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
+                        localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                    }
+                })
+                .catch(() => {
+                    // Silent failure: review page should still work even if payment check fails.
+                });
+        }
     </script>
 </body>
 </html>

@@ -183,3 +183,17 @@ Add webhook entry to config file:
 SlackWebhookUrl": ""
 ```
 
+#### BTCPay Server
+
+Add BTCPay entries to `config.json`:
+```
+"BTCPayBaseUrl": "https://pay.longevityworldcup.com/",
+"BTCPayStoreId": "HdMuY1SVeGgWomYAphnMQfnfhigQUcpSCmpbMegrVLNg",
+"BTCPayGreenfieldApiKey": ""
+```
+
+Notes:
+- Keep `BTCPayGreenfieldApiKey` secret, same handling as SMTP/Google secrets.
+- Required API key permissions: `btcpay.store.cancreateinvoice`, `btcpay.store.canviewinvoices`.
+- The server creates invoices and sets redirect to: `https://www.longevityworldcup.com/onboarding/application-review.html`.
+

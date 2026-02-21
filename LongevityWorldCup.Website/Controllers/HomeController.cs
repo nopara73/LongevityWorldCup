@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
 using LongevityWorldCup.Website.Business; // Add this namespace
@@ -54,6 +54,39 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             return Ok("Subscription successful.");
+        }
+
+        [HttpPost("unsubscribe")]
+        public async Task<IActionResult> UnsubscribeNewsletter([FromBody] NewsletterSubscriptionModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            string? email = model.Email?.Trim();
+            if (string.IsNullOrEmpty(email))
+            {
+                return BadRequest("Email cannot be empty.");
+            }
+
+            // Reuse the same anti-spam guard as subscription requests.
+            string clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            string trackerKey = $"{email}-{clientIp}";
+
+            if (!IsRequestAllowed(trackerKey))
+            {
+                return BadRequest("Too many newsletter attempts. Please try again later.");
+            }
+
+            var error = await NewsletterService.UnsubscribeAsync(email, _logger, _environment);
+
+            if (error != null)
+            {
+                return BadRequest(error);
+            }
+
+            return Ok("Unsubscription successful.");
         }
 
         private static bool IsRequestAllowed(string key)

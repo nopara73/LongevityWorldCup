@@ -197,7 +197,10 @@ namespace LongevityWorldCup.Website
                 SmtpServer = "smtp.gmail.com",
                 SmtpPort = 587,
                 SmtpUser = "longevityworldcup@gmail.com",
-                DonationBitcoinAddress = ""
+                DonationBitcoinAddress = "",
+                BTCPayBaseUrl = "https://pay.longevityworldcup.com/",
+                BTCPayStoreId = "HdMuY1SVeGgWomYAphnMQfnfhigQUcpSCmpbMegrVLNg",
+                BTCPayGreenfieldApiKey = ""
             };
 
             // Serialize to JSON and save to file
