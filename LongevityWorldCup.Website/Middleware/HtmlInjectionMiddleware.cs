@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace LongevityWorldCup.Website.Middleware
 {
     public class HtmlInjectionMiddleware(RequestDelegate next)
@@ -53,7 +55,8 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_OG_TITLE}}", EncodeMeta(seo.OgTitle))
                         .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
                         .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(DefaultOgImage));
+                        .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(DefaultOgImage))
+                        .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
 
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
@@ -102,6 +105,7 @@ namespace LongevityWorldCup.Website.Middleware
             return canonicalPath switch
             {
                 "/" => new SeoMeta(
+                    canonicalPath,
                     "Reverse your biological age and climb the Longevity World Cup leaderboard. Compare Pheno Age and Bortz Age results in a global anti-aging competition.",
                     "index, follow",
                     canonicalUrl,
@@ -110,6 +114,7 @@ namespace LongevityWorldCup.Website.Middleware
                     "Too old for your sport? Not this one. Join the Longevity World Cup and rise on the leaderboard by improving your biological age."
                 ),
                 "/leaderboard" => new SeoMeta(
+                    canonicalPath,
                     "See the latest Longevity World Cup leaderboard rankings and compare biological age reduction results across athletes.",
                     "index, follow",
                     canonicalUrl,
@@ -118,6 +123,7 @@ namespace LongevityWorldCup.Website.Middleware
                     "Explore current Longevity World Cup standings and discover who is leading the biological age reversal rankings."
                 ),
                 "/events" => new SeoMeta(
+                    canonicalPath,
                     "Track Longevity World Cup highlights, announcements, and major milestones from the current season.",
                     "index, follow",
                     canonicalUrl,
@@ -126,6 +132,7 @@ namespace LongevityWorldCup.Website.Middleware
                     "Follow key Longevity World Cup events, season updates, and competition highlights."
                 ),
                 "/media" => new SeoMeta(
+                    canonicalPath,
                     "Download official Longevity World Cup media assets, logos, and press materials.",
                     "index, follow",
                     canonicalUrl,
@@ -134,6 +141,7 @@ namespace LongevityWorldCup.Website.Middleware
                     "Access the Longevity World Cup media kit with press-ready branding assets and resources."
                 ),
                 _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
+                    canonicalPath,
                     "Longevity World Cup member page.",
                     "noindex, nofollow",
                     canonicalUrl,
@@ -142,6 +150,7 @@ namespace LongevityWorldCup.Website.Middleware
                     "Longevity World Cup member page."
                 ),
                 _ => new SeoMeta(
+                    canonicalPath,
                     "Longevity World Cup - reverse biological age and compete globally.",
                     "index, follow",
                     canonicalUrl,
@@ -190,7 +199,94 @@ namespace LongevityWorldCup.Website.Middleware
             return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
         }
 
+        private static string BuildStructuredDataJson(SeoMeta seo)
+        {
+            var breadcrumbItems = new List<object>
+            {
+                new Dictionary<string, object>
+                {
+                    ["@type"] = "ListItem",
+                    ["position"] = 1,
+                    ["name"] = "Home",
+                    ["item"] = SiteBaseUrl
+                }
+            };
+
+            if (!string.Equals(seo.CanonicalPath, "/", StringComparison.Ordinal))
+            {
+                breadcrumbItems.Add(new Dictionary<string, object>
+                {
+                    ["@type"] = "ListItem",
+                    ["position"] = 2,
+                    ["name"] = GetBreadcrumbLabel(seo.CanonicalPath),
+                    ["item"] = seo.CanonicalUrl
+                });
+            }
+
+            var payload = new Dictionary<string, object>
+            {
+                ["@context"] = "https://schema.org",
+                ["@graph"] = new object[]
+                {
+                    new Dictionary<string, object>
+                    {
+                        ["@type"] = "Organization",
+                        ["@id"] = $"{SiteBaseUrl}/#organization",
+                        ["name"] = "Longevity World Cup",
+                        ["url"] = SiteBaseUrl,
+                        ["logo"] = DefaultOgImage
+                    },
+                    new Dictionary<string, object>
+                    {
+                        ["@type"] = "WebSite",
+                        ["@id"] = $"{SiteBaseUrl}/#website",
+                        ["url"] = SiteBaseUrl,
+                        ["name"] = "Longevity World Cup",
+                        ["publisher"] = new Dictionary<string, object>
+                        {
+                            ["@id"] = $"{SiteBaseUrl}/#organization"
+                        }
+                    },
+                    new Dictionary<string, object>
+                    {
+                        ["@type"] = "WebPage",
+                        ["@id"] = $"{seo.CanonicalUrl}#webpage",
+                        ["url"] = seo.CanonicalUrl,
+                        ["name"] = seo.PageTitle,
+                        ["description"] = seo.Description,
+                        ["isPartOf"] = new Dictionary<string, object>
+                        {
+                            ["@id"] = $"{SiteBaseUrl}/#website"
+                        },
+                        ["about"] = new Dictionary<string, object>
+                        {
+                            ["@id"] = $"{SiteBaseUrl}/#organization"
+                        }
+                    },
+                    new Dictionary<string, object>
+                    {
+                        ["@type"] = "BreadcrumbList",
+                        ["itemListElement"] = breadcrumbItems
+                    }
+                }
+            };
+
+            return JsonSerializer.Serialize(payload);
+        }
+
+        private static string GetBreadcrumbLabel(string canonicalPath)
+        {
+            return canonicalPath switch
+            {
+                "/leaderboard" => "Leaderboard",
+                "/events" => "Events",
+                "/media" => "Media",
+                _ => "Page"
+            };
+        }
+
         private sealed record SeoMeta(
+            string CanonicalPath,
             string Description,
             string Robots,
             string CanonicalUrl,

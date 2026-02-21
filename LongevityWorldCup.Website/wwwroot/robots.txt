@@ -11,6 +11,8 @@ Disallow: /partials/
 Disallow: /event-board/
 Disallow: /leaderboard/leaderboard.html
 Disallow: /misc-pages/
+Disallow: /api/
+Disallow: /athletes/
 Disallow: /join
 Disallow: /apply
 Disallow: /review

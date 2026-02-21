@@ -28,18 +28,18 @@
     <loc>https://longevityworldcup.com/llms.txt</loc>
     <lastmod>2026-02-21</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.3</priority>
+    <priority>0.2</priority>
   </url>
   <url>
     <loc>https://longevityworldcup.com/llms-full.txt</loc>
     <lastmod>2026-02-21</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.3</priority>
+    <priority>0.2</priority>
   </url>
   <url>
     <loc>https://longevityworldcup.com/ai/index.md</loc>
     <lastmod>2026-02-21</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.4</priority>
+    <priority>0.2</priority>
   </url>
 </urlset>
