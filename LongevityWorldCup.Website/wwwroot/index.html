@@ -895,6 +895,7 @@
 <body>
     <!--HEADER-->
     <main>
+        <h1 class="visually-hidden">Longevity World Cup</h1>
         <p class="game-description" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
             Too old for your sport? Not&nbsp;this&nbsp;one! In the Longevity&nbsp;World&nbsp;Cup, you&nbsp;don't&nbsp;age&nbsp;out - you&nbsp;age&nbsp;in. Reverse&nbsp;your&nbsp;age and <strong>rise&nbsp;on&nbsp;the&nbsp;leaderboard!</strong>
         </p>
@@ -1027,9 +1028,9 @@
                     <span id="copiedText" style="display: none;">
                         Copied <i class="fas fa-check" style="color: green;"></i>
                     </span>
-                    <span class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address">
+                    <button type="button" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address">
                         <i class="fas fa-copy"></i>
-                    </span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1051,9 +1052,10 @@
             </form>
         </div>
         <!-- Newsletter success dialog -->
-        <div id="newsletterModal" class="dialog">
+        <div id="newsletterModal" class="dialog" role="dialog" aria-modal="true" aria-labelledby="newsletterModalTitle" aria-describedby="newsletterSuccessMessage">
             <div class="dialog-content">
-                <span id="closeNewsletterBtn1" class="close">&times;</span>
+                <h2 id="newsletterModalTitle" class="visually-hidden">Newsletter subscription successful</h2>
+                <button type="button" id="closeNewsletterBtn1" class="close" aria-label="Close dialog">&times;</button>
                 <div class="checkmark-container"></div>
                 <p id="newsletterSuccessMessage">
                     You subscribed with <strong>foo@bar.com</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.

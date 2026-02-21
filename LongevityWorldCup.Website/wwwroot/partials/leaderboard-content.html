@@ -856,7 +856,7 @@
         </div>
 
         <div class="leaderboard-toolbar">
-            <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
+            <div class="leaderboard-view-switcher" role="radiogroup" aria-label="Leaderboard view">
                 <div class="view-switcher-chips">
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
                     <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
@@ -937,7 +937,7 @@
             </table>
         </div>
 
-        <div id="detailsModal" class="modal">
+        <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="athleteName">
             <div class="modal-content">
                 <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
                 <div class="modal-sticky-header" id="modalStickyHeader">

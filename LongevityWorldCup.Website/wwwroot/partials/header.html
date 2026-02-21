@@ -325,6 +325,8 @@
         color: rgba(0, 0, 0, 0.7);
         font-size: 1.8rem;
         font-weight: bold;
+        background: none;
+        border: none;
         width: 40px; /* Set width */
         height: 40px; /* Set height */
         display: flex;
@@ -351,6 +353,18 @@
 
     .smaller-text {
         font-size: 0.85em;
+    }
+
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 
     #custom-alert {
