@@ -180,6 +180,30 @@ Must appear before any other script that initializes or relies on AOS.
     }
 </script>
 
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "SportsOrganization",
+                "@id": "https://longevityworldcup.com/#organization",
+                "name": "Longevity World Cup",
+                "url": "https://longevityworldcup.com/",
+                "logo": "https://longevityworldcup.com/assets/favicon-512x512.png"
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://longevityworldcup.com/#website",
+                "url": "https://longevityworldcup.com/",
+                "name": "Longevity World Cup",
+                "publisher": {
+                    "@id": "https://longevityworldcup.com/#organization"
+                }
+            }
+        ]
+    }
+</script>
+
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSSCLBW37H"></script>
 <script>
