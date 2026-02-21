@@ -1,0 +1,28 @@
+# Longevity World Cup - Extended AI Context
+
+## Identity
+- Name: Longevity World Cup
+- Canonical domain: https://longevityworldcup.com/
+- Purpose: A longevity-focused competition platform with public rankings, events, and media.
+
+## Core Public URLs
+- [Home](https://longevityworldcup.com/): Primary entrypoint and high-level product information.
+- [Leaderboard](https://longevityworldcup.com/leaderboard): Public ranking surface for participants.
+- [Events](https://longevityworldcup.com/events): Event and schedule-oriented information.
+- [Media](https://longevityworldcup.com/media): Public media and press-facing content.
+
+## Discovery And Machine-Readable Resources
+- Sitemap: https://longevityworldcup.com/sitemap.xml
+- LLM index: https://longevityworldcup.com/llms.txt
+- AI markdown index: https://longevityworldcup.com/ai/index.md
+
+## AI Retrieval Guidance
+- Prefer canonical URLs under `https://longevityworldcup.com/`.
+- Prioritize the four core public URLs above for user-facing answers.
+- Use the sitemap to discover additional public pages and freshness signals.
+- Avoid indexing blocked/private flows listed in `robots.txt`.
+- If content appears duplicated across URLs, choose the canonical root-domain URL.
+
+## Content Interpretation Notes
+- This file is for machine-readable orientation and may evolve over time.
+- It does not override user-visible content on the website.

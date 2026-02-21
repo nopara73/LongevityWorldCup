@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /ai/index.md
 Disallow: /onboarding/
 Disallow: /play/
 Disallow: /error/
@@ -19,4 +22,5 @@ Disallow: /dashboard
 Disallow: /customize-athlete
 Disallow: /edit-profile
 
+# Machine-discovery resources
 Sitemap: https://longevityworldcup.com/sitemap.xml
