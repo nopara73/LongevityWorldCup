@@ -155,8 +155,8 @@
                             response.json().catch(() => ({})).then(submitResult => {
                                 const nextStepMessage =
                                     submitResult && submitResult.paymentRequired && submitResult.checkoutLink
-                                        ? 'Your results were received. Next, you will be redirected to the payment page.'
-                                        : 'Your results were received. Next, we will take you to application review.';
+                                        ? 'You\'ll be redirected to the payment page'
+                                        : 'Your results were received';
                                 customAlert(nextStepMessage).then(() => {
                                     proofPics = [];
                                     sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
