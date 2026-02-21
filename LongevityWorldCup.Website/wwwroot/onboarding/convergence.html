@@ -960,8 +960,8 @@
                                 response.json().catch(() => ({})).then(submitResult => {
                                     const nextStepMessage =
                                         submitResult && submitResult.paymentRequired && submitResult.checkoutLink
-                                            ? 'Your application was received. Next, you will be redirected to the payment page.'
-                                            : 'Your application was received. Next, we will take you to application review.';
+                                            ? 'You\'ll be redirected to the payment page'
+                                            : 'Your application was received';
                                     customAlert(nextStepMessage).then(() => {
                                         sessionStorage.setItem('contactEmail', applicantData.accountEmail);
                                         localStorage.setItem('contactEmail', applicantData.accountEmail);
