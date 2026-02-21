@@ -273,6 +273,8 @@
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFake = urlParams.get('fake') === '1';
 
         // Update the progress bar to the appropriate stage
         // Assuming updateMainProgress and updateSubProgress are defined elsewhere
@@ -298,6 +300,86 @@
                 uploadProfileButton.classList.remove('green');
                 cropAndSaveButton.classList.remove('green');
             }
+        }
+
+        function setFakeDivisionValue() {
+            const divisionSelect = document.getElementById('division');
+            if (!divisionSelect) return;
+            const options = Array.from(divisionSelect.options).filter(opt => !!opt.value && !opt.disabled);
+            if (options.length === 0) return;
+
+            // If already set to a valid non-empty option, keep it.
+            if (options.some(opt => opt.value === divisionSelect.value)) return;
+
+            const preferredMatchers = [
+                value => /^open$/i.test(value),
+                value => /^longevity$/i.test(value),
+                value => /^pro$/i.test(value),
+                value => /^elite$/i.test(value),
+                value => /open/i.test(value),
+                value => /longevity/i.test(value),
+                value => /pro/i.test(value),
+                value => /elite/i.test(value)
+            ];
+
+            let chosen = null;
+            for (const isPreferred of preferredMatchers) {
+                chosen = options.find(opt => isPreferred(opt.value) || isPreferred(opt.textContent || ''));
+                if (chosen) break;
+            }
+
+            divisionSelect.value = (chosen || options[0]).value;
+        }
+
+        function fillFakeData() {
+            const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9pQ9JxwAAAAASUVORK5CYII=';
+
+            const nameInput = document.getElementById('name');
+            const flagInput = document.getElementById('flag');
+            const whyInput = document.getElementById('why');
+            const mediaContactInput = document.getElementById('mediaContact');
+            const accountEmailInput = document.getElementById('accountEmail');
+            const personalLinkInput = document.getElementById('personalLink');
+
+            if (nameInput && !nameInput.value.trim()) {
+                nameInput.value = 'Fake Athlete';
+            }
+            if (flagInput && !flagInput.value.trim()) {
+                flagInput.value = 'Cyberspace';
+            }
+
+            setFakeDivisionValue();
+
+            if (whyInput && !whyInput.value.trim()) {
+                whyInput.value = 'I compete to quantify healthy aging, learn from others, and push my baseline forward every season.';
+            }
+            if (mediaContactInput && !mediaContactInput.value.trim()) {
+                mediaContactInput.value = 'media+fake@longevityworldcup.com';
+            }
+            if (accountEmailInput && !accountEmailInput.value.trim()) {
+                accountEmailInput.value = 'fake.athlete@longevityworldcup.com';
+            }
+            if (personalLinkInput && !personalLinkInput.value.trim()) {
+                personalLinkInput.value = 'https://example.com/fake-athlete';
+            }
+
+            if (!profilePic) {
+                profilePic = tinyPng;
+            }
+            if (!Array.isArray(proofPics) || proofPics.length === 0) {
+                proofPics = [tinyPng];
+            }
+
+            // Re-run per-stage validators so "Next" gets enabled when applicable.
+            if (currentStage === 1) checkFormValidityStage1();
+            if (currentStage === 2) checkFormValidityStage2();
+            if (currentStage === 6) checkFormValidityStage6();
+            if (currentStage === 7) checkFormValidityStage7();
+        }
+
+        function applyFakeDataIfNeeded() {
+            if (!isFake) return;
+            fillFakeData();
         }
 
         function collectApplicantData() {
@@ -616,6 +698,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Initialize the first stage
             goToStage(currentStage);
+            applyFakeDataIfNeeded();
 
             fetch('/api/data/athletes')
                 .then(response => response.json())
@@ -784,6 +867,8 @@
                         divisionSelect.addEventListener('change', checkFormValidityStage1);
                         checkFormValidityStage1(); // Check validity in case other fields are already filled
                     }
+
+                    applyFakeDataIfNeeded();
 
                     document.getElementById('division').addEventListener('change', function () {
                         document.getElementById('flag').focus();
@@ -1161,8 +1246,10 @@
                 return { valid: false, error: 'Name must be at least 3 characters long.' };
             }
 
-            // Check if name already exists (case insensitive)
-            if (existingAthleteNames.some(existingName => existingName.toLowerCase() === name.toLowerCase())) {
+            // Check if name already exists (case insensitive).
+            // Athlete names are fetched async, so this can run before the list is available.
+            const athleteNames = Array.isArray(existingAthleteNames) ? existingAthleteNames : [];
+            if (athleteNames.some(existingName => existingName.toLowerCase() === name.toLowerCase())) {
                 return { valid: false, error: 'An athlete with that name is already registered.' };
             }
 
