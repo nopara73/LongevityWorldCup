@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Disallow: /onboarding/
+Disallow: /play/
+Disallow: /error/
+Disallow: /event-board-embed.html
+Disallow: /partials/
+Disallow: /event-board/
+Disallow: /leaderboard/leaderboard.html
+Disallow: /misc-pages/
+Disallow: /join
+Disallow: /apply
+Disallow: /review
+Disallow: /proofs
+Disallow: /pheno-age
+Disallow: /bortz-age
+Disallow: /select-athlete
+Disallow: /dashboard
+Disallow: /customize-athlete
+Disallow: /edit-profile
+
+Sitemap: https://longevityworldcup.com/sitemap.xml
