@@ -37,6 +37,7 @@
       /* Align "Aging clock(s)" row between cards when side-by-side: same min-height for Entry row */
       @media (min-width: 701px) {
         .track-card-meta .entry-cell,
+        .track-card-meta .entry-cell.has-discount,
         .track-card-meta .pro-entry-cell.has-discount {
           min-height: 4rem;
           align-self: start;
@@ -812,6 +813,7 @@
         const breakdown = document.getElementById("proDiscountBreakdown");
         const proEntryPrice = document.getElementById("proEntryPrice");
         const proEntryCell = proEntryPrice && proEntryPrice.parentElement;
+        const amateurEntryCell = document.querySelector(".track-card:not(.pro) .entry-cell");
         const goProJoinButton = document.getElementById("goProJoinButton");
         if (!note || !breakdown || !proEntryPrice || !goProJoinButton) return;
 
@@ -825,6 +827,7 @@
           breakdown.textContent = "";
           note.style.display = "none";
           if (proEntryCell) proEntryCell.classList.remove("has-discount");
+          if (amateurEntryCell) amateurEntryCell.classList.remove("has-discount");
           return;
         }
 
@@ -835,6 +838,7 @@
         }
         note.style.display = "";
         if (proEntryCell) proEntryCell.classList.add("has-discount");
+        if (amateurEntryCell) amateurEntryCell.classList.add("has-discount");
       }
 
       function ensureProDiscountsLoaded() {
