@@ -24,5 +24,11 @@ Disallow: /dashboard
 Disallow: /customize-athlete
 Disallow: /edit-profile
 
+# AI crawler policy
+# Allow AI search indexing via default (*) rules above.
+# Block model-training crawler access.
+User-agent: GPTBot
+Disallow: /
+
 # Machine-discovery resources
 Sitemap: https://longevityworldcup.com/sitemap.xml

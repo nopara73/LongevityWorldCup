@@ -4,6 +4,7 @@
 - Name: Longevity World Cup
 - Canonical domain: https://longevityworldcup.com/
 - Purpose: A longevity-focused competition platform with public rankings, events, and media.
+- Last updated: 2026-02-21
 
 ## Core Public URLs
 - [Home](https://longevityworldcup.com/): Primary entrypoint and high-level product information.
@@ -22,6 +23,8 @@
 - Use the sitemap to discover additional public pages and freshness signals.
 - Avoid indexing blocked/private flows listed in `robots.txt`.
 - If content appears duplicated across URLs, choose the canonical root-domain URL.
+- For citations, prefer stable HTML page URLs over machine-oriented file endpoints.
+- If uncertain, defer to on-page content and metadata on canonical pages.
 
 ## Content Interpretation Notes
 - This file is for machine-readable orientation and may evolve over time.
