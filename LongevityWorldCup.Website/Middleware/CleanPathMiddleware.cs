@@ -1,5 +1,3 @@
-using SQLitePCL;
-
 namespace LongevityWorldCup.Website.Middleware
 {
     public class CleanPathMiddleware
@@ -13,30 +11,71 @@ namespace LongevityWorldCup.Website.Middleware
 
         public async Task Invoke(HttpContext context)
         {
-            var raw = context.Request.Path.Value;
+            var rawPath = context.Request.Path.Value;
+            var normalizedPath = RouteCanonicalization.NormalizePath(rawPath).ToLowerInvariant();
+            var canonicalPath = RouteCanonicalization.GetCanonicalPath(rawPath);
 
-            // Normalize: trim slashes, lower-case it
-            var normalized = raw?.Trim('/').ToLower();
-
-            // Do not rewrite real files (e.g. .css, .js)
-            if (!string.IsNullOrEmpty(normalized) && !normalized.Contains('.'))
+            if (!string.Equals(normalizedPath, canonicalPath, StringComparison.Ordinal))
             {
-                switch (normalized)
+                context.Response.Redirect($"{canonicalPath}{context.Request.QueryString}", permanent: true);
+                return;
+            }
+
+            // Do not rewrite real files (e.g. .css, .js).
+            if (canonicalPath.Length > 1 && !canonicalPath.Contains('.'))
+            {
+                switch (canonicalPath)
                 {
-                    case "events":
+                    case "/events":
                         context.Request.Path = "/event-board/event-board.html";
                         break;
 
-                    case "leaderboard":
+                    case "/leaderboard":
                         context.Request.Path = "/leaderboard/leaderboard.html";
                         break;
 
-                    case "pheno-age":
+                    case "/media":
+                        context.Request.Path = "/misc-pages/media.html";
+                        break;
+
+                    case "/pheno-age":
                         context.Request.Path = "/onboarding/pheno-age.html";
                         break;
 
-                    case "bortz-age":
+                    case "/bortz-age":
                         context.Request.Path = "/onboarding/bortz-age.html";
+                        break;
+
+                    case "/play":
+                        context.Request.Path = "/play/menu.html";
+                        break;
+
+                    case "/join":
+                        context.Request.Path = "/onboarding/join-game.html";
+                        break;
+
+                    case "/apply":
+                        context.Request.Path = "/onboarding/convergence.html";
+                        break;
+
+                    case "/review":
+                        context.Request.Path = "/onboarding/application-review.html";
+                        break;
+
+                    case "/proofs":
+                        context.Request.Path = "/play/proof-upload.html";
+                        break;
+
+                    case "/select-athlete":
+                        context.Request.Path = "/play/character-selection.html";
+                        break;
+
+                    case "/dashboard":
+                        context.Request.Path = "/play/character-customization.html";
+                        break;
+
+                    case "/edit-profile":
+                        context.Request.Path = "/play/edit-profile.html";
                         break;
                 }
             }

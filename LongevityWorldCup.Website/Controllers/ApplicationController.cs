@@ -552,7 +552,7 @@ namespace LongevityWorldCup.Website.Controllers
         private string BuildReviewRedirectUrlForCurrentRequest()
         {
             var origin = $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/');
-            return $"{origin}/onboarding/application-review.html";
+            return $"{origin}/review";
         }
 
         private async Task<(bool Success, bool IsPaid, string? Status, string? AdditionalStatus, string? Amount, string? Currency, string? PaidAmount, string? CheckoutLink, string? BuyerEmail, string? AthleteNameFromMetadata, string? Error)> GetBtcpayInvoiceAsync(

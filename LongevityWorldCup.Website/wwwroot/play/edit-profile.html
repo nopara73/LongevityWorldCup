@@ -501,7 +501,7 @@
                         if (response.ok) {
                             customAlert('Change request submitted!').then(() => {
                                 sessionStorage.setItem("came-from", "edit-profile");
-                                window.location.href = '/onboarding/application-review.html';
+                                window.location.href = '/review';
                             });
                         } else {
                             return response.text().then(txt => Promise.reject(txt));
