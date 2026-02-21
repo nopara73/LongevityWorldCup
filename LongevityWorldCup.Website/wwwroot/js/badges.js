@@ -599,6 +599,9 @@ window.setBadges = function (athlete, athleteCell) {
             const actualInt = Number.isFinite(chrono) ? parseInt(chrono, 10) : null;
 
             if (Number.isInteger(guessed) && Number.isInteger(actualInt) && (guessed - actualInt === 0)) {
+                if (window.proDiscounts && typeof window.proDiscounts.setPerfectGuessMarker === 'function') {
+                    window.proDiscounts.setPerfectGuessMarker();
+                }
                 items.push({
                     order: 1.194,
                     html: `<span class="badge-class" title="Bullseye: You guessed their age perfectly!" style="${LEGACY_BG.black}">

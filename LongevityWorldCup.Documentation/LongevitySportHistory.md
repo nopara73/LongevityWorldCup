@@ -78,6 +78,15 @@ The inaugural Longevity World Cup concluded. The top 20 athletes by age reductio
 | 19 | [Dave Pascoe](https://www.longevityworldcup.com/athlete/dave-pascoe) | -16.6 years |
 | 20 | [Keith Blondin](https://www.longevityworldcup.com/athlete/keith-blondin) | -16.4 years |
 
+### 2026 February - Longevity World Cup Season 2026 Started
+
+Season 2 of the Longevity World Cup was released with major competition-format upgrades:
+
+- The competition introduced **two tracks**: **Amateur** and **Professional**.
+- A new aging clock was added for the Pro track: [Bortz](https://www.nature.com/articles/s42003-023-05456-z), while [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) continued, shifting the competition into a multi-clock era.
+- Athlete pages and the leaderboard began surfacing new derived performance views like pace of aging / pace rank.
+- Entry evolved from an early “low-friction” model toward explicit pricing.
+
 ## Special Mentions
 
 Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health), the [VO2 Max Leaderboard](https://www.joinzero.co/leaderboard) by JoinZero, and [Favies (previously Goaly)](https://favies.com/) and various fitness tracker-specific gamified leaderboards.
