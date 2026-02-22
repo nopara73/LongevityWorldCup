@@ -6,6 +6,7 @@ using MimeKit;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using System.Globalization;
+using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -333,21 +334,7 @@ namespace LongevityWorldCup.Website.Controllers
             // Send the email
             try
             {
-                using var client = new SmtpClient();
-
-                await client.ConnectAsync(config.SmtpServer, config.SmtpPort, MailKit.Security.SecureSocketOptions.StartTls);
-
-                // Acquire an OAuth2 token
-                var accessTok = await GmailAuth.GetAccessTokenAsync(config);
-
-                // use XOAUTH2 instead of plain login
-                client.AuthenticationMechanisms.Remove("LOGIN");
-                client.AuthenticationMechanisms.Remove("PLAIN");
-                var oauth2 = new SaslMechanismOAuth2(config.SmtpUser, accessTok);
-                await client.AuthenticateAsync(oauth2);
-
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
+                await SendEmailThroughSmtpAsync(config, message);
 
                 try
                 {
@@ -392,6 +379,65 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 // Handle exception
                 return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("interview-request")]
+        public async Task<IActionResult> InterviewRequest([FromBody] InterviewRequestData requestData)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var email = requestData.Email?.Trim();
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest("Email is required.");
+            }
+
+            Config config;
+            try
+            {
+                config = await Config.LoadAsync() ?? throw new InvalidOperationException("Loaded configuration is null.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to load configuration: {ex.Message}");
+            }
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Longevity World Cup", config.EmailFrom));
+            message.To.Add(new MailboxAddress("", config.EmailTo));
+            message.Subject = "LWC Interview Request";
+            message.Body = new BodyBuilder
+            {
+                TextBody = $"Interview contact email: {email}"
+            }.ToMessageBody();
+
+            try
+            {
+                var subscribeError = await NewsletterService.SubscribeAsync(email, _logger, _environment);
+                if (subscribeError != null
+                    && !subscribeError.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("Failed to subscribe interview request email {Email}: {Error}", email, subscribeError);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to subscribe interview request email {Email}", email);
+            }
+
+            try
+            {
+                await SendEmailThroughSmtpAsync(config, message);
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send interview request email for {Email}", email);
+                return StatusCode(500, "Failed to send interview request.");
             }
         }
 
@@ -625,15 +671,7 @@ namespace LongevityWorldCup.Website.Controllers
                 message.Subject = subject; // exact subject for thread grouping
                 message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
 
-                using var client = new SmtpClient();
-                await client.ConnectAsync(config.SmtpServer, config.SmtpPort, SecureSocketOptions.StartTls);
-                var accessTok = await GmailAuth.GetAccessTokenAsync(config);
-                client.AuthenticationMechanisms.Remove("LOGIN");
-                client.AuthenticationMechanisms.Remove("PLAIN");
-                var oauth2 = new SaslMechanismOAuth2(config.SmtpUser, accessTok);
-                await client.AuthenticateAsync(oauth2);
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
+                await SendEmailThroughSmtpAsync(config, message);
                 return (true, null);
             }
             catch (Exception ex)
@@ -646,6 +684,19 @@ namespace LongevityWorldCup.Website.Controllers
         private static string BuildApplicationSubject(string? applicantName)
         {
             return $"[LWC26] Application: {applicantName?.Trim() ?? "Unknown"}";
+        }
+
+        private static async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message)
+        {
+            using var client = new SmtpClient();
+            await client.ConnectAsync(config.SmtpServer, config.SmtpPort, SecureSocketOptions.StartTls);
+            var accessTok = await GmailAuth.GetAccessTokenAsync(config);
+            client.AuthenticationMechanisms.Remove("LOGIN");
+            client.AuthenticationMechanisms.Remove("PLAIN");
+            var oauth2 = new SaslMechanismOAuth2(config.SmtpUser, accessTok);
+            await client.AuthenticateAsync(oauth2);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
         }
 
         private static async Task<bool> IsInvoiceNotificationAlreadySentAsync(string invoiceId, IWebHostEnvironment environment)
@@ -792,5 +843,12 @@ namespace LongevityWorldCup.Website.Controllers
         public string? InvoiceId { get; set; }
         public string? ApplicantName { get; set; }
         public string? AccountEmail { get; set; }
+    }
+
+    public sealed class InterviewRequestData
+    {
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
     }
 }
