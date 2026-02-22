@@ -320,20 +320,47 @@
                 color: #2d3748;
             }
 
-            .newsletter-section input[type="email"] {
+            .shared-email-input {
                 color: var(--dark-text-color);
                 border: 2px solid var(--primary-color);
                 transition: border-color 0.3s ease;
                 outline: none;
                 padding: 0.6rem 1rem;
-                width: 250px;
                 border-radius: 25px;
-                margin-right: 1rem;
                 box-sizing: border-box;
             }
 
-                .newsletter-section input[type="email"]:focus {
+                .shared-email-input:focus {
                     border-color: var(--secondary-color);
+                }
+
+            .newsletter-section .shared-email-input {
+                width: 250px;
+                margin-right: 1rem;
+            }
+
+            .shared-email-button {
+                padding: 0.6rem 1.5rem;
+                font-size: 1rem;
+                background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8);
+                color: var(--light-text-color);
+                border: none;
+                border-radius: 25px;
+                cursor: pointer;
+                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+                max-width: 350px;
+                box-sizing: border-box;
+                white-space: nowrap;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.45rem;
+            }
+
+                .shared-email-button:hover {
+                    background: linear-gradient(135deg, #4fa3e8, #5eb2f2);
+                    transform: scale(1.05);
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
                 }
 
         .btc-status {
@@ -533,12 +560,12 @@
 
         /* body styling */
         .lwc-countdown-body {
-            padding: 18px 20px 20px;
+            padding: 20px 20px 22px;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            gap: 0.65rem;
+            gap: 0.7rem;
             flex: 1 1 auto;
             justify-content: center;
         }
@@ -548,7 +575,7 @@
             margin-bottom: 0;
             font-size: clamp(1.03rem, 1.05vw, 1.28rem);
             line-height: 1.35;
-            max-width: 25em;
+            max-width: 27ch;
             padding: 0 0.4rem;
             margin-left: auto;
             margin-right: auto;
@@ -564,75 +591,78 @@
 
         .lwc-interview-cta-text {
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 0.93rem;
             line-height: 1.45;
             color: #506176;
-            max-width: 31em;
+            max-width: none;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.04rem;
+        }
+
+        .lwc-interview-cta-line {
+            display: block;
+            width: fit-content;
+            max-width: 100%;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .lwc-interview-cta-line--question {
+            font-size: inherit;
+            line-height: inherit;
+        }
+
+        .lwc-copy-mobile {
+            display: none;
+        }
+
+        .lwc-interview-contact-wrap {
+            width: min(100%, 31em);
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 0.4rem;
         }
 
         .lwc-interview-email-drop {
             width: 100%;
-            max-width: 620px;
-            margin-top: 0.25rem;
+            max-width: 100%;
+            margin-top: 0.35rem;
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
-            gap: 0.7rem;
-            align-items: stretch;
-        }
-
-        .lwc-interview-email-drop input[type="email"] {
-            min-width: 0;
-            height: 56px;
-            box-sizing: border-box;
-            border-radius: 13px;
-            border: 1px solid rgba(0, 188, 212, 0.32);
-            background: #ffffff;
-            color: #2d3748;
-            font-size: 1rem;
-            padding: 0.72rem 0.9rem;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-        }
-
-        .lwc-interview-email-drop input[type="email"]:focus {
-            outline: none;
-            border-color: rgba(0, 188, 212, 0.72);
-            box-shadow: 0 0 0 4px rgba(0, 188, 212, 0.16);
-            transform: translateY(-1px);
-        }
-
-        .lwc-interview-email-drop button {
-            height: 56px;
-            box-sizing: border-box;
-            display: inline-flex;
+            gap: 0.65rem;
             align-items: center;
-            justify-content: center;
-            border: none;
-            border-radius: 13px;
-            background: linear-gradient(180deg, #00bed3 0%, #00a7bd 100%);
-            color: #fff;
-            font-weight: 700;
+        }
+
+        .lwc-interview-email-drop .shared-email-input {
+            min-width: 0;
+            background: #ffffff;
+            height: 3rem;
             font-size: 1rem;
-            padding: 0.72rem 1.15rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 10px 18px rgba(0, 167, 189, 0.3);
-            white-space: nowrap;
+            border-width: 2px;
+            border-radius: 999px;
+            padding-inline: 1.1rem;
         }
 
-        .lwc-interview-email-drop button:hover {
-            background: linear-gradient(180deg, #01b2c6 0%, #009bb0 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 12px 20px rgba(0, 159, 181, 0.34);
+        .lwc-interview-email-drop .shared-email-input::placeholder {
+            color: #6b7280;
         }
 
-        .lwc-interview-email-drop button:active {
-            transform: translateY(0);
-        }
-
-        .lwc-interview-email-drop button:focus-visible {
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(0, 188, 212, 0.22), 0 10px 18px rgba(0, 167, 189, 0.3);
+        .lwc-interview-email-drop .shared-email-button {
+            height: 3rem;
+            min-width: 12rem;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            padding-inline: 1.1rem;
         }
 
         /* mobile: stack the cards */
@@ -675,6 +705,41 @@
             .lwc-interview-email-drop input[type="email"],
             .lwc-interview-email-drop button {
                 width: 100%;
+            }
+
+            .lwc-interview-cta-text {
+                max-width: 44ch;
+                font-size: 0.86rem;
+                line-height: 1.38;
+            }
+
+            .lwc-interview-cta-line--question {
+                font-size: 0.93rem;
+                line-height: 1.45;
+            }
+
+            .lwc-copy-desktop {
+                display: none;
+            }
+
+            .lwc-copy-mobile {
+                display: inline;
+            }
+
+            .lwc-interview-cta-line {
+                white-space: normal;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .lwc-interview-cta-text {
+                font-size: 0.8rem;
+                line-height: 1.34;
+            }
+
+            .lwc-interview-cta-line--question {
+                font-size: 0.93rem;
+                line-height: 1.45;
             }
         }
 
@@ -1028,14 +1093,24 @@
                             The 2026 season is live with<br>
                             <strong>Professional&nbsp;and&nbsp;Amateur</strong> tracks.
                         </p>
-                        <p class="lwc-interview-cta-text">
-                            Want to interview the host of the Longevity&nbsp;World&nbsp;Cup?<br>
-                            Drop your email below and I'll reach out.
-                        </p>
-                        <form class="lwc-interview-email-drop" id="interview-email-drop-form" aria-label="Interview request email form">
-                            <input type="email" id="interviewEmailInput" placeholder="your_email@domain.com" autocomplete="email" required>
-                            <button type="button" aria-label="Share your email for interview contact">Let’s connect</button>
-                        </form>
+                        <div class="lwc-interview-contact-wrap">
+                            <p class="lwc-interview-cta-text">
+                                <span class="lwc-interview-cta-line lwc-interview-cta-line--question">
+                                    <span class="lwc-copy-desktop">Wanna interview the host of the Longevity&nbsp;World&nbsp;Cup?</span>
+                                    <span class="lwc-copy-mobile">Wanna interview the host of the LWC?</span>
+                                </span>
+                                <span class="lwc-interview-cta-line">
+                                    <span class="lwc-copy-desktop">Drop your email below and I'll personally reach out to setup a time.</span>
+                                    <span class="lwc-copy-mobile">Drop your email below and I'll personally reach out.</span>
+                                </span>
+                            </p>
+                            <form class="lwc-interview-email-drop" id="interview-email-drop-form" aria-label="Interview request email form">
+                                <input type="email" id="interviewEmailInput" class="shared-email-input" placeholder="your_email@domain.com" autocomplete="email" required>
+                                <button type="button" class="shared-email-button" aria-label="Share your email for interview contact">
+                                    <i class="fas fa-paper-plane"></i> Let’s connect
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1167,8 +1242,8 @@
             </p>
 
             <form id="newsletter-form">
-                <input type="email" id="emailInput" placeholder="why_am_i_doing_this@help.com" required>
-                <button type="submit" class="enhanced-subscribe-btn" aria-label="Subscribe to the Longevity World&nbsp;Cup newsletter">
+                <input type="email" id="emailInput" class="shared-email-input" placeholder="why_am_i_doing_this@help.com" required>
+                <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-label="Subscribe to the Longevity World&nbsp;Cup newsletter">
                     <i class="fas fa-paper-plane"></i> Subscribe
                 </button>
             </form>
