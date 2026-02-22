@@ -532,6 +532,68 @@
             white-space: nowrap;
         }
 
+        .lwc-interview-cta-text {
+            margin: 1rem 0 0;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            color: #4a5568;
+            max-width: 32em;
+        }
+
+        .lwc-interview-email-drop {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 0.85rem;
+            display: flex;
+            gap: 0.65rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .lwc-interview-email-drop input[type="email"] {
+            flex: 1 1 260px;
+            min-width: 220px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 188, 212, 0.35);
+            background: #ffffff;
+            color: #2d3748;
+            font-size: 0.95rem;
+            padding: 0.7rem 0.9rem;
+            box-shadow: 0 2px 6px rgba(45, 55, 72, 0.08);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .lwc-interview-email-drop input[type="email"]:focus {
+            outline: none;
+            border-color: rgba(0, 188, 212, 0.7);
+            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
+        }
+
+        .lwc-interview-email-drop button {
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 0.72rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 3px 10px rgba(0, 188, 212, 0.25);
+            white-space: nowrap;
+        }
+
+        .lwc-interview-email-drop button:hover {
+            background: #00a3b8;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(0, 188, 212, 0.3);
+        }
+
+        .lwc-interview-email-drop button:active {
+            transform: translateY(0);
+        }
+
         /* mobile: stack the cards */
         @media (max-width: 991px) {
             .lwc-highlights-countdown-wrapper {
@@ -562,6 +624,16 @@
 
             .lwc-countdown-body {
                 padding: 18px 14px 20px;
+            }
+
+            .lwc-interview-email-drop {
+                flex-direction: column;
+                gap: 0.55rem;
+            }
+
+            .lwc-interview-email-drop input[type="email"],
+            .lwc-interview-email-drop button {
+                width: 100%;
             }
         }
 
@@ -914,6 +986,13 @@
                         <p class="lwc-countdown-details-text">
                             The 2026 season begins, featuring <strong>Professional and Amateur</strong> tracks.
                         </p>
+                        <p class="lwc-interview-cta-text">
+                            Want to interview the host of the Longevity World Cup? Drop your email and I'll reach out.
+                        </p>
+                        <form class="lwc-interview-email-drop" id="interview-email-drop-form" aria-label="Interview request email form">
+                            <input type="email" id="interviewEmailInput" placeholder="your_email@domain.com" autocomplete="email" required>
+                            <button type="button" aria-label="Share your email for interview contact">Drop email</button>
+                        </form>
                     </div>
                 </div>
             </div>
