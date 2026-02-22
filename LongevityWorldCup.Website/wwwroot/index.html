@@ -663,6 +663,13 @@
             padding-inline: 1.1rem;
         }
 
+        .lwc-interview-email-drop .shared-email-button.is-loading {
+            cursor: wait;
+            opacity: 0.9;
+            transform: none;
+            box-shadow: none;
+        }
+
         /* mobile: stack the cards */
         @media (max-width: 991px) {
             .lwc-highlights-countdown-wrapper {
@@ -1104,7 +1111,7 @@
                             </p>
                             <form class="lwc-interview-email-drop" id="interview-email-drop-form" aria-label="Interview request email form">
                                 <input type="email" id="interviewEmailInput" class="shared-email-input" placeholder="your_email@domain.com" autocomplete="email" required>
-                                <button type="button" class="shared-email-button" aria-label="Share your email for interview contact">
+                                <button type="submit" class="shared-email-button" aria-label="Share your email for interview contact">
                                     <i class="fas fa-paper-plane"></i> Let’s connect
                                 </button>
                             </form>
@@ -1374,6 +1381,59 @@
             } else {
                 customAlert('Please enter a valid email address.');
             }
+        });
+
+        document.getElementById('interview-email-drop-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const emailInputElement = document.getElementById('interviewEmailInput');
+            const submitButton = this.querySelector('button[type="submit"]');
+            const emailInput = emailInputElement.value.trim();
+            emailInputElement.blur();
+            if (!submitButton || submitButton.disabled) {
+                return;
+            }
+
+            if (!validator.isEmail(emailInput)) {
+                customAlert('Please enter a valid email address.');
+                return;
+            }
+
+            const originalButtonHtml = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.classList.add('is-loading');
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Sending...';
+
+            fetchWithTimeout('/api/application/interview-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: emailInput })
+            }, 10000)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+
+                    if (response.status === 400) {
+                        return response.text().then(text => { throw new Error(text || 'Invalid request.'); });
+                    }
+
+                    throw new Error('Failed to send interview request. Please try again.');
+                })
+                .then(() => {
+                    customAlert(`Thanks! We'll reach out at ${emailInput}.`);
+                    document.getElementById('interview-email-drop-form').reset();
+                })
+                .catch(error => {
+                    customAlert(error.message || 'Failed to send interview request. Please try again.');
+                })
+                .finally(() => {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('is-loading');
+                    submitButton.innerHTML = originalButtonHtml;
+                });
         });
 
         function adjustBitcoinAddressDisplay() {
