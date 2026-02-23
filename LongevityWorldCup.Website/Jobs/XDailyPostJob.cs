@@ -28,8 +28,6 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
-        if (await XDailyPostJobTempTestHelper.TryPostTemporaryFillerDomainTopTestAsync(_events, _athletes, _xEvents, _logger))
-            return;
 
         var pending = _events.GetPendingXEvents();
         var freshCutoff = DateTime.UtcNow.AddDays(-7);
