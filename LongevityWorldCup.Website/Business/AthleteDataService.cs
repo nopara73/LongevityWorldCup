@@ -899,6 +899,44 @@ public class AthleteDataService : IDisposable
         });
     }
 
+    public bool HasSingleGlobalPlaceOneBadgeHolder(string badgeLabel)
+    {
+        if (string.IsNullOrWhiteSpace(badgeLabel))
+            return false;
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                "SELECT DISTINCT AthleteSlug FROM BadgeAwards " +
+                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 " +
+                "LIMIT 2";
+            cmd.Parameters.AddWithValue("@label", badgeLabel);
+
+            using var r = cmd.ExecuteReader();
+            string? onlyHolder = null;
+            while (r.Read())
+            {
+                if (r.IsDBNull(0))
+                    continue;
+
+                var slug = r.GetString(0);
+                if (string.IsNullOrWhiteSpace(slug))
+                    continue;
+
+                if (onlyHolder is null)
+                {
+                    onlyHolder = slug;
+                    continue;
+                }
+
+                return false;
+            }
+
+            return !string.IsNullOrWhiteSpace(onlyHolder);
+        });
+    }
+
     public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
     {
         var order = GetRankingsOrder();

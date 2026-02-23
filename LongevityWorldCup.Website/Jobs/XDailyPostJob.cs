@@ -43,6 +43,15 @@ public class XDailyPostJob : IJob
                     var norm = EventHelpers.NormalizeBadgeLabel(label);
                     if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
                         continue;
+
+                    var isBestImprovement =
+                        string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase);
+                    if (isBestImprovement && !_athletes.HasSingleGlobalPlaceOneBadgeHolder(label))
+                    {
+                        _logger.LogInformation("XDailyPostJob skipped tie Best Improvement badge event {BadgeLabel}", label);
+                        continue;
+                    }
                 }
             }
 
