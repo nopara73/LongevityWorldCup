@@ -166,6 +166,8 @@ public class XDevPreviewService
             sb.Append(".tweet-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.92rem;line-height:1.25;}");
             sb.Append(".display-name{font-weight:700;color:#e7e9ea;}");
             sb.Append(".handle,.meta{color:#71767b;}");
+            sb.Append(".char-count{margin-left:auto;color:#71767b;font-size:.78rem;padding:2px 8px;border:1px solid #2f3336;border-radius:999px;background:#0b0f14;}");
+            sb.Append(".char-count.is-over{color:#ff6b6b;border-color:#5a2222;background:#1a0d0d;}");
             sb.Append(".tweet-body{margin-top:4px;font-size:1rem;line-height:1.5;white-space:pre-wrap;color:#e7e9ea;word-break:break-word;}");
             sb.Append(".tweet-body a{color:#1d9bf0;text-decoration:none;font-weight:500;}");
             sb.Append(".tweet-body a:hover{text-decoration:underline;}");
@@ -190,6 +192,7 @@ public class XDevPreviewService
                 var isLast = idx == postsSnapshot.Count - 1;
                 var isReply = !string.IsNullOrWhiteSpace(p.InReplyToTweetId);
                 var posted = p.PostedAtUtc.ToString("MMM d", System.Globalization.CultureInfo.InvariantCulture);
+                var charCount = (p.Text ?? string.Empty).Length;
                 sb.Append("<article class=\"tweet-item");
                 if (isLast) sb.Append(" is-last");
                 sb.Append("\">");
@@ -205,6 +208,12 @@ public class XDevPreviewService
                 sb.Append(WebUtility.HtmlEncode(posted));
                 sb.Append("</span>");
                 if (isReply) sb.Append("<span class=\"meta\">reply</span>");
+                sb.Append("<span class=\"char-count");
+                if (charCount > 280) sb.Append(" is-over");
+                sb.Append("\">");
+                sb.Append(charCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                sb.Append("/280");
+                sb.Append("</span>");
                 sb.Append("</div>");
                 sb.Append("<div class=\"tweet-body\">");
                 sb.Append(RenderPreviewText(p.Text));
