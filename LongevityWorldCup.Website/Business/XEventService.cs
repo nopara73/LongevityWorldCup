@@ -31,19 +31,57 @@ public class XEventService
 
     public async Task SendAsync(string text)
     {
-        await SendAsync(text, null);
+        _ = await TrySendAsync(text, null);
     }
 
     public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds)
     {
-        try
+        _ = await TrySendAsync(text, mediaIds);
+    }
+
+    public async Task<bool> TrySendAsync(string text)
+    {
+        return await TrySendAsync(text, null);
+    }
+
+    public async Task<bool> TrySendAsync(string text, IReadOnlyList<string>? mediaIds)
+    {
+        const int maxAttempts = 2;
+        const int retryDelayMs = 750;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            await _x.SendAsync(text, mediaIds);
+            try
+            {
+                var tweetId = await _x.SendTweetAsync(text, mediaIds, null, true);
+                if (!string.IsNullOrWhiteSpace(tweetId))
+                    return true;
+
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning("X send returned no tweet id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, text);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogWarning("X send returned no tweet id after retries: {Text}", text);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning(ex, "X send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, text);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogError(ex, "X send failed after retries: {Text}", text);
+                return false;
+            }
         }
-        catch (Exception ex)
-        {
-            _log.LogError(ex, "X send failed: {Text}", text);
-        }
+
+        return false;
     }
 
     public async Task SendEventAsync(EventType type, string rawText)

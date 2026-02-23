@@ -59,7 +59,12 @@ public class XDailyPostJob : IJob
             var msg = _xEvents.TryBuildMessage(type, text);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
-            await _xEvents.SendAsync(msg);
+            var sent = await _xEvents.TrySendAsync(msg);
+            if (!sent)
+            {
+                _logger.LogWarning("XDailyPostJob send failed for event {Id}; leaving unprocessed", id);
+                return;
+            }
             _events.MarkEventsXProcessed(new[] { id });
             _logger.LogInformation("XDailyPostJob posted event {Id}", id);
             return;
@@ -90,7 +95,12 @@ public class XDailyPostJob : IJob
                 continue;
             }
 
-            await _xEvents.SendAsync(fillerMsg);
+            var fillerSent = await _xEvents.TrySendAsync(fillerMsg);
+            if (!fillerSent)
+            {
+                _logger.LogWarning("XDailyPostJob send failed for filler {FillerType}; leaving unlogged", fillerType);
+                return;
+            }
             _fillerLog.LogPost(DateTime.UtcNow, fillerType, infoToken);
             _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
             return;
