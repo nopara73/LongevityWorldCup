@@ -168,7 +168,7 @@ public static class XMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return Truncate($"{chronoAthlete} is currently the oldest athlete in the Longevity World Cup field at {ageStr} years.\n{BuildAthleteCtaLine(chronoAthlete, url)}");
+            return Truncate($"{chronoAthlete} is currently the oldest athlete in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
         if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
@@ -179,7 +179,7 @@ public static class XMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return Truncate($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} years.\n{BuildAthleteCtaLine(chronoAthlete, url)}");
+            return Truncate($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
         if (string.Equals(normLabel, "Age Reduction", StringComparison.OrdinalIgnoreCase)
