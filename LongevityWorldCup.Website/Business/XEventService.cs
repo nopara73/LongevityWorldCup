@@ -86,9 +86,14 @@ public class XEventService
 
     public async Task SendEventAsync(EventType type, string rawText)
     {
+        _ = await TrySendEventAsync(type, rawText);
+    }
+
+    public async Task<bool> TrySendEventAsync(EventType type, string rawText)
+    {
         var msg = BuildMessage(type, rawText);
-        if (string.IsNullOrWhiteSpace(msg)) return;
-        await SendAsync(msg);
+        if (string.IsNullOrWhiteSpace(msg)) return false;
+        return await TrySendAsync(msg);
     }
 
     public string? TryBuildMessage(EventType type, string rawText)

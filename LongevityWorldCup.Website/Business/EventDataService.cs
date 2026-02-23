@@ -697,10 +697,15 @@ public sealed class EventDataService : IDisposable
 
         if (podcastEvents.Count > 0)
         {
+            var sentIds = new List<string>();
             foreach (var (id, text) in podcastEvents)
-                _ = _xEvents.SendEventAsync(EventType.BadgeAward, text);
+            {
+                var sent = _xEvents.TrySendEventAsync(EventType.BadgeAward, text).GetAwaiter().GetResult();
+                if (sent)
+                    sentIds.Add(id);
+            }
 
-            MarkEventsXProcessed(podcastEvents.Select(p => p.Id));
+            MarkEventsXProcessed(sentIds);
         }
     }
 
