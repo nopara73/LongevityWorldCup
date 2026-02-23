@@ -1,16 +1,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="Longevity World Cup - Leaderboard and event details." />
-<meta name="keywords" content="Longevity, World Cup, Leaderboard, Health, Event" />
-<meta name="robots" content="index, follow" />
-<title>Longevity World Cup - Leaderboard</title>
+<meta name="description" content="{{SEO_DESCRIPTION}}" />
+<meta name="robots" content="{{SEO_ROBOTS}}" />
+<link rel="canonical" href="{{SEO_CANONICAL_URL}}" />
 
 <!-- Open Graph Meta Tags -->
-<meta property="og:title" content="Longevity World Cup - Leaderboard" />
-<meta property="og:description" content="Too old for your sport? Not this one! In the Longevity World Cup, you don't age out - you age in. Reverse your age and rise on the leaderboard!" />
-<meta property="og:image" content="https://longevityworldcup.com/assets/og-image.png" />
-<meta property="og:url" content="https://longevityworldcup.com/" />
+<meta property="og:title" content="{{SEO_OG_TITLE}}" />
+<meta property="og:description" content="{{SEO_OG_DESCRIPTION}}" />
+<meta property="og:image" content="{{SEO_OG_IMAGE}}" />
+<meta property="og:url" content="{{SEO_OG_URL}}" />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="Longevity World Cup" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{SEO_OG_TITLE}}" />
+<meta name="twitter:description" content="{{SEO_OG_DESCRIPTION}}" />
+<meta name="twitter:image" content="{{SEO_OG_IMAGE}}" />
 
 <!-- Upgrade to onion if someone comes from Tor Browser -->
 <link rel="alternate" type="application/tor-hidden-service" href="http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion">
@@ -36,7 +40,7 @@
 <!-- AOS CSS -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
 <!-- AOS JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js" defer></script>
 
 <script>
 (function(){var v=Date.now();window.__v=v;document.write('<link rel="stylesheet" href="/css/badges.css?v='+v+'">');})();
@@ -107,73 +111,14 @@ Must appear before any other script that initializes or relies on AOS.
         import(`/js/pheno-age.js?v=${__v}`),
         import(`/js/bortz-age.js?v=${__v}`),
         import(`/js/badges.js?v=${__v}`),
+        import(`/js/pro-discounts.js?v=${__v}`),
         import(`/js/proof-helpers.js?v=${__v}`),
         import(`/js/age-visualization.js?v=${__v}`)
     ]);
 </script>
 
 <!-- Structured Data -->
-<script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "SportsEvent",
-        "name": "Longevity World Cup",
-        "description": "Too old for your sport? Not this one! In the Longevity World Cup, you don't age out - you age in. Reverse your age and rise on the leaderboard!",
-        "startDate": "2025-01-21",
-        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
-        "eventStatus": "https://schema.org/EventScheduled",
-        "location": {
-            "@type": "VirtualLocation",
-            "name": "Arena of Immortal Combat",
-            "url": "https://longevityworldcup.com",
-            "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "Duna Tower #1, Unit 73",
-                "addressLocality": "St. John's Bay",
-                "addressRegion": "Roatán",
-                "postalCode": "34101",
-                "addressCountry": "HN"
-            }
-        },
-        "organizer": {
-            "@type": "Person",
-            "name": "nopara73",
-            "email": "longevityworldcup@gmail.com",
-            "url": "https://github.com/nopara73/"
-        },
-        "image": "https://longevityworldcup.com/assets/og-image.png",
-        "offers": {
-            "@type": "Offer",
-            "url": "https://longevityworldcup.com",
-            "price": "0",
-            "priceCurrency": "USD",
-            "availability": "https://schema.org/InStock",
-            "validFrom": "2025-01-01"
-        },
-        "geo": {
-            "@type": "GeoCoordinates",
-            "latitude": "16.36724",
-            "longitude": "-86.47171"
-        },
-        "openingHoursSpecification": [
-            {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": [
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday"
-                ],
-                "opens": "00:00",
-                "closes": "23:59"
-            }
-        ],
-        "productSupported": "Longevity Sports Event and Leaderboard Services"
-    }
-</script>
+<script type="application/ld+json">{{SEO_STRUCTURED_DATA}}</script>
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSSCLBW37H"></script>

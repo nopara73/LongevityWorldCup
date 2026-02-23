@@ -28,21 +28,23 @@
 <body>
     <!--HEADER-->
     <main>
-        <h1></h1>
+        <h1 class="visually-hidden">Game menu</h1>
         <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <div class="img-crop">
                 <img src="../assets/content-images/JustTrackIt.jpg"
-                     alt="Just Track It"
+                     alt="Illustration encouraging athletes to track their progress"
                      class="illustration"
-                     loading="lazy">
+                     loading="eager"
+                     fetchpriority="high"
+                     decoding="async">
             </div>
         </div>
 
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/onboarding/join-game.html'">
+            <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/join'">
                 Start competing
             </button>
-            <button id="continueGameBtn" class="option-button grey" style="margin-bottom: 0px;" onclick="window.location.href='/play/character-selection.html'">
+            <button id="continueGameBtn" class="option-button grey" style="margin-bottom: 0px;" onclick="window.location.href='/select-athlete'">
                 Athlete dashboard
             </button>
         </div>

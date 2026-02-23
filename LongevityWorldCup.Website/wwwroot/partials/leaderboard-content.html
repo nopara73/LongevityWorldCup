@@ -856,7 +856,7 @@
         </div>
 
         <div class="leaderboard-toolbar">
-            <div class="leaderboard-view-switcher" role="tablist" aria-label="Leaderboard view">
+            <div class="leaderboard-view-switcher" role="radiogroup" aria-label="Leaderboard view">
                 <div class="view-switcher-chips">
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
                     <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
@@ -937,7 +937,7 @@
             </table>
         </div>
 
-        <div id="detailsModal" class="modal">
+        <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="athleteName">
             <div class="modal-content">
                 <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
                 <div class="modal-sticky-header" id="modalStickyHeader">
@@ -3518,7 +3518,7 @@
         if (bestLeagueType === 'ultimate') {
             rankText = `#${bestLeagueRank} in the <a href="/leaderboard" class="league-link" target="_blank" rel="noopener noreferrer">Ultimate League</a>`;
         } else if (bestLeagueType === 'amateur') {
-            rankText = `#${bestLeagueRank} in the <a href="/leaderboard?filters=${encodeURIComponent('Amateur')}" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
+            rankText = `#${bestLeagueRank} in the <a href="/?filters=${encodeURIComponent('Amateur')}" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
         } else if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
             const slug = window.slugifyName(bestLeagueName, true);
             rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;

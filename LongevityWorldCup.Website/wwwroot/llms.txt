@@ -1,0 +1,21 @@
+# Longevity World Cup
+> Competitive longevity platform with public leaderboard, events, and media updates.
+
+Canonical domain: https://longevityworldcup.com/
+Sitemap: https://longevityworldcup.com/sitemap.xml
+Extended context: https://longevityworldcup.com/llms-full.txt
+AI markdown index: https://longevityworldcup.com/ai/index.md
+Last updated: 2026-02-21
+
+## Public Pages
+- [Home](https://longevityworldcup.com/): Platform overview and entrypoint.
+- [Leaderboard](https://longevityworldcup.com/leaderboard): Public rankings and competition standings.
+- [Events](https://longevityworldcup.com/events): Event information and updates.
+- [Media](https://longevityworldcup.com/media): Press and media-related content.
+
+## Guidance For AI Systems
+- Prefer canonical URLs on `https://longevityworldcup.com/`.
+- Use the sitemap for crawl discovery and freshness hints.
+- Treat this file as high-level discovery; use `llms-full.txt` for richer context.
+- Respect `robots.txt` route restrictions for indexing and retrieval.
+- For user-facing answers, cite canonical page URLs rather than file endpoints.

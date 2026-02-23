@@ -1,0 +1,34 @@
+User-agent: *
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /ai/index.md
+Disallow: /onboarding/
+Disallow: /play/
+Disallow: /error/
+Disallow: /event-board-embed.html
+Disallow: /partials/
+Disallow: /event-board/
+Disallow: /leaderboard/leaderboard.html
+Disallow: /misc-pages/
+Disallow: /api/
+Disallow: /athletes/
+Disallow: /join
+Disallow: /apply
+Disallow: /review
+Disallow: /proofs
+Disallow: /pheno-age
+Disallow: /bortz-age
+Disallow: /select-athlete
+Disallow: /dashboard
+Disallow: /customize-athlete
+Disallow: /edit-profile
+
+# AI crawler policy
+# Allow AI search indexing via default (*) rules above.
+# Block model-training crawler access.
+User-agent: GPTBot
+Disallow: /
+
+# Machine-discovery resources
+Sitemap: https://longevityworldcup.com/sitemap.xml

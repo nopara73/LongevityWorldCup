@@ -978,6 +978,9 @@
 
                                 if (userError === 0) {
                                     // exact hit!
+                                    if (window.proDiscounts && typeof window.proDiscounts.setPerfectGuessMarker === "function") {
+                                        window.proDiscounts.setPerfectGuessMarker();
+                                    }
                                     gmaCard.classList.add('celebrate-exact');
                                     popBanner(true, false);
                                 } else if (crowdCount === 0) {
@@ -991,7 +994,8 @@
                                 setTimeout(() => hideCard({
                                     currentTarget: btn,
                                     originalGuess: userGuess,
-                                    isFirstGuess: gmaResultData && crowdCount === 1
+                                    isFirstGuess: gmaResultData && crowdCount === 1,
+                                    isExactGuess: userError === 0
                                 }), 5000);
                             }
                         } else {
@@ -1039,7 +1043,8 @@
         allGuesses[athleteSlug] = {
             value: isSkip ? null : guessValue,
             skipped: isSkip,
-            first: !isSkip && Boolean(e.isFirstGuess)
+            first: !isSkip && Boolean(e.isFirstGuess),
+            exact: !isSkip && Boolean(e.isExactGuess)
         };
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
         updateYourGuess();  // ← Add this line

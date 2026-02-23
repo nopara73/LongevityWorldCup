@@ -48,7 +48,7 @@
             <picture>
                 <source srcset="../assets/content-images/proof.webp" type="image/webp">
                 <source srcset="../assets/content-images/proof.jpg" type="image/jpeg">
-                <img src="../assets/content-images/proof.jpg" alt="Proof" class="illustration" loading="lazy">
+                <img src="../assets/content-images/proof.jpg" alt="Illustration of uploading lab proof documents" class="illustration" loading="lazy">
             </picture>
         </div>
         <p id="mainProofInstructions" data-aos="fade" data-aos-duration="700" data-aos-delay="350" style="text-align:center"></p>
@@ -76,6 +76,9 @@
     <script>
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
         let proofPics = [];
+        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
+        const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
+        const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
         setSubmitButtonLabel();
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -124,7 +127,14 @@
                     chronoPhenoDifference: sessionStorage.getItem('chronoPhenoDifference') || null,
                     chronoBortzDifference: sessionStorage.getItem('chronoBortzDifference') || null,
                     biomarkers: biomarkerData.Biomarkers,
-                    proofPics: proofPics
+                    proofPics: proofPics,
+                    paymentOffer: (() => {
+                        try {
+                            return JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
+                        } catch (_) {
+                            return null;
+                        }
+                    })()
                 };
 
                 const submitButton = document.getElementById('submitButton');
@@ -142,11 +152,33 @@
                     .then(response => {
                         hideLoading();
                         if (response.ok) {
-                            customAlert('Results submitted successfully!').then(() => {
-                                proofPics = [];
+                            response.json().catch(() => ({})).then(submitResult => {
+                                const nextStepMessage =
+                                    submitResult && submitResult.paymentRequired && submitResult.checkoutLink
+                                        ? 'You\'ll be redirected to the payment page'
+                                        : 'Your results were received';
+                                customAlert(nextStepMessage).then(() => {
+                                    proofPics = [];
+                                    sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+                                    if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
+                                        if (submitResult.invoiceId) {
+                                            const pendingInvoiceInfo = JSON.stringify({
+                                                invoiceId: submitResult.invoiceId,
+                                                applicantName: athlete.Name || null,
+                                                accountEmail: applicantData.accountEmail || null
+                                            });
+                                            sessionStorage.setItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                                            localStorage.setItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                                        }
+                                        window.location.href = submitResult.checkoutLink;
+                                        return;
+                                    }
 
-                                sessionStorage.setItem("came-from", "proof-upload");
-                                window.location.href = '/onboarding/application-review.html';
+                                    sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
+                                    localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                    sessionStorage.setItem("came-from", "proof-upload");
+                                    window.location.href = '/review';
+                                });
                             });
                         } else {
                             response.text().then(badResponse => {

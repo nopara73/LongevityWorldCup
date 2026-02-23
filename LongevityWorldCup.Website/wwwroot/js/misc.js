@@ -33,12 +33,10 @@ window.getIcon = function (link) {
         'tiktok.com': '<i class="fab fa-tiktok"></i>',
         'skype.com': '<i class="fab fa-skype"></i>',
         'wordpress.org': '<i class="fab fa-wordpress"></i>',
-        'stackoverflow.com': '<i class="fab fa-stack-overflow"></i>',
         'amazon.com': '<i class="fab fa-amazon"></i>',
         'google.com': '<i class="fab fa-google"></i>',
         'apple.com': '<i class="fab fa-apple"></i>',
         'microsoft.com': '<i class="fab fa-microsoft"></i>',
-        'spotify.com': '<i class="fab fa-spotify"></i>',
         'npmjs.com': '<i class="fab fa-npm"></i>',
         'bitly.com': '<i class="fas fa-link"></i>', // Bitly doesn't have a specific icon
         // Add more mappings as needed

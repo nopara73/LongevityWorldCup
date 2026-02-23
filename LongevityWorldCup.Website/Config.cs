@@ -20,6 +20,9 @@ namespace LongevityWorldCup.Website
         public string? GmailClientSecret { get; set; }
         public string? GmailRefreshToken { get; set; }
         public string? SlackWebhookUrl { get; set; }
+        public string? BTCPayBaseUrl { get; set; }
+        public string? BTCPayStoreId { get; set; }
+        public string? BTCPayGreenfieldApiKey { get; set; }
 
         public string? XApiKey { get; set; }
         public string? XApiSecret { get; set; }

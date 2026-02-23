@@ -5,6 +5,8 @@ using SQLitePCL;
 using System.Text.Json;
 using LongevityWorldCup.Website.Jobs;
 using Quartz;
+using System.IO.Compression;
+using Microsoft.AspNetCore.ResponseCompression;
 
 namespace LongevityWorldCup.Website
 {
@@ -28,6 +30,20 @@ namespace LongevityWorldCup.Website
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddResponseCompression(options =>
+            {
+                options.EnableForHttps = true;
+                options.Providers.Add<BrotliCompressionProvider>();
+                options.Providers.Add<GzipCompressionProvider>();
+            });
+            builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+            {
+                options.Level = CompressionLevel.Fastest;
+            });
+            builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+            {
+                options.Level = CompressionLevel.Fastest;
+            });
 
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
@@ -159,6 +175,7 @@ namespace LongevityWorldCup.Website
             }
 
             app.UseHttpsRedirection();
+            app.UseResponseCompression();
 
             // Use CORS
             app.UseCors("AllowSpecificOrigin");
@@ -213,7 +230,10 @@ namespace LongevityWorldCup.Website
                 SmtpServer = "smtp.gmail.com",
                 SmtpPort = 587,
                 SmtpUser = "longevityworldcup@gmail.com",
-                DonationBitcoinAddress = ""
+                DonationBitcoinAddress = "",
+                BTCPayBaseUrl = "https://pay.longevityworldcup.com/",
+                BTCPayStoreId = "HdMuY1SVeGgWomYAphnMQfnfhigQUcpSCmpbMegrVLNg",
+                BTCPayGreenfieldApiKey = ""
             };
 
             // Serialize to JSON and save to file

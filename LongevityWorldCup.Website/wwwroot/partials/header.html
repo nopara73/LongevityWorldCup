@@ -325,6 +325,8 @@
         color: rgba(0, 0, 0, 0.7);
         font-size: 1.8rem;
         font-weight: bold;
+        background: none;
+        border: none;
         width: 40px; /* Set width */
         height: 40px; /* Set height */
         display: flex;
@@ -351,6 +353,18 @@
 
     .smaller-text {
         font-size: 0.85em;
+    }
+
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 
     #custom-alert {
@@ -539,19 +553,23 @@
         <img src="/assets/favicon-128x128.png"
              alt="Longevity World Cup logo, a phoenix symbolizing a new life"
              class="main-logo-image"
-             loading="lazy"
+             width="128"
+             height="128"
+             loading="eager"
+             fetchpriority="high"
+             decoding="async"
              data-aos="fade" data-aos-duration="700" data-aos-delay="50">
         <div class="bannertext" data-aos="fade" data-aos-duration="700" data-aos-delay="100">Longevity World&nbsp;Cup</div>
         <span class="tagline" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
             Race To Longevity Escape Velocity <i class="fa-solid fa-rocket"></i>
         </span>
     </a>
-    <button onclick="window.location.href='/play/menu.html'" class="join-game" aria-label="Play the game" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+    <button onclick="window.location.href='/play'" class="join-game" aria-label="Play the game" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
         <strong>PLAY</strong>
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
         <strong class="join-game-end">GAME</strong>
     </button>
-    <button onclick="window.location.href='/play/menu.html'" class="join-game scrolled-button" aria-label="Play the game" style="display: none;" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+    <button onclick="window.location.href='/play'" class="join-game scrolled-button" aria-label="Play the game" style="display: none;" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
         <strong>PLAY</strong>
     </button>
     <dialog id="custom-alert">

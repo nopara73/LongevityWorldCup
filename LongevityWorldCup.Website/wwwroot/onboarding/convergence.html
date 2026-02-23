@@ -210,7 +210,7 @@
                     </div>
                 </div>
                 <div id="croppingPart" style="display:none">
-                    <img id="cropperImage" src="" style="max-width: 100%; display: block; margin: 0 auto;">
+                    <img id="cropperImage" src="" alt="Selected profile image preview for cropping" style="max-width: 100%; display: block; margin: 0 auto;">
                     <button type="button" id="cropButton" class="option-button" style="margin-top: 1rem; display: block; margin: 1rem auto 0;">
                         Crop and save
                     </button>
@@ -270,6 +270,11 @@
         var currentStage = 1;
         let profilePic = null;
         let proofPics = [];
+        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
+        const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
+        const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFake = urlParams.get('fake') === '1';
 
         // Update the progress bar to the appropriate stage
         // Assuming updateMainProgress and updateSubProgress are defined elsewhere
@@ -297,6 +302,86 @@
             }
         }
 
+        function setFakeDivisionValue() {
+            const divisionSelect = document.getElementById('division');
+            if (!divisionSelect) return;
+            const options = Array.from(divisionSelect.options).filter(opt => !!opt.value && !opt.disabled);
+            if (options.length === 0) return;
+
+            // If already set to a valid non-empty option, keep it.
+            if (options.some(opt => opt.value === divisionSelect.value)) return;
+
+            const preferredMatchers = [
+                value => /^open$/i.test(value),
+                value => /^longevity$/i.test(value),
+                value => /^pro$/i.test(value),
+                value => /^elite$/i.test(value),
+                value => /open/i.test(value),
+                value => /longevity/i.test(value),
+                value => /pro/i.test(value),
+                value => /elite/i.test(value)
+            ];
+
+            let chosen = null;
+            for (const isPreferred of preferredMatchers) {
+                chosen = options.find(opt => isPreferred(opt.value) || isPreferred(opt.textContent || ''));
+                if (chosen) break;
+            }
+
+            divisionSelect.value = (chosen || options[0]).value;
+        }
+
+        function fillFakeData() {
+            const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9pQ9JxwAAAAASUVORK5CYII=';
+
+            const nameInput = document.getElementById('name');
+            const flagInput = document.getElementById('flag');
+            const whyInput = document.getElementById('why');
+            const mediaContactInput = document.getElementById('mediaContact');
+            const accountEmailInput = document.getElementById('accountEmail');
+            const personalLinkInput = document.getElementById('personalLink');
+
+            if (nameInput && !nameInput.value.trim()) {
+                nameInput.value = 'Fake Athlete';
+            }
+            if (flagInput && !flagInput.value.trim()) {
+                flagInput.value = 'Cyberspace';
+            }
+
+            setFakeDivisionValue();
+
+            if (whyInput && !whyInput.value.trim()) {
+                whyInput.value = 'I compete to quantify healthy aging, learn from others, and push my baseline forward every season.';
+            }
+            if (mediaContactInput && !mediaContactInput.value.trim()) {
+                mediaContactInput.value = 'media+fake@longevityworldcup.com';
+            }
+            if (accountEmailInput && !accountEmailInput.value.trim()) {
+                accountEmailInput.value = 'fake.athlete@longevityworldcup.com';
+            }
+            if (personalLinkInput && !personalLinkInput.value.trim()) {
+                personalLinkInput.value = 'https://example.com/fake-athlete';
+            }
+
+            if (!profilePic) {
+                profilePic = tinyPng;
+            }
+            if (!Array.isArray(proofPics) || proofPics.length === 0) {
+                proofPics = [tinyPng];
+            }
+
+            // Re-run per-stage validators so "Next" gets enabled when applicable.
+            if (currentStage === 1) checkFormValidityStage1();
+            if (currentStage === 2) checkFormValidityStage2();
+            if (currentStage === 6) checkFormValidityStage6();
+            if (currentStage === 7) checkFormValidityStage7();
+        }
+
+        function applyFakeDataIfNeeded() {
+            if (!isFake) return;
+            fillFakeData();
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -319,6 +404,13 @@
                 return;
             }
 
+            let paymentOffer = null;
+            try {
+                paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
+            } catch (_) {
+                paymentOffer = null;
+            }
+
             // Create the applicant data object
             const applicantData = {
                 name: name,
@@ -333,7 +425,8 @@
                 dateOfBirth: biomarkerData.DateOfBirth,
                 biomarkers: biomarkerData.Biomarkers,
                 profilePic: profilePic, // Base64 string
-                proofPics: proofPics // Array of Base64 strings
+                proofPics: proofPics, // Array of Base64 strings
+                paymentOffer: paymentOffer
             };
 
             return applicantData;
@@ -605,6 +698,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Initialize the first stage
             goToStage(currentStage);
+            applyFakeDataIfNeeded();
 
             fetch('/api/data/athletes')
                 .then(response => response.json())
@@ -774,6 +868,8 @@
                         checkFormValidityStage1(); // Check validity in case other fields are already filled
                     }
 
+                    applyFakeDataIfNeeded();
+
                     document.getElementById('division').addEventListener('change', function () {
                         document.getElementById('flag').focus();
                     });
@@ -861,13 +957,36 @@
                         .then(response => {
                             hideLoading();
                             if (response.ok) {
-                                customAlert('Application submitted successfully!').then(() => {
-                                    sessionStorage.setItem('contactEmail', applicantData.accountEmail);
-                                    // Clear the image variables
-                                    profilePic = null;
-                                    proofPics = [];
-                                    // Redirect or reset the form
-                                    window.location.href = '/onboarding/application-review.html';
+                                response.json().catch(() => ({})).then(submitResult => {
+                                    const nextStepMessage =
+                                        submitResult && submitResult.paymentRequired && submitResult.checkoutLink
+                                            ? 'You\'ll be redirected to the payment page'
+                                            : 'Your application was received';
+                                    customAlert(nextStepMessage).then(() => {
+                                        sessionStorage.setItem('contactEmail', applicantData.accountEmail);
+                                        localStorage.setItem('contactEmail', applicantData.accountEmail);
+                                        sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+                                        // Clear the image variables
+                                        profilePic = null;
+                                        proofPics = [];
+                                        // Redirect to BTCPay invoice if required, otherwise to review.
+                                        if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
+                                            if (submitResult.invoiceId) {
+                                                const pendingInvoiceInfo = JSON.stringify({
+                                                    invoiceId: submitResult.invoiceId,
+                                                    applicantName: applicantData.name || null,
+                                                    accountEmail: applicantData.accountEmail || null
+                                                });
+                                                sessionStorage.setItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                                                localStorage.setItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                                            }
+                                            window.location.href = submitResult.checkoutLink;
+                                            return;
+                                        }
+                                        sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
+                                        localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                        window.location.href = '/review';
+                                    });
                                 });
                             } else {
                                 response.text().then(badResponse => {
@@ -1127,8 +1246,10 @@
                 return { valid: false, error: 'Name must be at least 3 characters long.' };
             }
 
-            // Check if name already exists (case insensitive)
-            if (existingAthleteNames.some(existingName => existingName.toLowerCase() === name.toLowerCase())) {
+            // Check if name already exists (case insensitive).
+            // Athlete names are fetched async, so this can run before the list is available.
+            const athleteNames = Array.isArray(existingAthleteNames) ? existingAthleteNames : [];
+            if (athleteNames.some(existingName => existingName.toLowerCase() === name.toLowerCase())) {
                 return { valid: false, error: 'An athlete with that name is already registered.' };
             }
 

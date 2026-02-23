@@ -5,60 +5,30 @@ namespace LongevityWorldCup.Website.Controllers
     [Route("league")]
     public class LeagueController : Controller
     {
+        private static readonly IReadOnlyDictionary<string, string> LeagueRedirects =
+            new Dictionary<string, string>
+            {
+                ["womens"] = "/?filters=women%27s",
+                ["mens"] = "/?filters=men%27s",
+                ["open"] = "/?filters=open",
+                ["silent-generation"] = "/?filters=silent%2520generation",
+                ["baby-boomers"] = "/?filters=baby%2520boomers",
+                ["gen-x"] = "/?filters=gen%2520x",
+                ["millennials"] = "/?filters=millennials",
+                ["gen-z"] = "/?filters=gen%2520z",
+                ["gen-alpha"] = "/?filters=gen%2520alpha",
+                ["prosperan"] = "/?filters=prosperan",
+                ["bortz"] = "/?view=bortz",
+                ["pheno"] = "/?view=pheno"
+            };
+
         [HttpGet("{leagueName}")]
         public IActionResult RedirectToHome(string leagueName)
         {
             var normalizedLeagueName = leagueName.ToLowerInvariant().Trim();
-            if (normalizedLeagueName == "womens")
-            {
-                return Redirect($"/?filters=women%27s");
-            }
-            else if (normalizedLeagueName == "mens")
-            {
-                return Redirect($"/?filters=men%27s");
-            }
-            else if (normalizedLeagueName == "open")
-            {
-                return Redirect($"/?filters=open");
-            }
-            else if (normalizedLeagueName == "silent-generation")
-            {
-                return Redirect($"/?filters=silent%2520generation");
-            }
-            else if (normalizedLeagueName == "baby-boomers")
-            {
-                return Redirect($"/?filters=baby%2520boomers");
-            }
-            else if (normalizedLeagueName == "gen-x")
-            {
-                return Redirect($"/?filters=gen%2520x");
-            }
-            else if (normalizedLeagueName == "millennials")
-            {
-                return Redirect($"/?filters=millennials");
-            }
-            else if (normalizedLeagueName == "gen-z")
-            {
-                return Redirect($"/?filters=gen%2520z");
-            }
-            else if (normalizedLeagueName == "gen-alpha")
-            {
-                return Redirect($"/?filters=gen%2520alpha");
-            }
-            else if (normalizedLeagueName == "prosperan")
-            {
-                return Redirect($"/?filters=prosperan");
-            }
-            else if (normalizedLeagueName == "bortz")
-            {
-                return Redirect("/?view=bortz");
-            }
-            else if (normalizedLeagueName == "pheno")
-            {
-                return Redirect("/?view=pheno");
-            }
-
-            return Redirect("/error/404");
+            return LeagueRedirects.TryGetValue(normalizedLeagueName, out var redirectTarget)
+                ? Redirect(redirectTarget)
+                : Redirect("/error/404");
         }
     }
 }

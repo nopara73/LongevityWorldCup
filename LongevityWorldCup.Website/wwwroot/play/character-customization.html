@@ -81,6 +81,61 @@
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
+
+        .pro-discount-box {
+            width: 80%;
+            max-width: 400px;
+            margin: 0.35rem auto 0.75rem;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid #d6e7d7;
+            border-radius: 10px;
+            background: #f3faf3;
+            color: #1f3f22;
+            font-size: 0.88rem;
+            line-height: 1.35;
+            text-align: center;
+        }
+
+        .pro-discount-box .pro-discount-breakdown {
+            margin: 0;
+            text-align: left;
+            white-space: pre-line;
+        }
+
+        .pro-discount-box .pro-discount-breakdown .pro-discount-line {
+            display: flex;
+            align-items: center;
+            gap: 0.42rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pro-discount-box .pro-discount-breakdown .pro-discount-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot {
+            width: 22px;
+            min-width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pro-old-price {
+            text-decoration: line-through;
+            opacity: 0.75;
+            margin-right: 0.2rem;
+        }
+
+        .pro-new-price {
+            font-weight: 700;
+        }
+
+        .option-button .pro-old-price,
+        .option-button .pro-new-price {
+            font-weight: inherit;
+        }
     </style>
 </head>
 <body>
@@ -95,7 +150,7 @@
             </picture>
         </div>
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <button class="option-button grey" onclick="window.location.href='/play/edit-profile.html'">
+            <button class="option-button grey" onclick="window.location.href='/edit-profile'">
                 Edit profile&nbsp;<i class="fas fa-pen"></i>
             </button>
             <button id="characterBackButton" class="option-button back-button" onclick="window.goBackOrHome()">
@@ -106,8 +161,44 @@
     <!--FOOTER-->
     <script>
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
+
+        function setPendingPaymentOffer(offer) {
+            sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(offer));
+        }
+
+        function clearPendingPaymentOffer() {
+            sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+        }
 
         document.addEventListener('DOMContentLoaded', function () {
+            const createPriceHtmlFallback = (result) => {
+                const oldText = `$${result.basePriceUsd}`;
+                if (result.finalPriceUsd < result.basePriceUsd) {
+                    return `<span class="pro-old-price">${oldText}</span> <span class="pro-new-price">${result.finalPriceText}</span>`;
+                }
+                return `<span class="pro-new-price">${oldText}</span>`;
+            };
+            const ensureProDiscountsLoaded = () => {
+                if (window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function') {
+                    return Promise.resolve();
+                }
+                return new Promise((resolve) => {
+                    const existing = document.querySelector('script[data-pro-discounts-loader="1"]');
+                    if (existing) {
+                        existing.addEventListener('load', () => resolve(), { once: true });
+                        existing.addEventListener('error', () => resolve(), { once: true });
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = `/js/pro-discounts.js?v=${Date.now()}`;
+                    script.defer = true;
+                    script.setAttribute('data-pro-discounts-loader', '1');
+                    script.addEventListener('load', () => resolve(), { once: true });
+                    script.addEventListener('error', () => resolve(), { once: true });
+                    document.head.appendChild(script);
+                });
+            };
             setTimeout(() => {
                 const viewTarget = document.querySelector('h1');
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -124,30 +215,53 @@
             const backButton = document.getElementById('characterBackButton');
             const ready = window.modulesReady || Promise.resolve();
 
-            ready.then(() => {
+            ready.then(() => ensureProDiscountsLoaded()).then(() => {
                 if (!optionsContainer || !backButton) return;
 
                 const urlParams = new URLSearchParams(window.location.search || '');
                 const isDemoPro = urlParams.get('demopro') === '1';
                 const isPro = isDemoPro || (window.isAthletePro ? window.isAthletePro(athlete) : false);
-                const createButton = (label, className, href) => {
+                const createButton = (label, className, href, beforeNavigate) => {
                     const button = document.createElement('button');
                     button.className = className;
                     button.innerHTML = label;
-                    button.addEventListener('click', () => { window.location.href = href; });
+                    button.addEventListener('click', () => {
+                        if (typeof beforeNavigate === 'function') beforeNavigate();
+                        window.location.href = href;
+                    });
                     return button;
+                };
+                const createGoProDiscountSummary = (result) => {
+                    if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') {
+                        return null;
+                    }
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'pro-discount-box';
+
+                    const breakdownLine = document.createElement('p');
+                    breakdownLine.className = 'pro-discount-breakdown';
+                    if (typeof window.proDiscounts.createBreakdownHtml === 'function') {
+                        breakdownLine.innerHTML = window.proDiscounts.createBreakdownHtml(result);
+                    } else {
+                        breakdownLine.textContent = window.proDiscounts.createBreakdownText(result);
+                    }
+
+                    wrapper.appendChild(breakdownLine);
+                    return wrapper;
                 };
 
                 if (isPro) {
                     const phenoButton = createButton(
                         'Submit new Pheno&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
-                        '/pheno-age?update=1'
+                        '/pheno-age?update=1',
+                        () => clearPendingPaymentOffer()
                     );
                     const bortzButton = createButton(
                         'Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
-                        '/bortz-age?update=1'
+                        '/bortz-age?update=1',
+                        () => clearPendingPaymentOffer()
                     );
                     optionsContainer.insertBefore(phenoButton, backButton);
                     optionsContainer.insertBefore(bortzButton, backButton);
@@ -155,15 +269,38 @@
                     const submitButton = createButton(
                         'Submit new results&nbsp;<i class="fas fa-rocket"></i>',
                         'option-button grey',
-                        '/pheno-age?update=1'
+                        '/pheno-age?update=1',
+                        () => clearPendingPaymentOffer()
                     );
+                    const goProDiscountResult =
+                        window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
+                            ? window.proDiscounts.buildDiscountBreakdown(athlete, { isOnLeaderboard: true })
+                            : null;
                     const goProButton = createButton(
-                        'Go pro (free now)&nbsp;<i class="fas fa-bolt"></i>',
+                        goProDiscountResult
+                            ? `Go pro for&nbsp;${typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult)}&nbsp;<i class="fas fa-bolt"></i>`
+                            : 'Go pro for&nbsp;<i class="fas fa-bolt"></i>',
                         'option-button green',
-                        '/bortz-age?update=1'
+                        '/bortz-age?update=1',
+                        () => {
+                            const amountUsd =
+                                goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)
+                                    ? goProDiscountResult.finalPriceUsd
+                                    : 100;
+                            setPendingPaymentOffer({
+                                source: 'go-pro-upgrade',
+                                offerType: 'pro',
+                                currency: 'USD',
+                                amountUsd
+                            });
+                        }
                     );
                     optionsContainer.insertBefore(submitButton, backButton);
                     optionsContainer.insertBefore(goProButton, backButton);
+                    const goProDiscountSummary = goProDiscountResult ? createGoProDiscountSummary(goProDiscountResult) : null;
+                    if (goProDiscountSummary) {
+                        optionsContainer.insertBefore(goProDiscountSummary, backButton);
+                    }
                 }
             });
         });

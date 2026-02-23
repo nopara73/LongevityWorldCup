@@ -33,4 +33,5 @@ AppData
 *.iml
 
 # VS Code
-.vscode/
+.vscode/*
+!.vscode/launch.json
