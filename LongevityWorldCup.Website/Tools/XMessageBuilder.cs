@@ -212,7 +212,7 @@ public static class XMessageBuilder
 
         return Truncate(
             $"New Longevity World Cup podcast 🎧\n" +
-            $"{host} sits down with {guest} for a full conversation on the show.\n" +
+            $"{host} sits down with {guest} for a full conversation on the show.\n\n" +
             $"📹 Full episode: {podcastUrl}");
     }
 
