@@ -128,7 +128,10 @@ public static class XMessageBuilder
             var years = Math.Abs(diffVal.Value);
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
-            return Truncate($"The biggest PhenoAge improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test 🧬");
+            var url = AthleteUrl(diffSlug);
+            return Truncate(
+                $"The biggest PhenoAge improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test 🧬\n\n" +
+                BuildAthleteCtaLine(athlete, url));
         }
 
         if (string.Equals(normLabel, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
