@@ -67,7 +67,7 @@ public class XEventService
             payloadText ?? "",
             SlugToName,
             athletes.GetTop3SlugsForLeague,
-            athletes.GetCrowdLowestAgeTop3,
+            athletes.GetCrowdLowestAgeBadgePodiumForX,
             athletes.GetRecentNewcomersForX,
             athletes.GetBestDomainWinnerSlug);
         return string.IsNullOrWhiteSpace(msg) ? null : msg;

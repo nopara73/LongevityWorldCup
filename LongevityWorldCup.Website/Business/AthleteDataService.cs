@@ -770,6 +770,64 @@ public class AthleteDataService : IDisposable
             .ToList();
     }
 
+    public IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)> GetCrowdLowestAgeBadgePodiumForX()
+    {
+        const string crowdLowestAgeLabel = "Crowd – Lowest Crowd Age";
+
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug))
+                existing.Add(slug);
+        }
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                "SELECT DISTINCT Place, AthleteSlug " +
+                "FROM BadgeAwards " +
+                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place IN (1,2,3) " +
+                "ORDER BY Place ASC, AthleteSlug COLLATE NOCASE ASC";
+            cmd.Parameters.AddWithValue("@label", crowdLowestAgeLabel);
+
+            var byPlace = new Dictionary<int, List<string>>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                if (r.IsDBNull(0) || r.IsDBNull(1))
+                    continue;
+
+                var place = r.GetInt32(0);
+                var slug = r.GetString(1);
+                if (place < 1 || place > 3 || string.IsNullOrWhiteSpace(slug))
+                    continue;
+                if (existing.Count > 0 && !existing.Contains(slug))
+                    continue;
+
+                if (!byPlace.TryGetValue(place, out var list))
+                {
+                    list = new List<string>();
+                    byPlace[place] = list;
+                }
+
+                if (!list.Contains(slug, StringComparer.OrdinalIgnoreCase))
+                    list.Add(slug);
+            }
+
+            var result = new List<(int Place, IReadOnlyList<string> Slugs)>();
+            for (var place = 1; place <= 3; place++)
+            {
+                if (!byPlace.TryGetValue(place, out var slugs) || slugs.Count == 0)
+                    continue;
+                result.Add((place, slugs));
+            }
+
+            return (IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)>)result;
+        });
+    }
+
     public IReadOnlyList<string> GetRecentNewcomersForX()
     {
         const int windowDays = 7;
@@ -815,10 +873,29 @@ public class AthleteDataService : IDisposable
         return _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = "SELECT AthleteSlug FROM BadgeAwards WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 LIMIT 1";
+            cmd.CommandText =
+                "SELECT DISTINCT AthleteSlug FROM BadgeAwards " +
+                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 " +
+                "LIMIT 2";
             cmd.Parameters.AddWithValue("@label", label);
-            var result = cmd.ExecuteScalar() as string;
-            return string.IsNullOrWhiteSpace(result) ? null : result;
+            using var r = cmd.ExecuteReader();
+            string? onlyHolder = null;
+            while (r.Read())
+            {
+                var slug = r.GetString(0);
+                if (string.IsNullOrWhiteSpace(slug))
+                    continue;
+
+                if (onlyHolder is null)
+                {
+                    onlyHolder = slug;
+                    continue;
+                }
+
+                return null;
+            }
+
+            return onlyHolder;
         });
     }
 

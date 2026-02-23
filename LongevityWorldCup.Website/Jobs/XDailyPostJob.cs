@@ -1,4 +1,4 @@
-﻿using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -28,7 +28,7 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
-        if (await XDailyPostJobTempTestHelper.TryPostTemporaryAthleteCountMilestoneTestAsync(_events, _athletes, _xEvents, _logger))
+        if (await XDailyPostJobTempTestHelper.TryPostTemporaryFillerDomainTopTestAsync(_events, _athletes, _xEvents, _logger))
             return;
 
         var pending = _events.GetPendingXEvents();
@@ -107,9 +107,23 @@ public class XDailyPostJob : IJob
 
         if (fillerType == FillerType.CrowdGuesses)
         {
-            var top3 = _athletes.GetCrowdLowestAgeTop3().Take(3).Select(x => Norm(x.Slug)).Where(s => s.Length > 0).ToList();
-            if (top3.Count == 0) return null;
-            return $"slugs[{string.Join(", ", top3)}]";
+            var podium = _athletes.GetCrowdLowestAgeBadgePodiumForX();
+            var placeTokens = podium
+                .OrderBy(x => x.Place)
+                .Select(x =>
+                {
+                    var slugs = x.Slugs
+                        .Select(Norm)
+                        .Where(s => s.Length > 0)
+                        .Distinct(StringComparer.Ordinal)
+                        .OrderBy(s => s, StringComparer.Ordinal)
+                        .ToList();
+                    return slugs.Count == 0 ? null : $"{x.Place}:{string.Join(",", slugs)}";
+                })
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+            if (placeTokens.Count == 0) return null;
+            return $"podium[{string.Join(" | ", placeTokens)}]";
         }
 
         if (fillerType == FillerType.Newcomers)

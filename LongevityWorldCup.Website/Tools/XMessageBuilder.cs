@@ -218,7 +218,7 @@ public static class XMessageBuilder
         string payloadText,
         Func<string, string> slugToName,
         Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null,
-        Func<IReadOnlyList<(string Slug, double CrowdAge)>>? getCrowdLowestAgeTop3 = null,
+        Func<IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)>>? getCrowdLowestAgePodium = null,
         Func<IReadOnlyList<string>>? getRecentNewcomersForX = null,
         Func<string, string?>? getBestDomainWinnerSlug = null)
     {
@@ -240,16 +240,26 @@ public static class XMessageBuilder
 
         if (fillerType == FillerType.CrowdGuesses)
         {
-            var items = getCrowdLowestAgeTop3?.Invoke() ?? Array.Empty<(string Slug, double CrowdAge)>();
-            if (items.Count == 0) return "";
-            var lines = new List<string> { "Top 3 youngest-looking in the tournament according to the crowd 👀", "" };
-            for (var i = 0; i < items.Count && i < 3; i++)
+            var podium = getCrowdLowestAgePodium?.Invoke() ?? Array.Empty<(int Place, IReadOnlyList<string> Slugs)>();
+            if (podium.Count == 0) return "";
+            var lines = new List<string> { "Top 3 youngest-looking in the tournament according to the crowd \U0001F440", "" };
+            for (var i = 0; i < podium.Count; i++)
             {
-                var name = slugToName(items[i].Slug);
-                lines.Add($"{i + 1}. {name}");
+                var place = podium[i].Place;
+                if (place < 1 || place > 3) continue;
+
+                var names = podium[i].Slugs
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Select(slugToName)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .ToList();
+                if (names.Count == 0) continue;
+
+                lines.Add($"{place}. {string.Join(", ", names)}");
             }
+            if (lines.Count <= 2) return "";
             lines.Add("");
-            lines.Add($"📊 Full leaderboard: {LeaderboardUrl}");
+            lines.Add($"\U0001F4CA Full leaderboard: {LeaderboardUrl}");
             return Truncate(string.Join("\n", lines));
         }
 

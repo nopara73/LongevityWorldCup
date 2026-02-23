@@ -1,41 +1,48 @@
 using LongevityWorldCup.Website.Business;
+
 namespace LongevityWorldCup.Website.Jobs;
 
 internal static class XDailyPostJobTempTestHelper
 {
-    // Keep this list aligned with AthleteDataService.DetectAndEmitAthleteCountMilestones().
-    private static readonly int[] AthleteCountMilestones =
+    private static readonly string[] DomainTopKeys =
     [
-        10,
-        42, 69, 100, 123,
-        256, 300, 404, 500, 666, 777,
-        1000, 1337, 1618,
-        2000, 3141,
-        5000, 6969, 9001, 10000
+        "liver",
+        "kidney",
+        "metabolic",
+        "inflammation",
+        "immune"
     ];
 
-    public static async Task<bool> TryPostTemporaryAthleteCountMilestoneTestAsync(
+    public static async Task<bool> TryPostTemporaryFillerDomainTopTestAsync(
         EventDataService _,
         AthleteDataService athletes,
         XEventService xEvents,
         ILogger logger)
     {
-        if (AthleteCountMilestones.Length == 0)
-            return false;
+        if (DomainTopKeys.Length == 0)
+        {
+            logger.LogWarning("XDailyPostJob TEMP: no domain configured for DomainTop test.");
+            return true;
+        }
 
-        var randomIndex = Random.Shared.Next(0, AthleteCountMilestones.Length);
-        var count = AthleteCountMilestones[randomIndex];
-        var rawText = $"athletes[{count}]";
+        var start = Random.Shared.Next(DomainTopKeys.Length);
 
-        var msg = xEvents.TryBuildMessage(EventType.AthleteCountMilestone, rawText);
-        if (string.IsNullOrWhiteSpace(msg))
-            return false;
+        for (var i = 0; i < DomainTopKeys.Length; i++)
+        {
+            var key = DomainTopKeys[(start + i) % DomainTopKeys.Length];
+            var payload = $"domain[{key}]";
+            var msg = xEvents.TryBuildFillerMessage(FillerType.DomainTop, payload);
+            if (string.IsNullOrWhiteSpace(msg))
+                continue;
 
-        await xEvents.SendAsync(msg);
+            await xEvents.SendAsync(msg);
+            logger.LogInformation(
+                "XDailyPostJob TEMP: posted filler test (DomainTop) with payload {Payload}.",
+                payload);
+            return true;
+        }
 
-        logger.LogInformation(
-            "XDailyPostJob TEMP: posted AthleteCountMilestone test for count {Count}.",
-            count);
+        logger.LogWarning("XDailyPostJob TEMP: failed to build filler test message (DomainTop) for all configured domains.");
         return true;
     }
 }
