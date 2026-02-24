@@ -24,6 +24,11 @@ namespace LongevityWorldCup.Website
         public string? BTCPayStoreId { get; set; }
         public string? BTCPayGreenfieldApiKey { get; set; }
 
+        public string? XApiKey { get; set; }
+        public string? XApiSecret { get; set; }
+        public string? XAccessToken { get; set; }
+        public string? XRefreshToken { get; set; }
+
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
         {

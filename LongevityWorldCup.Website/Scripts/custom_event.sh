@@ -237,7 +237,7 @@ err=""
 attempt=0
 delay_ms="$sqlite_retry_initial_ms"
 while :; do
-  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15); COMMIT;" 2>&1)"
+  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15, 0, 1); COMMIT;" 2>&1)"
   rc=$?
   if [[ $rc -eq 0 ]]; then
     echo "Inserted $id into $db_path"

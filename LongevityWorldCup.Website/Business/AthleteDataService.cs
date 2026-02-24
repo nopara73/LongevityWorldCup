@@ -690,6 +690,12 @@ public class AthleteDataService : IDisposable
                 ["LowestPhenoAge"] = lowestPheno,
                 ["AgeDifference"] = effectiveDiff
             };
+            if (r.LowestBortzAge.HasValue)
+                obj["LowestBortzAge"] = Math.Round(r.LowestBortzAge.Value, 2);
+            if (r.PhenoAgeDiffFromBaseline.HasValue)
+                obj["PhenoAgeDiffFromBaseline"] = Math.Round(r.PhenoAgeDiffFromBaseline.Value, 2);
+            if (r.BortzAgeDiffFromBaseline.HasValue)
+                obj["BortzAgeDiffFromBaseline"] = Math.Round(r.BortzAgeDiffFromBaseline.Value, 2);
 
             results.Add((hasBortz, effectiveDiff, dobUtc, name, obj));
         }
@@ -699,6 +705,292 @@ public class AthleteDataService : IDisposable
             arr.Add(o);
 
         return arr;
+    }
+
+    public IReadOnlyList<AthleteForX> GetAthletesForX()
+    {
+        var order = GetRankingsOrder();
+        var snapshot = GetAthletesSnapshot();
+        var extBySlug = new Dictionary<string, (string? PodcastLink, string? XHandle)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in snapshot.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
+            var media = o["MediaContact"]?.GetValue<string>();
+            var handle = ExtractXHandle(media);
+            extBySlug[slug] = (string.IsNullOrWhiteSpace(link) ? null : link.Trim(), handle);
+        }
+        var list = new List<AthleteForX>();
+        var rank = 0;
+        foreach (var o in order.OfType<JsonObject>())
+        {
+            rank++;
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            var name = o["Name"]?.GetValue<string>() ?? "";
+            double? lowestPheno = null;
+            if (o["LowestPhenoAge"] is JsonValue pv && pv.TryGetValue<double>(out var p)) lowestPheno = p;
+            double? lowestBortz = null;
+            if (o["LowestBortzAge"] is JsonValue bv && bv.TryGetValue<double>(out var b)) lowestBortz = b;
+            double? chrono = null;
+            if (o["ChronologicalAge"] is JsonValue cv && cv.TryGetValue<double>(out var c)) chrono = c;
+            double? phenoDiff = null;
+            if (o["PhenoAgeDiffFromBaseline"] is JsonValue pdv && pdv.TryGetValue<double>(out var pd)) phenoDiff = pd;
+            double? bortzDiff = null;
+            if (o["BortzAgeDiffFromBaseline"] is JsonValue bdv && bdv.TryGetValue<double>(out var bd)) bortzDiff = bd;
+            extBySlug.TryGetValue(slug, out var ext);
+            list.Add(new AthleteForX(slug, name, rank, lowestPheno, lowestBortz, chrono, phenoDiff, bortzDiff, ext.PodcastLink, ext.XHandle));
+        }
+        return list;
+    }
+
+    public IReadOnlyList<(string Slug, double CrowdAge)> GetCrowdLowestAgeTop3()
+    {
+        var snapshot = GetAthletesSnapshot();
+        var list = new List<(string Slug, double CrowdAge)>();
+        foreach (var o in snapshot.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            double crowdAge;
+            if (o["CrowdAge"] is JsonValue cv && cv.TryGetValue<double>(out var ca))
+                crowdAge = ca;
+            else
+                continue;
+            int crowdCount = 0;
+            if (o["CrowdCount"] is JsonValue cc && cc.TryGetValue<int>(out var cnt))
+                crowdCount = cnt;
+            if (crowdCount <= 0) continue;
+            list.Add((slug, crowdAge));
+        }
+        return list
+            .OrderBy(t => t.CrowdAge)
+            .Take(3)
+            .ToList();
+    }
+
+    public IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)> GetCrowdLowestAgeBadgePodiumForX()
+    {
+        const string crowdLowestAgeLabel = "Crowd – Lowest Crowd Age";
+
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug))
+                existing.Add(slug);
+        }
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                "SELECT DISTINCT Place, AthleteSlug " +
+                "FROM BadgeAwards " +
+                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place IN (1,2,3) " +
+                "ORDER BY Place ASC, AthleteSlug COLLATE NOCASE ASC";
+            cmd.Parameters.AddWithValue("@label", crowdLowestAgeLabel);
+
+            var byPlace = new Dictionary<int, List<string>>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                if (r.IsDBNull(0) || r.IsDBNull(1))
+                    continue;
+
+                var place = r.GetInt32(0);
+                var slug = r.GetString(1);
+                if (place < 1 || place > 3 || string.IsNullOrWhiteSpace(slug))
+                    continue;
+                if (existing.Count > 0 && !existing.Contains(slug))
+                    continue;
+
+                if (!byPlace.TryGetValue(place, out var list))
+                {
+                    list = new List<string>();
+                    byPlace[place] = list;
+                }
+
+                if (!list.Contains(slug, StringComparer.OrdinalIgnoreCase))
+                    list.Add(slug);
+            }
+
+            var result = new List<(int Place, IReadOnlyList<string> Slugs)>();
+            for (var place = 1; place <= 3; place++)
+            {
+                if (!byPlace.TryGetValue(place, out var slugs) || slugs.Count == 0)
+                    continue;
+                result.Add((place, slugs));
+            }
+
+            return (IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)>)result;
+        });
+    }
+
+    public IReadOnlyList<string> GetRecentNewcomersForX()
+    {
+        const int windowDays = 7;
+        var cutoff = DateTime.UtcNow.AddDays(-windowDays);
+        var slugs = new List<string>();
+        _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Key, JoinedAt FROM Athletes WHERE JoinedAt >= @cutoff";
+            cmd.Parameters.AddWithValue("@cutoff", cutoff.ToString("o"));
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var key = r.GetString(0);
+                slugs.Add(key);
+            }
+        });
+
+        if (slugs.Count == 0) return Array.Empty<string>();
+
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug)) existing.Add(slug);
+        }
+
+        return slugs.Where(s => existing.Contains(s)).ToList();
+    }
+
+    public string? GetBestDomainWinnerSlug(string domainKey)
+    {
+        var label = domainKey?.ToLowerInvariant() switch
+        {
+            "liver" => "Best Domain – Liver",
+            "kidney" => "Best Domain – Kidney",
+            "metabolic" => "Best Domain – Metabolic",
+            "inflammation" => "Best Domain – Inflammation",
+            "immune" => "Best Domain – Immune",
+            _ => null
+        };
+        if (label is null) return null;
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                "SELECT DISTINCT AthleteSlug FROM BadgeAwards " +
+                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 " +
+                "LIMIT 2";
+            cmd.Parameters.AddWithValue("@label", label);
+            using var r = cmd.ExecuteReader();
+            string? onlyHolder = null;
+            while (r.Read())
+            {
+                var slug = r.GetString(0);
+                if (string.IsNullOrWhiteSpace(slug))
+                    continue;
+
+                if (onlyHolder is null)
+                {
+                    onlyHolder = slug;
+                    continue;
+                }
+
+                return null;
+            }
+
+            return onlyHolder;
+        });
+    }
+
+    public bool HasSingleGlobalPlaceOneBadgeHolder(string badgeLabel)
+    {
+        if (string.IsNullOrWhiteSpace(badgeLabel))
+            return false;
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                "SELECT DISTINCT AthleteSlug FROM BadgeAwards " +
+                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 " +
+                "LIMIT 2";
+            cmd.Parameters.AddWithValue("@label", badgeLabel);
+
+            using var r = cmd.ExecuteReader();
+            string? onlyHolder = null;
+            while (r.Read())
+            {
+                if (r.IsDBNull(0))
+                    continue;
+
+                var slug = r.GetString(0);
+                if (string.IsNullOrWhiteSpace(slug))
+                    continue;
+
+                if (onlyHolder is null)
+                {
+                    onlyHolder = slug;
+                    continue;
+                }
+
+                return false;
+            }
+
+            return !string.IsNullOrWhiteSpace(onlyHolder);
+        });
+    }
+
+    public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
+    {
+        var order = GetRankingsOrder();
+        if (order.Count == 0) return Array.Empty<string>();
+        if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
+        {
+            return order.OfType<JsonObject>()
+                .Select(o => o["AthleteSlug"]?.GetValue<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Take(3)
+                .ToList()!;
+        }
+        var snapshot = GetAthletesSnapshot();
+        var divisionBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var generationBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var exclusiveBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in snapshot.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            var div = o["Division"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(div)) divisionBySlug[slug] = div;
+            var gen = o["Generation"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(gen)) generationBySlug[slug] = gen;
+            var ex = o["ExclusiveLeague"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(ex)) exclusiveBySlug[slug] = ex;
+        }
+        string? targetDivision = leagueSlug?.ToLowerInvariant() switch { "mens" => "Men's", "womens" => "Women's", "open" => "Open", _ => null };
+        string? targetGeneration = leagueSlug?.ToLowerInvariant() switch
+        {
+            "silent-generation" => "Silent Generation",
+            "baby-boomers" => "Baby Boomers",
+            "gen-x" => "Gen X",
+            "millennials" => "Millennials",
+            "gen-z" => "Gen Z",
+            "gen-alpha" => "Gen Alpha",
+            _ => null
+        };
+        string? targetExclusive = string.Equals(leagueSlug, "prosperan", StringComparison.OrdinalIgnoreCase) ? "Prosperan" : null;
+        var isAmateur = string.Equals(leagueSlug, "amateur", StringComparison.OrdinalIgnoreCase);
+        if (targetDivision == null && targetGeneration == null && targetExclusive == null && !isAmateur)
+            return Array.Empty<string>();
+        var list = new List<string>();
+        foreach (var o in order.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+            var match = targetDivision != null && divisionBySlug.TryGetValue(slug, out var d) && string.Equals(d, targetDivision, StringComparison.OrdinalIgnoreCase)
+                || targetGeneration != null && generationBySlug.TryGetValue(slug, out var g) && string.Equals(g, targetGeneration, StringComparison.OrdinalIgnoreCase)
+                || targetExclusive != null && exclusiveBySlug.TryGetValue(slug, out var e) && string.Equals(e, targetExclusive, StringComparison.OrdinalIgnoreCase)
+                || isAmateur && o["LowestBortzAge"] is not JsonValue;
+            if (match) { list.Add(slug); if (list.Count >= 3) break; }
+        }
+        return list;
     }
 
     private static IOrderedEnumerable<(bool HasBortz, double EffectiveReduction, DateTime DobUtc, string Name, JsonObject Obj)>
@@ -1382,23 +1674,13 @@ public class AthleteDataService : IDisposable
 
     private void PushAthleteDirectoryToEvents()
     {
+        _eventDataService.SetAthletesForX(GetAthletesForX());
         var athletesSnapshot = GetAthletesSnapshot();
-        var list = new List<(string Slug, string Name, int? CurrentRank)>();
-        var podcastList = new List<(string Slug, string PodcastLink)>();
         var bioList = new List<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)>();
         foreach (var o in athletesSnapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
-            var name = o["Name"]?.GetValue<string>() ?? "";
-            int? rank = null;
-            var rp = o["CurrentPlacement"];
-            if (rp is JsonValue jv && jv.TryGetValue<int>(out var pos)) rank = pos;
-            list.Add((slug, name, rank));
-
-            var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(link))
-                podcastList.Add((slug, link.Trim()));
 
             double? chrono = null;
             double? pheno = null;
@@ -1418,9 +1700,29 @@ public class AthleteDataService : IDisposable
             bioList.Add((slug, chrono, pheno, bortz));
         }
 
-        _eventDataService.SetAthleteDirectory(list);
-        _eventDataService.SetPodcastLinks(podcastList);
         _eventDataService.SetAthleteBio(bioList);
+    }
+
+    private static string? ExtractXHandle(string? mediaContact)
+    {
+        if (string.IsNullOrWhiteSpace(mediaContact)) return null;
+
+        if (System.Uri.TryCreate(mediaContact.Trim(), System.UriKind.Absolute, out var uri))
+        {
+            var host = uri.Host;
+            if (!host.EndsWith("x.com", StringComparison.OrdinalIgnoreCase) &&
+                !host.EndsWith("twitter.com", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var path = uri.AbsolutePath.Trim('/');
+            if (string.IsNullOrWhiteSpace(path)) return null;
+            var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var handleCore = parts.Length > 0 ? parts[0] : null;
+            if (string.IsNullOrWhiteSpace(handleCore)) return null;
+            return "@" + handleCore;
+        }
+
+        return null;
     }
 
     // ===== biomarker/test signature helpers (single-column persistence) =====

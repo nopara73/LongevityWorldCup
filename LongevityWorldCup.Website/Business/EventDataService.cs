@@ -39,13 +39,15 @@ public sealed class EventDataService : IDisposable
 
     private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
+    private readonly XEventService _xEvents;
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, DatabaseManager db)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, DatabaseManager db)
     {
         _ = env;
         _slackEvents = slackEvents;
+        _xEvents = xEvents;
         _db = db ?? throw new ArgumentNullException(nameof(db));
 
         var dataDir = EnvironmentHelpers.GetDataDir();
@@ -63,7 +65,8 @@ public sealed class EventDataService : IDisposable
                         Text           TEXT NOT NULL,
                         OccurredAt     TEXT NOT NULL,
                         Relevance      REAL  NOT NULL DEFAULT 5,
-                        SlackProcessed INTEGER NOT NULL DEFAULT 0
+                        SlackProcessed INTEGER NOT NULL DEFAULT 0,
+                        XProcessed     INTEGER NOT NULL DEFAULT 0
                     );
                     """;
                 cmd.ExecuteNonQuery();
@@ -82,6 +85,23 @@ public sealed class EventDataService : IDisposable
                 if (addedSlackProcessed)
                 {
                     cmd.CommandText = "UPDATE Events SET SlackProcessed = 1;";
+                    cmd.ExecuteNonQuery();
+                }
+
+                var addedXProcessed = false;
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN XProcessed INTEGER NOT NULL DEFAULT 0;";
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    addedXProcessed = true;
+                }
+                catch
+                {
+                }
+
+                if (addedXProcessed)
+                {
+                    cmd.CommandText = "UPDATE Events SET XProcessed = 1;";
                     cmd.ExecuteNonQuery();
                 }
 
@@ -158,14 +178,130 @@ public sealed class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
-    public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
+    public const int XPriorityPrimaryMax = 8;
+
+    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
     {
-        _slackEvents.SetAthleteDirectory(items);
+        var list = _db.Run(sqlite =>
+        {
+            var filters = new List<string> { "XProcessed = 0", "Type != @customEvent" };
+            var parameters = new List<SqliteParameter>
+            {
+                new SqliteParameter("@customEvent", (int)EventType.CustomEvent),
+                new SqliteParameter("@joined", (int)EventType.Joined)
+            };
+
+            filters.Add("Type != @joined");
+
+            if (fromUtc.HasValue)
+            {
+                filters.Add("OccurredAt >= @from");
+                parameters.Add(new SqliteParameter("@from", EnsureUtc(fromUtc.Value).ToString("o")));
+            }
+            if (toUtc.HasValue)
+            {
+                filters.Add("OccurredAt <= @to");
+                parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
+            }
+
+            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events WHERE " +
+                string.Join(" AND ", filters) +
+                " ORDER BY OccurredAt DESC";
+            if (limit.HasValue)
+            {
+                sql += " LIMIT @limit";
+                parameters.Add(new SqliteParameter("@limit", limit.Value));
+            }
+
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = sql;
+            foreach (var p in parameters) cmd.Parameters.Add(p);
+
+            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var typeInt = r.GetInt32(1);
+                var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
+                var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
+                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
+            }
+            return result;
+        });
+        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, GetXPriority(e.Type, e.Text))).ToList();
+        withPriority.Sort((a, b) =>
+        {
+            if (a.Item6 != b.Item6) return a.Item6.CompareTo(b.Item6);
+            return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
+        });
+        return withPriority;
     }
 
-    public void SetPodcastLinks(IReadOnlyList<(string Slug, string PodcastLink)> items)
+    private static int GetXPriority(EventType type, string text)
     {
-        _slackEvents.SetPodcastLinks(items);
+        if (type == EventType.NewRank)
+        {
+            if (EventHelpers.TryExtractRank(text, out var rank) && rank >= 1 && rank <= 3)
+                return 0;
+            return 99;
+        }
+
+        if (type == EventType.BadgeAward)
+        {
+            if (!EventHelpers.TryExtractBadgeLabel(text, out var label)) return 99;
+            var norm = EventHelpers.NormalizeBadgeLabel(label);
+
+            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase)) return 99;
+
+            if (EventHelpers.TryExtractPlace(text, out var place) && place == 1
+                && EventHelpers.TryExtractCategory(text, out var cat)
+                && !string.Equals(cat, "Global", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+                return 1;
+
+            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)) return 2;
+            if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase)) return 3;
+            if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase)) return 4;
+            if (string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase)) return 5;
+            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)) return 6;
+            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)) return 7;
+            return 99;
+        }
+
+        if (type == EventType.AthleteCountMilestone)
+        {
+            return 8;
+        }
+
+        return 99;
+    }
+
+    public void MarkEventsXProcessed(IEnumerable<string> ids)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0) return;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var cmd = sqlite.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "UPDATE Events SET XProcessed = 1 WHERE Id = @id AND XProcessed = 0";
+            var pId = cmd.Parameters.Add("@id", SqliteType.Text);
+            foreach (var id in idList)
+            {
+                pId.Value = id;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        });
+    }
+
+    public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
+    {
+        _xEvents.SetAthletesForX(items);
+        _slackEvents.SetAthleteDirectory(items.Select(a => (a.Slug, a.Name, a.CurrentRank)).ToList());
+        _slackEvents.SetPodcastLinks(items.Where(a => !string.IsNullOrWhiteSpace(a.PodcastLink)).Select(a => (a.Slug, a.PodcastLink!)).ToList());
     }
 
     public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)> items)
@@ -476,6 +612,7 @@ public sealed class EventDataService : IDisposable
         if (items is null) throw new ArgumentNullException(nameof(items));
 
         int created = 0;
+        var podcastEvents = new List<(string Id, string Text)>();
 
         _db.Run(sqlite =>
         {
@@ -536,13 +673,18 @@ public sealed class EventDataService : IDisposable
 
                 if (!shouldInsert) continue;
 
-                pId.Value = Guid.NewGuid().ToString("N");
+                var id = Guid.NewGuid().ToString("N");
+                pId.Value = id;
                 pType.Value = (int)EventType.BadgeAward;
                 pText.Value = text;
                 pOcc.Value = occurredAt;
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
+
+                var norm = EventHelpers.NormalizeBadgeLabel(badgeLabel);
+                if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
+                    podcastEvents.Add((id, text));
             }
 
             tx.Commit();
@@ -551,6 +693,19 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
+        }
+
+        if (podcastEvents.Count > 0)
+        {
+            var sentIds = new List<string>();
+            foreach (var (id, text) in podcastEvents)
+            {
+                var sent = _xEvents.TrySendEventAsync(EventType.BadgeAward, text).GetAwaiter().GetResult();
+                if (sent)
+                    sentIds.Add(id);
+            }
+
+            MarkEventsXProcessed(sentIds);
         }
     }
 
@@ -606,8 +761,8 @@ public sealed class EventDataService : IDisposable
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed) " +
-                "SELECT @id, @type, @text, @occ, @rel, 1 " +
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed) " +
+                "SELECT @id, @type, @text, @occ, @rel, 1, 1 " +
                 "WHERE NOT EXISTS (SELECT 1 FROM Events WHERE Type=@type AND Text=@text AND OccurredAt=@occ LIMIT 1);";
             var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
