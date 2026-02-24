@@ -35,3 +35,4 @@ AppData
 # VS Code
 .vscode/*
 !.vscode/launch.json
+!.vscode/tasks.json
