@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
@@ -55,21 +55,7 @@ public static class XMessageBuilder
 
     private static string BuildAthleteCtaLine(string athleteName, string url)
     {
-        var options = new[]
-        {
-            $"👤 See profile: {url}",
-            $"🔎 Details: {url}",
-            $"👉 Take a look: {url}",
-            $"📄 Full profile: {url}"
-        };
-
-        var key = athleteName ?? string.Empty;
-        var hash = 0;
-        for (var i = 0; i < key.Length; i++)
-            hash = unchecked(hash * 31 + key[i]);
-        if (hash < 0) hash = -hash;
-
-        return options[hash % options.Length];
+        return url;
     }
 
     public static string ForEventText(
@@ -88,7 +74,7 @@ public static class XMessageBuilder
             if (!EventHelpers.TryExtractAthleteCount(rawText, out var count) || count <= 0) return "";
             var countLabel = count.ToString("N0", CultureInfo.InvariantCulture);
             var lead = BuildAthleteCountMilestoneLine(count, countLabel);
-            return RejectIfTooLong($"{lead}\n\n📊 Leaderboard: {LeaderboardUrl}");
+            return RejectIfTooLong($"{lead}\n\n{LeaderboardUrl}");
         }
 
         if (type == EventType.NewRank)
@@ -99,8 +85,8 @@ public static class XMessageBuilder
             EventHelpers.TryExtractPrev(rawText, out var prevSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
             var newRankMsg = !string.IsNullOrWhiteSpace(prev)
-                ? $"New #{rank} in the Ultimate League 🏆\n{current} is now ahead of {prev}.\n\n📊 Leaderboard: {LeaderboardUrl}"
-                : $"New #{rank} in the Ultimate League 🏆\n{current} now holds the spot.\n\n📊 Leaderboard: {LeaderboardUrl}";
+                ? $"New #{rank} in the Ultimate League \U0001F3C6\n{current} is now ahead of {prev}.\n\n{LeaderboardUrl}"
+                : $"New #{rank} in the Ultimate League \U0001F3C6\n{current} now holds the spot.\n\n{LeaderboardUrl}";
             return RejectIfTooLong(newRankMsg);
         }
 
@@ -117,7 +103,7 @@ public static class XMessageBuilder
             var ageStr = phenoAge.HasValue ? $" at {phenoAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(phenoSlug);
             return RejectIfTooLong(
-                $"{phenoAthlete} currently holds the lowest PhenoAge in the Longevity World Cup field{ageStr} 🧬\n\n" +
+                $"{phenoAthlete} currently holds the lowest PhenoAge in the Longevity World Cup field{ageStr} \U0001F9EC\n\n" +
                 BuildAthleteCtaLine(phenoAthlete, athleteUrl));
         }
         if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
@@ -130,7 +116,7 @@ public static class XMessageBuilder
             var athlete = slugToName(diffSlug);
             var url = AthleteUrl(diffSlug);
             return RejectIfTooLong(
-                $"The biggest PhenoAge improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test 🧬\n\n" +
+                $"The biggest PhenoAge improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test \U0001F9EC\n\n" +
                 BuildAthleteCtaLine(athlete, url));
         }
 
@@ -142,7 +128,7 @@ public static class XMessageBuilder
             var ageStr = bortzAge.HasValue ? $" at {bortzAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(bortzSlug);
             return RejectIfTooLong(
-                $"{bortzAthlete} currently holds the lowest Bortz Age in the Longevity World Cup field{ageStr} 🧬\n\n" +
+                $"{bortzAthlete} currently holds the lowest Bortz Age in the Longevity World Cup field{ageStr} \U0001F9EC\n\n" +
                 BuildAthleteCtaLine(bortzAthlete, athleteUrl));
         }
 
@@ -156,7 +142,7 @@ public static class XMessageBuilder
             var athlete = slugToName(diffSlug);
             var url = AthleteUrl(diffSlug);
             return RejectIfTooLong(
-                $"The biggest Bortz Age improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test 🧬\n\n" +
+                $"The biggest Bortz Age improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test \U0001F9EC\n\n" +
                 BuildAthleteCtaLine(athlete, url));
         }
 
@@ -195,8 +181,8 @@ public static class XMessageBuilder
             var leaguePrev = !string.IsNullOrWhiteSpace(leaguePrevSlug) ? slugToName(leaguePrevSlug) : null;
             var leagueBoardUrl = LeagueUrl(leagueCat, leagueVal);
             var msg = !string.IsNullOrWhiteSpace(leaguePrev)
-                ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} 🏆\n\n📊 Leaderboard: {leagueBoardUrl}"
-                : $"{leagueAthlete} is now #1 in the {leagueName} 🏆\n\n📊 Leaderboard: {leagueBoardUrl}";
+                ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} \U0001F3C6\n\n{leagueBoardUrl}"
+                : $"{leagueAthlete} is now #1 in the {leagueName} \U0001F3C6\n\n{leagueBoardUrl}";
             return RejectIfTooLong(msg);
         }
 
@@ -211,9 +197,9 @@ public static class XMessageBuilder
         const string host = "@nopara73";
 
         return RejectIfTooLong(
-            $"New Longevity World Cup podcast 🎧\n" +
+            $"New Longevity World Cup podcast \U0001F3A7\n" +
             $"{host} sits down with {guest} for a full conversation on the show.\n\n" +
-            $"📹 Full episode: {podcastUrl}");
+            $"{podcastUrl}");
     }
 
     public static string ForFiller(
@@ -233,11 +219,11 @@ public static class XMessageBuilder
                 return "";
             var slugs = getTop3SlugsForLeague?.Invoke(leagueSlug.Trim()) ?? Array.Empty<string>();
             if (slugs.Count == 0) return "";
-            var lines = new List<string> { $"The race for #1 in the {league.DisplayName} is on. Current top 3 👇", "" };
+            var lines = new List<string> { $"The race for #1 in the {league.DisplayName} is on. Current top 3 \U0001F447", "" };
             for (var i = 0; i < slugs.Count && i < 3; i++)
                 lines.Add($"{i + 1}. {slugToName(slugs[i])}");
             lines.Add("");
-            lines.Add($"📊 Full leaderboard: {league.Url}");
+            lines.Add($"{league.Url}");
             return RejectIfTooLong(string.Join("\n", lines));
         }
 
@@ -262,7 +248,7 @@ public static class XMessageBuilder
             }
             if (lines.Count <= 2) return "";
             lines.Add("");
-            lines.Add($"\U0001F4CA Full leaderboard: {LeaderboardUrl}");
+            lines.Add($"{LeaderboardUrl}");
             return RejectIfTooLong(string.Join("\n", lines));
         }
 
@@ -272,9 +258,8 @@ public static class XMessageBuilder
             if (newcomers.Count == 0) return "";
             var lines = new List<string>
             {
-                "Fresh faces on the Longevity World Cup leaderboard 🆕",
+                "Fresh faces on the Longevity World Cup leaderboard \U0001F195",
                 "",
-                "Explore the newest athletes:",
                 LeaderboardUrl
             };
             return RejectIfTooLong(string.Join("\n", lines));
@@ -289,11 +274,11 @@ public static class XMessageBuilder
             var name = slugToName(winnerSlug);
             var (label, emoji) = domainKey.ToLowerInvariant() switch
             {
-                "liver" => ("liver", "🧬"),
-                "kidney" => ("kidney", "💧"),
-                "metabolic" => ("metabolic", "🔥"),
+                "liver" => ("liver", "\U0001F9EC"),
+                "kidney" => ("kidney", "\U0001F4A7"),
+                "metabolic" => ("metabolic", "\U0001F525"),
                 "inflammation" => ("inflammation", ""),
-                "immune" => ("immune", "🛡️"),
+                "immune" => ("immune", "\U0001F6E1\uFE0F"),
                 _ => ("domain", "")
             };
             var line1 = string.IsNullOrEmpty(emoji)
@@ -359,6 +344,8 @@ public static class XMessageBuilder
         return $"{v} {c}";
     }
 }
+
+
 
 
 
