@@ -75,7 +75,9 @@ public class XDailyPostJob : IJob
         {
             var payload = payloadText ?? "";
             var cooldown = GetCooldownForFiller(fillerType);
-            if (_fillerLog.IsOnCooldownForOption(fillerType, payload, cooldown, DateTime.UtcNow))
+            var nowUtc = DateTime.UtcNow;
+            var onCooldown = _fillerLog.IsOnCooldownForType(fillerType, cooldown, nowUtc);
+            if (onCooldown)
             {
                 _logger.LogInformation("XDailyPostJob skipped filler in cooldown {FillerType} {PayloadText} ({CooldownDays}d)", fillerType, payloadText, cooldown.TotalDays);
                 continue;
@@ -101,7 +103,7 @@ public class XDailyPostJob : IJob
                 _logger.LogWarning("XDailyPostJob send failed for filler {FillerType}; leaving unlogged", fillerType);
                 return;
             }
-            _fillerLog.LogPost(DateTime.UtcNow, fillerType, infoToken);
+            _fillerLog.LogPost(nowUtc, fillerType, infoToken);
             _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
             return;
         }
