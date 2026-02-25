@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Unsubscribe - Longevity World Cup</title>
+    <!--HEAD-->
+    <style>
+        .join-game {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main>
+        <section style="max-width:900px;margin:2rem auto;padding:1rem 1.25rem;">
+            <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Unsubscribe</h1>
+            <p>Remove your email from the Longevity World Cup yearly newsletter.</p>
+
+            <form id="unsubscribe-form" novalidate style="max-width:520px;margin-top:1rem;">
+                <label for="email" style="display:block;margin-bottom:0.5rem;">Email address</label>
+                <input id="email"
+                       name="email"
+                       type="email"
+                       autocomplete="email"
+                       placeholder="you@example.com"
+                       required
+                       style="width:100%;padding:0.75rem;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;" />
+
+                <button id="unsubscribe-button"
+                        type="submit"
+                        style="display:inline-block;margin-top:0.75rem;padding:0.75rem 1.25rem;border-radius:6px;background:#0a7c0a;color:#fff;text-decoration:none;border:none;cursor:pointer;">
+                    Unsubscribe
+                </button>
+            </form>
+
+            <p id="message" aria-live="polite" style="margin-top:1rem;"></p>
+        </section>
+    </main>
+
+    <!--FOOTER-->
+    <script>
+        history.replaceState({ modal: "details" }, "", "/unsubscribe");
+
+        (function () {
+            const form = document.getElementById("unsubscribe-form");
+            const emailInput = document.getElementById("email");
+            const button = document.getElementById("unsubscribe-button");
+            const message = document.getElementById("message");
+
+            function setMessage(text, isError) {
+                message.textContent = text;
+                message.style.color = isError ? "#cc0000" : "#0a7c0a";
+            }
+
+            form.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                setMessage("", false);
+
+                const email = (emailInput.value || "").trim();
+                if (!email) {
+                    setMessage("Please enter your email address.", true);
+                    return;
+                }
+
+                button.disabled = true;
+                button.textContent = "Unsubscribing...";
+
+                try {
+                    const response = await fetch("/api/home/unsubscribe", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: email })
+                    });
+
+                    if (!response.ok) {
+                        const serverMessage = await response.text();
+                        setMessage(serverMessage || "Unable to unsubscribe right now.", true);
+                        return;
+                    }
+
+                    setMessage("You have been unsubscribed.", false);
+                    form.reset();
+                } catch (_) {
+                    setMessage("Network error. Please try again.", true);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = "Unsubscribe";
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

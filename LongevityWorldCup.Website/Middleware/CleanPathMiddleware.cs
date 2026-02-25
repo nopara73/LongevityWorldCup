@@ -77,6 +77,10 @@ namespace LongevityWorldCup.Website.Middleware
                     case "/edit-profile":
                         context.Request.Path = "/play/edit-profile.html";
                         break;
+
+                    case "/unsubscribe":
+                        context.Request.Path = "/unsubscribe.html";
+                        break;
                 }
             }
 

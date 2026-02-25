@@ -41,6 +41,8 @@ namespace LongevityWorldCup.Website.Middleware
             ["/edit-profile"] = "/edit-profile",
             ["/play/edit-profile"] = "/edit-profile",
             ["/play/edit-profile.html"] = "/edit-profile",
+            ["/unsubscribe"] = "/unsubscribe",
+            ["/unsubscribe.html"] = "/unsubscribe",
             ["/pheno-age"] = "/pheno-age",
             ["/onboarding/pheno-age"] = "/pheno-age",
             ["/onboarding/pheno-age.html"] = "/pheno-age",
