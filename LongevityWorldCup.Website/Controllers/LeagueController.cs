@@ -8,6 +8,8 @@ namespace LongevityWorldCup.Website.Controllers
         private static readonly IReadOnlyDictionary<string, string> LeagueRedirects =
             new Dictionary<string, string>
             {
+                ["ultimate"] = "/leaderboard",
+                ["amateur"] = "/?filters=amateur",
                 ["womens"] = "/?filters=women%27s",
                 ["mens"] = "/?filters=men%27s",
                 ["open"] = "/?filters=open",
