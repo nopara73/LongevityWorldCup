@@ -1,0 +1,39 @@
+{
+  "Name": "Bryan Johnson",
+  "MediaContact": "news@bryanjohnson.co",
+  "DateOfBirth": {
+    "Year": 1977,
+    "Month": 8,
+    "Day": 22
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-05-22",
+      "AlbGL": 45,
+      "CreatUmolL": 99.0099,
+      "GluMmolL": 5.5506,
+      "CrpMgL": 0.43,
+      "LymPc": 38,
+      "McvFL": 101,
+      "RdwPc": 11.5,
+      "AlpUL": 85, 
+      "Wbc1000cellsuL": 3.7
+    },
+    {
+      "Date": "2025-07-16",
+      "AlbGL": 45,
+      "CreatUmolL": 106.9661,
+      "GluMmolL": 5.4951,
+      "CrpMgL": 0.33,
+      "LymPc": 25,
+      "McvFL": 101,
+      "RdwPc": 12.1,
+      "AlpUL": 77,
+      "Wbc1000cellsuL": 3.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "USA",
+  "Why": "Don't Die",
+  "PersonalLink": "https://www.bryanjohnson.com"
+}
