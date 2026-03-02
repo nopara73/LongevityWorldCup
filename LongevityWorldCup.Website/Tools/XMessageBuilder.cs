@@ -62,6 +62,7 @@ public static class XMessageBuilder
         EventType type,
         string rawText,
         Func<string, string> slugToName,
+        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis = null,
         Func<string, string?>? getPodcastLinkForSlug = null,
         Func<string, double?>? getLowestPhenoAgeForSlug = null,
         Func<string, double?>? getLowestBortzAgeForSlug = null,
@@ -69,12 +70,21 @@ public static class XMessageBuilder
         Func<string, double?>? getPhenoDiffForSlug = null,
         Func<string, double?>? getBortzDiffForSlug = null)
     {
+        string ResolveWithSample(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return message;
+            var basis = DetermineSampleBasisForEvent(type, rawText);
+            if (!basis.HasValue) return message;
+            _ = sampleForBasis?.Invoke(basis.Value);
+            return message;
+        }
+
         if (type == EventType.AthleteCountMilestone)
         {
             if (!EventHelpers.TryExtractAthleteCount(rawText, out var count) || count <= 0) return "";
             var countLabel = count.ToString("N0", CultureInfo.InvariantCulture);
             var lead = BuildAthleteCountMilestoneLine(count, countLabel);
-            return RejectIfTooLong($"{lead}\n\n{LeaderboardUrl}");
+            return ResolveWithSample(RejectIfTooLong($"{lead}\n\n{LeaderboardUrl}"));
         }
 
         if (type == EventType.NewRank)
@@ -87,7 +97,7 @@ public static class XMessageBuilder
             var newRankMsg = !string.IsNullOrWhiteSpace(prev)
                 ? $"New #{rank} in the Ultimate League \U0001F3C6\n{current} is now ahead of {prev}.\n\n{LeaderboardUrl}"
                 : $"New #{rank} in the Ultimate League \U0001F3C6\n{current} now holds the spot.\n\n{LeaderboardUrl}";
-            return RejectIfTooLong(newRankMsg);
+            return ResolveWithSample(RejectIfTooLong(newRankMsg));
         }
 
         if (type != EventType.BadgeAward) return "";
@@ -102,9 +112,9 @@ public static class XMessageBuilder
             var phenoAge = getLowestPhenoAgeForSlug?.Invoke(phenoSlug);
             var ageStr = phenoAge.HasValue ? $" at {phenoAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(phenoSlug);
-            return RejectIfTooLong(
+            return ResolveWithSample(RejectIfTooLong(
                 $"{phenoAthlete} currently holds the lowest PhenoAge in the Longevity World Cup field{ageStr} \U0001F9EC\n\n" +
-                BuildAthleteCtaLine(phenoAthlete, athleteUrl));
+                BuildAthleteCtaLine(phenoAthlete, athleteUrl)));
         }
         if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
         {
@@ -115,9 +125,9 @@ public static class XMessageBuilder
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
             var url = AthleteUrl(diffSlug);
-            return RejectIfTooLong(
+            return ResolveWithSample(RejectIfTooLong(
                 $"The biggest PhenoAge improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test \U0001F9EC\n\n" +
-                BuildAthleteCtaLine(athlete, url));
+                BuildAthleteCtaLine(athlete, url)));
         }
 
         if (string.Equals(normLabel, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
@@ -127,9 +137,9 @@ public static class XMessageBuilder
             var bortzAge = getLowestBortzAgeForSlug?.Invoke(bortzSlug);
             var ageStr = bortzAge.HasValue ? $" at {bortzAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(bortzSlug);
-            return RejectIfTooLong(
+            return ResolveWithSample(RejectIfTooLong(
                 $"{bortzAthlete} currently holds the lowest Bortz Age in the Longevity World Cup field{ageStr} \U0001F9EC\n\n" +
-                BuildAthleteCtaLine(bortzAthlete, athleteUrl));
+                BuildAthleteCtaLine(bortzAthlete, athleteUrl)));
         }
 
         if (string.Equals(normLabel, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
@@ -141,9 +151,9 @@ public static class XMessageBuilder
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
             var url = AthleteUrl(diffSlug);
-            return RejectIfTooLong(
+            return ResolveWithSample(RejectIfTooLong(
                 $"The biggest Bortz Age improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test \U0001F9EC\n\n" +
-                BuildAthleteCtaLine(athlete, url));
+                BuildAthleteCtaLine(athlete, url)));
         }
 
         if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
@@ -154,7 +164,7 @@ public static class XMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return RejectIfTooLong($"{chronoAthlete} is currently the oldest athlete in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
+            return ResolveWithSample(RejectIfTooLong($"{chronoAthlete} is currently the oldest athlete in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}"));
         }
 
         if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
@@ -165,7 +175,7 @@ public static class XMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return RejectIfTooLong($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
+            return ResolveWithSample(RejectIfTooLong($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}"));
         }
 
         if (string.Equals(normLabel, "Age Reduction", StringComparison.OrdinalIgnoreCase)
@@ -183,7 +193,7 @@ public static class XMessageBuilder
             var msg = !string.IsNullOrWhiteSpace(leaguePrev)
                 ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} \U0001F3C6\n\n{leagueBoardUrl}"
                 : $"{leagueAthlete} is now #1 in the {leagueName} \U0001F3C6\n\n{leagueBoardUrl}";
-            return RejectIfTooLong(msg);
+            return ResolveWithSample(RejectIfTooLong(msg));
         }
 
         if (!string.Equals(normLabel, "Podcast", StringComparison.OrdinalIgnoreCase)) return "";
@@ -196,21 +206,31 @@ public static class XMessageBuilder
 
         const string host = "@nopara73";
 
-        return RejectIfTooLong(
+        return ResolveWithSample(RejectIfTooLong(
             $"New Longevity World Cup podcast \U0001F3A7\n" +
             $"{host} sits down with {guest} for a full conversation on the show.\n\n" +
-            $"{podcastUrl}");
+            $"{podcastUrl}"));
     }
 
     public static string ForFiller(
         FillerType fillerType,
         string payloadText,
         Func<string, string> slugToName,
+        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis = null,
         Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null,
         Func<IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)>>? getCrowdLowestAgePodium = null,
         Func<IReadOnlyList<string>>? getRecentNewcomersForX = null,
         Func<string, string?>? getBestDomainWinnerSlug = null)
     {
+        string ResolveWithSample(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return message;
+            var basis = DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
+            if (!basis.HasValue) return message;
+            _ = sampleForBasis?.Invoke(basis.Value);
+            return message;
+        }
+
         if (fillerType == FillerType.Top3Leaderboard)
         {
             if (!EventHelpers.TryExtractLeague(payloadText ?? "", out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
@@ -224,7 +244,7 @@ public static class XMessageBuilder
                 lines.Add($"{i + 1}. {slugToName(slugs[i])}");
             lines.Add("");
             lines.Add($"{league.Url}");
-            return RejectIfTooLong(string.Join("\n", lines));
+            return ResolveWithSample(RejectIfTooLong(string.Join("\n", lines)));
         }
 
         if (fillerType == FillerType.CrowdGuesses)
@@ -249,7 +269,7 @@ public static class XMessageBuilder
             if (lines.Count <= 2) return "";
             lines.Add("");
             lines.Add($"{LeaderboardUrl}");
-            return RejectIfTooLong(string.Join("\n", lines));
+            return ResolveWithSample(RejectIfTooLong(string.Join("\n", lines)));
         }
 
         if (fillerType == FillerType.Newcomers)
@@ -291,7 +311,7 @@ public static class XMessageBuilder
                 "",
                 BuildAthleteCtaLine(name, url)
             };
-            return RejectIfTooLong(string.Join("\n", lines));
+            return ResolveWithSample(RejectIfTooLong(string.Join("\n", lines)));
         }
 
         return "";
@@ -342,6 +362,67 @@ public static class XMessageBuilder
         if (string.IsNullOrWhiteSpace(c)) return v;
         if (string.IsNullOrWhiteSpace(v)) return c;
         return $"{v} {c}";
+    }
+
+    private static XPostSampleBasis? DetermineSampleBasisForEvent(EventType type, string rawText)
+    {
+        if (type == EventType.NewRank)
+            return XPostSampleBasis.Combined;
+
+        if (type != EventType.BadgeAward)
+            return null;
+
+        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
+            return null;
+
+        var norm = EventHelpers.NormalizeBadgeLabel(label);
+        if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
+            return XPostSampleBasis.PhenoAge;
+
+        if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
+            return XPostSampleBasis.Bortz;
+
+        if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase) &&
+            EventHelpers.TryExtractPlace(rawText, out var place) && place == 1 &&
+            EventHelpers.TryExtractCategory(rawText, out var category) &&
+            !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(category, "Amateur", StringComparison.OrdinalIgnoreCase))
+                return XPostSampleBasis.PhenoAge;
+
+            return XPostSampleBasis.Combined;
+        }
+
+        return null;
+    }
+
+    private static XPostSampleBasis? DetermineSampleBasisForFiller(FillerType fillerType, string payloadText)
+    {
+        if (fillerType == FillerType.DomainTop)
+        {
+            if (!EventHelpers.TryExtractDomain(payloadText, out var domain))
+                return null;
+
+            if (string.Equals(domain, "inflammation", StringComparison.OrdinalIgnoreCase))
+                return XPostSampleBasis.Combined;
+
+            return XPostSampleBasis.Bortz;
+        }
+
+        if (fillerType == FillerType.Top3Leaderboard)
+        {
+            if (!EventHelpers.TryExtractLeague(payloadText, out var league))
+                return null;
+
+            if (string.Equals(league, "amateur", StringComparison.OrdinalIgnoreCase))
+                return XPostSampleBasis.PhenoAge;
+
+            return XPostSampleBasis.Combined;
+        }
+
+        return null;
     }
 }
 

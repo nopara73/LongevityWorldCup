@@ -98,27 +98,53 @@ public class XEventService
 
     public string? TryBuildMessage(EventType type, string rawText)
     {
-        var msg = BuildMessage(type, rawText);
-        return string.IsNullOrWhiteSpace(msg) ? null : msg;
+        var message = XMessageBuilder.ForEventText(
+            type,
+            rawText,
+            SlugToName,
+            sampleForBasis: BuildSampleSize,
+            getPodcastLinkForSlug: GetPodcast,
+            getLowestPhenoAgeForSlug: GetLowestPhenoAge,
+            getLowestBortzAgeForSlug: GetLowestBortzAge,
+            getChronoAgeForSlug: GetChronoAge,
+            getPhenoDiffForSlug: GetPhenoDiff,
+            getBortzDiffForSlug: GetBortzDiff);
+        if (string.IsNullOrWhiteSpace(message))
+            return null;
+
+        return message;
     }
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)
     {
         var athletes = GetAthletes();
-        var msg = XMessageBuilder.ForFiller(
+        var message = XMessageBuilder.ForFiller(
             fillerType,
             payloadText ?? "",
             SlugToName,
-            athletes.GetTop3SlugsForLeague,
-            athletes.GetCrowdLowestAgeBadgePodiumForX,
-            athletes.GetRecentNewcomersForX,
-            athletes.GetBestDomainWinnerSlug);
-        return string.IsNullOrWhiteSpace(msg) ? null : msg;
+            sampleForBasis: BuildSampleSize,
+            getTop3SlugsForLeague: athletes.GetTop3SlugsForLeague,
+            getCrowdLowestAgePodium: athletes.GetCrowdLowestAgeBadgePodiumForX,
+            getRecentNewcomersForX: athletes.GetRecentNewcomersForX,
+            getBestDomainWinnerSlug: athletes.GetBestDomainWinnerSlug);
+        if (string.IsNullOrWhiteSpace(message))
+            return null;
+
+        return message;
     }
 
     private string BuildMessage(EventType type, string rawText)
     {
-        return XMessageBuilder.ForEventText(type, rawText, SlugToName, GetPodcast, GetLowestPhenoAge, GetLowestBortzAge, GetChronoAge, GetPhenoDiff, GetBortzDiff);
+        return XMessageBuilder.ForEventText(
+            type,
+            rawText,
+            SlugToName,
+            getPodcastLinkForSlug: GetPodcast,
+            getLowestPhenoAgeForSlug: GetLowestPhenoAge,
+            getLowestBortzAgeForSlug: GetLowestBortzAge,
+            getChronoAgeForSlug: GetChronoAge,
+            getPhenoDiffForSlug: GetPhenoDiff,
+            getBortzDiffForSlug: GetBortzDiff);
     }
 
     private string SlugToName(string slug)
@@ -174,6 +200,48 @@ public class XEventService
     private AthleteDataService GetAthletes()
     {
         return _services.GetRequiredService<AthleteDataService>();
+    }
+
+    private XPostSampleSize BuildSampleSize(XPostSampleBasis basis)
+    {
+        var counts = GetSampleCounts();
+        var n = basis switch
+        {
+            XPostSampleBasis.PhenoAge => counts.pheno,
+            XPostSampleBasis.Bortz => counts.bortz,
+            XPostSampleBasis.Combined => counts.combined,
+            _ => counts.combined
+        };
+
+        return new XPostSampleSize(
+            Basis: basis,
+            N: n,
+            PhenoCount: counts.pheno,
+            BortzCount: counts.bortz,
+            CombinedCount: counts.combined);
+    }
+
+    private (int pheno, int bortz, int combined) GetSampleCounts()
+    {
+        AthleteForX[] snapshot;
+        lock (_lockObj)
+            snapshot = _bySlug.Values.ToArray();
+
+        var pheno = 0;
+        var bortz = 0;
+        var combined = 0;
+
+        foreach (var athlete in snapshot)
+        {
+            var hasPheno = athlete.LowestPhenoAge.HasValue;
+            var hasBortz = athlete.LowestBortzAge.HasValue;
+
+            if (hasPheno) pheno++;
+            if (hasBortz) bortz++;
+            if (hasPheno || hasBortz) combined++;
+        }
+
+        return (pheno, bortz, combined);
     }
 
 }
