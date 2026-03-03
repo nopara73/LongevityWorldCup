@@ -425,7 +425,7 @@ public static class XMessageBuilder
     {
         if (!basis.HasValue || sampleForBasis is null) return false;
         var sample = sampleForBasis(basis.Value);
-        return sample.N < 20;
+        return sample.N < 21;
     }
 
     private static string BuildEarlyDomainLine(string name, string label, string emoji, XPostSampleBasis? basis)
