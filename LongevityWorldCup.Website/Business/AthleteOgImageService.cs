@@ -133,15 +133,22 @@ public sealed class AthleteOgImageService
         Directory.CreateDirectory(_outputDir);
         var outputPath = IOPath.Combine(_outputDir, $"{payload.InternalSlug}-{payload.Signature}.png");
         if (File.Exists(outputPath))
+        {
+            CleanupOldRenders(payload.InternalSlug, outputPath);
             return outputPath;
+        }
 
         await _renderLock.WaitAsync(ct);
         try
         {
             if (File.Exists(outputPath))
+            {
+                CleanupOldRenders(payload.InternalSlug, outputPath);
                 return outputPath;
+            }
 
             await RenderImageAsync(payload, outputPath, ct);
+            CleanupOldRenders(payload.InternalSlug, outputPath);
             return outputPath;
         }
         finally
@@ -308,6 +315,34 @@ public sealed class AthleteOgImageService
 
         var relative = profilePicUrl.Trim().TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
         return IOPath.Combine(_env.WebRootPath, relative);
+    }
+
+    private void CleanupOldRenders(string internalSlug, string keepFullPath)
+    {
+        try
+        {
+            var prefix = $"{internalSlug}-";
+            var keepName = IOPath.GetFileName(keepFullPath);
+            foreach (var file in Directory.EnumerateFiles(_outputDir, $"{prefix}*.png", SearchOption.TopDirectoryOnly))
+            {
+                var fileName = IOPath.GetFileName(file);
+                if (string.Equals(fileName, keepName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                try
+                {
+                    File.Delete(file);
+                }
+                catch (Exception ex)
+                {
+                    _log.LogDebug(ex, "Failed to delete stale OG render {File}", file);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogDebug(ex, "Failed to cleanup stale OG renders for {Slug}", internalSlug);
+        }
     }
 
     private static double? GetDouble(JsonObject obj, string key)
