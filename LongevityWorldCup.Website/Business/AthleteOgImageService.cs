@@ -210,6 +210,12 @@ public sealed class AthleteOgImageService
 
         var rankText = $"#{payload.Rank}";
         var reductionText = FormatReduction(payload.AgeReduction);
+        const float rightMetricEdgeX = 1148f;
+        var reductionOptions = new RichTextOptions(metricFont);
+        var reductionAdvance = TextMeasurer.MeasureSize(reductionText, reductionOptions);
+        var reductionInkBounds = TextMeasurer.MeasureBounds(reductionText, reductionOptions);
+        var rightBearing = reductionAdvance.Width - (reductionInkBounds.X + reductionInkBounds.Width);
+        var reductionOriginX = rightMetricEdgeX + rightBearing;
 
         image.Mutate(ctx =>
         {
@@ -226,8 +232,8 @@ public sealed class AthleteOgImageService
             ctx.DrawText(
                 new RichTextOptions(metricFont)
                 {
-                    Origin = new PointF(ReductionX, ReductionY),
-                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Origin = new PointF(reductionOriginX, ReductionY),
+                    HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Top
                 },
                 reductionText,
@@ -281,7 +287,7 @@ public sealed class AthleteOgImageService
             : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v3",
+            "athlete-og-v7",
             normalizedSlug,
             rank.ToString(CultureInfo.InvariantCulture),
             ageReduction.ToString("0.0000", CultureInfo.InvariantCulture),
