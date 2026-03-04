@@ -18,6 +18,10 @@ public sealed class LeagueOgImageService
     private const int CanvasHeight = 630;
     private const float LeagueTitleY = 66f;
     private static readonly Color LeagueTitleColor = Color.White;
+    private static readonly Color NameLabelColor = new(new Rgba32(255, 255, 255, 92));
+    // Figma nominal inner-shadow is 30%, but our rasterized pipeline needs lower effective
+    // alpha to visually match the reference.
+    private static readonly Rgba32 NameLabelInnerShadowColor = new(0, 0, 0, 70);
 
     // Slot centers and diameters matched to the league OG podium template.
     private static readonly Slot[] PodiumSlots =
@@ -248,7 +252,107 @@ public sealed class LeagueOgImageService
             }, title, LeagueTitleColor);
         });
 
+        DrawAthleteNameLabels(image, payload.Top3Names, fontFamily);
+
         await image.SaveAsPngAsync(outputPath, ct);
+    }
+
+    private static void DrawAthleteNameLabels(Image<Rgba32> image, IReadOnlyList<string> top3Names, FontFamily fontFamily)
+    {
+        var firstName = top3Names.Count > 0 ? top3Names[0] : "";
+        var secondName = top3Names.Count > 1 ? top3Names[1] : "";
+        var thirdName = top3Names.Count > 2 ? top3Names[2] : "";
+
+        var firstFont = fontFamily.CreateFont(25f, FontStyle.Bold);
+        var sideFont = fontFamily.CreateFont(20f, FontStyle.Bold);
+
+        // Figma y positions:
+        // center label top: 444
+        // side labels top: 466
+        DrawCenteredLabel(image, firstName, firstFont, PodiumSlots[0].CenterX, 444f);
+        DrawCenteredLabel(image, secondName, sideFont, PodiumSlots[1].CenterX, 466f);
+        DrawCenteredLabel(image, thirdName, sideFont, PodiumSlots[2].CenterX, 466f);
+    }
+
+    private static void DrawCenteredLabel(Image<Rgba32> image, string text, Font font, float centerX, float topY)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        // Figma inner shadow:
+        // X=0, Y=4, Blur=4, Spread=0, Color=#000000 @30%
+        var textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
+        const int pad = 16; // enough room for blur radius
+        var boxW = Math.Max(1, (int)Math.Ceiling(textSize.Width) + (pad * 2));
+        var boxH = Math.Max(1, (int)Math.Ceiling(textSize.Height) + (pad * 2));
+        var localOrigin = new PointF(boxW / 2f, pad);
+
+        using var baseMask = new Image<Rgba32>(boxW, boxH, Color.Transparent);
+        baseMask.Mutate(ctx =>
+        {
+            ctx.DrawText(new RichTextOptions(font)
+            {
+                Origin = localOrigin,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            }, text, Color.White);
+        });
+
+        using var innerShadowMask = new Image<Rgba32>(boxW, boxH, Color.Transparent);
+        innerShadowMask.Mutate(ctx =>
+        {
+            ctx.DrawText(new RichTextOptions(font)
+            {
+                Origin = new PointF(localOrigin.X + 0f, localOrigin.Y + 4f),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            }, text, Color.White);
+            ctx.GaussianBlur(4f);
+            ctx.SetGraphicsOptions(new GraphicsOptions
+            {
+                AlphaCompositionMode = PixelAlphaCompositionMode.DestIn
+            });
+            ctx.DrawImage(baseMask, new Point(0, 0), 1f);
+        });
+
+        TintMask(innerShadowMask, NameLabelInnerShadowColor);
+        var drawX = (int)Math.Round(centerX - (boxW / 2f));
+        var drawY = (int)Math.Round(topY - pad);
+        image.Mutate(ctx =>
+        {
+            // Draw fill first, then inner shadow on top (still clipped to glyph),
+            // which matches the stronger engraved look in Figma.
+            ctx.DrawText(new RichTextOptions(font)
+            {
+                Origin = new PointF(centerX, topY),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            }, text, NameLabelColor);
+            ctx.DrawImage(innerShadowMask, new Point(drawX, drawY), 1f);
+        });
+    }
+
+    private static void TintMask(Image<Rgba32> mask, Rgba32 color)
+    {
+        mask.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    var a = row[x].A;
+                    if (a == 0)
+                    {
+                        row[x] = default;
+                        continue;
+                    }
+
+                    var scaled = (byte)((a * color.A) / 255);
+                    row[x] = new Rgba32(color.R, color.G, color.B, scaled);
+                }
+            }
+        });
     }
 
     private static void DrawCircularProfile(Image<Rgba32> target, Image<Rgba32> source, Slot slot)
@@ -305,7 +409,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v9",
+            "league-og-v17",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
