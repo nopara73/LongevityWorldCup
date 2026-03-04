@@ -722,7 +722,7 @@
         function athletePic(a){
             if(!a) return "";
             const map=lowerKeyMap(a);
-            const keys=["profilepic","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl","pictureurl","avatarurl","imgurl","profile_img","profile_pic_url"];
+            const keys=["profilepicthumb","profilepicturethumb","thumbnail","thumb","profilepic","profilepicture","profilepictureurl","image","avatar","photo","picture","profileimage","img","imageurl","pictureurl","avatarurl","imgurl","profile_img","profile_pic_url"];
             for(const k of keys){ if(map[k]){ const v=String(a[map[k]]).trim(); if(v) return v; } }
             return "";
         }
@@ -1219,14 +1219,17 @@
                     && url
                     && !isSelfRow
                     && (linkNames || openLinksInNewTab);
+                const avatarLoadingAttrs = idx < 10
+                    ? `loading="eager" fetchpriority="high"`
+                    : `loading="lazy" fetchpriority="low"`;
 
                 const avatarTargetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
 
                 if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult) {
                     if (img) {
                         avatarHtml = canLinkAvatar
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>`
-                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
+                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></a>`
+                            : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
                     } else {
                         const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
                         avatarHtml = canLinkAvatar
@@ -1239,7 +1242,7 @@
                     avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
                 } else if (r.type === EVENT_TYPE.CustomEvent) {
                     const logo = "/assets/HdLogo.png";
-                    avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
+                    avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
