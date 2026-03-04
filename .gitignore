@@ -28,6 +28,7 @@ AppData
 /LongevityWorldCup.Website/smtp-credentials.json
 /LongevityWorldCup.Website/smtp-token/*
 /LongevityWorldCup.Website/wwwroot/generated/
+/LongevityWorldCup.Website/wwwroot/athletes/*/*_thumb.webp
 
 # JetBrains / Rider
 .idea/
