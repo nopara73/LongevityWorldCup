@@ -17,8 +17,10 @@ public class AthleteDataService : IDisposable
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
-    private const int ProfileThumbSizePx = 128;
-    private const int ProfileThumbQuality = 72;
+    private const int EventThumbSizePx = 96;
+    private const int EventThumbQuality = 70;
+    private const int LeaderboardThumbSizePx = 320;
+    private const int LeaderboardThumbQuality = 84;
 
     private JsonArray _athletes = []; // Initialize to avoid nullability issue
 
@@ -308,7 +310,20 @@ public class AthleteDataService : IDisposable
             athlete["ProfilePic"] = profilePicUrl;
             athlete["ProfilePicThumb"] = pic is null
                 ? profilePicUrl
-                : BuildOrGetProfileThumbUrl(pic, folderName) ?? profilePicUrl;
+                : BuildOrGetProfileThumbUrl(
+                    sourceImagePath: pic,
+                    folderName: folderName,
+                    thumbSuffix: "_thumb_sm",
+                    sizePx: EventThumbSizePx,
+                    quality: EventThumbQuality) ?? profilePicUrl;
+            athlete["ProfilePicLeaderboardThumb"] = pic is null
+                ? profilePicUrl
+                : BuildOrGetProfileThumbUrl(
+                    sourceImagePath: pic,
+                    folderName: folderName,
+                    thumbSuffix: "_thumb_md",
+                    sizePx: LeaderboardThumbSizePx,
+                    quality: LeaderboardThumbQuality) ?? profilePicUrl;
 
             // PROOFS: look for proof_*.ext
             var proofs = new JsonArray();
@@ -326,13 +341,13 @@ public class AthleteDataService : IDisposable
         lock (_athletesJsonLock) _athletes = athletesRoot;
     }
 
-    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName)
+    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName, string thumbSuffix, int sizePx, int quality)
     {
         if (string.IsNullOrWhiteSpace(sourceImagePath) || !File.Exists(sourceImagePath))
             return null;
 
         var sourceInfo = new FileInfo(sourceImagePath);
-        var thumbFileName = $"{folderName}_thumb.webp";
+        var thumbFileName = $"{folderName}{thumbSuffix}.webp";
         var thumbPath = Path.Combine(_profileThumbDir, thumbFileName);
         if (string.IsNullOrWhiteSpace(thumbPath))
             return null;
@@ -353,7 +368,7 @@ public class AthleteDataService : IDisposable
                     .AutoOrient()
                     .Resize(new ResizeOptions
                     {
-                        Size = new Size(ProfileThumbSizePx, ProfileThumbSizePx),
+                        Size = new Size(sizePx, sizePx),
                         Mode = ResizeMode.Crop,
                         Position = AnchorPositionMode.Center
                     }));
@@ -362,7 +377,7 @@ public class AthleteDataService : IDisposable
                 image.Save(thumbPath, new WebpEncoder
                 {
                     FileFormat = WebpFileFormatType.Lossy,
-                    Quality = ProfileThumbQuality
+                    Quality = quality
                 });
             }
 
