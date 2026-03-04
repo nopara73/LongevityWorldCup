@@ -3,8 +3,11 @@ using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using IOPath = System.IO.Path;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -84,24 +87,29 @@ public class XImageService
     {
         var w = image.Width;
         var h = image.Height;
-        var cx = (w - 1) / 2.0;
-        var cy = (h - 1) / 2.0;
-        var radius = Math.Min(w, h) / 2.0;
-        var radiusSq = radius * radius;
+        var radius = Math.Min(w, h) / 2f;
 
-        for (var y = 0; y < h; y++)
+        using var mask = new Image<Rgba32>(w, h, Color.Transparent);
+        mask.Mutate(ctx =>
         {
-            for (var x = 0; x < w; x++)
+            ctx.SetGraphicsOptions(new GraphicsOptions
             {
-                var dx = x - cx;
-                var dy = y - cy;
-                if (dx * dx + dy * dy <= radiusSq)
-                    continue;
+                Antialias = true,
+                AntialiasSubpixelDepth = 16
+            });
+            ctx.Fill(Color.White, new EllipsePolygon(w / 2f, h / 2f, radius));
+        });
 
-                var p = image[x, y];
-                image[x, y] = new Rgba32(p.R, p.G, p.B, 0);
-            }
-        }
+        image.Mutate(ctx =>
+        {
+            ctx.SetGraphicsOptions(new GraphicsOptions
+            {
+                AlphaCompositionMode = PixelAlphaCompositionMode.DestIn,
+                Antialias = true,
+                AntialiasSubpixelDepth = 16
+            });
+            ctx.DrawImage(mask, new Point(0, 0), 1f);
+        });
     }
 
     public async Task<Stream?> BuildNewRankImageAsync(string winnerSlug, string prevSlug)
@@ -224,6 +232,7 @@ public class XImageService
                     Mode = ResizeMode.Crop,
                     Position = AnchorPositionMode.Center
                 }));
+                MakeCircular(profile);
 
                 var x = slot.X - slot.Size / 2;
                 var y = slot.Y - slot.Size / 2;
@@ -397,17 +406,17 @@ public class XImageService
 
         if (!string.IsNullOrWhiteSpace(url))
         {
-            var rel = url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            fullPath = Path.Combine(_env.WebRootPath, rel);
+            var rel = url.TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
+            fullPath = IOPath.Combine(_env.WebRootPath, rel);
             if (File.Exists(fullPath))
                 return true;
         }
 
-        var athleteDir = Path.Combine(_env.WebRootPath, "athletes", normalizedSlug);
+        var athleteDir = IOPath.Combine(_env.WebRootPath, "athletes", normalizedSlug);
         if (!Directory.Exists(athleteDir))
             return false;
 
-        var direct = Path.Combine(athleteDir, normalizedSlug + ".webp");
+        var direct = IOPath.Combine(athleteDir, normalizedSlug + ".webp");
         if (File.Exists(direct))
         {
             fullPath = direct;
