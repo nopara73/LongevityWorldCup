@@ -237,7 +237,10 @@ namespace LongevityWorldCup.Website.Middleware
             }
 
             var rawSlug = athleteQuery.ToString();
-            if (!_athleteOgImages.IsConfigured || !_athleteOgImages.TryGetCurrentPayload(rawSlug, out var payload))
+            var rawContext = context.Request.Query.TryGetValue("ctx", out var ctxQuery)
+                ? ctxQuery.ToString()
+                : null;
+            if (!_athleteOgImages.IsConfigured || !_athleteOgImages.TryGetCurrentPayload(rawSlug, rawContext, out var payload))
             {
                 return false;
             }
@@ -245,8 +248,8 @@ namespace LongevityWorldCup.Website.Middleware
             var canonicalPath = $"/athlete/{payload.RouteSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var signedReduction = payload.AgeReduction.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
-            var title = $"{payload.Name} | #{payload.Rank} Ultimate League";
-            var description = $"{payload.Name} is ranked #{payload.Rank} in the Ultimate League with {signedReduction} years age reduction.";
+            var title = $"{payload.Name} | #{payload.Rank} {payload.LeagueName}";
+            var description = $"{payload.Name} is ranked #{payload.Rank} in the {payload.LeagueName} with {signedReduction} years age reduction.";
             var ogImageUrl = _athleteOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload);
 
             seo = new SeoMeta(

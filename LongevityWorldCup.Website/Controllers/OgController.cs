@@ -10,12 +10,12 @@ public sealed class OgController(AthleteOgImageService ogImages) : ControllerBas
     private readonly AthleteOgImageService _ogImages = ogImages;
 
     [HttpGet("{slug}.png")]
-    public async Task<IActionResult> GetAthleteOgImage(string slug, CancellationToken ct)
+    public async Task<IActionResult> GetAthleteOgImage(string slug, [FromQuery] string? ctx, CancellationToken ct)
     {
         if (!_ogImages.IsConfigured)
             return NotFound();
 
-        if (!_ogImages.TryGetCurrentPayload(slug, out var payload))
+        if (!_ogImages.TryGetCurrentPayload(slug, ctx, out var payload))
             return NotFound();
 
         var path = await _ogImages.EnsureRenderedImageAsync(payload, ct);
