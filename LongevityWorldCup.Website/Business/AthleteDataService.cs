@@ -1034,7 +1034,7 @@ public class AthleteDataService : IDisposable
             if (string.IsNullOrWhiteSpace(slug)) continue;
             var div = o["Division"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(div)) divisionBySlug[slug] = div;
-            var gen = o["Generation"]?.GetValue<string>();
+            var gen = GenerationResolver.ResolveFromAthleteJson(o);
             if (!string.IsNullOrWhiteSpace(gen)) generationBySlug[slug] = gen;
             var ex = o["ExclusiveLeague"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(ex)) exclusiveBySlug[slug] = ex;

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
+using LongevityWorldCup.Website.Tools;
 using IOPath = System.IO.Path;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -381,7 +382,7 @@ public sealed class AthleteOgImageService
             if (!string.IsNullOrWhiteSpace(div))
                 divisionBySlug[slug] = div;
 
-            var gen = o["Generation"]?.GetValue<string>();
+            var gen = GenerationResolver.ResolveFromAthleteJson(o);
             if (!string.IsNullOrWhiteSpace(gen))
                 generationBySlug[slug] = gen;
 

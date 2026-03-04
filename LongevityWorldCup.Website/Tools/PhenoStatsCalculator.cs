@@ -206,8 +206,7 @@ public static class PhenoStatsCalculator
         var division = TryGetString(o, "Division");
         var generation = TryGetString(o, "Generation");
         var exclusive = TryGetString(o, "ExclusiveLeague");
-        if (string.IsNullOrWhiteSpace(generation) && dob.HasValue)
-            generation = GetGenerationFromBirthYear(dob.Value.Year);
+        generation = GenerationResolver.Resolve(generation, dob?.Year);
 
         return new Result
         {
@@ -325,14 +324,4 @@ public static class PhenoStatsCalculator
         }
     }
 
-    private static string? GetGenerationFromBirthYear(int birthYear)
-    {
-        if (birthYear >= 1928 && birthYear <= 1945) return "Silent Generation";
-        if (birthYear >= 1946 && birthYear <= 1964) return "Baby Boomers";
-        if (birthYear >= 1965 && birthYear <= 1980) return "Gen X";
-        if (birthYear >= 1981 && birthYear <= 1996) return "Millennials";
-        if (birthYear >= 1997 && birthYear <= 2012) return "Gen Z";
-        if (birthYear >= 2013) return "Gen Alpha";
-        return null;
-    }
 }
