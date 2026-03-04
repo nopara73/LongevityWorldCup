@@ -44,6 +44,7 @@ public class AthleteDataService : IDisposable
     private readonly DatabaseManager _db;
 
     private readonly string _athletesRootDir;
+    private readonly string _profileThumbDir;
     private readonly object _pendingLock = new();
     private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
 
@@ -63,6 +64,8 @@ public class AthleteDataService : IDisposable
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
+        _profileThumbDir = Path.Combine(env.WebRootPath, "generated", "thumbs", "athletes");
+        Directory.CreateDirectory(_profileThumbDir);
 
         _db.Run(sqlite =>
         {
@@ -323,14 +326,14 @@ public class AthleteDataService : IDisposable
         lock (_athletesJsonLock) _athletes = athletesRoot;
     }
 
-    private static string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName)
+    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName)
     {
         if (string.IsNullOrWhiteSpace(sourceImagePath) || !File.Exists(sourceImagePath))
             return null;
 
         var sourceInfo = new FileInfo(sourceImagePath);
         var thumbFileName = $"{folderName}_thumb.webp";
-        var thumbPath = Path.Combine(sourceInfo.DirectoryName ?? string.Empty, thumbFileName);
+        var thumbPath = Path.Combine(_profileThumbDir, thumbFileName);
         if (string.IsNullOrWhiteSpace(thumbPath))
             return null;
 
@@ -363,7 +366,7 @@ public class AthleteDataService : IDisposable
                 });
             }
 
-            return $"/athletes/{folderName}/{thumbFileName}?v={sourceInfo.LastWriteTimeUtc.Ticks}";
+            return $"/generated/thumbs/athletes/{thumbFileName}?v={sourceInfo.LastWriteTimeUtc.Ticks}";
         }
         catch
         {
