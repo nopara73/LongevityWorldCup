@@ -6,6 +6,9 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -14,6 +17,8 @@ public class AthleteDataService : IDisposable
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
+    private const int ProfileThumbSizePx = 128;
+    private const int ProfileThumbQuality = 72;
 
     private JsonArray _athletes = []; // Initialize to avoid nullability issue
 
@@ -294,9 +299,13 @@ public class AthleteDataService : IDisposable
                 .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
                 .OrderByDescending(File.GetLastWriteTimeUtc)
                 .FirstOrDefault();
-            athlete["ProfilePic"] = pic is null
+            var profilePicUrl = pic is null
                 ? null
                 : $"/athletes/{folderName}/{Path.GetFileName(pic)}";
+            athlete["ProfilePic"] = profilePicUrl;
+            athlete["ProfilePicThumb"] = pic is null
+                ? profilePicUrl
+                : BuildOrGetProfileThumbUrl(pic, folderName) ?? profilePicUrl;
 
             // PROOFS: look for proof_*.ext
             var proofs = new JsonArray();
@@ -312,6 +321,54 @@ public class AthleteDataService : IDisposable
         }
 
         lock (_athletesJsonLock) _athletes = athletesRoot;
+    }
+
+    private static string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName)
+    {
+        if (string.IsNullOrWhiteSpace(sourceImagePath) || !File.Exists(sourceImagePath))
+            return null;
+
+        var sourceInfo = new FileInfo(sourceImagePath);
+        var thumbFileName = $"{folderName}_thumb.webp";
+        var thumbPath = Path.Combine(sourceInfo.DirectoryName ?? string.Empty, thumbFileName);
+        if (string.IsNullOrWhiteSpace(thumbPath))
+            return null;
+
+        try
+        {
+            var needsGenerate = !File.Exists(thumbPath);
+            if (!needsGenerate)
+            {
+                var thumbInfo = new FileInfo(thumbPath);
+                needsGenerate = thumbInfo.Length <= 0 || thumbInfo.LastWriteTimeUtc < sourceInfo.LastWriteTimeUtc;
+            }
+
+            if (needsGenerate)
+            {
+                using var image = Image.Load(sourceImagePath);
+                image.Mutate(ctx => ctx
+                    .AutoOrient()
+                    .Resize(new ResizeOptions
+                    {
+                        Size = new Size(ProfileThumbSizePx, ProfileThumbSizePx),
+                        Mode = ResizeMode.Crop,
+                        Position = AnchorPositionMode.Center
+                    }));
+
+                image.Metadata.ExifProfile = null;
+                image.Save(thumbPath, new WebpEncoder
+                {
+                    FileFormat = WebpFileFormatType.Lossy,
+                    Quality = ProfileThumbQuality
+                });
+            }
+
+            return $"/athletes/{folderName}/{thumbFileName}?v={sourceInfo.LastWriteTimeUtc.Ticks}";
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private void DebounceReload()
