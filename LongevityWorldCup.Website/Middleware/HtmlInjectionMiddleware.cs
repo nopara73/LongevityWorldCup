@@ -1,10 +1,13 @@
 using System.Text.Json;
+using System.Globalization;
+using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages)
     {
         private readonly RequestDelegate _next = next;
+        private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
         private const string SiteBaseUrl = "https://longevityworldcup.com";
         private const string DefaultOgImage = "https://longevityworldcup.com/assets/og-image.png";
         private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
@@ -46,7 +49,7 @@ namespace LongevityWorldCup.Website.Middleware
                     var guessMyAge = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "guess-my-age.html"));
                     var eventBoardContent = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "event-board-content.html"));
                     var ageVisualization = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "age-visualization.html"));
-                    var seo = GetSeoMeta(path ?? "/");
+                    var seo = GetSeoMeta(context);
 
                     head = head
                         .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
@@ -55,7 +58,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_OG_TITLE}}", EncodeMeta(seo.OgTitle))
                         .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
                         .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(DefaultOgImage))
+                        .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
                         .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
 
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
@@ -97,7 +100,43 @@ namespace LongevityWorldCup.Website.Middleware
             await _next(context);
         }
 
-        private static SeoMeta GetSeoMeta(string requestPath)
+        private SeoMeta GetSeoMeta(HttpContext context)
+        {
+            var requestPath = context.Request.Path.Value ?? "/";
+            var baseSeo = GetBaseSeoMeta(requestPath);
+
+            if (!string.Equals(baseSeo.CanonicalPath, "/", StringComparison.Ordinal) ||
+                !context.Request.Query.TryGetValue("athlete", out var athleteQuery))
+            {
+                return baseSeo;
+            }
+
+            var rawSlug = athleteQuery.ToString();
+            if (!_athleteOgImages.IsConfigured || !_athleteOgImages.TryGetCurrentPayload(rawSlug, out var payload))
+            {
+                return baseSeo;
+            }
+
+            var canonicalPath = $"/athlete/{payload.RouteSlug}";
+            var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
+            var signedReduction = payload.AgeReduction.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
+            var title = $"{payload.Name} | #{payload.Rank} Ultimate League";
+            var description = $"{payload.Name} is ranked #{payload.Rank} in the Ultimate League with {signedReduction} years age reduction.";
+            var ogImageUrl = _athleteOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload);
+
+            return new SeoMeta(
+                canonicalPath,
+                description,
+                "index, follow",
+                canonicalUrl,
+                title,
+                title,
+                description,
+                ogImageUrl
+            );
+        }
+
+        private static SeoMeta GetBaseSeoMeta(string requestPath)
         {
             var canonicalPath = RouteCanonicalization.GetCanonicalPath(requestPath);
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
@@ -111,7 +150,8 @@ namespace LongevityWorldCup.Website.Middleware
                     canonicalUrl,
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Longevity World Cup | Reverse Your Biological Age",
-                    "Too old for your sport? Not this one. Join the Longevity World Cup and rise on the leaderboard by improving your biological age."
+                    "Too old for your sport? Not this one. Join the Longevity World Cup and rise on the leaderboard by improving your biological age.",
+                    DefaultOgImage
                 ),
                 "/leaderboard" => new SeoMeta(
                     canonicalPath,
@@ -120,7 +160,8 @@ namespace LongevityWorldCup.Website.Middleware
                     canonicalUrl,
                     "Longevity World Cup Leaderboard",
                     "Longevity World Cup Leaderboard",
-                    "Explore current Longevity World Cup standings and discover who is leading the biological age reversal rankings."
+                    "Explore current Longevity World Cup standings and discover who is leading the biological age reversal rankings.",
+                    DefaultOgImage
                 ),
                 "/events" => new SeoMeta(
                     canonicalPath,
@@ -129,7 +170,8 @@ namespace LongevityWorldCup.Website.Middleware
                     canonicalUrl,
                     "Longevity World Cup Highlights",
                     "Longevity World Cup Highlights",
-                    "Follow key Longevity World Cup events, season updates, and competition highlights."
+                    "Follow key Longevity World Cup events, season updates, and competition highlights.",
+                    DefaultOgImage
                 ),
                 "/media" => new SeoMeta(
                     canonicalPath,
@@ -138,7 +180,8 @@ namespace LongevityWorldCup.Website.Middleware
                     canonicalUrl,
                     "Longevity World Cup Media Kit",
                     "Longevity World Cup Media Kit",
-                    "Access the Longevity World Cup media kit with press-ready branding assets and resources."
+                    "Access the Longevity World Cup media kit with press-ready branding assets and resources.",
+                    DefaultOgImage
                 ),
                 _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
                     canonicalPath,
@@ -147,7 +190,8 @@ namespace LongevityWorldCup.Website.Middleware
                     canonicalUrl,
                     "Longevity World Cup",
                     "Longevity World Cup",
-                    "Longevity World Cup member page."
+                    "Longevity World Cup member page.",
+                    DefaultOgImage
                 ),
                 _ => new SeoMeta(
                     canonicalPath,
@@ -156,7 +200,8 @@ namespace LongevityWorldCup.Website.Middleware
                     canonicalUrl,
                     "Longevity World Cup",
                     "Longevity World Cup",
-                    "Longevity World Cup - reverse biological age and compete globally."
+                    "Longevity World Cup - reverse biological age and compete globally.",
+                    DefaultOgImage
                 )
             };
         }
@@ -292,7 +337,8 @@ namespace LongevityWorldCup.Website.Middleware
             string CanonicalUrl,
             string PageTitle,
             string OgTitle,
-            string OgDescription
+            string OgDescription,
+            string OgImageUrl
         );
     }
 }
