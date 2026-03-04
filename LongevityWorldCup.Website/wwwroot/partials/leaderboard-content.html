@@ -1642,6 +1642,7 @@
                         bestBortzValues: bestBortzValues,
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
+                        profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
                         flag: athlete.Flag || '',
                         why: athlete.Why || '',
                         division: athlete.Division,
@@ -1795,7 +1796,7 @@
                                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                                 ${rankEmoji}
                                             </div>
-                                            <img src="${athlete.profilePic}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
+                                            <img src="${athlete.profilePicThumb || athlete.profilePic}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
                                             <div class="name-row">
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
                                             </div>
@@ -1897,7 +1898,7 @@
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
                     const portraitImg = athleteCell.querySelector('img.portrait');
-                    portraitImg.src = athlete.profilePic;
+                    portraitImg.src = athlete.profilePicThumb || athlete.profilePic;
                     portraitImg.alt = `${athlete.displayName} portrait`;
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
