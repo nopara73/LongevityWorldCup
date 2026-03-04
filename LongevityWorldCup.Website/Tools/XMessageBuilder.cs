@@ -8,8 +8,15 @@ public static class XMessageBuilder
     private const int MaxLength = 280;
     private const string LeaderboardUrl = "https://longevityworldcup.com/leaderboard";
 
-    private static string AthleteUrl(string slug) =>
-        $"https://longevityworldcup.com/athlete/{slug.Replace('_', '-')}";
+    private static string AthleteUrl(string slug, string? leagueCtxSlug = null)
+    {
+        var baseUrl = $"https://longevityworldcup.com/athlete/{slug.Replace('_', '-')}";
+        if (string.IsNullOrWhiteSpace(leagueCtxSlug) ||
+            string.Equals(leagueCtxSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
+            return baseUrl;
+
+        return $"{baseUrl}?ctx={Uri.EscapeDataString(leagueCtxSlug)}";
+    }
 
     private static readonly Dictionary<string, (string DisplayName, string Url)> LeagueBySlug = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -51,6 +58,14 @@ public static class XMessageBuilder
         if (CatValToSlug.TryGetValue(key, out var slug) && LeagueBySlug.TryGetValue(slug, out var league))
             return league.Url;
         return LeaderboardUrl;
+    }
+
+    private static string? LeagueContextSlug(string? cat, string? val)
+    {
+        var c = (cat ?? "").Trim();
+        var v = (val ?? "").Trim();
+        var key = $"{c}|{v}";
+        return CatValToSlug.TryGetValue(key, out var slug) ? slug : null;
     }
 
     private static string BuildAthleteCtaLine(string athleteName, string url)
@@ -188,12 +203,13 @@ public static class XMessageBuilder
             var leagueName = LeagueDisplay(leagueCat, leagueVal);
             if (string.IsNullOrWhiteSpace(leagueName)) return "";
             var leagueAthlete = slugToName(leagueSlug);
+            var leagueCtxSlug = LeagueContextSlug(leagueCat, leagueVal);
+            var athleteUrl = AthleteUrl(leagueSlug, leagueCtxSlug);
             EventHelpers.TryExtractPrev(rawText, out var leaguePrevSlug);
             var leaguePrev = !string.IsNullOrWhiteSpace(leaguePrevSlug) ? slugToName(leaguePrevSlug) : null;
-            var leagueBoardUrl = LeagueUrl(leagueCat, leagueVal);
             var msg = !string.IsNullOrWhiteSpace(leaguePrev)
-                ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} \U0001F3C6\n\n{leagueBoardUrl}"
-                : $"{leagueAthlete} is now #1 in the {leagueName} \U0001F3C6\n\n{leagueBoardUrl}";
+                ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} \U0001F3C6\n\n{athleteUrl}"
+                : $"{leagueAthlete} is now #1 in the {leagueName} \U0001F3C6\n\n{athleteUrl}";
             return RejectIfTooLong(msg);
         }
 
