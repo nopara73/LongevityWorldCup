@@ -32,7 +32,7 @@ public sealed class LeagueOgImageService
         // bronze: x=782 y=251 w=171 h=171
         new Slot(600, 279, 210), // #1 center
         new Slot(333, 336, 170), // #2 left
-        new Slot(868, 337, 170)  // #3 right
+        new Slot(867, 337, 170)  // #3 right
     ];
 
     private static readonly IReadOnlyDictionary<string, string> LeagueDisplayNames =
@@ -409,7 +409,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v17",
+            "league-og-v18",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
