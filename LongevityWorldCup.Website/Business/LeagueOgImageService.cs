@@ -263,15 +263,20 @@ public sealed class LeagueOgImageService
         var secondName = top3Names.Count > 1 ? top3Names[1] : "";
         var thirdName = top3Names.Count > 2 ? top3Names[2] : "";
 
-        var firstFont = fontFamily.CreateFont(25f, FontStyle.Bold);
-        var sideFont = fontFamily.CreateFont(20f, FontStyle.Bold);
+        // Approx podium front-face widths for labels.
+        const float centerMaxWidth = 240f;
+        const float sideMaxWidth = 200f;
+
+        var firstFont = FitFontToWidth(fontFamily, firstName, 25f, 15f, centerMaxWidth);
+        var secondFont = FitFontToWidth(fontFamily, secondName, 20f, 14f, sideMaxWidth);
+        var thirdFont = FitFontToWidth(fontFamily, thirdName, 20f, 14f, sideMaxWidth);
 
         // Figma y positions:
         // center label top: 444
         // side labels top: 466
         DrawCenteredLabel(image, firstName, firstFont, PodiumSlots[0].CenterX, 444f);
-        DrawCenteredLabel(image, secondName, sideFont, PodiumSlots[1].CenterX, 466f);
-        DrawCenteredLabel(image, thirdName, sideFont, PodiumSlots[2].CenterX, 466f);
+        DrawCenteredLabel(image, secondName, secondFont, PodiumSlots[1].CenterX, 466f);
+        DrawCenteredLabel(image, thirdName, thirdFont, PodiumSlots[2].CenterX, 466f);
     }
 
     private static void DrawCenteredLabel(Image<Rgba32> image, string text, Font font, float centerX, float topY)
@@ -355,6 +360,25 @@ public sealed class LeagueOgImageService
         });
     }
 
+    private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return family.CreateFont(startSize, FontStyle.Bold);
+
+        var size = startSize;
+        while (size > minSize)
+        {
+            var font = family.CreateFont(size, FontStyle.Bold);
+            var measured = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
+            // Keep a small guard margin so final rendered text + inner shadow stays inside podium.
+            if (measured.Width <= (maxWidth - 8f))
+                return font;
+            size -= 1f;
+        }
+
+        return family.CreateFont(minSize, FontStyle.Bold);
+    }
+
     private static void DrawCircularProfile(Image<Rgba32> target, Image<Rgba32> source, Slot slot)
     {
         var renderSize = Math.Max(1, slot.Diameter);
@@ -409,7 +433,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v18",
+            "league-og-v21",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
