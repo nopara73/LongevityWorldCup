@@ -25,12 +25,15 @@ public sealed class AthleteOgImageService
     private const float NameTop = ProfileY + ProfileSize + 20f;
     private const float RankX = 60f;
     private const float RankY = 245f;
+    private const float LeagueX = 60f;
+    private const float LeagueY = 349f;
     private const float ReductionX = 910f;
     private const float ReductionY = 245f;
 
     private static readonly Color RankColor = ParseHex("FF4081");
     private static readonly Color ReductionColor = ParseHex("78DA3B");
     private static readonly Color NameColor = Color.White;
+    private static readonly Color LeagueColor = ParseHex("FFFFFFCC"); // white @ 80% opacity
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
@@ -57,6 +60,7 @@ public sealed class AthleteOgImageService
         string InternalSlug,
         string RouteSlug,
         string Name,
+        string LeagueName,
         int Rank,
         double AgeReduction,
         string? ProfilePicUrl,
@@ -105,13 +109,15 @@ public sealed class AthleteOgImageService
                 : ToDisplayName(rawSlug);
 
         var ageReduction = GetDouble(rankingRow, "AgeDifference") ?? 0d;
+        var leagueName = "Ultimate League";
         var profilePicUrl = athleteJson?["ProfilePic"]?.GetValue<string>();
-        var signature = ComputeSignature(normalized, rank, ageReduction, name, profilePicUrl);
+        var signature = ComputeSignature(normalized, rank, ageReduction, name, leagueName, profilePicUrl);
 
         payload = new AthleteOgPayload(
             InternalSlug: normalized,
             RouteSlug: ToRouteSlug(normalized),
             Name: name,
+            LeagueName: leagueName,
             Rank: rank,
             AgeReduction: ageReduction,
             ProfilePicUrl: profilePicUrl,
@@ -213,9 +219,11 @@ public sealed class AthleteOgImageService
 
         var fontFamily = GetFontFamily();
         var metricFont = fontFamily.CreateFont(100, FontStyle.Bold);
+        var leagueFont = fontFamily.CreateFont(30, FontStyle.Bold);
         var nameFont = fontFamily.CreateFont(65, FontStyle.Bold);
 
         var rankText = $"#{payload.Rank}";
+        var leagueText = payload.LeagueName;
         var reductionText = FormatReduction(payload.AgeReduction);
         const float rightMetricEdgeX = 1148f;
         var reductionOptions = new RichTextOptions(metricFont);
@@ -235,6 +243,16 @@ public sealed class AthleteOgImageService
                 },
                 rankText,
                 RankColor);
+
+            ctx.DrawText(
+                new RichTextOptions(leagueFont)
+                {
+                    Origin = new PointF(LeagueX, LeagueY),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                },
+                leagueText,
+                LeagueColor);
 
             ctx.DrawText(
                 new RichTextOptions(metricFont)
@@ -284,7 +302,7 @@ public sealed class AthleteOgImageService
         return _fontFamily;
     }
 
-    private string ComputeSignature(string normalizedSlug, int rank, double ageReduction, string name, string? profilePicUrl)
+    private string ComputeSignature(string normalizedSlug, int rank, double ageReduction, string name, string leagueName, string? profilePicUrl)
     {
         var templateTicks = File.Exists(_templatePath) ? File.GetLastWriteTimeUtc(_templatePath).Ticks : 0L;
         var fontTicks = File.Exists(_fontPath) ? File.GetLastWriteTimeUtc(_fontPath).Ticks : 0L;
@@ -299,6 +317,7 @@ public sealed class AthleteOgImageService
             rank.ToString(CultureInfo.InvariantCulture),
             ageReduction.ToString("0.0000", CultureInfo.InvariantCulture),
             name,
+            leagueName,
             profilePicUrl ?? "",
             templateTicks.ToString(CultureInfo.InvariantCulture),
             fontTicks.ToString(CultureInfo.InvariantCulture),
