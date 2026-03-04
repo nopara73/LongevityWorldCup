@@ -56,6 +56,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<BadgeDataService>();
             builder.Services.AddSingleton<XImageService>();
             builder.Services.AddSingleton<AthleteOgImageService>();
+            builder.Services.AddSingleton<LeagueOgImageService>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
