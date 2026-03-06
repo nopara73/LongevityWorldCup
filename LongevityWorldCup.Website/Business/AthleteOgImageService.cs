@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
+using LongevityWorldCup.Website.Tools;
 using IOPath = System.IO.Path;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -25,12 +26,16 @@ public sealed class AthleteOgImageService
     private const float NameTop = ProfileY + ProfileSize + 20f;
     private const float RankX = 60f;
     private const float RankY = 245f;
+    private const float LeagueX = 60f;
+    private const float LeagueY = 346f;
+    private const float LeagueLetterSpacingEm = 0.02f; // 2%
     private const float ReductionX = 910f;
     private const float ReductionY = 245f;
 
     private static readonly Color RankColor = ParseHex("FF4081");
     private static readonly Color ReductionColor = ParseHex("78DA3B");
     private static readonly Color NameColor = Color.White;
+    private static readonly Color LeagueColor = ParseHex("FFFFFFCC"); // white @ 80% opacity
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
@@ -56,7 +61,9 @@ public sealed class AthleteOgImageService
     public sealed record AthleteOgPayload(
         string InternalSlug,
         string RouteSlug,
+        string LeagueSlug,
         string Name,
+        string LeagueName,
         int Rank,
         double AgeReduction,
         string? ProfilePicUrl,
@@ -66,27 +73,18 @@ public sealed class AthleteOgImageService
 
     public bool TryGetCurrentPayload(string rawSlug, out AthleteOgPayload payload)
     {
+        return TryGetCurrentPayload(rawSlug, rawLeagueContext: null, out payload);
+    }
+
+    public bool TryGetCurrentPayload(string rawSlug, string? rawLeagueContext, out AthleteOgPayload payload)
+    {
         payload = null!;
         if (string.IsNullOrWhiteSpace(rawSlug))
             return false;
 
         var normalized = NormalizeSlug(rawSlug);
         var rankings = _athletes.GetRankingsOrder();
-        JsonObject? rankingRow = null;
-        var rank = 0;
-        foreach (var row in rankings.OfType<JsonObject>())
-        {
-            rank++;
-            var rowSlug = NormalizeSlug(row["AthleteSlug"]?.GetValue<string>());
-            if (string.Equals(rowSlug, normalized, StringComparison.Ordinal))
-            {
-                rankingRow = row;
-                break;
-            }
-        }
-
-        if (rankingRow is null)
-            return false;
+        var leagueSlug = ResolveLeagueSlugOrDefault(rawLeagueContext);
 
         var snapshot = _athletes.GetAthletesSnapshot();
         var athleteJson = snapshot
@@ -95,6 +93,16 @@ public sealed class AthleteOgImageService
                 NormalizeSlug(o["AthleteSlug"]?.GetValue<string>()),
                 normalized,
                 StringComparison.Ordinal));
+        if (athleteJson is null)
+            return false;
+
+        if (!TryGetRankRowForLeague(normalized, leagueSlug, rankings, snapshot, out var rankingRow, out var rank))
+        {
+            // Robust fallback for invalid/mismatched context links.
+            leagueSlug = "ultimate";
+            if (!TryGetRankRowForLeague(normalized, leagueSlug, rankings, snapshot, out rankingRow, out rank))
+                return false;
+        }
 
         var nameFromRanking = rankingRow["Name"]?.GetValue<string>();
         var nameFromAthlete = athleteJson?["DisplayName"]?.GetValue<string>() ?? athleteJson?["Name"]?.GetValue<string>();
@@ -105,13 +113,16 @@ public sealed class AthleteOgImageService
                 : ToDisplayName(rawSlug);
 
         var ageReduction = GetDouble(rankingRow, "AgeDifference") ?? 0d;
+        var leagueName = ResolveLeagueDisplayName(leagueSlug);
         var profilePicUrl = athleteJson?["ProfilePic"]?.GetValue<string>();
-        var signature = ComputeSignature(normalized, rank, ageReduction, name, profilePicUrl);
+        var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, profilePicUrl);
 
         payload = new AthleteOgPayload(
             InternalSlug: normalized,
             RouteSlug: ToRouteSlug(normalized),
+            LeagueSlug: leagueSlug,
             Name: name,
+            LeagueName: leagueName,
             Rank: rank,
             AgeReduction: ageReduction,
             ProfilePicUrl: profilePicUrl,
@@ -122,7 +133,10 @@ public sealed class AthleteOgImageService
 
     public string BuildVersionedImageUrl(string siteBaseUrl, AthleteOgPayload payload)
     {
-        return $"{siteBaseUrl}/og/athlete/{payload.RouteSlug}.png?v={payload.Signature}";
+        var ctxPart = payload.LeagueSlug == "ultimate"
+            ? ""
+            : $"&ctx={Uri.EscapeDataString(payload.LeagueSlug)}";
+        return $"{siteBaseUrl}/og/athlete/{payload.RouteSlug}.png?v={payload.Signature}{ctxPart}";
     }
 
     public async Task<string?> EnsureRenderedImageAsync(AthleteOgPayload payload, CancellationToken ct = default)
@@ -131,10 +145,11 @@ public sealed class AthleteOgImageService
             return null;
 
         Directory.CreateDirectory(_outputDir);
-        var outputPath = IOPath.Combine(_outputDir, $"{payload.InternalSlug}-{payload.Signature}.png");
+        var renderPrefix = BuildRenderPrefix(payload.InternalSlug, payload.LeagueSlug);
+        var outputPath = IOPath.Combine(_outputDir, $"{renderPrefix}-{payload.Signature}.png");
         if (File.Exists(outputPath))
         {
-            CleanupOldRenders(payload.InternalSlug, outputPath);
+            CleanupOldRenders(renderPrefix, outputPath);
             return outputPath;
         }
 
@@ -143,12 +158,12 @@ public sealed class AthleteOgImageService
         {
             if (File.Exists(outputPath))
             {
-                CleanupOldRenders(payload.InternalSlug, outputPath);
+                CleanupOldRenders(renderPrefix, outputPath);
                 return outputPath;
             }
 
             await RenderImageAsync(payload, outputPath, ct);
-            CleanupOldRenders(payload.InternalSlug, outputPath);
+            CleanupOldRenders(renderPrefix, outputPath);
             return outputPath;
         }
         finally
@@ -213,9 +228,11 @@ public sealed class AthleteOgImageService
 
         var fontFamily = GetFontFamily();
         var metricFont = fontFamily.CreateFont(100, FontStyle.Bold);
+        var leagueFont = fontFamily.CreateFont(30, FontStyle.Bold);
         var nameFont = fontFamily.CreateFont(65, FontStyle.Bold);
 
         var rankText = $"#{payload.Rank}";
+        var leagueText = payload.LeagueName;
         var reductionText = FormatReduction(payload.AgeReduction);
         const float rightMetricEdgeX = 1148f;
         var reductionOptions = new RichTextOptions(metricFont);
@@ -235,6 +252,14 @@ public sealed class AthleteOgImageService
                 },
                 rankText,
                 RankColor);
+
+            DrawTrackedText(
+                ctx,
+                leagueText,
+                leagueFont,
+                new PointF(LeagueX, LeagueY),
+                LeagueColor,
+                leagueFont.Size * LeagueLetterSpacingEm);
 
             ctx.DrawText(
                 new RichTextOptions(metricFont)
@@ -284,7 +309,7 @@ public sealed class AthleteOgImageService
         return _fontFamily;
     }
 
-    private string ComputeSignature(string normalizedSlug, int rank, double ageReduction, string name, string? profilePicUrl)
+    private string ComputeSignature(string normalizedSlug, string leagueSlug, int rank, double ageReduction, string name, string leagueName, string? profilePicUrl)
     {
         var templateTicks = File.Exists(_templatePath) ? File.GetLastWriteTimeUtc(_templatePath).Ticks : 0L;
         var fontTicks = File.Exists(_fontPath) ? File.GetLastWriteTimeUtc(_fontPath).Ticks : 0L;
@@ -294,11 +319,13 @@ public sealed class AthleteOgImageService
             : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v7",
+            "athlete-og-v12",
             normalizedSlug,
+            leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
             ageReduction.ToString("0.0000", CultureInfo.InvariantCulture),
             name,
+            leagueName,
             profilePicUrl ?? "",
             templateTicks.ToString(CultureInfo.InvariantCulture),
             fontTicks.ToString(CultureInfo.InvariantCulture),
@@ -317,11 +344,133 @@ public sealed class AthleteOgImageService
         return IOPath.Combine(_env.WebRootPath, relative);
     }
 
-    private void CleanupOldRenders(string internalSlug, string keepFullPath)
+    private static string ResolveLeagueSlugOrDefault(string? rawLeagueContext)
+    {
+        return LeagueOgImageService.TryNormalizeLeagueSlug(rawLeagueContext, out var normalized)
+            ? normalized
+            : "ultimate";
+    }
+
+    private static string ResolveLeagueDisplayName(string leagueSlug)
+    {
+        return LeagueOgImageService.TryGetLeagueDisplayName(leagueSlug, out var displayName)
+            ? displayName
+            : "Ultimate League";
+    }
+
+    private static bool TryGetRankRowForLeague(
+        string normalizedAthleteSlug,
+        string leagueSlug,
+        JsonArray rankings,
+        JsonArray snapshot,
+        out JsonObject rankingRow,
+        out int rank)
+    {
+        rankingRow = null!;
+        rank = 0;
+
+        var divisionBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var generationBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var exclusiveBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in snapshot.OfType<JsonObject>())
+        {
+            var slug = NormalizeSlug(o["AthleteSlug"]?.GetValue<string>());
+            if (string.IsNullOrWhiteSpace(slug))
+                continue;
+
+            var div = o["Division"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(div))
+                divisionBySlug[slug] = div;
+
+            var gen = GenerationResolver.ResolveFromAthleteJson(o);
+            if (!string.IsNullOrWhiteSpace(gen))
+                generationBySlug[slug] = gen;
+
+            var ex = o["ExclusiveLeague"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(ex))
+                exclusiveBySlug[slug] = ex;
+        }
+
+        foreach (var row in rankings.OfType<JsonObject>())
+        {
+            var rowSlug = NormalizeSlug(row["AthleteSlug"]?.GetValue<string>());
+            if (string.IsNullOrWhiteSpace(rowSlug))
+                continue;
+
+            if (!IsAthleteInLeague(row, rowSlug, leagueSlug, divisionBySlug, generationBySlug, exclusiveBySlug))
+                continue;
+
+            rank++;
+            if (!string.Equals(rowSlug, normalizedAthleteSlug, StringComparison.Ordinal))
+                continue;
+
+            rankingRow = row;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsAthleteInLeague(
+        JsonObject rankingRow,
+        string normalizedSlug,
+        string leagueSlug,
+        IReadOnlyDictionary<string, string> divisionBySlug,
+        IReadOnlyDictionary<string, string> generationBySlug,
+        IReadOnlyDictionary<string, string> exclusiveBySlug)
+    {
+        if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        string? targetDivision = leagueSlug switch
+        {
+            "mens" => "Men's",
+            "womens" => "Women's",
+            "open" => "Open",
+            _ => null
+        };
+
+        string? targetGeneration = leagueSlug switch
+        {
+            "silent-generation" => "Silent Generation",
+            "baby-boomers" => "Baby Boomers",
+            "gen-x" => "Gen X",
+            "millennials" => "Millennials",
+            "gen-z" => "Gen Z",
+            "gen-alpha" => "Gen Alpha",
+            _ => null
+        };
+
+        string? targetExclusive = string.Equals(leagueSlug, "prosperan", StringComparison.OrdinalIgnoreCase)
+            ? "Prosperan"
+            : null;
+
+        var isAmateur = string.Equals(leagueSlug, "amateur", StringComparison.OrdinalIgnoreCase);
+
+        var divisionMatch = targetDivision is not null
+                            && divisionBySlug.TryGetValue(normalizedSlug, out var division)
+                            && string.Equals(division, targetDivision, StringComparison.OrdinalIgnoreCase);
+        var generationMatch = targetGeneration is not null
+                              && generationBySlug.TryGetValue(normalizedSlug, out var generation)
+                              && string.Equals(generation, targetGeneration, StringComparison.OrdinalIgnoreCase);
+        var exclusiveMatch = targetExclusive is not null
+                             && exclusiveBySlug.TryGetValue(normalizedSlug, out var exclusive)
+                             && string.Equals(exclusive, targetExclusive, StringComparison.OrdinalIgnoreCase);
+        var amateurMatch = isAmateur && rankingRow["LowestBortzAge"] is not JsonValue;
+
+        return divisionMatch || generationMatch || exclusiveMatch || amateurMatch;
+    }
+
+    private static string BuildRenderPrefix(string internalSlug, string leagueSlug)
+    {
+        return $"{internalSlug}-{leagueSlug}";
+    }
+
+    private void CleanupOldRenders(string renderPrefix, string keepFullPath)
     {
         try
         {
-            var prefix = $"{internalSlug}-";
+            var prefix = $"{renderPrefix}-";
             var keepName = IOPath.GetFileName(keepFullPath);
             foreach (var file in Directory.EnumerateFiles(_outputDir, $"{prefix}*.png", SearchOption.TopDirectoryOnly))
             {
@@ -341,7 +490,7 @@ public sealed class AthleteOgImageService
         }
         catch (Exception ex)
         {
-            _log.LogDebug(ex, "Failed to cleanup stale OG renders for {Slug}", internalSlug);
+            _log.LogDebug(ex, "Failed to cleanup stale OG renders for {RenderPrefix}", renderPrefix);
         }
     }
 
@@ -380,6 +529,78 @@ public sealed class AthleteOgImageService
     private static Color ParseHex(string hex)
     {
         return Color.ParseHex("#" + hex);
+    }
+
+    private static void DrawTrackedText(
+        IImageProcessingContext ctx,
+        string text,
+        Font font,
+        PointF origin,
+        Color color,
+        float letterSpacingPx)
+    {
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        var baseOptions = new TextOptions(font);
+        var additionalSpacing = 0f;
+        var spaceAdvance = GetSpaceAdvance(baseOptions);
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i].ToString();
+            var x = origin.X + additionalSpacing;
+
+            ctx.DrawText(
+                new RichTextOptions(font)
+                {
+                    Origin = new PointF(x, origin.Y),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                },
+                ch,
+                color);
+
+            var advance = GetCharacterAdvance(text, i, baseOptions, spaceAdvance);
+            additionalSpacing += advance;
+            if (i < text.Length - 1)
+                additionalSpacing += letterSpacingPx;
+        }
+    }
+
+    private static float GetCharacterAdvance(string text, int index, TextOptions options, float spaceAdvance)
+    {
+        var ch = text[index];
+        if (ch == ' ')
+            return spaceAdvance;
+
+        if (index == 0)
+            return TextMeasurer.MeasureAdvance(ch.ToString(), options).Width;
+
+        var prev = text[index - 1];
+        if (prev == ' ')
+        {
+            // Avoid trailing-space measurement collapse by using a neutral prefix.
+            var pairWithPrefix = $"A{ch}";
+            return TextMeasurer.MeasureAdvance(pairWithPrefix, options).Width
+                   - TextMeasurer.MeasureAdvance("A", options).Width;
+        }
+
+        var pair = string.Concat(prev, ch);
+        var pairAdvance = TextMeasurer.MeasureAdvance(pair, options).Width;
+        var prevAdvance = TextMeasurer.MeasureAdvance(prev.ToString(), options).Width;
+        var advance = pairAdvance - prevAdvance;
+        if (advance <= 0f)
+            return TextMeasurer.MeasureAdvance(ch.ToString(), options).Width;
+        return advance;
+    }
+
+    private static float GetSpaceAdvance(TextOptions options)
+    {
+        const string withSpace = "A A";
+        const string withoutSpace = "AA";
+        var withSpaceWidth = TextMeasurer.MeasureAdvance(withSpace, options).Width;
+        var withoutSpaceWidth = TextMeasurer.MeasureAdvance(withoutSpace, options).Width;
+        return Math.Max(0f, withSpaceWidth - withoutSpaceWidth);
     }
 
 }

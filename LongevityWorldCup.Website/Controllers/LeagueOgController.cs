@@ -4,21 +4,21 @@ using Microsoft.AspNetCore.Mvc;
 namespace LongevityWorldCup.Website.Controllers;
 
 [ApiController]
-[Route("og/athlete")]
-public sealed class OgController(AthleteOgImageService ogImages) : ControllerBase
+[Route("og/league")]
+public sealed class LeagueOgController(LeagueOgImageService leagueOgImages) : ControllerBase
 {
-    private readonly AthleteOgImageService _ogImages = ogImages;
+    private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;
 
     [HttpGet("{slug}.png")]
-    public async Task<IActionResult> GetAthleteOgImage(string slug, [FromQuery] string? ctx, CancellationToken ct)
+    public async Task<IActionResult> GetLeagueOgImage(string slug, CancellationToken ct)
     {
-        if (!_ogImages.IsConfigured)
+        if (!_leagueOgImages.IsConfigured)
             return NotFound();
 
-        if (!_ogImages.TryGetCurrentPayload(slug, ctx, out var payload))
+        if (!_leagueOgImages.TryGetCurrentPayload(slug, out var payload))
             return NotFound();
 
-        var path = await _ogImages.EnsureRenderedImageAsync(payload, ct);
+        var path = await _leagueOgImages.EnsureRenderedImageAsync(payload, ct);
         if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
             return NotFound();
 
