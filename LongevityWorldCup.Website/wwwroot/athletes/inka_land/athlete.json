@@ -30,7 +30,20 @@
       "McvFL": 97.5,
       "RdwPc": 11.5,
       "AlpUL": 50.1,
-      "Wbc1000cellsuL": 3.96
+      "Wbc1000cellsuL": 3.96,
+      "NeutrophilPc": 56.7,
+      "MonocytePc": 3.3,
+      "Rbc10e12L": 4.47,
+      "MchPg": 31.1,
+      "UreaMmolL": 6.76,
+      "CystatinCMgL": 0.64,
+      "Hba1cMmolMol": 29.0,
+      "CholesterolMmolL": 6.13,
+      "ApoA1GL": 1.84,
+      "AltUL": 17.8,
+      "GgtUL": 19.8,
+      "ShbgNmolL": 68.3,
+      "VitaminDNmolL": 62.9
     }
   ],
   "Division": "Women's",
