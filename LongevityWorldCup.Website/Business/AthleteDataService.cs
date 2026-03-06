@@ -749,15 +749,13 @@ public class AthleteDataService : IDisposable
             var name = r.Name ?? "";
             var dobUtc = r.DobUtc.Value;
 
-            var chronoToday = r.ChronoAge.HasValue ? Math.Round(r.ChronoAge.Value, 2, MidpointRounding.AwayFromZero) : 0;
-            var lowestPheno = r.LowestPhenoAge.HasValue ? Math.Round(r.LowestPhenoAge.Value, 2, MidpointRounding.AwayFromZero) : chronoToday;
-            var phenoDiff = Math.Round(r.AgeReduction ?? 0, 2, MidpointRounding.AwayFromZero);
+            var chronoToday = r.ChronoAge.HasValue ? Math.Round(r.ChronoAge.Value, 2) : 0;
+            var lowestPheno = r.LowestPhenoAge.HasValue ? Math.Round(r.LowestPhenoAge.Value, 2) : chronoToday;
+            var phenoDiff = Math.Round(r.AgeReduction ?? 0, 2);
             var hasBortz = r.BortzAgeReduction.HasValue &&
                            !double.IsNaN(r.BortzAgeReduction.Value) &&
                            !double.IsInfinity(r.BortzAgeReduction.Value);
-            var effectiveDiff = hasBortz
-                ? Math.Round(r.BortzAgeReduction!.Value, 2, MidpointRounding.AwayFromZero)
-                : phenoDiff;
+            var effectiveDiff = hasBortz ? Math.Round(r.BortzAgeReduction!.Value, 2) : phenoDiff;
 
             var obj = new JsonObject
             {
@@ -768,11 +766,11 @@ public class AthleteDataService : IDisposable
                 ["AgeDifference"] = effectiveDiff
             };
             if (r.LowestBortzAge.HasValue)
-                obj["LowestBortzAge"] = Math.Round(r.LowestBortzAge.Value, 2, MidpointRounding.AwayFromZero);
+                obj["LowestBortzAge"] = Math.Round(r.LowestBortzAge.Value, 2);
             if (r.PhenoAgeDiffFromBaseline.HasValue)
-                obj["PhenoAgeDiffFromBaseline"] = Math.Round(r.PhenoAgeDiffFromBaseline.Value, 2, MidpointRounding.AwayFromZero);
+                obj["PhenoAgeDiffFromBaseline"] = Math.Round(r.PhenoAgeDiffFromBaseline.Value, 2);
             if (r.BortzAgeDiffFromBaseline.HasValue)
-                obj["BortzAgeDiffFromBaseline"] = Math.Round(r.BortzAgeDiffFromBaseline.Value, 2, MidpointRounding.AwayFromZero);
+                obj["BortzAgeDiffFromBaseline"] = Math.Round(r.BortzAgeDiffFromBaseline.Value, 2);
 
             results.Add((hasBortz, effectiveDiff, dobUtc, name, obj));
         }
