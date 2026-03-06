@@ -4,10 +4,11 @@ using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
+        private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;
         private const string SiteBaseUrl = "https://longevityworldcup.com";
         private const string DefaultOgImage = "https://longevityworldcup.com/assets/og-image.png";
         private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
@@ -21,17 +22,17 @@ namespace LongevityWorldCup.Website.Middleware
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.Value;
-            if (path == "/" || path?.EndsWith(".html") is true)
+            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path))
             {
                 string filePath;
 
-                if (path == "/")
+                if (path == "/" || IsLeagueRoute(path))
                 {
                     filePath = Path.Combine("wwwroot", "index.html");
                 }
                 else
                 {
-                    filePath = Path.Combine("wwwroot", path.TrimStart('/'));
+                    filePath = Path.Combine("wwwroot", (path ?? "").TrimStart('/'));
                 }
 
                 if (File.Exists(filePath))
@@ -105,35 +106,17 @@ namespace LongevityWorldCup.Website.Middleware
             var requestPath = context.Request.Path.Value ?? "/";
             var baseSeo = GetBaseSeoMeta(requestPath);
 
-            if (!string.Equals(baseSeo.CanonicalPath, "/", StringComparison.Ordinal) ||
-                !context.Request.Query.TryGetValue("athlete", out var athleteQuery))
+            if (TryGetAthleteSeoMeta(context, baseSeo, out var athleteSeo))
             {
-                return baseSeo;
+                return athleteSeo;
             }
 
-            var rawSlug = athleteQuery.ToString();
-            if (!_athleteOgImages.IsConfigured || !_athleteOgImages.TryGetCurrentPayload(rawSlug, out var payload))
+            if (TryGetLeagueSeoMeta(context, out var leagueSeo))
             {
-                return baseSeo;
+                return leagueSeo;
             }
 
-            var canonicalPath = $"/athlete/{payload.RouteSlug}";
-            var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
-            var signedReduction = payload.AgeReduction.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
-            var title = $"{payload.Name} | #{payload.Rank} Ultimate League";
-            var description = $"{payload.Name} is ranked #{payload.Rank} in the Ultimate League with {signedReduction} years age reduction.";
-            var ogImageUrl = _athleteOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload);
-
-            return new SeoMeta(
-                canonicalPath,
-                description,
-                "index, follow",
-                canonicalUrl,
-                title,
-                title,
-                description,
-                ogImageUrl
-            );
+            return baseSeo;
         }
 
         private static SeoMeta GetBaseSeoMeta(string requestPath)
@@ -242,6 +225,126 @@ namespace LongevityWorldCup.Website.Middleware
         private static string EncodeMeta(string value)
         {
             return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+        }
+
+        private bool TryGetAthleteSeoMeta(HttpContext context, SeoMeta baseSeo, out SeoMeta seo)
+        {
+            seo = baseSeo;
+            if (!string.Equals(baseSeo.CanonicalPath, "/", StringComparison.Ordinal) ||
+                !context.Request.Query.TryGetValue("athlete", out var athleteQuery))
+            {
+                return false;
+            }
+
+            var rawSlug = athleteQuery.ToString();
+            var rawContext = context.Request.Query.TryGetValue("ctx", out var ctxQuery)
+                ? ctxQuery.ToString()
+                : null;
+            if (!_athleteOgImages.IsConfigured || !_athleteOgImages.TryGetCurrentPayload(rawSlug, rawContext, out var payload))
+            {
+                return false;
+            }
+
+            var canonicalPath = $"/athlete/{payload.RouteSlug}";
+            var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
+            var signedReduction = payload.AgeReduction.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
+            var title = $"{payload.Name} | #{payload.Rank} {payload.LeagueName}";
+            var description = $"{payload.Name} is ranked #{payload.Rank} in the {payload.LeagueName} with {signedReduction} years age reduction.";
+            var ogImageUrl = _athleteOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload);
+
+            seo = new SeoMeta(
+                canonicalPath,
+                description,
+                "index, follow",
+                canonicalUrl,
+                title,
+                title,
+                description,
+                ogImageUrl
+            );
+
+            return true;
+        }
+
+        private bool TryGetLeagueSeoMeta(HttpContext context, out SeoMeta seo)
+        {
+            seo = null!;
+            if (!TryResolveLeagueSlug(context, out var leagueSlug))
+            {
+                return false;
+            }
+
+            if (!_leagueOgImages.TryGetCurrentPayload(leagueSlug, out var payload))
+            {
+                return false;
+            }
+
+            var canonicalPath = $"/league/{payload.RouteSlug}";
+            var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
+            var title = $"{payload.DisplayName} | Longevity World Cup";
+            var top3Text = payload.Top3Names.Count > 0
+                ? $" Current top athletes: {string.Join(", ", payload.Top3Names.Take(3))}."
+                : "";
+            var description = $"Track rankings in the {payload.DisplayName}.{top3Text}";
+            var ogImageUrl = _leagueOgImages.IsConfigured
+                ? _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload)
+                : DefaultOgImage;
+
+            seo = new SeoMeta(
+                canonicalPath,
+                description,
+                "index, follow",
+                canonicalUrl,
+                title,
+                title,
+                description,
+                ogImageUrl
+            );
+            return true;
+        }
+
+        private static bool IsLeagueRoute(string? path)
+        {
+            return !string.IsNullOrWhiteSpace(path)
+                   && path.StartsWith("/league/", StringComparison.OrdinalIgnoreCase)
+                   && path.Length > "/league/".Length;
+        }
+
+        private static bool TryResolveLeagueSlug(HttpContext context, out string leagueSlug)
+        {
+            leagueSlug = "";
+            var requestPath = context.Request.Path.Value ?? "";
+
+            if (IsLeagueRoute(requestPath))
+            {
+                var raw = requestPath["/league/".Length..].Trim('/');
+                return LeagueOgImageService.TryNormalizeLeagueSlug(raw, out leagueSlug);
+            }
+
+            if (!string.Equals(requestPath, "/", StringComparison.Ordinal) &&
+                !string.Equals(requestPath, "/leaderboard", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (context.Request.Query.TryGetValue("filters", out var filters))
+            {
+                var first = filters.ToString()
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(first) &&
+                    LeagueOgImageService.TryNormalizeLeagueSlug(first, out leagueSlug))
+                {
+                    return true;
+                }
+            }
+
+            if (string.Equals(requestPath, "/leaderboard", StringComparison.OrdinalIgnoreCase))
+            {
+                return LeagueOgImageService.TryNormalizeLeagueSlug("ultimate", out leagueSlug);
+            }
+
+            return false;
         }
 
         private static string BuildStructuredDataJson(SeoMeta seo)

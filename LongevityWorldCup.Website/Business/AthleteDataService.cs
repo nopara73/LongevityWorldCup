@@ -6,6 +6,9 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -14,6 +17,10 @@ public class AthleteDataService : IDisposable
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
+    private const int EventThumbSizePx = 96;
+    private const int EventThumbQuality = 70;
+    private const int LeaderboardThumbSizePx = 320;
+    private const int LeaderboardThumbQuality = 84;
 
     private JsonArray _athletes = []; // Initialize to avoid nullability issue
 
@@ -39,6 +46,7 @@ public class AthleteDataService : IDisposable
     private readonly DatabaseManager _db;
 
     private readonly string _athletesRootDir;
+    private readonly string _profileThumbDir;
     private readonly object _pendingLock = new();
     private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
 
@@ -58,6 +66,8 @@ public class AthleteDataService : IDisposable
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
+        _profileThumbDir = Path.Combine(env.WebRootPath, "generated", "thumbs", "athletes");
+        Directory.CreateDirectory(_profileThumbDir);
 
         _db.Run(sqlite =>
         {
@@ -294,9 +304,26 @@ public class AthleteDataService : IDisposable
                 .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
                 .OrderByDescending(File.GetLastWriteTimeUtc)
                 .FirstOrDefault();
-            athlete["ProfilePic"] = pic is null
+            var profilePicUrl = pic is null
                 ? null
                 : $"/athletes/{folderName}/{Path.GetFileName(pic)}";
+            athlete["ProfilePic"] = profilePicUrl;
+            athlete["ProfilePicThumb"] = pic is null
+                ? profilePicUrl
+                : BuildOrGetProfileThumbUrl(
+                    sourceImagePath: pic,
+                    folderName: folderName,
+                    thumbSuffix: "_thumb_sm",
+                    sizePx: EventThumbSizePx,
+                    quality: EventThumbQuality) ?? profilePicUrl;
+            athlete["ProfilePicLeaderboardThumb"] = pic is null
+                ? profilePicUrl
+                : BuildOrGetProfileThumbUrl(
+                    sourceImagePath: pic,
+                    folderName: folderName,
+                    thumbSuffix: "_thumb_md",
+                    sizePx: LeaderboardThumbSizePx,
+                    quality: LeaderboardThumbQuality) ?? profilePicUrl;
 
             // PROOFS: look for proof_*.ext
             var proofs = new JsonArray();
@@ -312,6 +339,54 @@ public class AthleteDataService : IDisposable
         }
 
         lock (_athletesJsonLock) _athletes = athletesRoot;
+    }
+
+    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName, string thumbSuffix, int sizePx, int quality)
+    {
+        if (string.IsNullOrWhiteSpace(sourceImagePath) || !File.Exists(sourceImagePath))
+            return null;
+
+        var sourceInfo = new FileInfo(sourceImagePath);
+        var thumbFileName = $"{folderName}{thumbSuffix}.webp";
+        var thumbPath = Path.Combine(_profileThumbDir, thumbFileName);
+        if (string.IsNullOrWhiteSpace(thumbPath))
+            return null;
+
+        try
+        {
+            var needsGenerate = !File.Exists(thumbPath);
+            if (!needsGenerate)
+            {
+                var thumbInfo = new FileInfo(thumbPath);
+                needsGenerate = thumbInfo.Length <= 0 || thumbInfo.LastWriteTimeUtc < sourceInfo.LastWriteTimeUtc;
+            }
+
+            if (needsGenerate)
+            {
+                using var image = Image.Load(sourceImagePath);
+                image.Mutate(ctx => ctx
+                    .AutoOrient()
+                    .Resize(new ResizeOptions
+                    {
+                        Size = new Size(sizePx, sizePx),
+                        Mode = ResizeMode.Crop,
+                        Position = AnchorPositionMode.Center
+                    }));
+
+                image.Metadata.ExifProfile = null;
+                image.Save(thumbPath, new WebpEncoder
+                {
+                    FileFormat = WebpFileFormatType.Lossy,
+                    Quality = quality
+                });
+            }
+
+            return $"/generated/thumbs/athletes/{thumbFileName}?v={sourceInfo.LastWriteTimeUtc.Ticks}";
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private void DebounceReload()
@@ -961,7 +1036,7 @@ public class AthleteDataService : IDisposable
             if (string.IsNullOrWhiteSpace(slug)) continue;
             var div = o["Division"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(div)) divisionBySlug[slug] = div;
-            var gen = o["Generation"]?.GetValue<string>();
+            var gen = GenerationResolver.ResolveFromAthleteJson(o);
             if (!string.IsNullOrWhiteSpace(gen)) generationBySlug[slug] = gen;
             var ex = o["ExclusiveLeague"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(ex)) exclusiveBySlug[slug] = ex;
