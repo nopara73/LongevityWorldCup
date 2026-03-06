@@ -112,7 +112,12 @@ public sealed class AthleteOgImageService
                 ? nameFromRanking!.Trim()
                 : ToDisplayName(rawSlug);
 
-        var ageReduction = GetDouble(rankingRow, "AgeDifference") ?? 0d;
+        var ageReductionFromRanking = GetDouble(rankingRow, "AgeDifference") ?? 0d;
+        var stats = PhenoStatsCalculator.Compute(athleteJson, DateTime.UtcNow.Date);
+        var hasBortzRaw = stats.BortzAgeReduction.HasValue && double.IsFinite(stats.BortzAgeReduction.Value);
+        var ageReduction = hasBortzRaw
+            ? stats.BortzAgeReduction!.Value
+            : stats.AgeReduction ?? ageReductionFromRanking;
         var leagueName = ResolveLeagueDisplayName(leagueSlug);
         var profilePicUrl = athleteJson?["ProfilePic"]?.GetValue<string>();
         var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, profilePicUrl);
