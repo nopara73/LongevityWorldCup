@@ -5,6 +5,9 @@ namespace LongevityWorldCup.Website.Tools;
 
 public static class PhenoStatsCalculator
 {
+    private static double RoundAgeLikeFrontend(double value) =>
+        Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
     public sealed class Result
     {
         public required string Slug { get; init; }
@@ -60,7 +63,7 @@ public static class PhenoStatsCalculator
 
         double? chrono = null;
         if (dob.HasValue)
-            chrono = (asOf.Date - dob.Value.Date).TotalDays / 365.2425;
+            chrono = RoundAgeLikeFrontend((asOf.Date - dob.Value.Date).TotalDays / 365.2425);
 
         int submissionCount = 0;
         int bortzSubmissionCount = 0;
@@ -85,7 +88,9 @@ public static class PhenoStatsCalculator
                 if (!string.IsNullOrWhiteSpace(ds) && DateTime.TryParse(ds, null, DateTimeStyles.RoundtripKind, out var parsed))
                     entryDate = DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc);
 
-                double AgeAt(DateTime d) => dob.HasValue ? (d.Date - dob.Value.Date).TotalDays / 365.2425 : double.NaN;
+                double AgeAt(DateTime d) => dob.HasValue
+                    ? RoundAgeLikeFrontend((d.Date - dob.Value.Date).TotalDays / 365.2425)
+                    : double.NaN;
 
                 var ageAtEntry = AgeAt(entryDate);
 
