@@ -111,7 +111,8 @@ public static class XMessageBuilder
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
         var eventBasis = DetermineSampleBasisForEvent(type, rawText);
-        var isEarly = IsEarlyPhase(sampleForBasis, eventBasis);
+        var eventPhase = GetPhase(sampleForBasis, eventBasis);
+        var isEarly = eventPhase is XPostPhase.Tiny or XPostPhase.Early;
 
         if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
         {
@@ -298,7 +299,8 @@ public static class XMessageBuilder
             if (!EventHelpers.TryExtractDomain(payloadText ?? "", out var domainKey) || string.IsNullOrWhiteSpace(domainKey))
                 return "";
             var fillerBasis = DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
-            var isEarly = IsEarlyPhase(sampleForBasis, fillerBasis);
+            var fillerPhase = GetPhase(sampleForBasis, fillerBasis);
+            var isEarly = fillerPhase is XPostPhase.Tiny or XPostPhase.Early;
             var winnerSlug = getBestDomainWinnerSlug?.Invoke(domainKey.Trim());
             if (string.IsNullOrWhiteSpace(winnerSlug)) return "";
             var name = slugToName(winnerSlug);
@@ -437,11 +439,11 @@ public static class XMessageBuilder
         return null;
     }
 
-    private static bool IsEarlyPhase(Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis, XPostSampleBasis? basis)
+    private static XPostPhase? GetPhase(Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis, XPostSampleBasis? basis)
     {
-        if (!basis.HasValue || sampleForBasis is null) return false;
+        if (!basis.HasValue || sampleForBasis is null) return null;
         var sample = sampleForBasis(basis.Value);
-        return sample.N < 21;
+        return XPostPhaseDecider.Determine(sample);
     }
 
     private static string BuildEarlyDomainLine(string name, string label, string emoji, XPostSampleBasis? basis)
