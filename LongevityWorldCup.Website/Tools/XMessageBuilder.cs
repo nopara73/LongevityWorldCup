@@ -586,7 +586,7 @@ public static class XMessageBuilder
         return phase switch
         {
             XPostPhase.Tiny => $"{athleteName} currently has the lowest {metricName} among the first {cohortLabel} athletes in the Longevity World Cup{ageStr} \U0001F9EC",
-            XPostPhase.Early => $"{athleteName} currently has the lowest {metricName} in the current {cohortLabel} field of the Longevity World Cup{ageStr} \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} currently has the lowest {metricName} in the Longevity World Cup's current {cohortLabel} field{ageStr} \U0001F9EC",
             _ => $"{athleteName} currently holds the lowest {metricName} in the Longevity World Cup field{ageStr} \U0001F9EC"
         };
     }
@@ -600,8 +600,8 @@ public static class XMessageBuilder
     {
         return phase switch
         {
-            XPostPhase.Tiny => $"{athleteName} currently shows the biggest {metricName} improvement among the first {cohortLabel} athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
-            XPostPhase.Early => $"{athleteName} currently leads {metricName} improvement in the current {cohortLabel} field of the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
+            XPostPhase.Tiny => $"{athleteName} currently has the biggest {metricName} improvement among the first {cohortLabel} athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} currently leads {metricName} improvement in the Longevity World Cup's current {cohortLabel} field, at {yearsStr} years since their first submitted test \U0001F9EC",
             _ => $"The biggest {metricName} improvement in the field currently belongs to {athleteName}, at {yearsStr} years since their first submitted test \U0001F9EC"
         };
     }
@@ -616,7 +616,7 @@ public static class XMessageBuilder
         var lead = phase switch
         {
             XPostPhase.Tiny => $"{athleteName} currently leads the {leagueName} \U0001F3C6",
-            XPostPhase.Early => $"{athleteName} is currently #1 in the {leagueName} \U0001F3C6",
+            XPostPhase.Early => $"{athleteName} currently holds the #1 spot in the {leagueName} \U0001F3C6",
             _ => !string.IsNullOrWhiteSpace(previousAthlete)
                 ? $"{athleteName} is now #1 in the {leagueName}, overtaking {previousAthlete} \U0001F3C6"
                 : $"{athleteName} is now #1 in the {leagueName} \U0001F3C6"
@@ -634,7 +634,7 @@ public static class XMessageBuilder
         var lead = phase switch
         {
             XPostPhase.Tiny => $"{athleteName} currently leads the Ultimate League \U0001F3C6",
-            XPostPhase.Early => $"{athleteName} is currently #{rank} in the Ultimate League \U0001F3C6",
+            XPostPhase.Early => $"{athleteName} currently holds the #{rank} spot in the Ultimate League \U0001F3C6",
             _ => !string.IsNullOrWhiteSpace(previousAthlete)
                 ? $"New #{rank} in the Ultimate League \U0001F3C6\n{athleteName} is now ahead of {previousAthlete}."
                 : $"New #{rank} in the Ultimate League \U0001F3C6\n{athleteName} now holds the spot."
@@ -652,12 +652,12 @@ public static class XMessageBuilder
     {
         if (string.Equals(label, "inflammation", StringComparison.OrdinalIgnoreCase))
         {
-            var line = $"{name} currently leads inflammation profile in this early-stage Longevity World Cup field";
+            var line = $"{name} currently leads the inflammation profile in this early-stage Longevity World Cup field";
             return string.IsNullOrEmpty(emoji) ? line : $"{line} {emoji}";
         }
 
         var cohort = basis == XPostSampleBasis.PhenoAge ? "amateur" : "pro";
-        var lineBase = $"{name} currently leads {label} profile among the first {cohort} athletes in the Longevity World Cup";
+        var lineBase = $"{name} currently leads the {label} profile among the first {cohort} athletes in the Longevity World Cup";
         return string.IsNullOrEmpty(emoji) ? lineBase : $"{lineBase} {emoji}";
     }
 }
