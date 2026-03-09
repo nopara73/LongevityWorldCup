@@ -37,3 +37,8 @@ AppData
 .vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json
+
+# Codex
+.codex/*
+!.codex/environments/
+!.codex/environments/environment.toml
