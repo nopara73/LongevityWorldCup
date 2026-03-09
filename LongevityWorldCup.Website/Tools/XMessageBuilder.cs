@@ -94,6 +94,12 @@ public static class XMessageBuilder
             return RejectIfTooLong($"{lead}\n\n{LeaderboardUrl}");
         }
 
+        var eventBasis = DetermineSampleBasisForEvent(type, rawText);
+        var eventLeagueScope = DetermineLeagueScopeForEvent(type, rawText);
+        var eventPhase = GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
+        if (ShouldSuppressEvent(type, rawText, eventPhase))
+            return "";
+
         if (type == EventType.NewRank)
         {
             if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank < 1 || rank > 3) return "";
@@ -111,9 +117,6 @@ public static class XMessageBuilder
 
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
-        var eventBasis = DetermineSampleBasisForEvent(type, rawText);
-        var eventLeagueScope = DetermineLeagueScopeForEvent(type, rawText);
-        var eventPhase = GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
         var isEarly = eventPhase is XPostPhase.Tiny or XPostPhase.Early;
 
         if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
@@ -243,6 +246,12 @@ public static class XMessageBuilder
         Func<IReadOnlyList<string>>? getRecentNewcomersForX = null,
         Func<string, string?>? getBestDomainWinnerSlug = null)
     {
+        var fillerBasis = DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
+        var fillerLeagueScope = DetermineLeagueScopeForFiller(fillerType, payloadText ?? "");
+        var fillerPhase = GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
+        if (ShouldSuppressFiller(fillerType, fillerPhase))
+            return "";
+
         if (fillerType == FillerType.Top3Leaderboard)
         {
             if (!EventHelpers.TryExtractLeague(payloadText ?? "", out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
@@ -301,9 +310,6 @@ public static class XMessageBuilder
         {
             if (!EventHelpers.TryExtractDomain(payloadText ?? "", out var domainKey) || string.IsNullOrWhiteSpace(domainKey))
                 return "";
-            var fillerBasis = DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
-            var fillerLeagueScope = DetermineLeagueScopeForFiller(fillerType, payloadText ?? "");
-            var fillerPhase = GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
             var isEarly = fillerPhase is XPostPhase.Tiny or XPostPhase.Early;
             var winnerSlug = getBestDomainWinnerSlug?.Invoke(domainKey.Trim());
             if (string.IsNullOrWhiteSpace(winnerSlug)) return "";
@@ -509,6 +515,62 @@ public static class XMessageBuilder
             return XPostPhaseDecider.Min(basisPhase.Value, scopePhase.Value);
 
         return basisPhase ?? scopePhase;
+    }
+
+    private static bool ShouldSuppressEvent(EventType type, string rawText, XPostPhase? phase)
+    {
+        if (!phase.HasValue || phase == XPostPhase.Mature)
+            return false;
+
+        if (type == EventType.NewRank)
+        {
+            return !EventHelpers.TryExtractRank(rawText, out var rank) || rank != 1;
+        }
+
+        if (type != EventType.BadgeAward)
+            return false;
+
+        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
+            return false;
+
+        var norm = EventHelpers.NormalizeBadgeLabel(label);
+        if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+        {
+            return !(
+                EventHelpers.TryExtractPlace(rawText, out var place) &&
+                place == 1 &&
+                EventHelpers.TryExtractCategory(rawText, out var category) &&
+                !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (phase == XPostPhase.Early &&
+            (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        return true;
+    }
+
+    private static bool ShouldSuppressFiller(FillerType fillerType, XPostPhase? phase)
+    {
+        if (!phase.HasValue || phase == XPostPhase.Mature)
+            return false;
+
+        return fillerType switch
+        {
+            FillerType.Top3Leaderboard => true,
+            FillerType.DomainTop => true,
+            FillerType.CrowdGuesses => true,
+            FillerType.Newcomers => false,
+            _ => false
+        };
     }
 
     private static string BuildEarlyDomainLine(string name, string label, string emoji, XPostSampleBasis? basis)
