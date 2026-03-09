@@ -44,6 +44,8 @@ const BASE_ICONS = {
     'Chronological Age – Youngest': 'fa-baby',
     'PhenoAge – Lowest': 'fa-feather',
     'Bortz Age – Lowest': 'fa-feather-pointed',
+    'Pheno Pace of Aging': 'fa-gauge-simple-high',
+    'Bortz Pace of Aging': 'fa-gauge-high',
     'Most Submissions': 'fa-skull-crossbones',
     '≥2 Submissions': 'fa-calendar-check',
     'Crowd – Most Guessed': 'fa-users',
@@ -113,6 +115,17 @@ function pickIconForServerBadge(b) {
     if (label === 'Bortz Age – Lowest' && place) {
         if (place === 1) return 'fa-feather-pointed';
         if (place === 2) return 'fa-portrait';
+        if (place === 3) return 'fa-hourglass-start';
+    }
+
+    if (label === 'Pheno Pace of Aging' && place) {
+        if (place === 1) return 'fa-gauge-simple-high';
+        if (place === 2) return 'fa-stopwatch';
+        if (place === 3) return 'fa-hourglass-start';
+    }
+    if (label === 'Bortz Pace of Aging' && place) {
+        if (place === 1) return 'fa-gauge-high';
+        if (place === 2) return 'fa-stopwatch';
         if (place === 3) return 'fa-hourglass-start';
     }
 
@@ -322,6 +335,18 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
         if (place === 3) return `Benjamin Button: Biologically 3rd youngest according to Bortz Age: ${baText} years old`;
     }
 
+    if (label === 'Pheno Pace of Aging' && place) {
+        if (place === 1) return 'Time Bender: Best Pheno pace of aging';
+        if (place === 2) return 'Slow Clock: 2nd best Pheno pace of aging';
+        if (place === 3) return 'Time Hacker: 3rd best Pheno pace of aging';
+    }
+
+    if (label === 'Bortz Pace of Aging' && place) {
+        if (place === 1) return 'Time Bender: Best Bortz pace of aging';
+        if (place === 2) return 'Slow Clock: 2nd best Bortz pace of aging';
+        if (place === 3) return 'Time Hacker: 3rd best Bortz pace of aging';
+    }
+
     if (label === 'Most Submissions') {
         if (suppressValues) return 'The Submittinator: Most tests submitted';
         const c = (athlete?.submissionCount ?? athlete?.SubmissionCount ?? 0);
@@ -506,6 +531,9 @@ function computeOrder(b) {
     if (label === 'Chronological Age – Youngest') return 1.13;
     if (label === 'PhenoAge – Lowest')            return 1.14;
     if (label === 'Bortz Age – Lowest')           return 1.141;
+
+    if (label === 'Pheno Pace of Aging') return 1.142;
+    if (label === 'Bortz Pace of Aging') return 1.143;
 
     if (label === 'First Applicants')     return 1.19;
     if (label === 'Pregnancy')            return 1.191;

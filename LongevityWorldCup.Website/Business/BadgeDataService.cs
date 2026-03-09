@@ -744,6 +744,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public double? LowestBortzAge { get; init; }
         public double? AgeReduction { get; init; }
         public double? BortzAgeReduction { get; init; }
+        public double? PhenoPaceOfAging { get; init; }
+        public double? BortzPaceOfAging { get; init; }
         public int SubmissionCount { get; init; }
         public int BortzSubmissionCount { get; init; }
         public string? Division { get; init; }
@@ -909,6 +911,26 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 SortDirection: SortDir.Asc,
                 TieBreaker: compTie,
                 MetricKey: "BortzAge"),
+
+            new BadgeDefinition(
+                Label: "Pheno Pace of Aging",
+                Scope: BadgeScope.Global,
+                TopN: 3,
+                Eligibility: a => a.PhenoPaceOfAging.HasValue,
+                Metric: a => a.PhenoPaceOfAging,
+                SortDirection: SortDir.Asc,
+                TieBreaker: compTie,
+                MetricKey: "PhenoPaceOfAging"),
+
+            new BadgeDefinition(
+                Label: "Bortz Pace of Aging",
+                Scope: BadgeScope.Global,
+                TopN: 3,
+                Eligibility: a => a.BortzPaceOfAging.HasValue,
+                Metric: a => a.BortzPaceOfAging,
+                SortDirection: SortDir.Asc,
+                TieBreaker: compTie,
+                MetricKey: "BortzPaceOfAging"),
         };
     }
 
@@ -929,6 +951,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 LowestBortzAge = r.LowestBortzAge,
                 AgeReduction = r.AgeReduction,
                 BortzAgeReduction = r.BortzAgeReduction,
+                PhenoPaceOfAging = r.PhenoPaceOfAging,
+                BortzPaceOfAging = r.BortzPaceOfAging,
                 SubmissionCount = r.SubmissionCount,
                 BortzSubmissionCount = r.BortzSubmissionCount,
                 Division = r.Division,
