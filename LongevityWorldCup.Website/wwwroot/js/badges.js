@@ -33,6 +33,8 @@ const LEGACY_BG = {
     inflammation: "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;",
     immune:       "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;",
     vitaminD:     "background: linear-gradient(135deg, #f9a825, #f57f17); border: 2px solid #8d5b00;",
+    phenoPace:    "background: linear-gradient(135deg, #6d28d9, #312e81); border: 2px solid #2e1065;",
+    bortzPace:    "background: linear-gradient(135deg, #e11d48, #9f1239); border: 2px solid #881337;",
     personal:     "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;",
     black:        "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;"
 };
@@ -121,12 +123,12 @@ function pickIconForServerBadge(b) {
     if (label === 'Pheno Pace of Aging' && place) {
         if (place === 1) return 'fa-gauge-simple-high';
         if (place === 2) return 'fa-stopwatch';
-        if (place === 3) return 'fa-hourglass-start';
+        if (place === 3) return 'fa-wave-square';
     }
     if (label === 'Bortz Pace of Aging' && place) {
-        if (place === 1) return 'fa-gauge-high';
+        if (place === 1) return 'fa-gauge-simple-high';
         if (place === 2) return 'fa-stopwatch';
-        if (place === 3) return 'fa-hourglass-start';
+        if (place === 3) return 'fa-wave-square';
     }
 
     if (label === 'First Applicants') {
@@ -180,6 +182,8 @@ function pickBackgroundForServerBadge(b) {
     if (label === 'Best Domain – Immune')       return LEGACY_BG.immune;
     if (label === 'Best Domain – Vitamin D')    return LEGACY_BG.vitaminD;
 
+    if (label === 'Pheno Pace of Aging')         return LEGACY_BG.phenoPace;
+    if (label === 'Bortz Pace of Aging')         return LEGACY_BG.bortzPace;
     if (label === 'PhenoAge Best Improvement')  return LEGACY_BG.default;
     if (label === 'Bortz Age Best Improvement') return LEGACY_BG.default;
 
