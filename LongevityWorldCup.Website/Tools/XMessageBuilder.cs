@@ -107,9 +107,7 @@ public static class XMessageBuilder
             var current = slugToName(rankSlug);
             EventHelpers.TryExtractPrev(rawText, out var prevSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
-            var newRankMsg = !string.IsNullOrWhiteSpace(prev)
-                ? $"New #{rank} in the Ultimate League \U0001F3C6\n{current} is now ahead of {prev}.\n\n{LeaderboardUrl}"
-                : $"New #{rank} in the Ultimate League \U0001F3C6\n{current} now holds the spot.\n\n{LeaderboardUrl}";
+            var newRankMsg = BuildUltimateRankLine(eventPhase, rank, current, prev);
             return RejectIfTooLong(newRankMsg);
         }
 
@@ -117,8 +115,6 @@ public static class XMessageBuilder
 
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
-        var isEarly = eventPhase is XPostPhase.Tiny or XPostPhase.Early;
-
         if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractSlug(rawText, out var phenoSlug)) return "";
@@ -126,11 +122,12 @@ public static class XMessageBuilder
             var phenoAge = getLowestPhenoAgeForSlug?.Invoke(phenoSlug);
             var ageStr = phenoAge.HasValue ? $" at {phenoAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(phenoSlug);
-            var line = isEarly
-                ? (phenoAge.HasValue
-                    ? $"{phenoAthlete} currently has the lowest score among the first amateur athletes in the Longevity World Cup,{ageStr} \U0001F9EC"
-                    : $"{phenoAthlete} currently has the lowest score among the first amateur athletes in the Longevity World Cup \U0001F9EC")
-                : $"{phenoAthlete} currently holds the lowest PhenoAge in the Longevity World Cup field{ageStr} \U0001F9EC";
+            var line = BuildLowestAgeLine(
+                eventPhase,
+                athleteName: phenoAthlete,
+                metricName: "PhenoAge",
+                cohortLabel: "amateur",
+                ageStr: ageStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(phenoAthlete, athleteUrl)}");
         }
         if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
@@ -142,9 +139,12 @@ public static class XMessageBuilder
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
             var url = AthleteUrl(diffSlug);
-            var line = isEarly
-                ? $"{athlete} currently leads improvement among the first amateur athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC"
-                : $"The biggest PhenoAge improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test \U0001F9EC";
+            var line = BuildImprovementLine(
+                eventPhase,
+                athleteName: athlete,
+                metricName: "PhenoAge",
+                cohortLabel: "amateur",
+                yearsStr: yearsStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(athlete, url)}");
         }
 
@@ -155,11 +155,12 @@ public static class XMessageBuilder
             var bortzAge = getLowestBortzAgeForSlug?.Invoke(bortzSlug);
             var ageStr = bortzAge.HasValue ? $" at {bortzAge.Value.ToString("0.#", CultureInfo.InvariantCulture)} years" : "";
             var athleteUrl = AthleteUrl(bortzSlug);
-            var line = isEarly
-                ? (bortzAge.HasValue
-                    ? $"{bortzAthlete} currently has the lowest biological age among the first pro athletes in the Longevity World Cup,{ageStr} \U0001F9EC"
-                    : $"{bortzAthlete} currently has the lowest biological age among the first pro athletes in the Longevity World Cup \U0001F9EC")
-                : $"{bortzAthlete} currently holds the lowest Bortz Age in the Longevity World Cup field{ageStr} \U0001F9EC";
+            var line = BuildLowestAgeLine(
+                eventPhase,
+                athleteName: bortzAthlete,
+                metricName: "Bortz Age",
+                cohortLabel: "pro",
+                ageStr: ageStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(bortzAthlete, athleteUrl)}");
         }
 
@@ -172,9 +173,12 @@ public static class XMessageBuilder
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
             var url = AthleteUrl(diffSlug);
-            var line = isEarly
-                ? $"{athlete} currently leads improvement among the first pro athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC"
-                : $"The biggest Bortz Age improvement in the field currently belongs to {athlete}, at {yearsStr} years since their first submitted test \U0001F9EC";
+            var line = BuildImprovementLine(
+                eventPhase,
+                athleteName: athlete,
+                metricName: "Bortz Age",
+                cohortLabel: "pro",
+                yearsStr: yearsStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(athlete, url)}");
         }
 
@@ -213,9 +217,7 @@ public static class XMessageBuilder
             var athleteUrl = AthleteUrl(leagueSlug, leagueCtxSlug);
             EventHelpers.TryExtractPrev(rawText, out var leaguePrevSlug);
             var leaguePrev = !string.IsNullOrWhiteSpace(leaguePrevSlug) ? slugToName(leaguePrevSlug) : null;
-            var msg = !string.IsNullOrWhiteSpace(leaguePrev)
-                ? $"{leagueAthlete} is now #1 in the {leagueName}, overtaking {leaguePrev} \U0001F3C6\n\n{athleteUrl}"
-                : $"{leagueAthlete} is now #1 in the {leagueName} \U0001F3C6\n\n{athleteUrl}";
+            var msg = BuildLeagueLeaderLine(eventPhase, leagueAthlete, leagueName, leaguePrev, athleteUrl);
             return RejectIfTooLong(msg);
         }
 
@@ -571,6 +573,78 @@ public static class XMessageBuilder
             FillerType.CrowdGuesses => true,
             FillerType.Newcomers => false,
             _ => false
+        };
+    }
+
+    private static string BuildLowestAgeLine(
+        XPostPhase? phase,
+        string athleteName,
+        string metricName,
+        string cohortLabel,
+        string ageStr)
+    {
+        return phase switch
+        {
+            XPostPhase.Tiny => $"{athleteName} currently has the lowest {metricName} among the first {cohortLabel} athletes in the Longevity World Cup{ageStr} \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} currently has the lowest {metricName} in the current {cohortLabel} field of the Longevity World Cup{ageStr} \U0001F9EC",
+            _ => $"{athleteName} currently holds the lowest {metricName} in the Longevity World Cup field{ageStr} \U0001F9EC"
+        };
+    }
+
+    private static string BuildImprovementLine(
+        XPostPhase? phase,
+        string athleteName,
+        string metricName,
+        string cohortLabel,
+        string yearsStr)
+    {
+        return phase switch
+        {
+            XPostPhase.Tiny => $"{athleteName} currently shows the biggest {metricName} improvement among the first {cohortLabel} athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} currently leads {metricName} improvement in the current {cohortLabel} field of the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
+            _ => $"The biggest {metricName} improvement in the field currently belongs to {athleteName}, at {yearsStr} years since their first submitted test \U0001F9EC"
+        };
+    }
+
+    private static string BuildLeagueLeaderLine(
+        XPostPhase? phase,
+        string athleteName,
+        string leagueName,
+        string? previousAthlete,
+        string athleteUrl)
+    {
+        var lead = phase switch
+        {
+            XPostPhase.Tiny => $"{athleteName} currently leads the {leagueName} \U0001F3C6",
+            XPostPhase.Early => $"{athleteName} is currently #1 in the {leagueName} \U0001F3C6",
+            _ => !string.IsNullOrWhiteSpace(previousAthlete)
+                ? $"{athleteName} is now #1 in the {leagueName}, overtaking {previousAthlete} \U0001F3C6"
+                : $"{athleteName} is now #1 in the {leagueName} \U0001F3C6"
+        };
+
+        return $"{lead}\n\n{athleteUrl}";
+    }
+
+    private static string BuildUltimateRankLine(
+        XPostPhase? phase,
+        int rank,
+        string athleteName,
+        string? previousAthlete)
+    {
+        var lead = phase switch
+        {
+            XPostPhase.Tiny => $"{athleteName} currently leads the Ultimate League \U0001F3C6",
+            XPostPhase.Early => $"{athleteName} is currently #{rank} in the Ultimate League \U0001F3C6",
+            _ => !string.IsNullOrWhiteSpace(previousAthlete)
+                ? $"New #{rank} in the Ultimate League \U0001F3C6\n{athleteName} is now ahead of {previousAthlete}."
+                : $"New #{rank} in the Ultimate League \U0001F3C6\n{athleteName} now holds the spot."
+        };
+
+        return phase switch
+        {
+            XPostPhase.Tiny => $"{lead}\n\n{LeaderboardUrl}",
+            XPostPhase.Early => $"{lead}\n\n{LeaderboardUrl}",
+            _ => $"{lead}\n\n{LeaderboardUrl}"
         };
     }
 
