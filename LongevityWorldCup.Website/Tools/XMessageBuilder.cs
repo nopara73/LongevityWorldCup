@@ -243,6 +243,7 @@ public static class XMessageBuilder
         Func<string, string> slugToName,
         Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis = null,
         Func<string, int?>? getFieldSizeForLeague = null,
+        Func<string, int?>? getBortzFieldSizeForLeague = null,
         Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null,
         Func<IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)>>? getCrowdLowestAgePodium = null,
         Func<IReadOnlyList<string>>? getRecentNewcomersForX = null,
@@ -250,7 +251,9 @@ public static class XMessageBuilder
     {
         var fillerBasis = DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
         var fillerLeagueScope = DetermineLeagueScopeForFiller(fillerType, payloadText ?? "");
-        var fillerPhase = GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
+        var fillerPhase = fillerType == FillerType.Top3Leaderboard
+            ? GetTop3LeaderboardPhase(payloadText ?? "", sampleForBasis, getFieldSizeForLeague, getBortzFieldSizeForLeague)
+            : GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
         if (ShouldSuppressFiller(fillerType, fillerPhase))
             return "";
 
@@ -262,7 +265,7 @@ public static class XMessageBuilder
                 return "";
             var slugs = getTop3SlugsForLeague?.Invoke(leagueSlug.Trim()) ?? Array.Empty<string>();
             if (slugs.Count == 0) return "";
-            var lines = new List<string> { $"The race for #1 in the {league.DisplayName} is on. Current top 3 \U0001F447", "" };
+            var lines = new List<string> { BuildTop3LeaderboardIntro(fillerPhase, league.DisplayName), "" };
             for (var i = 0; i < slugs.Count && i < 3; i++)
                 lines.Add($"{i + 1}. {slugToName(slugs[i])}");
             lines.Add("");
@@ -520,6 +523,28 @@ public static class XMessageBuilder
         return basisPhase ?? scopePhase;
     }
 
+    private static XPostPhase? GetTop3LeaderboardPhase(
+        string payloadText,
+        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis,
+        Func<string, int?>? getFieldSizeForLeague,
+        Func<string, int?>? getBortzFieldSizeForLeague)
+    {
+        if (!EventHelpers.TryExtractLeague(payloadText, out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
+            return null;
+
+        var normalizedLeague = leagueSlug.Trim();
+        if (string.Equals(normalizedLeague, "amateur", StringComparison.OrdinalIgnoreCase))
+            return GetPhase(sampleForBasis, XPostSampleBasis.PhenoAge, getFieldSizeForLeague, normalizedLeague);
+
+        var totalPhase = GetPhase(null, null, getFieldSizeForLeague, normalizedLeague);
+        var bortzPhase = GetPhase(null, null, getBortzFieldSizeForLeague, normalizedLeague);
+
+        if (totalPhase.HasValue && bortzPhase.HasValue)
+            return XPostPhaseDecider.Min(totalPhase.Value, bortzPhase.Value);
+
+        return bortzPhase ?? totalPhase;
+    }
+
     private static bool ShouldSuppressEvent(EventType type, string rawText, XPostPhase? phase)
     {
         if (!phase.HasValue || phase == XPostPhase.Mature)
@@ -563,12 +588,15 @@ public static class XMessageBuilder
 
     private static bool ShouldSuppressFiller(FillerType fillerType, XPostPhase? phase)
     {
-        if (!phase.HasValue || phase == XPostPhase.Mature)
+        if (!phase.HasValue)
+            return false;
+
+        if (phase == XPostPhase.Mature)
             return false;
 
         return fillerType switch
         {
-            FillerType.Top3Leaderboard => true,
+            FillerType.Top3Leaderboard => phase == XPostPhase.Tiny,
             FillerType.DomainTop => true,
             FillerType.CrowdGuesses => true,
             FillerType.Newcomers => false,
@@ -585,8 +613,8 @@ public static class XMessageBuilder
     {
         return phase switch
         {
-            XPostPhase.Tiny => $"{athleteName} currently has the lowest {metricName} among the first {cohortLabel} athletes in the Longevity World Cup{ageStr} \U0001F9EC",
-            XPostPhase.Early => $"{athleteName} currently has the lowest {metricName} in the Longevity World Cup's current {cohortLabel} field{ageStr} \U0001F9EC",
+            XPostPhase.Tiny => $"{athleteName} has the lowest {metricName} among the first {cohortLabel} athletes in the Longevity World Cup{ageStr} \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} has the lowest {metricName} in the current {cohortLabel} field of the Longevity World Cup{ageStr} \U0001F9EC",
             _ => $"{athleteName} currently holds the lowest {metricName} in the Longevity World Cup field{ageStr} \U0001F9EC"
         };
     }
@@ -600,8 +628,8 @@ public static class XMessageBuilder
     {
         return phase switch
         {
-            XPostPhase.Tiny => $"{athleteName} currently has the biggest {metricName} improvement among the first {cohortLabel} athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
-            XPostPhase.Early => $"{athleteName} currently leads {metricName} improvement in the Longevity World Cup's current {cohortLabel} field, at {yearsStr} years since their first submitted test \U0001F9EC",
+            XPostPhase.Tiny => $"{athleteName} has the largest {metricName} improvement among the first {cohortLabel} athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} leads the current {cohortLabel} field in {metricName} improvement, at {yearsStr} years since their first submitted test \U0001F9EC",
             _ => $"The biggest {metricName} improvement in the field currently belongs to {athleteName}, at {yearsStr} years since their first submitted test \U0001F9EC"
         };
     }
@@ -648,16 +676,25 @@ public static class XMessageBuilder
         };
     }
 
+    private static string BuildTop3LeaderboardIntro(XPostPhase? phase, string leagueDisplayName)
+    {
+        return phase switch
+        {
+            XPostPhase.Early => $"Current top 3 in the {leagueDisplayName} \U0001F447",
+            _ => $"The race for #1 in the {leagueDisplayName} is on. Current top 3 \U0001F447"
+        };
+    }
+
     private static string BuildEarlyDomainLine(string name, string label, string emoji, XPostSampleBasis? basis)
     {
         if (string.Equals(label, "inflammation", StringComparison.OrdinalIgnoreCase))
         {
-            var line = $"{name} currently leads the inflammation profile in this early-stage Longevity World Cup field";
+            var line = $"{name} leads the inflammation profile in this early-stage Longevity World Cup field";
             return string.IsNullOrEmpty(emoji) ? line : $"{line} {emoji}";
         }
 
         var cohort = basis == XPostSampleBasis.PhenoAge ? "amateur" : "pro";
-        var lineBase = $"{name} currently leads the {label} profile among the first {cohort} athletes in the Longevity World Cup";
+        var lineBase = $"{name} leads the {label} profile among the first {cohort} athletes in the Longevity World Cup";
         return string.IsNullOrEmpty(emoji) ? lineBase : $"{lineBase} {emoji}";
     }
 }

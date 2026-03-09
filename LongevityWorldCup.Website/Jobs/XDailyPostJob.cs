@@ -29,7 +29,6 @@ public class XDailyPostJob : IJob
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
-
         var pending = _events.GetPendingXEvents();
         var freshCutoff = DateTime.UtcNow.AddDays(-7);
 

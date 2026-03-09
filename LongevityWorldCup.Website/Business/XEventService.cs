@@ -125,6 +125,7 @@ public class XEventService
             SlugToName,
             sampleForBasis: BuildSampleSize,
             getFieldSizeForLeague: GetFieldSizeForLeague,
+            getBortzFieldSizeForLeague: GetBortzFieldSizeForLeague,
             getTop3SlugsForLeague: athletes.GetTop3SlugsForLeague,
             getCrowdLowestAgePodium: athletes.GetCrowdLowestAgeBadgePodiumForX,
             getRecentNewcomersForX: athletes.GetRecentNewcomersForX,
@@ -253,6 +254,14 @@ public class XEventService
             return null;
 
         return GetAthletes().GetLeagueFieldSize(leagueSlug);
+    }
+
+    private int? GetBortzFieldSizeForLeague(string leagueSlug)
+    {
+        if (string.IsNullOrWhiteSpace(leagueSlug))
+            return null;
+
+        return GetAthletes().GetLeagueBortzFieldSize(leagueSlug);
     }
 
 }

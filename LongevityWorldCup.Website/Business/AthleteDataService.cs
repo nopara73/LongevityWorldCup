@@ -1024,13 +1024,19 @@ public class AthleteDataService : IDisposable
         return GetLeagueSlugsInRankOrder(leagueSlug).Count;
     }
 
-    private IReadOnlyList<string> GetLeagueSlugsInRankOrder(string leagueSlug)
+    public int GetLeagueBortzFieldSize(string leagueSlug)
+    {
+        return GetLeagueSlugsInRankOrder(leagueSlug, requireBortz: true).Count;
+    }
+
+    private IReadOnlyList<string> GetLeagueSlugsInRankOrder(string leagueSlug, bool requireBortz = false)
     {
         var order = GetRankingsOrder();
         if (order.Count == 0) return Array.Empty<string>();
         if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
         {
             return order.OfType<JsonObject>()
+                .Where(o => !requireBortz || o["LowestBortzAge"] is JsonValue)
                 .Select(o => o["AthleteSlug"]?.GetValue<string>())
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Cast<string>()
@@ -1074,6 +1080,7 @@ public class AthleteDataService : IDisposable
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
+            if (requireBortz && o["LowestBortzAge"] is not JsonValue) continue;
             var match = targetDivision != null && divisionBySlug.TryGetValue(slug, out var d) && string.Equals(d, targetDivision, StringComparison.OrdinalIgnoreCase)
                 || targetGeneration != null && generationBySlug.TryGetValue(slug, out var g) && string.Equals(g, targetGeneration, StringComparison.OrdinalIgnoreCase)
                 || targetExclusive != null && exclusiveBySlug.TryGetValue(slug, out var e) && string.Equals(e, targetExclusive, StringComparison.OrdinalIgnoreCase)

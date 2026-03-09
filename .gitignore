@@ -42,3 +42,4 @@ AppData
 .codex/*
 !.codex/environments/
 !.codex/environments/environment.toml
+.codex-temp-build/
