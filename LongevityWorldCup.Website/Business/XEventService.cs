@@ -103,6 +103,7 @@ public class XEventService
             rawText,
             SlugToName,
             sampleForBasis: BuildSampleSize,
+            getFieldSizeForLeague: GetFieldSizeForLeague,
             getPodcastLinkForSlug: GetPodcast,
             getLowestPhenoAgeForSlug: GetLowestPhenoAge,
             getLowestBortzAgeForSlug: GetLowestBortzAge,
@@ -123,6 +124,7 @@ public class XEventService
             payloadText ?? "",
             SlugToName,
             sampleForBasis: BuildSampleSize,
+            getFieldSizeForLeague: GetFieldSizeForLeague,
             getTop3SlugsForLeague: athletes.GetTop3SlugsForLeague,
             getCrowdLowestAgePodium: athletes.GetCrowdLowestAgeBadgePodiumForX,
             getRecentNewcomersForX: athletes.GetRecentNewcomersForX,
@@ -139,6 +141,7 @@ public class XEventService
             type,
             rawText,
             SlugToName,
+            getFieldSizeForLeague: GetFieldSizeForLeague,
             getPodcastLinkForSlug: GetPodcast,
             getLowestPhenoAgeForSlug: GetLowestPhenoAge,
             getLowestBortzAgeForSlug: GetLowestBortzAge,
@@ -242,6 +245,14 @@ public class XEventService
         }
 
         return (pheno, bortz, combined);
+    }
+
+    private int? GetFieldSizeForLeague(string leagueSlug)
+    {
+        if (string.IsNullOrWhiteSpace(leagueSlug))
+            return null;
+
+        return GetAthletes().GetLeagueFieldSize(leagueSlug);
     }
 
 }

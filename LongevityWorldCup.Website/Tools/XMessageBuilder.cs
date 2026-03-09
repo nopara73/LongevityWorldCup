@@ -78,6 +78,7 @@ public static class XMessageBuilder
         string rawText,
         Func<string, string> slugToName,
         Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis = null,
+        Func<string, int?>? getFieldSizeForLeague = null,
         Func<string, string?>? getPodcastLinkForSlug = null,
         Func<string, double?>? getLowestPhenoAgeForSlug = null,
         Func<string, double?>? getLowestBortzAgeForSlug = null,
@@ -111,7 +112,8 @@ public static class XMessageBuilder
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
         var eventBasis = DetermineSampleBasisForEvent(type, rawText);
-        var eventPhase = GetPhase(sampleForBasis, eventBasis);
+        var eventLeagueScope = DetermineLeagueScopeForEvent(type, rawText);
+        var eventPhase = GetPhase(sampleForBasis, eventBasis, getFieldSizeForLeague, eventLeagueScope);
         var isEarly = eventPhase is XPostPhase.Tiny or XPostPhase.Early;
 
         if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
@@ -235,6 +237,7 @@ public static class XMessageBuilder
         string payloadText,
         Func<string, string> slugToName,
         Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis = null,
+        Func<string, int?>? getFieldSizeForLeague = null,
         Func<string, IReadOnlyList<string>>? getTop3SlugsForLeague = null,
         Func<IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)>>? getCrowdLowestAgePodium = null,
         Func<IReadOnlyList<string>>? getRecentNewcomersForX = null,
@@ -299,7 +302,8 @@ public static class XMessageBuilder
             if (!EventHelpers.TryExtractDomain(payloadText ?? "", out var domainKey) || string.IsNullOrWhiteSpace(domainKey))
                 return "";
             var fillerBasis = DetermineSampleBasisForFiller(fillerType, payloadText ?? "");
-            var fillerPhase = GetPhase(sampleForBasis, fillerBasis);
+            var fillerLeagueScope = DetermineLeagueScopeForFiller(fillerType, payloadText ?? "");
+            var fillerPhase = GetPhase(sampleForBasis, fillerBasis, getFieldSizeForLeague, fillerLeagueScope);
             var isEarly = fillerPhase is XPostPhase.Tiny or XPostPhase.Early;
             var winnerSlug = getBestDomainWinnerSlug?.Invoke(domainKey.Trim());
             if (string.IsNullOrWhiteSpace(winnerSlug)) return "";
@@ -439,11 +443,72 @@ public static class XMessageBuilder
         return null;
     }
 
-    private static XPostPhase? GetPhase(Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis, XPostSampleBasis? basis)
+    private static string? DetermineLeagueScopeForEvent(EventType type, string rawText)
     {
-        if (!basis.HasValue || sampleForBasis is null) return null;
-        var sample = sampleForBasis(basis.Value);
-        return XPostPhaseDecider.Determine(sample);
+        if (type == EventType.NewRank)
+            return "ultimate";
+
+        if (type != EventType.BadgeAward)
+            return null;
+
+        if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label))
+            return null;
+
+        var norm = EventHelpers.NormalizeBadgeLabel(label);
+        if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase) &&
+            EventHelpers.TryExtractPlace(rawText, out var place) && place == 1 &&
+            EventHelpers.TryExtractCategory(rawText, out var category))
+        {
+            EventHelpers.TryExtractValue(rawText, out var value);
+            return LeagueContextSlug(category, value);
+        }
+
+        return null;
+    }
+
+    private static string? DetermineLeagueScopeForFiller(FillerType fillerType, string payloadText)
+    {
+        if (fillerType == FillerType.Top3Leaderboard &&
+            EventHelpers.TryExtractLeague(payloadText, out var league) &&
+            !string.IsNullOrWhiteSpace(league))
+            return league.Trim();
+
+        return null;
+    }
+
+    private static XPostPhase? GetPhase(
+        Func<XPostSampleBasis, XPostSampleSize>? sampleForBasis,
+        XPostSampleBasis? basis,
+        Func<string, int?>? getFieldSizeForLeague,
+        string? leagueScope)
+    {
+        XPostPhase? basisPhase = null;
+        if (basis.HasValue && sampleForBasis is not null)
+        {
+            var sample = sampleForBasis(basis.Value);
+            basisPhase = XPostPhaseDecider.Determine(sample);
+        }
+
+        XPostPhase? scopePhase = null;
+        if (!string.IsNullOrWhiteSpace(leagueScope) && getFieldSizeForLeague is not null)
+        {
+            var fieldSize = getFieldSizeForLeague(leagueScope);
+            if (fieldSize.HasValue)
+            {
+                var scopedSample = new XPostSampleSize(
+                    Basis: basis ?? XPostSampleBasis.Combined,
+                    N: fieldSize.Value,
+                    PhenoCount: 0,
+                    BortzCount: 0,
+                    CombinedCount: fieldSize.Value);
+                scopePhase = XPostPhaseDecider.Determine(scopedSample);
+            }
+        }
+
+        if (basisPhase.HasValue && scopePhase.HasValue)
+            return XPostPhaseDecider.Min(basisPhase.Value, scopePhase.Value);
+
+        return basisPhase ?? scopePhase;
     }
 
     private static string BuildEarlyDomainLine(string name, string label, string emoji, XPostSampleBasis? basis)

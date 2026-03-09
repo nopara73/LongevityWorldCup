@@ -38,5 +38,10 @@ public static class XPostPhaseDecider
 
         return XPostPhase.Mature;
     }
+
+    public static XPostPhase Min(XPostPhase left, XPostPhase right)
+    {
+        return left <= right ? left : right;
+    }
 }
 

@@ -1014,6 +1014,18 @@ public class AthleteDataService : IDisposable
 
     public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
     {
+        return GetLeagueSlugsInRankOrder(leagueSlug)
+            .Take(3)
+            .ToList();
+    }
+
+    public int GetLeagueFieldSize(string leagueSlug)
+    {
+        return GetLeagueSlugsInRankOrder(leagueSlug).Count;
+    }
+
+    private IReadOnlyList<string> GetLeagueSlugsInRankOrder(string leagueSlug)
+    {
         var order = GetRankingsOrder();
         if (order.Count == 0) return Array.Empty<string>();
         if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
@@ -1021,9 +1033,10 @@ public class AthleteDataService : IDisposable
             return order.OfType<JsonObject>()
                 .Select(o => o["AthleteSlug"]?.GetValue<string>())
                 .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Take(3)
-                .ToList()!;
+                .Cast<string>()
+                .ToList();
         }
+
         var snapshot = GetAthletesSnapshot();
         var divisionBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var generationBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1039,6 +1052,7 @@ public class AthleteDataService : IDisposable
             var ex = o["ExclusiveLeague"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(ex)) exclusiveBySlug[slug] = ex;
         }
+
         string? targetDivision = leagueSlug?.ToLowerInvariant() switch { "mens" => "Men's", "womens" => "Women's", "open" => "Open", _ => null };
         string? targetGeneration = leagueSlug?.ToLowerInvariant() switch
         {
@@ -1054,6 +1068,7 @@ public class AthleteDataService : IDisposable
         var isAmateur = string.Equals(leagueSlug, "amateur", StringComparison.OrdinalIgnoreCase);
         if (targetDivision == null && targetGeneration == null && targetExclusive == null && !isAmateur)
             return Array.Empty<string>();
+
         var list = new List<string>();
         foreach (var o in order.OfType<JsonObject>())
         {
@@ -1063,8 +1078,10 @@ public class AthleteDataService : IDisposable
                 || targetGeneration != null && generationBySlug.TryGetValue(slug, out var g) && string.Equals(g, targetGeneration, StringComparison.OrdinalIgnoreCase)
                 || targetExclusive != null && exclusiveBySlug.TryGetValue(slug, out var e) && string.Equals(e, targetExclusive, StringComparison.OrdinalIgnoreCase)
                 || isAmateur && o["LowestBortzAge"] is not JsonValue;
-            if (match) { list.Add(slug); if (list.Count >= 3) break; }
+            if (match)
+                list.Add(slug);
         }
+
         return list;
     }
 
