@@ -8,6 +8,7 @@ namespace LongevityWorldCup.Website.Jobs;
 [DisallowConcurrentExecution]
 public class XDailyPostJob : IJob
 {
+    private static readonly TimeSpan SubjectCooldown = TimeSpan.FromDays(2);
     private readonly ILogger<XDailyPostJob> _logger;
     private readonly EventDataService _events;
     private readonly XEventService _xEvents;
@@ -56,6 +57,14 @@ public class XDailyPostJob : IJob
             if (xPriority <= EventDataService.XPriorityPrimaryMax && occurredAtUtc < freshCutoff)
                 continue;
 
+            var nowUtc = DateTime.UtcNow;
+            var subjectSlug = TryGetSubjectSlugForEvent(type, text);
+            if (!string.IsNullOrWhiteSpace(subjectSlug) && _fillerLog.IsSubjectOnCooldown(subjectSlug, SubjectCooldown, nowUtc))
+            {
+                _logger.LogInformation("XDailyPostJob skipped event {Id} because subject {SubjectSlug} is on cooldown ({CooldownDays}d)", id, subjectSlug, SubjectCooldown.TotalDays);
+                continue;
+            }
+
             var msg = _xEvents.TryBuildMessage(type, text);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
@@ -66,6 +75,7 @@ public class XDailyPostJob : IJob
                 return;
             }
             _events.MarkEventsXProcessed(new[] { id });
+            _fillerLog.LogSubjectPost(nowUtc, $"event[{id}] type[{type}]", subjectSlug);
             _logger.LogInformation("XDailyPostJob posted event {Id}", id);
             return;
         }
@@ -91,6 +101,13 @@ public class XDailyPostJob : IJob
             if (string.IsNullOrWhiteSpace(infoToken))
                 continue;
 
+            var subjectSlug = TryGetSubjectSlugForFiller(fillerType, payload);
+            if (!string.IsNullOrWhiteSpace(subjectSlug) && _fillerLog.IsSubjectOnCooldown(subjectSlug, SubjectCooldown, nowUtc))
+            {
+                _logger.LogInformation("XDailyPostJob skipped filler {FillerType} {PayloadText} because subject {SubjectSlug} is on cooldown ({CooldownDays}d)", fillerType, payloadText, subjectSlug, SubjectCooldown.TotalDays);
+                continue;
+            }
+
             if (_fillerLog.IsUnchangedFromLastForOption(fillerType, payload, infoToken))
             {
                 _logger.LogInformation("XDailyPostJob skipped unchanged filler {FillerType} {PayloadText}", fillerType, payloadText);
@@ -103,7 +120,7 @@ public class XDailyPostJob : IJob
                 _logger.LogWarning("XDailyPostJob send failed for filler {FillerType}; leaving unlogged", fillerType);
                 return;
             }
-            _fillerLog.LogPost(nowUtc, fillerType, infoToken);
+            _fillerLog.LogPost(nowUtc, fillerType, infoToken, subjectSlug);
             _logger.LogInformation("XDailyPostJob posted filler {FillerType}", fillerType);
             return;
         }
@@ -171,5 +188,30 @@ public class XDailyPostJob : IJob
             FillerType.CrowdGuesses => TimeSpan.FromDays(10),
             _ => TimeSpan.FromDays(7)
         };
+    }
+
+    private static string? TryGetSubjectSlugForEvent(EventType type, string rawText)
+    {
+        if (type == EventType.NewRank || type == EventType.BadgeAward)
+        {
+            if (EventHelpers.TryExtractSlug(rawText, out var slug) && !string.IsNullOrWhiteSpace(slug))
+                return slug.Trim();
+        }
+
+        return null;
+    }
+
+    private string? TryGetSubjectSlugForFiller(FillerType fillerType, string payloadText)
+    {
+        if (fillerType == FillerType.DomainTop)
+        {
+            if (!EventHelpers.TryExtractDomain(payloadText, out var domainKey) || string.IsNullOrWhiteSpace(domainKey))
+                return null;
+
+            var winner = _athletes.GetBestDomainWinnerSlug(domainKey.Trim());
+            return string.IsNullOrWhiteSpace(winner) ? null : winner.Trim();
+        }
+
+        return null;
     }
 }
