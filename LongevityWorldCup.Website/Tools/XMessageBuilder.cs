@@ -321,6 +321,7 @@ public static class XMessageBuilder
                 "metabolic" => ("metabolic", "\U0001F525"),
                 "inflammation" => ("inflammation", ""),
                 "immune" => ("immune", "\U0001F6E1\uFE0F"),
+                "vitamin_d" => ("vitamin D", "\u2600\uFE0F"),
                 _ => ("domain", "")
             };
             var line1 = isEarly

@@ -14,7 +14,7 @@ public class XFillerPostLogService
 {
     private const string TableName = "XFillerPostLog";
     private static readonly string[] Top3LeagueSlugs = ["ultimate", "amateur", "mens", "womens", "open", "silent-generation", "baby-boomers", "gen-x", "millennials", "gen-z", "gen-alpha", "prosperan"];
-    private static readonly string[] DomainKeys = ["liver", "kidney", "metabolic", "inflammation", "immune"];
+    private static readonly string[] DomainKeys = ["liver", "kidney", "metabolic", "inflammation", "immune", "vitamin_d"];
     private readonly DatabaseManager _db;
 
     public XFillerPostLogService(DatabaseManager db)
