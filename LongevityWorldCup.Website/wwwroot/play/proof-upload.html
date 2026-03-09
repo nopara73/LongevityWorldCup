@@ -79,6 +79,15 @@
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
+
+        function getAthleteDisplayName() {
+            if (athlete?.DisplayName && athlete.DisplayName.trim()) {
+                return athlete.DisplayName.trim();
+            }
+
+            return athlete?.Name || '';
+        }
+
         setSubmitButtonLabel();
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -87,7 +96,7 @@
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
 
-            document.getElementById('character-title').textContent = athlete.Name;
+            document.getElementById('character-title').textContent = getAthleteDisplayName();
 
             const mainProofInstructions = document.getElementById('mainProofInstructions');
             if (mainProofInstructions) {
