@@ -1532,6 +1532,20 @@
             return place===1 || place===2 || place===3;
         }
 
+        const HIGHLIGHT_BADGE_KEYS = new Set([
+            "chronological age - oldest",
+            "chronological age - youngest",
+            "phenoage - lowest",
+            "bortz age - lowest",
+            "phenoage best improvement",
+            "bortz age best improvement"
+        ]);
+
+        const VIEW_ALL_EXTRA_BADGE_KEYS = new Set([
+            "pheno pace of aging",
+            "bortz pace of aging"
+        ]);
+
         function isAllowedBadgeHighlights(label, leagueCategory, place){
             const key = normalizeBadgeKey(label);
             if(key==="podcast") return true;
@@ -1543,14 +1557,7 @@
                 return cat==="global" || cat==="generation" || cat==="division" || cat==="exclusive" || cat==="amateur";
             }
 
-            if(
-                key==="chronological age - oldest" ||
-                key==="chronological age - youngest" ||
-                key==="phenoage - lowest" ||
-                key==="bortz age - lowest" ||
-                key==="phenoage best improvement" ||
-                key==="bortz age best improvement"
-            ){
+            if(HIGHLIGHT_BADGE_KEYS.has(key)){
                 return isTop3Place(place);
             }
 
@@ -1561,6 +1568,7 @@
             if(isAllowedBadgeHighlights(label, leagueCategory, place)) return true;
 
             const key = normalizeBadgeKey(label);
+            if(VIEW_ALL_EXTRA_BADGE_KEYS.has(key)) return isTop3Place(place);
             if(key.startsWith("best domain -")) return isTop3Place(place);
 
             return false;

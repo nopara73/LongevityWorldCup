@@ -15,6 +15,8 @@ public static class PhenoStatsCalculator
         public double? LowestBortzAge { get; init; }
         public double? AgeReduction { get; init; }
         public double? BortzAgeReduction { get; init; }
+        public double? PhenoPaceOfAging { get; init; }
+        public double? BortzPaceOfAging { get; init; }
         public int SubmissionCount { get; init; }
         public int BortzSubmissionCount { get; init; }
         public string? Division { get; init; }
@@ -165,6 +167,12 @@ public static class PhenoStatsCalculator
         double? bortzAgeReduction = null;
         if (!double.IsInfinity(lowestBortz) && !double.IsNaN(chronoAtLowestBortz))
             bortzAgeReduction = lowestBortz - chronoAtLowestBortz;
+        double? phenoPaceOfAging = null;
+        if (!double.IsInfinity(lowestPheno) && !double.IsNaN(chronoAtLowest) && chronoAtLowest > 0)
+            phenoPaceOfAging = lowestPheno / chronoAtLowest;
+        double? bortzPaceOfAging = null;
+        if (!double.IsInfinity(lowestBortz) && !double.IsNaN(chronoAtLowestBortz) && chronoAtLowestBortz > 0)
+            bortzPaceOfAging = lowestBortz / chronoAtLowestBortz;
 
         double[]? bestMarkerValues = null;
         if (bestAlb.HasValue && bestCreat.HasValue && bestGlu.HasValue && bestCrp.HasValue &&
@@ -218,6 +226,8 @@ public static class PhenoStatsCalculator
             LowestBortzAge = double.IsInfinity(lowestBortz) ? null : lowestBortz,
             AgeReduction = ageReduction,
             BortzAgeReduction = bortzAgeReduction,
+            PhenoPaceOfAging = phenoPaceOfAging,
+            BortzPaceOfAging = bortzPaceOfAging,
             SubmissionCount = submissionCount,
             BortzSubmissionCount = bortzSubmissionCount,
             Division = division,
