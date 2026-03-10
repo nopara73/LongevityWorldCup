@@ -287,7 +287,7 @@ public class XFillerPostLogService
         {
             FillerType.Top3Leaderboard => token.StartsWith(payload + " ", StringComparison.OrdinalIgnoreCase),
             FillerType.DomainTop => token.StartsWith(payload + " ", StringComparison.OrdinalIgnoreCase),
-            FillerType.CrowdGuesses => token.StartsWith("slugs[", StringComparison.OrdinalIgnoreCase),
+            FillerType.CrowdGuesses => token.StartsWith("podium[", StringComparison.OrdinalIgnoreCase),
             FillerType.Newcomers => token.StartsWith("slugs[", StringComparison.OrdinalIgnoreCase),
             _ => false
         };
