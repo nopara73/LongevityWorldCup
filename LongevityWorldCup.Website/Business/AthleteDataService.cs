@@ -823,7 +823,7 @@ public class AthleteDataService : IDisposable
     public IReadOnlyList<(string Slug, double CrowdAge)> GetCrowdLowestAgeTop3()
     {
         var snapshot = GetAthletesSnapshot();
-        var list = new List<(string Slug, double CrowdAge)>();
+        var list = new List<(string Slug, double CrowdAge, int CrowdCount)>();
         foreach (var o in snapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
@@ -837,11 +837,13 @@ public class AthleteDataService : IDisposable
             if (o["CrowdCount"] is JsonValue cc && cc.TryGetValue<int>(out var cnt))
                 crowdCount = cnt;
             if (crowdCount <= 0) continue;
-            list.Add((slug, crowdAge));
+            list.Add((slug, crowdAge, crowdCount));
         }
         return list
             .OrderBy(t => t.CrowdAge)
+            .ThenByDescending(t => t.CrowdCount)
             .Take(3)
+            .Select(t => (t.Slug, t.CrowdAge))
             .ToList();
     }
 
