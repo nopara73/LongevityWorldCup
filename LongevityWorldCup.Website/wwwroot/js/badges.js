@@ -27,14 +27,16 @@ const LEGACY_BG = {
         "background: linear-gradient(135deg, #c0c0c0, #696969); border: 2px solid #6e6e6e;", // Silver
         "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Bronze
     ],
+    pheno:        "background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: 2px solid #1e40af;",
+    bortz:        "background: linear-gradient(135deg, #22c55e, #15803d); border: 2px solid #166534;",
     liver:        "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;",
     kidney:       "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;",
     metabolic:    "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;",
     inflammation: "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;",
     immune:       "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;",
     vitaminD:     "background: linear-gradient(135deg, #f9a825, #f57f17); border: 2px solid #8d5b00;",
-    phenoPace:    "background: linear-gradient(135deg, #6d28d9, #312e81); border: 2px solid #2e1065;",
-    bortzPace:    "background: linear-gradient(135deg, #e11d48, #9f1239); border: 2px solid #881337;",
+    phenoPace:    "background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: 2px solid #1e40af;",
+    bortzPace:    "background: linear-gradient(135deg, #22c55e, #15803d); border: 2px solid #166534;",
     personal:     "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;",
     black:        "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;"
 };
@@ -157,12 +159,13 @@ function pickBackgroundForServerBadge(b) {
 
     if (
         label === 'Chronological Age – Oldest' ||
-        label === 'Chronological Age – Youngest' ||
-        label === 'PhenoAge – Lowest' ||
-        label === 'Bortz Age – Lowest'
+        label === 'Chronological Age – Youngest'
     ) {
         return LEGACY_BG.default;
     }
+
+    if (label === 'PhenoAge – Lowest') return LEGACY_BG.pheno;
+    if (label === 'Bortz Age – Lowest') return LEGACY_BG.bortz;
 
     const medalLike =
         label === 'Age Reduction' ||
@@ -184,8 +187,8 @@ function pickBackgroundForServerBadge(b) {
 
     if (label === 'Pheno Pace of Aging')         return LEGACY_BG.phenoPace;
     if (label === 'Bortz Pace of Aging')         return LEGACY_BG.bortzPace;
-    if (label === 'PhenoAge Best Improvement')  return LEGACY_BG.default;
-    if (label === 'Bortz Age Best Improvement') return LEGACY_BG.default;
+    if (label === 'PhenoAge Best Improvement')   return LEGACY_BG.pheno;
+    if (label === 'Bortz Age Best Improvement')  return LEGACY_BG.bortz;
 
     return LEGACY_BG.default;
 }
@@ -669,3 +672,4 @@ window.pickIconForServerBadge = pickIconForServerBadge;
 window.pickBackgroundForServerBadge = pickBackgroundForServerBadge;
 window.makeTooltipFromServerBadge = makeTooltipFromServerBadge;
 window.pickClickUrl = pickClickUrl;
+
