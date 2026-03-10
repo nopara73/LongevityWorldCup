@@ -517,7 +517,7 @@ function computeOrder(b) {
         (typeof label === 'string' && label.startsWith('Crowd – '));
 
     if (isMedalFamily && place && [1, 2, 3].includes(place)) {
-        const base = place === 1 ? 2 : (place === 2 ? 3 : 4);
+        const base = place === 1 ? 5.10 : (place === 2 ? 5.20 : 5.30);
         let micro = 0;
 
         if (label === 'Age Reduction') {
@@ -533,35 +533,32 @@ function computeOrder(b) {
     }
 
     if (label === 'Podcast') return 1.10;
+    if (label === 'Chronological Age – Oldest') return 1.11;
+    if (label === 'Chronological Age – Youngest') return 1.12;
+    if (label === 'First Applicants') return 1.13;
+    if (label === 'Pregnancy') return 1.14;
+    if (label === 'Host') return 1.15;
+    if (label === 'Perfect Application') return 1.16;
+    if (label === 'Most Submissions') return 1.17;
+    if (label === '≥2 Submissions') return 1.18;
+    if (label === 'S25' && place) return 1.19;
 
-    if (label === 'Chronological Age – Oldest')   return 1.12;
-    if (label === 'Chronological Age – Youngest') return 1.13;
-    if (label === 'PhenoAge – Lowest')            return 1.14;
-    if (label === 'Bortz Age – Lowest')           return 1.141;
+    if (label === 'PhenoAge – Lowest') return 2.10;
+    if (label === 'PhenoAge Best Improvement') return 2.11;
+    if (label === 'Pheno Pace of Aging') return 2.12;
 
-    if (label === 'Pheno Pace of Aging') return 1.142;
-    if (label === 'Bortz Pace of Aging') return 1.143;
+    if (label === 'Bortz Age – Lowest') return 3.10;
+    if (label === 'Bortz Age Best Improvement') return 3.11;
+    if (label === 'Bortz Pace of Aging') return 3.12;
 
-    if (label === 'First Applicants')     return 1.19;
-    if (label === 'Pregnancy')            return 1.191;
-    if (label === 'Host')                 return 1.192;
-    if (label === 'Perfect Application') return 1.193;
+    if (label === 'Best Domain – Liver') return 4.10;
+    if (label === 'Best Domain – Kidney') return 4.11;
+    if (label === 'Best Domain – Metabolic') return 4.12;
+    if (label === 'Best Domain – Inflammation') return 4.13;
+    if (label === 'Best Domain – Immune') return 4.14;
+    if (label === 'Best Domain – Vitamin D') return 4.15;
 
-    if (label === 'Most Submissions') return 1.20;
-    if (label === '≥2 Submissions') return 1.21;
-
-    if (label === 'PhenoAge Best Improvement') return 1.30;
-    if (label === 'Bortz Age Best Improvement') return 1.3005;
-    if (label === 'S25' && place) return 1.301;
-
-    if (label === 'Best Domain – Liver')        return 1.31;
-    if (label === 'Best Domain – Kidney')       return 1.32;
-    if (label === 'Best Domain – Metabolic')    return 1.33;
-    if (label === 'Best Domain – Inflammation') return 1.34;
-    if (label === 'Best Domain – Immune')       return 1.35;
-    if (label === 'Best Domain – Vitamin D')    return 1.36;
-
-    return 1.50;
+    return 4.90;
 }
 
 // Build one server badge bubble HTML
@@ -672,4 +669,5 @@ window.pickIconForServerBadge = pickIconForServerBadge;
 window.pickBackgroundForServerBadge = pickBackgroundForServerBadge;
 window.makeTooltipFromServerBadge = makeTooltipFromServerBadge;
 window.pickClickUrl = pickClickUrl;
+
 
