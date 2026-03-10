@@ -406,7 +406,12 @@ public class XImageService
 
         if (!string.IsNullOrWhiteSpace(url))
         {
-            var rel = url.TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
+            var relativeUrl = url.Trim();
+            var queryStart = relativeUrl.IndexOf('?');
+            if (queryStart >= 0)
+                relativeUrl = relativeUrl[..queryStart];
+
+            var rel = relativeUrl.TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
             fullPath = IOPath.Combine(_env.WebRootPath, rel);
             if (File.Exists(fullPath))
                 return true;

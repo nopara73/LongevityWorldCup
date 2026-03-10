@@ -306,7 +306,7 @@ public class AthleteDataService : IDisposable
                 .FirstOrDefault();
             var profilePicUrl = pic is null
                 ? null
-                : $"/athletes/{folderName}/{Path.GetFileName(pic)}";
+                : BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(pic), File.GetLastWriteTimeUtc(pic).Ticks);
             athlete["ProfilePic"] = profilePicUrl;
             athlete["ProfilePicThumb"] = pic is null
                 ? profilePicUrl
@@ -340,6 +340,9 @@ public class AthleteDataService : IDisposable
 
         lock (_athletesJsonLock) _athletes = athletesRoot;
     }
+
+    private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, long version)
+        => $"/athletes/{folderName}/{fileName}?v={version}";
 
     private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName, string thumbSuffix, int sizePx, int quality)
     {
