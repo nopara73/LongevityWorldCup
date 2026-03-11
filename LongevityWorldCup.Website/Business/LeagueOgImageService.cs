@@ -470,7 +470,12 @@ public sealed class LeagueOgImageService
         var profileUrl = athlete?["ProfilePic"]?.GetValue<string>();
         if (!string.IsNullOrWhiteSpace(profileUrl))
         {
-            var rel = profileUrl.Trim().TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
+            var relativeUrl = profileUrl.Trim();
+            var queryStart = relativeUrl.IndexOf('?');
+            if (queryStart >= 0)
+                relativeUrl = relativeUrl[..queryStart];
+
+            var rel = relativeUrl.TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
             var byUrlPath = IOPath.Combine(_env.WebRootPath, rel);
             if (File.Exists(byUrlPath))
             {

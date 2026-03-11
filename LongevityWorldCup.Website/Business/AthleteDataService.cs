@@ -306,7 +306,7 @@ public class AthleteDataService : IDisposable
                 .FirstOrDefault();
             var profilePicUrl = pic is null
                 ? null
-                : $"/athletes/{folderName}/{Path.GetFileName(pic)}";
+                : BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(pic), File.GetLastWriteTimeUtc(pic).Ticks);
             athlete["ProfilePic"] = profilePicUrl;
             athlete["ProfilePicThumb"] = pic is null
                 ? profilePicUrl
@@ -340,6 +340,9 @@ public class AthleteDataService : IDisposable
 
         lock (_athletesJsonLock) _athletes = athletesRoot;
     }
+
+    private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, long version)
+        => $"/athletes/{folderName}/{fileName}?v={version}";
 
     private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName, string thumbSuffix, int sizePx, int quality)
     {
@@ -823,7 +826,7 @@ public class AthleteDataService : IDisposable
     public IReadOnlyList<(string Slug, double CrowdAge)> GetCrowdLowestAgeTop3()
     {
         var snapshot = GetAthletesSnapshot();
-        var list = new List<(string Slug, double CrowdAge)>();
+        var list = new List<(string Slug, double CrowdAge, int CrowdCount)>();
         foreach (var o in snapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
@@ -837,11 +840,13 @@ public class AthleteDataService : IDisposable
             if (o["CrowdCount"] is JsonValue cc && cc.TryGetValue<int>(out var cnt))
                 crowdCount = cnt;
             if (crowdCount <= 0) continue;
-            list.Add((slug, crowdAge));
+            list.Add((slug, crowdAge, crowdCount));
         }
         return list
             .OrderBy(t => t.CrowdAge)
+            .ThenByDescending(t => t.CrowdCount)
             .Take(3)
+            .Select(t => (t.Slug, t.CrowdAge))
             .ToList();
     }
 
@@ -1014,16 +1019,35 @@ public class AthleteDataService : IDisposable
 
     public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)
     {
+        return GetLeagueSlugsInRankOrder(leagueSlug)
+            .Take(3)
+            .ToList();
+    }
+
+    public int GetLeagueFieldSize(string leagueSlug)
+    {
+        return GetLeagueSlugsInRankOrder(leagueSlug).Count;
+    }
+
+    public int GetLeagueBortzFieldSize(string leagueSlug)
+    {
+        return GetLeagueSlugsInRankOrder(leagueSlug, requireBortz: true).Count;
+    }
+
+    private IReadOnlyList<string> GetLeagueSlugsInRankOrder(string leagueSlug, bool requireBortz = false)
+    {
         var order = GetRankingsOrder();
         if (order.Count == 0) return Array.Empty<string>();
         if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
         {
             return order.OfType<JsonObject>()
+                .Where(o => !requireBortz || o["LowestBortzAge"] is JsonValue)
                 .Select(o => o["AthleteSlug"]?.GetValue<string>())
                 .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Take(3)
-                .ToList()!;
+                .Cast<string>()
+                .ToList();
         }
+
         var snapshot = GetAthletesSnapshot();
         var divisionBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var generationBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1039,6 +1063,7 @@ public class AthleteDataService : IDisposable
             var ex = o["ExclusiveLeague"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(ex)) exclusiveBySlug[slug] = ex;
         }
+
         string? targetDivision = leagueSlug?.ToLowerInvariant() switch { "mens" => "Men's", "womens" => "Women's", "open" => "Open", _ => null };
         string? targetGeneration = leagueSlug?.ToLowerInvariant() switch
         {
@@ -1054,17 +1079,21 @@ public class AthleteDataService : IDisposable
         var isAmateur = string.Equals(leagueSlug, "amateur", StringComparison.OrdinalIgnoreCase);
         if (targetDivision == null && targetGeneration == null && targetExclusive == null && !isAmateur)
             return Array.Empty<string>();
+
         var list = new List<string>();
         foreach (var o in order.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
+            if (requireBortz && o["LowestBortzAge"] is not JsonValue) continue;
             var match = targetDivision != null && divisionBySlug.TryGetValue(slug, out var d) && string.Equals(d, targetDivision, StringComparison.OrdinalIgnoreCase)
                 || targetGeneration != null && generationBySlug.TryGetValue(slug, out var g) && string.Equals(g, targetGeneration, StringComparison.OrdinalIgnoreCase)
                 || targetExclusive != null && exclusiveBySlug.TryGetValue(slug, out var e) && string.Equals(e, targetExclusive, StringComparison.OrdinalIgnoreCase)
                 || isAmateur && o["LowestBortzAge"] is not JsonValue;
-            if (match) { list.Add(slug); if (list.Count >= 3) break; }
+            if (match)
+                list.Add(slug);
         }
+
         return list;
     }
 
