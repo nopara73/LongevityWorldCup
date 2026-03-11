@@ -163,6 +163,14 @@
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
 
+        function getAthleteDisplayName() {
+            if (athlete?.DisplayName && athlete.DisplayName.trim()) {
+                return athlete.DisplayName.trim();
+            }
+
+            return athlete?.Name || '';
+        }
+
         function setPendingPaymentOffer(offer) {
             sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(offer));
         }
@@ -204,10 +212,11 @@
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
 
-            document.getElementById('character-title').textContent = athlete.Name;
+            const athleteDisplayName = getAthleteDisplayName();
+            document.getElementById('character-title').textContent = athleteDisplayName;
             document.querySelector('picture').innerHTML = `
                                                                                                                                                                                                                                         <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                 alt="${athleteDisplayName} headshot"
                                                                                                                                                                                                                                                 class="illustration"
                                                                                                                                                                                                                                                 loading="lazy">`;
 

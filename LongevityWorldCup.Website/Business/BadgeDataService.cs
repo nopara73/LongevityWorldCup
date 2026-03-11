@@ -744,6 +744,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public double? LowestBortzAge { get; init; }
         public double? AgeReduction { get; init; }
         public double? BortzAgeReduction { get; init; }
+        public double? PhenoPaceOfAging { get; init; }
+        public double? BortzPaceOfAging { get; init; }
         public int SubmissionCount { get; init; }
         public int BortzSubmissionCount { get; init; }
         public string? Division { get; init; }
@@ -835,9 +837,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         return ComputeRuleHash(sig);
     }
 
-    private static string BuildCrowdRuleHash(string label, string metricKey, string order, bool distinctValues, int decimals)
+    private static string BuildCrowdRuleHash(string label, string metricKey, string order, bool distinctValues, int decimals, string tieBreakKey = "none")
     {
-        var sig = $"label={label}|category=Global|metric={metricKey}|order={order}|distinct_values={(distinctValues ? "yes" : "no")}|round={decimals}dp|tiers=top3|ties=allowed";
+        var sig = $"label={label}|category=Global|metric={metricKey}|order={order}|distinct_values={(distinctValues ? "yes" : "no")}|round={decimals}dp|tiers=top3|tie={tieBreakKey}";
         return ComputeRuleHash(sig);
     }
 
@@ -909,6 +911,26 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 SortDirection: SortDir.Asc,
                 TieBreaker: compTie,
                 MetricKey: "BortzAge"),
+
+            new BadgeDefinition(
+                Label: "Pheno Pace of Aging",
+                Scope: BadgeScope.Global,
+                TopN: 3,
+                Eligibility: a => a.PhenoPaceOfAging.HasValue,
+                Metric: a => a.PhenoPaceOfAging,
+                SortDirection: SortDir.Asc,
+                TieBreaker: compTie,
+                MetricKey: "PhenoPaceOfAging"),
+
+            new BadgeDefinition(
+                Label: "Bortz Pace of Aging",
+                Scope: BadgeScope.Global,
+                TopN: 3,
+                Eligibility: a => a.BortzPaceOfAging.HasValue,
+                Metric: a => a.BortzPaceOfAging,
+                SortDirection: SortDir.Asc,
+                TieBreaker: compTie,
+                MetricKey: "BortzPaceOfAging"),
         };
     }
 
@@ -929,6 +951,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 LowestBortzAge = r.LowestBortzAge,
                 AgeReduction = r.AgeReduction,
                 BortzAgeReduction = r.BortzAgeReduction,
+                PhenoPaceOfAging = r.PhenoPaceOfAging,
+                BortzPaceOfAging = r.BortzPaceOfAging,
                 SubmissionCount = r.SubmissionCount,
                 BortzSubmissionCount = r.BortzSubmissionCount,
                 Division = r.Division,
@@ -1307,14 +1331,35 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         var ageGapHash = BuildCrowdRuleHash("Crowd – Age Gap (Chrono−Crowd)", "ChronoMinusCrowdAge", "desc", true, 2);
         AddTier(withGuesses, positiveGaps, s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero), "Crowd – Age Gap (Chrono−Crowd)", ageGapHash, awards);
 
-        var lowestAges = withGuesses
-            .Select(s => Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero))
+        var lowestAgeSlots = withGuesses
+            .Select(s => (
+                CrowdAge: Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero),
+                s.CrowdCount))
             .Distinct()
-            .OrderBy(a => a)
+            .OrderBy(x => x.CrowdAge)
+            .ThenByDescending(x => x.CrowdCount)
             .Take(3)
             .ToList();
-        var lowestAgeHash = BuildCrowdRuleHash("Crowd – Lowest Crowd Age", "CrowdAge", "asc", true, 2);
-        AddTier(withGuesses, lowestAges, s => Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero), "Crowd – Lowest Crowd Age", lowestAgeHash, awards);
+        var lowestAgeHash = BuildCrowdRuleHash("Crowd – Lowest Crowd Age", "CrowdAge", "asc", false, 2, tieBreakKey: "crowd_count_desc_then_ties_allowed");
+        for (int i = 0; i < lowestAgeSlots.Count; i++)
+        {
+            var place = i + 1;
+            var slot = lowestAgeSlots[i];
+            foreach (var s in withGuesses.Where(s =>
+                         Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero) == slot.CrowdAge &&
+                         s.CrowdCount == slot.CrowdCount))
+            {
+                awards.Add(new AwardRow
+                {
+                    BadgeLabel = "Crowd – Lowest Crowd Age",
+                    LeagueCategory = "Global",
+                    LeagueValue = null,
+                    Place = place,
+                    AthleteSlug = s.Slug,
+                    DefinitionHash = lowestAgeHash
+                });
+            }
+        }
 
         static void AddTier<T>(
             List<AthleteStats> pool,
@@ -1343,6 +1388,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 }
             }
         }
+
     }
 
     public void Dispose()

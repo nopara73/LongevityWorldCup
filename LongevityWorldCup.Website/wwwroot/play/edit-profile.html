@@ -279,6 +279,14 @@
             ? tempAthlete
             : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
 
+        function getAthleteDisplayName() {
+            if (athlete?.DisplayName && athlete.DisplayName.trim()) {
+                return athlete.DisplayName.trim();
+            }
+
+            return athlete?.Name || '';
+        }
+
         // now that athlete is chosen, normalize PersonalLink on each
         [originalAthlete, athlete].forEach(a => {
             if (a.PersonalLink === null || a.PersonalLink === 'null') {
@@ -294,10 +302,11 @@
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
 
-            document.getElementById('character-title').textContent = athlete.Name;
+            const athleteDisplayName = getAthleteDisplayName();
+            document.getElementById('character-title').textContent = athleteDisplayName;
             document.querySelector('picture').innerHTML = `
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            alt="${athlete.Name} headshot"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             alt="${athleteDisplayName} headshot"
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             class="illustration"
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             loading="lazy">`;
             if (athlete.ProfilePic !== originalAthlete.ProfilePic) {
@@ -719,7 +728,7 @@
             const newSrc = dataUrl || raw;
             const imgEl = document.querySelector('.illustration');
             imgEl.src = newSrc;
-            imgEl.alt = athlete.Name + ' headshot';
+            imgEl.alt = getAthleteDisplayName() + ' headshot';
             athlete.ProfilePic = newSrc;
             document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
 

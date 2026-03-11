@@ -345,7 +345,12 @@ public sealed class AthleteOgImageService
         if (string.IsNullOrWhiteSpace(profilePicUrl))
             return null;
 
-        var relative = profilePicUrl.Trim().TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
+        var relativeUrl = profilePicUrl.Trim();
+        var queryStart = relativeUrl.IndexOf('?');
+        if (queryStart >= 0)
+            relativeUrl = relativeUrl[..queryStart];
+
+        var relative = relativeUrl.TrimStart('/').Replace('/', IOPath.DirectorySeparatorChar);
         return IOPath.Combine(_env.WebRootPath, relative);
     }
 
