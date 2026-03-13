@@ -1,0 +1,41 @@
+{
+  "Name": "Marie Huxley",
+  "DisplayName": null,
+  "MediaContact": "lilldujour@gmail.com",
+  "DateOfBirth": {
+    "Year": 1973,
+    "Month": 5,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-03-05",
+      "AlbGL": 40,
+	  "CreatUmolL": 61,
+	  "GluMmolL": 5.3,
+	  "CrpMgL": 3.5,
+	  "LymPc": 46.5,
+	  "McvFL": 92.0,
+	  "RdwPc": 12.2,
+	  "AlpUL": 39,
+	  "Wbc1000cellsuL": 4.3,
+	  "NeutrophilPc": 41.9,
+	  "MonocytePc": 9.3,
+	  "Rbc10e12L": 4.4,
+	  "MchPg": 31.0,
+	  "UreaMmolL": null,
+	  "CystatinCMgL": null,
+	  "Hba1cMmolMol": 37,
+	  "CholesterolMmolL": null,
+	  "ApoA1GL": null,
+	  "AltUL": 17,
+	  "GgtUL": null,
+	  "ShbgNmolL": null,
+	  "VitaminDNmolL": 129
+	}
+  ],
+  "Division": "Women's",
+  "Flag": "Canada",
+  "Why": "My wish to age slowly drives me forward, of course.",
+  "PersonalLink": null
+}
