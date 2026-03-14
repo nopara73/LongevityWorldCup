@@ -619,9 +619,9 @@ public static class XMessageBuilder
     {
         return phase switch
         {
-            XPostPhase.Tiny => $"{athleteName} has the lowest {metricName} among the first {cohortLabel} athletes in the Longevity World Cup{ageStr} \U0001F9EC",
-            XPostPhase.Early => $"{athleteName} has the lowest {metricName} in the current {cohortLabel} field of the Longevity World Cup{ageStr} \U0001F9EC",
-            _ => $"{athleteName} currently holds the lowest {metricName} in the Longevity World Cup field{ageStr} \U0001F9EC"
+            XPostPhase.Tiny => $"Among the first {cohortLabel} athletes, {athleteName} has the lowest {metricName} so far{ageStr} \U0001F9EC",
+            XPostPhase.Early => $"Among {cohortLabel} athletes, {athleteName} has the lowest {metricName} so far{ageStr} \U0001F9EC",
+            _ => $"{athleteName} has the lowest {metricName} in the Longevity World Cup{ageStr} \U0001F9EC"
         };
     }
 
