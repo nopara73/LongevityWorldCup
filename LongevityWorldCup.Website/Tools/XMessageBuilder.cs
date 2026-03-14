@@ -117,6 +117,7 @@ public static class XMessageBuilder
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
         if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
         {
+            if (!EventHelpers.TryExtractPlace(rawText, out var phenoPlace) || phenoPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var phenoSlug)) return "";
             var phenoAthlete = slugToName(phenoSlug);
             var phenoAge = getLowestPhenoAgeForSlug?.Invoke(phenoSlug);
@@ -132,6 +133,7 @@ public static class XMessageBuilder
         }
         if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
         {
+            if (!EventHelpers.TryExtractPlace(rawText, out var phenoImprovementPlace) || phenoImprovementPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var diffSlug)) return "";
             var diffVal = getPhenoDiffForSlug?.Invoke(diffSlug);
             if (!diffVal.HasValue) return "";
@@ -150,6 +152,7 @@ public static class XMessageBuilder
 
         if (string.Equals(normLabel, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
         {
+            if (!EventHelpers.TryExtractPlace(rawText, out var bortzPlace) || bortzPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var bortzSlug)) return "";
             var bortzAthlete = slugToName(bortzSlug);
             var bortzAge = getLowestBortzAgeForSlug?.Invoke(bortzSlug);
@@ -166,6 +169,7 @@ public static class XMessageBuilder
 
         if (string.Equals(normLabel, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
         {
+            if (!EventHelpers.TryExtractPlace(rawText, out var bortzImprovementPlace) || bortzImprovementPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var diffSlug)) return "";
             var diffVal = getBortzDiffForSlug?.Invoke(diffSlug);
             if (!diffVal.HasValue) return "";
@@ -184,6 +188,7 @@ public static class XMessageBuilder
 
         if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
         {
+            if (!EventHelpers.TryExtractPlace(rawText, out var chronoOldestPlace) || chronoOldestPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var chronoSlug)) return "";
             var chronoAge = getChronoAgeForSlug?.Invoke(chronoSlug);
             if (!chronoAge.HasValue) return "";
@@ -195,6 +200,7 @@ public static class XMessageBuilder
 
         if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
         {
+            if (!EventHelpers.TryExtractPlace(rawText, out var chronoYoungestPlace) || chronoYoungestPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var chronoSlug)) return "";
             var chronoAge = getChronoAgeForSlug?.Invoke(chronoSlug);
             if (!chronoAge.HasValue) return "";
