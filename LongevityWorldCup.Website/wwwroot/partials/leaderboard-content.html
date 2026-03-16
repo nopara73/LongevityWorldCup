@@ -1820,9 +1820,6 @@
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
                                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
                                         podiumItem.setAttribute('data-athlete-name', athlete.name);
-                                        podiumItem.setAttribute('data-aos', 'fade');
-                                        podiumItem.setAttribute('data-aos-duration', '700');
-                                        podiumItem.setAttribute('data-aos-delay', '50');
 
                                         subscribeLowerPodiumClick();
                                     });
@@ -1924,9 +1921,6 @@
                     row.setAttribute('data-division', athlete.division.toLowerCase().trim());
                     row.setAttribute('data-generation', athlete.generation.trim());
                     row.setAttribute('data-athlete-name', athlete.name);
-                    row.setAttribute('data-aos', 'fade');
-                    row.setAttribute('data-aos-duration', '700');
-                    row.setAttribute('data-aos-delay', '50');
 
                     if (includePodium && athlete.rank <= podiumCount) {
                         row.style.display = 'none';

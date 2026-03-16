@@ -532,7 +532,7 @@
     }
 </style>
 
-<div id="events-root" class="events-board fade-in-board">
+<div id="events-root" class="events-board">
     <table id="eventsTable">
         <thead>
         <tr>
@@ -1759,9 +1759,5 @@
             });
         };
 
-        document.addEventListener('DOMContentLoaded',()=>{
-            const root=document.getElementById('events-root');
-            if(root) root.classList.add('fade-in-board');
-        });
     })();
 </script>
