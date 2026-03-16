@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Globalization;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
+using System.Text;
 
 namespace LongevityWorldCup.Website.Middleware
 {
@@ -63,7 +64,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
                         .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
                         .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
-                    head = ApplyAssetVersions(head);
+                    head = ApplyHeadAssets(head, path ?? string.Empty);
 
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
@@ -104,9 +105,15 @@ namespace LongevityWorldCup.Website.Middleware
             await _next(context);
         }
 
-        private string ApplyAssetVersions(string html)
+        private string ApplyHeadAssets(string html, string path)
         {
+            var config = GetHeadAssetConfig(path);
+            var optionalHeadScripts = BuildOptionalHeadScripts(config);
+            var modulesBootstrap = BuildModulesBootstrap(config);
+
             return html
+                .Replace("{{OPTIONAL_HEAD_SCRIPTS}}", optionalHeadScripts)
+                .Replace("{{MODULES_BOOTSTRAP}}", modulesBootstrap)
                 .Replace("{{ASSET_BADGES_CSS}}", _assetVersionProvider.AppendVersion("/css/badges.css"))
                 .Replace("{{ASSET_MISC_JS}}", _assetVersionProvider.AppendVersion("/js/misc.js"))
                 .Replace("{{ASSET_LEAGUE_ICONS_JS}}", _assetVersionProvider.AppendVersion("/js/leagueIcons.js"))
@@ -116,6 +123,155 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                 .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
                 .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
+        }
+
+        private string BuildOptionalHeadScripts(HeadAssetConfig config)
+        {
+            var sb = new StringBuilder();
+
+            if (config.IncludeChartJs)
+            {
+                sb.AppendLine("<script src=\"https://cdn.jsdelivr.net/npm/chart.js\" crossorigin=\"anonymous\" defer></script>");
+            }
+
+            if (config.IncludeValidator)
+            {
+                sb.AppendLine("<script src=\"https://cdn.jsdelivr.net/npm/validator@13.9.0/validator.min.js\" crossorigin=\"anonymous\" defer></script>");
+            }
+
+            return sb.ToString().TrimEnd();
+        }
+
+        private string BuildModulesBootstrap(HeadAssetConfig config)
+        {
+            if (config.ModulePaths.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var imports = string.Join("," + Environment.NewLine, config.ModulePaths.Select(path => $"        import(`{_assetVersionProvider.AppendVersion(path)}`)"));
+            return
+$@"<script type=""module"">
+    window.modulesReady = Promise.all([
+{imports}
+    ]);
+</script>";
+        }
+
+        private static HeadAssetConfig GetHeadAssetConfig(string path)
+        {
+            return path.ToLowerInvariant() switch
+            {
+                "/" or "/index.html" => new HeadAssetConfig(
+                    IncludeValidator: true,
+                    IncludeChartJs: true,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/pheno-age.js",
+                        "/js/bortz-age.js",
+                        "/js/badges.js",
+                        "/js/age-visualization.js"
+                    ]),
+                "/leaderboard/leaderboard.html" => new HeadAssetConfig(
+                    IncludeValidator: true,
+                    IncludeChartJs: true,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/pheno-age.js",
+                        "/js/bortz-age.js",
+                        "/js/badges.js",
+                        "/js/age-visualization.js"
+                    ]),
+                "/event-board/event-board.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/badges.js"
+                    ]),
+                "/event-board-embed.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/badges.js"
+                    ]),
+                "/play/edit-profile.html" => new HeadAssetConfig(
+                    IncludeValidator: true,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js"
+                    ]),
+                "/play/proof-upload.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/proof-helpers.js"
+                    ]),
+                "/play/character-selection.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js"
+                    ]),
+                "/play/character-customization.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/proof-helpers.js",
+                        "/js/pro-discounts.js"
+                    ]),
+                "/onboarding/pheno-age.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/pheno-age.js"
+                    ]),
+                "/onboarding/bortz-age.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/pheno-age.js",
+                        "/js/bortz-age.js"
+                    ]),
+                "/onboarding/convergence.html" => new HeadAssetConfig(
+                    IncludeValidator: true,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/proof-helpers.js"
+                    ]),
+                "/onboarding/join-game.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/pro-discounts.js"
+                    ]),
+                _ => HeadAssetConfig.Empty
+            };
         }
 
         private SeoMeta GetSeoMeta(HttpContext context)
@@ -460,5 +616,10 @@ namespace LongevityWorldCup.Website.Middleware
             string OgDescription,
             string OgImageUrl
         );
+
+        private sealed record HeadAssetConfig(bool IncludeValidator, bool IncludeChartJs, IReadOnlyList<string> ModulePaths)
+        {
+            public static readonly HeadAssetConfig Empty = new(false, false, Array.Empty<string>());
+        }
     }
 }

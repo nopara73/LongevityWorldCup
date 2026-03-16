@@ -188,24 +188,7 @@
                 return `<span class="pro-new-price">${oldText}</span>`;
             };
             const ensureProDiscountsLoaded = () => {
-                if (window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function') {
-                    return Promise.resolve();
-                }
-                return new Promise((resolve) => {
-                    const existing = document.querySelector('script[data-pro-discounts-loader="1"]');
-                    if (existing) {
-                        existing.addEventListener('load', () => resolve(), { once: true });
-                        existing.addEventListener('error', () => resolve(), { once: true });
-                        return;
-                    }
-                    const script = document.createElement('script');
-                    script.src = `/js/pro-discounts.js?v=${Date.now()}`;
-                    script.defer = true;
-                    script.setAttribute('data-pro-discounts-loader', '1');
-                    script.addEventListener('load', () => resolve(), { once: true });
-                    script.addEventListener('error', () => resolve(), { once: true });
-                    document.head.appendChild(script);
-                });
+                return Promise.resolve();
             };
             setTimeout(() => {
                 const viewTarget = document.querySelector('h1');

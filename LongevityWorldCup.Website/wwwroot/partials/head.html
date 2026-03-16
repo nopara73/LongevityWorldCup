@@ -34,8 +34,7 @@
 <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" as="style" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" crossorigin="anonymous">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/validator@13.9.0/validator.min.js" crossorigin="anonymous" defer></script>
+{{OPTIONAL_HEAD_SCRIPTS}}
 
 <!-- AOS CSS -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
@@ -43,6 +42,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js" defer></script>
 
 <link rel="stylesheet" href="{{ASSET_BADGES_CSS}}">
+
+<script>
+    window.modulesReady = Promise.resolve();
+</script>
 
 <!--
 Monkey-patch DOMContentLoaded to delay all handlers until modulesReady resolves.
@@ -97,21 +100,7 @@ Must appear before any other script that initializes or relies on AOS.
     })();
 </script>
 
-<script type="module">
-    // kick off dynamic imports (they run in module scope,
-    // so nothing leaks global except what each module explicitly
-    // assigns to window, e.g. window.PhenoAge)
-    window.modulesReady = Promise.all([
-        import(`{{ASSET_MISC_JS}}`),
-        import(`{{ASSET_LEAGUE_ICONS_JS}}`),
-        import(`{{ASSET_PHENO_AGE_JS}}`),
-        import(`{{ASSET_BORTZ_AGE_JS}}`),
-        import(`{{ASSET_BADGES_JS}}`),
-        import(`{{ASSET_PRO_DISCOUNTS_JS}}`),
-        import(`{{ASSET_PROOF_HELPERS_JS}}`),
-        import(`{{ASSET_AGE_VISUALIZATION_JS}}`)
-    ]);
-</script>
+{{MODULES_BOOTSTRAP}}
 
 <!-- Structured Data -->
 <script type="application/ld+json">{{SEO_STRUCTURED_DATA}}</script>
