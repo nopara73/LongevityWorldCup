@@ -1847,7 +1847,6 @@
                                         });
                                     });
 
-                                    applyCamelCaseNewlines();
                                     autoshrinkPodiumNames();
 
                                     addClickListenerToImages('.portrait, #modalProfilePic', function () {
@@ -1910,7 +1909,7 @@
                     }
 
                     const athleteNameSpan = athleteCell.querySelector('.athlete-name');
-                    athleteNameSpan.textContent = athlete.displayName;
+                    athleteNameSpan.innerHTML = formatAthleteNameForMobile(athlete.displayName);
                     athleteNameSpan.title = `View stats of ${athlete.displayName}`;
 
                     window.setBadges(athlete, athleteCell);
@@ -1940,7 +1939,6 @@
                     }
 
                     attachAthleteNameClickListeners();
-                    applyCamelCaseNewlines();
                     addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
                     });
@@ -2722,7 +2720,6 @@
 
         if (typeof AOS !== 'undefined') {
             AOS.refresh();
-            applyCamelCaseNewlines(); // Reapply the camelCase fix AFTER AOS refresh
         }
 
         const url = new URL(window.location.href);
@@ -3135,14 +3132,19 @@
         addFadeInEffectToElements();
     });
 
-    function applyCamelCaseNewlines() {
-        if (window.innerWidth < 480) {
-            document.querySelectorAll('.athlete-name').forEach(el => {
-                if (el.closest('.podium')) return;
-                const txt = el.textContent;
-                el.innerHTML = txt.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
-            });
-        }
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function formatAthleteNameForMobile(name) {
+        const safeName = escapeHtml(name);
+        if (window.innerWidth >= 480) return safeName;
+        return safeName.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
     }
 
     function fitTextToWidth(el, minPx = 12, maxPx = null) {
