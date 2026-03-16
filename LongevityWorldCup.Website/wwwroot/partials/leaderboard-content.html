@@ -141,6 +141,14 @@
         color:transparent;
     }
 
+    .podium-item > .podium-content-part{
+        opacity:0;
+    }
+
+    .podium-item > .podium-content-part.is-visible{
+        opacity:1;
+    }
+
     .leaderboard-skeleton-block{
         display:inline-block;
         height:16px;
@@ -2040,6 +2048,7 @@
                                         });
                                     });
 
+                                    animatePodiumContent();
                                     autoshrinkPodiumNames();
 
                                     addClickListenerToImages('.portrait, #modalProfilePic', function () {
@@ -2329,7 +2338,26 @@
         tableBody.classList.add('loading-skeleton');
         tableBody.setAttribute('aria-busy', 'true');
         tableBody.innerHTML = buildLeaderboardSkeletonRows(skeletonCount);
-        addFadeInEffectToElements();
+    }
+
+    function animatePodiumContent() {
+        const items = document.querySelectorAll('.podium .podium-item');
+        if (!items.length) return;
+
+        items.forEach(item => {
+            Array.from(item.children).forEach(child => {
+                child.classList.add('podium-content-part');
+            });
+        });
+
+        requestAnimationFrame(() => {
+            items.forEach(item => {
+                Array.from(item.children).forEach(child => {
+                    child.style.transitionDelay = '0ms';
+                    child.classList.add('is-visible');
+                });
+            });
+        });
     }
 
     function subscribeLowerPodiumClick() {
@@ -3404,16 +3432,6 @@
             });
         });
     }
-
-    function addFadeInEffectToElements() {
-        document.querySelectorAll('.podium-item, .leaderboard table tbody tr').forEach(element => {
-            element.classList.add('fade-in-element');
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        addFadeInEffectToElements();
-    });
 
     function escapeHtml(text) {
         return String(text)
