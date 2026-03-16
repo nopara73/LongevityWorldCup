@@ -42,9 +42,7 @@
 <!-- AOS JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js" defer></script>
 
-<script>
-(function(){var v=Date.now();window.__v=v;document.write('<link rel="stylesheet" href="/css/badges.css?v='+v+'">');})();
-</script>
+<link rel="stylesheet" href="{{ASSET_BADGES_CSS}}">
 
 <!--
 Monkey-patch DOMContentLoaded to delay all handlers until modulesReady resolves.
@@ -100,20 +98,18 @@ Must appear before any other script that initializes or relies on AOS.
 </script>
 
 <script type="module">
-    const __v = window.__v || Date.now();
-
     // kick off dynamic imports (they run in module scope,
     // so nothing leaks global except what each module explicitly
     // assigns to window, e.g. window.PhenoAge)
     window.modulesReady = Promise.all([
-        import(`/js/misc.js?v=${__v}`),
-        import(`/js/leagueIcons.js?v=${__v}`),
-        import(`/js/pheno-age.js?v=${__v}`),
-        import(`/js/bortz-age.js?v=${__v}`),
-        import(`/js/badges.js?v=${__v}`),
-        import(`/js/pro-discounts.js?v=${__v}`),
-        import(`/js/proof-helpers.js?v=${__v}`),
-        import(`/js/age-visualization.js?v=${__v}`)
+        import(`{{ASSET_MISC_JS}}`),
+        import(`{{ASSET_LEAGUE_ICONS_JS}}`),
+        import(`{{ASSET_PHENO_AGE_JS}}`),
+        import(`{{ASSET_BORTZ_AGE_JS}}`),
+        import(`{{ASSET_BADGES_JS}}`),
+        import(`{{ASSET_PRO_DISCOUNTS_JS}}`),
+        import(`{{ASSET_PROOF_HELPERS_JS}}`),
+        import(`{{ASSET_AGE_VISUALIZATION_JS}}`)
     ]);
 </script>
 
