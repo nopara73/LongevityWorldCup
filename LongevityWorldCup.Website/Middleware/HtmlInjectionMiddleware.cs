@@ -1,14 +1,16 @@
 using System.Text.Json;
 using System.Globalization;
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
         private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;
+        private readonly AssetVersionProvider _assetVersionProvider = assetVersionProvider;
         private const string SiteBaseUrl = "https://longevityworldcup.com";
         private const string DefaultOgImage = "https://longevityworldcup.com/assets/og-image.png";
         private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
@@ -61,6 +63,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
                         .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
                         .Replace("{{SEO_STRUCTURED_DATA}}", BuildStructuredDataJson(seo));
+                    head = ApplyAssetVersions(head);
 
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
@@ -99,6 +102,20 @@ namespace LongevityWorldCup.Website.Middleware
 
             // For all other requests, continue down the pipeline
             await _next(context);
+        }
+
+        private string ApplyAssetVersions(string html)
+        {
+            return html
+                .Replace("{{ASSET_BADGES_CSS}}", _assetVersionProvider.AppendVersion("/css/badges.css"))
+                .Replace("{{ASSET_MISC_JS}}", _assetVersionProvider.AppendVersion("/js/misc.js"))
+                .Replace("{{ASSET_LEAGUE_ICONS_JS}}", _assetVersionProvider.AppendVersion("/js/leagueIcons.js"))
+                .Replace("{{ASSET_PHENO_AGE_JS}}", _assetVersionProvider.AppendVersion("/js/pheno-age.js"))
+                .Replace("{{ASSET_BORTZ_AGE_JS}}", _assetVersionProvider.AppendVersion("/js/bortz-age.js"))
+                .Replace("{{ASSET_BADGES_JS}}", _assetVersionProvider.AppendVersion("/js/badges.js"))
+                .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
+                .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
+                .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
         }
 
         private SeoMeta GetSeoMeta(HttpContext context)
