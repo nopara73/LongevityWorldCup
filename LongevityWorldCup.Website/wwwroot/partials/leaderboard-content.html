@@ -1552,8 +1552,19 @@
         maxAthletesGlobal = maxAthletes;
         setLeaderboardLoadingState(includePodium, maxAthletes);
 
-        fetch('/api/data/athletes')
-            .then(response => response.json())
+        window.getSharedAthletes = window.getSharedAthletes || function(){
+            if(!window.__sharedAthletesRequest){
+                window.__sharedAthletesRequest = fetch('/api/data/athletes')
+                    .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                    .catch(error => {
+                        window.__sharedAthletesRequest = null;
+                        throw error;
+                    });
+            }
+            return window.__sharedAthletesRequest;
+        };
+
+        window.getSharedAthletes()
             .then(athletes => {
                 // Array to store athletes with their lowest PhenoAge and age reduction
                 var viewAllAthletesBtn = document.getElementById('viewAllAthletesBtn');
