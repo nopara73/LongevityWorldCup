@@ -554,6 +554,29 @@
     .modal.fade-out .modal-sticky-header{
         visibility:hidden;
     }
+    .modal-content.is-loading #athleteBio,
+    .modal-content.is-loading #athleteRank,
+    .modal-content.is-loading #athleteDivision,
+    .modal-content.is-loading #athleteGeneration,
+    .modal-content.is-loading #athleteFlag,
+    .modal-content.is-loading #chronologicalAge,
+    .modal-content.is-loading #lowestBortzAge,
+    .modal-content.is-loading #lowestPhenoAge,
+    .modal-content.is-loading #bortzAgeReduction,
+    .modal-content.is-loading #bortzAgeReductionPercent,
+    .modal-content.is-loading #ageReduction,
+    .modal-content.is-loading #ageReductionPercent,
+    .modal-content.is-loading #paceOfAging,
+    .modal-content.is-loading #paceOfAgingRank,
+    .modal-content.is-loading #bortzPaceOfAging,
+    .modal-content.is-loading #bortzPaceOfAgingRank,
+    .modal-content.is-loading #crowdAge,
+    .modal-content.is-loading #crowdCount,
+    .modal-content.is-loading #yourGuess,
+    .modal-content.is-loading #modalBadgeStrip,
+    .modal-content.is-loading #proofsGallery{
+        visibility:hidden;
+    }
     .modal-content{
         background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
         border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn .5s ease-out;
@@ -2479,6 +2502,7 @@
     let ageChart;
     let savedBodyScroll = 0;
     let savedBodyBackground = '';
+    let currentAthleteModalRequestId = 0;
 
     function ensureAthleteModalDeferredSections() {
         if (document.getElementById('events-frame') && document.getElementById('athlete-biomarkers') && document.getElementById('athlete-proofs')) {
@@ -2500,6 +2524,65 @@
                 frame.dataset.themeBound = '1';
             }
         }
+    }
+
+    function resetModalForLoading(athleteSlug) {
+        ensureAthleteModalDeferredSections();
+
+        const modalContent = document.querySelector('.modal-content');
+        if (!modalContent) return null;
+
+        modalContent.classList.add('is-loading');
+        modalContent.dataset.athleteSlug = athleteSlug;
+        modalContent.scrollTop = 0;
+
+        const stickyHeader = document.getElementById('modalStickyHeader');
+        if (stickyHeader) {
+            stickyHeader.classList.remove('visible');
+        }
+
+        const athleteNameElement = document.getElementById('athleteName');
+        if (athleteNameElement) athleteNameElement.textContent = 'Loading...';
+        const stickyAthleteName = document.getElementById('stickyAthleteName');
+        if (stickyAthleteName) stickyAthleteName.textContent = 'Loading...';
+
+        const profilePic = document.getElementById('modalProfilePic');
+        if (profilePic) {
+            profilePic.removeAttribute('src');
+            profilePic.alt = 'Loading athlete profile picture';
+        }
+
+        const modalBadgeStrip = document.getElementById('modalBadgeStrip');
+        if (modalBadgeStrip) modalBadgeStrip.innerHTML = '';
+        const athleteBio = document.getElementById('athleteBio');
+        if (athleteBio) athleteBio.textContent = '';
+        const personalLinkElement = document.getElementById('personalLink');
+        if (personalLinkElement) personalLinkElement.style.display = 'none';
+        const mediaContactElement = document.getElementById('mediaContact');
+        if (mediaContactElement) mediaContactElement.style.display = 'none';
+        const proofsGallery = document.getElementById('proofsGallery');
+        if (proofsGallery) proofsGallery.innerHTML = '';
+
+        const eventsFrame = document.getElementById('events-frame');
+        if (eventsFrame) {
+            eventsFrame.removeAttribute('src');
+            eventsFrame.style.height = '1px';
+        }
+
+        if (window.biomarkerChartInstance) {
+            window.biomarkerChartInstance.destroy();
+            window.biomarkerChartInstance = null;
+        }
+        if (typeof window.destroyAgeRadarChart === 'function') {
+            window.destroyAgeRadarChart();
+        }
+
+        if (modal.style.display !== "block") {
+            modal.style.display = "block";
+            lockBodyScroll();
+        }
+
+        return modalContent;
     }
 
     // Improved body scroll lock for iOS
@@ -3563,6 +3646,22 @@
         return athleteResults.find(athlete => window.slugifyName(athlete.name) === window.slugifyName(athleteNameText));
     }
 
+    window.openAthleteModalBySlug = function (athleteSlug) {
+        const normalizedSlug = window.slugifyName(athleteSlug, true);
+        const athleteData = athleteResults.find(athlete => {
+            const nameSlug = window.slugifyName(athlete.name, true);
+            const displayNameSlug = athlete.displayName ? window.slugifyName(athlete.displayName, true) : '';
+            return nameSlug === normalizedSlug || displayNameSlug === normalizedSlug;
+        });
+
+        if (!athleteData) {
+            return false;
+        }
+
+        fetchFullAthleteData(athleteData.name, athleteData);
+        return true;
+    };
+
     function getAthletelessURL() {
         const url = new URL(window.location.href.replace(/\/athlete\/[^/]+\/?$/, ''));
         url.searchParams.delete('athlete');
@@ -3579,9 +3678,25 @@
     let originalLeaguelessURL = getLeaguelessURL();
 
     function fetchFullAthleteData(athleteNameText, athleteData) {
-        fetchWithTimeout('/api/data/athletes', {}, 10000) // 10-second timeout
-            .then(response => response.json())
+        window.getSharedAthletes = window.getSharedAthletes || function(){
+            if(!window.__sharedAthletesRequest){
+                window.__sharedAthletesRequest = fetchWithTimeout('/api/data/athletes', {}, 10000)
+                    .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                    .catch(error => {
+                        window.__sharedAthletesRequest = null;
+                        throw error;
+                    });
+            }
+            return window.__sharedAthletesRequest;
+        };
+
+        const athleteSlug = window.slugifyName(athleteNameText, true);
+        const requestId = ++currentAthleteModalRequestId;
+        const modalContent = resetModalForLoading(athleteSlug);
+
+        window.getSharedAthletes()
             .then(athletes => {
+                if (requestId !== currentAthleteModalRequestId) return;
                 const fullAthleteData = athletes.find(a => window.slugifyName(a.Name) === window.slugifyName(athleteNameText));
                 if (!fullAthleteData) {
                     console.error('Full athlete data not found');
@@ -3609,26 +3724,21 @@
                 if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
                     originalAthletelessURL = getAthletelessURL();
                 }
-                const athleteSlug = window.slugifyName(athleteNameText, true);
                 history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
-
-                // Display the modal
-                modal.style.display = "block";
-                lockBodyScroll();
-                ensureAthleteModalDeferredSections();
 
                 // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
                 // Populate proofs gallery after deferred modal sections are available.
                 populateProofsGallery(fullAthleteData);
 
-                const modalContent = document.querySelector('.modal-content');
                 // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
                 requestAnimationFrame(function() {
+                    if (requestId !== currentAthleteModalRequestId) return;
                     generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
                     generateBiomarkerChart(fullAthleteData);
                     // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
                     requestAnimationFrame(function() {
+                        if (requestId !== currentAthleteModalRequestId) return;
                         if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
                     });
                     var chartContainer = document.getElementById('athlete-biomarkers');
@@ -3644,6 +3754,7 @@
                     console.error('Modal content element not found');
                     return;
                 }
+                modalContent.classList.remove('is-loading');
                 
                 modalContent.dataset.athleteSlug = athleteSlug;
                 
@@ -3749,6 +3860,10 @@
 
             })
             .catch(error => {
+                if (requestId !== currentAthleteModalRequestId) return;
+                if (modalContent) {
+                    modalContent.classList.remove('is-loading');
+                }
                 console.error('Error fetching full athlete data:', error);
             });
     }

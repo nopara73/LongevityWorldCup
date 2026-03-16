@@ -914,10 +914,13 @@
 
                 const isSelf = athletePageTargetSlug && key===athletePageTargetSlug;
                 const shouldLink = !!href && !isSelf && (linkNames || openLinksInNewTab);
+                const modalAttrs = (!openLinksInNewTab && key)
+                    ? ` class="event-athlete-link" data-athlete-slug="${esc(key)}"`
+                    : "";
 
                 const targetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
                 const piece=shouldLink
-                    ? `<a href="${href}"${targetAttrs}>${esc(name)}</a>`
+                    ? `<a href="${href}"${modalAttrs}${targetAttrs}>${esc(name)}</a>`
                     : `<span class="athlete-name-text">${esc(name)}</span>`;
 
                 const extra=typeof afterSlug==="function"?afterSlug(key,a):"";
@@ -1335,16 +1338,19 @@
                     : `loading="lazy" fetchpriority="low"`;
 
                 const avatarTargetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
+                const avatarModalAttrs = (!openLinksInNewTab && primaryKey)
+                    ? ` data-athlete-slug="${esc(primaryKey)}"`
+                    : ``;
 
                 if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult) {
                     if (img) {
                         avatarHtml = canLinkAvatar
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></a>`
+                            ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}"><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
                     } else {
                         const fallback = `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
                         avatarHtml = canLinkAvatar
-                            ? `<a href="${url}" class="avatar-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarTargetAttrs}>${fallback}</a>`
+                            ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}>${fallback}</a>`
                             : `<span class="avatar-disabled" aria-label="${esc(name)}">${fallback}</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
@@ -1752,6 +1758,29 @@
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
             setEventsLoadingState();
             setViewAllVisible(!!showViewAll);
+
+            const root = document.getElementById('events-root');
+            if (root && !root.dataset.modalAthleteBinding) {
+                root.dataset.modalAthleteBinding = 'true';
+                root.addEventListener('click', function (event) {
+                    const link = event.target && event.target.closest ? event.target.closest('a.event-athlete-link[data-athlete-slug]') : null;
+                    if (!link) return;
+                    if (openLinksInNewTab) return;
+                    if (event.defaultPrevented) return;
+                    if (event.button !== 0) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    if (typeof window.openAthleteModalBySlug !== 'function') return;
+
+                    const athleteSlug = link.getAttribute('data-athlete-slug');
+                    if (!athleteSlug) return;
+
+                    const opened = window.openAthleteModalBySlug(athleteSlug);
+                    if (!opened) return;
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                });
+            }
 
             const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
 
