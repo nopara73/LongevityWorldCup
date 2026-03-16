@@ -550,6 +550,10 @@
         display:none; position:fixed; z-index:3; left:0; top:0; width:100%; height:100%;
         overflow:hidden; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
     }
+    .modal.fade-out .modal-content,
+    .modal.fade-out .modal-sticky-header{
+        visibility:hidden;
+    }
     .modal-content{
         background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
         border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn .5s ease-out;
@@ -1263,25 +1267,28 @@
                     </div>
                 </div>
 
-                <div class="events-embed" style="margin-top:16px">
-                    <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
-                </div>
-
-                <div class="biomarkers-section" id="athlete-biomarkers">
-                    <h3>Biomarkers over time</h3>
-                    <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
-                </div>
-
-                <div class="proofs-section" id="athlete-proofs">
-                    <h3>Proofs</h3>
-                    <div class="proofs-gallery" id="proofsGallery">
-                        <!-- Proof images will be inserted here -->
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
+
+<template id="athleteModalDeferredSectionsTemplate">
+    <div class="events-embed" style="margin-top:16px">
+        <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
+    </div>
+
+    <div class="biomarkers-section" id="athlete-biomarkers">
+        <h3>Biomarkers over time</h3>
+        <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
+    </div>
+
+    <div class="proofs-section" id="athlete-proofs">
+        <h3>Proofs</h3>
+        <div class="proofs-gallery" id="proofsGallery">
+            <!-- Proof images will be inserted here -->
+        </div>
+    </div>
+</template>
 
 <template id="enlargedPortraitTemplate">
     <div class="enlarged-portrait">
@@ -2471,6 +2478,29 @@
     const athleteDetails = document.getElementById("athleteDetails");
     let ageChart;
     let savedBodyScroll = 0;
+    let savedBodyBackground = '';
+
+    function ensureAthleteModalDeferredSections() {
+        if (document.getElementById('events-frame') && document.getElementById('athlete-biomarkers') && document.getElementById('athlete-proofs')) {
+            return;
+        }
+
+        const modalContent = document.querySelector('.modal-content');
+        const template = document.getElementById('athleteModalDeferredSectionsTemplate');
+        if (!modalContent || !template) return;
+
+        modalContent.appendChild(template.content.cloneNode(true));
+
+        if (typeof window.__sendThemeToEventsFrame === 'function') {
+            const frame = document.getElementById('events-frame');
+            if (frame && !frame.dataset.themeBound) {
+                frame.addEventListener('load', function () {
+                    window.__sendThemeToEventsFrame(frame);
+                });
+                frame.dataset.themeBound = '1';
+            }
+        }
+    }
 
     // Improved body scroll lock for iOS
     function lockBodyScroll() {
@@ -2484,6 +2514,8 @@
         document.body.style.position = 'fixed';
         document.body.style.top = `-${scrollY}px`;
         document.body.style.width = '100%';
+        savedBodyBackground = document.body.style.backgroundColor;
+        document.body.style.backgroundColor = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
     }
 
     function restoreBodyScroll() {
@@ -2493,7 +2525,8 @@
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.width = '';
-        
+        document.body.style.backgroundColor = savedBodyBackground;
+
         // Restore scroll position
         if (savedBodyScroll !== undefined) {
             window.scrollTo(0, savedBodyScroll);
@@ -2720,10 +2753,10 @@
         }
         
         modal.classList.add('fade-out');
+        restoreBodyScroll();
         setTimeout(() => {
             modal.style.display = "none";
             modal.classList.remove('fade-out');
-            restoreBodyScroll();
             
             // Reset scroll position for next open
             if (modalContent) {
@@ -3570,11 +3603,6 @@
                     ? athleteData.chronoAtLowestBortzAge
                     : athleteData.chronoAtLowestPhenoAge;
 
-                // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
-
-                // Populate proofs gallery
-                populateProofsGallery(fullAthleteData);
-
                 // After populating the modal with athlete data but before showing it:
                 // Only update originalAthletelessURL when we're not already on an athlete URL, so a second open (e.g. URL sync with ?guessmyage=1) does not overwrite it with "/"
                 const pathnameBeforeOpen = window.location.pathname;
@@ -3587,6 +3615,12 @@
                 // Display the modal
                 modal.style.display = "block";
                 lockBodyScroll();
+                ensureAthleteModalDeferredSections();
+
+                // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
+
+                // Populate proofs gallery after deferred modal sections are available.
+                populateProofsGallery(fullAthleteData);
 
                 const modalContent = document.querySelector('.modal-content');
                 // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
@@ -4581,6 +4615,7 @@
             vars.forEach(function (v) { payload[v] = cs.getPropertyValue(v) });
             f.contentWindow.postMessage(payload, '*');
         }
+        window.__sendThemeToEventsFrame = sendThemeToFrame;
         var frame = document.getElementById('events-frame');
         if (frame) {
             frame.addEventListener('load', function () { sendThemeToFrame(frame) });
