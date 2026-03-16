@@ -628,6 +628,18 @@
 
 <script>
     (function(){
+        window.getSharedAthletes = window.getSharedAthletes || function(){
+            if(!window.__sharedAthletesRequest){
+                window.__sharedAthletesRequest = fetch("/api/data/athletes",{headers:{accept:"application/json"}})
+                    .then(r=>r.ok?r.json():Promise.reject(r.status))
+                    .catch(err=>{
+                        window.__sharedAthletesRequest = null;
+                        throw err;
+                    });
+            }
+            return window.__sharedAthletesRequest;
+        };
+
         const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7 };
 
         function buildEventSkeletonRows(count=5){
@@ -1744,7 +1756,7 @@
             const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
 
             const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
-            const athletesReq=fetch("/api/data/athletes",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
+            const athletesReq=window.getSharedAthletes();
 
             Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
                 const athletesIndex=buildAthleteIndex(athletes);
