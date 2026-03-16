@@ -191,9 +191,19 @@ $@"<script type=""module"">
                     IncludeChartJs: false,
                     ModulePaths:
                     [
-                        "/js/misc.js"
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/badges.js"
                     ]),
-                "/event-board-embed.html" => HeadAssetConfig.Empty,
+                "/event-board-embed.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    IncludeChartJs: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/badges.js"
+                    ]),
                 "/play/edit-profile.html" => new HeadAssetConfig(
                     IncludeValidator: true,
                     IncludeChartJs: false,
