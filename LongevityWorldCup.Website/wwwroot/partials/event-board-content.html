@@ -38,6 +38,7 @@
     @media (prefers-reduced-motion:reduce){
         .fade-in-board{animation:none!important}
         .row-appear,.row-appear.is-visible{opacity:1;transform:none;transition:none!important}
+        .skeleton-shimmer{animation:none!important;background:rgba(0,0,0,.08)}
     }
 
     .events-board{
@@ -49,6 +50,57 @@
         overflow:hidden;
         flex-grow:1;
         margin:0 auto
+    }
+
+    @keyframes skeletonShimmer{
+        0%{ background-position:200% 0; }
+        100%{ background-position:-200% 0; }
+    }
+
+    .skeleton-shimmer{
+        background:linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(255,255,255,.72) 50%, rgba(0,0,0,.06) 75%);
+        background-size:200% 100%;
+        animation:skeletonShimmer 1.4s ease-in-out infinite;
+    }
+
+    .events-skeleton-row td{ cursor:default; }
+
+    .events-skeleton-row:hover{
+        transform:none !important;
+        box-shadow:none !important;
+        background-color:var(--zebra-odd) !important;
+    }
+
+    .events-skeleton-avatar,
+    .events-skeleton-line{
+        display:block;
+        border-radius:999px;
+    }
+
+    .events-skeleton-avatar{
+        width:24px;
+        height:24px;
+        border-radius:50%;
+        border:none !important;
+        box-shadow:none !important;
+    }
+
+    .events-skeleton-line{
+        display:block;
+        flex:1 1 auto;
+        max-width:none;
+        height:12px;
+        margin:0;
+    }
+
+    .events-skeleton-row .event-message-cell{
+        width:100%;
+        justify-content:flex-start;
+        overflow:hidden;
+    }
+
+    .events-skeleton-row td.event-message{
+        width:100%;
     }
 
     .events-board.athlete-events-scroll{
@@ -532,7 +584,7 @@
     }
 </style>
 
-<div id="events-root" class="events-board">
+<div id="events-root" class="events-board" aria-busy="true">
     <table id="eventsTable">
         <thead>
         <tr>
@@ -545,7 +597,31 @@
         </tr>
         </thead>
         <tbody>
-        <tr><td colspan="3">Loading…</td></tr>
+        <tr class="events-skeleton-row" aria-hidden="true">
+            <td class="col-avatar"><div class="athlete-td"><span class="events-skeleton-avatar skeleton-shimmer"></span></div></td>
+            <td class="event-message"><div class="event-message-cell"><span class="events-skeleton-line is-wide skeleton-shimmer"></span></div></td>
+            <td class="col-date"></td>
+        </tr>
+        <tr class="events-skeleton-row" aria-hidden="true">
+            <td class="col-avatar"><div class="athlete-td"><span class="events-skeleton-avatar skeleton-shimmer"></span></div></td>
+            <td class="event-message"><div class="event-message-cell"><span class="events-skeleton-line is-wide skeleton-shimmer"></span></div></td>
+            <td class="col-date"></td>
+        </tr>
+        <tr class="events-skeleton-row" aria-hidden="true">
+            <td class="col-avatar"><div class="athlete-td"><span class="events-skeleton-avatar skeleton-shimmer"></span></div></td>
+            <td class="event-message"><div class="event-message-cell"><span class="events-skeleton-line is-wide skeleton-shimmer"></span></div></td>
+            <td class="col-date"></td>
+        </tr>
+        <tr class="events-skeleton-row" aria-hidden="true">
+            <td class="col-avatar"><div class="athlete-td"><span class="events-skeleton-avatar skeleton-shimmer"></span></div></td>
+            <td class="event-message"><div class="event-message-cell"><span class="events-skeleton-line is-wide skeleton-shimmer"></span></div></td>
+            <td class="col-date"></td>
+        </tr>
+        <tr class="events-skeleton-row" aria-hidden="true">
+            <td class="col-avatar"><div class="athlete-td"><span class="events-skeleton-avatar skeleton-shimmer"></span></div></td>
+            <td class="event-message"><div class="event-message-cell"><span class="events-skeleton-line is-wide skeleton-shimmer"></span></div></td>
+            <td class="col-date"></td>
+        </tr>
         </tbody>
     </table>
 </div>
@@ -553,6 +629,29 @@
 <script>
     (function(){
         const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7 };
+
+        function buildEventSkeletonRows(count=5){
+            return Array.from({ length: count }, () => `
+                <tr class="events-skeleton-row" aria-hidden="true">
+                    <td class="col-avatar"><div class="athlete-td"><span class="events-skeleton-avatar skeleton-shimmer"></span></div></td>
+                    <td class="event-message"><div class="event-message-cell"><span class="events-skeleton-line is-wide skeleton-shimmer"></span></div></td>
+                    <td class="col-date"></td>
+                </tr>
+            `).join("");
+        }
+
+        function setEventsLoadingState(){
+            const root = document.getElementById('events-root');
+            if (root) root.setAttribute('aria-busy', 'true');
+
+            const tbody = document.querySelector('#eventsTable tbody');
+            if (tbody) tbody.innerHTML = buildEventSkeletonRows();
+        }
+
+        function clearEventsLoadingState(){
+            const root = document.getElementById('events-root');
+            if (root) root.setAttribute('aria-busy', 'false');
+        }
 
         const MILESTONE_COPY = {
             42:    'Answer unlocked - the competition reached <strong class="milestone-count">42</strong> athletes',
@@ -1639,6 +1738,7 @@
         }
 
         window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
+            setEventsLoadingState();
             setViewAllVisible(!!showViewAll);
 
             const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
@@ -1753,7 +1853,9 @@
                 if(n!==null) rows=rows.slice(0,n);
 
                 renderRows(rows,athletesIndex,!!linkNames);
+                clearEventsLoadingState();
             }).catch(()=>{
+                clearEventsLoadingState();
                 const tbody=document.querySelector("#eventsTable tbody");
                 if(tbody) tbody.innerHTML=`<tr><td colspan="3">Failed to load events</td></tr>`;
             });
