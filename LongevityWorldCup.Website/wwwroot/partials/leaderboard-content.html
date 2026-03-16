@@ -39,6 +39,121 @@
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
     }
 
+    @keyframes skeletonShimmer{
+        0%{ background-position:200% 0; }
+        100%{ background-position:-200% 0; }
+    }
+
+    .skeleton-shimmer{
+        background:linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(255,255,255,.7) 50%, rgba(0,0,0,.06) 75%);
+        background-size:200% 100%;
+        animation:skeletonShimmer 1.4s ease-in-out infinite;
+    }
+
+    .podium-skeleton-item{
+        pointer-events:none;
+        cursor:default;
+    }
+
+    .podium-skeleton-item:hover,
+    .leaderboard table tbody tr.leaderboard-skeleton-row:hover{
+        transform:none;
+        box-shadow:none;
+    }
+
+    .podium-skeleton-item .athlete-name,
+    .podium-skeleton-item .podium-skeleton-line,
+    .podium-skeleton-item .podium-skeleton-portrait,
+    .leaderboard-portrait-skeleton,
+    .leaderboard-skeleton-block{
+        border-radius:999px;
+    }
+
+    .podium-skeleton-item .podium-skeleton-portrait{
+        width:96px;
+        height:96px;
+        margin:1.5rem auto .75rem;
+    }
+
+    .podium-skeleton-item .name-row{
+        width:100%;
+    }
+
+    .podium-skeleton-item .athlete-name{
+        display:block;
+        width:75%;
+        height:18px;
+        margin:0 auto;
+    }
+
+    .podium-skeleton-item .podium-skeleton-line{
+        height:14px;
+        width:66%;
+        margin:.6rem auto 0;
+    }
+
+    .leaderboard table tbody.loading-skeleton tr{
+        cursor:default;
+        pointer-events:none;
+    }
+
+    .leaderboard table tbody.loading-skeleton .rank{
+        display:inline-block;
+        width:28px;
+        height:16px;
+        border-radius:999px;
+        color:transparent;
+    }
+
+    .leaderboard table tbody.loading-skeleton .portrait-wrapper{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+    }
+
+    .leaderboard-portrait-skeleton{
+        width:60px;
+        height:60px;
+        border-radius:50%;
+        display:inline-block;
+        border:none !important;
+        box-shadow:none !important;
+    }
+
+    .leaderboard table tbody.loading-skeleton .pro-badge,
+    .leaderboard table tbody.loading-skeleton .badge-section{
+        display:none !important;
+    }
+
+    .leaderboard table tbody.loading-skeleton .athlete-name{
+        display:inline-block;
+        width:160px;
+        max-width:70%;
+        height:16px;
+        margin-left:.75rem;
+        border-radius:999px;
+        color:transparent;
+    }
+
+    .leaderboard table tbody.loading-skeleton .sponsor-td,
+    .leaderboard table tbody.loading-skeleton .age-reduction,
+    .leaderboard table tbody.loading-skeleton .media-contact-td{
+        color:transparent;
+    }
+
+    .leaderboard-skeleton-block{
+        display:inline-block;
+        height:16px;
+        min-width:72px;
+    }
+
+    @media (prefers-reduced-motion:reduce){
+        .skeleton-shimmer{
+            animation:none;
+            background:rgba(0,0,0,.08);
+        }
+    }
+
     /* Scope table styles to the leaderboard table only */
     .leaderboard > table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
 
@@ -851,8 +966,28 @@
 <div class="main-container">
 
     <div class="content">
-        <div class="podium">
-            <!-- Podium items will be dynamically inserted here -->
+        <div class="podium" aria-busy="true">
+            <div class="podium-item podium-skeleton-item second" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+            <div class="podium-item podium-skeleton-item first" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+            <div class="podium-item podium-skeleton-item third" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
         </div>
 
         <div class="leaderboard-toolbar">
@@ -931,8 +1066,67 @@
                     <th class="media-contact-th">Media contact</th>
                 </tr>
                 </thead>
-                <tbody>
-                <!-- Table rows will be dynamically inserted here -->
+                <tbody class="loading-skeleton" aria-busy="true">
+                <tr class="leaderboard-skeleton-row" aria-hidden="true">
+                    <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
+                    <td data-label="Athlete" class="athlete-td">
+                        <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
+                        <span class="athlete-name skeleton-shimmer"></span>
+                    </td>
+                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                </tr>
+                <tr class="leaderboard-skeleton-row" aria-hidden="true">
+                    <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
+                    <td data-label="Athlete" class="athlete-td">
+                        <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
+                        <span class="athlete-name skeleton-shimmer"></span>
+                    </td>
+                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                </tr>
+                <tr class="leaderboard-skeleton-row" aria-hidden="true">
+                    <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
+                    <td data-label="Athlete" class="athlete-td">
+                        <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
+                        <span class="athlete-name skeleton-shimmer"></span>
+                    </td>
+                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                </tr>
+                <tr class="leaderboard-skeleton-row" aria-hidden="true">
+                    <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
+                    <td data-label="Athlete" class="athlete-td">
+                        <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
+                        <span class="athlete-name skeleton-shimmer"></span>
+                    </td>
+                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                </tr>
+                <tr class="leaderboard-skeleton-row" aria-hidden="true">
+                    <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
+                    <td data-label="Athlete" class="athlete-td">
+                        <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
+                        <span class="athlete-name skeleton-shimmer"></span>
+                    </td>
+                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                </tr>
+                <tr class="leaderboard-skeleton-row" aria-hidden="true">
+                    <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
+                    <td data-label="Athlete" class="athlete-td">
+                        <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
+                        <span class="athlete-name skeleton-shimmer"></span>
+                    </td>
+                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                    <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                </tr>
                 </tbody>
             </table>
         </div>
@@ -1348,6 +1542,7 @@
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
         includePodiumGlobal = includePodium;
         maxAthletesGlobal = maxAthletes;
+        setLeaderboardLoadingState(includePodium, maxAthletes);
 
         fetch('/api/data/athletes')
             .then(response => response.json())
@@ -1765,6 +1960,7 @@
                                     // Select the podium container and clear existing items
                                     const podium = document.querySelector('.podium');
                                     podium.innerHTML = ''; // Clear any existing podium items
+                                    podium.setAttribute('aria-busy', 'false');
 
                                     // Loop through the top three athletes and create podium items
                                     topThree.forEach(athlete => {
@@ -1820,9 +2016,6 @@
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
                                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
                                         podiumItem.setAttribute('data-athlete-name', athlete.name);
-                                        podiumItem.setAttribute('data-aos', 'fade');
-                                        podiumItem.setAttribute('data-aos-duration', '700');
-                                        podiumItem.setAttribute('data-aos-delay', '50');
 
                                         subscribeLowerPodiumClick();
                                     });
@@ -1854,10 +2047,20 @@
                                     });
                                 })
                                 .catch(error => {
+                                    const podium = document.querySelector('.podium');
+                                    if (podium) {
+                                        podium.innerHTML = '';
+                                        podium.setAttribute('aria-busy', 'false');
+                                    }
                                     console.error('Error fetching BTC exchange rate:', error);
                                 });
                         })
                         .catch(error => {
+                            const podium = document.querySelector('.podium');
+                            if (podium) {
+                                podium.innerHTML = '';
+                                podium.setAttribute('aria-busy', 'false');
+                            }
                             console.error('Error fetching total prize fund:', error);
                         });
                 } else {
@@ -1865,6 +2068,8 @@
                     const podium = document.querySelector('.podium');
                     if (podium) {
                         podium.style.display = 'none';
+                        podium.innerHTML = '';
+                        podium.setAttribute('aria-busy', 'false');
                     }
                 }
 
@@ -1872,6 +2077,8 @@
 
                 // Populate the table with athletes ranked >3
                 const tableBody = document.querySelector('.leaderboard table tbody');
+                tableBody.classList.remove('loading-skeleton');
+                tableBody.setAttribute('aria-busy', 'false');
                 const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
@@ -1924,9 +2131,6 @@
                     row.setAttribute('data-division', athlete.division.toLowerCase().trim());
                     row.setAttribute('data-generation', athlete.generation.trim());
                     row.setAttribute('data-athlete-name', athlete.name);
-                    row.setAttribute('data-aos', 'fade');
-                    row.setAttribute('data-aos-duration', '700');
-                    row.setAttribute('data-aos-delay', '50');
 
                     if (includePodium && athlete.rank <= podiumCount) {
                         row.style.display = 'none';
@@ -2045,9 +2249,88 @@
                 }
             })
             .catch(error => {
+                const tableBody = document.querySelector('.leaderboard table tbody');
+                if (tableBody) {
+                    tableBody.classList.remove('loading-skeleton');
+                    tableBody.setAttribute('aria-busy', 'false');
+                    tableBody.innerHTML = '<tr><td colspan="5" class="no-results">Failed to load leaderboard.</td></tr>';
+                }
+                const podium = document.querySelector('.podium');
+                if (podium) {
+                    podium.innerHTML = '';
+                    podium.setAttribute('aria-busy', 'false');
+                }
                 console.error('Error fetching athletes:', error);
             });
     };
+
+    function buildPodiumSkeletonHtml() {
+        return `
+            <div class="podium-item podium-skeleton-item second" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+            <div class="podium-item podium-skeleton-item first" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+            <div class="podium-item podium-skeleton-item third" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+        `;
+    }
+
+    function buildLeaderboardSkeletonRows(count) {
+        return Array.from({ length: count }, () => `
+            <tr class="leaderboard-skeleton-row" aria-hidden="true">
+                <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
+                <td data-label="Athlete" class="athlete-td">
+                    <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </td>
+                <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
+                <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
+            </tr>
+        `).join('');
+    }
+
+    function setLeaderboardLoadingState(includePodium, maxAthletes) {
+        const podium = document.querySelector('.podium');
+        if (podium) {
+            if (includePodium) {
+                podium.style.display = 'flex';
+                podium.innerHTML = buildPodiumSkeletonHtml();
+                podium.setAttribute('aria-busy', 'true');
+            } else {
+                podium.style.display = 'none';
+                podium.innerHTML = '';
+                podium.setAttribute('aria-busy', 'false');
+            }
+        }
+
+        const tableBody = document.querySelector('.leaderboard table tbody');
+        if (!tableBody) return;
+
+        const skeletonCount = Number.isFinite(maxAthletes)
+            ? Math.min(Math.max(maxAthletes, 4), 10)
+            : 10;
+
+        tableBody.classList.add('loading-skeleton');
+        tableBody.setAttribute('aria-busy', 'true');
+        tableBody.innerHTML = buildLeaderboardSkeletonRows(skeletonCount);
+        addFadeInEffectToElements();
+    }
 
     function subscribeLowerPodiumClick() {
         const targetElement = document.querySelector("#donation-section");
