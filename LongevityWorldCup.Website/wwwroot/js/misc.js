@@ -312,8 +312,7 @@ window.goBackOrHome = function () {
     }
 }
 
-window.optimizeImageClient = async function (dataUri, options) {
-    options = options || {};
+window.optimizeImageClient = async function (dataUri) {
     const MaxBase64Length = 50 * 1024 * 1024; // 50 MB
     if (!dataUri || dataUri.length > MaxBase64Length) {
         return { dataUrl: null, contentType: null, extension: null };
@@ -340,7 +339,7 @@ window.optimizeImageClient = async function (dataUri, options) {
     const img = await createImageBitmap(blob);
 
     // Determine new size
-    const maxSize = Number.isFinite(options.maxSize) ? options.maxSize : 2048;
+    const maxSize = 2048;
     let { width, height } = img;
     if (width > maxSize || height > maxSize) {
         const ratio = Math.min(maxSize / width, maxSize / height);
@@ -356,30 +355,28 @@ window.optimizeImageClient = async function (dataUri, options) {
     ctx.drawImage(img, 0, 0, width, height);
 
     // Export as WebP Blob
-    const targetContentType = options.contentType || 'image/webp';
-    const quality = Number.isFinite(options.quality) ? options.quality : 0.8;
-    const optimizedBlob = await new Promise(resolve =>
-        canvas.toBlob(resolve, targetContentType, quality)
+    const webpBlob = await new Promise(resolve =>
+        canvas.toBlob(resolve, 'image/webp', 0.8)
     );
-    if (!optimizedBlob) {
+    if (!webpBlob) {
         // fallback to original if conversion failed
         return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
     }
 
-    // Convert Blob back to Base64 data URI
-    const arrayBuffer = await optimizedBlob.arrayBuffer();
+    // Convert WebP Blob back to Base64 data URI
+    const arrayBuffer = await webpBlob.arrayBuffer();
     const u8 = new Uint8Array(arrayBuffer);
     let binary = '';
     const chunk = 0x8000;
     for (let i = 0; i < u8.length; i += chunk) {
         binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
     }
-    const optimizedBase64 = btoa(binary);
-    const optimizedDataUrl = 'data:' + targetContentType + ';base64,' + optimizedBase64;
+    const webpBase64 = btoa(binary);
+    const webpDataUrl = 'data:image/webp;base64,' + webpBase64;
 
     return {
-        dataUrl: optimizedDataUrl,
-        contentType: targetContentType,
-        extension: targetContentType.split('/')[1]
+        dataUrl: webpDataUrl,
+        contentType: 'image/webp',
+        extension: 'webp'
     };
 };
