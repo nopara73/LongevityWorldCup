@@ -101,10 +101,6 @@ window.getProofChecklistLabelsFromSession = function () {
 
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers) {
     nextButton.disabled = true;
-    const proofOptimizationOptions = {
-        maxSize: 4096,
-        contentType: 'image/png'
-    };
 
     // ——— Load PDF.js if not already loaded ———
     if (!window.pdfjsLib) {
@@ -159,24 +155,22 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                             // render each page
                             for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
                                 const page = await pdfDoc.getPage(pageNum);
-                                const viewport = page.getViewport({ scale: 2 });
+                                const viewport = page.getViewport({ scale: 1 });
                                 const canvas = document.createElement('canvas');
                                 canvas.width = viewport.width;
                                 canvas.height = viewport.height;
                                 const context = canvas.getContext('2d');
                                 await page.render({ canvasContext: context, viewport }).promise;
-                                const rawPage = canvas.toDataURL('image/png');
-                                const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage, proofOptimizationOptions);
-                                if (optimizedPage) {
-                                    proofPics.push(optimizedPage);
-                                }
+                                const rawPage = canvas.toDataURL();
+                                const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage);
+                                proofPics.push(optimizedPage);
                             }
                             updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
                             checkProofImages(nextButton, proofPics, uploadProofButton);
                             continue;
                         }
 
-                        const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                        const { dataUrl } = await window.optimizeImageClient(raw);
                         if (dataUrl) {
                             proofPics.push(dataUrl);
                             updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
