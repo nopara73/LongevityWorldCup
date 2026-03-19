@@ -19,6 +19,28 @@
       "RdwPc": 11.8,
       "AlpUL": 43,
       "Wbc1000cellsuL": 6.3
+    },
+    {
+	  "Date": "2026-03-12",
+	  "AlbGL": 50,
+	  "CreatUmolL": 90.27,
+	  "GluMmolL": 5.16,
+	  "CrpMgL": 0.2,
+	  "LymPc": 37.0,
+	  "McvFL": 93.8,
+	  "RdwPc": 11.7,
+	  "AlpUL": 59,
+	  "Wbc1000cellsuL": 3.9,
+	  "NeutrophilPc": 49.3,
+	  "MonocytePc": 9.3,
+	  "Rbc10e12L": 4.97,
+	  "MchPg": 31.4,
+	  "UreaMmolL": 6.78,
+	  "Hba1cMmolMol": 33.33,
+	  "CholesterolMmolL": 5.72,
+	  "AltUL": 24,
+	  "ShbgNmolL": 71,
+	  "VitaminDNmolL": 159.74
     }
   ],
   "Division": "Men's",
