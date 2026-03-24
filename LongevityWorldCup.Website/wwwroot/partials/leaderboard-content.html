@@ -1001,7 +1001,7 @@
 <div class="main-container">
 
     <div class="content">
-        <div class="podium" aria-busy="true">
+        <div class="podium" aria-busy="true" style="display:none;">
             <div class="podium-item podium-skeleton-item second" aria-hidden="true">
                 <div class="podium-skeleton-portrait skeleton-shimmer"></div>
                 <div class="name-row">
@@ -2879,8 +2879,9 @@
         window.removeAllHighlights();
         performFilter(); // Reapply filters without search terms
 
-        // Ensure the podium is visible after clearing the search
-        podium.style.display = 'flex';
+        if (podium) {
+            podium.style.display = includePodiumGlobal ? 'flex' : 'none';
+        }
 
         const url = new URL(window.location.href);
         url.searchParams.delete('search');
