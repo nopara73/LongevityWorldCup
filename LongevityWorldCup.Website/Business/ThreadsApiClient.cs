@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 
@@ -15,13 +14,15 @@ public class ThreadsApiClient
     private readonly Config _config;
     private readonly ILogger<ThreadsApiClient> _log;
     private readonly IWebHostEnvironment _env;
+    private readonly ThreadsDevPreviewService _preview;
 
-    public ThreadsApiClient(HttpClient http, Config config, IWebHostEnvironment env, ILogger<ThreadsApiClient> log)
+    public ThreadsApiClient(HttpClient http, Config config, IWebHostEnvironment env, ILogger<ThreadsApiClient> log, ThreadsDevPreviewService preview)
     {
         _http = http;
         _config = config;
         _env = env;
         _log = log;
+        _preview = preview;
     }
 
     public async Task SendAsync(string text)
@@ -51,9 +52,7 @@ public class ThreadsApiClient
 
         if (_env.IsDevelopment())
         {
-            var previewId = $"localdev_threads_{DateTime.UtcNow:yyyyMMddHHmmssfff}";
-            _log.LogInformation("Threads (Development): would have posted: {Content}", text);
-            return previewId;
+            return await _preview.WritePostPreviewAsync(text);
         }
 
         var token = _config.ThreadsAccessToken;
