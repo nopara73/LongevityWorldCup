@@ -231,7 +231,10 @@ namespace LongevityWorldCup.Website
                 DonationBitcoinAddress = "",
                 BTCPayBaseUrl = "https://pay.longevityworldcup.com/",
                 BTCPayStoreId = "HdMuY1SVeGgWomYAphnMQfnfhigQUcpSCmpbMegrVLNg",
-                BTCPayGreenfieldApiKey = ""
+                BTCPayGreenfieldApiKey = "",
+                ThreadsAppId = "",
+                ThreadsAppSecret = "",
+                ThreadsAccessToken = ""
             };
 
             // Serialize to JSON and save to file
