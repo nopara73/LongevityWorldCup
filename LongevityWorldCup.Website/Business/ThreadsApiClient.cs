@@ -50,14 +50,12 @@ public class ThreadsApiClient
             return null;
         }
 
-        if (_env.IsDevelopment())
-        {
-            return await _preview.WritePostPreviewAsync(text);
-        }
-
         var token = _config.ThreadsAccessToken;
         if (string.IsNullOrWhiteSpace(token))
         {
+            if (_env.IsDevelopment())
+                return await _preview.WritePostPreviewAsync(text);
+
             _log.LogInformation("Threads credentials not configured. Would have posted: {Content}", text);
             return null;
         }
