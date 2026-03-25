@@ -40,14 +40,16 @@ public sealed class EventDataService : IDisposable
     private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
     private readonly XEventService _xEvents;
+    private readonly ThreadsEventService _threadsEvents;
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, DatabaseManager db)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, DatabaseManager db)
     {
         _ = env;
         _slackEvents = slackEvents;
         _xEvents = xEvents;
+        _threadsEvents = threadsEvents;
         _db = db ?? throw new ArgumentNullException(nameof(db));
 
         var dataDir = EnvironmentHelpers.GetDataDir();
@@ -396,6 +398,7 @@ public sealed class EventDataService : IDisposable
     public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
     {
         _xEvents.SetAthletesForX(items);
+        _threadsEvents.SetAthletesForThreads(items);
         _slackEvents.SetAthleteDirectory(items.Select(a => (a.Slug, a.Name, a.CurrentRank)).ToList());
         _slackEvents.SetPodcastLinks(items.Where(a => !string.IsNullOrWhiteSpace(a.PodcastLink)).Select(a => (a.Slug, a.PodcastLink!)).ToList());
     }
