@@ -29,6 +29,10 @@ namespace LongevityWorldCup.Website
         public string? XAccessToken { get; set; }
         public string? XRefreshToken { get; set; }
 
+        public string? ThreadsAppId { get; set; }
+        public string? ThreadsAppSecret { get; set; }
+        public string? ThreadsAccessToken { get; set; }
+
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
         {
