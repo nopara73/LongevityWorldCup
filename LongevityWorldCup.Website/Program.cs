@@ -64,7 +64,6 @@ namespace LongevityWorldCup.Website
             builder.Services.AddHttpClient<SlackWebhookClient>();
             builder.Services.AddSingleton<SlackEventService>();
             builder.Services.AddSingleton<XDevPreviewService>();
-            builder.Services.AddSingleton<ThreadsDevPreviewService>();
             builder.Services.AddHttpClient<XApiClient>();
             builder.Services.AddSingleton<XEventService>();
             builder.Services.AddHttpClient<ThreadsApiClient>();

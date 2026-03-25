@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -14,19 +13,15 @@ public class ThreadsApiClient
     private readonly HttpClient _http;
     private readonly Config _config;
     private readonly ILogger<ThreadsApiClient> _log;
-    private readonly IWebHostEnvironment _env;
-    private readonly ThreadsDevPreviewService _preview;
     private readonly object _tokenLock = new();
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
     private string? _accessToken;
 
-    public ThreadsApiClient(HttpClient http, Config config, IWebHostEnvironment env, ILogger<ThreadsApiClient> log, ThreadsDevPreviewService preview)
+    public ThreadsApiClient(HttpClient http, Config config, ILogger<ThreadsApiClient> log)
     {
         _http = http;
         _config = config;
-        _env = env;
         _log = log;
-        _preview = preview;
         _accessToken = config.ThreadsAccessToken;
     }
 
@@ -58,9 +53,6 @@ public class ThreadsApiClient
         var token = GetAccessToken();
         if (string.IsNullOrWhiteSpace(token))
         {
-            if (_env.IsDevelopment())
-                return await _preview.WritePostPreviewAsync(text);
-
             _log.LogInformation("Threads credentials not configured. Would have posted: {Content}", text);
             return null;
         }
