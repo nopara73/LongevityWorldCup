@@ -66,6 +66,8 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<XDevPreviewService>();
             builder.Services.AddHttpClient<XApiClient>();
             builder.Services.AddSingleton<XEventService>();
+            builder.Services.AddHttpClient<ThreadsApiClient>();
+            builder.Services.AddSingleton<ThreadsEventService>();
             builder.Services.AddSingleton<XFillerPostLogService>();
 
             builder.Services.AddQuartz(q =>
