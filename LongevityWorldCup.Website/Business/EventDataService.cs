@@ -41,15 +41,17 @@ public sealed class EventDataService : IDisposable
     private readonly SlackEventService _slackEvents;
     private readonly XEventService _xEvents;
     private readonly ThreadsEventService _threadsEvents;
+    private readonly FacebookEventService _facebookEvents;
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, DatabaseManager db)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db)
     {
         _ = env;
         _slackEvents = slackEvents;
         _xEvents = xEvents;
         _threadsEvents = threadsEvents;
+        _facebookEvents = facebookEvents;
         _db = db ?? throw new ArgumentNullException(nameof(db));
 
         var dataDir = EnvironmentHelpers.GetDataDir();
@@ -69,7 +71,8 @@ public sealed class EventDataService : IDisposable
                         Relevance      REAL  NOT NULL DEFAULT 5,
                         SlackProcessed INTEGER NOT NULL DEFAULT 0,
                         XProcessed     INTEGER NOT NULL DEFAULT 0,
-                        ThreadsProcessed INTEGER NOT NULL DEFAULT 0
+                        ThreadsProcessed INTEGER NOT NULL DEFAULT 0,
+                        FacebookProcessed INTEGER NOT NULL DEFAULT 0
                     );
                     """;
                 cmd.ExecuteNonQuery();
@@ -122,6 +125,23 @@ public sealed class EventDataService : IDisposable
                 if (addedThreadsProcessed)
                 {
                     cmd.CommandText = "UPDATE Events SET ThreadsProcessed = 1;";
+                    cmd.ExecuteNonQuery();
+                }
+
+                var addedFacebookProcessed = false;
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN FacebookProcessed INTEGER NOT NULL DEFAULT 0;";
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    addedFacebookProcessed = true;
+                }
+                catch
+                {
+                }
+
+                if (addedFacebookProcessed)
+                {
+                    cmd.CommandText = "UPDATE Events SET FacebookProcessed = 1;";
                     cmd.ExecuteNonQuery();
                 }
 
@@ -395,10 +415,89 @@ public sealed class EventDataService : IDisposable
         });
     }
 
+    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingFacebookEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
+    {
+        var list = _db.Run(sqlite =>
+        {
+            var filters = new List<string> { "FacebookProcessed = 0", "Type != @customEvent" };
+            var parameters = new List<SqliteParameter>
+            {
+                new SqliteParameter("@customEvent", (int)EventType.CustomEvent),
+                new SqliteParameter("@joined", (int)EventType.Joined)
+            };
+
+            filters.Add("Type != @joined");
+
+            if (fromUtc.HasValue)
+            {
+                filters.Add("OccurredAt >= @from");
+                parameters.Add(new SqliteParameter("@from", EnsureUtc(fromUtc.Value).ToString("o")));
+            }
+            if (toUtc.HasValue)
+            {
+                filters.Add("OccurredAt <= @to");
+                parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
+            }
+
+            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events WHERE " +
+                string.Join(" AND ", filters) +
+                " ORDER BY OccurredAt DESC";
+            if (limit.HasValue)
+            {
+                sql += " LIMIT @limit";
+                parameters.Add(new SqliteParameter("@limit", limit.Value));
+            }
+
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = sql;
+            foreach (var p in parameters) cmd.Parameters.Add(p);
+
+            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var typeInt = r.GetInt32(1);
+                var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
+                var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
+                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
+            }
+            return result;
+        });
+        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, GetXPriority(e.Type, e.Text))).ToList();
+        withPriority.Sort((a, b) =>
+        {
+            if (a.Item6 != b.Item6) return a.Item6.CompareTo(b.Item6);
+            return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
+        });
+        return withPriority;
+    }
+
+    public void MarkEventsFacebookProcessed(IEnumerable<string> ids)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0) return;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var cmd = sqlite.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "UPDATE Events SET FacebookProcessed = 1 WHERE Id = @id AND FacebookProcessed = 0";
+            var pId = cmd.Parameters.Add("@id", SqliteType.Text);
+            foreach (var id in idList)
+            {
+                pId.Value = id;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        });
+    }
+
     public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
     {
         _xEvents.SetAthletesForX(items);
         _threadsEvents.SetAthletesForThreads(items);
+        _facebookEvents.SetAthletesForFacebook(items);
         _slackEvents.SetAthleteDirectory(items.Select(a => (a.Slug, a.Name, a.CurrentRank)).ToList());
         _slackEvents.SetPodcastLinks(items.Where(a => !string.IsNullOrWhiteSpace(a.PodcastLink)).Select(a => (a.Slug, a.PodcastLink!)).ToList());
     }
@@ -866,8 +965,8 @@ public sealed class EventDataService : IDisposable
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed, ThreadsProcessed) " +
-                "SELECT @id, @type, @text, @occ, @rel, 1, 1, 1 " +
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) " +
+                "SELECT @id, @type, @text, @occ, @rel, 1, 1, 1, 1 " +
                 "WHERE NOT EXISTS (SELECT 1 FROM Events WHERE Type=@type AND Text=@text AND OccurredAt=@occ LIMIT 1);";
             var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);

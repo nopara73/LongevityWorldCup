@@ -32,6 +32,10 @@ namespace LongevityWorldCup.Website
         public string? ThreadsAppId { get; set; }
         public string? ThreadsAppSecret { get; set; }
         public string? ThreadsAccessToken { get; set; }
+        public string? FacebookAppId { get; set; }
+        public string? FacebookAppSecret { get; set; }
+        public string? FacebookPageId { get; set; }
+        public string? FacebookPageAccessToken { get; set; }
 
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
