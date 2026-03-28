@@ -3647,7 +3647,7 @@
         return athleteResults.find(athlete => window.slugifyName(athlete.name) === window.slugifyName(athleteNameText));
     }
 
-    window.openAthleteModalBySlug = function (athleteSlug) {
+    window.openAthleteModalBySlug = function (athleteSlug, options) {
         const normalizedSlug = window.slugifyName(athleteSlug, true);
         const athleteData = athleteResults.find(athlete => {
             const nameSlug = window.slugifyName(athlete.name, true);
@@ -3659,7 +3659,7 @@
             return false;
         }
 
-        fetchFullAthleteData(athleteData.name, athleteData);
+        fetchFullAthleteData(athleteData.name, athleteData, options);
         return true;
     };
 
@@ -3678,7 +3678,7 @@
     let originalAthletelessURL = getAthletelessURL();
     let originalLeaguelessURL = getLeaguelessURL();
 
-    function fetchFullAthleteData(athleteNameText, athleteData) {
+    function fetchFullAthleteData(athleteNameText, athleteData, options) {
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
                 window.__sharedAthletesRequest = fetchWithTimeout('/api/data/athletes', {}, 10000)
@@ -3692,6 +3692,7 @@
         };
 
         const athleteSlug = window.slugifyName(athleteNameText, true);
+        const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
         const requestId = ++currentAthleteModalRequestId;
         const modalContent = resetModalForLoading(athleteSlug);
 
@@ -3791,7 +3792,10 @@
 
                 const seen = sessionStorage.getItem('gmaSeen');
 
-                if (skipAll) {
+                if (suppressGuessMyAge) {
+                    modalContent.classList.remove('guess-mode');
+                    gmaCard.classList.add('gma-done');
+                } else if (skipAll) {
                     // user opted out globally
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
@@ -3820,10 +3824,12 @@
                 modalContent.dataset.athleteSlug = athleteSlug;
                 updateYourGuess();
 
-                if (seen) {
-                    modalContent.classList.add('gma-fast');
-                } else {
-                    sessionStorage.setItem('gmaSeen', 'true');
+                if (!suppressGuessMyAge) {
+                    if (seen) {
+                        modalContent.classList.add('gma-fast');
+                    } else {
+                        sessionStorage.setItem('gmaSeen', 'true');
+                    }
                 }
 
                 const bortzPaceOfAgingContainer = document.getElementById('bortzPaceOfAgingContainer');

@@ -1774,7 +1774,7 @@
                     const athleteSlug = link.getAttribute('data-athlete-slug');
                     if (!athleteSlug) return;
 
-                    const opened = window.openAthleteModalBySlug(athleteSlug);
+                    const opened = window.openAthleteModalBySlug(athleteSlug, { suppressGuessMyAge: true });
                     if (!opened) return;
 
                     event.preventDefault();
