@@ -1,0 +1,36 @@
+{
+  "Name": "Andy Reagan",
+  "DisplayName": null,
+  "MediaContact": "media@andyreagan.com",
+  "DateOfBirth": {
+    "Year": 1989,
+    "Month": 7,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-12-04",
+      "AlbGL": 44,
+      "CreatUmolL": 103.54,
+      "GluMmolL": 5.44,
+      "CrpMgL": 0.2,
+      "LymPc": 31.6,
+      "McvFL": 93.9,
+      "RdwPc": 12.7,
+      "AlpUL": 64,
+      "Wbc1000cellsuL": 4.3,
+	  "NeutrophilPc": 58.2,
+	  "MonocytePc": 6.7,
+	  "Rbc10e12L": 5.06,
+	  "MchPg": 30.4,
+	  "UreaMmolL": 5.71,
+	  "Hba1cMmolMol": 37.7,
+	  "CholesterolMmolL": 4.5,
+	  "AltUL": 35
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "I enjoy the act of optimizing and seeing the numbers",
+  "PersonalLink": "https://andyreagan.com"
+}
