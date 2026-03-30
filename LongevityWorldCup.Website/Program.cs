@@ -256,6 +256,7 @@ namespace LongevityWorldCup.Website
                 FacebookAppId = "",
                 FacebookAppSecret = "",
                 FacebookPageId = "",
+                FacebookUserAccessToken = "",
                 FacebookPageAccessToken = ""
             };
 
