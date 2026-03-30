@@ -1350,6 +1350,19 @@
 
     markAthleteSkippedIfInURL();
 
+    function markAthleteSkippedForGuessMyAge(athleteSlug) {
+        if (!athleteSlug) {
+            return;
+        }
+
+        const normalizedAthleteSlug = typeof window.slugifyName === 'function'
+            ? window.slugifyName(athleteSlug, true)
+            : athleteSlug;
+        const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+        allGuesses[normalizedAthleteSlug] = { value: null, skipped: true, first: false, exact: false };
+        localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+    }
+
     function markAthleteSkippedIfInURL() {
         const params = new URLSearchParams(window.location.search);
         let athleteSlug = null;
@@ -1362,9 +1375,7 @@
 
         if (athleteSlug !== null) {
             if (params.get('guessmyage') != '1') {
-                const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-                allGuesses[athleteSlug] = { value: null, skipped: true, first: false };
-                localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+                markAthleteSkippedForGuessMyAge(athleteSlug);
             }
         }
     }
@@ -3793,6 +3804,7 @@
                 const seen = sessionStorage.getItem('gmaSeen');
 
                 if (suppressGuessMyAge) {
+                    markAthleteSkippedForGuessMyAge(athleteSlug);
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
                 } else if (skipAll) {
