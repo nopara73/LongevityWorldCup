@@ -35,6 +35,7 @@ namespace LongevityWorldCup.Website
         public string? FacebookAppId { get; set; }
         public string? FacebookAppSecret { get; set; }
         public string? FacebookPageId { get; set; }
+        public string? FacebookUserAccessToken { get; set; }
         public string? FacebookPageAccessToken { get; set; }
 
         // Load configuration from the file
