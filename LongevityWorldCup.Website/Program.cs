@@ -66,7 +66,10 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<XDevPreviewService>();
             builder.Services.AddHttpClient<XApiClient>();
             builder.Services.AddSingleton<XEventService>();
+            builder.Services.AddHttpClient<ThreadsApiClient>();
+            builder.Services.AddSingleton<ThreadsEventService>();
             builder.Services.AddSingleton<XFillerPostLogService>();
+            builder.Services.AddSingleton<ThreadsFillerPostLogService>();
 
             builder.Services.AddQuartz(q =>
             {
@@ -80,6 +83,7 @@ namespace LongevityWorldCup.Website
                 var backupKey = new JobKey("DatabaseBackupJob");
                 var seasonFinalizerKey = new JobKey("SeasonFinalizerJob");
                 var xDailyPostKey = new JobKey("XDailyPostJob");
+                var threadsDailyPostKey = new JobKey("ThreadsDailyPostJob");
 
                 // Every day 00:00
                 q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
@@ -139,6 +143,11 @@ namespace LongevityWorldCup.Website
                 q.AddTrigger(t => t.ForJob(xDailyPostKey)
                     .WithIdentity("XDailyPostTrigger")
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+
+                q.AddJob<ThreadsDailyPostJob>(o => o.WithIdentity(threadsDailyPostKey));
+                q.AddTrigger(t => t.ForJob(threadsDailyPostKey)
+                    .WithIdentity("ThreadsDailyPostTrigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 1 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
             });
             builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
 
@@ -231,7 +240,10 @@ namespace LongevityWorldCup.Website
                 DonationBitcoinAddress = "",
                 BTCPayBaseUrl = "https://pay.longevityworldcup.com/",
                 BTCPayStoreId = "HdMuY1SVeGgWomYAphnMQfnfhigQUcpSCmpbMegrVLNg",
-                BTCPayGreenfieldApiKey = ""
+                BTCPayGreenfieldApiKey = "",
+                ThreadsAppId = "",
+                ThreadsAppSecret = "",
+                ThreadsAccessToken = ""
             };
 
             // Serialize to JSON and save to file
