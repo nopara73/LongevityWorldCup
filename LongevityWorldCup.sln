@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongevityWorldCup.Applicati
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongevityWorldCup.XOAuthHelper", "LongevityWorldCup.XOAuthHelper\LongevityWorldCup.XOAuthHelper.csproj", "{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LongevityWorldCup.FacebookOAuthHelper", "LongevityWorldCup.FacebookOAuthHelper\LongevityWorldCup.FacebookOAuthHelper.csproj", "{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0A1C2D3-4E5F-6789-0ABC-DEF123456789}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
