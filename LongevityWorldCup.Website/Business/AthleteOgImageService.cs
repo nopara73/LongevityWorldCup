@@ -95,6 +95,7 @@ public sealed class AthleteOgImageService
                 StringComparison.Ordinal));
         if (athleteJson is null)
             return false;
+        var athlete = athleteJson;
 
         if (!TryGetRankRowForLeague(normalized, leagueSlug, rankings, snapshot, out var rankingRow, out var rank))
         {
@@ -105,7 +106,7 @@ public sealed class AthleteOgImageService
         }
 
         var nameFromRanking = rankingRow["Name"]?.GetValue<string>();
-        var nameFromAthlete = athleteJson?["DisplayName"]?.GetValue<string>() ?? athleteJson?["Name"]?.GetValue<string>();
+        var nameFromAthlete = athlete["DisplayName"]?.GetValue<string>() ?? athlete["Name"]?.GetValue<string>();
         var name = !string.IsNullOrWhiteSpace(nameFromAthlete)
             ? nameFromAthlete!.Trim()
             : !string.IsNullOrWhiteSpace(nameFromRanking)
@@ -113,13 +114,13 @@ public sealed class AthleteOgImageService
                 : ToDisplayName(rawSlug);
 
         var ageReductionFromRanking = GetDouble(rankingRow, "AgeDifference") ?? 0d;
-        var stats = PhenoStatsCalculator.Compute(athleteJson, DateTime.UtcNow.Date);
+        var stats = PhenoStatsCalculator.Compute(athlete, DateTime.UtcNow.Date);
         var hasBortzRaw = stats.BortzAgeReduction.HasValue && double.IsFinite(stats.BortzAgeReduction.Value);
         var ageReduction = hasBortzRaw
             ? stats.BortzAgeReduction!.Value
             : stats.AgeReduction ?? ageReductionFromRanking;
         var leagueName = ResolveLeagueDisplayName(leagueSlug);
-        var profilePicUrl = athleteJson?["ProfilePic"]?.GetValue<string>();
+        var profilePicUrl = athlete["ProfilePic"]?.GetValue<string>();
         var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, profilePicUrl);
 
         payload = new AthleteOgPayload(
