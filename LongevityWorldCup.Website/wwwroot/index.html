@@ -242,6 +242,11 @@
                 color: var(--secondary-color);
             }
 
+        .copy-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* Flash animation */
         @keyframes flash {
             0%, 100% {
@@ -1227,10 +1232,10 @@
                     <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
                         <!-- Bitcoin address will be inserted here by JavaScript -->
                     </a>
-                    <span id="copiedText" style="display: none;">
+                    <span id="copiedText" aria-live="polite" style="display: none;">
                         Copied <i class="fas fa-check" style="color: green;"></i>
                     </span>
-                    <button type="button" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address">
+                    <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
@@ -1272,19 +1277,43 @@
 
     <script>
         let bitcoinDonationAddress = '';
+        let newsletterModalPreviousFocus = null;
+        let newsletterModalCloseTimer = null;
+        const newsletterModal = document.getElementById("newsletterModal");
+        const newsletterForm = document.getElementById('newsletter-form');
+        const newsletterEmailInput = document.getElementById('emailInput');
+        const newsletterSubmitButton = newsletterForm.querySelector('button[type="submit"]');
+        const bitcoinAddressLink = document.getElementById('btcAddressLink');
+        const bitcoinCopyButton = document.getElementById('bitcoinCopyButton');
+
+        function setBitcoinAddressUnavailable() {
+            bitcoinDonationAddress = '';
+            bitcoinAddressLink.removeAttribute('href');
+            bitcoinAddressLink.removeAttribute('title');
+            bitcoinAddressLink.textContent = 'Donation address unavailable right now.';
+            bitcoinAddressLink.setAttribute('aria-label', 'Bitcoin donation address unavailable right now');
+            bitcoinAddressLink.style.pointerEvents = 'none';
+            bitcoinCopyButton.disabled = true;
+            bitcoinCopyButton.setAttribute('aria-disabled', 'true');
+        }
 
         fetch('/api/bitcoin/donation-address')
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(({ address }) => {
                 bitcoinDonationAddress = address || '';
-                const link = document.getElementById('btcAddressLink');
-                if (link && bitcoinDonationAddress) {
-                    link.href = `https://mempool.space/address/${bitcoinDonationAddress}`;
+                if (bitcoinDonationAddress) {
+                    bitcoinAddressLink.href = `https://mempool.space/address/${bitcoinDonationAddress}`;
+                    bitcoinAddressLink.setAttribute('aria-label', 'View the Bitcoin donation address on mempool.space');
+                    bitcoinAddressLink.style.pointerEvents = '';
+                    bitcoinCopyButton.disabled = false;
+                    bitcoinCopyButton.setAttribute('aria-disabled', 'false');
                     adjustBitcoinAddressDisplay();
+                } else {
+                    setBitcoinAddressUnavailable();
                 }
             })
             .catch(() => {
-                // If address cannot be loaded, we simply skip rendering it.
+                setBitcoinAddressUnavailable();
             });
 
         if (!window.callScoped) {
@@ -1312,71 +1341,98 @@
             closeNewsletterModal();
         });
 
-        const newsletterModal = document.getElementById("newsletterModal");
         window.addEventListener('click', function (event) {
             if (event.target === newsletterModal) {
                 closeNewsletterModal();
             }
         });
-        // Add keydown event listener for closing the modal
         document.addEventListener('keydown', function (event) {
-            if (newsletterModal.style.display === 'flex') {
-                if (event.key === 'Escape' || event.key === 'Enter') {
-                    closeNewsletterModal();
-                }
+            if (newsletterModal.style.display === 'flex' && event.key === 'Escape') {
+                event.preventDefault();
+                closeNewsletterModal();
             }
         });
 
+        function openNewsletterModal(focusTarget) {
+            newsletterModalPreviousFocus = focusTarget || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+            newsletterModal.style.display = 'flex';
+            document.body.classList.add('no-scroll');
+            requestAnimationFrame(() => document.getElementById('closeNewsletterBtn1').focus());
+        }
+
         function closeNewsletterModal() {
+            if (newsletterModal.style.display !== 'flex') {
+                return;
+            }
+
+            if (newsletterModalCloseTimer) {
+                clearTimeout(newsletterModalCloseTimer);
+            }
+
             newsletterModal.classList.add('fade-out');
-            setTimeout(() => {
+            newsletterModalCloseTimer = setTimeout(() => {
                 newsletterModal.style.display = "none";
                 newsletterModal.classList.remove('fade-out');
                 document.body.classList.remove('no-scroll');
+                newsletterModalCloseTimer = null;
+
+                if (newsletterModalPreviousFocus && typeof newsletterModalPreviousFocus.focus === 'function') {
+                    newsletterModalPreviousFocus.focus();
+                }
+
+                newsletterModalPreviousFocus = null;
             }, 400);
         }
 
-        document.getElementById('newsletter-form').addEventListener('submit', function (e) {
-            e.preventDefault(); // Prevent form submission
+        newsletterForm.addEventListener('submit', function (e) {
+            e.preventDefault();
 
-            const emailInput = this.querySelector('input[type="email"]').value.trim();
-            this.querySelector('input[type="email"]').blur(); // Remove focus from the input field
+            const emailInput = newsletterEmailInput.value.trim();
+            newsletterEmailInput.blur();
+
+            if (newsletterSubmitButton.disabled) {
+                return;
+            }
 
             if (validator.isEmail(emailInput)) {
-                // Send POST request to the API
+                const originalButtonHtml = newsletterSubmitButton.innerHTML;
+                newsletterSubmitButton.disabled = true;
+                newsletterSubmitButton.classList.add('is-loading');
+                newsletterSubmitButton.setAttribute('aria-busy', 'true');
+                newsletterForm.setAttribute('aria-busy', 'true');
+                newsletterSubmitButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Subscribing...';
+
                 fetchWithTimeout('/api/home/subscribe', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ email: emailInput })
-                }, 10000) // 10-second timeout
+                }, 10000)
                     .then(response => {
                         if (response.ok) {
-                            return response.text(); // Or response.json() if your API returns JSON
+                            return response.text();
                         } else if (response.status === 400) {
                             return response.text().then(text => { throw new Error(text); });
                         } else {
                             throw new Error('An unexpected error occurred.');
                         }
                     })
-                    .then(data => {
-                        // Update the message with the user's email
+                    .then(() => {
                         const successMessage = document.getElementById('newsletterSuccessMessage');
                         successMessage.innerHTML = `You subscribed with <strong>${emailInput}</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.`;
-
-                        // Show the success dialog
-                        const dialog = document.getElementById('newsletterModal');
-                        dialog.style.display = 'flex';
-
-                        // Prevent scrolling
-                        document.body.classList.add('no-scroll');
-
-                        // Reset the form
-                        document.getElementById('newsletter-form').reset();
+                        newsletterForm.reset();
+                        openNewsletterModal(newsletterSubmitButton);
                     })
                     .catch(error => {
                         customAlert(error.message);
+                    })
+                    .finally(() => {
+                        newsletterSubmitButton.disabled = false;
+                        newsletterSubmitButton.classList.remove('is-loading');
+                        newsletterSubmitButton.setAttribute('aria-busy', 'false');
+                        newsletterForm.setAttribute('aria-busy', 'false');
+                        newsletterSubmitButton.innerHTML = originalButtonHtml;
                     });
             } else {
                 customAlert('Please enter a valid email address.');
@@ -1440,6 +1496,7 @@
             const btcAddressLink = document.getElementById("btcAddressLink");
             if (!btcAddressLink) return;
             const fullAddress = bitcoinDonationAddress;
+            if (!fullAddress) return;
             const container = btcAddressLink.parentElement;
 
             // Reset to full address initially
@@ -1458,6 +1515,11 @@
 
         // Copy function
         function copyBitcoinAddress() {
+            if (!bitcoinDonationAddress) {
+                customAlert('Bitcoin donation address is unavailable right now.');
+                return;
+            }
+
             navigator.clipboard.writeText(bitcoinDonationAddress).then(function () {
                 // Hide the BTC address
                 document.getElementById('btcAddressLink').style.display = 'none';
