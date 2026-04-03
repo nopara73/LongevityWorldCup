@@ -23,13 +23,20 @@ public sealed class CustomEventImageService
     private const int VerticalPadding = 40;
     private const float CardCornerRadius = 40f;
     private const float CardGlowBlur = 21.5f;
+    private const float GlassBlur = 18f;
     private const float LineHeightMultiplier = 1.35f;
     private const float FontMin = 18f;
     private const float FontMax = 32f;
+    private const int CardWidthStep = 8;
+    private const float PreferredCardAspectRatio = 1.9f;
+    private const float PreferredVerticalFill = 0.64f;
+    private const float PreferredHorizontalFill = 0.9f;
 
-    private static readonly Color CardFillColor = new Rgba32(255, 255, 255, 13);
+    private static readonly Color CardDarkTintColor = new Rgba32(0, 0, 0, 8);
+    private static readonly Color CardFillColor = new Rgba32(255, 255, 255, 52);
     private static readonly Rgba32 CardStrokeColor = new(255, 255, 255, 70);
-    private static readonly Rgba32 CardGlowColor = new(255, 255, 255, 64);
+    private static readonly Rgba32 CardGlowColor = new(255, 255, 255, 68);
+    private static readonly Rgba32 CardSheenColor = new(255, 255, 255, 18);
     private static readonly Rgba32 RegularTextColor = new(255, 255, 255, 255);
     private static readonly Rgba32 StrongTextColor = new(255, 64, 129, 255);
 
@@ -49,8 +56,8 @@ public sealed class CustomEventImageService
         _env = env;
         _log = log;
         _templatePath = IOPath.Combine(_env.WebRootPath, "assets", "custom_event.png");
-        _regularFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Roboto-Regular.ttf");
-        _boldFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Roboto-Bold.ttf");
+        _regularFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Regular.ttf");
+        _boldFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Bold.ttf");
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "custom-events");
     }
 
@@ -73,11 +80,8 @@ public sealed class CustomEventImageService
             var fileName = $"{SanitizeFileName(eventId)}.png";
             var outputPath = IOPath.Combine(_outputDir, fileName);
 
-            if (!File.Exists(outputPath))
-            {
-                using var image = await BuildImageAsync(rawText);
+            using (var image = await BuildImageAsync(rawText))
                 await image.SaveAsPngAsync(outputPath);
-            }
 
             return (outputPath, $"{SiteBaseUrl}/generated/custom-events/{Uri.EscapeDataString(fileName)}");
         }
@@ -138,38 +142,70 @@ public sealed class CustomEventImageService
         LayoutResult? fallback = null;
         for (var fontSize = FontMax; fontSize >= FontMin; fontSize -= 1f)
         {
-            var layout = BuildLayout(segments, fontSize);
-            fallback ??= layout;
-            if (layout.Fits)
-                return layout;
+            var layouts = BuildLayouts(segments, fontSize);
+            fallback ??= layouts.OrderByDescending(ScoreLayout).FirstOrDefault();
+
+            var bestFit = layouts
+                .Where(x => x.Fits)
+                .OrderByDescending(ScoreLayout)
+                .FirstOrDefault();
+            if (bestFit is not null)
+                return bestFit;
         }
 
-        return fallback ?? BuildLayout(segments, FontMin);
+        return fallback ?? BuildLayouts(segments, FontMin).OrderByDescending(ScoreLayout).First();
     }
 
-    private LayoutResult BuildLayout(IReadOnlyList<CustomEventSegment> segments, float fontSize)
+    private IReadOnlyList<LayoutResult> BuildLayouts(IReadOnlyList<CustomEventSegment> segments, float fontSize)
     {
         var regularFamily = _regularFamily ?? throw new InvalidOperationException("Regular font was not loaded.");
         var boldFamily = _boldFamily ?? throw new InvalidOperationException("Bold font was not loaded.");
         var regularFont = regularFamily.CreateFont(fontSize, FontStyle.Regular);
         var boldFont = boldFamily.CreateFont(fontSize, FontStyle.Bold);
-        var maxTextWidth = CardMaxWidth - (HorizontalPadding * 2);
-        var initial = WrapSegments(segments, regularFont, boldFont, maxTextWidth);
-        var targetCardWidth = Clamp((int)Math.Ceiling(initial.MaxLineWidth) + (HorizontalPadding * 2), CardMinWidth, CardMaxWidth);
-        var finalWrap = WrapSegments(segments, regularFont, boldFont, targetCardWidth - (HorizontalPadding * 2));
-        var targetCardHeight = Clamp((int)Math.Ceiling(finalWrap.TotalHeight) + (VerticalPadding * 2), CardMinHeight, CardMaxHeight);
-        var fits = finalWrap.TotalHeight <= targetCardHeight - (VerticalPadding * 2) + 0.5f;
+        var layouts = new List<LayoutResult>();
 
-        return new LayoutResult(
-            FontSize: fontSize,
-            RegularFont: regularFont,
-            BoldFont: boldFont,
-            CardWidth: targetCardWidth,
-            CardHeight: targetCardHeight,
-            TextBlockWidth: finalWrap.MaxLineWidth,
-            TextBlockHeight: finalWrap.TotalHeight,
-            Lines: finalWrap.Lines,
-            Fits: fits);
+        for (var cardWidth = CardMinWidth; cardWidth <= CardMaxWidth; cardWidth += CardWidthStep)
+        {
+            var availableTextWidth = cardWidth - (HorizontalPadding * 2);
+            var wrapped = WrapSegments(segments, regularFont, boldFont, availableTextWidth);
+            var targetCardHeight = Clamp((int)Math.Ceiling(wrapped.TotalHeight) + (VerticalPadding * 2), CardMinHeight, CardMaxHeight);
+            var availableTextHeight = targetCardHeight - (VerticalPadding * 2);
+            var fits = wrapped.TotalHeight <= availableTextHeight + 0.5f;
+
+            layouts.Add(new LayoutResult(
+                FontSize: fontSize,
+                RegularFont: regularFont,
+                BoldFont: boldFont,
+                CardWidth: cardWidth,
+                CardHeight: targetCardHeight,
+                TextBlockWidth: wrapped.MaxLineWidth,
+                TextBlockHeight: wrapped.TotalHeight,
+                Lines: wrapped.Lines,
+                Fits: fits));
+        }
+
+        return layouts;
+    }
+
+    private static double ScoreLayout(LayoutResult layout)
+    {
+        var availableTextWidth = layout.CardWidth - (HorizontalPadding * 2);
+        var availableTextHeight = layout.CardHeight - (VerticalPadding * 2);
+        var horizontalFill = availableTextWidth > 0 ? layout.TextBlockWidth / availableTextWidth : 1f;
+        var verticalFill = availableTextHeight > 0 ? layout.TextBlockHeight / availableTextHeight : 1f;
+        var aspectRatio = layout.CardWidth / (float)layout.CardHeight;
+        var widthUsage = (layout.CardWidth - CardMinWidth) / (float)(CardMaxWidth - CardMinWidth);
+
+        var score = 0d;
+        score -= Math.Abs(aspectRatio - PreferredCardAspectRatio) * 240d;
+        score -= Math.Abs(verticalFill - PreferredVerticalFill) * 180d;
+        score -= Math.Abs(horizontalFill - PreferredHorizontalFill) * 140d;
+        score -= Math.Max(0f, widthUsage - 0.2f) * 110d;
+
+        if (!layout.Fits)
+            score -= Math.Max(0f, layout.TextBlockHeight - availableTextHeight) * 100d;
+
+        return score;
     }
 
     private static float fontSizeToLineHeight(float fontSize)
@@ -316,23 +352,39 @@ public sealed class CustomEventImageService
     {
         var cardX = (CanvasWidth - layout.CardWidth) / 2f;
         var cardY = (CanvasHeight - layout.CardHeight) / 2f;
-        using var glowMask = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
-        FillRoundedRectMask(glowMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, 255);
-        glowMask.Mutate(ctx => ctx.GaussianBlur(CardGlowBlur));
-        TintMask(glowMask, CardGlowColor);
-
+        using var glassCard = CreateGlassCardSurface(image, cardX, cardY, layout.CardWidth, layout.CardHeight);
+        using var darkTintMask = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
+        FillRoundedRectMask(darkTintMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, CardDarkTintColor.ToPixel<Rgba32>().A);
+        TintMask(darkTintMask, CardDarkTintColor.ToPixel<Rgba32>());
         using var fillMask = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
         FillRoundedRectMask(fillMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, CardFillColor.ToPixel<Rgba32>().A);
         TintMask(fillMask, CardFillColor.ToPixel<Rgba32>());
 
+        using var sheenMask = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
+        FillRoundedRectMask(sheenMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, 255);
+        ApplyVerticalFade(sheenMask, 0.52f);
+        TintMask(sheenMask, CardSheenColor);
+
         using var strokeMask = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
-        FillRoundedRectBorderMask(strokeMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, 1.25f, CardStrokeColor.A);
+        FillRoundedRectBorderMask(strokeMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, 1.0f, CardStrokeColor.A);
         TintMask(strokeMask, CardStrokeColor);
+
+        using var glowCoreMask = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
+        FillRoundedRectMask(glowCoreMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, 255);
+
+        using var glowMask = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
+        FillRoundedRectMask(glowMask, cardX, cardY, layout.CardWidth, layout.CardHeight, CardCornerRadius, 255);
+        glowMask.Mutate(ctx => ctx.GaussianBlur(CardGlowBlur));
+        SubtractMask(glowMask, glowCoreMask);
+        TintMask(glowMask, CardGlowColor);
 
         image.Mutate(ctx =>
         {
+            ctx.DrawImage(glassCard, new Point((int)Math.Round(cardX), (int)Math.Round(cardY)), 1f);
             ctx.DrawImage(glowMask, new Point(0, 0), 1f);
+            ctx.DrawImage(darkTintMask, new Point(0, 0), 1f);
             ctx.DrawImage(fillMask, new Point(0, 0), 1f);
+            ctx.DrawImage(sheenMask, new Point(0, 0), 1f);
             ctx.DrawImage(strokeMask, new Point(0, 0), 1f);
         });
 
@@ -377,6 +429,91 @@ public sealed class CustomEventImageService
                         continue;
 
                     row[x] = new Rgba32(color.R, color.G, color.B, (byte)(alpha * (color.A / 255f)));
+                }
+            }
+        });
+    }
+
+    private static void ApplyVerticalFade(Image<Rgba32> mask, float endOpacityAt)
+    {
+        var clampedEndOpacity = Math.Clamp(endOpacityAt, 0f, 1f);
+        mask.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                var t = accessor.Height <= 1 ? 1f : y / (float)(accessor.Height - 1);
+                var opacity = 1f - ((1f - clampedEndOpacity) * t);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    if (row[x].A == 0)
+                        continue;
+
+                    row[x].A = (byte)Math.Clamp((int)Math.Round(row[x].A * opacity), 0, 255);
+                }
+            }
+        });
+    }
+
+    private static void SubtractMask(Image<Rgba32> target, Image<Rgba32> source)
+    {
+        target.ProcessPixelRows(source, (targetAccessor, sourceAccessor) =>
+        {
+            for (var y = 0; y < targetAccessor.Height; y++)
+            {
+                var targetRow = targetAccessor.GetRowSpan(y);
+                var sourceRow = sourceAccessor.GetRowSpan(y);
+                for (var x = 0; x < targetRow.Length; x++)
+                {
+                    if (targetRow[x].A == 0)
+                        continue;
+
+                    var alpha = Math.Max(0, targetRow[x].A - sourceRow[x].A);
+                    targetRow[x] = new Rgba32(255, 255, 255, (byte)alpha);
+                }
+            }
+        });
+    }
+
+    private Image<Rgba32> CreateGlassCardSurface(Image<Rgba32> source, float cardX, float cardY, int cardWidth, int cardHeight)
+    {
+        var inflateX = Math.Max(10, (int)Math.Round(cardWidth * 0.015f));
+        var inflateY = Math.Max(8, (int)Math.Round(cardHeight * 0.02f));
+        var srcX = Math.Max(0, (int)Math.Floor(cardX) - inflateX);
+        var srcY = Math.Max(0, (int)Math.Floor(cardY) - inflateY);
+        var srcRight = Math.Min(source.Width, (int)Math.Ceiling(cardX + cardWidth) + inflateX);
+        var srcBottom = Math.Min(source.Height, (int)Math.Ceiling(cardY + cardHeight) + inflateY);
+        var srcWidth = Math.Max(1, srcRight - srcX);
+        var srcHeight = Math.Max(1, srcBottom - srcY);
+        var sourceRect = new Rectangle(srcX, srcY, srcWidth, srcHeight);
+
+        var glass = source.Clone(ctx => ctx.Crop(sourceRect).Resize(cardWidth, cardHeight));
+        glass.Mutate(ctx =>
+        {
+            ctx.GaussianBlur(GlassBlur);
+            ctx.Brightness(1.18f);
+            ctx.Contrast(1.12f);
+        });
+
+        ClipRoundedRect(glass, 0, 0, cardWidth, cardHeight, CardCornerRadius);
+        return glass;
+    }
+
+    private static void ClipRoundedRect(Image<Rgba32> image, float x, float y, float width, float height, float radius)
+    {
+        image.ProcessPixelRows(accessor =>
+        {
+            for (var py = 0; py < accessor.Height; py++)
+            {
+                var row = accessor.GetRowSpan(py);
+                var sampleY = py + 0.5f;
+                for (var px = 0; px < row.Length; px++)
+                {
+                    var sampleX = px + 0.5f;
+                    if (IsInsideRoundedRect(sampleX, sampleY, x, y, width, height, radius))
+                        continue;
+
+                    row[px] = new Rgba32(0, 0, 0, 0);
                 }
             }
         });
