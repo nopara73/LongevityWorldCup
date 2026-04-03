@@ -1,31 +1,24 @@
-## 1. Run the script
+## Run from the designer page payload
+
+Open:
+
+```text
+/internal/custom-event-designer.html
+```
+
+Fill in:
+
+- `Title`
+- `Content`
+- target platforms
+
+Then copy the generated server command and run it on the server.
+
+Example:
 
 ```bash
-sudo bash -lc 'cd /var/www/.longevityworldcup && bash /home/user/LongevityWorldCup/LongevityWorldCup.Website/Scripts/custom_event.sh "LongevityWorldCup.db"'
+sudo bash -lc 'cd /var/www/.longevityworldcup && bash /home/user/LongevityWorldCup/LongevityWorldCup.Website/Scripts/custom_event.sh "LongevityWorldCup.db" --payload "BASE64URL_JSON_PAYLOAD"'
 ```
-
-## 2. Enter the Title and Content
-
-1. When prompted for `Title`, type a single line and press Enter.
-2. When prompted for `Content`, type multiple lines.
-   - Content is optional. 
-   - End the content input by typing a single dot on its own line.
-
-Example input:
-
-Title
-```text
-New community update is live
-```
-
-Content
-```text
-We have added an expandable CustomEvent row in Highlights.
-Check out the [Longevity World Cup](https://longevityworldcup.com/) site.
-End of message.
-.
-```
-_Note: For No Content events, just press `.` then `Enter` when the script asks for it._
 
 ## Supported formatting
 

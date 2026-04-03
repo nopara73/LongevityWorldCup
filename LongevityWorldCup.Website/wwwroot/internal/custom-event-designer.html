@@ -172,16 +172,8 @@
 
         .token {
             width: 100%;
-            min-height: 88px;
+            min-height: 110px;
             resize: vertical;
-        }
-
-        .payload-json {
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-size: 12px;
-            line-height: 1.4;
-            color: var(--muted);
         }
 
         .preview-stack {
@@ -189,6 +181,18 @@
             flex-direction: column;
             align-items: flex-start;
             gap: 16px;
+        }
+
+        .preview-warning {
+            width: fit-content;
+            max-width: min(560px, calc(100vw - 180px));
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 184, 0, 0.35);
+            background: rgba(255, 122, 0, 0.12);
+            color: #ffd89a;
+            font-size: 12px;
+            line-height: 1.45;
         }
 
         .preview-block {
@@ -467,12 +471,12 @@
 
             <label>
                 <span>Title</span>
-                <input id="titleInput" type="text" value="CustomEvent test: Short text-only update" />
+                <input id="titleInput" type="text" value="New community update is live" />
             </label>
 
             <label>
                 <span>Content</span>
-                <textarea id="contentInput">We updated the event card renderer and tightened the X fallback rules. [strong](This post should remain text-only) because there are no links and the full message fits into the X limit.</textarea>
+                <textarea id="contentInput">We have added an expandable CustomEvent row in Highlights. This update highlights one [bold](important) change, includes a [strong](major announcement), and links to [Longevity World Cup](https://longevityworldcup.com/) for the latest details.</textarea>
             </label>
 
             <div>
@@ -486,18 +490,20 @@
             </div>
 
             <div class="payload-box">
-                <h2>Payload</h2>
-                <textarea id="payloadOutput" class="token" readonly></textarea>
+                <h2>Server Command</h2>
+                <textarea id="commandOutput" class="token" readonly></textarea>
                 <div class="payload-actions">
-                    <button id="copyPayloadBtn" type="button">Copy Payload</button>
-                    <button id="copyJsonBtn" class="secondary" type="button">Copy JSON</button>
+                    <button id="copyCommandBtn" type="button">Copy Command</button>
                     <div id="copyState" style="font-size:12px;color:var(--muted);"></div>
                 </div>
-                <div id="payloadJson" class="payload-json"></div>
             </div>
         </div>
 
         <div class="preview-stack">
+            <div class="preview-warning">
+                These previews are not pixel-perfect. They are only approximate guidance for webpage and social output.
+            </div>
+
             <div class="panel preview-block">
                 <div class="preview-title">
                     <h2>Webpage Preview</h2>
@@ -570,16 +576,15 @@
 
     <script>
         const LIMITS = { x: 280, threads: 500 };
+        const SEND_TO_STORAGE_KEY = "customEventDesigner.sendTo";
         const titleInput = document.getElementById("titleInput");
         const contentInput = document.getElementById("contentInput");
         const sendSlack = document.getElementById("sendSlack");
         const sendX = document.getElementById("sendX");
         const sendThreads = document.getElementById("sendThreads");
         const sendFacebook = document.getElementById("sendFacebook");
-        const payloadOutput = document.getElementById("payloadOutput");
-        const payloadJson = document.getElementById("payloadJson");
-        const copyPayloadBtn = document.getElementById("copyPayloadBtn");
-        const copyJsonBtn = document.getElementById("copyJsonBtn");
+        const commandOutput = document.getElementById("commandOutput");
+        const copyCommandBtn = document.getElementById("copyCommandBtn");
         const copyState = document.getElementById("copyState");
         const insertBoldBtn = document.getElementById("insertBoldBtn");
         const insertStrongBtn = document.getElementById("insertStrongBtn");
@@ -711,6 +716,36 @@
             return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
         }
 
+        function buildServerCommand(payload) {
+            return `sudo bash -lc 'cd /var/www/.longevityworldcup && bash /home/user/LongevityWorldCup/LongevityWorldCup.Website/Scripts/custom_event.sh "LongevityWorldCup.db" --payload "${payload}"'`;
+        }
+
+        function loadSendToSettings() {
+            try {
+                const raw = localStorage.getItem(SEND_TO_STORAGE_KEY);
+                if (!raw) return;
+
+                const data = JSON.parse(raw);
+                if (typeof data.sendSlack === "boolean") sendSlack.checked = data.sendSlack;
+                if (typeof data.sendX === "boolean") sendX.checked = data.sendX;
+                if (typeof data.sendThreads === "boolean") sendThreads.checked = data.sendThreads;
+                if (typeof data.sendFacebook === "boolean") sendFacebook.checked = data.sendFacebook;
+            } catch {
+            }
+        }
+
+        function saveSendToSettings() {
+            try {
+                localStorage.setItem(SEND_TO_STORAGE_KEY, JSON.stringify({
+                    sendSlack: sendSlack.checked,
+                    sendX: sendX.checked,
+                    sendThreads: sendThreads.checked,
+                    sendFacebook: sendFacebook.checked
+                }));
+            } catch {
+            }
+        }
+
         function setActiveEditor(target) {
             if (target === titleInput || target === contentInput) {
                 activeEditor = target;
@@ -800,6 +835,8 @@
         }
 
         function update() {
+            saveSendToSettings();
+
             const titleRaw = titleInput.value.trim();
             const contentRaw = contentInput.value.trim();
             const combinedRaw = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
@@ -847,9 +884,9 @@
 
             updateImagePreview(contentRaw);
 
-            const payloadJsonText = JSON.stringify(payload, null, 2);
-            payloadJson.textContent = payloadJsonText;
-            payloadOutput.value = base64UrlEncodeUtf8(payloadJsonText);
+            const payloadJsonText = JSON.stringify(payload);
+            const payloadToken = base64UrlEncodeUtf8(payloadJsonText);
+            commandOutput.value = buildServerCommand(payloadToken);
         }
 
         async function copyText(value, message) {
@@ -875,10 +912,10 @@
         insertBoldBtn.addEventListener("click", insertBold);
         insertStrongBtn.addEventListener("click", insertStrong);
         insertLinkBtn.addEventListener("click", insertLink);
-        copyPayloadBtn.addEventListener("click", async () => copyText(payloadOutput.value, "Payload copied."));
-        copyJsonBtn.addEventListener("click", async () => copyText(payloadJson.textContent, "JSON copied."));
+        copyCommandBtn.addEventListener("click", async () => copyText(commandOutput.value, "Command copied."));
         window.addEventListener("resize", update);
 
+        loadSendToSettings();
         update();
     </script>
 </body>

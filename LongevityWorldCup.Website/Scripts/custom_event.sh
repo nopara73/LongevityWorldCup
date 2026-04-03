@@ -18,12 +18,31 @@ esc=$'\033'
 bel=$'\a'
 
 usage() {
-  echo "Usage: $0 /path/to/LongevityWorldCup.db" >&2
+  echo "Usage: $0 /path/to/LongevityWorldCup.db --payload BASE64URL_JSON" >&2
   exit 1
 }
 
 db_path="${1:-}"
 if [[ -z "${db_path//[[:space:]]/}" ]]; then
+  usage
+fi
+shift || true
+
+payload_arg=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --payload)
+      [[ $# -ge 2 ]] || usage
+      payload_arg="$2"
+      shift 2
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+if [[ -z "$payload_arg" ]]; then
   usage
 fi
 
@@ -150,7 +169,69 @@ if [[ "$has_events_table" != "1" ]]; then
   exit 1
 fi
 
+decode_payload() {
+  command -v python3 >/dev/null 2>&1 || { echo "python3 is required for --payload mode" >&2; exit 1; }
+
+  local payload="$1"
+  mapfile -d '' -t payload_fields < <(
+    python3 - "$payload" <<'PY'
+import base64
+import json
+import sys
+
+payload = sys.argv[1]
+payload += "=" * (-len(payload) % 4)
+
+try:
+    raw = base64.urlsafe_b64decode(payload.encode("ascii"))
+    data = json.loads(raw.decode("utf-8"))
+except Exception as ex:
+    print(f"Invalid payload: {ex}", file=sys.stderr)
+    sys.exit(1)
+
+title = data.get("title")
+content = data.get("content", "")
+
+if not isinstance(title, str) or not title.strip():
+    print("Payload title is required", file=sys.stderr)
+    sys.exit(1)
+
+if content is None:
+    content = ""
+
+if not isinstance(content, str):
+    print("Payload content must be a string", file=sys.stderr)
+    sys.exit(1)
+
+flags = []
+for key in ("sendToSlack", "sendToX", "sendToThreads", "sendToFacebook"):
+    flags.append("1" if bool(data.get(key)) else "0")
+
+if not any(flag == "1" for flag in flags):
+    print("Payload must enable at least one target platform", file=sys.stderr)
+    sys.exit(1)
+
+for value in (title, content, *flags):
+    sys.stdout.buffer.write(str(value).encode("utf-8"))
+    sys.stdout.buffer.write(b"\0")
+PY
+  )
+
+  if [[ "${#payload_fields[@]}" -lt 6 ]]; then
+    echo "Invalid payload fields" >&2
+    exit 1
+  fi
+
+  title_raw="${payload_fields[0]}"
+  content_raw="${payload_fields[1]}"
+  send_slack="${payload_fields[2]}"
+  send_x="${payload_fields[3]}"
+  send_threads="${payload_fields[4]}"
+  send_facebook="${payload_fields[5]}"
+}
+
 render() {
+  local s prev
   s="$1"
   prev=""
   while [[ "$prev" != "$s" ]]; do
@@ -170,52 +251,43 @@ render() {
   printf '%s' "$s"
 }
 
-printf 'Formatting examples\n\n'
+selected_platforms() {
+  local items=()
+  [[ "$send_slack" == "1" ]] && items+=("Slack")
+  [[ "$send_x" == "1" ]] && items+=("X")
+  [[ "$send_threads" == "1" ]] && items+=("Threads")
+  [[ "$send_facebook" == "1" ]] && items+=("Facebook")
 
-printf 'Link\n'
-printf 'Example: %s\n' "Visit [Longevity World Cup](https://longevityworldcup.com/) for the latest leaderboard."
-printf 'Renders: '
-render "Visit [Longevity World Cup](https://longevityworldcup.com/) for the latest leaderboard."
-printf '\n\n'
+  local joined=""
+  for item in "${items[@]}"; do
+    if [[ -n "$joined" ]]; then
+      joined+=", "
+    fi
+    joined+="$item"
+  done
+  printf '%s' "$joined"
+}
 
-printf 'Bold\n'
-printf 'Example: %s\n' "This update highlights one [bold](important) change in the Longevity World Cup."
-printf 'Renders: '
-render "This update highlights one [bold](important) change in the Longevity World Cup."
-printf '\n\n'
-
-printf 'Strong\n'
-printf 'Example: %s\n' "This is a [strong](major announcement) for the Longevity World Cup community."
-printf 'Renders: '
-render "This is a [strong](major announcement) for the Longevity World Cup community."
-printf '\n\n'
-
-read -r -p "Title: " title_raw
-if [[ -z "${title_raw//[[:space:]]/}" ]]; then
-  echo "Title is required" >&2
-  exit 1
-fi
-
-printf '%s\n' "Content. End input with a single dot on its own line:"
-content_raw=""
-while IFS= read -r line; do
-  [[ "$line" == "." ]] && break
-  content_raw+="$line"$'\n'
-done
-content_raw="${content_raw%$'\n'}"
-
-title_preview="$(render "$title_raw")"
-content_preview="$(render "$content_raw")"
+decode_payload "$payload_arg"
 
 printf '\n'
-printf 'Preview\n'
-printf 'Title:\n%s\n\n' "$title_preview"
-printf 'Content:\n%s\n\n' "$content_preview"
+printf 'Preview\n\n'
+printf 'Title:\n%s\n\n' "$(render "$title_raw")"
+if [[ -n "${content_raw//[[:space:]]/}" ]]; then
+  printf 'Content:\n%s\n\n' "$(render "$content_raw")"
+else
+  printf 'Content:\n(empty)\n\n'
+fi
+printf 'Send to:\n%s\n\n' "$(selected_platforms)"
 
-read -r -p "Proceed? [y/N] " ok
-case "${ok:-}" in y|Y) :;; *) echo "Cancelled"; exit 0;; esac
+read -r -p "Execute? [y/N] " ok
+case "${ok:-}" in y|Y) : ;; *) echo "Cancelled"; exit 0 ;; esac
 
-combined_raw="$title_raw"$'\n\n'"$content_raw"
+if [[ -n "${content_raw//[[:space:]]/}" ]]; then
+  combined_raw="$title_raw"$'\n\n'"$content_raw"
+else
+  combined_raw="$title_raw"
+fi
 
 if command -v uuidgen >/dev/null 2>&1; then
   id="$(uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]')"
@@ -225,6 +297,10 @@ fi
 
 esc_sql() { printf "%s" "$1" | sed "s/'/''/g"; }
 txt="$(esc_sql "$combined_raw")"
+slack_processed="$([[ "$send_slack" == "1" ]] && echo 0 || echo 1)"
+x_processed="$([[ "$send_x" == "1" ]] && echo 0 || echo 1)"
+threads_processed="$([[ "$send_threads" == "1" ]] && echo 0 || echo 1)"
+facebook_processed="$([[ "$send_facebook" == "1" ]] && echo 0 || echo 1)"
 
 precheck_writeability
 
@@ -237,7 +313,7 @@ err=""
 attempt=0
 delay_ms="$sqlite_retry_initial_ms"
 while :; do
-  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15, 0, 0, 0, 0); COMMIT;" 2>&1)"
+  out="$(as_svc sqlite3 -cmd ".timeout $sqlite_timeout_ms" "$db_path" "BEGIN IMMEDIATE; INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) VALUES ('$id', 6, '$txt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 15, $slack_processed, $x_processed, $threads_processed, $facebook_processed); COMMIT;" 2>&1)"
   rc=$?
   if [[ $rc -eq 0 ]]; then
     echo "Inserted $id into $db_path"
