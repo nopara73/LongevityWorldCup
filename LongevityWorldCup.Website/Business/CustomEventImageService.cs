@@ -21,6 +21,7 @@ public sealed class CustomEventImageService
     private const int CardMaxHeight = 551;
     private const int HorizontalPadding = 20;
     private const int VerticalPadding = 40;
+    private const int HorizontalTextSafetyInset = 18;
     private const float CardCornerRadius = 40f;
     private const float CardGlowBlur = 21.5f;
     private const float GlassBlur = 18f;
@@ -166,7 +167,7 @@ public sealed class CustomEventImageService
 
         for (var cardWidth = CardMinWidth; cardWidth <= CardMaxWidth; cardWidth += CardWidthStep)
         {
-            var availableTextWidth = cardWidth - (HorizontalPadding * 2);
+            var availableTextWidth = cardWidth - ((HorizontalPadding + HorizontalTextSafetyInset) * 2);
             var wrapped = WrapSegments(segments, regularFont, boldFont, availableTextWidth);
             var targetCardHeight = Clamp((int)Math.Ceiling(wrapped.TotalHeight) + (VerticalPadding * 2), CardMinHeight, CardMaxHeight);
             var availableTextHeight = targetCardHeight - (VerticalPadding * 2);
@@ -190,6 +191,7 @@ public sealed class CustomEventImageService
     private static double ScoreLayout(LayoutResult layout)
     {
         var availableTextWidth = layout.CardWidth - (HorizontalPadding * 2);
+        availableTextWidth -= HorizontalTextSafetyInset * 2;
         var availableTextHeight = layout.CardHeight - (VerticalPadding * 2);
         var horizontalFill = availableTextWidth > 0 ? layout.TextBlockWidth / availableTextWidth : 1f;
         var verticalFill = availableTextHeight > 0 ? layout.TextBlockHeight / availableTextHeight : 1f;

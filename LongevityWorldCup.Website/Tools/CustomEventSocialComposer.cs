@@ -32,18 +32,24 @@ public static class CustomEventSocialComposer
         var eventUrl = BuildEventUrl(eventId);
         var hasHyperlinks = CustomEventMarkup.ContainsHyperlink(rawText);
 
+        var textPostWithoutEventUrl = BuildTextPost(titleText, bodyText, eventUrl: null);
         if (!hasHyperlinks)
         {
-            var textPost = BuildTextPost(titleText, bodyText, eventUrl);
-            if (!string.IsNullOrWhiteSpace(textPost) && textPost.Length <= maxTextLength)
-                return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPost);
+            if (!string.IsNullOrWhiteSpace(textPostWithoutEventUrl) && textPostWithoutEventUrl.Length <= maxTextLength)
+                return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPostWithoutEventUrl);
+        }
+        else
+        {
+            var textPostWithEventUrl = BuildTextPost(titleText, bodyText, eventUrl);
+            if (!string.IsNullOrWhiteSpace(textPostWithEventUrl) && textPostWithEventUrl.Length <= maxTextLength)
+                return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPostWithEventUrl);
         }
 
-        var imageCaption = BuildImageCaption(titleText, eventUrl, maxTextLength);
+        var imageCaption = BuildImageCaption(titleText, hasHyperlinks ? eventUrl : string.Empty, maxTextLength);
         return new CustomEventSocialPlan(CustomEventPostMode.Image, titleText, bodyText, eventUrl, imageCaption);
     }
 
-    private static string BuildTextPost(string titleText, string bodyText, string eventUrl)
+    private static string BuildTextPost(string titleText, string bodyText, string? eventUrl)
     {
         var sb = new StringBuilder();
         if (!string.IsNullOrWhiteSpace(titleText))
@@ -68,6 +74,9 @@ public static class CustomEventSocialComposer
 
     private static string BuildImageCaption(string titleText, string eventUrl, int maxTextLength)
     {
+        if (string.IsNullOrWhiteSpace(eventUrl))
+            return CollapseWhitespace(titleText).Trim();
+
         var normalizedTitle = CollapseWhitespace(titleText).Trim();
         var reserved = eventUrl.Length + 2;
         var maxTitleLength = Math.Max(0, maxTextLength - reserved);
