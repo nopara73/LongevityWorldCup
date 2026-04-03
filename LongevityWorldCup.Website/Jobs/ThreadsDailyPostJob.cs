@@ -75,10 +75,10 @@ public class ThreadsDailyPostJob : IJob
                 continue;
             }
 
-            var msg = _threadsEvents.TryBuildMessage(type, text);
+            var msg = _threadsEvents.TryBuildMessage(type, text, id);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
-            var sent = await _threadsEvents.TrySendAsync(msg);
+            var sent = await _threadsEvents.TrySendEventAsync(type, text, id);
             if (!sent)
             {
                 _logger.LogWarning("ThreadsDailyPostJob send failed for event {Id}; leaving unprocessed", id);
