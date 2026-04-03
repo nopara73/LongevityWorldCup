@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Custom Event Designer</title>
+    <style>
+        @font-face {
+            font-family: "Poppins";
+            src: url("/assets/fonts/Poppins-Regular.ttf") format("truetype");
+            font-weight: 400;
+        }
+
+        @font-face {
+            font-family: "Poppins";
+            src: url("/assets/fonts/Poppins-Bold.ttf") format("truetype");
+            font-weight: 700;
+        }
+
+        :root {
+            --text: #f5f5f5;
+            --muted: rgba(255,255,255,0.68);
+            --pink: #ff4081;
+            --panel: rgba(255,255,255,0.04);
+            --panel-border: rgba(255,255,255,0.1);
+            --chip: rgba(255,255,255,0.08);
+            --ok: #67d393;
+            --warn: #ffcf5d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
+            font-family: "Poppins", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08), transparent 22%),
+                linear-gradient(135deg, #090909, #000000 60%);
+        }
+
+        .page {
+            max-width: 1380px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(340px, 430px) minmax(600px, 1fr);
+            gap: 18px;
+        }
+
+        .panel {
+            border-radius: 18px;
+            border: 1px solid var(--panel-border);
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        h1, h2 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        h1 { font-size: 22px; }
+        h2 { font-size: 16px; }
+
+        label {
+            display: grid;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            background: rgba(0,0,0,0.32);
+            color: var(--text);
+            font: inherit;
+            padding: 11px 13px;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 170px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .format-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tool-btn {
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 10px;
+            cursor: pointer;
+        }
+
+        .tool-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .checks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .check {
+            display: inline-grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 14px;
+            background: var(--chip);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-size: 12px;
+        }
+
+        .badge {
+            padding: 4px 7px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .payload-box {
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.26);
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .payload-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: 0;
+            border-radius: 10px;
+            background: var(--pink);
+            color: white;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .token {
+            width: 100%;
+            min-height: 88px;
+            resize: vertical;
+        }
+
+        .payload-json {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--muted);
+        }
+
+        .preview-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .preview-block {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            width: fit-content;
+            max-width: 100%;
+            justify-self: start;
+        }
+
+        .preview-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .preview-platforms {
+            color: rgba(255,255,255,0.74);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px;
+            padding: 3px 9px;
+            font-size: 11px;
+            line-height: 1.2;
+            letter-spacing: 0.01em;
+        }
+
+        .preview-surface {
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.22);
+            padding: 14px;
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        .preview-surface.fit-content {
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        .formatted strong { font-weight: 700; }
+        .formatted .strong { color: #ff4081; font-weight: 700; }
+        .formatted a { color: #7a49b7; text-decoration: underline; }
+        .x-text a { color: #1d9bf0; text-decoration: none; }
+        .x-text a:hover { text-decoration: underline; }
+
+        .webpage-surface {
+            width: fit-content;
+            max-width: min(560px, calc(100vw - 180px));
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .webpage-event {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.06);
+            background: #eef7fa;
+        }
+
+        .webpage-event-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            min-height: 44px;
+            color: #3f3f3f;
+            background: rgba(240,244,248,.5);
+        }
+
+        .webpage-event-title {
+            min-width: 0;
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .webpage-expander {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 12px;
+            line-height: 1;
+            flex: 0 0 18px;
+        }
+
+        .webpage-expander::before {
+            content: "⌃";
+            transform: rotate(0deg);
+            display: block;
+        }
+
+        .webpage-event-details {
+            padding: 0 14px;
+            background: rgba(0,188,212,.08);
+            border-top: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .event-content {
+            color: #5a5a5a;
+            font-size: 13px;
+            line-height: 1.45;
+            padding: 10px 0;
+        }
+
+        .badge.text {
+            color: #0a2918;
+            background: var(--ok);
+        }
+
+        .badge.image {
+            color: #3b2600;
+            background: var(--warn);
+        }
+
+        .post-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .post-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .x-post {
+            display: inline-flex;
+            gap: 10px;
+            align-items: flex-start;
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        .x-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            background: #1d9bf0;
+            color: white;
+            display: grid;
+            place-items: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex: 0 0 40px;
+        }
+
+        .x-main {
+            min-width: 0;
+            flex: 0 1 auto;
+            display: grid;
+            gap: 8px;
+            width: fit-content;
+            max-width: min(560px, calc(100vw - 180px));
+        }
+
+        .x-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
+        .x-name { font-weight: 700; color: #e7e9ea; }
+        .x-handle, .x-meta { color: #71767b; }
+
+        .x-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.5;
+            font-size: 15px;
+            color: #e7e9ea;
+            width: fit-content;
+            max-width: min(560px, calc(100vw - 180px));
+        }
+
+        .x-actions {
+            display: flex;
+            justify-content: space-between;
+            max-width: 360px;
+            color: #71767b;
+            font-size: 12px;
+        }
+
+        .x-media {
+            border-radius: 16px;
+            overflow: hidden;
+            background: #0f1419;
+            border: 1px solid #2f3336;
+            align-self: start;
+            width: min(560px, calc(100vw - 180px));
+        }
+
+        .image-stage-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1200 / 675;
+            overflow: hidden;
+        }
+
+        .image-stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1200px;
+            height: 675px;
+            background: #050505 url("/assets/custom_event.png") center / cover no-repeat;
+            transform-origin: top left;
+        }
+
+        .image-card {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 40px;
+            border: 1px solid rgba(255,255,255,0.22);
+            box-shadow: 0 0 21.5px rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(18px);
+            display: grid;
+            place-items: center;
+            padding: 40px 38px;
+            overflow: hidden;
+        }
+
+        .image-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.02) 48%, rgba(0,0,0,0.06)),
+                radial-gradient(circle at 20% 25%, rgba(255,255,255,0.12), transparent 34%);
+            pointer-events: none;
+        }
+
+        .image-text {
+            position: relative;
+            width: 100%;
+            text-align: center;
+            font-size: 28px;
+            line-height: 1.36;
+            letter-spacing: 0.02em;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        @media (max-width: 1080px) {
+            .page { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="panel">
+            <h1>Custom Event Designer</h1>
+
+            <div class="format-toolbar">
+                <button id="insertBoldBtn" class="tool-btn" type="button">Bold</button>
+                <button id="insertStrongBtn" class="tool-btn" type="button">Strong</button>
+                <button id="insertLinkBtn" class="tool-btn" type="button">Link</button>
+            </div>
+
+            <label>
+                <span>Title</span>
+                <input id="titleInput" type="text" value="CustomEvent test: Short text-only update" />
+            </label>
+
+            <label>
+                <span>Content</span>
+                <textarea id="contentInput">We updated the event card renderer and tightened the X fallback rules. [strong](This post should remain text-only) because there are no links and the full message fits into the X limit.</textarea>
+            </label>
+
+            <div>
+                <div style="margin-bottom:6px;font-size:13px;">Send to</div>
+                <div class="checks">
+                    <label class="check"><input id="sendSlack" type="checkbox" checked /><span>Slack</span></label>
+                    <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
+                    <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
+                    <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
+                </div>
+            </div>
+
+            <div class="payload-box">
+                <h2>Payload</h2>
+                <textarea id="payloadOutput" class="token" readonly></textarea>
+                <div class="payload-actions">
+                    <button id="copyPayloadBtn" type="button">Copy Payload</button>
+                    <button id="copyJsonBtn" class="secondary" type="button">Copy JSON</button>
+                    <div id="copyState" style="font-size:12px;color:var(--muted);"></div>
+                </div>
+                <div id="payloadJson" class="payload-json"></div>
+            </div>
+        </div>
+
+        <div class="preview-stack">
+            <div class="panel preview-block">
+                <div class="preview-title">
+                    <h2>Webpage Preview</h2>
+                </div>
+                <div class="webpage-surface">
+                    <div class="webpage-event">
+                        <div class="webpage-event-row">
+                            <div id="eventTitlePreview" class="webpage-event-title formatted"></div>
+                            <div class="webpage-expander" aria-hidden="true"></div>
+                        </div>
+                        <div class="webpage-event-details">
+                            <div id="eventContentPreview" class="event-content formatted"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel preview-block">
+                <div class="preview-title">
+                    <h2>Text Post Preview</h2>
+                    <div id="textPreviewPlatforms" class="preview-platforms"></div>
+                </div>
+                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                    <div class="x-post">
+                        <div class="x-avatar">LW</div>
+                        <div class="x-main">
+                            <div class="x-head">
+                                <span class="x-name">Longevity World Cup</span>
+                                <span class="x-handle">@longevitywc</span>
+                                <span class="x-meta">now</span>
+                            </div>
+                            <div id="textPostPreview" class="x-text"></div>
+                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel preview-block">
+                <div class="preview-title">
+                    <h2>Image Post Preview</h2>
+                    <div id="imagePreviewPlatforms" class="preview-platforms"></div>
+                </div>
+                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                    <div class="x-post">
+                        <div class="x-avatar">LW</div>
+                        <div class="x-main">
+                            <div class="x-head">
+                                <span class="x-name">Longevity World Cup</span>
+                                <span class="x-handle">@longevitywc</span>
+                                <span class="x-meta">now</span>
+                            </div>
+                            <div id="imagePostPreview" class="x-text"></div>
+                            <div class="x-media">
+                                <div id="imageStageFrame" class="image-stage-frame">
+                                    <div id="imageStage" class="image-stage">
+                                        <div id="imageCard" class="image-card">
+                                            <div id="imageTextPreview" class="image-text formatted"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const LIMITS = { x: 280, threads: 500 };
+        const titleInput = document.getElementById("titleInput");
+        const contentInput = document.getElementById("contentInput");
+        const sendSlack = document.getElementById("sendSlack");
+        const sendX = document.getElementById("sendX");
+        const sendThreads = document.getElementById("sendThreads");
+        const sendFacebook = document.getElementById("sendFacebook");
+        const payloadOutput = document.getElementById("payloadOutput");
+        const payloadJson = document.getElementById("payloadJson");
+        const copyPayloadBtn = document.getElementById("copyPayloadBtn");
+        const copyJsonBtn = document.getElementById("copyJsonBtn");
+        const copyState = document.getElementById("copyState");
+        const insertBoldBtn = document.getElementById("insertBoldBtn");
+        const insertStrongBtn = document.getElementById("insertStrongBtn");
+        const insertLinkBtn = document.getElementById("insertLinkBtn");
+        const imageStageFrame = document.getElementById("imageStageFrame");
+        const imageStage = document.getElementById("imageStage");
+        const textPreviewPlatforms = document.getElementById("textPreviewPlatforms");
+        const imagePreviewPlatforms = document.getElementById("imagePreviewPlatforms");
+        let activeEditor = contentInput;
+
+        const PLATFORM_CONFIGS = [
+            { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
+            { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
+            { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 }
+        ];
+
+        function escapeHtml(value) {
+            return (value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll("\"", "&quot;");
+        }
+
+        function collapseWhitespace(value) {
+            return (value ?? "").replace(/\s+/g, " ").trim();
+        }
+
+        function containsHyperlink(value) {
+            return /\[[^\]]+\]\((https?:\/\/[^)\s]+)\)/i.test(value ?? "");
+        }
+
+        function plainTextWithLabels(value) {
+            let text = (value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+            text = text.replace(/\[bold\]\(([\s\S]*?)\)/gi, "$1");
+            text = text.replace(/\[strong\]\(([\s\S]*?)\)/gi, "$1");
+            text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, "$1");
+            return text.trim();
+        }
+
+        function formatMarkupToHtml(value) {
+            let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
+            html = html.replace(/\[bold\]\(([\s\S]*?)\)/gi, "<strong>$1</strong>");
+            html = html.replace(/\[strong\]\(([\s\S]*?)\)/gi, "<span class=\"strong\">$1</span>");
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+            html = html.replace(/\n/g, "<br>");
+            return html;
+        }
+
+        function formatImageMarkupToHtml(value) {
+            let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
+            html = html.replace(/\[bold\]\(([\s\S]*?)\)/gi, "<strong>$1</strong>");
+            html = html.replace(/\[strong\]\(([\s\S]*?)\)/gi, "<span class=\"strong\">$1</span>");
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, "$1");
+            html = html.replace(/\n/g, "<br>");
+            return html;
+        }
+
+        function formatPlainPostTextToHtml(value) {
+            let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
+            html = html.replace(/(https?:\/\/[^\s<]+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+            html = html.replace(/\n/g, "<br>");
+            return html;
+        }
+
+        function fnv1a(text) {
+            let hash = 0x811c9dc5;
+            for (let i = 0; i < text.length; i++) {
+                hash ^= text.charCodeAt(i);
+                hash = Math.imul(hash, 0x01000193);
+            }
+            return (hash >>> 0).toString(16).padStart(8, "0");
+        }
+
+        function buildPreviewEventUrl(title, content) {
+            const id = fnv1a(`${title}\n\n${content}`);
+            return `https://longevityworldcup.com/events?event=preview-${id}`;
+        }
+
+        function buildTextPost(titleText, bodyText, eventUrl) {
+            const parts = [];
+            if (titleText) parts.push(titleText);
+            if (bodyText) parts.push(bodyText);
+            if (eventUrl) parts.push(eventUrl);
+            return parts.join("\n\n").trim();
+        }
+
+        function buildImageCaption(titleText, eventUrl, maxLength) {
+            const normalizedTitle = collapseWhitespace(titleText);
+            if (!eventUrl) return normalizedTitle;
+            const reserved = eventUrl.length + 2;
+            const maxTitleLength = Math.max(0, maxLength - reserved);
+            let finalTitle = normalizedTitle;
+            if (finalTitle.length > maxTitleLength) {
+                finalTitle = maxTitleLength <= 1 ? "" : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
+            }
+            return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
+        }
+
+        function buildPlan(titleRaw, contentRaw, maxLength) {
+            const rawText = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
+            const titleText = collapseWhitespace(plainTextWithLabels(titleRaw));
+            const bodyText = plainTextWithLabels(contentRaw);
+            const eventUrl = buildPreviewEventUrl(titleRaw, contentRaw);
+            const hasHyperlinks = containsHyperlink(rawText);
+            const textWithoutUrl = buildTextPost(titleText, bodyText, null);
+
+            if (!hasHyperlinks && textWithoutUrl && textWithoutUrl.length <= maxLength) {
+                return { mode: "text", postText: textWithoutUrl };
+            }
+
+            if (hasHyperlinks) {
+                const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
+                if (textWithUrl && textWithUrl.length <= maxLength) {
+                    return { mode: "text", postText: textWithUrl };
+                }
+            }
+
+            return {
+                mode: "image",
+                postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength)
+            };
+        }
+
+        function base64UrlEncodeUtf8(value) {
+            const utf8 = new TextEncoder().encode(value);
+            let binary = "";
+            for (const byte of utf8) binary += String.fromCharCode(byte);
+            return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+        }
+
+        function setActiveEditor(target) {
+            if (target === titleInput || target === contentInput) {
+                activeEditor = target;
+            }
+        }
+
+        function insertSnippet(prefix, fallbackText, suffix, selectionStartOffset, selectionEndOffset) {
+            const target = activeEditor ?? contentInput;
+            const start = target.selectionStart ?? target.value.length;
+            const end = target.selectionEnd ?? start;
+            const selectedText = target.value.slice(start, end);
+            const innerText = selectedText || fallbackText;
+            const inserted = `${prefix}${innerText}${suffix}`;
+
+            target.value = `${target.value.slice(0, start)}${inserted}${target.value.slice(end)}`;
+            target.focus();
+
+            const nextSelectionStart = start + selectionStartOffset(prefix, innerText);
+            const nextSelectionEnd = start + selectionEndOffset(prefix, innerText);
+            target.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+            update();
+        }
+
+        function insertBold() {
+            insertSnippet("[bold](", "text", ")", (prefix) => prefix.length, (prefix, innerText) => prefix.length + innerText.length);
+        }
+
+        function insertStrong() {
+            insertSnippet("[strong](", "text", ")", (prefix) => prefix.length, (prefix, innerText) => prefix.length + innerText.length);
+        }
+
+        function insertLink() {
+            const target = activeEditor ?? contentInput;
+            const start = target.selectionStart ?? target.value.length;
+            const end = target.selectionEnd ?? start;
+            const selectedText = target.value.slice(start, end) || "label";
+            const inserted = `[${selectedText}](https://example.com/)`;
+
+            target.value = `${target.value.slice(0, start)}${inserted}${target.value.slice(end)}`;
+            target.focus();
+
+            const urlStart = start + selectedText.length + 3;
+            const urlEnd = urlStart + "https://example.com/".length;
+            target.setSelectionRange(urlStart, urlEnd);
+            update();
+        }
+
+        function getSelectedPlatformPlans(titleRaw, contentRaw) {
+            return PLATFORM_CONFIGS
+                .filter(platform => platform.checkbox.checked)
+                .map(platform => {
+                    const plan = platform.fixedMode
+                        ? { mode: platform.fixedMode, postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw)), plainTextWithLabels(contentRaw), null) }
+                        : buildPlan(titleRaw, contentRaw, platform.limit);
+                    return { label: platform.label, ...plan };
+                });
+        }
+
+        function updateImagePreview(contentRaw) {
+            const card = document.getElementById("imageCard");
+            const text = document.getElementById("imageTextPreview");
+            text.innerHTML = formatImageMarkupToHtml(contentRaw || titleInput.value.trim());
+
+            const length = plainTextWithLabels(contentRaw || titleInput.value.trim()).length;
+            if (length > 420) {
+                card.style.width = "1060px";
+                card.style.height = "520px";
+                card.style.padding = "40px 38px";
+                text.style.fontSize = "18px";
+                text.style.lineHeight = "1.42";
+            } else if (length > 280) {
+                card.style.width = "1000px";
+                card.style.height = "455px";
+                card.style.padding = "40px 30px";
+                text.style.fontSize = "22px";
+                text.style.lineHeight = "1.42";
+            } else {
+                card.style.width = "920px";
+                card.style.height = "360px";
+                card.style.padding = "40px 20px";
+                text.style.fontSize = "30px";
+                text.style.lineHeight = "1.36";
+            }
+
+            const scale = imageStageFrame.clientWidth / 1200;
+            imageStage.style.transform = `scale(${scale})`;
+        }
+
+        function update() {
+            const titleRaw = titleInput.value.trim();
+            const contentRaw = contentInput.value.trim();
+            const combinedRaw = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
+            const payload = {
+                title: titleRaw,
+                content: contentRaw,
+                sendToSlack: sendSlack.checked,
+                sendToX: sendX.checked,
+                sendToThreads: sendThreads.checked,
+                sendToFacebook: sendFacebook.checked
+            };
+
+            document.getElementById("eventTitlePreview").innerHTML = formatMarkupToHtml(titleRaw);
+            document.getElementById("eventContentPreview").innerHTML = contentRaw ? formatMarkupToHtml(contentRaw) : "";
+
+            const xPlan = buildPlan(titleRaw, contentRaw, LIMITS.x);
+            const threadsPlan = buildPlan(titleRaw, contentRaw, LIMITS.threads);
+            const facebookPlan = buildPlan(titleRaw, contentRaw, 63206);
+            const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw);
+            const textPlans = selectedPlans.filter(x => x.mode === "text");
+            const imagePlans = selectedPlans.filter(x => x.mode === "image");
+
+            const titleText = collapseWhitespace(plainTextWithLabels(titleRaw));
+            const bodyText = plainTextWithLabels(contentRaw);
+            const eventUrl = containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
+
+            const textPreviewBlock = textPreviewPlatforms.closest(".panel");
+            const imagePreviewBlock = imagePreviewPlatforms.closest(".panel");
+
+            if (textPlans.length > 0) {
+                textPreviewBlock.style.display = "";
+                textPreviewPlatforms.textContent = textPlans.map(x => x.label).join(", ");
+                document.getElementById("textPostPreview").innerHTML = formatPlainPostTextToHtml(textPlans[0].postText || buildTextPost(titleText, bodyText, eventUrl));
+            } else {
+                textPreviewBlock.style.display = "none";
+            }
+
+            if (imagePlans.length > 0) {
+                imagePreviewBlock.style.display = "";
+                imagePreviewPlatforms.textContent = imagePlans.map(x => x.label).join(", ");
+                document.getElementById("imagePostPreview").innerHTML = formatPlainPostTextToHtml(imagePlans[0].postText || buildImageCaption(titleText, eventUrl ?? "", LIMITS.x));
+            } else {
+                imagePreviewBlock.style.display = "none";
+            }
+
+            updateImagePreview(contentRaw);
+
+            const payloadJsonText = JSON.stringify(payload, null, 2);
+            payloadJson.textContent = payloadJsonText;
+            payloadOutput.value = base64UrlEncodeUtf8(payloadJsonText);
+        }
+
+        async function copyText(value, message) {
+            await navigator.clipboard.writeText(value);
+            copyState.textContent = message;
+            setTimeout(() => {
+                if (copyState.textContent === message) copyState.textContent = "";
+            }, 2000);
+        }
+
+        [titleInput, contentInput].forEach(el => {
+            el.addEventListener("focus", () => setActiveEditor(el));
+            el.addEventListener("click", () => setActiveEditor(el));
+            el.addEventListener("keyup", () => setActiveEditor(el));
+            el.addEventListener("select", () => setActiveEditor(el));
+        });
+
+        [titleInput, contentInput, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
+            el.addEventListener("input", update);
+            el.addEventListener("change", update);
+        });
+
+        insertBoldBtn.addEventListener("click", insertBold);
+        insertStrongBtn.addEventListener("click", insertStrong);
+        insertLinkBtn.addEventListener("click", insertLink);
+        copyPayloadBtn.addEventListener("click", async () => copyText(payloadOutput.value, "Payload copied."));
+        copyJsonBtn.addEventListener("click", async () => copyText(payloadJson.textContent, "JSON copied."));
+        window.addEventListener("resize", update);
+
+        update();
+    </script>
+</body>
+</html>
