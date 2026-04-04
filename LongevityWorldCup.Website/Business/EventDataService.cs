@@ -42,11 +42,12 @@ public sealed class EventDataService : IDisposable
     private readonly XEventService _xEvents;
     private readonly ThreadsEventService _threadsEvents;
     private readonly FacebookEventService _facebookEvents;
+    private readonly ILogger<EventDataService> _log;
     private int _processingImmediateCustomEvents;
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log)
     {
         _ = env;
         _slackEvents = slackEvents;
@@ -54,6 +55,7 @@ public sealed class EventDataService : IDisposable
         _threadsEvents = threadsEvents;
         _facebookEvents = facebookEvents;
         _db = db ?? throw new ArgumentNullException(nameof(db));
+        _log = log;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -172,8 +174,9 @@ public sealed class EventDataService : IDisposable
             ProcessPendingImmediateCustomEvents();
             ReloadIntoCache();
         }
-        catch
+        catch (Exception ex)
         {
+            _log.LogError(ex, "EventDataService database change processing failed.");
         }
     }
 
@@ -265,8 +268,9 @@ public sealed class EventDataService : IDisposable
             {
                 sent = trySend(id, rawText);
             }
-            catch
+            catch (Exception ex)
             {
+                _log.LogError(ex, "Immediate custom event send failed for platform column {ProcessedColumn} and event {EventId}.", processedColumn, id);
                 sent = false;
             }
 
