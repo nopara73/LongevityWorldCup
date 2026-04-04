@@ -8,16 +8,14 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class SlackErrorLoggerProvider : ILoggerProvider
 {
     private readonly string? _webhookUrl;
-    private readonly string _environmentName;
     private readonly ConcurrentDictionary<string, DateTime> _recentErrors = new(StringComparer.Ordinal);
     private readonly TimeSpan _dedupeWindow = TimeSpan.FromMinutes(5);
     private readonly HttpClient _httpClient = new();
     private int _disposed;
 
-    public SlackErrorLoggerProvider(string? webhookUrl, string environmentName)
+    public SlackErrorLoggerProvider(string? webhookUrl)
     {
         _webhookUrl = webhookUrl;
-        _environmentName = string.IsNullOrWhiteSpace(environmentName) ? "Unknown" : environmentName.Trim();
     }
 
     public ILogger CreateLogger(string categoryName)
@@ -103,60 +101,58 @@ public sealed class SlackErrorLoggerProvider : ILoggerProvider
         private string BuildPayload(LogLevel logLevel, EventId eventId, string? message, Exception? exception)
         {
             var text = new StringBuilder();
-            text.Append("*LongevityWorldCup Error*");
+            text.Append("```");
             text.Append('\n');
-            text.Append("Environment: `").Append(Escape(_provider._environmentName)).Append('`');
+            text.Append("Level: ").Append(logLevel);
             text.Append('\n');
-            text.Append("Level: `").Append(logLevel).Append('`');
-            text.Append('\n');
-            text.Append("Category: `").Append(Escape(_categoryName)).Append('`');
+            text.Append("Source: ").Append(_categoryName);
 
             if (eventId.Id != 0 || !string.IsNullOrWhiteSpace(eventId.Name))
             {
                 text.Append('\n');
-                text.Append("EventId: `").Append(eventId.Id);
+                text.Append("EventId: ").Append(eventId.Id);
                 if (!string.IsNullOrWhiteSpace(eventId.Name))
-                    text.Append(" / ").Append(Escape(eventId.Name));
-                text.Append('`');
+                    text.Append(" / ").Append(eventId.Name);
             }
 
             if (!string.IsNullOrWhiteSpace(message))
             {
                 text.Append('\n');
+                text.Append('\n');
                 text.Append("Message:");
                 text.Append('\n');
-                text.Append("```").Append('\n');
                 text.Append(Trim(message));
-                text.Append('\n');
-                text.Append("```");
             }
 
             if (exception is not null)
             {
                 text.Append('\n');
-                text.Append("Exception: `").Append(Escape(exception.GetType().FullName ?? exception.GetType().Name)).Append('`');
+                text.Append('\n');
+                text.Append("Exception: ").Append(exception.GetType().FullName ?? exception.GetType().Name);
                 if (!string.IsNullOrWhiteSpace(exception.Message))
                 {
                     text.Append('\n');
                     text.Append("ExceptionMessage:");
                     text.Append('\n');
-                    text.Append("```").Append('\n');
                     text.Append(Trim(exception.Message));
+                }
+
+                if (!string.IsNullOrWhiteSpace(exception.StackTrace))
+                {
                     text.Append('\n');
-                    text.Append("```");
+                    text.Append('\n');
+                    text.Append("StackTrace:");
+                    text.Append('\n');
+                    text.Append(Trim(exception.StackTrace));
                 }
             }
 
             text.Append('\n');
-            text.Append("UTC: `").Append(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")).Append("`");
+            text.Append('\n');
+            text.Append("UTC: ").Append(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+            text.Append('\n');
+            text.Append("```");
             return text.ToString();
-        }
-
-        private static string Escape(string value)
-        {
-            return value.Replace("&", "&amp;", StringComparison.Ordinal)
-                .Replace("<", "&lt;", StringComparison.Ordinal)
-                .Replace(">", "&gt;", StringComparison.Ordinal);
         }
 
         private static string Trim(string value)

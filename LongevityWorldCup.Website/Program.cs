@@ -62,7 +62,7 @@ namespace LongevityWorldCup.Website
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
-            builder.Logging.AddProvider(new SlackErrorLoggerProvider(appConfig.SlackErrorWebhookUrl, builder.Environment.EnvironmentName));
+            builder.Logging.AddProvider(new SlackErrorLoggerProvider(appConfig.SlackErrorWebhookUrl));
             builder.Services.AddHttpClient<SlackWebhookClient>();
             builder.Services.AddSingleton<SlackEventService>();
             builder.Services.AddSingleton<XDevPreviewService>();
