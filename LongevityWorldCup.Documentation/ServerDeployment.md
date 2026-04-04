@@ -183,6 +183,11 @@ Add webhook entry to config file:
 SlackWebhookUrl": ""
 ```
 
+Add separate error webhook entry to config file:
+```
+SlackErrorWebhookUrl": ""
+```
+
 #### BTCPay Server
 
 Add BTCPay entries to `config.json`:

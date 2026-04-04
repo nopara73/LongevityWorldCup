@@ -91,18 +91,27 @@ public class FacebookEventService
     public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId)
     {
         if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
+        {
+            _log.LogWarning("Facebook event send skipped because only custom events with an event id are supported. Type: {EventType}, EventIdPresent: {HasEventId}", type, !string.IsNullOrWhiteSpace(eventId));
             return false;
+        }
 
         var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206);
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
         if (!_customEventImages.IsConfigured)
+        {
+            _log.LogWarning("Facebook custom event image send skipped because custom event images are not configured for event {EventId}.", eventId);
             return false;
+        }
 
         var imageAsset = await _customEventImages.RenderAsync(eventId, rawText);
         if (imageAsset is null)
+        {
+            _log.LogWarning("Facebook custom event image render returned no asset for event {EventId}.", eventId);
             return false;
+        }
 
         const int maxAttempts = 2;
         const int retryDelayMs = 750;
