@@ -174,22 +174,34 @@ public class XEventService
     private async Task<bool> TrySendCustomEventAsync(string rawText, string? eventId)
     {
         if (string.IsNullOrWhiteSpace(eventId))
+        {
+            _log.LogWarning("X custom event send skipped because event id was missing.");
             return false;
+        }
 
         var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 280);
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
         if (!_customEventImages.IsConfigured)
+        {
+            _log.LogWarning("X custom event image send skipped because custom event images are not configured for event {EventId}.", eventId);
             return false;
+        }
 
         using var imageStream = await _customEventImages.RenderToStreamAsync(rawText);
         if (imageStream is null)
+        {
+            _log.LogWarning("X custom event image render returned no stream for event {EventId}.", eventId);
             return false;
+        }
 
         var mediaId = await _x.UploadMediaAsync(imageStream, "image/png");
         if (string.IsNullOrWhiteSpace(mediaId))
+        {
+            _log.LogWarning("X custom event media upload returned no media id for event {EventId}.", eventId);
             return false;
+        }
 
         return await TrySendAsync(plan.PostText, new[] { mediaId });
     }

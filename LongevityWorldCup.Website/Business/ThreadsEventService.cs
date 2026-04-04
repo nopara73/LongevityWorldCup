@@ -164,18 +164,27 @@ public class ThreadsEventService
     private async Task<bool> TrySendCustomEventAsync(string rawText, string? eventId)
     {
         if (string.IsNullOrWhiteSpace(eventId))
+        {
+            _log.LogWarning("Threads custom event send skipped because event id was missing.");
             return false;
+        }
 
         var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 500);
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
         if (!_customEventImages.IsConfigured)
+        {
+            _log.LogWarning("Threads custom event image send skipped because custom event images are not configured for event {EventId}.", eventId);
             return false;
+        }
 
         var imageAsset = await _customEventImages.RenderAsync(eventId, rawText);
         if (imageAsset is null)
+        {
+            _log.LogWarning("Threads custom event image render returned no asset for event {EventId}.", eventId);
             return false;
+        }
 
         const int maxAttempts = 2;
         const int retryDelayMs = 750;
