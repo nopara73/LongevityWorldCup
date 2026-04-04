@@ -713,6 +713,15 @@
             }
             return { title: s.trimEnd(), content: "" };
         }
+        function getRequestedEventId(){
+            try{
+                const url=new URL(window.location.href);
+                const id=url.searchParams.get("event");
+                return id?String(id).trim():"";
+            }catch(_){
+                return "";
+            }
+        }
         function isSafeHttpUrl(u){return /^https?:\/\/.+/i.test(String(u||"").trim());}
         function renderCustomMarkup(text){
             const s=String(text||"");
@@ -1046,6 +1055,7 @@
         function toRows(rawEvents){
             return (rawEvents||[]).map(e=>{
                 const map=lowerKeyMap(e||{});
+                const id=String(e[map["id"]]??e["Id"]??"");
                 const type=Number(e[map["type"]]??0);
                 const text=String(e[map["text"]]??"");
                 const occurredAt=e[map["occurredat"]]??e[map["occurredAt"]]??e["OccurredAt"]??null;
@@ -1083,7 +1093,7 @@
                 const clockId = extractClock(text);
                 const ageDiff = extractAgeDiff(text);
 
-                return { type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff };
+                return { id, type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff };
             });
         }
 
@@ -1558,6 +1568,7 @@
                 tr.className = "row-appear main-row";
                 tr.dataset.rowIndex = String(idx);
                 tr.dataset.groupId = `g_${idx}`;
+                if (r.id) tr.dataset.eventId = String(r.id);
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
              <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
@@ -1589,6 +1600,7 @@
 
                     const detailsTr = document.createElement("tr");
                     detailsTr.className = "details-row custom-event-details";
+                    if (r.id) detailsTr.dataset.eventId = String(r.id);
                     detailsTr.innerHTML =
                         `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content">${contentHtml}</div></td>`;
 
@@ -1634,6 +1646,27 @@
                 window.addEventListener("resize", () => revealVisibleRowsImmediately(tbody), { passive: true });
             } else {
                 rowsNow.forEach(r => r.classList.add("is-visible"));
+            }
+
+            const requestedEventId = getRequestedEventId();
+            if (requestedEventId && window.CSS && typeof window.CSS.escape === "function") {
+                const targetRow = tbody.querySelector(`tr.main-row[data-event-id="${window.CSS.escape(requestedEventId)}"]`);
+                if (targetRow) {
+                    if (targetRow.classList.contains("custom-event-row") && !targetRow.classList.contains("is-open")) {
+                        targetRow.classList.add("is-open");
+                        const btn = targetRow.querySelector(".custom-event-expander");
+                        if (btn) {
+                            btn.setAttribute("aria-expanded", "true");
+                            btn.setAttribute("title", "Hide details");
+                            btn.setAttribute("aria-label", "Hide details");
+                        }
+                        applyZebraStriping(tbody);
+                    }
+
+                    requestAnimationFrame(() => {
+                        targetRow.scrollIntoView({ behavior: "smooth", block: "center" });
+                    });
+                }
             }
         }
 

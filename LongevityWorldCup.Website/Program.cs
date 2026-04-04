@@ -56,6 +56,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<BitcoinDataService>();
             builder.Services.AddSingleton<BadgeDataService>();
             builder.Services.AddSingleton<XImageService>();
+            builder.Services.AddSingleton<CustomEventImageService>();
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();
 

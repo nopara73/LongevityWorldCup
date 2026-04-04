@@ -42,6 +42,7 @@ public sealed class EventDataService : IDisposable
     private readonly XEventService _xEvents;
     private readonly ThreadsEventService _threadsEvents;
     private readonly FacebookEventService _facebookEvents;
+    private int _processingImmediateCustomEvents;
 
     public JsonArray Events { get; private set; } = [];
 
@@ -157,6 +158,7 @@ public sealed class EventDataService : IDisposable
         });
 
         ProcessPendingSlackEvents();
+        ProcessPendingImmediateCustomEvents();
         ReloadIntoCache();
 
         _db.DatabaseChanged += OnDatabaseChanged;
@@ -167,6 +169,7 @@ public sealed class EventDataService : IDisposable
         try
         {
             ProcessPendingSlackEvents();
+            ProcessPendingImmediateCustomEvents();
             ReloadIntoCache();
         }
         catch
@@ -218,16 +221,128 @@ public sealed class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
+    private void ProcessPendingImmediateCustomEvents()
+    {
+        if (Interlocked.Exchange(ref _processingImmediateCustomEvents, 1) == 1)
+            return;
+
+        try
+        {
+            ProcessPendingImmediateCustomEventsForPlatform(
+                processedColumn: "XProcessed",
+                isConfigured: _xEvents.IsConfigured,
+                trySend: (id, rawText) => _xEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id).GetAwaiter().GetResult());
+
+            ProcessPendingImmediateCustomEventsForPlatform(
+                processedColumn: "ThreadsProcessed",
+                isConfigured: _threadsEvents.IsConfigured,
+                trySend: (id, rawText) => _threadsEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id).GetAwaiter().GetResult());
+
+            ProcessPendingImmediateCustomEventsForPlatform(
+                processedColumn: "FacebookProcessed",
+                isConfigured: _facebookEvents.IsConfigured,
+                trySend: (id, rawText) => _facebookEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id).GetAwaiter().GetResult());
+        }
+        finally
+        {
+            Volatile.Write(ref _processingImmediateCustomEvents, 0);
+        }
+    }
+
+    private void ProcessPendingImmediateCustomEventsForPlatform(string processedColumn, bool isConfigured, Func<string, string, bool> trySend)
+    {
+        if (!isConfigured)
+        {
+            MarkPendingCustomEventsProcessedWithoutSend(processedColumn);
+            return;
+        }
+
+        var claimed = ClaimPendingCustomEvents(processedColumn);
+        foreach (var (id, rawText) in claimed)
+        {
+            var sent = false;
+            try
+            {
+                sent = trySend(id, rawText);
+            }
+            catch
+            {
+                sent = false;
+            }
+
+            FinalizeClaimedCustomEvent(processedColumn, id, sent);
+        }
+    }
+
+    private List<(string Id, string Text)> ClaimPendingCustomEvents(string processedColumn)
+    {
+        return _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var selectCmd = sqlite.CreateCommand();
+            selectCmd.Transaction = tx;
+            selectCmd.CommandText =
+                $"SELECT Id, Text FROM Events WHERE Type = @type AND {processedColumn} = 0 ORDER BY OccurredAt ASC;";
+            selectCmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
+
+            var claimed = new List<(string Id, string Text)>();
+            using var reader = selectCmd.ExecuteReader();
+            var pending = new List<(string Id, string Text)>();
+            while (reader.Read())
+                pending.Add((reader.GetString(0), reader.GetString(1)));
+
+            if (pending.Count > 0)
+            {
+                using var claimCmd = sqlite.CreateCommand();
+                claimCmd.Transaction = tx;
+                claimCmd.CommandText = $"UPDATE Events SET {processedColumn} = 2 WHERE Id = @id AND {processedColumn} = 0;";
+                var pId = claimCmd.Parameters.Add("@id", SqliteType.Text);
+
+                foreach (var (id, text) in pending)
+                {
+                    pId.Value = id;
+                    if (claimCmd.ExecuteNonQuery() == 1)
+                        claimed.Add((id, text));
+                }
+            }
+
+            tx.Commit();
+            return claimed;
+        });
+    }
+
+    private void FinalizeClaimedCustomEvent(string processedColumn, string id, bool succeeded)
+    {
+        _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = @state WHERE Id = @id AND {processedColumn} = 2;";
+            cmd.Parameters.AddWithValue("@state", succeeded ? 1 : 0);
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+        });
+    }
+
+    private void MarkPendingCustomEventsProcessedWithoutSend(string processedColumn)
+    {
+        _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = 1 WHERE Type = @type AND {processedColumn} = 0;";
+            cmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
+            cmd.ExecuteNonQuery();
+        });
+    }
+
     public const int XPriorityPrimaryMax = 8;
 
     public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
     {
         var list = _db.Run(sqlite =>
         {
-            var filters = new List<string> { "XProcessed = 0", "Type != @customEvent" };
+            var filters = new List<string> { "XProcessed = 0" };
             var parameters = new List<SqliteParameter>
             {
-                new SqliteParameter("@customEvent", (int)EventType.CustomEvent),
                 new SqliteParameter("@joined", (int)EventType.Joined)
             };
 
@@ -341,10 +456,9 @@ public sealed class EventDataService : IDisposable
     {
         var list = _db.Run(sqlite =>
         {
-            var filters = new List<string> { "ThreadsProcessed = 0", "Type != @customEvent" };
+            var filters = new List<string> { "ThreadsProcessed = 0" };
             var parameters = new List<SqliteParameter>
             {
-                new SqliteParameter("@customEvent", (int)EventType.CustomEvent),
                 new SqliteParameter("@joined", (int)EventType.Joined)
             };
 
@@ -419,10 +533,9 @@ public sealed class EventDataService : IDisposable
     {
         var list = _db.Run(sqlite =>
         {
-            var filters = new List<string> { "FacebookProcessed = 0", "Type != @customEvent" };
+            var filters = new List<string> { "FacebookProcessed = 0" };
             var parameters = new List<SqliteParameter>
             {
-                new SqliteParameter("@customEvent", (int)EventType.CustomEvent),
                 new SqliteParameter("@joined", (int)EventType.Joined)
             };
 
@@ -1010,6 +1123,7 @@ public sealed class EventDataService : IDisposable
 
         var combinedRaw = titleRaw + "\n\n" + contentRaw;
         var occurredAt = EnsureUtc(occurredAtUtc ?? DateTime.UtcNow).ToString("o");
+        var eventId = Guid.NewGuid().ToString("N");
 
         int created = 0;
 
@@ -1020,12 +1134,18 @@ public sealed class EventDataService : IDisposable
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
-            insertCmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
+                """
+                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, XProcessed, ThreadsProcessed, FacebookProcessed)
+                VALUES (@id, @type, @text, @occ, @rel, @xProcessed, @threadsProcessed, @facebookProcessed);
+                """;
+            insertCmd.Parameters.AddWithValue("@id", eventId);
             insertCmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
             insertCmd.Parameters.AddWithValue("@text", combinedRaw);
             insertCmd.Parameters.AddWithValue("@occ", occurredAt);
             insertCmd.Parameters.AddWithValue("@rel", relevance);
+            insertCmd.Parameters.AddWithValue("@xProcessed", _xEvents.IsConfigured ? 0 : 1);
+            insertCmd.Parameters.AddWithValue("@threadsProcessed", _threadsEvents.IsConfigured ? 0 : 1);
+            insertCmd.Parameters.AddWithValue("@facebookProcessed", _facebookEvents.IsConfigured ? 0 : 1);
 
             insertCmd.ExecuteNonQuery();
             created = 1;
@@ -1036,6 +1156,7 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
+            ProcessPendingImmediateCustomEvents();
         }
     }
     
