@@ -9,15 +9,19 @@ public class ThreadsEventService
     private readonly ThreadsApiClient _threads;
     private readonly ILogger<ThreadsEventService> _log;
     private readonly IServiceProvider _services;
+    private readonly CustomEventImageService _customEventImages;
     private readonly object _lockObj = new();
     private Dictionary<string, AthleteForX> _bySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public ThreadsEventService(ThreadsApiClient threads, ILogger<ThreadsEventService> log, IServiceProvider services)
+    public ThreadsEventService(ThreadsApiClient threads, ILogger<ThreadsEventService> log, IServiceProvider services, CustomEventImageService customEventImages)
     {
         _threads = threads;
         _log = log;
         _services = services ?? throw new ArgumentNullException(nameof(services));
+        _customEventImages = customEventImages ?? throw new ArgumentNullException(nameof(customEventImages));
     }
+
+    public bool IsConfigured => _threads.IsConfigured;
 
     public void SetAthletesForThreads(IReadOnlyList<AthleteForX> items)
     {
@@ -81,13 +85,29 @@ public class ThreadsEventService
 
     public async Task<bool> TrySendEventAsync(EventType type, string rawText)
     {
+        return await TrySendEventAsync(type, rawText, eventId: null);
+    }
+
+    public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId)
+    {
+        if (type == EventType.CustomEvent)
+            return await TrySendCustomEventAsync(rawText, eventId);
+
         var msg = BuildMessage(type, rawText);
         if (string.IsNullOrWhiteSpace(msg)) return false;
         return await TrySendAsync(msg);
     }
 
-    public string? TryBuildMessage(EventType type, string rawText)
+    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null)
     {
+        if (type == EventType.CustomEvent)
+        {
+            if (string.IsNullOrWhiteSpace(eventId))
+                return null;
+
+            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 500).PostText;
+        }
+
         var message = ThreadsMessageBuilder.ForEventText(
             type,
             rawText,
@@ -139,6 +159,59 @@ public class ThreadsEventService
             getChronoAgeForSlug: GetChronoAge,
             getPhenoDiffForSlug: GetPhenoDiff,
             getBortzDiffForSlug: GetBortzDiff);
+    }
+
+    private async Task<bool> TrySendCustomEventAsync(string rawText, string? eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+            return false;
+
+        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 500);
+        if (plan.Mode == CustomEventPostMode.Text)
+            return await TrySendAsync(plan.PostText);
+
+        if (!_customEventImages.IsConfigured)
+            return false;
+
+        var imageAsset = await _customEventImages.RenderAsync(eventId, rawText);
+        if (imageAsset is null)
+            return false;
+
+        const int maxAttempts = 2;
+        const int retryDelayMs = 750;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                var postId = await _threads.SendImagePostAsync(plan.PostText, imageAsset.Value.PublicUrl);
+                if (!string.IsNullOrWhiteSpace(postId))
+                    return true;
+
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning("Threads image send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, plan.PostText);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogWarning("Threads image send returned no post id after retries: {Text}", plan.PostText);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning(ex, "Threads image send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, plan.PostText);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogError(ex, "Threads image send failed after retries: {Text}", plan.PostText);
+                return false;
+            }
+        }
+
+        return false;
     }
 
     private string SlugToName(string slug)

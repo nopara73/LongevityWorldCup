@@ -9,15 +9,19 @@ public class XEventService
     private readonly XApiClient _x;
     private readonly ILogger<XEventService> _log;
     private readonly IServiceProvider _services;
+    private readonly CustomEventImageService _customEventImages;
     private readonly object _lockObj = new();
     private Dictionary<string, AthleteForX> _bySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public XEventService(XApiClient x, ILogger<XEventService> log, IServiceProvider services)
+    public XEventService(XApiClient x, ILogger<XEventService> log, IServiceProvider services, CustomEventImageService customEventImages)
     {
         _x = x;
         _log = log;
         _services = services ?? throw new ArgumentNullException(nameof(services));
+        _customEventImages = customEventImages ?? throw new ArgumentNullException(nameof(customEventImages));
     }
+
+    public bool IsConfigured => _x.IsConfigured;
 
     public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
     {
@@ -91,13 +95,29 @@ public class XEventService
 
     public async Task<bool> TrySendEventAsync(EventType type, string rawText)
     {
+        return await TrySendEventAsync(type, rawText, eventId: null);
+    }
+
+    public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId)
+    {
+        if (type == EventType.CustomEvent)
+            return await TrySendCustomEventAsync(rawText, eventId);
+
         var msg = BuildMessage(type, rawText);
         if (string.IsNullOrWhiteSpace(msg)) return false;
         return await TrySendAsync(msg);
     }
 
-    public string? TryBuildMessage(EventType type, string rawText)
+    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null)
     {
+        if (type == EventType.CustomEvent)
+        {
+            if (string.IsNullOrWhiteSpace(eventId))
+                return null;
+
+            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 280).PostText;
+        }
+
         var message = XMessageBuilder.ForEventText(
             type,
             rawText,
@@ -149,6 +169,29 @@ public class XEventService
             getChronoAgeForSlug: GetChronoAge,
             getPhenoDiffForSlug: GetPhenoDiff,
             getBortzDiffForSlug: GetBortzDiff);
+    }
+
+    private async Task<bool> TrySendCustomEventAsync(string rawText, string? eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+            return false;
+
+        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 280);
+        if (plan.Mode == CustomEventPostMode.Text)
+            return await TrySendAsync(plan.PostText);
+
+        if (!_customEventImages.IsConfigured)
+            return false;
+
+        using var imageStream = await _customEventImages.RenderToStreamAsync(rawText);
+        if (imageStream is null)
+            return false;
+
+        var mediaId = await _x.UploadMediaAsync(imageStream, "image/png");
+        if (string.IsNullOrWhiteSpace(mediaId))
+            return false;
+
+        return await TrySendAsync(plan.PostText, new[] { mediaId });
     }
 
     private string SlugToName(string slug)
