@@ -62,6 +62,7 @@ namespace LongevityWorldCup.Website
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
+            builder.Logging.AddProvider(new SlackErrorLoggerProvider(appConfig.SlackErrorWebhookUrl, builder.Environment.EnvironmentName));
             builder.Services.AddHttpClient<SlackWebhookClient>();
             builder.Services.AddSingleton<SlackEventService>();
             builder.Services.AddSingleton<XDevPreviewService>();
@@ -247,6 +248,8 @@ namespace LongevityWorldCup.Website
                 SmtpServer = "smtp.gmail.com",
                 SmtpPort = 587,
                 SmtpUser = "longevityworldcup@gmail.com",
+                SlackWebhookUrl = "",
+                SlackErrorWebhookUrl = "",
                 DonationBitcoinAddress = "",
                 BTCPayBaseUrl = "https://pay.longevityworldcup.com/",
                 BTCPayStoreId = "HdMuY1SVeGgWomYAphnMQfnfhigQUcpSCmpbMegrVLNg",
