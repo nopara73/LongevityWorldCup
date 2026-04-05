@@ -1,0 +1,42 @@
+{
+  "Name": "Markus Mattiasson",
+  "DisplayName": null,
+  "MediaContact": "https://revihealth.se/",
+  "DateOfBirth": {
+    "Year": 1986,
+    "Month": 1,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-01",
+      "AlbGL": 46,
+      "CreatUmolL": 104,
+      "GluMmolL": 4.8,
+      "CrpMgL": 0.58,
+      "LymPc": 25.3,
+      "McvFL": 95,
+      "RdwPc": 12.1,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 7.9,
+      "NeutrophilPc": 60.8,
+      "MonocytePc": 7.6,
+      "Rbc10e12L": 5.2,
+      "MchPg": 31,
+      "UreaMmolL": 7.5,
+      "CystatinCMgL": 0.64,
+      "Hba1cMmolMol": 29,
+      "CholesterolMmolL": 3.5,
+      "ApoA1GL": 1.4,
+      "AltUL": 48,
+      "GgtUL": 18.6,
+      "ShbgNmolL": 29,
+      "VitaminDNmolL": 175
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Sweden",
+  "Why": "I am driven by data and competition, and I want to build long-term resilience while avoiding frailty.",
+  "PodcastLink": "https://www.youtube.com/watch?v=RDg2T_ypNDE",
+  "PersonalLink": "https://revihealth.se/"
+}
