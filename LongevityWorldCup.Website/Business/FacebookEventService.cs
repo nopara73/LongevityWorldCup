@@ -1,4 +1,5 @@
 using System.Globalization;
+using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -6,14 +7,18 @@ public class FacebookEventService
 {
     private readonly FacebookApiClient _facebook;
     private readonly ILogger<FacebookEventService> _log;
+    private readonly CustomEventImageService _customEventImages;
     private readonly object _lockObj = new();
     private Dictionary<string, AthleteForX> _bySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public FacebookEventService(FacebookApiClient facebook, ILogger<FacebookEventService> log)
+    public FacebookEventService(FacebookApiClient facebook, ILogger<FacebookEventService> log, CustomEventImageService customEventImages)
     {
         _facebook = facebook;
         _log = log;
+        _customEventImages = customEventImages ?? throw new ArgumentNullException(nameof(customEventImages));
     }
+
+    public bool IsConfigured => _facebook.IsConfigured;
 
     public void SetAthletesForFacebook(IReadOnlyList<AthleteForX> items)
     {
@@ -80,18 +85,77 @@ public class FacebookEventService
 
     public async Task<bool> TrySendEventAsync(EventType type, string rawText)
     {
-        var msg = TryBuildMessage(type, rawText);
-        if (string.IsNullOrWhiteSpace(msg))
-            return false;
-
-        return await TrySendAsync(msg);
+        return await TrySendEventAsync(type, rawText, eventId: null);
     }
 
-    public string? TryBuildMessage(EventType type, string rawText)
+    public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId)
     {
-        _ = type;
-        _ = rawText;
-        return null;
+        if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
+        {
+            _log.LogWarning("Facebook event send skipped because only custom events with an event id are supported. Type: {EventType}, EventIdPresent: {HasEventId}", type, !string.IsNullOrWhiteSpace(eventId));
+            return false;
+        }
+
+        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206);
+        if (plan.Mode == CustomEventPostMode.Text)
+            return await TrySendAsync(plan.PostText);
+
+        if (!_customEventImages.IsConfigured)
+        {
+            _log.LogWarning("Facebook custom event image send skipped because custom event images are not configured for event {EventId}.", eventId);
+            return false;
+        }
+
+        var imageAsset = await _customEventImages.RenderAsync(eventId, rawText);
+        if (imageAsset is null)
+        {
+            _log.LogWarning("Facebook custom event image render returned no asset for event {EventId}.", eventId);
+            return false;
+        }
+
+        const int maxAttempts = 2;
+        const int retryDelayMs = 750;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                var postId = await _facebook.SendPhotoPostAsync(plan.PostText, imageAsset.Value.PublicUrl);
+                if (!string.IsNullOrWhiteSpace(postId))
+                    return true;
+
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning("Facebook image send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, plan.PostText);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogWarning("Facebook image send returned no post id after retries: {Text}", plan.PostText);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning(ex, "Facebook image send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, plan.PostText);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogError(ex, "Facebook image send failed after retries: {Text}", plan.PostText);
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null)
+    {
+        if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
+            return null;
+
+        return CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206).PostText;
     }
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)

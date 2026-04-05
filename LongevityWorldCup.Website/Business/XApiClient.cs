@@ -29,6 +29,8 @@ public class XApiClient
         _accessToken = config.XAccessToken;
     }
 
+    public bool IsConfigured => _env.IsDevelopment() || !string.IsNullOrWhiteSpace(GetAccessToken());
+
     public async Task SendAsync(string text, IReadOnlyList<string>? mediaIds = null)
     {
         await SendTweetAsync(text, mediaIds, null, true);

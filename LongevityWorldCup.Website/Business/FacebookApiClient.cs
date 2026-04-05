@@ -28,6 +28,10 @@ public class FacebookApiClient
         _userAccessToken = config.FacebookUserAccessToken;
     }
 
+    public bool IsConfigured =>
+        !string.IsNullOrWhiteSpace(GetPageId()) &&
+        !string.IsNullOrWhiteSpace(GetPageAccessToken());
+
     public async Task SendAsync(string text)
     {
         _ = await SendPostAsync(text);
@@ -107,6 +111,78 @@ public class FacebookApiClient
             }
 
             _log.LogWarning("Facebook publish returned no id.");
+            return null;
+        }
+
+        return null;
+    }
+
+    public async Task<string?> SendPhotoPostAsync(string text, string imageUrl)
+    {
+        text ??= "";
+        imageUrl = imageUrl?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            _log.LogWarning("Facebook image send skipped because image URL was empty.");
+            return null;
+        }
+
+        var pageId = GetPageId();
+        var accessToken = GetPageAccessToken();
+        if (string.IsNullOrWhiteSpace(pageId) || string.IsNullOrWhiteSpace(accessToken))
+        {
+            _log.LogInformation("Facebook credentials not configured. Would have posted image {ImageUrl} with content: {Content}", imageUrl, text);
+            return null;
+        }
+
+        const int maxAttempts = 2;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            var endpoint = $"{GraphApiBaseUrl}/{Uri.EscapeDataString(pageId)}/photos";
+            using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            req.Content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("url", imageUrl),
+                new KeyValuePair<string, string>("message", text),
+                new KeyValuePair<string, string>("access_token", accessToken)
+            });
+
+            var res = await _http.SendAsync(req);
+            var json = await res.Content.ReadAsStringAsync();
+
+            if (!res.IsSuccessStatusCode)
+            {
+                _log.LogError("Facebook photo publish failed: {StatusCode} {Body}", res.StatusCode, json);
+                if (ShouldRefreshToken(res.StatusCode, json) && attempt < maxAttempts)
+                {
+                    var refreshed = await TryRefreshPageAccessTokenAsync();
+                    if (refreshed)
+                    {
+                        pageId = GetPageId();
+                        accessToken = GetPageAccessToken();
+                        if (!string.IsNullOrWhiteSpace(pageId) && !string.IsNullOrWhiteSpace(accessToken))
+                            continue;
+                    }
+                }
+
+                return null;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("post_id", out var postIdEl))
+                    return postIdEl.GetString();
+                if (doc.RootElement.TryGetProperty("id", out var idEl))
+                    return idEl.GetString();
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Facebook photo publish response parse failed: {Json}", json);
+                return null;
+            }
+
+            _log.LogWarning("Facebook photo publish returned no id.");
             return null;
         }
 

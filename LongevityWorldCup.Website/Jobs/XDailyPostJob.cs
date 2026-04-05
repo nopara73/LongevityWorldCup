@@ -75,10 +75,10 @@ public class XDailyPostJob : IJob
                 continue;
             }
 
-            var msg = _xEvents.TryBuildMessage(type, text);
+            var msg = _xEvents.TryBuildMessage(type, text, id);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
-            var sent = await _xEvents.TrySendAsync(msg);
+            var sent = await _xEvents.TrySendEventAsync(type, text, id);
             if (!sent)
             {
                 _logger.LogWarning("XDailyPostJob send failed for event {Id}; leaving unprocessed", id);

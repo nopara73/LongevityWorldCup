@@ -9,6 +9,7 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class SlackEventService : IDisposable
 {
     private readonly SlackWebhookClient _slack;
+    private readonly ILogger<SlackEventService> _log;
     private readonly object _lockObj = new();
     private readonly List<(EventType Type, string Raw)> _buffer = new();
     private Timer? _timer;
@@ -17,9 +18,10 @@ public sealed class SlackEventService : IDisposable
     private Dictionary<string, (double? ChronoAge, double? LowestPhenoAge, double? LowestBortzAge)> _bio = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, string> _podcastBySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public SlackEventService(SlackWebhookClient slack)
+    public SlackEventService(SlackWebhookClient slack, ILogger<SlackEventService> log)
     {
         _slack = slack;
+        _log = log;
     }
 
     public void SetAthleteDirectory(IReadOnlyList<(string Slug, string Name, int? CurrentRank)> items)
@@ -54,8 +56,9 @@ public sealed class SlackEventService : IDisposable
             var text = BuildMessage(type, rawText);
             if (!string.IsNullOrWhiteSpace(text)) await _slack.SendAsync(text);
         }
-        catch
+        catch (Exception ex)
         {
+            _log.LogError(ex, "Slack immediate send failed for event type {EventType}.", type);
         }
     }
 
@@ -148,8 +151,9 @@ public sealed class SlackEventService : IDisposable
             {
                 await _slack.SendAsync(message);
             }
-            catch
+            catch (Exception ex)
             {
+                _log.LogError(ex, "Slack buffered send failed for slug {Slug} with {EventCount} event(s).", kv.Key, list.Count);
             }
         }
     }

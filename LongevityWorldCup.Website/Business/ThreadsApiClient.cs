@@ -25,6 +25,8 @@ public class ThreadsApiClient
         _accessToken = config.ThreadsAccessToken;
     }
 
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(GetAccessToken());
+
     public async Task SendAsync(string text)
     {
         _ = await SendPostAsync(text);
@@ -99,6 +101,70 @@ public class ThreadsApiClient
         return null;
     }
 
+    public async Task<string?> SendImagePostAsync(string text, string imageUrl)
+    {
+        text ??= "";
+        imageUrl = imageUrl?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            _log.LogWarning("Threads image send skipped because image URL was empty.");
+            return null;
+        }
+
+        if (text.Length > MaxTextLength)
+        {
+            _log.LogWarning("Threads image send skipped because text length {Length} exceeds limit {Limit}.", text.Length, MaxTextLength);
+            return null;
+        }
+
+        var token = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            _log.LogInformation("Threads credentials not configured. Would have posted image {ImageUrl} with content: {Content}", imageUrl, text);
+            return null;
+        }
+
+        const int maxAttempts = 2;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            var creation = await CreateImageContainerAsync(text, imageUrl, token);
+            if (creation.Success && !string.IsNullOrWhiteSpace(creation.Id))
+            {
+                var publish = await PublishContainerAsync(creation.Id, token);
+                if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
+                    return publish.Id;
+
+                if (publish.ShouldRefreshToken && attempt < maxAttempts)
+                {
+                    var refreshed = await TryRefreshAccessTokenAsync();
+                    if (refreshed)
+                    {
+                        token = GetAccessToken();
+                        if (!string.IsNullOrWhiteSpace(token))
+                            continue;
+                    }
+                }
+
+                return null;
+            }
+
+            if (creation.ShouldRefreshToken && attempt < maxAttempts)
+            {
+                var refreshed = await TryRefreshAccessTokenAsync();
+                if (refreshed)
+                {
+                    token = GetAccessToken();
+                    if (!string.IsNullOrWhiteSpace(token))
+                        continue;
+                }
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     private async Task<(bool Success, string? Id, bool ShouldRefreshToken)> CreateTextContainerAsync(string text, string token)
     {
         using var req = new HttpRequestMessage(HttpMethod.Post, CreateThreadEndpoint);
@@ -131,6 +197,42 @@ public class ThreadsApiClient
         }
 
         _log.LogWarning("Threads create container returned no id.");
+        return (false, null, false);
+    }
+
+    private async Task<(bool Success, string? Id, bool ShouldRefreshToken)> CreateImageContainerAsync(string text, string imageUrl, string token)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, CreateThreadEndpoint);
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        req.Content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("media_type", "IMAGE"),
+            new KeyValuePair<string, string>("image_url", imageUrl),
+            new KeyValuePair<string, string>("text", text)
+        });
+
+        var res = await _http.SendAsync(req);
+        var json = await res.Content.ReadAsStringAsync();
+
+        if (!res.IsSuccessStatusCode)
+        {
+            _log.LogError("Threads create image container failed: {StatusCode} {Body}", res.StatusCode, json);
+            return (false, null, ShouldRefreshToken(res.StatusCode, json));
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("id", out var idEl))
+                return (true, idEl.GetString(), false);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Threads create image container response parse failed: {Json}", json);
+            return (false, null, false);
+        }
+
+        _log.LogWarning("Threads create image container returned no id.");
         return (false, null, false);
     }
 
