@@ -195,7 +195,7 @@ public static class ThreadsMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return RejectIfTooLong($"{chronoAthlete} is currently the oldest athlete in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
+            return RejectIfTooLong($"{chronoAthlete} is the oldest athlete in the current Longevity World Cup field at {ageStr}.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
         if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
@@ -207,7 +207,7 @@ public static class ThreadsMessageBuilder
             var chronoAthlete = slugToName(chronoSlug);
             var ageStr = chronoAge.Value.ToString("0", CultureInfo.InvariantCulture);
             var url = AthleteUrl(chronoSlug);
-            return RejectIfTooLong($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
+            return RejectIfTooLong($"{chronoAthlete} is the youngest athlete in the current Longevity World Cup field at {ageStr}.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
         if (string.Equals(normLabel, "Age Reduction", StringComparison.OrdinalIgnoreCase)
@@ -238,8 +238,8 @@ public static class ThreadsMessageBuilder
         const string host = "@nopara73";
 
         return RejectIfTooLong(
-            $"New Longevity World Cup podcast \U0001F3A7\n" +
-            $"{host} sits down with {guest} for a full conversation on the show.\n\n" +
+            $"New Longevity World Cup podcast.\n" +
+            $"{host} talks with {guest} in the latest episode. \U0001F3A7\n\n" +
             $"{podcastUrl}");
     }
 
@@ -283,7 +283,7 @@ public static class ThreadsMessageBuilder
         {
             var podium = getCrowdLowestAgePodium?.Invoke() ?? Array.Empty<(int Place, IReadOnlyList<string> Slugs)>();
             if (podium.Count == 0) return "";
-            var lines = new List<string> { "Top 3 youngest-looking in the tournament according to the crowd \U0001F440", "" };
+            var lines = new List<string> { "The crowd's current top 3 for youngest-looking in the tournament \U0001F440", "" };
             for (var i = 0; i < podium.Count; i++)
             {
                 var place = podium[i].Place;
@@ -310,7 +310,7 @@ public static class ThreadsMessageBuilder
             if (newcomers.Count == 0) return "";
             var lines = new List<string>
             {
-                "Fresh faces on the Longevity World Cup leaderboard \U0001F195",
+                "A few new names just landed on the Longevity World Cup leaderboard \U0001F195",
                 "",
                 LeaderboardUrl
             };
@@ -338,8 +338,8 @@ public static class ThreadsMessageBuilder
             var line1 = isEarly
                 ? BuildEarlyDomainLine(name, label, emoji, fillerBasis)
                 : string.IsNullOrEmpty(emoji)
-                    ? $"{name} currently has the strongest {label} profile in the Longevity World Cup field."
-                    : $"{name} currently has the strongest {label} profile in the Longevity World Cup field {emoji}";
+                    ? $"{name} has the strongest {label} profile in the field right now."
+                    : $"{name} has the strongest {label} profile in the field right now {emoji}";
             var url = AthleteUrl(winnerSlug);
             var lines = new List<string>
             {
@@ -363,26 +363,26 @@ public static class ThreadsMessageBuilder
     {
         return count switch
         {
-            10 => $"{countLabel} athletes are now on the leaderboard, our first two digit checkpoint.",
-            42 => $"{countLabel} athletes are now on the leaderboard, a number with legendary status in pop culture.",
-            69 => $"{countLabel} athletes are now on the leaderboard, one of the internet's most recognizable numbers.",
-            100 => $"{countLabel} athletes are now on the leaderboard, marking the first triple digit milestone.",
-            123 => $"{countLabel} athletes are now on the leaderboard, counting up in order.",
-            256 => $"{countLabel} athletes are now on the leaderboard, a clean power of two milestone.",
-            300 => $"{countLabel} athletes are now on the leaderboard, a proper Sparta-number moment.",
-            404 => $"{countLabel} athletes are now on the leaderboard, and this time nothing is missing.",
-            500 => $"{countLabel} athletes are now on the leaderboard, a solid half K milestone.",
-            666 => $"{countLabel} athletes are now on the leaderboard, the classic devil number milestone.",
-            777 => $"{countLabel} athletes are now on the leaderboard, a classic lucky number milestone.",
-            1000 => $"{countLabel} athletes are now on the leaderboard, marking the first four digit milestone.",
-            1337 => $"{countLabel} athletes are now on the leaderboard, a nod to early internet culture.",
-            1618 => $"{countLabel} athletes are now on the leaderboard, right on the golden ratio milestone.",
-            2000 => $"{countLabel} athletes are now on the leaderboard, and the board just crossed 2K.",
-            3141 => $"{countLabel} athletes are now on the leaderboard, a neat Pi adjacent milestone.",
-            5000 => $"{countLabel} athletes are now on the leaderboard, marking a major growth milestone.",
-            6969 => $"{countLabel} athletes are now on the leaderboard, a true meme number milestone.",
-            9001 => $"{countLabel} athletes are now on the leaderboard, comfortably over nine thousand.",
-            10000 => $"{countLabel} athletes are now on the leaderboard, marking the first five digit milestone.",
+            10 => $"{countLabel} athletes are now on the leaderboard. First double digits.",
+            42 => $"{countLabel} athletes are now on the leaderboard. A number with some legendary baggage.",
+            69 => $"{countLabel} athletes are now on the leaderboard. The internet will notice.",
+            100 => $"{countLabel} athletes are now on the leaderboard. First triple-digit mark.",
+            123 => $"{countLabel} athletes are now on the leaderboard. Nice clean count.",
+            256 => $"{countLabel} athletes are now on the leaderboard. A tidy power-of-two milestone.",
+            300 => $"{countLabel} athletes are now on the leaderboard. Sparta would approve.",
+            404 => $"{countLabel} athletes are now on the leaderboard. This time nothing is missing.",
+            500 => $"{countLabel} athletes are now on the leaderboard. Half a thousand.",
+            666 => $"{countLabel} athletes are now on the leaderboard. Slightly cursed milestone.",
+            777 => $"{countLabel} athletes are now on the leaderboard. Lucky sevens.",
+            1000 => $"{countLabel} athletes are now on the leaderboard. Four digits now.",
+            1337 => $"{countLabel} athletes are now on the leaderboard. Old internet heads will appreciate that one.",
+            1618 => $"{countLabel} athletes are now on the leaderboard. Golden-ratio territory.",
+            2000 => $"{countLabel} athletes are now on the leaderboard. Past 2K.",
+            3141 => $"{countLabel} athletes are now on the leaderboard. Very close to pi.",
+            5000 => $"{countLabel} athletes are now on the leaderboard. That is a real field now.",
+            6969 => $"{countLabel} athletes are now on the leaderboard. Yes, that number.",
+            9001 => $"{countLabel} athletes are now on the leaderboard. Over nine thousand.",
+            10000 => $"{countLabel} athletes are now on the leaderboard. Five digits.",
             _ => $"{countLabel} athletes are now on the leaderboard."
         };
     }
@@ -619,9 +619,9 @@ public static class ThreadsMessageBuilder
     {
         return phase switch
         {
-            XPostPhase.Tiny => $"Among the first {cohortLabel} athletes, {athleteName} has the lowest {metricName} so far{ageStr} \U0001F9EC",
-            XPostPhase.Early => $"Among {cohortLabel} athletes, {athleteName} has the lowest {metricName} so far{ageStr} \U0001F9EC",
-            _ => $"{athleteName} has the lowest {metricName} in the Longevity World Cup{ageStr} \U0001F9EC"
+            XPostPhase.Tiny => $"Early days, but {athleteName} has the lowest {metricName} among the first {cohortLabel} athletes so far{ageStr} \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} has the lowest {metricName} among {cohortLabel} athletes so far{ageStr} \U0001F9EC",
+            _ => $"{athleteName} currently has the lowest {metricName} in Longevity World Cup{ageStr} \U0001F9EC"
         };
     }
 
@@ -634,9 +634,9 @@ public static class ThreadsMessageBuilder
     {
         return phase switch
         {
-            XPostPhase.Tiny => $"{athleteName} has the largest {metricName} improvement among the first {cohortLabel} athletes in the Longevity World Cup, at {yearsStr} years since their first submitted test \U0001F9EC",
-            XPostPhase.Early => $"{athleteName} leads the current {cohortLabel} field in {metricName} improvement, at {yearsStr} years since their first submitted test \U0001F9EC",
-            _ => $"The biggest {metricName} improvement in the field currently belongs to {athleteName}, at {yearsStr} years since their first submitted test \U0001F9EC"
+            XPostPhase.Tiny => $"{athleteName} has the largest {metricName} improvement so far among the first {cohortLabel} athletes: {yearsStr} years versus the first submitted test. \U0001F9EC",
+            XPostPhase.Early => $"{athleteName} is leading the current {cohortLabel} field in {metricName} improvement: {yearsStr} years better than the first submitted test. \U0001F9EC",
+            _ => $"{athleteName} currently has the largest {metricName} improvement in the field: {yearsStr} years better than the first submitted test. \U0001F9EC"
         };
     }
 
@@ -649,11 +649,11 @@ public static class ThreadsMessageBuilder
     {
         var lead = phase switch
         {
-            XPostPhase.Tiny => $"{athleteName} currently leads the {leagueName} \U0001F3C6",
-            XPostPhase.Early => $"{athleteName} currently holds the #1 spot in the {leagueName} \U0001F3C6",
+            XPostPhase.Tiny => $"Early lead in the {leagueName}: {athleteName} \U0001F3C6",
+            XPostPhase.Early => $"{athleteName} is currently #1 in the {leagueName} \U0001F3C6",
             _ => !string.IsNullOrWhiteSpace(previousAthlete)
-                ? $"{athleteName} is now #1 in the {leagueName}, overtaking {previousAthlete} \U0001F3C6"
-                : $"{athleteName} is now #1 in the {leagueName} \U0001F3C6"
+                ? $"{athleteName} just moved into #1 in the {leagueName}, ahead of {previousAthlete} \U0001F3C6"
+                : $"{athleteName} just moved into #1 in the {leagueName} \U0001F3C6"
         };
 
         return $"{lead}\n\n{athleteUrl}";
@@ -667,11 +667,11 @@ public static class ThreadsMessageBuilder
     {
         var lead = phase switch
         {
-            XPostPhase.Tiny => $"{athleteName} currently leads the Ultimate League \U0001F3C6",
-            XPostPhase.Early => $"{athleteName} currently holds the #{rank} spot in the Ultimate League \U0001F3C6",
+            XPostPhase.Tiny => $"Early lead in the Ultimate League: {athleteName} \U0001F3C6",
+            XPostPhase.Early => $"{athleteName} is currently #{rank} in the Ultimate League \U0001F3C6",
             _ => !string.IsNullOrWhiteSpace(previousAthlete)
-                ? $"New #{rank} in the Ultimate League \U0001F3C6\n{athleteName} is now ahead of {previousAthlete}."
-                : $"New #{rank} in the Ultimate League \U0001F3C6\n{athleteName} now holds the spot."
+                ? $"{athleteName} just climbed to #{rank} in the Ultimate League \U0001F3C6\nNow ahead of {previousAthlete}."
+                : $"{athleteName} just climbed to #{rank} in the Ultimate League \U0001F3C6"
         };
 
         return phase switch
@@ -686,8 +686,8 @@ public static class ThreadsMessageBuilder
     {
         return phase switch
         {
-            XPostPhase.Early => $"Current top 3 in the {leagueDisplayName} \U0001F447",
-            _ => $"The race for #1 in the {leagueDisplayName} is on. Current top 3 \U0001F447"
+            XPostPhase.Early => $"Current top 3 in the {leagueDisplayName}:",
+            _ => $"{leagueDisplayName}, current top 3:"
         };
     }
 
@@ -695,12 +695,12 @@ public static class ThreadsMessageBuilder
     {
         if (string.Equals(label, "inflammation", StringComparison.OrdinalIgnoreCase))
         {
-            var line = $"{name} leads the inflammation profile in this early-stage Longevity World Cup field";
+            var line = $"{name} has the best inflammation profile in this early-stage field";
             return string.IsNullOrEmpty(emoji) ? line : $"{line} {emoji}";
         }
 
         var cohort = basis == XPostSampleBasis.PhenoAge ? "amateur" : "pro";
-        var lineBase = $"{name} leads the {label} profile among the first {cohort} athletes in the Longevity World Cup";
+        var lineBase = $"{name} has the strongest {label} profile among the first {cohort} athletes so far";
         return string.IsNullOrEmpty(emoji) ? lineBase : $"{lineBase} {emoji}";
     }
 }
