@@ -153,7 +153,7 @@ namespace LongevityWorldCup.Website
                 q.AddJob<ThreadsDailyPostJob>(o => o.WithIdentity(threadsDailyPostKey));
                 q.AddTrigger(t => t.ForJob(threadsDailyPostKey)
                     .WithIdentity("ThreadsDailyPostTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 1 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 14 * * ?").InTimeZone(TimeZoneInfo.Utc)));
 
                 q.AddJob<FacebookDailyPostJob>(o => o.WithIdentity(facebookDailyPostKey));
                 q.AddTrigger(t => t.ForJob(facebookDailyPostKey)
