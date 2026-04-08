@@ -2143,18 +2143,23 @@
                 const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
-                let lastTier = null; // 'pro' | 'amateur' for inserting separator between Bortz and Pheno sections
+                let lastVisibleTier = null; // 'pro' | 'amateur' among rows actually shown in the table
                 remainingAthletes.forEach((athlete, index) => {
                     const isPro = athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
                     const tier = isPro ? 'pro' : 'amateur';
-                    if (lastTier === 'pro' && tier === 'amateur') {
+                    const rowWillBeHiddenByPodium = includePodium && athlete.rank <= podiumCount;
+                    const rowWillBeHiddenByMaxAthletes = index >= maxAthletes;
+                    const rowWillBeVisibleInTable = !rowWillBeHiddenByPodium && !rowWillBeHiddenByMaxAthletes;
+                    if (rowWillBeVisibleInTable && lastVisibleTier === 'pro' && tier === 'amateur') {
                         const sep = document.createElement('tr');
                         sep.className = 'tier-separator';
                         sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
                         sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
                         tableBody.appendChild(sep);
                     }
-                    lastTier = tier;
+                    if (rowWillBeVisibleInTable) {
+                        lastVisibleTier = tier;
+                    }
 
                     const template = document.getElementById('leaderboardRowTemplate');
                     const row = template.content.firstElementChild.cloneNode(true);
@@ -2193,12 +2198,12 @@
                     row.setAttribute('data-generation', athlete.generation.trim());
                     row.setAttribute('data-athlete-name', athlete.name);
 
-                    if (includePodium && athlete.rank <= podiumCount) {
+                    if (rowWillBeHiddenByPodium) {
                         row.style.display = 'none';
                         row.classList.add('podium-athlete');
                     }
 
-                    if (index >= maxAthletes) {
+                    if (rowWillBeHiddenByMaxAthletes) {
                         row.style.display = 'none';
                         row.classList.add('extra-athlete');
                     }
@@ -3085,14 +3090,20 @@
             }
         });
 
-        // Show tier separator when both pro and amateur rows are visible (first amateur after at least one pro); hide for Bortz/Pheno views.
-        // Use filteredAthletes order (not DOM order) so switching from Pheno/Bortz back to Ultimate shows the separator correctly.
+        const hidePodiumRowsInTable = includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
+            !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0;
+        const tableVisibleAthletes = hidePodiumRowsInTable
+            ? filteredAthletes.filter(athlete => athlete.rank > 3)
+            : filteredAthletes;
+
+        // Show tier separator when both pro and amateur rows are visible in the table (first amateur after at least one pro); hide for Bortz/Pheno views.
+        // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
         if (tierSeparatorRow) {
             let separatorShouldShow = false;
             if (currentLeaderboardView === 'ultimate') {
                 const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
                 let sawPro = false;
-                for (const a of filteredAthletes) {
+                for (const a of tableVisibleAthletes) {
                     if (isPro(a)) sawPro = true;
                     else if (sawPro) {
                         separatorShouldShow = true;
@@ -3103,15 +3114,15 @@
             tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
         }
 
-        // Reorder tbody so visible rows match filteredAthletes order (fixes wrong order when switching from Bortz/Pheno back to Ultimate)
+        // Reorder tbody so visible rows match the athletes actually shown in the table.
         const tableBody = document.querySelector('.leaderboard table tbody');
         const allRows = Array.from(tableBody.querySelectorAll('tr'));
-        const visibleOrdered = filteredAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
+        const visibleOrdered = tableVisibleAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
         const separator = allRows.find(r => r.classList.contains('tier-separator'));
         const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
         const fragment = document.createDocumentFragment();
         const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-        const firstAmateurIndex = filteredAthletes.findIndex(a => !isProForOrder(a));
+        const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
         const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
         if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
             visibleOrdered.slice(0, firstAmateurIndex).forEach(r => fragment.appendChild(r));
@@ -3161,8 +3172,7 @@
         displayNoResults(tableRows, podiumItems, query);
 
         // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
-        if (includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
-            !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0) {
+        if (hidePodiumRowsInTable) {
             document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
                 row.style.display = 'none';
             });
