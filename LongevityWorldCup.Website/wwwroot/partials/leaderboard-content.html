@@ -3141,10 +3141,12 @@
         // Highlight search terms
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
             const athleteNameText = athleteNameElement.textContent;
-            const athleteNameNormalized = window.normalizeString(athleteNameText);
+            const athleteOwner = athleteNameElement.closest('[data-athlete-name]');
+            const athleteKey = athleteOwner ? athleteOwner.getAttribute('data-athlete-name') : null;
 
             // Check if the athlete is in filteredAthletes
-            const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === athleteNameText);
+            const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === (athleteKey || athleteNameText));
+            const athleteInFilteredByDisplayedText = filteredAthletes.some(athlete => athlete.name === athleteNameText);
             if (athleteInFiltered) {
                 window.highlightText(athleteNameElement, uniqueSearchTerms);
             }
