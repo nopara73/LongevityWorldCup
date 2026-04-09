@@ -1,6 +1,6 @@
 {
   "Name": "Andressa Lohana de Almeida",
-  "MediaContact": "Andressa.lohana80@gmail.com",
+  "MediaContact": "draandressageneticista@gmail.com",
   "DateOfBirth": {
     "Year": 1992,
     "Month": 2,
@@ -18,6 +18,31 @@
       "RdwPc": 12.3,
       "AlpUL": 58,
       "Wbc1000cellsuL": 5.75
+    },
+	{
+      "Date": "2026-03-19",
+      "AlbGL": 43,
+      "CreatUmolL": 57.52,
+      "GluMmolL": 5.33,
+      "CrpMgL": 0.6,
+      "LymPc": 35.6,
+      "McvFL": 90.5,
+      "RdwPc": 12.2,
+      "AlpUL": 47,
+      "Wbc1000cellsuL": 6.28,
+      "NeutrophilPc": 52.5,
+      "MonocytePc": 3.9,
+      "Rbc10e12L": 4.25,
+      "MchPg": 30.8,
+      "UreaMmolL": 3.83,
+      "CystatinCMgL": 0.63,
+      "Hba1cMmolMol": 32.24,
+      "CholesterolMmolL": 3.93,
+      "ApoA1GL": 1.61,
+      "AltUL": 13,
+      "GgtUL": 11,
+      "ShbgNmolL": 98.6,
+      "VitaminDNmolL": 75
     }
   ],
   "Division": "Women's",
