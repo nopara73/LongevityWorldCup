@@ -1,0 +1,41 @@
+{
+  "Name": "Karla M",
+  "DisplayName": null,
+  "MediaContact": "LarsAndKarla.longevity@proton.me",
+  "DateOfBirth": {
+    "Year": 1983,
+    "Month": 6,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-02",
+      "AlbGL": 43,
+      "CreatUmolL": 70.8,
+      "GluMmolL": 5.66,
+      "CrpMgL": 3.8,
+      "LymPc": 31,
+      "McvFL": 83.7,
+      "RdwPc": 13,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 5,
+      "NeutrophilPc": 58.6,
+      "MonocytePc": 7.6,
+      "Rbc10e12L": 4.92,
+      "MchPg": 29.1,
+      "UreaMmolL": 3.92,
+      "CystatinCMgL": 0.7,
+      "Hba1cMmolMol": 34.2,
+      "CholesterolMmolL": 4.6,
+      "ApoA1GL": 1.47,
+      "AltUL": 18,
+      "GgtUL": 25,
+      "ShbgNmolL": 136,
+      "VitaminDNmolL": 58.75
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Norway",
+  "Why": "My husband signed me up! An infection pushed my baseline CRP to 3.8 on my first test. With two kids, work, and church, I need my health and energy at its best. I hope this competition helps me achieve that, and see my kids grow old.",
+  "PersonalLink": "https://www.facebook.com/karlamay.correa"
+}
