@@ -1,0 +1,9 @@
+---
+description: Small Windows PowerShell commit-message gotcha
+alwaysApply: true
+---
+
+# PowerShell Commit Gotcha
+
+- This repo is usually worked in from Windows PowerShell. Shell commands that include bash-style heredoc syntax like `<<'EOF'` can be parsed by PowerShell before bash receives them.
+- For `git commit` message construction in PowerShell, prefer a PowerShell here-string or another PowerShell-safe approach instead of an inline bash heredoc.
