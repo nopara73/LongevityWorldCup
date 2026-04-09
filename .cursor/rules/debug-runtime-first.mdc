@@ -1,0 +1,8 @@
+---
+description: Small repo-specific debugging gotchas from recent work
+alwaysApply: true
+---
+
+# Recent Debugging Gotchas
+
+- Session debug logs for this repo may end up in `.cursor/debug-<session>.log` instead of the workspace root. If the expected log file is missing, check there before assuming logging failed.

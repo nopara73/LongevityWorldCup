@@ -545,8 +545,31 @@
         }
 
         .lwc-countdown-title {
+            color: inherit;
+            text-decoration: none;
             white-space: nowrap;
             font-size: inherit;
+        }
+
+        .lwc-countdown-title:hover,
+        .lwc-countdown-title:focus-visible {
+            text-decoration: underline;
+        }
+
+        .lwc-merch-header-link {
+            color: inherit;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 400;
+            letter-spacing: normal;
+            white-space: nowrap;
+            opacity: 0.8;
+        }
+
+        .lwc-merch-header-link:hover,
+        .lwc-merch-header-link:focus-visible {
+            opacity: 1;
+            text-decoration: underline;
         }
 
         .lwc-countdown-chip {
@@ -598,81 +621,86 @@
             color: #243446;
         }
 
-        .lwc-interview-cta-text {
+        .lwc-merch-body {
+            align-items: stretch;
+            justify-content: flex-start;
+            text-align: center;
+            gap: 0.7rem;
+        }
+
+        .lwc-merch-copy {
             margin: 0;
-            font-size: 0.93rem;
-            line-height: 1.45;
+            font-size: 0.88rem;
+            line-height: 1.36;
             color: #506176;
-            max-width: none;
-            margin-left: auto;
-            margin-right: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.04rem;
         }
 
-        .lwc-interview-cta-line {
-            display: block;
-            width: fit-content;
-            max-width: 100%;
-            text-align: center;
-            white-space: nowrap;
+        .lwc-merch-copy-link {
+            color: inherit;
+            text-decoration: underline;
         }
 
-        .lwc-interview-cta-line--question {
-            font-size: inherit;
-            line-height: inherit;
-        }
-
-        .lwc-copy-mobile {
-            display: none;
-        }
-
-        .lwc-interview-contact-wrap {
-            width: min(100%, 31em);
-            margin-left: auto;
-            margin-right: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 0.4rem;
-        }
-
-        .lwc-interview-email-drop {
-            width: 100%;
-            max-width: 100%;
-            margin-top: 0.35rem;
+        .lwc-merch-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 0.65rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.55rem;
+        }
+
+        .lwc-merch-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.42rem;
+            align-items: stretch;
+            color: inherit;
+            text-decoration: none;
+            padding: 0.38rem;
+            border-radius: 14px;
+            background: rgba(248, 250, 252, 0.92);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+            transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+        }
+
+        .lwc-merch-item:hover,
+        .lwc-merch-item:focus-visible {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+            background: #ffffff;
+        }
+
+        .lwc-merch-item:focus-visible {
+            outline: 3px solid rgba(0, 188, 212, 0.28);
+            outline-offset: 2px;
+        }
+
+        .lwc-merch-thumb {
+            width: 100%;
+            aspect-ratio: 428 / 418;
+            object-fit: cover;
+            object-position: top;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .lwc-merch-item-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.08rem;
+            text-align: center;
             align-items: center;
         }
 
-        .lwc-interview-email-drop .shared-email-input {
-            min-width: 0;
-            background: #ffffff;
-            border-width: 2px;
-            border-radius: 999px;
-            padding-inline: 1.1rem;
+        .lwc-merch-item-title {
+            font-size: 0.77rem;
+            line-height: 1.14;
+            font-weight: 700;
+            color: #243446;
         }
 
-        .lwc-interview-email-drop .shared-email-input::placeholder {
-            color: #6b7280;
-        }
-
-        .lwc-interview-email-drop .shared-email-button {
-            border-radius: 999px;
-            letter-spacing: 0;
-            padding-inline: 1.1rem;
-        }
-
-        .lwc-interview-email-drop .shared-email-button.is-loading {
-            cursor: wait;
-            opacity: 0.9;
-            transform: none;
-            box-shadow: none;
+        .lwc-merch-item-price {
+            font-size: 0.72rem;
+            line-height: 1.15;
+            color: #506176;
         }
 
         /* mobile: stack the cards */
@@ -691,65 +719,51 @@
             .lwc-countdown-body {
                 padding: 18px 16px 20px;
             }
-
-            .lwc-countdown-details-text {
-                font-size: 1.03rem;
-            }
         }
 
         @media (max-width: 576px) {
-            .lwc-countdown-details-text {
-                font-size: 0.975rem;
-                padding: 0 0.75rem;
-            }
-
             .lwc-countdown-body {
                 padding: 18px 14px 20px;
             }
 
-            .lwc-interview-email-drop {
-                grid-template-columns: 1fr;
-                gap: 0.55rem;
+            .lwc-merch-copy {
+                font-size: 0.84rem;
+                line-height: 1.32;
             }
 
-            .lwc-interview-email-drop input[type="email"],
-            .lwc-interview-email-drop button {
-                width: 100%;
+            .lwc-merch-item {
+                padding: 0.32rem;
             }
 
-            .lwc-interview-cta-text {
-                max-width: 44ch;
-                font-size: 0.86rem;
-                line-height: 1.38;
+            .lwc-merch-item-title {
+                font-size: 0.72rem;
             }
 
-            .lwc-interview-cta-line--question {
-                font-size: 0.93rem;
-                line-height: 1.45;
-            }
-
-            .lwc-copy-desktop {
-                display: none;
-            }
-
-            .lwc-copy-mobile {
-                display: inline;
-            }
-
-            .lwc-interview-cta-line {
-                white-space: normal;
+            .lwc-merch-item-price {
+                font-size: 0.68rem;
             }
         }
 
         @media (max-width: 400px) {
-            .lwc-interview-cta-text {
+            .lwc-merch-copy {
                 font-size: 0.8rem;
                 line-height: 1.34;
             }
 
-            .lwc-interview-cta-line--question {
-                font-size: 0.93rem;
-                line-height: 1.45;
+            .lwc-merch-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .lwc-merch-item {
+                padding: 0.45rem;
+            }
+
+            .lwc-merch-item-title {
+                font-size: 0.88rem;
+            }
+
+            .lwc-merch-item-price {
+                font-size: 0.82rem;
             }
         }
 
@@ -1094,32 +1108,61 @@
             <div id="lwc-countdown-box" class="events-board events-board--timer">
                 <div class="lwc-countdown-inner">
                     <div class="lwc-countdown-header-row">
-                        <span class="lwc-countdown-title">2026 Season</span>
-                        <span class="lwc-countdown-chip">Started</span>
+                        <a class="lwc-countdown-title"
+                           href="https://merch.longevityworldcup.com/"
+                           target="_blank"
+                           rel="noopener">SWAG</a>
+                        <a class="lwc-merch-header-link"
+                           href="https://merch.longevityworldcup.com/"
+                           target="_blank"
+                           rel="noopener">Store</a>
                     </div>
 
-                    <div class="lwc-countdown-body">
-                        <p class="lwc-countdown-details-text">
-                            The 2026 season is live with<br>
-                            <strong>Professional&nbsp;and&nbsp;Amateur</strong> tracks.
-                        </p>
-                        <div class="lwc-interview-contact-wrap">
-                            <p class="lwc-interview-cta-text">
-                                <span class="lwc-interview-cta-line lwc-interview-cta-line--question">
-                                    <span class="lwc-copy-desktop">Wanna interview the host of the Longevity&nbsp;World&nbsp;Cup?</span>
-                                    <span class="lwc-copy-mobile">Wanna interview the host of the LWC?</span>
+                    <div class="lwc-countdown-body lwc-merch-body">
+                        <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
+                           href="https://merch.longevityworldcup.com/"
+                           target="_blank"
+                           rel="noopener">Merch store.</a> By Klaus Townsend. Open source contributor. High end, longevitymaxxing, organic cotton merch. From New Zealand.</p>
+                        <div class="lwc-merch-grid">
+                            <a class="lwc-merch-item"
+                               href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
+                               target="_blank"
+                               rel="noopener"
+                               aria-label="Open White glossy mug in the Longevity World Cup merch store">
+                                <img class="lwc-merch-thumb"
+                                     src="/assets/content-images/merch/mug.webp"
+                                     alt="White glossy mug in the Longevity World Cup merch store">
+                                <span class="lwc-merch-item-copy">
+                                    <span class="lwc-merch-item-title">White glossy mug</span>
+                                    <span class="lwc-merch-item-price">$22.00 - $32.00</span>
                                 </span>
-                                <span class="lwc-interview-cta-line">
-                                    <span class="lwc-copy-desktop">Drop your email below and I'll personally reach out to setup a time.</span>
-                                    <span class="lwc-copy-mobile">Drop your email below and I'll personally reach out.</span>
+                            </a>
+                            <a class="lwc-merch-item"
+                               href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
+                               target="_blank"
+                               rel="noopener"
+                               aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
+                                <img class="lwc-merch-thumb"
+                                     src="/assets/content-images/merch/hoodie.webp"
+                                     alt="Organic cotton hoodie in the Longevity World Cup merch store">
+                                <span class="lwc-merch-item-copy">
+                                    <span class="lwc-merch-item-title">Organic cotton hoodie</span>
+                                    <span class="lwc-merch-item-price">$97.00 - $101.50</span>
                                 </span>
-                            </p>
-                            <form class="lwc-interview-email-drop" id="interview-email-drop-form" aria-label="Interview request email form">
-                                <input type="email" id="interviewEmailInput" class="shared-email-input" placeholder="your_email@domain.com" autocomplete="email" required>
-                                <button type="submit" class="shared-email-button" aria-label="Share your email for interview contact">
-                                    <i class="fas fa-paper-plane"></i> Let’s connect
-                                </button>
-                            </form>
+                            </a>
+                            <a class="lwc-merch-item"
+                               href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
+                               target="_blank"
+                               rel="noopener"
+                               aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
+                                <img class="lwc-merch-thumb"
+                                     src="/assets/content-images/merch/cap.webp"
+                                     alt="Organic cotton cap in the Longevity World Cup merch store">
+                                <span class="lwc-merch-item-copy">
+                                    <span class="lwc-merch-item-title">Organic cotton cap</span>
+                                    <span class="lwc-merch-item-price">$38.00</span>
+                                </span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -1327,9 +1370,75 @@
             }
         }
 
+        const homepageHighlightsBaseRows = 5;
+        const homepageHighlightsMaxRows = 12;
+        let homepageHighlightsRows = homepageHighlightsBaseRows;
+        let homepageHighlightsMeasureTimer = null;
+        let homepageHighlightsResizeTimer = null;
+        let homepageHighlightsWaitAttempts = 0;
+
+        function loadHomepageHighlights(rowCount) {
+            homepageHighlightsRows = rowCount;
+            callScoped('events-root-index', function () { loadEventsTable(rowCount, true); });
+        }
+
+        function maybeGrowHomepageHighlights() {
+            const highlightsRoot = document.getElementById('events-root-index');
+            const highlightsBoard = highlightsRoot ? highlightsRoot.querySelector('.events-board') : null;
+            const highlightsTable = highlightsRoot ? highlightsRoot.querySelector('#eventsTable') : null;
+            const highlightsBody = highlightsRoot ? highlightsRoot.querySelector('#eventsTable tbody') : null;
+            const swagCard = document.getElementById('lwc-countdown-box');
+            if (window.innerWidth <= 991) {
+                return;
+            }
+            if (!highlightsBoard || !highlightsTable || !highlightsBody || !swagCard) {
+                return;
+            }
+
+            const renderedRows = highlightsBody.querySelectorAll('tr.main-row').length;
+            if (!renderedRows) {
+                homepageHighlightsWaitAttempts += 1;
+                homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 180);
+                return;
+            }
+
+            if (renderedRows < homepageHighlightsRows) {
+                if (homepageHighlightsWaitAttempts < 8) {
+                    homepageHighlightsWaitAttempts += 1;
+                    homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 180);
+                }
+                return;
+            }
+
+            homepageHighlightsWaitAttempts = 0;
+
+            const highlightsContentHeight = Math.round(highlightsTable.getBoundingClientRect().height);
+            const highlightsBoardHeight = Math.round(highlightsBoard.getBoundingClientRect().height);
+            const swagHeight = Math.round(swagCard.getBoundingClientRect().height);
+            const heightGap = swagHeight - highlightsContentHeight;
+            const canRequestMoreRows = renderedRows >= homepageHighlightsRows && homepageHighlightsRows < homepageHighlightsMaxRows;
+            if (heightGap > 28 && canRequestMoreRows) {
+                loadHomepageHighlights(homepageHighlightsRows + 1);
+                homepageHighlightsWaitAttempts = 0;
+                homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
+            }
+        }
+
+        function fitHomepageHighlights() {
+            window.clearTimeout(homepageHighlightsMeasureTimer);
+            homepageHighlightsWaitAttempts = 0;
+            loadHomepageHighlights(homepageHighlightsBaseRows);
+            homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
-            callScoped('events-root-index', function () { loadEventsTable(5, true); });
+            fitHomepageHighlights();
             LoadLeaderboard(true, 10);
+
+            window.addEventListener('resize', function () {
+                window.clearTimeout(homepageHighlightsResizeTimer);
+                homepageHighlightsResizeTimer = window.setTimeout(fitHomepageHighlights, 180);
+            });
         });
 
 
@@ -1437,59 +1546,6 @@
             } else {
                 customAlert('Please enter a valid email address.');
             }
-        });
-
-        document.getElementById('interview-email-drop-form').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const emailInputElement = document.getElementById('interviewEmailInput');
-            const submitButton = this.querySelector('button[type="submit"]');
-            const emailInput = emailInputElement.value.trim();
-            emailInputElement.blur();
-            if (!submitButton || submitButton.disabled) {
-                return;
-            }
-
-            if (!validator.isEmail(emailInput)) {
-                customAlert('Please enter a valid email address.');
-                return;
-            }
-
-            const originalButtonHtml = submitButton.innerHTML;
-            submitButton.disabled = true;
-            submitButton.classList.add('is-loading');
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Sending...';
-
-            fetchWithTimeout('/api/application/interview-request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email: emailInput })
-            }, 10000)
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-
-                    if (response.status === 400) {
-                        return response.text().then(text => { throw new Error(text || 'Invalid request.'); });
-                    }
-
-                    throw new Error('Failed to send interview request. Please try again.');
-                })
-                .then(() => {
-                    customAlert(`Thanks! We'll reach out at ${emailInput}.`);
-                    document.getElementById('interview-email-drop-form').reset();
-                })
-                .catch(error => {
-                    customAlert(error.message || 'Failed to send interview request. Please try again.');
-                })
-                .finally(() => {
-                    submitButton.disabled = false;
-                    submitButton.classList.remove('is-loading');
-                    submitButton.innerHTML = originalButtonHtml;
-                });
         });
 
         function adjustBitcoinAddressDisplay() {
