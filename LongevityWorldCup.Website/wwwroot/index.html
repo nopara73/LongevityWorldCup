@@ -646,6 +646,10 @@
             gap: 0.55rem;
         }
 
+        .lwc-merch-mobile-carousel {
+            display: none;
+        }
+
         .lwc-merch-item {
             display: flex;
             flex-direction: column;
@@ -703,6 +707,64 @@
             color: #506176;
         }
 
+        .lwc-merch-mobile-track {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 428 / 487;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .lwc-merch-mobile-slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.42rem;
+            align-items: stretch;
+            color: inherit;
+            text-decoration: none;
+            padding: 0.38rem;
+            border-radius: 14px;
+            background: rgba(248, 250, 252, 0.92);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 220ms ease;
+        }
+
+        .lwc-merch-mobile-slide.is-active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lwc-merch-mobile-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .lwc-merch-mobile-dot {
+            width: 0.72rem;
+            height: 0.72rem;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(0, 188, 212, 0.22);
+            cursor: pointer;
+            transition: transform 180ms ease, background-color 180ms ease;
+        }
+
+        .lwc-merch-mobile-dot.is-active {
+            background: rgba(0, 188, 212, 0.9);
+            transform: scale(1.12);
+        }
+
+        .lwc-merch-mobile-dot:focus-visible {
+            outline: 2px solid rgba(0, 188, 212, 0.35);
+            outline-offset: 2px;
+        }
+
         /* mobile: stack the cards */
         @media (max-width: 991px) {
             .lwc-highlights-countdown-wrapper {
@@ -731,15 +793,29 @@
                 line-height: 1.32;
             }
 
-            .lwc-merch-item {
+            .lwc-merch-grid {
+                display: none;
+            }
+
+            .lwc-merch-mobile-carousel {
+                display: flex;
+                flex-direction: column;
+                gap: 0.28rem;
+            }
+
+            .lwc-merch-mobile-track {
+                aspect-ratio: 428 / 452;
+            }
+
+            .lwc-merch-mobile-slide {
                 padding: 0.32rem;
             }
 
-            .lwc-merch-item-title {
+            .lwc-merch-mobile-slide .lwc-merch-item-title {
                 font-size: 0.72rem;
             }
 
-            .lwc-merch-item-price {
+            .lwc-merch-mobile-slide .lwc-merch-item-price {
                 font-size: 0.68rem;
             }
         }
@@ -750,19 +826,15 @@
                 line-height: 1.34;
             }
 
-            .lwc-merch-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .lwc-merch-item {
+            .lwc-merch-mobile-slide {
                 padding: 0.45rem;
             }
 
-            .lwc-merch-item-title {
+            .lwc-merch-mobile-slide .lwc-merch-item-title {
                 font-size: 0.88rem;
             }
 
-            .lwc-merch-item-price {
+            .lwc-merch-mobile-slide .lwc-merch-item-price {
                 font-size: 0.82rem;
             }
         }
@@ -1119,10 +1191,10 @@
                     </div>
 
                     <div class="lwc-countdown-body lwc-merch-body">
-                        <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
-                           href="https://merch.longevityworldcup.com/"
+                        <p class="lwc-merch-copy">Merch store by <a class="lwc-merch-copy-link"
+                           href="https://klaustownsend.com/"
                            target="_blank"
-                           rel="noopener">Merch store.</a> By Klaus Townsend. Open source contributor. High end, longevitymaxxing, organic cotton merch. From New Zealand.</p>
+                           rel="noopener">Klaus Townsend</a>. Open source contributor. High end, longevitymaxxing, organic cotton swag. From New Zealand.</p>
                         <div class="lwc-merch-grid">
                             <a class="lwc-merch-item"
                                href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
@@ -1163,6 +1235,54 @@
                                     <span class="lwc-merch-item-price">$38.00</span>
                                 </span>
                             </a>
+                        </div>
+                        <div class="lwc-merch-mobile-carousel" id="lwc-merch-mobile-carousel">
+                            <div class="lwc-merch-mobile-track">
+                                <a class="lwc-merch-mobile-slide is-active"
+                                   href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
+                                   target="_blank"
+                                   rel="noopener"
+                                   aria-label="Open White glossy mug in the Longevity World Cup merch store">
+                                    <img class="lwc-merch-thumb"
+                                         src="/assets/content-images/merch/mug.webp"
+                                         alt="White glossy mug in the Longevity World Cup merch store">
+                                    <span class="lwc-merch-item-copy">
+                                        <span class="lwc-merch-item-title">White glossy mug</span>
+                                        <span class="lwc-merch-item-price">$22.00 - $32.00</span>
+                                    </span>
+                                </a>
+                                <a class="lwc-merch-mobile-slide"
+                                   href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
+                                   target="_blank"
+                                   rel="noopener"
+                                   aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
+                                    <img class="lwc-merch-thumb"
+                                         src="/assets/content-images/merch/hoodie.webp"
+                                         alt="Organic cotton hoodie in the Longevity World Cup merch store">
+                                    <span class="lwc-merch-item-copy">
+                                        <span class="lwc-merch-item-title">Organic cotton hoodie</span>
+                                        <span class="lwc-merch-item-price">$97.00 - $101.50</span>
+                                    </span>
+                                </a>
+                                <a class="lwc-merch-mobile-slide"
+                                   href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
+                                   target="_blank"
+                                   rel="noopener"
+                                   aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
+                                    <img class="lwc-merch-thumb"
+                                         src="/assets/content-images/merch/cap.webp"
+                                         alt="Organic cotton cap in the Longevity World Cup merch store">
+                                    <span class="lwc-merch-item-copy">
+                                        <span class="lwc-merch-item-title">Organic cotton cap</span>
+                                        <span class="lwc-merch-item-price">$38.00</span>
+                                    </span>
+                                </a>
+                            </div>
+                            <div class="lwc-merch-mobile-dots">
+                                <button type="button" class="lwc-merch-mobile-dot is-active" aria-label="Show merch product 1"></button>
+                                <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 2"></button>
+                                <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 3"></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1439,6 +1559,83 @@
                 window.clearTimeout(homepageHighlightsResizeTimer);
                 homepageHighlightsResizeTimer = window.setTimeout(fitHomepageHighlights, 180);
             });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const merchCarousel = document.getElementById('lwc-merch-mobile-carousel');
+            if (!merchCarousel) {
+                return;
+            }
+
+            const slides = Array.from(merchCarousel.querySelectorAll('.lwc-merch-mobile-slide'));
+            const dots = Array.from(merchCarousel.querySelectorAll('.lwc-merch-mobile-dot'));
+            if (slides.length <= 1) {
+                return;
+            }
+
+            let activeIndex = 0;
+            let rotationId = null;
+
+            function setActiveSlide(index) {
+                activeIndex = (index + slides.length) % slides.length;
+
+                slides.forEach((slide, slideIndex) => {
+                    const isActive = slideIndex === activeIndex;
+                    slide.classList.toggle('is-active', isActive);
+                    slide.setAttribute('aria-hidden', String(!isActive));
+                });
+
+                dots.forEach((dot, dotIndex) => {
+                    dot.classList.toggle('is-active', dotIndex === activeIndex);
+                });
+            }
+
+            function stopRotation() {
+                if (rotationId !== null) {
+                    clearInterval(rotationId);
+                    rotationId = null;
+                }
+            }
+
+            function startRotation() {
+                if (window.innerWidth > 576 || rotationId !== null) {
+                    return;
+                }
+
+                rotationId = window.setInterval(() => {
+                    setActiveSlide(activeIndex + 1);
+                }, 4500);
+            }
+
+            dots.forEach((dot, dotIndex) => {
+                dot.addEventListener('click', function () {
+                    stopRotation();
+                    setActiveSlide(dotIndex);
+                    startRotation();
+                });
+            });
+
+            merchCarousel.addEventListener('mouseenter', stopRotation);
+            merchCarousel.addEventListener('mouseleave', startRotation);
+            merchCarousel.addEventListener('focusin', stopRotation);
+            merchCarousel.addEventListener('focusout', function () {
+                requestAnimationFrame(() => {
+                    if (!merchCarousel.contains(document.activeElement)) {
+                        startRotation();
+                    }
+                });
+            });
+
+            window.addEventListener('resize', function () {
+                if (window.innerWidth > 576) {
+                    stopRotation();
+                } else {
+                    startRotation();
+                }
+            });
+
+            setActiveSlide(0);
+            startRotation();
         });
 
 
