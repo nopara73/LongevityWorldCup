@@ -574,6 +574,7 @@
         </div>
     </div>
 
+    <script src="/js/custom-event-markup.js"></script>
     <script>
         const LIMITS = { x: 280, threads: 500 };
         const SEND_TO_STORAGE_KEY = "customEventDesigner.sendTo";
@@ -624,6 +625,10 @@
             text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, "$1");
             return text.trim();
         }
+
+        function normalizeNewlines(value) { return window.CustomEventMarkup.normalizeNewlines(value); }
+        function renderCustomMarkup(text) { return window.CustomEventMarkup.renderMarkup(text); }
+        function renderCustomMarkupWithBreaks(text) { return window.CustomEventMarkup.renderMarkupWithBreaks(text); }
 
         function formatMarkupToHtml(value) {
             let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
@@ -849,8 +854,8 @@
                 sendToFacebook: sendFacebook.checked
             };
 
-            document.getElementById("eventTitlePreview").innerHTML = formatMarkupToHtml(titleRaw);
-            document.getElementById("eventContentPreview").innerHTML = contentRaw ? formatMarkupToHtml(contentRaw) : "";
+            document.getElementById("eventTitlePreview").innerHTML = renderCustomMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
+            document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderCustomMarkupWithBreaks(contentRaw) : "";
 
             const xPlan = buildPlan(titleRaw, contentRaw, LIMITS.x);
             const threadsPlan = buildPlan(titleRaw, contentRaw, LIMITS.threads);
