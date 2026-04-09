@@ -456,8 +456,7 @@ public static class SlackMessageBuilder
             return titleEsc;
 
         var contentEsc = ApplyCustomMarkupToSlack(Escape(content));
-        var titleBold = $"*{titleEsc}*";
-        return titleBold + "\n\n" + contentEsc;
+        return titleEsc + "\n\n" + contentEsc;
     }
 
     private static string ApplyCustomMarkupToSlack(string s)

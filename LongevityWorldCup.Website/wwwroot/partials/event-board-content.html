@@ -626,6 +626,7 @@
     </table>
 </div>
 
+<script src="/js/custom-event-markup.js"></script>
 <script>
     (function(){
         window.getSharedAthletes = window.getSharedAthletes || function(){
@@ -704,15 +705,8 @@
         }
         function initialsFromName(n){const parts=String(n).trim().split(/[\s_-]+/).slice(0,2);return parts.map(p=>p.charAt(0)).join("").toUpperCase()||"?";}
 
-        function normalizeNewlines(s){return String(s||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");}
-        function splitCustomEventText(text){
-            const s=normalizeNewlines(text);
-            const idx=s.indexOf("\n\n");
-            if(idx>=0){
-                return { title: s.slice(0,idx).trimEnd(), content: s.slice(idx+2) };
-            }
-            return { title: s.trimEnd(), content: "" };
-        }
+        function normalizeNewlines(s){return window.CustomEventMarkup.normalizeNewlines(s);}
+        function splitCustomEventText(text){return window.CustomEventMarkup.splitText(text);}
         function getRequestedEventId(){
             try{
                 const url=new URL(window.location.href);
@@ -722,47 +716,8 @@
                 return "";
             }
         }
-        function isSafeHttpUrl(u){return /^https?:\/\/.+/i.test(String(u||"").trim());}
-        function renderCustomMarkup(text){
-            const s=String(text||"");
-            let out="";
-            let i=0;
-            while(i<s.length){
-                const open=s.indexOf("[", i);
-                if(open<0){out+=esc(s.slice(i));break;}
-                out+=esc(s.slice(i, open));
-                const close=s.indexOf("](", open+1);
-                if(close<0){out+=esc(s.slice(open));break;}
-                const label=s.slice(open+1, close);
-                const parenStart=close+2;
-                let depth=1;
-                let j=parenStart;
-                while(j<s.length && depth>0){
-                    const ch=s[j];
-                    if(ch==="(") depth++;
-                    else if(ch===")") depth--;
-                    j++;
-                }
-                if(depth!==0){out+=esc(s.slice(open));break;}
-                const inner=s.slice(parenStart, j-1);
-                const key=label.trim().toLowerCase();
-                if(key==="bold"){
-                    out+=`<span style="font-weight:800">${renderCustomMarkup(inner)}</span>`;
-                }else if(key==="strong"){
-                    out+=`<span style="font-weight:800;color:var(--secondary-color,#ff4f87)">${renderCustomMarkup(inner)}</span>`;
-                }else if(isSafeHttpUrl(inner)){
-                    out+=`<a href="${esc(inner.trim())}" target="_top" rel="noopener">${esc(label)}</a>`;
-                }else{
-                    out+=esc(s.slice(open, j));
-                }
-                i=j;
-            }
-            return out;
-        }
-        function renderCustomMarkupWithBreaks(text){
-            const s = normalizeNewlines(text || "");
-            return s.split("\n").map(line => renderCustomMarkup(line)).join("<br>");
-        }
+        function renderCustomMarkup(text){return window.CustomEventMarkup.renderMarkup(text);}
+        function renderCustomMarkupWithBreaks(text){return window.CustomEventMarkup.renderMarkupWithBreaks(text);}
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
             const dt=new Date(iso); if(isNaN(dt)) return "";
