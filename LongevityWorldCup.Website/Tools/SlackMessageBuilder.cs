@@ -21,8 +21,8 @@ public static class SlackMessageBuilder
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
             EventType.BadgeAward => BuildBadgeAward(rawText, getPodcastLinkForSlug),
-            EventType.CustomEvent => BuildCustomEvent(rawText),
-            EventType.General => BuildCustomEvent(rawText),
+            EventType.CustomEvent => BuildCustomEvent(rawText, slugToName),
+            EventType.General => BuildCustomEvent(rawText, slugToName),
             _ => Escape(rawText)
         };
     }
@@ -440,7 +440,7 @@ public static class SlackMessageBuilder
     private static string MedalOrTrend(int n) =>
         n switch { 1 => " 🥇", 2 => " 🥈", 3 => " 🥉", _ => "" };
 
-    private static string BuildCustomEvent(string rawText)
+    private static string BuildCustomEvent(string rawText, Func<string, string> slugToName)
     {
         if (string.IsNullOrEmpty(rawText)) return "";
 
@@ -450,16 +450,16 @@ public static class SlackMessageBuilder
         var title = (idx >= 0 ? s.Substring(0, idx) : s).Trim();
         var content = (idx >= 0 ? s.Substring(idx + 2) : "").TrimEnd();
 
-        var titleEsc = ApplyCustomMarkupToSlack(Escape(title));
+        var titleEsc = ApplyCustomMarkupToSlack(Escape(title), slugToName);
 
         if (string.IsNullOrWhiteSpace(content))
             return titleEsc;
 
-        var contentEsc = ApplyCustomMarkupToSlack(Escape(content));
+        var contentEsc = ApplyCustomMarkupToSlack(Escape(content), slugToName);
         return titleEsc + "\n\n" + contentEsc;
     }
 
-    private static string ApplyCustomMarkupToSlack(string s)
+    private static string ApplyCustomMarkupToSlack(string s, Func<string, string> slugToName)
     {
         if (string.IsNullOrEmpty(s)) return s;
 
@@ -473,6 +473,19 @@ public static class SlackMessageBuilder
             s,
             @"\[bold\]\(([^()]*)\)",
             m => $"*{m.Groups[1].Value}*",
+            RegexOptions.CultureInvariant);
+
+        s = Regex.Replace(
+            s,
+            @"\[mention\]\(([^()]*)\)",
+            m =>
+            {
+                var slug = m.Groups[1].Value.Trim();
+                if (string.IsNullOrWhiteSpace(slug))
+                    return "";
+
+                return Link(AthleteUrl(slug), slugToName(slug));
+            },
             RegexOptions.CultureInvariant);
 
         s = Regex.Replace(

@@ -96,7 +96,7 @@ public class FacebookEventService
             return false;
         }
 
-        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206);
+        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention);
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
@@ -106,7 +106,7 @@ public class FacebookEventService
             return false;
         }
 
-        var imageAsset = await _customEventImages.RenderAsync(eventId, rawText);
+        var imageAsset = await _customEventImages.RenderAsync(eventId, rawText, ResolveMention);
         if (imageAsset is null)
         {
             _log.LogWarning("Facebook custom event image render returned no asset for event {EventId}.", eventId);
@@ -155,7 +155,7 @@ public class FacebookEventService
         if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
             return null;
 
-        return CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206).PostText;
+        return CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention).PostText;
     }
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)
@@ -175,5 +175,16 @@ public class FacebookEventService
 
         var spaced = slug.Replace('_', '-').Replace('-', ' ');
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
+    }
+
+    private string ResolveMention(string slug)
+    {
+        lock (_lockObj)
+        {
+            if (_bySlug.TryGetValue(slug, out var athlete) && !string.IsNullOrWhiteSpace(athlete.Name))
+                return athlete.Name;
+        }
+
+        return SlugToName(slug);
     }
 }

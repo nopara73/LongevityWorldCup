@@ -26,9 +26,14 @@ public static class CustomEventSocialComposer
 
     public static CustomEventSocialPlan BuildPlan(string eventId, string rawText, int maxTextLength)
     {
+        return BuildPlan(eventId, rawText, maxTextLength, mentionResolver: null);
+    }
+
+    public static CustomEventSocialPlan BuildPlan(string eventId, string rawText, int maxTextLength, Func<string, string>? mentionResolver)
+    {
         var (titleRaw, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
-        var titleText = CollapseWhitespace(CustomEventMarkup.ToPlainText(titleRaw, keepHyperlinkLabels: true)).Trim();
-        var bodyText = CustomEventMarkup.ToPlainText(contentRaw, keepHyperlinkLabels: true).Trim();
+        var titleText = CollapseWhitespace(CustomEventMarkup.ToPlainText(titleRaw, keepHyperlinkLabels: true, mentionResolver)).Trim();
+        var bodyText = CustomEventMarkup.ToPlainText(contentRaw, keepHyperlinkLabels: true, mentionResolver).Trim();
         var eventUrl = BuildEventUrl(eventId);
         var hasHyperlinks = CustomEventMarkup.ContainsHyperlink(rawText);
 
