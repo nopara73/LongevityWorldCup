@@ -159,6 +159,31 @@
         }).join("<br>");
     }
 
+    function renderImageMarkup(text, options) {
+        var opts = options || {};
+        return walk(text, {
+            text: function (value) { return escapeHtml(value); },
+            bold: function (inner) {
+                return '<span style="font-weight:800">' + renderImageMarkup(inner, opts) + "</span>";
+            },
+            strong: function (inner) {
+                return '<span style="font-weight:800;color:var(--secondary-color,#ff4f87)">' + renderImageMarkup(inner, opts) + "</span>";
+            },
+            mention: function (slug) {
+                return escapeHtml(resolveMentionText(slug, opts.mentionResolver));
+            },
+            link: function (label) {
+                return escapeHtml(label);
+            }
+        });
+    }
+
+    function renderImageMarkupWithBreaks(text, options) {
+        return normalizeNewlines(text || "").split("\n").map(function (line) {
+            return renderImageMarkup(line, options);
+        }).join("<br>");
+    }
+
     function toPlainText(text, options) {
         var opts = options || {};
         var keepHyperlinkLabels = opts.keepHyperlinkLabels !== false;
@@ -182,6 +207,8 @@
         renderMarkupWithBreaks: renderMarkupWithBreaks,
         renderWebpageMarkup: renderWebpageMarkup,
         renderWebpageMarkupWithBreaks: renderWebpageMarkupWithBreaks,
+        renderImageMarkup: renderImageMarkup,
+        renderImageMarkupWithBreaks: renderImageMarkupWithBreaks,
         toPlainText: toPlainText,
         setMentionResolver: setMentionResolver
     };
