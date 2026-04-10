@@ -638,9 +638,7 @@
             return (value ?? "").replace(/\s+/g, " ").trim();
         }
 
-        function containsHyperlink(value) {
-            return /\[[^\]]+\]\((https?:\/\/[^)\s]+)\)/i.test(value ?? "");
-        }
+        function containsHyperlink(value) { return window.CustomEventMarkup.containsHyperlink(value); }
 
         function normalizeNewlines(value) { return window.CustomEventMarkup.normalizeNewlines(value); }
         function renderCustomMarkup(text) {

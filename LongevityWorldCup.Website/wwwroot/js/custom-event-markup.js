@@ -31,6 +31,55 @@
         return /^https?:\/\/.+/i.test(String(value || "").trim());
     }
 
+    function containsHyperlink(text) {
+        return containsHyperlinkCore(String(text || ""));
+    }
+
+    function containsHyperlinkCore(text) {
+        var s = String(text || "");
+        var i = 0;
+        while (i < s.length) {
+            var open = s.indexOf("[", i);
+            if (open < 0) {
+                return false;
+            }
+
+            var close = s.indexOf("](", open + 1);
+            if (close < 0) {
+                return false;
+            }
+
+            var label = s.slice(open + 1, close);
+            var parenStart = close + 2;
+            var depth = 1;
+            var j = parenStart;
+            while (j < s.length && depth > 0) {
+                var ch = s[j];
+                if (ch === "(") depth++;
+                else if (ch === ")") depth--;
+                j++;
+            }
+
+            if (depth !== 0) {
+                return false;
+            }
+
+            var inner = s.slice(parenStart, j - 1);
+            var key = label.trim().toLowerCase();
+            if (key === "bold" || key === "strong") {
+                if (containsHyperlinkCore(inner)) {
+                    return true;
+                }
+            } else if (isSafeHttpUrl(inner)) {
+                return true;
+            }
+
+            i = j;
+        }
+
+        return false;
+    }
+
     function humanizeSlug(value) {
         return String(value || "")
             .replace(/[_-]+/g, " ")
@@ -203,6 +252,7 @@
     window.CustomEventMarkup = {
         normalizeNewlines: normalizeNewlines,
         splitText: splitText,
+        containsHyperlink: containsHyperlink,
         renderMarkup: renderMarkup,
         renderMarkupWithBreaks: renderMarkupWithBreaks,
         renderWebpageMarkup: renderWebpageMarkup,
