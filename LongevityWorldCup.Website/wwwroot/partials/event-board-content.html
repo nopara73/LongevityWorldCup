@@ -791,7 +791,7 @@
         function athleteName(a){
             if(!a) return "";
             const map=lowerKeyMap(a);
-            const k=map["name"]||map["athletename"]||map["fullname"]||map["displayname"];
+            const k=map["displayname"]||map["name"]||map["athletename"]||map["fullname"];
             return k?String(a[k]).trim():"";
         }
         function resolveMentionName(slug, athletesIndex){

@@ -47,6 +47,7 @@
             display: grid;
             grid-template-columns: minmax(340px, 430px) minmax(600px, 1fr);
             gap: 18px;
+            align-items: start;
         }
 
         .panel {
@@ -57,6 +58,7 @@
             padding: 16px;
             display: grid;
             gap: 12px;
+            align-content: start;
         }
 
         h1, h2 {
@@ -111,6 +113,62 @@
 
         .tool-btn:hover {
             background: rgba(255,255,255,0.1);
+        }
+
+        .mention-suggestions {
+            position: static;
+            z-index: 20;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            background: rgba(9,9,9,0.96);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 6px;
+            margin-top: 6px;
+            width: 100%;
+        }
+
+        .mention-suggestions[hidden] {
+            display: none;
+        }
+
+        .mention-option {
+            width: 100%;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text);
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .mention-option:hover,
+        .mention-option.is-active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .mention-option-slug {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text);
+            text-align: left;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mention-option-name {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: right;
+            white-space: nowrap;
         }
 
         .checks {
@@ -472,13 +530,19 @@
 
             <label>
                 <span>Title</span>
-                <input id="titleInput" type="text" value="New community update is live" />
+                <div class="editor-wrap">
+                    <input id="titleInput" type="text" value="New community update is live" />
+                </div>
             </label>
 
             <label>
                 <span>Content</span>
-                <textarea id="contentInput">We have added an expandable CustomEvent row in Highlights. This update highlights one [bold](important) change, includes a [strong](major announcement), gives a shoutout to [mention](nopara73), and links to [Longevity World Cup](https://longevityworldcup.com/) for the latest details.</textarea>
+                <div class="editor-wrap">
+                    <textarea id="contentInput">We have added an expandable CustomEvent row in Highlights. This update highlights one [bold](important) change, includes a [strong](major announcement), gives a shoutout to [mention](nopara73), and links to [Longevity World Cup](https://longevityworldcup.com/) for the latest details.</textarea>
+                </div>
             </label>
+
+            <div id="mentionSuggestions" class="mention-suggestions" hidden></div>
 
             <div>
                 <div style="margin-bottom:6px;font-size:13px;">Send to</div>
@@ -549,10 +613,14 @@
         const insertStrongBtn = document.getElementById("insertStrongBtn");
         const insertLinkBtn = document.getElementById("insertLinkBtn");
         const insertMentionBtn = document.getElementById("insertMentionBtn");
+        const mentionSuggestions = document.getElementById("mentionSuggestions");
         const textPreviewList = document.getElementById("textPreviewList");
         const imagePreviewList = document.getElementById("imagePreviewList");
         let activeEditor = contentInput;
         let athleteMentionIndex = new Map();
+        let athleteMentionItems = [];
+        let activeMentionContext = null;
+        let activeMentionIndex = 0;
 
         const PLATFORM_CONFIGS = [
             { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
@@ -640,18 +708,157 @@
 
         function buildAthleteMentionIndex(athletes) {
             const index = new Map();
+            athleteMentionItems = [];
             (athletes || []).forEach(athlete => {
                 const slug = String(athlete?.AthleteSlug || athlete?.Slug || "").trim().toLowerCase();
                 if (!slug) {
                     return;
                 }
 
-                index.set(slug, {
-                    name: String(athlete?.Name || "").trim(),
+                const item = {
+                    name: String(athlete?.DisplayName || athlete?.Name || "").trim(),
                     mediaContact: String(athlete?.MediaContact || "").trim()
+                };
+                index.set(slug, item);
+                athleteMentionItems.push({ slug, name: item.name });
+            });
+            athleteMentionItems.sort((a, b) => a.slug.localeCompare(b.slug));
+            return index;
+        }
+
+        function escapeRegExp(value) {
+            return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }
+
+        function getMentionContext(target) {
+            if (!target) {
+                return null;
+            }
+
+            const value = target.value || "";
+            const caret = target.selectionStart ?? value.length;
+            const beforeCaret = value.slice(0, caret);
+            const marker = "[mention](";
+            const markerIndex = beforeCaret.lastIndexOf(marker);
+            if (markerIndex < 0) {
+                return null;
+            }
+
+            const mentionStart = markerIndex + marker.length;
+            const closingParenIndex = value.indexOf(")", mentionStart);
+            const mentionEnd = closingParenIndex >= 0 ? closingParenIndex : caret;
+            const mentionValue = value.slice(mentionStart, mentionEnd);
+            if (!/^[a-z0-9_-]*$/i.test(mentionValue)) {
+                return null;
+            }
+
+            if (caret < mentionStart || caret > mentionEnd) {
+                return null;
+            }
+
+            const query = value.slice(mentionStart, caret);
+            return { target, query: query.toLowerCase(), start: mentionStart, end: mentionEnd };
+        }
+
+        function getMentionMatches(query) {
+            const normalized = String(query || "").trim().toLowerCase();
+            const starts = [];
+            const contains = [];
+
+            athleteMentionItems.forEach(item => {
+                const slug = item.slug;
+                const name = (item.name || "").toLowerCase();
+                if (!normalized || slug.startsWith(normalized)) {
+                    starts.push(item);
+                    return;
+                }
+
+                if (slug.includes(normalized) || name.includes(normalized)) {
+                    contains.push(item);
+                }
+            });
+
+            return starts.concat(contains).slice(0, 8);
+        }
+
+        function closeMentionSuggestions() {
+            mentionSuggestions.hidden = true;
+            mentionSuggestions.innerHTML = "";
+            activeMentionContext = null;
+            activeMentionIndex = 0;
+        }
+
+        function positionMentionSuggestions(target) {
+            if (!target) {
+                return;
+            }
+            const wrap = target.closest(".editor-wrap");
+            if (wrap && mentionSuggestions.parentElement !== wrap) {
+                wrap.appendChild(mentionSuggestions);
+            }
+            mentionSuggestions.style.maxHeight = "220px";
+        }
+
+        function applyMentionSuggestion(item) {
+            if (!activeMentionContext || !item) {
+                return;
+            }
+
+            const target = activeMentionContext.target;
+            const value = target.value || "";
+            const nextValue = `${value.slice(0, activeMentionContext.start)}${item.slug}${value.slice(activeMentionContext.end)}`;
+            target.value = nextValue;
+            const caret = activeMentionContext.start + item.slug.length;
+            target.focus();
+            target.setSelectionRange(caret, caret);
+            closeMentionSuggestions();
+            update();
+        }
+
+        function renderMentionSuggestions(matches) {
+            if (!activeMentionContext || matches.length === 0) {
+                closeMentionSuggestions();
+                return;
+            }
+
+            positionMentionSuggestions(activeMentionContext.target);
+
+            mentionSuggestions.innerHTML = matches.map((item, index) => `
+                <button type="button" class="mention-option${index === activeMentionIndex ? " is-active" : ""}" data-slug="${escapeHtml(item.slug)}">
+                    <span class="mention-option-slug">${escapeHtml(item.slug)}</span>
+                    <span class="mention-option-name">${escapeHtml(item.name || item.slug)}</span>
+                </button>
+            `).join("");
+
+            Array.from(mentionSuggestions.querySelectorAll(".mention-option")).forEach((button, index) => {
+                button.addEventListener("mousedown", event => {
+                    event.preventDefault();
+                    applyMentionSuggestion(matches[index]);
                 });
             });
-            return index;
+
+            const activeButton = mentionSuggestions.querySelector(".mention-option.is-active");
+            if (activeButton) {
+                activeButton.scrollIntoView({ block: "nearest" });
+            }
+
+            mentionSuggestions.hidden = false;
+        }
+
+        function updateMentionSuggestions(target) {
+            const context = getMentionContext(target);
+            if (!context) {
+                closeMentionSuggestions();
+                return;
+            }
+
+            activeMentionContext = context;
+            const matches = getMentionMatches(context.query);
+            if (activeMentionIndex >= matches.length) {
+                activeMentionIndex = 0;
+            }
+
+            renderMentionSuggestions(matches);
         }
 
         function extractMentionHandle(mediaContact, platformKey) {
@@ -820,6 +1027,7 @@
         function setActiveEditor(target) {
             if (target === titleInput || target === contentInput) {
                 activeEditor = target;
+                updateMentionSuggestions(target);
             }
         }
 
@@ -1035,10 +1243,66 @@
             el.addEventListener("click", () => setActiveEditor(el));
             el.addEventListener("keyup", () => setActiveEditor(el));
             el.addEventListener("select", () => setActiveEditor(el));
+            el.addEventListener("keydown", event => {
+                if (mentionSuggestions.hidden || !activeMentionContext || activeMentionContext.target !== el) {
+                    return;
+                }
+
+                const matches = getMentionMatches(activeMentionContext.query);
+                if (matches.length === 0) {
+                    closeMentionSuggestions();
+                    return;
+                }
+
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    activeMentionIndex = (activeMentionIndex + 1) % matches.length;
+                    renderMentionSuggestions(matches);
+                    return;
+                }
+
+                if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    activeMentionIndex = (activeMentionIndex - 1 + matches.length) % matches.length;
+                    renderMentionSuggestions(matches);
+                    return;
+                }
+
+                if (event.key === "Enter" || event.key === "Tab") {
+                    event.preventDefault();
+                    applyMentionSuggestion(matches[activeMentionIndex]);
+                    return;
+                }
+
+                if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeMentionSuggestions();
+                }
+            });
+            el.addEventListener("blur", () => {
+                setTimeout(() => {
+                    if (document.activeElement && mentionSuggestions.contains(document.activeElement)) {
+                        return;
+                    }
+                    closeMentionSuggestions();
+                }, 0);
+            });
+        });
+
+        document.addEventListener("click", event => {
+            if (event.target === titleInput || event.target === contentInput || mentionSuggestions.contains(event.target)) {
+                return;
+            }
+            closeMentionSuggestions();
         });
 
         [titleInput, contentInput, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
-            el.addEventListener("input", update);
+            el.addEventListener("input", event => {
+                if (event.target === titleInput || event.target === contentInput) {
+                    updateMentionSuggestions(event.target);
+                }
+                update();
+            });
             el.addEventListener("change", update);
         });
 
