@@ -716,8 +716,8 @@
                 return "";
             }
         }
-        function renderCustomMarkup(text){return window.CustomEventMarkup.renderMarkup(text);}
-        function renderCustomMarkupWithBreaks(text){return window.CustomEventMarkup.renderMarkupWithBreaks(text);}
+        function renderCustomMarkup(text){return window.CustomEventMarkup.renderWebpageMarkup(text, eventBoardMarkupOptions);}
+        function renderCustomMarkupWithBreaks(text){return window.CustomEventMarkup.renderWebpageMarkupWithBreaks(text, eventBoardMarkupOptions);}
         function startOfLocalDay(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
         function relativeDayLabel(iso){
             const dt=new Date(iso); if(isNaN(dt)) return "";
@@ -791,8 +791,14 @@
         function athleteName(a){
             if(!a) return "";
             const map=lowerKeyMap(a);
-            const k=map["name"]||map["athletename"]||map["fullname"]||map["displayname"];
+            const k=map["displayname"]||map["name"]||map["athletename"]||map["fullname"];
             return k?String(a[k]).trim():"";
+        }
+        function resolveMentionName(slug, athletesIndex){
+            const key=slugifyLocal(normalizeLinkId(slug));
+            const athlete=athletesIndex.get(key);
+            if (athlete) return athleteName(athlete)||slug;
+            return String(slug||"").replace(/[_-]+/g," ").trim() || slug;
         }
         function athletePic(a){
             if(!a) return "";
@@ -979,6 +985,7 @@
         let allowBadgeClicks = true;
         let athletePageTargetSlug = null;
         let openLinksInNewTab = false;
+        let eventBoardMarkupOptions = {};
         
         function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
             try{
@@ -1777,6 +1784,14 @@
 
             Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
                 const athletesIndex=buildAthleteIndex(athletes);
+                eventBoardMarkupOptions = {
+                    mentionResolver: slug => resolveMentionName(slug, athletesIndex),
+                    mentionHrefResolver: slug => {
+                        const key = slugifyLocal(normalizeLinkId(slug));
+                        return athletesIndex.has(key) ? makeAthleteUrlFromSlug(slug) : "";
+                    }
+                };
+                window.CustomEventMarkup.setMentionResolver(slug => resolveMentionName(slug, athletesIndex));
                 let rows=toRows(Array.isArray(events)?events:[]);
 
                 const targetArg=normalizeIncomingAthleteId(athleteId);

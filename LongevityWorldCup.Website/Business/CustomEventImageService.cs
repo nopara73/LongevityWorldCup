@@ -67,7 +67,7 @@ public sealed class CustomEventImageService
         File.Exists(_regularFontPath) &&
         File.Exists(_boldFontPath);
 
-    public async Task<(string FullPath, string PublicUrl)?> RenderAsync(string eventId, string rawText)
+    public async Task<(string FullPath, string PublicUrl)?> RenderAsync(string eventId, string rawText, Func<string, string>? mentionResolver = null)
     {
         if (string.IsNullOrWhiteSpace(eventId) || !IsConfigured)
             return null;
@@ -81,7 +81,7 @@ public sealed class CustomEventImageService
             var fileName = $"{SanitizeFileName(eventId)}.png";
             var outputPath = IOPath.Combine(_outputDir, fileName);
 
-            using (var image = await BuildImageAsync(rawText))
+            using (var image = await BuildImageAsync(rawText, mentionResolver))
                 await image.SaveAsPngAsync(outputPath);
 
             return (outputPath, $"{SiteBaseUrl}/generated/custom-events/{Uri.EscapeDataString(fileName)}");
@@ -97,7 +97,7 @@ public sealed class CustomEventImageService
         }
     }
 
-    public async Task<MemoryStream?> RenderToStreamAsync(string rawText)
+    public async Task<MemoryStream?> RenderToStreamAsync(string rawText, Func<string, string>? mentionResolver = null)
     {
         if (!IsConfigured)
             return null;
@@ -106,7 +106,7 @@ public sealed class CustomEventImageService
         try
         {
             EnsureFontsLoaded();
-            using var image = await BuildImageAsync(rawText);
+            using var image = await BuildImageAsync(rawText, mentionResolver);
             var stream = new MemoryStream();
             await image.SaveAsPngAsync(stream);
             stream.Position = 0;
@@ -123,11 +123,11 @@ public sealed class CustomEventImageService
         }
     }
 
-    private async Task<Image<Rgba32>> BuildImageAsync(string rawText)
+    private async Task<Image<Rgba32>> BuildImageAsync(string rawText, Func<string, string>? mentionResolver)
     {
         var (_, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
         var contentSource = string.IsNullOrWhiteSpace(contentRaw) ? rawText : contentRaw;
-        var segments = CustomEventMarkup.ParseSegments(contentSource, keepHyperlinkLabels: true);
+        var segments = CustomEventMarkup.ParseSegments(contentSource, keepHyperlinkLabels: true, mentionResolver);
         var layout = FindBestLayout(segments);
 
         var image = await Image.LoadAsync<Rgba32>(_templatePath);
