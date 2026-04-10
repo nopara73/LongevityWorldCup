@@ -586,13 +586,7 @@
                 </div>
             </div>
 
-            <div class="panel preview-block">
-                <div id="textPreviewList" class="preview-stack"></div>
-            </div>
-
-            <div class="panel preview-block">
-                <div id="imagePreviewList" class="preview-stack"></div>
-            </div>
+            <div id="socialPreviewList" class="preview-stack"></div>
         </div>
     </div>
 
@@ -614,8 +608,7 @@
         const insertLinkBtn = document.getElementById("insertLinkBtn");
         const insertMentionBtn = document.getElementById("insertMentionBtn");
         const mentionSuggestions = document.getElementById("mentionSuggestions");
-        const textPreviewList = document.getElementById("textPreviewList");
-        const imagePreviewList = document.getElementById("imagePreviewList");
+        const socialPreviewList = document.getElementById("socialPreviewList");
         let activeEditor = contentInput;
         let athleteMentionIndex = new Map();
         let athleteMentionItems = [];
@@ -688,10 +681,15 @@
             }).trim();
         }
 
-        function formatPlainPostTextToHtml(value) {
+        function formatPlainPostTextToHtml(value, platformKey) {
             let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
             html = html.replace(/(https?:\/\/[^\s<]+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
             html = html.replace(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim, '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>');
+            if (platformKey === "x") {
+                html = html.replace(/(^|[\s(>])@([A-Za-z0-9_]{1,15})\b/g, '$1<a href="https://x.com/$2" target="_blank" rel="noopener noreferrer">@$2</a>');
+            } else if (platformKey === "threads") {
+                html = html.replace(/(^|[\s(>])@([A-Za-z0-9._]{1,30})\b/g, '$1<a href="https://www.threads.com/@$2" target="_blank" rel="noopener noreferrer">@$2</a>');
+            }
             html = html.replace(/\n/g, "<br>");
             return html;
         }
@@ -1121,22 +1119,24 @@
         function renderTextPreviewCard(platformKey, postText) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             return `
-                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
                     </div>
-                    <div class="x-post">
-                        <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
-                        <div class="x-main">
-                            <div class="x-head">
-                                <span class="x-name">${escapeHtml(meta.name)}</span>
-                                <span class="x-handle">${escapeHtml(meta.handle)}</span>
-                                <span class="x-meta">now</span>
+                    <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                        <div class="x-post">
+                            <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                            <div class="x-main">
+                                <div class="x-head">
+                                    <span class="x-name">${escapeHtml(meta.name)}</span>
+                                    <span class="x-handle">${escapeHtml(meta.handle)}</span>
+                                    <span class="x-meta">now</span>
+                                </div>
+                                <div class="x-text">${formatPlainPostTextToHtml(postText, platformKey)}</div>
+                                <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                             </div>
-                            <div class="x-text">${formatPlainPostTextToHtml(postText)}</div>
-                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                         </div>
-                    </div>
+                    </div>    
                 </div>`;
         }
 
@@ -1148,32 +1148,42 @@
             const frameHeight = 675 * scale;
 
             return `
-                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
                     </div>
-                    <div class="x-post">
-                        <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
-                        <div class="x-main">
-                            <div class="x-head">
-                                <span class="x-name">${escapeHtml(meta.name)}</span>
-                                <span class="x-handle">${escapeHtml(meta.handle)}</span>
-                                <span class="x-meta">now</span>
-                            </div>
-                            <div class="x-text">${formatPlainPostTextToHtml(postText)}</div>
-                            <div class="x-media">
-                                <div class="image-stage-frame" style="height:${frameHeight}px;">
-                                    <div class="image-stage" style="transform:scale(${scale});">
-                                        <div class="image-card" style="width:${layout.cardWidth}px;height:${layout.cardHeight}px;padding:${layout.padding};">
-                                            <div class="image-text formatted" style="font-size:${layout.fontSize};line-height:${layout.lineHeight};">${layout.textHtml}</div>
+                    <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                        <div class="x-post">
+                            <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                            <div class="x-main">
+                                <div class="x-head">
+                                    <span class="x-name">${escapeHtml(meta.name)}</span>
+                                    <span class="x-handle">${escapeHtml(meta.handle)}</span>
+                                    <span class="x-meta">now</span>
+                                </div>
+                                <div class="x-text">${formatPlainPostTextToHtml(postText, platformKey)}</div>
+                                <div class="x-media">
+                                    <div class="image-stage-frame" style="height:${frameHeight}px;">
+                                        <div class="image-stage" style="transform:scale(${scale});">
+                                            <div class="image-card" style="width:${layout.cardWidth}px;height:${layout.cardHeight}px;padding:${layout.padding};">
+                                                <div class="image-text formatted" style="font-size:${layout.fontSize};line-height:${layout.lineHeight};">${layout.textHtml}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                             </div>
-                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                         </div>
                     </div>
                 </div>`;
+        }
+
+        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost) {
+            if (plan.mode === "image") {
+                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw);
+            }
+
+            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost);
         }
 
         function update() {
@@ -1195,35 +1205,19 @@
             document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
 
             const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw);
-            const textPlans = selectedPlans.filter(x => x.mode === "text");
-            const imagePlans = selectedPlans.filter(x => x.mode === "image");
 
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, "x")));
             const bodyText = plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, "x"));
             const eventUrl = containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
 
-            const textPreviewBlock = textPreviewList.closest(".panel");
-            const imagePreviewBlock = imagePreviewList.closest(".panel");
-
-            if (textPlans.length > 0) {
-                textPreviewBlock.style.display = "";
-                textPreviewList.innerHTML = textPlans.map(plan =>
-                    renderTextPreviewCard(plan.key, plan.postText || buildTextPost(titleText, bodyText, eventUrl))
-                ).join("");
-            } else {
-                textPreviewBlock.style.display = "none";
-                textPreviewList.innerHTML = "";
-            }
-
-            if (imagePlans.length > 0) {
-                imagePreviewBlock.style.display = "";
-                imagePreviewList.innerHTML = imagePlans.map(plan =>
-                    renderImagePreviewCard(plan.key, plan.postText || buildImageCaption(titleText, eventUrl ?? "", LIMITS.x), contentRaw)
-                ).join("");
-            } else {
-                imagePreviewBlock.style.display = "none";
-                imagePreviewList.innerHTML = "";
-            }
+            socialPreviewList.innerHTML = selectedPlans.map(plan =>
+                renderPlatformPreviewCard(
+                    plan,
+                    contentRaw,
+                    buildTextPost(titleText, bodyText, eventUrl),
+                    buildImageCaption(titleText, eventUrl ?? "", plan.limit ?? LIMITS.x)
+                )
+            ).join("");
 
             const payloadJsonText = JSON.stringify(payload);
             const payloadToken = base64UrlEncodeUtf8(payloadJsonText);
