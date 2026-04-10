@@ -467,6 +467,7 @@
                 <button id="insertBoldBtn" class="tool-btn" type="button">Bold</button>
                 <button id="insertStrongBtn" class="tool-btn" type="button">Strong</button>
                 <button id="insertLinkBtn" class="tool-btn" type="button">Link</button>
+                <button id="insertMentionBtn" class="tool-btn" type="button">Mention</button>
             </div>
 
             <label>
@@ -590,11 +591,13 @@
         const insertBoldBtn = document.getElementById("insertBoldBtn");
         const insertStrongBtn = document.getElementById("insertStrongBtn");
         const insertLinkBtn = document.getElementById("insertLinkBtn");
+        const insertMentionBtn = document.getElementById("insertMentionBtn");
         const imageStageFrame = document.getElementById("imageStageFrame");
         const imageStage = document.getElementById("imageStage");
         const textPreviewPlatforms = document.getElementById("textPreviewPlatforms");
         const imagePreviewPlatforms = document.getElementById("imagePreviewPlatforms");
         let activeEditor = contentInput;
+        let athleteMentionIndex = new Map();
 
         const PLATFORM_CONFIGS = [
             { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
@@ -618,34 +621,43 @@
             return /\[[^\]]+\]\((https?:\/\/[^)\s]+)\)/i.test(value ?? "");
         }
 
-        function plainTextWithLabels(value) {
-            let text = (value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-            text = text.replace(/\[bold\]\(([\s\S]*?)\)/gi, "$1");
-            text = text.replace(/\[strong\]\(([\s\S]*?)\)/gi, "$1");
-            text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, "$1");
-            return text.trim();
-        }
-
         function normalizeNewlines(value) { return window.CustomEventMarkup.normalizeNewlines(value); }
-        function renderCustomMarkup(text) { return window.CustomEventMarkup.renderMarkup(text); }
-        function renderCustomMarkupWithBreaks(text) { return window.CustomEventMarkup.renderMarkupWithBreaks(text); }
-
-        function formatMarkupToHtml(value) {
-            let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
-            html = html.replace(/\[bold\]\(([\s\S]*?)\)/gi, "<strong>$1</strong>");
-            html = html.replace(/\[strong\]\(([\s\S]*?)\)/gi, "<span class=\"strong\">$1</span>");
-            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-            html = html.replace(/\n/g, "<br>");
-            return html;
+        function renderCustomMarkup(text) {
+            return window.CustomEventMarkup.renderMarkup(text, { mentionResolver: resolveMentionDisplayName });
         }
-
-        function formatImageMarkupToHtml(value) {
-            let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
-            html = html.replace(/\[bold\]\(([\s\S]*?)\)/gi, "<strong>$1</strong>");
-            html = html.replace(/\[strong\]\(([\s\S]*?)\)/gi, "<span class=\"strong\">$1</span>");
-            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, "$1");
-            html = html.replace(/\n/g, "<br>");
-            return html;
+        function renderCustomMarkupWithBreaks(text) {
+            return window.CustomEventMarkup.renderMarkupWithBreaks(text, { mentionResolver: resolveMentionDisplayName });
+        }
+        function normalizeAthleteSlugForUrl(slug) {
+            return String(slug || "").trim().toLowerCase().replace(/_/g, "-");
+        }
+        function buildAthleteProfileUrl(slug) {
+            return `/athlete/${encodeURIComponent(normalizeAthleteSlugForUrl(slug))}`;
+        }
+        function hasKnownMentionSlug(slug) {
+            const key = String(slug || "").trim().toLowerCase();
+            return !!key && athleteMentionIndex.has(key);
+        }
+        function renderWebpageMarkup(text) {
+            return window.CustomEventMarkup.renderWebpageMarkup(text, {
+                mentionResolver: resolveMentionDisplayName,
+                mentionHrefResolver: slug => hasKnownMentionSlug(slug) ? buildAthleteProfileUrl(slug) : ""
+            });
+        }
+        function renderWebpageMarkupWithBreaks(text) {
+            return window.CustomEventMarkup.renderWebpageMarkupWithBreaks(text, {
+                mentionResolver: resolveMentionDisplayName,
+                mentionHrefResolver: slug => hasKnownMentionSlug(slug) ? buildAthleteProfileUrl(slug) : ""
+            });
+        }
+        function renderImageMarkupWithBreaks(text) {
+            return window.CustomEventMarkup.renderMarkupWithBreaks(text, { mentionResolver: slug => resolveMentionSlug(slug, "x") });
+        }
+        function plainTextWithLabels(value, mentionResolver) {
+            return window.CustomEventMarkup.toPlainText(value, {
+                keepHyperlinkLabels: true,
+                mentionResolver: mentionResolver
+            }).trim();
         }
 
         function formatPlainPostTextToHtml(value) {
@@ -654,6 +666,98 @@
             html = html.replace(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim, '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>');
             html = html.replace(/\n/g, "<br>");
             return html;
+        }
+
+        function humanizeSlug(value) {
+            return String(value ?? "")
+                .replace(/[_-]+/g, " ")
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(" ");
+        }
+
+        function buildAthleteMentionIndex(athletes) {
+            const index = new Map();
+            (athletes || []).forEach(athlete => {
+                const slug = String(athlete?.AthleteSlug || athlete?.Slug || "").trim().toLowerCase();
+                if (!slug) {
+                    return;
+                }
+
+                index.set(slug, {
+                    name: String(athlete?.Name || "").trim(),
+                    mediaContact: String(athlete?.MediaContact || "").trim()
+                });
+            });
+            return index;
+        }
+
+        function extractMentionHandle(mediaContact, platformKey) {
+            const value = String(mediaContact || "").trim();
+            if (!value) {
+                return "";
+            }
+
+            if (value.startsWith("@")) {
+                return value;
+            }
+
+            try {
+                const url = new URL(value.startsWith("http") ? value : `https://${value}`);
+                const host = url.hostname.toLowerCase();
+                const path = url.pathname.replace(/^\/+|\/+$/g, "");
+                if (!path) {
+                    return "";
+                }
+
+                const firstSegment = path.split("/").find(Boolean) || "";
+                const normalizedSegment = firstSegment.replace(/^@+/, "");
+                if (!normalizedSegment) {
+                    return "";
+                }
+
+                if (platformKey === "x" && (host.endsWith("x.com") || host.endsWith("twitter.com"))) {
+                    return `@${normalizedSegment}`;
+                }
+
+                if (platformKey === "threads" && (host.endsWith("threads.com") || host.endsWith("instagram.com"))) {
+                    return `@${normalizedSegment}`;
+                }
+            } catch {
+            }
+
+            return "";
+        }
+
+        function resolveMentionSlug(slug, platformKey) {
+            const key = String(slug || "").trim().toLowerCase();
+            if (!key) {
+                return "";
+            }
+
+            const athlete = athleteMentionIndex.get(key);
+            if (!athlete) {
+                return humanizeSlug(key) || key;
+            }
+
+            const mention = extractMentionHandle(athlete.mediaContact, platformKey);
+            if (mention) {
+                return mention;
+            }
+
+            return athlete.name || humanizeSlug(key) || key;
+        }
+
+        function resolveMentionDisplayName(slug) {
+            const key = String(slug || "").trim().toLowerCase();
+            if (!key) {
+                return "";
+            }
+
+            const athlete = athleteMentionIndex.get(key);
+            return athlete?.name || humanizeSlug(key) || key;
         }
 
         function fnv1a(text) {
@@ -690,10 +794,11 @@
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
 
-        function buildPlan(titleRaw, contentRaw, maxLength) {
+        function buildPlan(titleRaw, contentRaw, maxLength, platformKey) {
             const rawText = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
-            const titleText = collapseWhitespace(plainTextWithLabels(titleRaw));
-            const bodyText = plainTextWithLabels(contentRaw);
+            const mentionResolver = slug => resolveMentionSlug(slug, platformKey);
+            const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, mentionResolver));
+            const bodyText = plainTextWithLabels(contentRaw, mentionResolver);
             const eventUrl = buildPreviewEventUrl(titleRaw, contentRaw);
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
@@ -799,13 +904,17 @@
             update();
         }
 
+        function insertMention() {
+            insertSnippet("[mention](", "athlete_slug", ")", (prefix) => prefix.length, (prefix, innerText) => prefix.length + innerText.length);
+        }
+
         function getSelectedPlatformPlans(titleRaw, contentRaw) {
             return PLATFORM_CONFIGS
                 .filter(platform => platform.checkbox.checked)
                 .map(platform => {
                     const plan = platform.fixedMode
-                        ? { mode: platform.fixedMode, postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw)), plainTextWithLabels(contentRaw), null) }
-                        : buildPlan(titleRaw, contentRaw, platform.limit);
+                        ? { mode: platform.fixedMode, postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, platform.key))), plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, platform.key)), null) }
+                        : buildPlan(titleRaw, contentRaw, platform.limit, platform.key);
                     return { label: platform.label, ...plan };
                 });
         }
@@ -813,9 +922,9 @@
         function updateImagePreview(contentRaw) {
             const card = document.getElementById("imageCard");
             const text = document.getElementById("imageTextPreview");
-            text.innerHTML = formatImageMarkupToHtml(contentRaw || titleInput.value.trim());
+            text.innerHTML = renderImageMarkupWithBreaks(contentRaw || titleInput.value.trim());
 
-            const length = plainTextWithLabels(contentRaw || titleInput.value.trim()).length;
+            const length = plainTextWithLabels(contentRaw || titleInput.value.trim(), slug => resolveMentionSlug(slug, "x")).length;
             if (length > 420) {
                 card.style.width = "1060px";
                 card.style.height = "520px";
@@ -855,18 +964,15 @@
                 sendToFacebook: sendFacebook.checked
             };
 
-            document.getElementById("eventTitlePreview").innerHTML = renderCustomMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
-            document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderCustomMarkupWithBreaks(contentRaw) : "";
+            document.getElementById("eventTitlePreview").innerHTML = renderWebpageMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
+            document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
 
-            const xPlan = buildPlan(titleRaw, contentRaw, LIMITS.x);
-            const threadsPlan = buildPlan(titleRaw, contentRaw, LIMITS.threads);
-            const facebookPlan = buildPlan(titleRaw, contentRaw, 63206);
             const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw);
             const textPlans = selectedPlans.filter(x => x.mode === "text");
             const imagePlans = selectedPlans.filter(x => x.mode === "image");
 
-            const titleText = collapseWhitespace(plainTextWithLabels(titleRaw));
-            const bodyText = plainTextWithLabels(contentRaw);
+            const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, "x")));
+            const bodyText = plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, "x"));
             const eventUrl = containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
 
             const textPreviewBlock = textPreviewPlatforms.closest(".panel");
@@ -918,11 +1024,23 @@
         insertBoldBtn.addEventListener("click", insertBold);
         insertStrongBtn.addEventListener("click", insertStrong);
         insertLinkBtn.addEventListener("click", insertLink);
+        insertMentionBtn.addEventListener("click", insertMention);
         copyCommandBtn.addEventListener("click", async () => copyText(commandOutput.value, "Command copied."));
         window.addEventListener("resize", update);
 
-        loadSendToSettings();
-        update();
+        fetch("/api/data/athletes", { headers: { accept: "application/json" } })
+            .then(response => response.ok ? response.json() : Promise.reject(response.status))
+            .then(athletes => {
+                athleteMentionIndex = buildAthleteMentionIndex(athletes);
+            })
+            .catch(() => {
+                athleteMentionIndex = new Map();
+            })
+            .finally(() => {
+                window.CustomEventMarkup.setMentionResolver(resolveMentionDisplayName);
+                loadSendToSettings();
+                update();
+            });
     </script>
 </body>
 </html>

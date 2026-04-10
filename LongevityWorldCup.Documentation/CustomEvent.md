@@ -22,7 +22,7 @@ sudo bash -lc 'cd /var/www/.longevityworldcup && bash /home/user/LongevityWorldC
 
 ## Supported formatting
 
-The renderer supports three inline formats inside both Title and Content.
+The renderer supports four inline formats inside both Title and Content.
 
 ### Link
 
@@ -71,6 +71,30 @@ Renders with bold font weight and uses the accent color.
 Example:
 ```text
 This is a [strong](major announcement) for the community.
+```
+
+### Mention
+
+Resolves an athlete slug to platform-specific mention text when posting to social media.
+
+```text
+[mention](athlete_slug)
+```
+
+- `[mention]` -> this is the keyword, won't be visible.
+- `(athlete_slug)` -> the athlete slug to resolve.
+
+Behavior:
+
+- X: if the athlete `MediaContact` points to X/Twitter, the post uses the corresponding `@handle`
+- Threads: if the athlete `MediaContact` points to Threads or Instagram, the post uses the corresponding `@handle`
+- Facebook: falls back to the athlete name
+- if no platform-specific social handle can be resolved, the fallback is always the athlete name
+
+Example:
+
+```text
+Shoutout to [mention](nopara73) for shipping this update.
 ```
 
 ## Delete an event by ID
