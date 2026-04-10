@@ -477,7 +477,7 @@
 
             <label>
                 <span>Content</span>
-                <textarea id="contentInput">We have added an expandable CustomEvent row in Highlights. This update highlights one [bold](important) change, includes a [strong](major announcement), and links to [Longevity World Cup](https://longevityworldcup.com/) for the latest details.</textarea>
+                <textarea id="contentInput">We have added an expandable CustomEvent row in Highlights. This update highlights one [bold](important) change, includes a [strong](major announcement), gives a shoutout to [mention](nopara73), and links to [Longevity World Cup](https://longevityworldcup.com/) for the latest details.</textarea>
             </label>
 
             <div>
@@ -523,54 +523,11 @@
             </div>
 
             <div class="panel preview-block">
-                <div class="preview-title">
-                    <h2>Text Post Preview</h2>
-                    <div id="textPreviewPlatforms" class="preview-platforms"></div>
-                </div>
-                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
-                    <div class="x-post">
-                        <div class="x-avatar">LW</div>
-                        <div class="x-main">
-                            <div class="x-head">
-                                <span class="x-name">Longevity World Cup</span>
-                                <span class="x-handle">@longevitywc</span>
-                                <span class="x-meta">now</span>
-                            </div>
-                            <div id="textPostPreview" class="x-text"></div>
-                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
-                        </div>
-                    </div>
-                </div>
+                <div id="textPreviewList" class="preview-stack"></div>
             </div>
 
             <div class="panel preview-block">
-                <div class="preview-title">
-                    <h2>Image Post Preview</h2>
-                    <div id="imagePreviewPlatforms" class="preview-platforms"></div>
-                </div>
-                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
-                    <div class="x-post">
-                        <div class="x-avatar">LW</div>
-                        <div class="x-main">
-                            <div class="x-head">
-                                <span class="x-name">Longevity World Cup</span>
-                                <span class="x-handle">@longevitywc</span>
-                                <span class="x-meta">now</span>
-                            </div>
-                            <div id="imagePostPreview" class="x-text"></div>
-                            <div class="x-media">
-                                <div id="imageStageFrame" class="image-stage-frame">
-                                    <div id="imageStage" class="image-stage">
-                                        <div id="imageCard" class="image-card">
-                                            <div id="imageTextPreview" class="image-text formatted"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
-                        </div>
-                    </div>
-                </div>
+                <div id="imagePreviewList" class="preview-stack"></div>
             </div>
         </div>
     </div>
@@ -592,10 +549,8 @@
         const insertStrongBtn = document.getElementById("insertStrongBtn");
         const insertLinkBtn = document.getElementById("insertLinkBtn");
         const insertMentionBtn = document.getElementById("insertMentionBtn");
-        const imageStageFrame = document.getElementById("imageStageFrame");
-        const imageStage = document.getElementById("imageStage");
-        const textPreviewPlatforms = document.getElementById("textPreviewPlatforms");
-        const imagePreviewPlatforms = document.getElementById("imagePreviewPlatforms");
+        const textPreviewList = document.getElementById("textPreviewList");
+        const imagePreviewList = document.getElementById("imagePreviewList");
         let activeEditor = contentInput;
         let athleteMentionIndex = new Map();
 
@@ -604,6 +559,11 @@
             { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
             { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 }
         ];
+        const PLATFORM_PREVIEW_META = {
+            x: { name: "Longevity World Cup", handle: "@longevitywc", avatar: "LW", label: "X" },
+            threads: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Threads" },
+            facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" }
+        };
 
         function escapeHtml(value) {
             return (value ?? "")
@@ -722,7 +682,7 @@
                     return `@${normalizedSegment}`;
                 }
 
-                if (platformKey === "threads" && (host.endsWith("threads.com") || host.endsWith("instagram.com"))) {
+                if (platformKey === "threads" && host.endsWith("threads.com")) {
                     return `@${normalizedSegment}`;
                 }
             } catch {
@@ -915,38 +875,97 @@
                     const plan = platform.fixedMode
                         ? { mode: platform.fixedMode, postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, platform.key))), plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, platform.key)), null) }
                         : buildPlan(titleRaw, contentRaw, platform.limit, platform.key);
-                    return { label: platform.label, ...plan };
+                    return { key: platform.key, label: platform.label, limit: platform.limit, ...plan };
                 });
         }
 
-        function updateImagePreview(contentRaw) {
-            const card = document.getElementById("imageCard");
-            const text = document.getElementById("imageTextPreview");
-            text.innerHTML = renderImageMarkupWithBreaks(contentRaw || titleInput.value.trim());
-
-            const length = plainTextWithLabels(contentRaw || titleInput.value.trim(), slug => resolveMentionSlug(slug, "x")).length;
+        function getImagePreviewLayout(contentRaw, platformKey) {
+            const resolvedContent = contentRaw || titleInput.value.trim();
+            const textHtml = window.CustomEventMarkup.renderMarkupWithBreaks(resolvedContent, {
+                mentionResolver: slug => resolveMentionSlug(slug, platformKey)
+            });
+            const length = plainTextWithLabels(resolvedContent, slug => resolveMentionSlug(slug, platformKey)).length;
+            const settings = {};
             if (length > 420) {
-                card.style.width = "1060px";
-                card.style.height = "520px";
-                card.style.padding = "40px 38px";
-                text.style.fontSize = "18px";
-                text.style.lineHeight = "1.42";
+                settings.cardWidth = 1060;
+                settings.cardHeight = 520;
+                settings.padding = "40px 38px";
+                settings.fontSize = "18px";
+                settings.lineHeight = "1.42";
             } else if (length > 280) {
-                card.style.width = "1000px";
-                card.style.height = "455px";
-                card.style.padding = "40px 30px";
-                text.style.fontSize = "22px";
-                text.style.lineHeight = "1.42";
+                settings.cardWidth = 1000;
+                settings.cardHeight = 455;
+                settings.padding = "40px 30px";
+                settings.fontSize = "22px";
+                settings.lineHeight = "1.42";
             } else {
-                card.style.width = "920px";
-                card.style.height = "360px";
-                card.style.padding = "40px 20px";
-                text.style.fontSize = "30px";
-                text.style.lineHeight = "1.36";
+                settings.cardWidth = 920;
+                settings.cardHeight = 360;
+                settings.padding = "40px 20px";
+                settings.fontSize = "30px";
+                settings.lineHeight = "1.36";
             }
 
-            const scale = imageStageFrame.clientWidth / 1200;
-            imageStage.style.transform = `scale(${scale})`;
+            settings.textHtml = textHtml;
+            return settings;
+        }
+
+        function renderTextPreviewCard(platformKey, postText) {
+            const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
+            return `
+                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                    <div class="preview-title" style="margin-bottom:8px;">
+                        <h2>${escapeHtml(meta.label)} Preview</h2>
+                    </div>
+                    <div class="x-post">
+                        <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                        <div class="x-main">
+                            <div class="x-head">
+                                <span class="x-name">${escapeHtml(meta.name)}</span>
+                                <span class="x-handle">${escapeHtml(meta.handle)}</span>
+                                <span class="x-meta">now</span>
+                            </div>
+                            <div class="x-text">${formatPlainPostTextToHtml(postText)}</div>
+                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function renderImagePreviewCard(platformKey, postText, contentRaw) {
+            const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
+            const layout = getImagePreviewLayout(contentRaw, platformKey);
+            const frameWidth = 560;
+            const scale = frameWidth / 1200;
+            const frameHeight = 675 * scale;
+
+            return `
+                <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                    <div class="preview-title" style="margin-bottom:8px;">
+                        <h2>${escapeHtml(meta.label)} Preview</h2>
+                    </div>
+                    <div class="x-post">
+                        <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                        <div class="x-main">
+                            <div class="x-head">
+                                <span class="x-name">${escapeHtml(meta.name)}</span>
+                                <span class="x-handle">${escapeHtml(meta.handle)}</span>
+                                <span class="x-meta">now</span>
+                            </div>
+                            <div class="x-text">${formatPlainPostTextToHtml(postText)}</div>
+                            <div class="x-media">
+                                <div class="image-stage-frame" style="height:${frameHeight}px;">
+                                    <div class="image-stage" style="transform:scale(${scale});">
+                                        <div class="image-card" style="width:${layout.cardWidth}px;height:${layout.cardHeight}px;padding:${layout.padding};">
+                                            <div class="image-text formatted" style="font-size:${layout.fontSize};line-height:${layout.lineHeight};">${layout.textHtml}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
+                        </div>
+                    </div>
+                </div>`;
         }
 
         function update() {
@@ -975,26 +994,28 @@
             const bodyText = plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, "x"));
             const eventUrl = containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
 
-            const textPreviewBlock = textPreviewPlatforms.closest(".panel");
-            const imagePreviewBlock = imagePreviewPlatforms.closest(".panel");
+            const textPreviewBlock = textPreviewList.closest(".panel");
+            const imagePreviewBlock = imagePreviewList.closest(".panel");
 
             if (textPlans.length > 0) {
                 textPreviewBlock.style.display = "";
-                textPreviewPlatforms.textContent = textPlans.map(x => x.label).join(", ");
-                document.getElementById("textPostPreview").innerHTML = formatPlainPostTextToHtml(textPlans[0].postText || buildTextPost(titleText, bodyText, eventUrl));
+                textPreviewList.innerHTML = textPlans.map(plan =>
+                    renderTextPreviewCard(plan.key, plan.postText || buildTextPost(titleText, bodyText, eventUrl))
+                ).join("");
             } else {
                 textPreviewBlock.style.display = "none";
+                textPreviewList.innerHTML = "";
             }
 
             if (imagePlans.length > 0) {
                 imagePreviewBlock.style.display = "";
-                imagePreviewPlatforms.textContent = imagePlans.map(x => x.label).join(", ");
-                document.getElementById("imagePostPreview").innerHTML = formatPlainPostTextToHtml(imagePlans[0].postText || buildImageCaption(titleText, eventUrl ?? "", LIMITS.x));
+                imagePreviewList.innerHTML = imagePlans.map(plan =>
+                    renderImagePreviewCard(plan.key, plan.postText || buildImageCaption(titleText, eventUrl ?? "", LIMITS.x), contentRaw)
+                ).join("");
             } else {
                 imagePreviewBlock.style.display = "none";
+                imagePreviewList.innerHTML = "";
             }
-
-            updateImagePreview(contentRaw);
 
             const payloadJsonText = JSON.stringify(payload);
             const payloadToken = base64UrlEncodeUtf8(payloadJsonText);

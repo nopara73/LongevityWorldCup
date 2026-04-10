@@ -87,7 +87,7 @@ Resolves an athlete slug to platform-specific mention text when posting to socia
 Behavior:
 
 - X: if the athlete `MediaContact` points to X/Twitter, the post uses the corresponding `@handle`
-- Threads: if the athlete `MediaContact` points to Threads or Instagram, the post uses the corresponding `@handle`
+- Threads: if the athlete `MediaContact` points to Threads, the post uses the corresponding `@handle`
 - Facebook: falls back to the athlete name
 - if no platform-specific social handle can be resolved, the fallback is always the athlete name
 

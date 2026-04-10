@@ -34,8 +34,7 @@ public static class SocialContactParser
     public static string? TryExtractThreadsHandle(string? mediaContact)
     {
         return TryExtractHandle(mediaContact, isSupportedHost: host =>
-            host.EndsWith("threads.com", StringComparison.OrdinalIgnoreCase) ||
-            host.EndsWith("instagram.com", StringComparison.OrdinalIgnoreCase));
+            host.EndsWith("threads.com", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string? TryExtractHandle(string? mediaContact, Func<string, bool> isSupportedHost)
