@@ -679,15 +679,68 @@
             }).trim();
         }
 
-        function formatPlainPostTextToHtml(value, platformKey) {
+        function buildMentionProfileUrl(handle, platformKey) {
+            const normalized = String(handle || "").trim().replace(/^@+/, "");
+            if (!normalized) {
+                return "";
+            }
+
+            if (platformKey === "x") {
+                return `https://x.com/${encodeURIComponent(normalized)}`;
+            }
+
+            if (platformKey === "threads") {
+                return `https://www.threads.com/@${encodeURIComponent(normalized)}`;
+            }
+
+            return "";
+        }
+
+        function collectClickableMentions(rawText, platformKey) {
+            const matches = [];
+            const seen = new Set();
+            const pattern = /\[mention\]\(([^)\r\n]+)\)/gi;
+            let match;
+            while ((match = pattern.exec(String(rawText || ""))) !== null) {
+                const slug = String(match[1] || "").trim();
+                if (!slug) {
+                    continue;
+                }
+
+                const handle = resolveMentionSlug(slug, platformKey);
+                if (!handle || !handle.startsWith("@")) {
+                    continue;
+                }
+
+                const href = buildMentionProfileUrl(handle, platformKey);
+                if (!href) {
+                    continue;
+                }
+
+                const key = `${handle}|${href}`;
+                if (seen.has(key)) {
+                    continue;
+                }
+
+                seen.add(key);
+                matches.push({ handle, href });
+            }
+
+            return matches.sort((a, b) => b.handle.length - a.handle.length);
+        }
+
+        function formatPlainPostTextToHtml(value, clickableMentions) {
             let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
             html = html.replace(/(https?:\/\/[^\s<]+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
             html = html.replace(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim, '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>');
-            if (platformKey === "x") {
-                html = html.replace(/(^|[\s(>])@([A-Za-z0-9_]{1,15})\b/g, '$1<a href="https://x.com/$2" target="_blank" rel="noopener noreferrer">@$2</a>');
-            } else if (platformKey === "threads") {
-                html = html.replace(/(^|[\s(>])@([A-Za-z0-9._]{1,30})\b/g, '$1<a href="https://www.threads.com/@$2" target="_blank" rel="noopener noreferrer">@$2</a>');
-            }
+            (clickableMentions || []).forEach(item => {
+                const handlePattern = escapeRegExp(item.handle);
+                const href = escapeHtml(item.href);
+                html = html.replace(
+                    new RegExp(`(^|[\\s(>])(${handlePattern})(?=$|[\\s),.!?:;<])`, "g"),
+                    `$1<a href="${href}" target="_blank" rel="noopener noreferrer">$2</a>`
+                );
+            });
             html = html.replace(/\n/g, "<br>");
             return html;
         }
@@ -1114,7 +1167,7 @@
             return settings;
         }
 
-        function renderTextPreviewCard(platformKey, postText) {
+        function renderTextPreviewCard(platformKey, postText, clickableMentions) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             return `
                 <div class="panel preview-block">
@@ -1130,7 +1183,7 @@
                                     <span class="x-handle">${escapeHtml(meta.handle)}</span>
                                     <span class="x-meta">now</span>
                                 </div>
-                                <div class="x-text">${formatPlainPostTextToHtml(postText, platformKey)}</div>
+                                <div class="x-text">${formatPlainPostTextToHtml(postText, clickableMentions)}</div>
                                 <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                             </div>
                         </div>
@@ -1138,7 +1191,7 @@
                 </div>`;
         }
 
-        function renderImagePreviewCard(platformKey, postText, contentRaw) {
+        function renderImagePreviewCard(platformKey, postText, contentRaw, clickableMentions) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const layout = getImagePreviewLayout(contentRaw, platformKey);
             const frameWidth = 560;
@@ -1159,7 +1212,7 @@
                                     <span class="x-handle">${escapeHtml(meta.handle)}</span>
                                     <span class="x-meta">now</span>
                                 </div>
-                                <div class="x-text">${formatPlainPostTextToHtml(postText, platformKey)}</div>
+                                <div class="x-text">${formatPlainPostTextToHtml(postText, clickableMentions)}</div>
                                 <div class="x-media">
                                     <div class="image-stage-frame" style="height:${frameHeight}px;">
                                         <div class="image-stage" style="transform:scale(${scale});">
@@ -1176,12 +1229,12 @@
                 </div>`;
         }
 
-        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost) {
+        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions) {
             if (plan.mode === "image") {
-                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw);
+                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions);
             }
 
-            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost);
+            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions);
         }
 
         function update() {
@@ -1213,7 +1266,8 @@
                     plan,
                     contentRaw,
                     buildTextPost(titleText, bodyText, eventUrl),
-                    buildImageCaption(titleText, eventUrl ?? "", plan.limit ?? LIMITS.x)
+                    buildImageCaption(titleText, eventUrl ?? "", plan.limit ?? LIMITS.x),
+                    collectClickableMentions(combinedRaw, plan.key)
                 )
             ).join("");
 
