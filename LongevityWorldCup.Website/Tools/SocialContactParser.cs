@@ -46,7 +46,7 @@ public static class SocialContactParser
         if (trimmed.StartsWith('@'))
             return NormalizeHandle(trimmed[1..]);
 
-        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        if (!TryCreateContactUri(trimmed, out var uri))
             return null;
 
         if (!isSupportedHost(uri.Host))
@@ -61,6 +61,14 @@ public static class SocialContactParser
             return null;
 
         return NormalizeHandle(firstSegment.TrimStart('@'));
+    }
+
+    private static bool TryCreateContactUri(string value, out Uri uri)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out uri!))
+            return true;
+
+        return Uri.TryCreate("https://" + value, UriKind.Absolute, out uri!);
     }
 
     private static string? NormalizeHandle(string? value)
