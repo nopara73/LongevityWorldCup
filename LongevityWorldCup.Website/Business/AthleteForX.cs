@@ -10,4 +10,5 @@ public record AthleteForX(
     double? PhenoAgeDiffFromBaseline,
     double? BortzAgeDiffFromBaseline,
     string? PodcastLink,
-    string? XHandle);
+    string? XHandle,
+    string? MediaContact);

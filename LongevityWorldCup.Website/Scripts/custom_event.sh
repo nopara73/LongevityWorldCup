@@ -246,6 +246,11 @@ render() {
   prev=""
   while [[ "$prev" != "$s" ]]; do
     prev="$s"
+    s="$(printf '%s' "$s" | sed -E "s/\[mention\]\(([^()]*)\)/\1/g")"
+  done
+  prev=""
+  while [[ "$prev" != "$s" ]]; do
+    prev="$s"
     s="$(printf '%s' "$s" | sed -E "s/\[([^][]+)\]\((https?:[^)]+)\)/${esc}]8;;\2${bel}\1${esc}]8;;${bel}/g")"
   done
   printf '%s' "$s"
