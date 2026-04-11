@@ -789,15 +789,20 @@ public class AthleteDataService : IDisposable
     {
         var order = GetRankingsOrder();
         var snapshot = GetAthletesSnapshot();
-        var extBySlug = new Dictionary<string, (string? PodcastLink, string? XHandle)>(StringComparer.OrdinalIgnoreCase);
+        var extBySlug = new Dictionary<string, (string? PodcastLink, string? XHandle, string? MediaContact, string? DisplayName)>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in snapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
             var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
             var media = o["MediaContact"]?.GetValue<string>();
-            var handle = ExtractXHandle(media);
-            extBySlug[slug] = (string.IsNullOrWhiteSpace(link) ? null : link.Trim(), handle);
+            var displayName = o["DisplayName"]?.GetValue<string>();
+            var handle = SocialContactParser.TryBuildMention(media, SocialPlatform.X);
+            extBySlug[slug] = (
+                string.IsNullOrWhiteSpace(link) ? null : link.Trim(),
+                handle,
+                string.IsNullOrWhiteSpace(media) ? null : media.Trim(),
+                string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim());
         }
         var list = new List<AthleteForX>();
         var rank = 0;
@@ -806,7 +811,8 @@ public class AthleteDataService : IDisposable
             rank++;
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
-            var name = o["Name"]?.GetValue<string>() ?? "";
+            extBySlug.TryGetValue(slug, out var ext);
+            var name = ext.DisplayName ?? o["Name"]?.GetValue<string>() ?? "";
             double? lowestPheno = null;
             if (o["LowestPhenoAge"] is JsonValue pv && pv.TryGetValue<double>(out var p)) lowestPheno = p;
             double? lowestBortz = null;
@@ -817,8 +823,7 @@ public class AthleteDataService : IDisposable
             if (o["PhenoAgeDiffFromBaseline"] is JsonValue pdv && pdv.TryGetValue<double>(out var pd)) phenoDiff = pd;
             double? bortzDiff = null;
             if (o["BortzAgeDiffFromBaseline"] is JsonValue bdv && bdv.TryGetValue<double>(out var bd)) bortzDiff = bd;
-            extBySlug.TryGetValue(slug, out var ext);
-            list.Add(new AthleteForX(slug, name, rank, lowestPheno, lowestBortz, chrono, phenoDiff, bortzDiff, ext.PodcastLink, ext.XHandle));
+            list.Add(new AthleteForX(slug, name, rank, lowestPheno, lowestBortz, chrono, phenoDiff, bortzDiff, ext.PodcastLink, ext.XHandle, ext.MediaContact));
         }
         return list;
     }
@@ -1805,28 +1810,6 @@ public class AthleteDataService : IDisposable
         }
 
         _eventDataService.SetAthleteBio(bioList);
-    }
-
-    private static string? ExtractXHandle(string? mediaContact)
-    {
-        if (string.IsNullOrWhiteSpace(mediaContact)) return null;
-
-        if (System.Uri.TryCreate(mediaContact.Trim(), System.UriKind.Absolute, out var uri))
-        {
-            var host = uri.Host;
-            if (!host.EndsWith("x.com", StringComparison.OrdinalIgnoreCase) &&
-                !host.EndsWith("twitter.com", StringComparison.OrdinalIgnoreCase))
-                return null;
-
-            var path = uri.AbsolutePath.Trim('/');
-            if (string.IsNullOrWhiteSpace(path)) return null;
-            var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            var handleCore = parts.Length > 0 ? parts[0] : null;
-            if (string.IsNullOrWhiteSpace(handleCore)) return null;
-            return "@" + handleCore;
-        }
-
-        return null;
     }
 
     // ===== biomarker/test signature helpers (single-column persistence) =====

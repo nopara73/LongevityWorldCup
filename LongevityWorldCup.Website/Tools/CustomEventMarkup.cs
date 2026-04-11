@@ -36,16 +36,17 @@ public static class CustomEventMarkup
         return ContainsHyperlinkCore(text, 0, text.Length);
     }
 
-    public static IReadOnlyList<CustomEventSegment> ParseSegments(string? text, bool keepHyperlinkLabels)
+    public static IReadOnlyList<CustomEventSegment> ParseSegments(string? text, bool keepHyperlinkLabels, Func<string, string>? mentionResolver = null)
     {
         var output = new List<CustomEventSegment>();
-        ParseInto(output, NormalizeNewlines(text), 0, NormalizeNewlines(text).Length, CustomEventTextStyle.Regular, keepHyperlinkLabels);
+        var normalized = NormalizeNewlines(text);
+        ParseInto(output, normalized, 0, normalized.Length, CustomEventTextStyle.Regular, keepHyperlinkLabels, mentionResolver);
         return MergeAdjacent(output);
     }
 
-    public static string ToPlainText(string? text, bool keepHyperlinkLabels = true)
+    public static string ToPlainText(string? text, bool keepHyperlinkLabels = true, Func<string, string>? mentionResolver = null)
     {
-        var segments = ParseSegments(text, keepHyperlinkLabels);
+        var segments = ParseSegments(text, keepHyperlinkLabels, mentionResolver);
         var sb = new StringBuilder();
         foreach (var segment in segments)
             sb.Append(segment.Text);
@@ -99,7 +100,7 @@ public static class CustomEventMarkup
         return false;
     }
 
-    private static void ParseInto(List<CustomEventSegment> output, string text, int start, int length, CustomEventTextStyle inheritedStyle, bool keepHyperlinkLabels)
+    private static void ParseInto(List<CustomEventSegment> output, string text, int start, int length, CustomEventTextStyle inheritedStyle, bool keepHyperlinkLabels, Func<string, string>? mentionResolver)
     {
         var end = start + length;
         var i = start;
@@ -144,11 +145,15 @@ public static class CustomEventMarkup
             var key = label.Trim().ToLowerInvariant();
             if (key == "bold")
             {
-                ParseInto(output, inner, 0, inner.Length, CustomEventTextStyle.Bold, keepHyperlinkLabels);
+                ParseInto(output, inner, 0, inner.Length, CustomEventTextStyle.Bold, keepHyperlinkLabels, mentionResolver);
             }
             else if (key == "strong")
             {
-                ParseInto(output, inner, 0, inner.Length, CustomEventTextStyle.Strong, keepHyperlinkLabels);
+                ParseInto(output, inner, 0, inner.Length, CustomEventTextStyle.Strong, keepHyperlinkLabels, mentionResolver);
+            }
+            else if (key == "mention")
+            {
+                Append(output, ResolveMentionText(inner, mentionResolver), inheritedStyle);
             }
             else if (IsSafeHttpUrl(inner))
             {
@@ -176,6 +181,30 @@ public static class CustomEventMarkup
             return;
 
         output.Add(new CustomEventSegment(text, style));
+    }
+
+    private static string ResolveMentionText(string? slug, Func<string, string>? mentionResolver)
+    {
+        var normalizedSlug = (slug ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalizedSlug))
+            return string.Empty;
+
+        var resolved = mentionResolver?.Invoke(normalizedSlug);
+        if (!string.IsNullOrWhiteSpace(resolved))
+            return resolved;
+
+        return HumanizeSlug(normalizedSlug);
+    }
+
+    private static string HumanizeSlug(string slug)
+    {
+        var spaced = slug.Replace('_', ' ').Replace('-', ' ').Trim();
+        if (string.IsNullOrWhiteSpace(spaced))
+            return slug;
+
+        return string.Join(' ', spaced
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
     }
 
     private static IReadOnlyList<CustomEventSegment> MergeAdjacent(List<CustomEventSegment> segments)

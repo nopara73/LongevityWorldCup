@@ -115,7 +115,7 @@ public class XEventService
             if (string.IsNullOrWhiteSpace(eventId))
                 return null;
 
-            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 280).PostText;
+            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 280, ResolveMention).PostText;
         }
 
         var message = XMessageBuilder.ForEventText(
@@ -179,7 +179,7 @@ public class XEventService
             return false;
         }
 
-        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 280);
+        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 280, ResolveMention);
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
@@ -189,7 +189,7 @@ public class XEventService
             return false;
         }
 
-        using var imageStream = await _customEventImages.RenderToStreamAsync(rawText);
+        using var imageStream = await _customEventImages.RenderToStreamAsync(rawText, ResolveMention);
         if (imageStream is null)
         {
             _log.LogWarning("X custom event image render returned no stream for event {EventId}.", eventId);
@@ -218,6 +218,24 @@ public class XEventService
         }
         var spaced = slug.Replace('_', '-').Replace('-', ' ');
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(spaced);
+    }
+
+    private string ResolveMention(string slug)
+    {
+        lock (_lockObj)
+        {
+            if (_bySlug.TryGetValue(slug, out var athlete))
+            {
+                var mention = SocialContactParser.TryBuildMention(athlete.MediaContact, SocialPlatform.X);
+                if (!string.IsNullOrWhiteSpace(mention))
+                    return mention;
+
+                if (!string.IsNullOrWhiteSpace(athlete.Name))
+                    return athlete.Name;
+            }
+        }
+
+        return SlugToName(slug);
     }
 
     private string? GetPodcast(string slug)
