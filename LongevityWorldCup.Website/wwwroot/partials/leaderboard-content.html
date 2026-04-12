@@ -1913,6 +1913,28 @@
                     };
                 });
 
+                const getDisplayAgeReductionValue = (athlete) =>
+                    (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction))
+                        ? athlete.bortzAgeReduction
+                        : athlete.ageReduction;
+                const getDisplayAgeReductionRoundedToTenths = (athlete) => {
+                    const displayAgeReduction = getDisplayAgeReductionValue(athlete);
+                    return Number.isFinite(displayAgeReduction) ? displayAgeReduction.toFixed(1) : null;
+                };
+                const getDisplayAgeReductionDecimals = (athletes, index) => {
+                    const currentRounded = getDisplayAgeReductionRoundedToTenths(athletes[index]);
+                    if (currentRounded == null) return 1;
+
+                    const previousRounded = index > 0
+                        ? getDisplayAgeReductionRoundedToTenths(athletes[index - 1])
+                        : null;
+                    const nextRounded = index < athletes.length - 1
+                        ? getDisplayAgeReductionRoundedToTenths(athletes[index + 1])
+                        : null;
+
+                    return currentRounded === previousRounded || currentRounded === nextRounded ? 2 : 1;
+                };
+
                 generateDivisionFilters(athleteResults);
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
@@ -1922,7 +1944,10 @@
                 athleteResults.sort(window.compareAthleteRank);
 
                 // Assign ranks to each athlete based on the sorted order
-                athleteResults.forEach((athlete, index) => { athlete.rank = index + 1; });
+                athleteResults.forEach((athlete, index) => {
+                    athlete.rank = index + 1;
+                    athlete.ageReductionDisplayDecimals = getDisplayAgeReductionDecimals(athleteResults, index);
+                });
 
                 athleteResults.forEach(a => {
                     a.rankImproved =
@@ -2062,7 +2087,7 @@
                                                 </a>` : ''}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
-                                            <div><span class="age-reduction">${Math.abs((athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction) ? athlete.bortzAgeReduction : athlete.ageReduction).toFixed(1))} years</span> reduced</div>
+                                            <div><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
                                             <div class="podium-item-lower">
                                                 <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
                                                 <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
@@ -2187,9 +2212,10 @@
 
                     window.setBadges(athlete, athleteCell);
 
-                    const displayAgeReduction = (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction)) ? athlete.bortzAgeReduction : athlete.ageReduction;
+                    const displayAgeReduction = getDisplayAgeReductionValue(athlete);
+                    const displayAgeReductionDecimals = athlete.ageReductionDisplayDecimals || 1;
                     const ageReductionSpan = row.querySelector('.age-reduction');
-                    ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(1) + ' years';
+                    ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(displayAgeReductionDecimals) + ' years';
 
                     const mediaContactCell = row.querySelector('.media-contact-td');
                     mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
