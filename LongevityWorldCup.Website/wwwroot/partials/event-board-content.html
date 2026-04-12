@@ -629,6 +629,17 @@
 <script src="/js/custom-event-markup.js"></script>
 <script>
     (function(){
+        window.getSharedEvents = window.getSharedEvents || function(){
+            if(!window.__sharedEventsRequest){
+                window.__sharedEventsRequest = fetch("/api/events",{headers:{accept:"application/json"}})
+                    .then(r=>r.ok?r.json():Promise.reject(r.status))
+                    .catch(err=>{
+                        window.__sharedEventsRequest = null;
+                        throw err;
+                    });
+            }
+            return window.__sharedEventsRequest;
+        };
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
                 window.__sharedAthletesRequest = fetch("/api/data/athletes",{headers:{accept:"application/json"}})
@@ -653,12 +664,14 @@
             `).join("");
         }
 
-        function setEventsLoadingState(){
+        function setEventsLoadingState(preserveExistingRows=false){
             const root = document.getElementById('events-root');
             if (root) root.setAttribute('aria-busy', 'true');
 
             const tbody = document.querySelector('#eventsTable tbody');
-            if (tbody) tbody.innerHTML = buildEventSkeletonRows();
+            if (!tbody) return;
+            if (preserveExistingRows && tbody.querySelector('tr.main-row')) return;
+            tbody.innerHTML = buildEventSkeletonRows();
         }
 
         function clearEventsLoadingState(){
@@ -1265,9 +1278,13 @@
             });
         }
 
-        function renderRows(rows, athletesIndex, linkNames){
+        function renderRows(rows, athletesIndex, linkNames, options=null){
             const tbody = document.querySelector("#eventsTable tbody");
-            tbody.innerHTML = "";
+            const appendFromIndex = options && Number.isFinite(options.appendFromIndex) ? Math.max(0, Math.floor(options.appendFromIndex)) : 0;
+            const shouldAppend = !!(options && options.preserveExistingRows && appendFromIndex > 0);
+            if (!shouldAppend) {
+                tbody.innerHTML = "";
+            }
 
             if (!Array.isArray(rows) || rows.length === 0){
                 tbody.innerHTML = `<tr><td colspan="3">No events yet</td></tr>`;
@@ -1276,6 +1293,7 @@
 
             const frag = document.createDocumentFragment();
             const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const rowsToRender = shouldAppend ? rows.slice(appendFromIndex) : rows;
 
             const afterNameWithCurrentRankFor = () => (slug, aObj) => {
                 if (!aObj) return "";
@@ -1294,7 +1312,8 @@
                 return `<span class="placement-link">${esc(label)}</span>`;
             };
 
-            rows.forEach((r, idx) => {
+            rowsToRender.forEach((r, localIdx) => {
+                const idx = shouldAppend ? appendFromIndex + localIdx : localIdx;
                 const dateLabel = r.occurredAt ? formatListDate(r.occurredAt) : "";
                 const rel = (r.type === EVENT_TYPE.Joined && r.occurredAt)
                     ? relativeDayLabel(r.occurredAt)
@@ -1611,7 +1630,7 @@
 
             applyZebraStriping(tbody);
 
-            const rowsNow = tbody.querySelectorAll(".row-appear");
+            const rowsNow = shouldAppend ? tbody.querySelectorAll(".row-appear:not(.is-visible)") : tbody.querySelectorAll(".row-appear");
             if (!prefersReduced && rowsNow.length){
                 const io = ensureRowObserver();
                 rowsNow.forEach(r => io.observe(r));
@@ -1761,8 +1780,10 @@
             return normalizeLinkId(slugifyLocal(s));
         }
 
-        window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true){
-            setEventsLoadingState();
+        window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true,options=null){
+            const requestedPreserveExistingRows = !!(options && options.preserveExistingRows);
+            const useSharedEvents = !!(options && options.useSharedEvents);
+            setEventsLoadingState(requestedPreserveExistingRows);
             setViewAllVisible(!!showViewAll);
 
             const root = document.getElementById('events-root');
@@ -1790,7 +1811,9 @@
 
             const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
 
-            const eventsReq=fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
+            const eventsReq=useSharedEvents
+                ? window.getSharedEvents()
+                : fetch("/api/events",{headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject(r.status));
             const athletesReq=window.getSharedAthletes();
 
             Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
@@ -1906,8 +1929,24 @@
                 rows = groupAthleteBursts(rows, 60000);
 
                 if(n!==null) rows=rows.slice(0,n);
+                const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
+                const previousHomepageRowIds = Array.isArray(window.__homepageLastRenderIds) ? window.__homepageLastRenderIds : [];
+                const existingHomepageRowCount = mode === "highlights"
+                    ? document.querySelectorAll("#eventsTable tbody tr.main-row").length
+                    : 0;
+                const canAppendHomepageRows = mode === "highlights"
+                    && requestedPreserveExistingRows
+                    && previousHomepageRowIds.length > 0
+                    && previousHomepageRowIds.length === existingHomepageRowCount
+                    && previousHomepageRowIds.every((id, idx) => currentRowIds[idx] === id);
 
-                renderRows(rows,athletesIndex,!!linkNames);
+                renderRows(rows,athletesIndex,!!linkNames,{
+                    preserveExistingRows: canAppendHomepageRows,
+                    appendFromIndex: canAppendHomepageRows ? previousHomepageRowIds.length : 0
+                });
+                if(mode === "highlights"){
+                    window.__homepageLastRenderIds = currentRowIds;
+                }
                 clearEventsLoadingState();
             }).catch(()=>{
                 clearEventsLoadingState();

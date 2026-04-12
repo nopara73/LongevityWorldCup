@@ -1500,9 +1500,17 @@
         let homepageHighlightsResizeTimer = null;
         let homepageHighlightsWaitAttempts = 0;
 
-        function loadHomepageHighlights(rowCount) {
+        function loadHomepageHighlights(rowCount, reason = 'unknown') {
             homepageHighlightsRows = rowCount;
-            callScoped('events-root-index', function () { loadEventsTable(rowCount, true); });
+            if (reason === 'fit') {
+                window.__homepageLastRenderIds = [];
+            }
+            callScoped('events-root-index', function () {
+                loadEventsTable(rowCount, true, null, true, {
+                    preserveExistingRows: reason === 'grow',
+                    useSharedEvents: true
+                });
+            });
         }
 
         function maybeGrowHomepageHighlights() {
@@ -1541,7 +1549,7 @@
             const heightGap = swagHeight - highlightsContentHeight;
             const canRequestMoreRows = renderedRows >= homepageHighlightsRows && homepageHighlightsRows < homepageHighlightsMaxRows;
             if (heightGap > 28 && canRequestMoreRows) {
-                loadHomepageHighlights(homepageHighlightsRows + 1);
+                loadHomepageHighlights(homepageHighlightsRows + 1, 'grow');
                 homepageHighlightsWaitAttempts = 0;
                 homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
             }
@@ -1550,7 +1558,8 @@
         function fitHomepageHighlights() {
             window.clearTimeout(homepageHighlightsMeasureTimer);
             homepageHighlightsWaitAttempts = 0;
-            loadHomepageHighlights(homepageHighlightsBaseRows);
+            const initialRows = window.innerWidth > 991 ? 1 : homepageHighlightsBaseRows;
+            loadHomepageHighlights(initialRows, 'fit');
             homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
         }
 
