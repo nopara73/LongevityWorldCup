@@ -788,11 +788,22 @@
             const base="/leaderboard";
             return Number.isFinite(rank)&&rank>0?`${base}#rank-${Math.floor(rank)}`:base;
         }
+        function normalizeAthleteNameValue(value){
+            if(value===undefined || value===null) return "";
+            const resolved=String(value).trim();
+            if(!resolved) return "";
+            const lowered=resolved.toLowerCase();
+            return (lowered==="null" || lowered==="undefined") ? "" : resolved;
+        }
         function athleteName(a){
             if(!a) return "";
             const map=lowerKeyMap(a);
-            const k=map["displayname"]||map["name"]||map["athletename"]||map["fullname"];
-            return k?String(a[k]).trim():"";
+            const preferredKeys=[map["displayname"],map["name"],map["athletename"],map["fullname"]].filter(Boolean);
+            for(const key of preferredKeys){
+                const resolved=normalizeAthleteNameValue(a[key]);
+                if(resolved) return resolved;
+            }
+            return "";
         }
         function resolveMentionName(slug, athletesIndex){
             const key=slugifyLocal(normalizeLinkId(slug));
