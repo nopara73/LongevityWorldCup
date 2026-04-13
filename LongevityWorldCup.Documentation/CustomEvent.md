@@ -11,8 +11,16 @@ Fill in:
 - `Title`
 - `Content`
 - target platforms
+- `Webpage` if the post should also appear on `/events`
 
 Then copy the generated server command and run it on the server.
+
+Behavior:
+
+- if `Webpage` is enabled, the post is stored in the DB and also appears on the public event feed
+- if `Webpage` is disabled, the post is still stored in the DB, but it stays hidden from the public website
+- hidden website posts can still be sent to Slack / X / Threads / Facebook
+- when `Webpage` is disabled, social post generation does not include a public event URL
 
 Example:
 
