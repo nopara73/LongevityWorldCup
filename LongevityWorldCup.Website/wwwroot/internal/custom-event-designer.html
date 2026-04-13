@@ -297,9 +297,11 @@
 
         .formatted strong { font-weight: 700; }
         .formatted .strong { color: #ff4081; font-weight: 700; }
-        .formatted a { color: #7a49b7; text-decoration: underline; }
+        .formatted a { color: #0645ad; text-decoration: underline; }
         .x-text a { color: #1d9bf0; text-decoration: none; }
         .x-text a:hover { text-decoration: underline; }
+        .slack-text a { color: #1264a3; text-decoration: none; }
+        .slack-text a:hover { text-decoration: underline; }
 
         .webpage-surface {
             width: fit-content;
@@ -400,13 +402,41 @@
             width: 40px;
             height: 40px;
             border-radius: 999px;
-            background: #1d9bf0;
             color: white;
             display: grid;
             place-items: center;
-            font-size: 13px;
-            font-weight: 700;
-            flex: 0 0 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+        }
+
+        .platform-avatar {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+        }
+
+        .platform-avatar-x {
+            background: #000000;
+        }
+
+        .platform-avatar-threads {
+            background: #101010;
+        }
+
+        .platform-avatar-facebook {
+            background: #1877f2;
+        }
+
+        .platform-avatar-slack {
+            background: #4a154b;
+        }
+
+        .platform-avatar svg {
+            width: 60%;
+            height: 60%;
+            display: block;
         }
 
         .x-main {
@@ -509,6 +539,92 @@
             letter-spacing: 0.02em;
             white-space: pre-wrap;
             word-break: break-word;
+        }
+
+        .slack-shell {
+            width: min(720px, calc(100vw - 180px));
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: #1b1d21;
+            color: #f8f8f8;
+            padding: 16px 18px;
+            box-shadow: 0 14px 32px rgba(0,0,0,0.22);
+        }
+
+        .slack-message {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: start;
+        }
+
+        .slack-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            color: #fff;
+            flex: 0 0 34px;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+        }
+
+        .slack-body {
+            min-width: 0;
+            display: grid;
+            gap: 4px;
+            padding-top: 1px;
+        }
+
+        .slack-author-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            flex-wrap: wrap;
+            line-height: 1.1;
+        }
+
+        .slack-author {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .slack-app-badge {
+            display: inline-flex;
+            align-items: center;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.72);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .slack-timestamp {
+            font-size: 12px;
+            font-weight: 500;
+            color: #a8adb4;
+        }
+
+        .slack-text {
+            font-size: 15px;
+            line-height: 1.4;
+            color: #d1d2d3;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .slack-text strong {
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .slack-text em {
+            font-style: italic;
         }
 
         @media (max-width: 1080px) {
@@ -616,15 +732,47 @@
         let activeMentionIndex = 0;
 
         const PLATFORM_CONFIGS = [
+            { key: "slack", label: "Slack", checkbox: sendSlack, fixedMode: "slack" },
             { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
             { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
             { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 }
         ];
         const PLATFORM_PREVIEW_META = {
+            slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
             x: { name: "Longevity World Cup", handle: "@longevitywc", avatar: "LW", label: "X" },
             threads: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Threads" },
             facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" }
         };
+
+        function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
+            const logos = {
+                x: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#ffffff" d="M18.9 2H22l-6.77 7.74L23.2 22h-6.26l-4.9-7.42L5.55 22H2.44l7.24-8.27L1.8 2h6.42l4.43 6.74L18.9 2Z"/>
+                    </svg>`,
+                threads: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#ffffff" d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.046.216.094.321.142 1.49.7 2.58 1.761 3.154 3.07.797 1.82.871 4.79-1.548 7.158-1.85 1.81-4.094 2.628-7.277 2.65Zm1.003-11.69c-.242 0-.487.007-.739.021-1.836.103-2.98.946-2.916 2.143.067 1.256 1.452 1.839 2.784 1.767 1.224-.065 2.818-.543 3.086-3.71a10.5 10.5 0 0 0-2.215-.221z"/>
+                    </svg>`,
+                facebook: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#ffffff" d="M13.65 21v-8.2h2.76l.41-3.2h-3.17V7.56c0-.92.26-1.55 1.58-1.55H17V3.15c-.3-.04-1.3-.13-2.47-.13-2.45 0-4.13 1.49-4.13 4.24V9.6H7.63v3.2h2.77V21h3.25Z"/>
+                    </svg>`,
+                slack: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#36C5F0" d="M9.77 2a2.24 2.24 0 1 0 0 4.48h2.24V4.24A2.24 2.24 0 0 0 9.77 2Zm0 5.99H4.24a2.24 2.24 0 0 0 0 4.48h5.53a2.24 2.24 0 0 0 0-4.48Z"/>
+                        <path fill="#2EB67D" d="M22 9.77a2.24 2.24 0 1 0-4.48 0v2.24h2.24A2.24 2.24 0 0 0 22 9.77Zm-5.99 0V4.24a2.24 2.24 0 0 0-4.48 0v5.53a2.24 2.24 0 0 0 4.48 0Z"/>
+                        <path fill="#ECB22E" d="M14.23 22a2.24 2.24 0 1 0 0-4.48h-2.24v2.24A2.24 2.24 0 0 0 14.23 22Zm0-5.99h5.53a2.24 2.24 0 0 0 0-4.48h-5.53a2.24 2.24 0 1 0 0 4.48Z"/>
+                        <path fill="#E01E5A" d="M2 14.23a2.24 2.24 0 1 0 4.48 0v-2.24H4.24A2.24 2.24 0 0 0 2 14.23Zm5.99 0v5.53a2.24 2.24 0 0 0 4.48 0v-5.53a2.24 2.24 0 1 0-4.48 0Z"/>
+                    </svg>`
+            };
+            return `
+                <div class="${escapeHtml(sizeClass)}">
+                    <div class="platform-avatar platform-avatar-${escapeHtml(platformKey)}">
+                        ${logos[platformKey] || ""}
+                    </div>
+                </div>`;
+        }
 
         function escapeHtml(value) {
             return (value ?? "")
@@ -727,6 +875,42 @@
             }
 
             return matches.sort((a, b) => b.handle.length - a.handle.length);
+        }
+
+        function applySlackMarkupToHtml(value) {
+            let html = escapeHtml(String(value || ""));
+
+            html = html.replace(/\[strong\]\(([^()]*)\)/gi, (_match, inner) => `<strong><em>${inner}</em></strong>`);
+            html = html.replace(/\[bold\]\(([^()]*)\)/gi, (_match, inner) => `<strong>${inner}</strong>`);
+            html = html.replace(/\[mention\]\(([^()]*)\)/gi, (_match, slug) => {
+                const normalized = String(slug || "").trim();
+                if (!normalized) {
+                    return "";
+                }
+
+                const href = escapeHtml(buildAthleteProfileUrl(normalized));
+                const label = escapeHtml(resolveMentionDisplayName(normalized));
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+            });
+            html = html.replace(/\[([^\[\]]+)\]\((https?:[^)\s]+)\)/gi, (_match, label, href) => {
+                return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+            });
+
+            return html;
+        }
+
+        function renderSlackPreviewMessage(titleRaw, contentRaw) {
+            const titleHtml = applySlackMarkupToHtml(titleRaw);
+            if (!contentRaw || !contentRaw.trim()) {
+                return titleHtml;
+            }
+
+            const contentHtml = applySlackMarkupToHtml(contentRaw)
+                .replace(/\r\n/g, "\n")
+                .replace(/\r/g, "\n")
+                .replace(/\n/g, "<br>");
+
+            return `${titleHtml}<br><br>${contentHtml}`;
         }
 
         function formatPlainPostTextToHtml(value, clickableMentions) {
@@ -1130,7 +1314,12 @@
                 .filter(platform => platform.checkbox.checked)
                 .map(platform => {
                     const plan = platform.fixedMode
-                        ? { mode: platform.fixedMode, postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, platform.key))), plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, platform.key)), null) }
+                        ? {
+                            mode: platform.fixedMode,
+                            postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, platform.key))), plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, platform.key)), null),
+                            titleRaw: titleRaw,
+                            contentRaw: contentRaw
+                        }
                         : buildPlan(titleRaw, contentRaw, platform.limit, platform.key);
                     return { key: platform.key, label: platform.label, limit: platform.limit, ...plan };
                 });
@@ -1176,7 +1365,7 @@
                     </div>
                     <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
                         <div class="x-post">
-                            <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                            ${renderPlatformAvatar(platformKey)}
                             <div class="x-main">
                                 <div class="x-head">
                                     <span class="x-name">${escapeHtml(meta.name)}</span>
@@ -1188,6 +1377,31 @@
                             </div>
                         </div>
                     </div>    
+                </div>`;
+        }
+
+        function renderSlackPreviewCard(titleRaw, contentRaw) {
+            const meta = PLATFORM_PREVIEW_META.slack;
+            return `
+                <div class="panel preview-block">
+                    <div class="preview-title" style="margin-bottom:8px;">
+                        <h2>${escapeHtml(meta.label)} Preview</h2>
+                    </div>
+                    <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                        <div class="slack-shell">
+                            <div class="slack-message">
+                                ${renderPlatformAvatar("slack", "slack-avatar")}
+                                <div class="slack-body">
+                                    <div class="slack-author-row">
+                                        <span class="slack-author">${escapeHtml(meta.name)}</span>
+                                        <span class="slack-app-badge">APP</span>
+                                        <span class="slack-timestamp">now</span>
+                                    </div>
+                                    <div class="slack-text">${renderSlackPreviewMessage(titleRaw, contentRaw)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>`;
         }
 
@@ -1205,7 +1419,7 @@
                     </div>
                     <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
                         <div class="x-post">
-                            <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                            ${renderPlatformAvatar(platformKey)}
                             <div class="x-main">
                                 <div class="x-head">
                                     <span class="x-name">${escapeHtml(meta.name)}</span>
@@ -1230,6 +1444,10 @@
         }
 
         function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions) {
+            if (plan.mode === "slack") {
+                return renderSlackPreviewCard(plan.titleRaw || "", plan.contentRaw || "");
+            }
+
             if (plan.mode === "image") {
                 return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions);
             }
