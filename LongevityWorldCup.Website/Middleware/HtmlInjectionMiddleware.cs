@@ -160,6 +160,22 @@ $@"<script type=""module"">
 
         private static HeadAssetConfig GetHeadAssetConfig(string path)
         {
+            if (IsLeagueRoute(path))
+            {
+                return new HeadAssetConfig(
+                    IncludeValidator: true,
+                    IncludeChartJs: true,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/pheno-age.js",
+                        "/js/bortz-age.js",
+                        "/js/badges.js",
+                        "/js/age-visualization.js"
+                    ]);
+            }
+
             return path.ToLowerInvariant() switch
             {
                 "/" or "/index.html" => new HeadAssetConfig(
