@@ -1011,8 +1011,27 @@
             const text = platformKey === "slack"
                 ? buildSlackRawMessage(plan.titleRaw || "", plan.contentRaw || "")
                 : String(plan.postText || "");
-            const urlMatch = text.match(/https?:\/\/[^\s]+/i);
-            return urlMatch ? urlMatch[0] : "";
+            const urlMatches = text.match(/https?:\/\/[^\s]+/gi);
+            return urlMatches && urlMatches.length ? urlMatches[urlMatches.length - 1] : "";
+        }
+
+        function getXPreviewVisibleText(postText) {
+            const text = String(postText || "");
+            const urlMatches = [...text.matchAll(/https?:\/\/[^\s]+/gi)];
+            if (!urlMatches.length) {
+                return text;
+            }
+
+            const last = urlMatches[urlMatches.length - 1];
+            const start = last.index ?? -1;
+            if (start < 0) {
+                return text;
+            }
+
+            const end = start + last[0].length;
+            const before = text.slice(0, start).replace(/\s+$/g, "");
+            const after = text.slice(end).replace(/^\s+/g, "");
+            return [before, after].filter(Boolean).join("\n");
         }
 
         function getUrlDomain(url) {
@@ -1635,6 +1654,9 @@
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const copyKey = registerPreviewCopyText(rawCopyText);
             const ogCardHtml = renderOgCard(ogPreviewUrl);
+            const visibleText = platformKey === "x" && ogPreviewUrl
+                ? getXPreviewVisibleText(postText)
+                : postText;
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
@@ -1650,7 +1672,7 @@
                                     <span class="x-handle">${escapeHtml(meta.handle)}</span>
                                     <span class="x-meta">now</span>
                                 </div>
-                                <div class="x-text">${formatPlainPostTextToHtml(postText, clickableMentions)}</div>
+                                <div class="x-text">${formatPlainPostTextToHtml(visibleText, clickableMentions)}</div>
                                 ${ogCardHtml}
                                 <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                             </div>
