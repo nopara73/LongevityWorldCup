@@ -36,6 +36,16 @@ public static class CustomEventMarkup
         return ContainsHyperlinkCore(text, 0, text.Length);
     }
 
+    public static string? GetSingleHyperlink(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return null;
+
+        var links = new List<string>(capacity: 2);
+        CollectHyperlinks(text, 0, text.Length, links);
+        return links.Count == 1 ? links[0] : null;
+    }
+
     public static IReadOnlyList<CustomEventSegment> ParseSegments(string? text, bool keepHyperlinkLabels, Func<string, string>? mentionResolver = null)
     {
         var output = new List<CustomEventSegment>();
@@ -98,6 +108,52 @@ public static class CustomEventMarkup
         }
 
         return false;
+    }
+
+    private static void CollectHyperlinks(string text, int start, int length, List<string> links)
+    {
+        var end = start + length;
+        var i = start;
+        while (i < end)
+        {
+            var open = text.IndexOf('[', i);
+            if (open < 0 || open >= end)
+                return;
+
+            var close = text.IndexOf("](", open + 1, StringComparison.Ordinal);
+            if (close < 0 || close >= end)
+                return;
+
+            var label = text[(open + 1)..close];
+            var parenStart = close + 2;
+            var j = parenStart;
+            var depth = 1;
+            while (j < end && depth > 0)
+            {
+                var ch = text[j];
+                if (ch == '(') depth++;
+                else if (ch == ')') depth--;
+                j++;
+            }
+
+            if (depth != 0)
+                return;
+
+            var inner = text.Substring(parenStart, j - parenStart - 1);
+            var key = label.Trim().ToLowerInvariant();
+            if (key == "bold" || key == "strong")
+            {
+                CollectHyperlinks(inner, 0, inner.Length, links);
+            }
+            else if (IsSafeHttpUrl(inner))
+            {
+                links.Add(inner.Trim());
+                if (links.Count > 1)
+                    return;
+            }
+
+            i = j;
+        }
     }
 
     private static void ParseInto(List<CustomEventSegment> output, string text, int start, int length, CustomEventTextStyle inheritedStyle, bool keepHyperlinkLabels, Func<string, string>? mentionResolver)

@@ -824,6 +824,7 @@
         }
 
         function containsHyperlink(value) { return window.CustomEventMarkup.containsHyperlink(value); }
+        function getSingleHyperlink(value) { return window.CustomEventMarkup.getSingleHyperlink(value); }
 
         function normalizeNewlines(value) { return window.CustomEventMarkup.normalizeNewlines(value); }
         function renderCustomMarkup(text) {
@@ -1276,7 +1277,8 @@
             const mentionResolver = slug => resolveMentionSlug(slug, platformKey);
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, mentionResolver));
             const bodyText = plainTextWithLabels(contentRaw, mentionResolver);
-            const eventUrl = includeEventUrl ? buildPreviewEventUrl(titleRaw, contentRaw) : "";
+            const singleHyperlink = getSingleHyperlink(rawText);
+            const eventUrl = singleHyperlink || (includeEventUrl ? buildPreviewEventUrl(titleRaw, contentRaw) : "");
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
 
@@ -1284,11 +1286,9 @@
                 return { mode: "text", postText: textWithoutUrl };
             }
 
-            if (hasHyperlinks && eventUrl) {
-                const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
-                if (textWithUrl && textWithUrl.length <= maxLength) {
-                    return { mode: "text", postText: textWithUrl };
-                }
+            const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
+            if (textWithUrl && textWithUrl.length <= maxLength) {
+                return { mode: "text", postText: textWithUrl };
             }
 
             return {
@@ -1593,7 +1593,10 @@
 
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, "x")));
             const bodyText = plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, "x"));
-            const eventUrl = sendWebpage.checked && containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
+            const singleHyperlink = getSingleHyperlink(combinedRaw);
+            const eventUrl = singleHyperlink || (sendWebpage.checked && containsHyperlink(combinedRaw)
+                ? buildPreviewEventUrl(titleRaw, contentRaw)
+                : null);
 
             socialPreviewList.innerHTML = selectedPlans.map(plan =>
                 renderPlatformPreviewCard(
