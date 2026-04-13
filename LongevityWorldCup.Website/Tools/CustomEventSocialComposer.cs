@@ -34,7 +34,8 @@ public static class CustomEventSocialComposer
         var (titleRaw, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
         var titleText = CollapseWhitespace(CustomEventMarkup.ToPlainText(titleRaw, keepHyperlinkLabels: true, mentionResolver)).Trim();
         var bodyText = CustomEventMarkup.ToPlainText(contentRaw, keepHyperlinkLabels: true, mentionResolver).Trim();
-        var eventUrl = includeEventUrl ? BuildEventUrl(eventId) : string.Empty;
+        var singleHyperlink = CustomEventMarkup.GetSingleHyperlink(rawText);
+        var eventUrl = singleHyperlink ?? (includeEventUrl ? BuildEventUrl(eventId) : string.Empty);
         var hasHyperlinks = CustomEventMarkup.ContainsHyperlink(rawText);
 
         var textPostWithoutEventUrl = BuildTextPost(titleText, bodyText, eventUrl: null);
@@ -43,11 +44,11 @@ public static class CustomEventSocialComposer
             if (!string.IsNullOrWhiteSpace(textPostWithoutEventUrl) && textPostWithoutEventUrl.Length <= maxTextLength)
                 return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPostWithoutEventUrl);
         }
-        else
+
+        var textPostWithEventUrl = BuildTextPost(titleText, bodyText, eventUrl);
+        if (!string.IsNullOrWhiteSpace(textPostWithEventUrl) && textPostWithEventUrl.Length <= maxTextLength)
         {
-            var textPostWithEventUrl = BuildTextPost(titleText, bodyText, eventUrl);
-            if (!string.IsNullOrWhiteSpace(textPostWithEventUrl) && textPostWithEventUrl.Length <= maxTextLength)
-                return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPostWithEventUrl);
+            return new CustomEventSocialPlan(CustomEventPostMode.Text, titleText, bodyText, eventUrl, textPostWithEventUrl);
         }
 
         var imageCaption = BuildImageCaption(titleText, hasHyperlinks ? eventUrl : string.Empty, maxTextLength);
