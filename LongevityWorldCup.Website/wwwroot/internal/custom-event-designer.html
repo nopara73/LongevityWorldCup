@@ -1028,6 +1028,62 @@
             return matches.sort((a, b) => b.handle.length - a.handle.length);
         }
 
+        function findPreviewLinks(text) {
+            const value = String(text || "");
+            const matches = [];
+            const seen = new Set();
+
+            for (const match of value.matchAll(/https?:\/\/[^\s<>|]+/gi)) {
+                const raw = String(match[0] || "");
+                const start = match.index ?? -1;
+                if (!raw || start < 0) {
+                    continue;
+                }
+
+                const key = `${start}:${raw}`;
+                if (seen.has(key)) {
+                    continue;
+                }
+
+                seen.add(key);
+                matches.push({
+                    raw,
+                    normalized: raw,
+                    start,
+                    end: start + raw.length
+                });
+            }
+
+            for (const match of value.matchAll(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim)) {
+                const raw = String(match[2] || "");
+                const offset = String(match[1] || "").length;
+                const start = (match.index ?? -1) + offset;
+                if (!raw || start < 0) {
+                    continue;
+                }
+
+                const overlapsExplicit = matches.some(item => start >= item.start && start < item.end);
+                if (overlapsExplicit) {
+                    continue;
+                }
+
+                const key = `${start}:${raw}`;
+                if (seen.has(key)) {
+                    continue;
+                }
+
+                seen.add(key);
+                matches.push({
+                    raw,
+                    normalized: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
+                    start,
+                    end: start + raw.length
+                });
+            }
+
+            return matches.sort((a, b) => a.start - b.start);
+        }
+
         function getOgPreviewUrl(platformKey, plan) {
             if (platformKey === "facebook" || platformKey === "webpage") {
                 return "";
@@ -1040,27 +1096,35 @@
             const text = platformKey === "slack"
                 ? buildSlackRawMessage(plan.titleRaw || "", plan.contentRaw || "")
                 : String(plan.postText || "");
-            const urlMatches = text.match(/https?:\/\/[^\s]+/gi);
-            return urlMatches && urlMatches.length ? urlMatches[urlMatches.length - 1] : "";
+            const links = findPreviewLinks(text);
+            if (!links.length) {
+                return "";
+            }
+
+            if (platformKey === "slack") {
+                const httpsLinks = links.filter(link => /^https:\/\//i.test(String(link.raw || "")));
+                return httpsLinks.length ? httpsLinks[httpsLinks.length - 1].normalized : "";
+            }
+
+            return links[links.length - 1].normalized;
         }
 
         function getXPreviewVisibleText(postText) {
             const text = String(postText || "");
-            const urlMatches = [...text.matchAll(/https?:\/\/[^\s]+/gi)];
-            if (!urlMatches.length) {
+            const links = findPreviewLinks(text);
+            if (!links.length) {
                 return text;
             }
 
-            const last = urlMatches[urlMatches.length - 1];
-            const start = last.index ?? -1;
-            if (start < 0) {
+            const last = links[links.length - 1];
+            const tail = text.slice(last.end);
+            if (tail.trim().length > 0) {
                 return text;
             }
-
-            const end = start + last[0].length;
+            const start = last.start;
+            const end = last.end;
             const before = text.slice(0, start).replace(/\s+$/g, "");
-            const after = text.slice(end).replace(/^\s+/g, "");
-            return [before, after].filter(Boolean).join("\n");
+            return before;
         }
 
         function getUrlDomain(url) {
@@ -1162,6 +1226,8 @@
             html = html.replace(/\[([^\[\]]+)\]\((https?:[^)\s]+)\)/gi, (_match, label, href) => {
                 return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
             });
+            html = html.replace(/(?<!["'=])(https?:\/\/[^\s<>|]+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+            html = html.replace(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim, '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>');
 
             return html;
         }
@@ -1401,7 +1467,11 @@
             }
 
             if (value.startsWith("@")) {
-                return value;
+                if (platformKey === "x" || platformKey === "threads") {
+                    return value;
+                }
+
+                return "";
             }
 
             try {
@@ -1687,7 +1757,7 @@
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const copyKey = registerPreviewCopyText(rawCopyText);
             const ogCardHtml = renderOgCard(ogPreviewUrl);
-            const visibleText = platformKey === "x" && ogPreviewUrl
+            const visibleText = platformKey === "x"
                 ? getXPreviewVisibleText(postText)
                 : postText;
             return `
