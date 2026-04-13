@@ -88,7 +88,7 @@ public class FacebookEventService
         return await TrySendEventAsync(type, rawText, eventId: null);
     }
 
-    public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId)
+    public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId, bool visibleOnWebsite = true)
     {
         if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
         {
@@ -96,7 +96,7 @@ public class FacebookEventService
             return false;
         }
 
-        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention);
+        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention, includeEventUrl: visibleOnWebsite);
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
@@ -150,12 +150,12 @@ public class FacebookEventService
         return false;
     }
 
-    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null)
+    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null, bool visibleOnWebsite = true)
     {
         if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
             return null;
 
-        return CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention).PostText;
+        return CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention, includeEventUrl: visibleOnWebsite).PostText;
     }
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)

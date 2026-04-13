@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Custom Event Designer</title>
+    <title>Social Post Manager</title>
     <style>
         @font-face {
             font-family: "Poppins";
@@ -635,7 +635,7 @@
 <body>
     <div class="page">
         <div class="panel">
-            <h1>Custom Event Designer</h1>
+            <h1>Social Post Manager</h1>
 
             <div class="format-toolbar">
                 <button id="insertBoldBtn" class="tool-btn" type="button">Bold</button>
@@ -663,6 +663,7 @@
             <div>
                 <div style="margin-bottom:6px;font-size:13px;">Send to</div>
                 <div class="checks">
+                    <label class="check"><input id="sendWebpage" type="checkbox" checked /><span>Webpage</span></label>
                     <label class="check"><input id="sendSlack" type="checkbox" checked /><span>Slack</span></label>
                     <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
                     <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
@@ -685,11 +686,11 @@
                 These previews are not pixel-perfect. They are only approximate guidance for webpage and social output.
             </div>
 
-            <div class="panel preview-block">
+            <div id="webpagePreviewBlock" class="panel preview-block">
                 <div class="preview-title">
                     <h2>Webpage Preview</h2>
                 </div>
-                <div class="webpage-surface">
+                <div id="webpagePreviewSurface" class="webpage-surface">
                     <div class="webpage-event">
                         <div class="webpage-event-row">
                             <div id="eventTitlePreview" class="webpage-event-title formatted"></div>
@@ -712,10 +713,13 @@
         const SEND_TO_STORAGE_KEY = "customEventDesigner.sendTo";
         const titleInput = document.getElementById("titleInput");
         const contentInput = document.getElementById("contentInput");
+        const sendWebpage = document.getElementById("sendWebpage");
         const sendSlack = document.getElementById("sendSlack");
         const sendX = document.getElementById("sendX");
         const sendThreads = document.getElementById("sendThreads");
         const sendFacebook = document.getElementById("sendFacebook");
+        const webpagePreviewBlock = document.getElementById("webpagePreviewBlock");
+        const webpagePreviewSurface = document.getElementById("webpagePreviewSurface");
         const commandOutput = document.getElementById("commandOutput");
         const copyCommandBtn = document.getElementById("copyCommandBtn");
         const copyState = document.getElementById("copyState");
@@ -1194,20 +1198,20 @@
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
 
-        function buildPlan(titleRaw, contentRaw, maxLength, platformKey) {
+        function buildPlan(titleRaw, contentRaw, maxLength, platformKey, includeEventUrl) {
             const rawText = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
             const mentionResolver = slug => resolveMentionSlug(slug, platformKey);
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, mentionResolver));
             const bodyText = plainTextWithLabels(contentRaw, mentionResolver);
-            const eventUrl = buildPreviewEventUrl(titleRaw, contentRaw);
+            const eventUrl = includeEventUrl ? buildPreviewEventUrl(titleRaw, contentRaw) : "";
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
 
-            if (!hasHyperlinks && textWithoutUrl && textWithoutUrl.length <= maxLength) {
+            if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && textWithoutUrl.length <= maxLength) {
                 return { mode: "text", postText: textWithoutUrl };
             }
 
-            if (hasHyperlinks) {
+            if (hasHyperlinks && eventUrl) {
                 const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
                 if (textWithUrl && textWithUrl.length <= maxLength) {
                     return { mode: "text", postText: textWithUrl };
@@ -1237,6 +1241,7 @@
                 if (!raw) return;
 
                 const data = JSON.parse(raw);
+                if (typeof data.sendWebpage === "boolean") sendWebpage.checked = data.sendWebpage;
                 if (typeof data.sendSlack === "boolean") sendSlack.checked = data.sendSlack;
                 if (typeof data.sendX === "boolean") sendX.checked = data.sendX;
                 if (typeof data.sendThreads === "boolean") sendThreads.checked = data.sendThreads;
@@ -1248,6 +1253,7 @@
         function saveSendToSettings() {
             try {
                 localStorage.setItem(SEND_TO_STORAGE_KEY, JSON.stringify({
+                    sendWebpage: sendWebpage.checked,
                     sendSlack: sendSlack.checked,
                     sendX: sendX.checked,
                     sendThreads: sendThreads.checked,
@@ -1309,7 +1315,7 @@
             insertSnippet("[mention](", "athlete_slug", ")", (prefix) => prefix.length, (prefix, innerText) => prefix.length + innerText.length);
         }
 
-        function getSelectedPlatformPlans(titleRaw, contentRaw) {
+        function getSelectedPlatformPlans(titleRaw, contentRaw, includeEventUrl) {
             return PLATFORM_CONFIGS
                 .filter(platform => platform.checkbox.checked)
                 .map(platform => {
@@ -1320,7 +1326,7 @@
                             titleRaw: titleRaw,
                             contentRaw: contentRaw
                         }
-                        : buildPlan(titleRaw, contentRaw, platform.limit, platform.key);
+                        : buildPlan(titleRaw, contentRaw, platform.limit, platform.key, includeEventUrl);
                     return { key: platform.key, label: platform.label, limit: platform.limit, ...plan };
                 });
         }
@@ -1464,20 +1470,24 @@
             const payload = {
                 title: titleRaw,
                 content: contentRaw,
+                sendToWebpage: sendWebpage.checked,
                 sendToSlack: sendSlack.checked,
                 sendToX: sendX.checked,
                 sendToThreads: sendThreads.checked,
                 sendToFacebook: sendFacebook.checked
             };
 
+            webpagePreviewBlock.style.display = sendWebpage.checked ? "" : "none";
+            webpagePreviewSurface.hidden = !sendWebpage.checked;
+
             document.getElementById("eventTitlePreview").innerHTML = renderWebpageMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
             document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
 
-            const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw);
+            const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw, sendWebpage.checked);
 
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, "x")));
             const bodyText = plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, "x"));
-            const eventUrl = containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
+            const eventUrl = sendWebpage.checked && containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
 
             socialPreviewList.innerHTML = selectedPlans.map(plan =>
                 renderPlatformPreviewCard(
@@ -1560,7 +1570,7 @@
             closeMentionSuggestions();
         });
 
-        [titleInput, contentInput, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);
