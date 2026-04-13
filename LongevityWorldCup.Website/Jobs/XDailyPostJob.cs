@@ -32,7 +32,7 @@ public class XDailyPostJob : IJob
         var pending = _events.GetPendingXEvents();
         var freshCutoff = DateTime.UtcNow.AddDays(-7);
 
-        foreach (var (id, type, text, occurredAtUtc, _, xPriority) in pending)
+        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, xPriority) in pending)
         {
             if (type == EventType.BadgeAward)
             {
@@ -75,10 +75,10 @@ public class XDailyPostJob : IJob
                 continue;
             }
 
-            var msg = _xEvents.TryBuildMessage(type, text, id);
+            var msg = _xEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
-            var sent = await _xEvents.TrySendEventAsync(type, text, id);
+            var sent = await _xEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
                 _logger.LogWarning("XDailyPostJob send failed for event {Id}; leaving unprocessed", id);
