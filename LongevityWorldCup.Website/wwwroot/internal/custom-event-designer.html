@@ -509,7 +509,7 @@
 
         .og-card {
             margin-top: 10px;
-            border-radius: 16px;
+            border-radius: 14px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.10);
             background: rgba(255,255,255,0.04);
@@ -517,7 +517,7 @@
         }
 
         .og-card-media {
-            height: 180px;
+            height: 140px;
             background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
             display: flex;
             align-items: end;
@@ -536,21 +536,50 @@
             width: 100%;
             height: 100%;
             display: grid;
-            place-items: center;
+            align-content: center;
+            justify-items: center;
+            gap: 8px;
             color: rgba(255,255,255,0.55);
             font-size: 12px;
             letter-spacing: 0.04em;
             text-transform: uppercase;
+            background:
+                repeating-linear-gradient(
+                    135deg,
+                    rgba(255,255,255,0.05),
+                    rgba(255,255,255,0.05) 12px,
+                    rgba(255,255,255,0.02) 12px,
+                    rgba(255,255,255,0.02) 24px
+                );
+        }
+
+        .og-card-media-fallback-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(255, 176, 0, 0.18);
+            border: 1px solid rgba(255, 176, 0, 0.35);
+            color: #ffd37a;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: none;
+        }
+
+        .og-card-media-fallback-domain {
+            opacity: 0.9;
         }
 
         .og-card-body {
-            padding: 12px 14px;
+            padding: 10px 12px;
             display: grid;
-            gap: 6px;
+            gap: 5px;
         }
 
         .og-card-domain {
-            font-size: 12px;
+            font-size: 11px;
             color: #71767b;
             white-space: nowrap;
             overflow: hidden;
@@ -558,7 +587,7 @@
         }
 
         .og-card-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             line-height: 1.3;
             color: #e7e9ea;
@@ -569,17 +598,17 @@
         }
 
         .og-card-desc {
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.35;
             color: #9aa0a6;
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
         .og-card-url {
-            font-size: 12px;
+            font-size: 11px;
             color: #71767b;
             white-space: nowrap;
             overflow: hidden;
@@ -1097,7 +1126,11 @@
             const data = ogPreviewCache.get(url) || buildOgPlaceholder(url);
             const mediaHtml = data.image
                 ? `<img alt="link preview image" src="${escapeHtml(data.image)}" loading="lazy" referrerpolicy="no-referrer">`
-                : `<div class="og-card-media-fallback">${escapeHtml(data.domain || getUrlDomain(url))}</div>`;
+                : `
+                    <div class="og-card-media-fallback">
+                        <div class="og-card-media-fallback-badge">Placeholder preview</div>
+                        <div class="og-card-media-fallback-domain">${escapeHtml(data.domain || getUrlDomain(url))}</div>
+                    </div>`;
 
             return `
                 <div class="og-card">
