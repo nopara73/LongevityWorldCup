@@ -507,6 +507,85 @@
             font-size: 12px;
         }
 
+        .og-card {
+            margin-top: 10px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(255,255,255,0.04);
+            width: min(560px, calc(100vw - 180px));
+        }
+
+        .og-card-media {
+            height: 180px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            display: flex;
+            align-items: end;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+
+        .og-card-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .og-card-media-fallback {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+            color: rgba(255,255,255,0.55);
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .og-card-body {
+            padding: 12px 14px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .og-card-domain {
+            font-size: 12px;
+            color: #71767b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .og-card-title {
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.3;
+            color: #e7e9ea;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .og-card-desc {
+            font-size: 13px;
+            line-height: 1.35;
+            color: #9aa0a6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .og-card-url {
+            font-size: 12px;
+            color: #71767b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .x-media {
             border-radius: 16px;
             overflow: hidden;
@@ -767,6 +846,8 @@
         let activeMentionContext = null;
         let activeMentionIndex = 0;
         let previewCopyPayloads = new Map();
+        let ogPreviewCache = new Map();
+        let ogPreviewPending = new Set();
 
         const PLATFORM_CONFIGS = [
             { key: "slack", label: "Slack", checkbox: sendSlack, fixedMode: "slack" },
@@ -916,6 +997,99 @@
             }
 
             return matches.sort((a, b) => b.handle.length - a.handle.length);
+        }
+
+        function getOgPreviewUrl(platformKey, plan) {
+            if (platformKey === "facebook" || platformKey === "webpage") {
+                return "";
+            }
+
+            if (!plan || (plan.mode !== "text" && plan.mode !== "slack")) {
+                return "";
+            }
+
+            const text = platformKey === "slack"
+                ? buildSlackRawMessage(plan.titleRaw || "", plan.contentRaw || "")
+                : String(plan.postText || "");
+            const urlMatch = text.match(/https?:\/\/[^\s]+/i);
+            return urlMatch ? urlMatch[0] : "";
+        }
+
+        function getUrlDomain(url) {
+            try {
+                return new URL(url).hostname.replace(/^www\./i, "");
+            } catch {
+                return url;
+            }
+        }
+
+        function buildOgPlaceholder(url) {
+            return {
+                url,
+                domain: getUrlDomain(url),
+                title: "Link preview unavailable",
+                description: "Metadata could not be loaded. This is a placeholder preview.",
+                image: ""
+            };
+        }
+
+        async function fetchOgPreview(url) {
+            const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}&audio=false&video=false&screenshot=false`;
+            const response = await fetch(endpoint, { headers: { accept: "application/json" } });
+            if (!response.ok) {
+                throw new Error(`OG fetch failed: ${response.status}`);
+            }
+
+            const json = await response.json();
+            const data = json?.data || {};
+            return {
+                url,
+                domain: data.publisher || data.author || getUrlDomain(url),
+                title: data.title || getUrlDomain(url),
+                description: data.description || "",
+                image: data.image?.url || data.logo?.url || ""
+            };
+        }
+
+        function ensureOgPreview(url) {
+            if (!url || ogPreviewCache.has(url) || ogPreviewPending.has(url)) {
+                return;
+            }
+
+            ogPreviewPending.add(url);
+            fetchOgPreview(url)
+                .then(data => {
+                    ogPreviewCache.set(url, data && data.title ? data : buildOgPlaceholder(url));
+                })
+                .catch(() => {
+                    ogPreviewCache.set(url, buildOgPlaceholder(url));
+                })
+                .finally(() => {
+                    ogPreviewPending.delete(url);
+                    update();
+                });
+        }
+
+        function renderOgCard(url) {
+            if (!url) {
+                return "";
+            }
+
+            const data = ogPreviewCache.get(url) || buildOgPlaceholder(url);
+            const mediaHtml = data.image
+                ? `<img alt="link preview image" src="${escapeHtml(data.image)}" loading="lazy" referrerpolicy="no-referrer">`
+                : `<div class="og-card-media-fallback">${escapeHtml(data.domain || getUrlDomain(url))}</div>`;
+
+            return `
+                <div class="og-card">
+                    <div class="og-card-media">${mediaHtml}</div>
+                    <div class="og-card-body">
+                        <div class="og-card-domain">${escapeHtml(data.domain || getUrlDomain(url))}</div>
+                        <div class="og-card-title">${escapeHtml(data.title || getUrlDomain(url))}</div>
+                        ${data.description ? `<div class="og-card-desc">${escapeHtml(data.description)}</div>` : ""}
+                        <div class="og-card-url">${escapeHtml(url)}</div>
+                    </div>
+                </div>`;
         }
 
         function applySlackMarkupToHtml(value) {
@@ -1457,9 +1631,10 @@
             return settings;
         }
 
-        function renderTextPreviewCard(platformKey, postText, clickableMentions, rawCopyText) {
+        function renderTextPreviewCard(platformKey, postText, clickableMentions, rawCopyText, ogPreviewUrl) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const copyKey = registerPreviewCopyText(rawCopyText);
+            const ogCardHtml = renderOgCard(ogPreviewUrl);
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
@@ -1476,6 +1651,7 @@
                                     <span class="x-meta">now</span>
                                 </div>
                                 <div class="x-text">${formatPlainPostTextToHtml(postText, clickableMentions)}</div>
+                                ${ogCardHtml}
                                 <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                             </div>
                         </div>
@@ -1483,9 +1659,10 @@
                 </div>`;
         }
 
-        function renderSlackPreviewCard(titleRaw, contentRaw) {
+        function renderSlackPreviewCard(titleRaw, contentRaw, ogPreviewUrl) {
             const meta = PLATFORM_PREVIEW_META.slack;
             const copyKey = registerPreviewCopyText(buildSlackRawMessage(titleRaw, contentRaw));
+            const ogCardHtml = renderOgCard(ogPreviewUrl);
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
@@ -1503,6 +1680,7 @@
                                         <span class="slack-timestamp">now</span>
                                     </div>
                                     <div class="slack-text">${renderSlackPreviewMessage(titleRaw, contentRaw)}</div>
+                                    ${ogCardHtml}
                                 </div>
                             </div>
                         </div>
@@ -1550,16 +1728,16 @@
                 </div>`;
         }
 
-        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions, rawCopyText) {
+        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions, rawCopyText, ogPreviewUrl) {
             if (plan.mode === "slack") {
-                return renderSlackPreviewCard(plan.titleRaw || "", plan.contentRaw || "");
+                return renderSlackPreviewCard(plan.titleRaw || "", plan.contentRaw || "", ogPreviewUrl);
             }
 
             if (plan.mode === "image") {
                 return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions, rawCopyText);
             }
 
-            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions, rawCopyText);
+            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions, rawCopyText, ogPreviewUrl);
         }
 
         function update() {
@@ -1590,6 +1768,12 @@
             document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
 
             const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw, sendWebpage.checked);
+            selectedPlans.forEach(plan => {
+                const ogPreviewUrl = getOgPreviewUrl(plan.key, plan);
+                if (ogPreviewUrl) {
+                    ensureOgPreview(ogPreviewUrl);
+                }
+            });
 
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, "x")));
             const bodyText = plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, "x"));
@@ -1605,7 +1789,8 @@
                     buildTextPost(titleText, bodyText, eventUrl),
                     buildImageCaption(titleText, eventUrl ?? "", plan.limit ?? LIMITS.x),
                     collectClickableMentions(combinedRaw, plan.key),
-                    buildPlatformRawText(plan.key, plan, titleRaw, contentRaw, sendWebpage.checked)
+                    buildPlatformRawText(plan.key, plan, titleRaw, contentRaw, sendWebpage.checked),
+                    getOgPreviewUrl(plan.key, plan)
                 )
             ).join("");
 
