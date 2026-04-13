@@ -1380,6 +1380,43 @@
         }
     }
 
+    function getLeagueRouteState(pathname) {
+        let normalizedPath = (pathname || '').trim().toLowerCase();
+        while (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
+            normalizedPath = normalizedPath.slice(0, -1);
+        }
+
+        const leaguePrefix = '/league/';
+        if (!normalizedPath.startsWith(leaguePrefix) || normalizedPath.length <= leaguePrefix.length) {
+            return { slug: null, filterLabel: null, view: null };
+        }
+
+        const slug = normalizedPath.slice(leaguePrefix.length);
+        const filterLabelsBySlug = {
+            amateur: 'Amateur',
+            womens: "Women's",
+            mens: "Men's",
+            open: 'Open',
+            'silent-generation': 'Silent Generation',
+            'baby-boomers': 'Baby Boomers',
+            'gen-x': 'Gen X',
+            millennials: 'Millennials',
+            'gen-z': 'Gen Z',
+            'gen-alpha': 'Gen Alpha',
+            prosperan: 'Prosperan'
+        };
+
+        if (slug === 'bortz' || slug === 'pheno') {
+            return { slug, filterLabel: null, view: slug };
+        }
+
+        return {
+            slug,
+            filterLabel: filterLabelsBySlug[slug] || null,
+            view: slug === 'ultimate' ? 'ultimate' : null
+        };
+    }
+
 
     // Prevent browser auto-restoring scroll on history nav (harmless if unsupported)
     try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { }
@@ -2274,6 +2311,7 @@
 
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
                 const urlParams = new URLSearchParams(window.location.search);
+                const leagueRouteState = getLeagueRouteState(window.location.pathname);
                 const athleteParam = new URLSearchParams(window.location.search).get('athlete') || '';
                 if (athleteParam) {
                     const normalizedAthlete = window.slugifyName(athleteParam, false);
@@ -2308,9 +2346,17 @@
                             });
                         });
                         searchOrFilterApplied = true;
+                    } else if (leagueRouteState.filterLabel) {
+                        const normalizedFilter = leagueRouteState.filterLabel.trim().toLowerCase();
+                        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                            if (checkbox.value.toLowerCase() === normalizedFilter) {
+                                checkbox.checked = true;
+                            }
+                        });
+                        searchOrFilterApplied = true;
                     }
 
-                    const viewParam = new URLSearchParams(window.location.search).get('view');
+                    const viewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
                     if (viewParam && (viewParam.toLowerCase() === 'bortz' || viewParam.toLowerCase() === 'pheno')) {
                         const viewId = 'view-' + viewParam.toLowerCase();
                         const viewRadio = document.getElementById(viewId);
