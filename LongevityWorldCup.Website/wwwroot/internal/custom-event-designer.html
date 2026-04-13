@@ -267,7 +267,30 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .preview-title h2 {
+            min-width: 0;
+        }
+
+        .preview-copy-btn {
+            padding: 6px 10px;
+            border-radius: 9px;
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.88);
+            font-size: 11px;
+            line-height: 1.2;
+        }
+
+        .preview-copy-btn:hover {
+            background: rgba(255,255,255,0.14);
+        }
+
+        .preview-copy-btn.is-copied {
+            background: rgba(103, 211, 147, 0.22);
+            color: #dff7e7;
         }
 
         .preview-platforms {
@@ -689,6 +712,7 @@
             <div id="webpagePreviewBlock" class="panel preview-block">
                 <div class="preview-title">
                     <h2>Webpage Preview</h2>
+                    <button type="button" class="preview-copy-btn" data-copy-source="webpage">Copy Text</button>
                 </div>
                 <div id="webpagePreviewSurface" class="webpage-surface">
                     <div class="webpage-event">
@@ -734,6 +758,7 @@
         let athleteMentionItems = [];
         let activeMentionContext = null;
         let activeMentionIndex = 0;
+        let previewCopyPayloads = new Map();
 
         const PLATFORM_CONFIGS = [
             { key: "slack", label: "Slack", checkbox: sendSlack, fixedMode: "slack" },
@@ -804,6 +829,9 @@
         }
         function buildAthleteProfileUrl(slug) {
             return `/athlete/${encodeURIComponent(normalizeAthleteSlugForUrl(slug))}`;
+        }
+        function buildAthleteProfileAbsoluteUrl(slug) {
+            return `https://longevityworldcup.com${buildAthleteProfileUrl(slug)}`;
         }
         function hasKnownMentionSlug(slug) {
             const key = String(slug || "").trim().toLowerCase();
@@ -901,6 +929,39 @@
             });
 
             return html;
+        }
+
+        function applySlackMarkupToText(value) {
+            let text = String(value || "");
+
+            text = text.replace(/\[strong\]\(([^()]*)\)/gi, (_match, inner) => `*_${inner}_*`);
+            text = text.replace(/\[bold\]\(([^()]*)\)/gi, (_match, inner) => `*${inner}*`);
+            text = text.replace(/\[mention\]\(([^()]*)\)/gi, (_match, slug) => {
+                const normalized = String(slug || "").trim();
+                if (!normalized) {
+                    return "";
+                }
+
+                return `<${buildAthleteProfileAbsoluteUrl(normalized)}|${resolveMentionDisplayName(normalized)}>`;
+            });
+            text = text.replace(/\[([^\[\]]+)\]\((https?:[^)\s]+)\)/gi, (_match, label, href) => `<${href}|${label}>`);
+
+            return text;
+        }
+
+        function buildSlackRawMessage(titleRaw, contentRaw) {
+            const titleText = applySlackMarkupToText(titleRaw);
+            if (!contentRaw || !contentRaw.trim()) {
+                return titleText;
+            }
+
+            return `${titleText}\n\n${applySlackMarkupToText(contentRaw)}`;
+        }
+
+        function registerPreviewCopyText(value) {
+            const key = `preview-${previewCopyPayloads.size + 1}`;
+            previewCopyPayloads.set(key, String(value || ""));
+            return key;
         }
 
         function renderSlackPreviewMessage(titleRaw, contentRaw) {
@@ -1186,6 +1247,10 @@
             return parts.join("\n\n").trim();
         }
 
+        function buildWebpageRawMessage(titleRaw, contentRaw) {
+            return contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
+        }
+
         function buildImageCaption(titleText, eventUrl, maxLength) {
             const normalizedTitle = collapseWhitespace(titleText);
             if (!eventUrl) return normalizedTitle;
@@ -1222,6 +1287,28 @@
                 mode: "image",
                 postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength)
             };
+        }
+
+        function buildPlatformRawText(platformKey, plan, titleRaw, contentRaw, includeEventUrl) {
+            if (platformKey === "webpage") {
+                return buildWebpageRawMessage(titleRaw, contentRaw);
+            }
+
+            if (platformKey === "slack") {
+                return buildSlackRawMessage(titleRaw, contentRaw);
+            }
+
+            if (plan && typeof plan.postText === "string") {
+                return plan.postText;
+            }
+
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook") {
+                const fallbackLimit = platformKey === "x" ? LIMITS.x : (platformKey === "threads" ? LIMITS.threads : 63206);
+                const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
+                return fallbackPlan.postText || "";
+            }
+
+            return "";
         }
 
         function base64UrlEncodeUtf8(value) {
@@ -1362,12 +1449,14 @@
             return settings;
         }
 
-        function renderTextPreviewCard(platformKey, postText, clickableMentions) {
+        function renderTextPreviewCard(platformKey, postText, clickableMentions, rawCopyText) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
+            const copyKey = registerPreviewCopyText(rawCopyText);
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
+                        <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
                     <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
                         <div class="x-post">
@@ -1388,10 +1477,12 @@
 
         function renderSlackPreviewCard(titleRaw, contentRaw) {
             const meta = PLATFORM_PREVIEW_META.slack;
+            const copyKey = registerPreviewCopyText(buildSlackRawMessage(titleRaw, contentRaw));
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
+                        <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
                     <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
                         <div class="slack-shell">
@@ -1411,17 +1502,19 @@
                 </div>`;
         }
 
-        function renderImagePreviewCard(platformKey, postText, contentRaw, clickableMentions) {
+        function renderImagePreviewCard(platformKey, postText, contentRaw, clickableMentions, rawCopyText) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const layout = getImagePreviewLayout(contentRaw, platformKey);
             const frameWidth = 560;
             const scale = frameWidth / 1200;
             const frameHeight = 675 * scale;
+            const copyKey = registerPreviewCopyText(rawCopyText);
 
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
+                        <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
                     <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
                         <div class="x-post">
@@ -1449,16 +1542,16 @@
                 </div>`;
         }
 
-        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions) {
+        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions, rawCopyText) {
             if (plan.mode === "slack") {
                 return renderSlackPreviewCard(plan.titleRaw || "", plan.contentRaw || "");
             }
 
             if (plan.mode === "image") {
-                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions);
+                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions, rawCopyText);
             }
 
-            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions);
+            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions, rawCopyText);
         }
 
         function update() {
@@ -1476,6 +1569,8 @@
                 sendToThreads: sendThreads.checked,
                 sendToFacebook: sendFacebook.checked
             };
+            previewCopyPayloads = new Map();
+            previewCopyPayloads.set("webpage", buildPlatformRawText("webpage", null, titleRaw, contentRaw, sendWebpage.checked));
 
             webpagePreviewBlock.style.display = sendWebpage.checked ? "" : "none";
             webpagePreviewSurface.hidden = !sendWebpage.checked;
@@ -1495,7 +1590,8 @@
                     contentRaw,
                     buildTextPost(titleText, bodyText, eventUrl),
                     buildImageCaption(titleText, eventUrl ?? "", plan.limit ?? LIMITS.x),
-                    collectClickableMentions(combinedRaw, plan.key)
+                    collectClickableMentions(combinedRaw, plan.key),
+                    buildPlatformRawText(plan.key, plan, titleRaw, contentRaw, sendWebpage.checked)
                 )
             ).join("");
 
@@ -1510,6 +1606,18 @@
             setTimeout(() => {
                 if (copyState.textContent === message) copyState.textContent = "";
             }, 2000);
+        }
+
+        async function copyPreviewText(button, value) {
+            await navigator.clipboard.writeText(value);
+            const original = button.dataset.copyLabel || button.textContent || "Copy Text";
+            button.dataset.copyLabel = original;
+            button.textContent = "Copied";
+            button.classList.add("is-copied");
+            setTimeout(() => {
+                button.textContent = original;
+                button.classList.remove("is-copied");
+            }, 1400);
         }
 
         [titleInput, contentInput].forEach(el => {
@@ -1568,6 +1676,20 @@
                 return;
             }
             closeMentionSuggestions();
+        });
+
+        document.addEventListener("click", event => {
+            const button = event.target instanceof Element ? event.target.closest("[data-copy-key], [data-copy-source]") : null;
+            if (!button) {
+                return;
+            }
+
+            const copyKey = button.getAttribute("data-copy-key") || button.getAttribute("data-copy-source");
+            if (!copyKey || !previewCopyPayloads.has(copyKey)) {
+                return;
+            }
+
+            copyPreviewText(button, previewCopyPayloads.get(copyKey) || "");
         });
 
         [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
