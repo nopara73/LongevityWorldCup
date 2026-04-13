@@ -79,7 +79,8 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--LEADERBOARD-CONTENT-->", leaderboardContent)
                         .Replace("<!--GUESS-MY-AGE-->", guessMyAge)
                         .Replace("<!--EVENT-BOARD-CONTENT-->", eventBoardContent)
-                        .Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
+                        .Replace("<!--AGE-VISUALIZATION-->", ageVisualization)
+                        .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"));
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
                     // Optionally remove the play button on certain pages
