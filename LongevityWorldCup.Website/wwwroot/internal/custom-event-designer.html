@@ -212,6 +212,12 @@
             flex-wrap: wrap;
         }
 
+        .validation-hint {
+            font-size: 12px;
+            color: #ffb7c9;
+            line-height: 1.4;
+        }
+
         button {
             border: 0;
             border-radius: 10px;
@@ -701,6 +707,7 @@
                     <button id="copyCommandBtn" type="button">Copy Command</button>
                     <div id="copyState" style="font-size:12px;color:var(--muted);"></div>
                 </div>
+                <div id="commandValidationHint" class="validation-hint" hidden>Title is required before the command can be generated or copied.</div>
             </div>
         </div>
 
@@ -745,6 +752,7 @@
         const webpagePreviewBlock = document.getElementById("webpagePreviewBlock");
         const webpagePreviewSurface = document.getElementById("webpagePreviewSurface");
         const commandOutput = document.getElementById("commandOutput");
+        const commandValidationHint = document.getElementById("commandValidationHint");
         const copyCommandBtn = document.getElementById("copyCommandBtn");
         const copyState = document.getElementById("copyState");
         const insertBoldBtn = document.getElementById("insertBoldBtn");
@@ -1560,6 +1568,7 @@
             const titleRaw = titleInput.value.trim();
             const contentRaw = contentInput.value.trim();
             const combinedRaw = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
+            const hasTitle = !!titleRaw;
             const payload = {
                 title: titleRaw,
                 content: contentRaw,
@@ -1574,6 +1583,8 @@
 
             webpagePreviewBlock.style.display = sendWebpage.checked ? "" : "none";
             webpagePreviewSurface.hidden = !sendWebpage.checked;
+            commandValidationHint.hidden = hasTitle;
+            copyCommandBtn.disabled = !hasTitle;
 
             document.getElementById("eventTitlePreview").innerHTML = renderWebpageMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
             document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
@@ -1595,9 +1606,13 @@
                 )
             ).join("");
 
-            const payloadJsonText = JSON.stringify(payload);
-            const payloadToken = base64UrlEncodeUtf8(payloadJsonText);
-            commandOutput.value = buildServerCommand(payloadToken);
+            if (hasTitle) {
+                const payloadJsonText = JSON.stringify(payload);
+                const payloadToken = base64UrlEncodeUtf8(payloadJsonText);
+                commandOutput.value = buildServerCommand(payloadToken);
+            } else {
+                commandOutput.value = "";
+            }
         }
 
         async function copyText(value, message) {
@@ -1706,7 +1721,12 @@
         insertStrongBtn.addEventListener("click", insertStrong);
         insertLinkBtn.addEventListener("click", insertLink);
         insertMentionBtn.addEventListener("click", insertMention);
-        copyCommandBtn.addEventListener("click", async () => copyText(commandOutput.value, "Command copied."));
+        copyCommandBtn.addEventListener("click", async () => {
+            if (!commandOutput.value) {
+                return;
+            }
+            await copyText(commandOutput.value, "Command copied.");
+        });
         window.addEventListener("resize", update);
 
         fetch("/api/data/athletes", { headers: { accept: "application/json" } })
