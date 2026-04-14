@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Custom Event Designer</title>
+    <title>Social Post Manager</title>
     <style>
         @font-face {
             font-family: "Poppins";
@@ -212,6 +212,12 @@
             flex-wrap: wrap;
         }
 
+        .validation-hint {
+            font-size: 12px;
+            color: #ffb7c9;
+            line-height: 1.4;
+        }
+
         button {
             border: 0;
             border-radius: 10px;
@@ -267,7 +273,30 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .preview-title h2 {
+            min-width: 0;
+        }
+
+        .preview-copy-btn {
+            padding: 6px 10px;
+            border-radius: 9px;
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.88);
+            font-size: 11px;
+            line-height: 1.2;
+        }
+
+        .preview-copy-btn:hover {
+            background: rgba(255,255,255,0.14);
+        }
+
+        .preview-copy-btn.is-copied {
+            background: rgba(103, 211, 147, 0.22);
+            color: #dff7e7;
         }
 
         .preview-platforms {
@@ -297,9 +326,11 @@
 
         .formatted strong { font-weight: 700; }
         .formatted .strong { color: #ff4081; font-weight: 700; }
-        .formatted a { color: #7a49b7; text-decoration: underline; }
+        .formatted a { color: #0645ad; text-decoration: underline; }
         .x-text a { color: #1d9bf0; text-decoration: none; }
         .x-text a:hover { text-decoration: underline; }
+        .slack-text a { color: #1264a3; text-decoration: none; }
+        .slack-text a:hover { text-decoration: underline; }
 
         .webpage-surface {
             width: fit-content;
@@ -400,13 +431,41 @@
             width: 40px;
             height: 40px;
             border-radius: 999px;
-            background: #1d9bf0;
             color: white;
             display: grid;
             place-items: center;
-            font-size: 13px;
-            font-weight: 700;
-            flex: 0 0 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+        }
+
+        .platform-avatar {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+        }
+
+        .platform-avatar-x {
+            background: #000000;
+        }
+
+        .platform-avatar-threads {
+            background: #101010;
+        }
+
+        .platform-avatar-facebook {
+            background: #1877f2;
+        }
+
+        .platform-avatar-slack {
+            background: #4a154b;
+        }
+
+        .platform-avatar svg {
+            width: 60%;
+            height: 60%;
+            display: block;
         }
 
         .x-main {
@@ -446,6 +505,114 @@
             max-width: 360px;
             color: #71767b;
             font-size: 12px;
+        }
+
+        .og-card {
+            margin-top: 10px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(255,255,255,0.04);
+            width: min(560px, calc(100vw - 180px));
+        }
+
+        .og-card-media {
+            height: 140px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            display: flex;
+            align-items: end;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+
+        .og-card-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .og-card-media-fallback {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            align-content: center;
+            justify-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.55);
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            background:
+                repeating-linear-gradient(
+                    135deg,
+                    rgba(255,255,255,0.05),
+                    rgba(255,255,255,0.05) 12px,
+                    rgba(255,255,255,0.02) 12px,
+                    rgba(255,255,255,0.02) 24px
+                );
+        }
+
+        .og-card-media-fallback-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(255, 176, 0, 0.18);
+            border: 1px solid rgba(255, 176, 0, 0.35);
+            color: #ffd37a;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: none;
+        }
+
+        .og-card-media-fallback-domain {
+            opacity: 0.9;
+        }
+
+        .og-card-body {
+            padding: 10px 12px;
+            display: grid;
+            gap: 5px;
+        }
+
+        .og-card-domain {
+            font-size: 11px;
+            color: #71767b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .og-card-title {
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.3;
+            color: #e7e9ea;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .og-card-desc {
+            font-size: 12px;
+            line-height: 1.35;
+            color: #9aa0a6;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .og-card-url {
+            font-size: 11px;
+            color: #71767b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .x-media {
@@ -511,6 +678,92 @@
             word-break: break-word;
         }
 
+        .slack-shell {
+            width: min(720px, calc(100vw - 180px));
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: #1b1d21;
+            color: #f8f8f8;
+            padding: 16px 18px;
+            box-shadow: 0 14px 32px rgba(0,0,0,0.22);
+        }
+
+        .slack-message {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: start;
+        }
+
+        .slack-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            color: #fff;
+            flex: 0 0 34px;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+        }
+
+        .slack-body {
+            min-width: 0;
+            display: grid;
+            gap: 4px;
+            padding-top: 1px;
+        }
+
+        .slack-author-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            flex-wrap: wrap;
+            line-height: 1.1;
+        }
+
+        .slack-author {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .slack-app-badge {
+            display: inline-flex;
+            align-items: center;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.72);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .slack-timestamp {
+            font-size: 12px;
+            font-weight: 500;
+            color: #a8adb4;
+        }
+
+        .slack-text {
+            font-size: 15px;
+            line-height: 1.4;
+            color: #d1d2d3;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .slack-text strong {
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .slack-text em {
+            font-style: italic;
+        }
+
         @media (max-width: 1080px) {
             .page { grid-template-columns: 1fr; }
         }
@@ -519,7 +772,7 @@
 <body>
     <div class="page">
         <div class="panel">
-            <h1>Custom Event Designer</h1>
+            <h1>Social Post Manager</h1>
 
             <div class="format-toolbar">
                 <button id="insertBoldBtn" class="tool-btn" type="button">Bold</button>
@@ -547,6 +800,7 @@
             <div>
                 <div style="margin-bottom:6px;font-size:13px;">Send to</div>
                 <div class="checks">
+                    <label class="check"><input id="sendWebpage" type="checkbox" checked /><span>Webpage</span></label>
                     <label class="check"><input id="sendSlack" type="checkbox" checked /><span>Slack</span></label>
                     <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
                     <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
@@ -561,6 +815,7 @@
                     <button id="copyCommandBtn" type="button">Copy Command</button>
                     <div id="copyState" style="font-size:12px;color:var(--muted);"></div>
                 </div>
+                <div id="commandValidationHint" class="validation-hint" hidden>Title is required before the command can be generated or copied.</div>
             </div>
         </div>
 
@@ -569,11 +824,12 @@
                 These previews are not pixel-perfect. They are only approximate guidance for webpage and social output.
             </div>
 
-            <div class="panel preview-block">
+            <div id="webpagePreviewBlock" class="panel preview-block">
                 <div class="preview-title">
                     <h2>Webpage Preview</h2>
+                    <button type="button" class="preview-copy-btn" data-copy-source="webpage">Copy Text</button>
                 </div>
-                <div class="webpage-surface">
+                <div id="webpagePreviewSurface" class="webpage-surface">
                     <div class="webpage-event">
                         <div class="webpage-event-row">
                             <div id="eventTitlePreview" class="webpage-event-title formatted"></div>
@@ -596,11 +852,15 @@
         const SEND_TO_STORAGE_KEY = "customEventDesigner.sendTo";
         const titleInput = document.getElementById("titleInput");
         const contentInput = document.getElementById("contentInput");
+        const sendWebpage = document.getElementById("sendWebpage");
         const sendSlack = document.getElementById("sendSlack");
         const sendX = document.getElementById("sendX");
         const sendThreads = document.getElementById("sendThreads");
         const sendFacebook = document.getElementById("sendFacebook");
+        const webpagePreviewBlock = document.getElementById("webpagePreviewBlock");
+        const webpagePreviewSurface = document.getElementById("webpagePreviewSurface");
         const commandOutput = document.getElementById("commandOutput");
+        const commandValidationHint = document.getElementById("commandValidationHint");
         const copyCommandBtn = document.getElementById("copyCommandBtn");
         const copyState = document.getElementById("copyState");
         const insertBoldBtn = document.getElementById("insertBoldBtn");
@@ -614,17 +874,52 @@
         let athleteMentionItems = [];
         let activeMentionContext = null;
         let activeMentionIndex = 0;
+        let previewCopyPayloads = new Map();
+        let ogPreviewCache = new Map();
+        let ogPreviewPending = new Set();
 
         const PLATFORM_CONFIGS = [
+            { key: "slack", label: "Slack", checkbox: sendSlack, fixedMode: "slack" },
             { key: "x", label: "X", checkbox: sendX, limit: LIMITS.x },
             { key: "threads", label: "Threads", checkbox: sendThreads, limit: LIMITS.threads },
             { key: "facebook", label: "Facebook", checkbox: sendFacebook, limit: 63206 }
         ];
         const PLATFORM_PREVIEW_META = {
+            slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
             x: { name: "Longevity World Cup", handle: "@longevitywc", avatar: "LW", label: "X" },
             threads: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Threads" },
             facebook: { name: "Longevity World Cup", handle: "Facebook Page", avatar: "LW", label: "Facebook" }
         };
+
+        function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
+            const logos = {
+                x: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#ffffff" d="M18.9 2H22l-6.77 7.74L23.2 22h-6.26l-4.9-7.42L5.55 22H2.44l7.24-8.27L1.8 2h6.42l4.43 6.74L18.9 2Z"/>
+                    </svg>`,
+                threads: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#ffffff" d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.853 13.853 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32L7.734 7.847c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388.108.046.216.094.321.142 1.49.7 2.58 1.761 3.154 3.07.797 1.82.871 4.79-1.548 7.158-1.85 1.81-4.094 2.628-7.277 2.65Zm1.003-11.69c-.242 0-.487.007-.739.021-1.836.103-2.98.946-2.916 2.143.067 1.256 1.452 1.839 2.784 1.767 1.224-.065 2.818-.543 3.086-3.71a10.5 10.5 0 0 0-2.215-.221z"/>
+                    </svg>`,
+                facebook: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#ffffff" d="M13.65 21v-8.2h2.76l.41-3.2h-3.17V7.56c0-.92.26-1.55 1.58-1.55H17V3.15c-.3-.04-1.3-.13-2.47-.13-2.45 0-4.13 1.49-4.13 4.24V9.6H7.63v3.2h2.77V21h3.25Z"/>
+                    </svg>`,
+                slack: `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#36C5F0" d="M9.77 2a2.24 2.24 0 1 0 0 4.48h2.24V4.24A2.24 2.24 0 0 0 9.77 2Zm0 5.99H4.24a2.24 2.24 0 0 0 0 4.48h5.53a2.24 2.24 0 0 0 0-4.48Z"/>
+                        <path fill="#2EB67D" d="M22 9.77a2.24 2.24 0 1 0-4.48 0v2.24h2.24A2.24 2.24 0 0 0 22 9.77Zm-5.99 0V4.24a2.24 2.24 0 0 0-4.48 0v5.53a2.24 2.24 0 0 0 4.48 0Z"/>
+                        <path fill="#ECB22E" d="M14.23 22a2.24 2.24 0 1 0 0-4.48h-2.24v2.24A2.24 2.24 0 0 0 14.23 22Zm0-5.99h5.53a2.24 2.24 0 0 0 0-4.48h-5.53a2.24 2.24 0 1 0 0 4.48Z"/>
+                        <path fill="#E01E5A" d="M2 14.23a2.24 2.24 0 1 0 4.48 0v-2.24H4.24A2.24 2.24 0 0 0 2 14.23Zm5.99 0v5.53a2.24 2.24 0 0 0 4.48 0v-5.53a2.24 2.24 0 1 0-4.48 0Z"/>
+                    </svg>`
+            };
+            return `
+                <div class="${escapeHtml(sizeClass)}">
+                    <div class="platform-avatar platform-avatar-${escapeHtml(platformKey)}">
+                        ${logos[platformKey] || ""}
+                    </div>
+                </div>`;
+        }
 
         function escapeHtml(value) {
             return (value ?? "")
@@ -639,6 +934,7 @@
         }
 
         function containsHyperlink(value) { return window.CustomEventMarkup.containsHyperlink(value); }
+        function getSingleHyperlink(value) { return window.CustomEventMarkup.getSingleHyperlink(value); }
 
         function normalizeNewlines(value) { return window.CustomEventMarkup.normalizeNewlines(value); }
         function renderCustomMarkup(text) {
@@ -652,6 +948,9 @@
         }
         function buildAthleteProfileUrl(slug) {
             return `/athlete/${encodeURIComponent(normalizeAthleteSlugForUrl(slug))}`;
+        }
+        function buildAthleteProfileAbsoluteUrl(slug) {
+            return `https://longevityworldcup.com${buildAthleteProfileUrl(slug)}`;
         }
         function hasKnownMentionSlug(slug) {
             const key = String(slug || "").trim().toLowerCase();
@@ -727,6 +1026,257 @@
             }
 
             return matches.sort((a, b) => b.handle.length - a.handle.length);
+        }
+
+        function findPreviewLinks(text) {
+            const value = String(text || "");
+            const matches = [];
+            const seen = new Set();
+
+            for (const match of value.matchAll(/https?:\/\/[^\s<>|]+/gi)) {
+                const raw = String(match[0] || "");
+                const start = match.index ?? -1;
+                if (!raw || start < 0) {
+                    continue;
+                }
+
+                const key = `${start}:${raw}`;
+                if (seen.has(key)) {
+                    continue;
+                }
+
+                seen.add(key);
+                matches.push({
+                    raw,
+                    normalized: raw,
+                    start,
+                    end: start + raw.length
+                });
+            }
+
+            for (const match of value.matchAll(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim)) {
+                const raw = String(match[2] || "");
+                const offset = String(match[1] || "").length;
+                const start = (match.index ?? -1) + offset;
+                if (!raw || start < 0) {
+                    continue;
+                }
+
+                const overlapsExplicit = matches.some(item => start >= item.start && start < item.end);
+                if (overlapsExplicit) {
+                    continue;
+                }
+
+                const key = `${start}:${raw}`;
+                if (seen.has(key)) {
+                    continue;
+                }
+
+                seen.add(key);
+                matches.push({
+                    raw,
+                    normalized: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
+                    start,
+                    end: start + raw.length
+                });
+            }
+
+            return matches.sort((a, b) => a.start - b.start);
+        }
+
+        function getOgPreviewUrl(platformKey, plan) {
+            if (platformKey === "facebook" || platformKey === "webpage") {
+                return "";
+            }
+
+            if (!plan || (plan.mode !== "text" && plan.mode !== "slack")) {
+                return "";
+            }
+
+            const text = platformKey === "slack"
+                ? buildSlackRawMessage(plan.titleRaw || "", plan.contentRaw || "")
+                : String(plan.postText || "");
+            const links = findPreviewLinks(text);
+            if (!links.length) {
+                return "";
+            }
+
+            if (platformKey === "slack") {
+                const httpsLinks = links.filter(link => /^https:\/\//i.test(String(link.raw || "")));
+                return httpsLinks.length ? httpsLinks[httpsLinks.length - 1].normalized : "";
+            }
+
+            return links[links.length - 1].normalized;
+        }
+
+        function getXPreviewVisibleText(postText) {
+            const text = String(postText || "");
+            const links = findPreviewLinks(text);
+            if (!links.length) {
+                return text;
+            }
+
+            const last = links[links.length - 1];
+            const tail = text.slice(last.end);
+            if (tail.trim().length > 0) {
+                return text;
+            }
+            const start = last.start;
+            const end = last.end;
+            const before = text.slice(0, start).replace(/\s+$/g, "");
+            return before;
+        }
+
+        function getUrlDomain(url) {
+            try {
+                return new URL(url).hostname.replace(/^www\./i, "");
+            } catch {
+                return url;
+            }
+        }
+
+        function buildOgPlaceholder(url) {
+            return {
+                url,
+                domain: getUrlDomain(url),
+                title: "Link preview unavailable",
+                description: "Metadata could not be loaded. This is a placeholder preview.",
+                image: ""
+            };
+        }
+
+        async function fetchOgPreview(url) {
+            const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}&audio=false&video=false&screenshot=false`;
+            const response = await fetch(endpoint, { headers: { accept: "application/json" } });
+            if (!response.ok) {
+                throw new Error(`OG fetch failed: ${response.status}`);
+            }
+
+            const json = await response.json();
+            const data = json?.data || {};
+            return {
+                url,
+                domain: data.publisher || data.author || getUrlDomain(url),
+                title: data.title || getUrlDomain(url),
+                description: data.description || "",
+                image: data.image?.url || data.logo?.url || ""
+            };
+        }
+
+        function ensureOgPreview(url) {
+            if (!url || ogPreviewCache.has(url) || ogPreviewPending.has(url)) {
+                return;
+            }
+
+            ogPreviewPending.add(url);
+            fetchOgPreview(url)
+                .then(data => {
+                    ogPreviewCache.set(url, data && data.title ? data : buildOgPlaceholder(url));
+                })
+                .catch(() => {
+                    ogPreviewCache.set(url, buildOgPlaceholder(url));
+                })
+                .finally(() => {
+                    ogPreviewPending.delete(url);
+                    update();
+                });
+        }
+
+        function renderOgCard(url) {
+            if (!url) {
+                return "";
+            }
+
+            const data = ogPreviewCache.get(url) || buildOgPlaceholder(url);
+            const mediaHtml = data.image
+                ? `<img alt="link preview image" src="${escapeHtml(data.image)}" loading="lazy" referrerpolicy="no-referrer">`
+                : `
+                    <div class="og-card-media-fallback">
+                        <div class="og-card-media-fallback-badge">Placeholder preview</div>
+                        <div class="og-card-media-fallback-domain">${escapeHtml(data.domain || getUrlDomain(url))}</div>
+                    </div>`;
+
+            return `
+                <div class="og-card">
+                    <div class="og-card-media">${mediaHtml}</div>
+                    <div class="og-card-body">
+                        <div class="og-card-domain">${escapeHtml(data.domain || getUrlDomain(url))}</div>
+                        <div class="og-card-title">${escapeHtml(data.title || getUrlDomain(url))}</div>
+                        ${data.description ? `<div class="og-card-desc">${escapeHtml(data.description)}</div>` : ""}
+                        <div class="og-card-url">${escapeHtml(url)}</div>
+                    </div>
+                </div>`;
+        }
+
+        function applySlackMarkupToHtml(value) {
+            let html = escapeHtml(String(value || ""));
+
+            html = html.replace(/\[strong\]\(([^()]*)\)/gi, (_match, inner) => `<strong><em>${inner}</em></strong>`);
+            html = html.replace(/\[bold\]\(([^()]*)\)/gi, (_match, inner) => `<strong>${inner}</strong>`);
+            html = html.replace(/\[mention\]\(([^()]*)\)/gi, (_match, slug) => {
+                const normalized = String(slug || "").trim();
+                if (!normalized) {
+                    return "";
+                }
+
+                const href = escapeHtml(buildAthleteProfileUrl(normalized));
+                const label = escapeHtml(resolveMentionDisplayName(normalized));
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+            });
+            html = html.replace(/\[([^\[\]]+)\]\((https?:[^)\s]+)\)/gi, (_match, label, href) => {
+                return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+            });
+            html = html.replace(/(?<!["'=])(https?:\/\/[^\s<>|]+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+            html = html.replace(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim, '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>');
+
+            return html;
+        }
+
+        function applySlackMarkupToText(value) {
+            let text = String(value || "");
+
+            text = text.replace(/\[strong\]\(([^()]*)\)/gi, (_match, inner) => `*_${inner}_*`);
+            text = text.replace(/\[bold\]\(([^()]*)\)/gi, (_match, inner) => `*${inner}*`);
+            text = text.replace(/\[mention\]\(([^()]*)\)/gi, (_match, slug) => {
+                const normalized = String(slug || "").trim();
+                if (!normalized) {
+                    return "";
+                }
+
+                return `<${buildAthleteProfileAbsoluteUrl(normalized)}|${resolveMentionDisplayName(normalized)}>`;
+            });
+            text = text.replace(/\[([^\[\]]+)\]\((https?:[^)\s]+)\)/gi, (_match, label, href) => `<${href}|${label}>`);
+
+            return text;
+        }
+
+        function buildSlackRawMessage(titleRaw, contentRaw) {
+            const titleText = applySlackMarkupToText(titleRaw);
+            if (!contentRaw || !contentRaw.trim()) {
+                return titleText;
+            }
+
+            return `${titleText}\n\n${applySlackMarkupToText(contentRaw)}`;
+        }
+
+        function registerPreviewCopyText(value) {
+            const key = `preview-${previewCopyPayloads.size + 1}`;
+            previewCopyPayloads.set(key, String(value || ""));
+            return key;
+        }
+
+        function renderSlackPreviewMessage(titleRaw, contentRaw) {
+            const titleHtml = applySlackMarkupToHtml(titleRaw);
+            if (!contentRaw || !contentRaw.trim()) {
+                return titleHtml;
+            }
+
+            const contentHtml = applySlackMarkupToHtml(contentRaw)
+                .replace(/\r\n/g, "\n")
+                .replace(/\r/g, "\n")
+                .replace(/\n/g, "<br>");
+
+            return `${titleHtml}<br><br>${contentHtml}`;
         }
 
         function formatPlainPostTextToHtml(value, clickableMentions) {
@@ -917,7 +1467,11 @@
             }
 
             if (value.startsWith("@")) {
-                return value;
+                if (platformKey === "x" || platformKey === "threads") {
+                    return value;
+                }
+
+                return "";
             }
 
             try {
@@ -998,6 +1552,10 @@
             return parts.join("\n\n").trim();
         }
 
+        function buildWebpageRawMessage(titleRaw, contentRaw) {
+            return contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
+        }
+
         function buildImageCaption(titleText, eventUrl, maxLength) {
             const normalizedTitle = collapseWhitespace(titleText);
             if (!eventUrl) return normalizedTitle;
@@ -1010,30 +1568,51 @@
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
 
-        function buildPlan(titleRaw, contentRaw, maxLength, platformKey) {
+        function buildPlan(titleRaw, contentRaw, maxLength, platformKey, includeEventUrl) {
             const rawText = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
             const mentionResolver = slug => resolveMentionSlug(slug, platformKey);
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, mentionResolver));
             const bodyText = plainTextWithLabels(contentRaw, mentionResolver);
-            const eventUrl = buildPreviewEventUrl(titleRaw, contentRaw);
+            const singleHyperlink = getSingleHyperlink(rawText);
+            const eventUrl = singleHyperlink || (includeEventUrl ? buildPreviewEventUrl(titleRaw, contentRaw) : "");
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
 
-            if (!hasHyperlinks && textWithoutUrl && textWithoutUrl.length <= maxLength) {
+            if ((!hasHyperlinks || !eventUrl) && textWithoutUrl && textWithoutUrl.length <= maxLength) {
                 return { mode: "text", postText: textWithoutUrl };
             }
 
-            if (hasHyperlinks) {
-                const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
-                if (textWithUrl && textWithUrl.length <= maxLength) {
-                    return { mode: "text", postText: textWithUrl };
-                }
+            const textWithUrl = buildTextPost(titleText, bodyText, eventUrl);
+            if (textWithUrl && textWithUrl.length <= maxLength) {
+                return { mode: "text", postText: textWithUrl };
             }
 
             return {
                 mode: "image",
                 postText: buildImageCaption(titleText, hasHyperlinks ? eventUrl : "", maxLength)
             };
+        }
+
+        function buildPlatformRawText(platformKey, plan, titleRaw, contentRaw, includeEventUrl) {
+            if (platformKey === "webpage") {
+                return buildWebpageRawMessage(titleRaw, contentRaw);
+            }
+
+            if (platformKey === "slack") {
+                return buildSlackRawMessage(titleRaw, contentRaw);
+            }
+
+            if (plan && typeof plan.postText === "string") {
+                return plan.postText;
+            }
+
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook") {
+                const fallbackLimit = platformKey === "x" ? LIMITS.x : (platformKey === "threads" ? LIMITS.threads : 63206);
+                const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
+                return fallbackPlan.postText || "";
+            }
+
+            return "";
         }
 
         function base64UrlEncodeUtf8(value) {
@@ -1053,6 +1632,7 @@
                 if (!raw) return;
 
                 const data = JSON.parse(raw);
+                if (typeof data.sendWebpage === "boolean") sendWebpage.checked = data.sendWebpage;
                 if (typeof data.sendSlack === "boolean") sendSlack.checked = data.sendSlack;
                 if (typeof data.sendX === "boolean") sendX.checked = data.sendX;
                 if (typeof data.sendThreads === "boolean") sendThreads.checked = data.sendThreads;
@@ -1064,6 +1644,7 @@
         function saveSendToSettings() {
             try {
                 localStorage.setItem(SEND_TO_STORAGE_KEY, JSON.stringify({
+                    sendWebpage: sendWebpage.checked,
                     sendSlack: sendSlack.checked,
                     sendX: sendX.checked,
                     sendThreads: sendThreads.checked,
@@ -1125,13 +1706,18 @@
             insertSnippet("[mention](", "athlete_slug", ")", (prefix) => prefix.length, (prefix, innerText) => prefix.length + innerText.length);
         }
 
-        function getSelectedPlatformPlans(titleRaw, contentRaw) {
+        function getSelectedPlatformPlans(titleRaw, contentRaw, includeEventUrl) {
             return PLATFORM_CONFIGS
                 .filter(platform => platform.checkbox.checked)
                 .map(platform => {
                     const plan = platform.fixedMode
-                        ? { mode: platform.fixedMode, postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, platform.key))), plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, platform.key)), null) }
-                        : buildPlan(titleRaw, contentRaw, platform.limit, platform.key);
+                        ? {
+                            mode: platform.fixedMode,
+                            postText: buildTextPost(collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, platform.key))), plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, platform.key)), null),
+                            titleRaw: titleRaw,
+                            contentRaw: contentRaw
+                        }
+                        : buildPlan(titleRaw, contentRaw, platform.limit, platform.key, includeEventUrl);
                     return { key: platform.key, label: platform.label, limit: platform.limit, ...plan };
                 });
         }
@@ -1167,23 +1753,30 @@
             return settings;
         }
 
-        function renderTextPreviewCard(platformKey, postText, clickableMentions) {
+        function renderTextPreviewCard(platformKey, postText, clickableMentions, rawCopyText, ogPreviewUrl) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
+            const copyKey = registerPreviewCopyText(rawCopyText);
+            const ogCardHtml = renderOgCard(ogPreviewUrl);
+            const visibleText = platformKey === "x"
+                ? getXPreviewVisibleText(postText)
+                : postText;
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
+                        <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
                     <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
                         <div class="x-post">
-                            <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                            ${renderPlatformAvatar(platformKey)}
                             <div class="x-main">
                                 <div class="x-head">
                                     <span class="x-name">${escapeHtml(meta.name)}</span>
                                     <span class="x-handle">${escapeHtml(meta.handle)}</span>
                                     <span class="x-meta">now</span>
                                 </div>
-                                <div class="x-text">${formatPlainPostTextToHtml(postText, clickableMentions)}</div>
+                                <div class="x-text">${formatPlainPostTextToHtml(visibleText, clickableMentions)}</div>
+                                ${ogCardHtml}
                                 <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                             </div>
                         </div>
@@ -1191,21 +1784,52 @@
                 </div>`;
         }
 
-        function renderImagePreviewCard(platformKey, postText, contentRaw, clickableMentions) {
+        function renderSlackPreviewCard(titleRaw, contentRaw, ogPreviewUrl) {
+            const meta = PLATFORM_PREVIEW_META.slack;
+            const copyKey = registerPreviewCopyText(buildSlackRawMessage(titleRaw, contentRaw));
+            const ogCardHtml = renderOgCard(ogPreviewUrl);
+            return `
+                <div class="panel preview-block">
+                    <div class="preview-title" style="margin-bottom:8px;">
+                        <h2>${escapeHtml(meta.label)} Preview</h2>
+                        <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
+                    </div>
+                    <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
+                        <div class="slack-shell">
+                            <div class="slack-message">
+                                ${renderPlatformAvatar("slack", "slack-avatar")}
+                                <div class="slack-body">
+                                    <div class="slack-author-row">
+                                        <span class="slack-author">${escapeHtml(meta.name)}</span>
+                                        <span class="slack-app-badge">APP</span>
+                                        <span class="slack-timestamp">now</span>
+                                    </div>
+                                    <div class="slack-text">${renderSlackPreviewMessage(titleRaw, contentRaw)}</div>
+                                    ${ogCardHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function renderImagePreviewCard(platformKey, postText, contentRaw, clickableMentions, rawCopyText) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const layout = getImagePreviewLayout(contentRaw, platformKey);
             const frameWidth = 560;
             const scale = frameWidth / 1200;
             const frameHeight = 675 * scale;
+            const copyKey = registerPreviewCopyText(rawCopyText);
 
             return `
                 <div class="panel preview-block">
                     <div class="preview-title" style="margin-bottom:8px;">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
+                        <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
                     <div class="preview-surface fit-content" style="border:0;background:transparent;padding:0;">
                         <div class="x-post">
-                            <div class="x-avatar">${escapeHtml(meta.avatar)}</div>
+                            ${renderPlatformAvatar(platformKey)}
                             <div class="x-main">
                                 <div class="x-head">
                                     <span class="x-name">${escapeHtml(meta.name)}</span>
@@ -1229,12 +1853,16 @@
                 </div>`;
         }
 
-        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions) {
-            if (plan.mode === "image") {
-                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions);
+        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions, rawCopyText, ogPreviewUrl) {
+            if (plan.mode === "slack") {
+                return renderSlackPreviewCard(plan.titleRaw || "", plan.contentRaw || "", ogPreviewUrl);
             }
 
-            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions);
+            if (plan.mode === "image") {
+                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions, rawCopyText);
+            }
+
+            return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions, rawCopyText, ogPreviewUrl);
         }
 
         function update() {
@@ -1243,23 +1871,41 @@
             const titleRaw = titleInput.value.trim();
             const contentRaw = contentInput.value.trim();
             const combinedRaw = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
+            const hasTitle = !!titleRaw;
             const payload = {
                 title: titleRaw,
                 content: contentRaw,
+                sendToWebpage: sendWebpage.checked,
                 sendToSlack: sendSlack.checked,
                 sendToX: sendX.checked,
                 sendToThreads: sendThreads.checked,
                 sendToFacebook: sendFacebook.checked
             };
+            previewCopyPayloads = new Map();
+            previewCopyPayloads.set("webpage", buildPlatformRawText("webpage", null, titleRaw, contentRaw, sendWebpage.checked));
+
+            webpagePreviewBlock.style.display = sendWebpage.checked ? "" : "none";
+            webpagePreviewSurface.hidden = !sendWebpage.checked;
+            commandValidationHint.hidden = hasTitle;
+            copyCommandBtn.disabled = !hasTitle;
 
             document.getElementById("eventTitlePreview").innerHTML = renderWebpageMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
             document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
 
-            const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw);
+            const selectedPlans = getSelectedPlatformPlans(titleRaw, contentRaw, sendWebpage.checked);
+            selectedPlans.forEach(plan => {
+                const ogPreviewUrl = getOgPreviewUrl(plan.key, plan);
+                if (ogPreviewUrl) {
+                    ensureOgPreview(ogPreviewUrl);
+                }
+            });
 
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, "x")));
             const bodyText = plainTextWithLabels(contentRaw, slug => resolveMentionSlug(slug, "x"));
-            const eventUrl = containsHyperlink(combinedRaw) ? buildPreviewEventUrl(titleRaw, contentRaw) : null;
+            const singleHyperlink = getSingleHyperlink(combinedRaw);
+            const eventUrl = singleHyperlink || (sendWebpage.checked && containsHyperlink(combinedRaw)
+                ? buildPreviewEventUrl(titleRaw, contentRaw)
+                : null);
 
             socialPreviewList.innerHTML = selectedPlans.map(plan =>
                 renderPlatformPreviewCard(
@@ -1267,13 +1913,19 @@
                     contentRaw,
                     buildTextPost(titleText, bodyText, eventUrl),
                     buildImageCaption(titleText, eventUrl ?? "", plan.limit ?? LIMITS.x),
-                    collectClickableMentions(combinedRaw, plan.key)
+                    collectClickableMentions(combinedRaw, plan.key),
+                    buildPlatformRawText(plan.key, plan, titleRaw, contentRaw, sendWebpage.checked),
+                    getOgPreviewUrl(plan.key, plan)
                 )
             ).join("");
 
-            const payloadJsonText = JSON.stringify(payload);
-            const payloadToken = base64UrlEncodeUtf8(payloadJsonText);
-            commandOutput.value = buildServerCommand(payloadToken);
+            if (hasTitle) {
+                const payloadJsonText = JSON.stringify(payload);
+                const payloadToken = base64UrlEncodeUtf8(payloadJsonText);
+                commandOutput.value = buildServerCommand(payloadToken);
+            } else {
+                commandOutput.value = "";
+            }
         }
 
         async function copyText(value, message) {
@@ -1282,6 +1934,18 @@
             setTimeout(() => {
                 if (copyState.textContent === message) copyState.textContent = "";
             }, 2000);
+        }
+
+        async function copyPreviewText(button, value) {
+            await navigator.clipboard.writeText(value);
+            const original = button.dataset.copyLabel || button.textContent || "Copy Text";
+            button.dataset.copyLabel = original;
+            button.textContent = "Copied";
+            button.classList.add("is-copied");
+            setTimeout(() => {
+                button.textContent = original;
+                button.classList.remove("is-copied");
+            }, 1400);
         }
 
         [titleInput, contentInput].forEach(el => {
@@ -1342,7 +2006,21 @@
             closeMentionSuggestions();
         });
 
-        [titleInput, contentInput, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
+        document.addEventListener("click", event => {
+            const button = event.target instanceof Element ? event.target.closest("[data-copy-key], [data-copy-source]") : null;
+            if (!button) {
+                return;
+            }
+
+            const copyKey = button.getAttribute("data-copy-key") || button.getAttribute("data-copy-source");
+            if (!copyKey || !previewCopyPayloads.has(copyKey)) {
+                return;
+            }
+
+            copyPreviewText(button, previewCopyPayloads.get(copyKey) || "");
+        });
+
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);
@@ -1356,7 +2034,12 @@
         insertStrongBtn.addEventListener("click", insertStrong);
         insertLinkBtn.addEventListener("click", insertLink);
         insertMentionBtn.addEventListener("click", insertMention);
-        copyCommandBtn.addEventListener("click", async () => copyText(commandOutput.value, "Command copied."));
+        copyCommandBtn.addEventListener("click", async () => {
+            if (!commandOutput.value) {
+                return;
+            }
+            await copyText(commandOutput.value, "Command copied.");
+        });
         window.addEventListener("resize", update);
 
         fetch("/api/data/athletes", { headers: { accept: "application/json" } })
