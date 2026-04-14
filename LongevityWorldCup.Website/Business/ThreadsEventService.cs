@@ -88,24 +88,24 @@ public class ThreadsEventService
         return await TrySendEventAsync(type, rawText, eventId: null);
     }
 
-    public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId)
+    public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId, bool visibleOnWebsite = true)
     {
         if (type == EventType.CustomEvent)
-            return await TrySendCustomEventAsync(rawText, eventId);
+            return await TrySendCustomEventAsync(rawText, eventId, visibleOnWebsite);
 
         var msg = BuildMessage(type, rawText);
         if (string.IsNullOrWhiteSpace(msg)) return false;
         return await TrySendAsync(msg);
     }
 
-    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null)
+    public string? TryBuildMessage(EventType type, string rawText, string? eventId = null, bool visibleOnWebsite = true)
     {
         if (type == EventType.CustomEvent)
         {
             if (string.IsNullOrWhiteSpace(eventId))
                 return null;
 
-            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 500, ResolveMention).PostText;
+            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 500, ResolveMention, includeEventUrl: visibleOnWebsite).PostText;
         }
 
         var message = ThreadsMessageBuilder.ForEventText(
@@ -161,7 +161,7 @@ public class ThreadsEventService
             getBortzDiffForSlug: GetBortzDiff);
     }
 
-    private async Task<bool> TrySendCustomEventAsync(string rawText, string? eventId)
+    private async Task<bool> TrySendCustomEventAsync(string rawText, string? eventId, bool visibleOnWebsite)
     {
         if (string.IsNullOrWhiteSpace(eventId))
         {
@@ -169,7 +169,7 @@ public class ThreadsEventService
             return false;
         }
 
-        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 500, ResolveMention);
+        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 500, ResolveMention, includeEventUrl: visibleOnWebsite);
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 

@@ -5,7 +5,7 @@ using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
-public record EventItem(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)
+public record EventItem(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite)
 {
     public JsonObject ToJson() => new()
     {
@@ -13,7 +13,8 @@ public record EventItem(string Id, EventType Type, string Text, DateTime Occurre
         ["Type"] = (int)Type,
         ["Text"] = Text,
         ["OccurredAt"] = OccurredAtUtc.ToString("o"),
-        ["Relevance"] = Relevance
+        ["Relevance"] = Relevance,
+        ["VisibleOnWebsite"] = VisibleOnWebsite
     };
 }
 
@@ -72,6 +73,7 @@ public sealed class EventDataService : IDisposable
                         Text           TEXT NOT NULL,
                         OccurredAt     TEXT NOT NULL,
                         Relevance      REAL  NOT NULL DEFAULT 5,
+                        VisibleOnWebsite INTEGER NOT NULL DEFAULT 1,
                         SlackProcessed INTEGER NOT NULL DEFAULT 0,
                         XProcessed     INTEGER NOT NULL DEFAULT 0,
                         ThreadsProcessed INTEGER NOT NULL DEFAULT 0,
@@ -145,6 +147,23 @@ public sealed class EventDataService : IDisposable
                 if (addedFacebookProcessed)
                 {
                     cmd.CommandText = "UPDATE Events SET FacebookProcessed = 1;";
+                    cmd.ExecuteNonQuery();
+                }
+
+                var addedVisibleOnWebsite = false;
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN VisibleOnWebsite INTEGER NOT NULL DEFAULT 1;";
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    addedVisibleOnWebsite = true;
+                }
+                catch
+                {
+                }
+
+                if (addedVisibleOnWebsite)
+                {
+                    cmd.CommandText = "UPDATE Events SET VisibleOnWebsite = 1;";
                     cmd.ExecuteNonQuery();
                 }
 
@@ -234,17 +253,17 @@ public sealed class EventDataService : IDisposable
             ProcessPendingImmediateCustomEventsForPlatform(
                 processedColumn: "XProcessed",
                 isConfigured: _xEvents.IsConfigured,
-                trySend: (id, rawText) => _xEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id).GetAwaiter().GetResult());
+                trySend: (id, rawText, visibleOnWebsite) => _xEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id, visibleOnWebsite).GetAwaiter().GetResult());
 
             ProcessPendingImmediateCustomEventsForPlatform(
                 processedColumn: "ThreadsProcessed",
                 isConfigured: _threadsEvents.IsConfigured,
-                trySend: (id, rawText) => _threadsEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id).GetAwaiter().GetResult());
+                trySend: (id, rawText, visibleOnWebsite) => _threadsEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id, visibleOnWebsite).GetAwaiter().GetResult());
 
             ProcessPendingImmediateCustomEventsForPlatform(
                 processedColumn: "FacebookProcessed",
                 isConfigured: _facebookEvents.IsConfigured,
-                trySend: (id, rawText) => _facebookEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id).GetAwaiter().GetResult());
+                trySend: (id, rawText, visibleOnWebsite) => _facebookEvents.TrySendEventAsync(EventType.CustomEvent, rawText, id, visibleOnWebsite).GetAwaiter().GetResult());
         }
         finally
         {
@@ -252,7 +271,7 @@ public sealed class EventDataService : IDisposable
         }
     }
 
-    private void ProcessPendingImmediateCustomEventsForPlatform(string processedColumn, bool isConfigured, Func<string, string, bool> trySend)
+    private void ProcessPendingImmediateCustomEventsForPlatform(string processedColumn, bool isConfigured, Func<string, string, bool, bool> trySend)
     {
         if (!isConfigured)
         {
@@ -261,12 +280,12 @@ public sealed class EventDataService : IDisposable
         }
 
         var claimed = ClaimPendingCustomEvents(processedColumn);
-        foreach (var (id, rawText) in claimed)
+        foreach (var (id, rawText, visibleOnWebsite) in claimed)
         {
             var sent = false;
             try
             {
-                sent = trySend(id, rawText);
+                sent = trySend(id, rawText, visibleOnWebsite);
             }
             catch (Exception ex)
             {
@@ -278,7 +297,7 @@ public sealed class EventDataService : IDisposable
         }
     }
 
-    private List<(string Id, string Text)> ClaimPendingCustomEvents(string processedColumn)
+    private List<(string Id, string Text, bool VisibleOnWebsite)> ClaimPendingCustomEvents(string processedColumn)
     {
         return _db.Run(sqlite =>
         {
@@ -286,14 +305,14 @@ public sealed class EventDataService : IDisposable
             using var selectCmd = sqlite.CreateCommand();
             selectCmd.Transaction = tx;
             selectCmd.CommandText =
-                $"SELECT Id, Text FROM Events WHERE Type = @type AND {processedColumn} = 0 ORDER BY OccurredAt ASC;";
+                $"SELECT Id, Text, VisibleOnWebsite FROM Events WHERE Type = @type AND {processedColumn} = 0 ORDER BY OccurredAt ASC;";
             selectCmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
 
-            var claimed = new List<(string Id, string Text)>();
+            var claimed = new List<(string Id, string Text, bool VisibleOnWebsite)>();
             using var reader = selectCmd.ExecuteReader();
-            var pending = new List<(string Id, string Text)>();
+            var pending = new List<(string Id, string Text, bool VisibleOnWebsite)>();
             while (reader.Read())
-                pending.Add((reader.GetString(0), reader.GetString(1)));
+                pending.Add((reader.GetString(0), reader.GetString(1), reader.GetInt32(2) != 0));
 
             if (pending.Count > 0)
             {
@@ -302,11 +321,11 @@ public sealed class EventDataService : IDisposable
                 claimCmd.CommandText = $"UPDATE Events SET {processedColumn} = 2 WHERE Id = @id AND {processedColumn} = 0;";
                 var pId = claimCmd.Parameters.Add("@id", SqliteType.Text);
 
-                foreach (var (id, text) in pending)
+                foreach (var (id, text, visibleOnWebsite) in pending)
                 {
                     pId.Value = id;
                     if (claimCmd.ExecuteNonQuery() == 1)
-                        claimed.Add((id, text));
+                        claimed.Add((id, text, visibleOnWebsite));
                 }
             }
 
@@ -340,7 +359,7 @@ public sealed class EventDataService : IDisposable
 
     public const int XPriorityPrimaryMax = 8;
 
-    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
+    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite, int XPriority)> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
     {
         var list = _db.Run(sqlite =>
         {
@@ -363,7 +382,7 @@ public sealed class EventDataService : IDisposable
                 parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
             }
 
-            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events WHERE " +
+            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite FROM Events WHERE " +
                 string.Join(" AND ", filters) +
                 " ORDER BY OccurredAt DESC";
             if (limit.HasValue)
@@ -376,21 +395,21 @@ public sealed class EventDataService : IDisposable
             cmd.CommandText = sql;
             foreach (var p in parameters) cmd.Parameters.Add(p);
 
-            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
+            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite)>();
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
                 var typeInt = r.GetInt32(1);
                 var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
                 var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
-                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
+                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4), r.GetInt32(5) != 0));
             }
             return result;
         });
-        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, GetXPriority(e.Type, e.Text))).ToList();
+        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, e.VisibleOnWebsite, GetXPriority(e.Type, e.Text))).ToList();
         withPriority.Sort((a, b) =>
         {
-            if (a.Item6 != b.Item6) return a.Item6.CompareTo(b.Item6);
+            if (a.Item7 != b.Item7) return a.Item7.CompareTo(b.Item7);
             return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
         });
         return withPriority;
@@ -456,7 +475,7 @@ public sealed class EventDataService : IDisposable
         });
     }
 
-    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingThreadsEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
+    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite, int XPriority)> GetPendingThreadsEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
     {
         var list = _db.Run(sqlite =>
         {
@@ -479,7 +498,7 @@ public sealed class EventDataService : IDisposable
                 parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
             }
 
-            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events WHERE " +
+            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite FROM Events WHERE " +
                 string.Join(" AND ", filters) +
                 " ORDER BY OccurredAt DESC";
             if (limit.HasValue)
@@ -492,21 +511,21 @@ public sealed class EventDataService : IDisposable
             cmd.CommandText = sql;
             foreach (var p in parameters) cmd.Parameters.Add(p);
 
-            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
+            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite)>();
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
                 var typeInt = r.GetInt32(1);
                 var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
                 var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
-                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
+                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4), r.GetInt32(5) != 0));
             }
             return result;
         });
-        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, GetXPriority(e.Type, e.Text))).ToList();
+        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, e.VisibleOnWebsite, GetXPriority(e.Type, e.Text))).ToList();
         withPriority.Sort((a, b) =>
         {
-            if (a.Item6 != b.Item6) return a.Item6.CompareTo(b.Item6);
+            if (a.Item7 != b.Item7) return a.Item7.CompareTo(b.Item7);
             return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
         });
         return withPriority;
@@ -533,7 +552,7 @@ public sealed class EventDataService : IDisposable
         });
     }
 
-    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, int XPriority)> GetPendingFacebookEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
+    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite, int XPriority)> GetPendingFacebookEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
     {
         var list = _db.Run(sqlite =>
         {
@@ -556,7 +575,7 @@ public sealed class EventDataService : IDisposable
                 parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
             }
 
-            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events WHERE " +
+            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite FROM Events WHERE " +
                 string.Join(" AND ", filters) +
                 " ORDER BY OccurredAt DESC";
             if (limit.HasValue)
@@ -569,21 +588,21 @@ public sealed class EventDataService : IDisposable
             cmd.CommandText = sql;
             foreach (var p in parameters) cmd.Parameters.Add(p);
 
-            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance)>();
+            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite)>();
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
                 var typeInt = r.GetInt32(1);
                 var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
                 var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
-                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4)));
+                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4), r.GetInt32(5) != 0));
             }
             return result;
         });
-        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, GetXPriority(e.Type, e.Text))).ToList();
+        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, e.VisibleOnWebsite, GetXPriority(e.Type, e.Text))).ToList();
         withPriority.Sort((a, b) =>
         {
-            if (a.Item6 != b.Item6) return a.Item6.CompareTo(b.Item6);
+            if (a.Item7 != b.Item7) return a.Item7.CompareTo(b.Item7);
             return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
         });
         return withPriority;
@@ -1120,7 +1139,7 @@ public sealed class EventDataService : IDisposable
         }
     }
 
-    public void CreateCustomEvent(string titleRaw, string contentRaw, DateTime? occurredAtUtc = null, double relevance = 15d)
+    public void CreateCustomEvent(string titleRaw, string contentRaw, DateTime? occurredAtUtc = null, double relevance = 15d, bool visibleOnWebsite = true)
     {
         if (string.IsNullOrWhiteSpace(titleRaw)) throw new ArgumentNullException(nameof(titleRaw));
         contentRaw ??= "";
@@ -1139,14 +1158,15 @@ public sealed class EventDataService : IDisposable
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 """
-                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, XProcessed, ThreadsProcessed, FacebookProcessed)
-                VALUES (@id, @type, @text, @occ, @rel, @xProcessed, @threadsProcessed, @facebookProcessed);
+                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, XProcessed, ThreadsProcessed, FacebookProcessed)
+                VALUES (@id, @type, @text, @occ, @rel, @visibleOnWebsite, @xProcessed, @threadsProcessed, @facebookProcessed);
                 """;
             insertCmd.Parameters.AddWithValue("@id", eventId);
             insertCmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
             insertCmd.Parameters.AddWithValue("@text", combinedRaw);
             insertCmd.Parameters.AddWithValue("@occ", occurredAt);
             insertCmd.Parameters.AddWithValue("@rel", relevance);
+            insertCmd.Parameters.AddWithValue("@visibleOnWebsite", visibleOnWebsite ? 1 : 0);
             insertCmd.Parameters.AddWithValue("@xProcessed", _xEvents.IsConfigured ? 0 : 1);
             insertCmd.Parameters.AddWithValue("@threadsProcessed", _threadsEvents.IsConfigured ? 0 : 1);
             insertCmd.Parameters.AddWithValue("@facebookProcessed", _facebookEvents.IsConfigured ? 0 : 1);
@@ -1168,6 +1188,7 @@ public sealed class EventDataService : IDisposable
         EventType? type = null,
         DateTime? fromUtc = null,
         DateTime? toUtc = null,
+        bool? visibleOnWebsite = null,
         int? limit = null,
         int offset = 0,
         bool newestFirst = true)
@@ -1193,8 +1214,14 @@ public sealed class EventDataService : IDisposable
             parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
         }
 
+        if (visibleOnWebsite.HasValue)
+        {
+            filters.Add("VisibleOnWebsite = @visibleOnWebsite");
+            parameters.Add(new SqliteParameter("@visibleOnWebsite", visibleOnWebsite.Value ? 1 : 0));
+        }
+
         var sql =
-            "SELECT Id, Type, Text, OccurredAt, Relevance FROM Events" +
+            "SELECT Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite FROM Events" +
             (filters.Count > 0 ? " WHERE " + string.Join(" AND ", filters) : "") +
             $" ORDER BY OccurredAt {(newestFirst ? "DESC" : "ASC")}, CASE " +
             $"WHEN Type = {(int)EventType.Joined} THEN 0 " +
@@ -1225,7 +1252,7 @@ public sealed class EventDataService : IDisposable
     public void ReloadIntoCache()
     {
         var arr = new JsonArray();
-        foreach (var e in GetEvents())
+        foreach (var e in GetEvents(visibleOnWebsite: true))
             arr.Add(e.ToJson());
         Events = arr;
     }
@@ -1237,9 +1264,10 @@ public sealed class EventDataService : IDisposable
         var text = r.GetString(2);
         var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
         var relevance = r.GetDouble(4);
+        var visibleOnWebsite = r.GetInt32(5) != 0;
 
         var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
-        return new EventItem(id, type, text, occurred, relevance);
+        return new EventItem(id, type, text, occurred, relevance, visibleOnWebsite);
     }
 
     private static DateTime EnsureUtc(DateTime dt) =>
