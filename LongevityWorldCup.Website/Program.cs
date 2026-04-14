@@ -19,6 +19,7 @@ namespace LongevityWorldCup.Website
             InitializeDefaultConfig(); // Ensure default config file is created
 
             var builder = WebApplication.CreateBuilder(args);
+            var enableBrotliCompression = !builder.Environment.IsDevelopment();
             Batteries.Init();
 
             // Configure Kestrel to use settings from appsettings.json
@@ -33,13 +34,19 @@ namespace LongevityWorldCup.Website
             builder.Services.AddResponseCompression(options =>
             {
                 options.EnableForHttps = true;
-                options.Providers.Add<BrotliCompressionProvider>();
                 options.Providers.Add<GzipCompressionProvider>();
+                if (enableBrotliCompression)
+                {
+                    options.Providers.Add<BrotliCompressionProvider>();
+                }
             });
-            builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+            if (enableBrotliCompression)
             {
-                options.Level = CompressionLevel.Fastest;
-            });
+                builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+                {
+                    options.Level = CompressionLevel.Fastest;
+                });
+            }
             builder.Services.Configure<GzipCompressionProviderOptions>(options =>
             {
                 options.Level = CompressionLevel.Fastest;
