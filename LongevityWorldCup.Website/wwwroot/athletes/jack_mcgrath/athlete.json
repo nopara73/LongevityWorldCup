@@ -1,0 +1,35 @@
+{
+  "Name": "Jack McGrath",
+  "DisplayName": null,
+  "MediaContact": "jackmcgrath93@gmail.com",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 8,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-08",
+      "AlbGL": 38,
+      "CreatUmolL": 103,
+      "GluMmolL": 4.9,
+      "CrpMgL": 0.5,
+      "LymPc": 44.44,
+      "McvFL": 90.8,
+      "RdwPc": 13,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 3.6,
+	  "NeutrophilPc": 38.9,
+	  "MonocytePc": 11.1,
+	  "Rbc10e12L": 4.9,
+	  "MchPg": 31,
+	  "UreaMmolL": 5.0,
+	  "AltUL": 20,
+	  "GgtUL": 11
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Australia",
+  "Why": "Just another game I'm currently playing",
+  "PersonalLink": "backlight.au"
+}

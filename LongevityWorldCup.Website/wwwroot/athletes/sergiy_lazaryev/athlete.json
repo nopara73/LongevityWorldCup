@@ -1,0 +1,40 @@
+{
+  "Name": "Sergiy Lazaryev",
+  "DisplayName": null,
+  "MediaContact": "s.l.longevity@gmail.com",
+  "DateOfBirth": {
+    "Year": 1982,
+    "Month": 6,
+    "Day": 6
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-03-31",
+      "AlbGL": 46.9,
+      "CreatUmolL": 73,
+      "GluMmolL": 4.75,
+      "CrpMgL": 1.31,
+      "LymPc": 42.9,
+      "McvFL": 90,
+      "RdwPc": 12.3,
+      "AlpUL": 63,
+      "Wbc1000cellsuL": 3.45,
+	  "NeutrophilPc": 44.6,
+	  "MonocytePc": 9,
+	  "Rbc10e12L": 5.01,
+	  "MchPg": 30.9,
+	  "UreaMmolL": 5.9,
+	  "CystatinCMgL": 0.79,
+	  "Hba1cMmolMol": 29.5,
+	  "CholesterolMmolL": 7.35,
+	  "AltUL": 31,
+	  "GgtUL": 19,
+	  "ShbgNmolL": 65.63,
+	  "VitaminDNmolL": 208.9
+	}
+  ],
+  "Division": "Men's",
+  "Flag": "USA",
+  "Why": "Wellness and longevity, quality of live",
+  "PersonalLink": null
+}
