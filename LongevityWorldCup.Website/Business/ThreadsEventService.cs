@@ -170,6 +170,15 @@ public class ThreadsEventService
         }
 
         var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 500, ResolveMention, includeEventUrl: visibleOnWebsite);
+        _log.LogInformation(
+            "Threads custom event plan for event {EventId}: mode {Mode}, visibleOnWebsite {VisibleOnWebsite}, captionLength {CaptionLength}, titleLength {TitleLength}, bodyLength {BodyLength}",
+            eventId,
+            plan.Mode,
+            visibleOnWebsite,
+            plan.PostText.Length,
+            plan.TitleText.Length,
+            plan.BodyText.Length);
+
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
@@ -185,6 +194,12 @@ public class ThreadsEventService
             _log.LogWarning("Threads custom event image render returned no asset for event {EventId}.", eventId);
             return false;
         }
+
+        _log.LogInformation(
+            "Threads custom event {EventId} sending image post with imageUrl {ImageUrl} and captionLength {CaptionLength}",
+            eventId,
+            imageAsset.Value.PublicUrl,
+            plan.PostText.Length);
 
         const int maxAttempts = 2;
         const int retryDelayMs = 750;
