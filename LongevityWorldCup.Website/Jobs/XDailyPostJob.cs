@@ -78,6 +78,14 @@ public class XDailyPostJob : IJob
             var msg = _xEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
+            _logger.LogInformation(
+                "XDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
+                id,
+                type,
+                occurredAtUtc,
+                visibleOnWebsite,
+                msg.Length);
+
             var sent = await _xEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
@@ -123,6 +131,13 @@ public class XDailyPostJob : IJob
                 _logger.LogInformation("XDailyPostJob skipped unchanged filler {FillerType} {PayloadText}", fillerType, payloadText);
                 continue;
             }
+
+            _logger.LogInformation(
+                "XDailyPostJob selected filler {FillerType} subject {SubjectSlug} messageLength {MessageLength} infoToken {InfoToken}",
+                fillerType,
+                subjectSlug,
+                fillerMsg.Length,
+                infoToken);
 
             var fillerSent = await _xEvents.TrySendAsync(fillerMsg);
             if (!fillerSent)

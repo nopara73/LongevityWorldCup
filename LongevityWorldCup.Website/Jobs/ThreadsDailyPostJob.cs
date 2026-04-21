@@ -78,6 +78,14 @@ public class ThreadsDailyPostJob : IJob
             var msg = _threadsEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
+            _logger.LogInformation(
+                "ThreadsDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
+                id,
+                type,
+                occurredAtUtc,
+                visibleOnWebsite,
+                msg.Length);
+
             var sent = await _threadsEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
@@ -123,6 +131,13 @@ public class ThreadsDailyPostJob : IJob
                 _logger.LogInformation("ThreadsDailyPostJob skipped unchanged filler {FillerType} {PayloadText}", fillerType, payloadText);
                 continue;
             }
+
+            _logger.LogInformation(
+                "ThreadsDailyPostJob selected filler {FillerType} subject {SubjectSlug} messageLength {MessageLength} infoToken {InfoToken}",
+                fillerType,
+                subjectSlug,
+                fillerMsg.Length,
+                infoToken);
 
             var fillerSent = await _threadsEvents.TrySendAsync(fillerMsg);
             if (!fillerSent)
