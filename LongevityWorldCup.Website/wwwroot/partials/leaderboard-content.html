@@ -2167,6 +2167,10 @@
                                     addClickListenerToImages('.portrait, #modalProfilePic', function () {
                                         openEnlargedView(this);
                                     });
+
+                                    if (hasActiveLeaderboardState()) {
+                                        performFilter();
+                                    }
                                 })
                                 .catch(error => {
                                     const podium = document.querySelector('.podium');
@@ -2987,6 +2991,15 @@
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => func.apply(context, args), delay);
         };
+    }
+
+    function hasActiveLeaderboardState() {
+        const hasCheckedFilters = document.querySelector('input[name="division"]:checked, input[name="generation"]:checked, input[name="exclusiveLeague"]:checked, input[name="leagueTrack"]:checked');
+        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+        const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
+        const searchInput = document.getElementById('athleteSearch');
+        const hasSearch = !!(searchInput && searchInput.value.trim().length > 0);
+        return !!hasCheckedFilters || currentLeaderboardView !== 'ultimate' || hasSearch;
     }
 
     function performFilter() {
