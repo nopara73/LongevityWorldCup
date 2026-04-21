@@ -130,6 +130,12 @@ public class ThreadsApiClient
             var creation = await CreateImageContainerAsync(text, imageUrl, token);
             if (creation.Success && !string.IsNullOrWhiteSpace(creation.Id))
             {
+                _log.LogInformation(
+                    "Threads image container created successfully with creationId {CreationId}, textLength {TextLength}, imageUrl {ImageUrl}",
+                    creation.Id,
+                    text.Length,
+                    imageUrl);
+
                 var publish = await PublishContainerAsync(creation.Id, token);
                 if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
                     return publish.Id;
@@ -250,7 +256,7 @@ public class ThreadsApiClient
 
         if (!res.IsSuccessStatusCode)
         {
-            _log.LogError("Threads publish failed: {StatusCode} {Body}", res.StatusCode, json);
+            _log.LogError("Threads publish failed for creationId {CreationId}: {StatusCode} {Body}", creationId, res.StatusCode, json);
             return (false, null, ShouldRefreshToken(res.StatusCode, json));
         }
 
