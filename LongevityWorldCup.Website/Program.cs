@@ -155,8 +155,17 @@ namespace LongevityWorldCup.Website
 
                 q.AddJob<XDailyPostJob>(o => o.WithIdentity(xDailyPostKey));
                 q.AddTrigger(t => t.ForJob(xDailyPostKey)
-                    .WithIdentity("XDailyPostTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    .WithIdentity("XDailyPostTrigger_0800")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 8 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                    .WithIdentity("XDailyPostTrigger_1200")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 12 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                    .WithIdentity("XDailyPostTrigger_1600")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 16 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                    .WithIdentity("XDailyPostTrigger_2000")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 20 * * ?").InTimeZone(TimeZoneInfo.Utc)));
 
                 q.AddJob<ThreadsDailyPostJob>(o => o.WithIdentity(threadsDailyPostKey));
                 q.AddTrigger(t => t.ForJob(threadsDailyPostKey)
