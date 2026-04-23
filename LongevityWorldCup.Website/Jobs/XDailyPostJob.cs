@@ -9,6 +9,13 @@ namespace LongevityWorldCup.Website.Jobs;
 public class XDailyPostJob : IJob
 {
     private static readonly TimeSpan SubjectCooldown = TimeSpan.FromDays(2);
+    private static readonly TimeOnly[] DailyPostSlotsUtc =
+    [
+        new(8, 0),
+        new(12, 0),
+        new(16, 0),
+        new(20, 0)
+    ];
     private readonly ILogger<XDailyPostJob> _logger;
     private readonly EventDataService _events;
     private readonly XEventService _xEvents;
@@ -27,6 +34,15 @@ public class XDailyPostJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogInformation("XDailyPostJob {ts}", DateTime.UtcNow);
+
+        if (!ShouldPostInCurrentSlot(context, out var slotTimeUtc, out var selectedSlotTimeUtc))
+        {
+            _logger.LogInformation(
+                "XDailyPostJob skipped at slot {CurrentSlotUtc}; today's assigned slot is {SelectedSlotUtc}",
+                slotTimeUtc.ToString("HH:mm"),
+                selectedSlotTimeUtc.ToString("HH:mm"));
+            return;
+        }
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
         var pending = _events.GetPendingXEvents();
@@ -78,6 +94,14 @@ public class XDailyPostJob : IJob
             var msg = _xEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg)) continue;
 
+            _logger.LogInformation(
+                "XDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
+                id,
+                type,
+                occurredAtUtc,
+                visibleOnWebsite,
+                msg.Length);
+
             var sent = await _xEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
@@ -124,6 +148,13 @@ public class XDailyPostJob : IJob
                 continue;
             }
 
+            _logger.LogInformation(
+                "XDailyPostJob selected filler {FillerType} subject {SubjectSlug} messageLength {MessageLength} infoToken {InfoToken}",
+                fillerType,
+                subjectSlug,
+                fillerMsg.Length,
+                infoToken);
+
             var fillerSent = await _xEvents.TrySendAsync(fillerMsg);
             if (!fillerSent)
             {
@@ -136,6 +167,23 @@ public class XDailyPostJob : IJob
         }
 
         _logger.LogInformation("XDailyPostJob no postable event found");
+    }
+
+    private static bool ShouldPostInCurrentSlot(IJobExecutionContext context, out TimeOnly currentSlotUtc, out TimeOnly selectedSlotUtc)
+    {
+        var scheduledUtc = context.ScheduledFireTimeUtc?.UtcDateTime ?? context.FireTimeUtc.UtcDateTime;
+        var currentSlot = TimeOnly.FromDateTime(scheduledUtc);
+        currentSlotUtc = currentSlot;
+
+        var matchedSlotIndex = Array.FindIndex(
+            DailyPostSlotsUtc,
+            slot => slot.Hour == currentSlot.Hour && slot.Minute == currentSlot.Minute);
+
+        var dayIndex = int.Abs(DateOnly.FromDateTime(scheduledUtc).DayNumber);
+        var selectedSlotIndex = dayIndex % DailyPostSlotsUtc.Length;
+        selectedSlotUtc = DailyPostSlotsUtc[selectedSlotIndex];
+
+        return matchedSlotIndex == selectedSlotIndex;
     }
 
     private string? TryBuildFillerInfoToken(FillerType fillerType, string payloadText)

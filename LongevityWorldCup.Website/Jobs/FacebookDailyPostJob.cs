@@ -27,11 +27,19 @@ public class FacebookDailyPostJob : IJob
         _facebookEvents.SetAthletesForFacebook(_athletes.GetAthletesForX());
         var pending = _events.GetPendingFacebookEvents();
 
-        foreach (var (id, type, text, _, _, visibleOnWebsite, _) in pending)
+        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, _) in pending)
         {
             var msg = _facebookEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
                 continue;
+
+            _logger.LogInformation(
+                "FacebookDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
+                id,
+                type,
+                occurredAtUtc,
+                visibleOnWebsite,
+                msg.Length);
 
             var sent = await _facebookEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)

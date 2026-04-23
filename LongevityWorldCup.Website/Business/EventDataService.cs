@@ -282,16 +282,29 @@ public sealed class EventDataService : IDisposable
         var claimed = ClaimPendingCustomEvents(processedColumn);
         foreach (var (id, rawText, visibleOnWebsite) in claimed)
         {
+            _log.LogInformation(
+                "Immediate custom event dispatch started for platform column {ProcessedColumn}, event {EventId}, visibleOnWebsite {VisibleOnWebsite}, textLength {TextLength}",
+                processedColumn,
+                id,
+                visibleOnWebsite,
+                rawText?.Length ?? 0);
+
             var sent = false;
             try
             {
-                sent = trySend(id, rawText, visibleOnWebsite);
+                sent = trySend(id, rawText ?? "", visibleOnWebsite);
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "Immediate custom event send failed for platform column {ProcessedColumn} and event {EventId}.", processedColumn, id);
                 sent = false;
             }
+
+            _log.LogInformation(
+                "Immediate custom event dispatch finished for platform column {ProcessedColumn}, event {EventId}, succeeded {Succeeded}",
+                processedColumn,
+                id,
+                sent);
 
             FinalizeClaimedCustomEvent(processedColumn, id, sent);
         }
