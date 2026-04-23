@@ -180,6 +180,15 @@ public class XEventService
         }
 
         var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 280, ResolveMention, includeEventUrl: visibleOnWebsite);
+        _log.LogInformation(
+            "X custom event plan for event {EventId}: mode {Mode}, visibleOnWebsite {VisibleOnWebsite}, postLength {PostLength}, titleLength {TitleLength}, bodyLength {BodyLength}",
+            eventId,
+            plan.Mode,
+            visibleOnWebsite,
+            plan.PostText.Length,
+            plan.TitleText.Length,
+            plan.BodyText.Length);
+
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
@@ -202,6 +211,12 @@ public class XEventService
             _log.LogWarning("X custom event media upload returned no media id for event {EventId}.", eventId);
             return false;
         }
+
+        _log.LogInformation(
+            "X custom event {EventId} sending image post with mediaId {MediaId} and postLength {PostLength}",
+            eventId,
+            mediaId,
+            plan.PostText.Length);
 
         return await TrySendAsync(plan.PostText, new[] { mediaId });
     }

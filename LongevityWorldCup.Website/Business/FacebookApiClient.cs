@@ -138,6 +138,13 @@ public class FacebookApiClient
         const int maxAttempts = 2;
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            _log.LogInformation(
+                "Facebook photo publish attempt {Attempt}/{MaxAttempts} for imageUrl {ImageUrl} with textLength {TextLength}",
+                attempt,
+                maxAttempts,
+                imageUrl,
+                text.Length);
+
             var endpoint = $"{GraphApiBaseUrl}/{Uri.EscapeDataString(pageId)}/photos";
             using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
             req.Content = new FormUrlEncodedContent(new[]

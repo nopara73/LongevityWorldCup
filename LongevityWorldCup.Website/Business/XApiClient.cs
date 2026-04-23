@@ -53,6 +53,8 @@ public class XApiClient
         streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
         form.Add(streamContent, "media", "media");
 
+        _log.LogInformation("X media upload started with contentType {ContentType}", contentType);
+
         using var req = new HttpRequestMessage(HttpMethod.Post, MediaUploadEndpoint);
         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         req.Content = form;
@@ -71,9 +73,17 @@ public class XApiClient
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (root.TryGetProperty("media_id_string", out var idEl))
-                return idEl.GetString();
+            {
+                var mediaId = idEl.GetString();
+                _log.LogInformation("X media upload succeeded with mediaId {MediaId}", mediaId);
+                return mediaId;
+            }
             if (root.TryGetProperty("media_id", out var idElNum))
-                return idElNum.GetRawText();
+            {
+                var mediaId = idElNum.GetRawText();
+                _log.LogInformation("X media upload succeeded with mediaId {MediaId}", mediaId);
+                return mediaId;
+            }
         }
         catch (Exception ex)
         {

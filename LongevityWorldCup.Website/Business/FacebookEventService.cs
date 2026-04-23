@@ -97,6 +97,15 @@ public class FacebookEventService
         }
 
         var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention, includeEventUrl: visibleOnWebsite);
+        _log.LogInformation(
+            "Facebook custom event plan for event {EventId}: mode {Mode}, visibleOnWebsite {VisibleOnWebsite}, postLength {PostLength}, titleLength {TitleLength}, bodyLength {BodyLength}",
+            eventId,
+            plan.Mode,
+            visibleOnWebsite,
+            plan.PostText.Length,
+            plan.TitleText.Length,
+            plan.BodyText.Length);
+
         if (plan.Mode == CustomEventPostMode.Text)
             return await TrySendAsync(plan.PostText);
 
@@ -112,6 +121,12 @@ public class FacebookEventService
             _log.LogWarning("Facebook custom event image render returned no asset for event {EventId}.", eventId);
             return false;
         }
+
+        _log.LogInformation(
+            "Facebook custom event {EventId} sending image post with imageUrl {ImageUrl} and postLength {PostLength}",
+            eventId,
+            imageAsset.Value.PublicUrl,
+            plan.PostText.Length);
 
         const int maxAttempts = 2;
         const int retryDelayMs = 750;
