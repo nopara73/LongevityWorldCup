@@ -328,12 +328,12 @@ $@"<script type=""module"">
                 ),
                 "/leaderboard" => new SeoMeta(
                     canonicalPath,
-                    "See the latest Longevity World Cup leaderboard rankings and compare biological age reduction results across athletes.",
+                    "Current Longevity World Cup rankings for verified biological age reduction across athletes, leagues, and categories.",
                     "index, follow",
                     canonicalUrl,
-                    "Longevity World Cup Leaderboard",
-                    "Longevity World Cup Leaderboard",
-                    "Explore current Longevity World Cup standings and discover who is leading the biological age reversal rankings.",
+                    "Leaderboard | Longevity World Cup",
+                    "Leaderboard | Longevity World Cup",
+                    "Explore the current Longevity World Cup leaderboard and see who is leading the verified biological age reduction rankings.",
                     DefaultOgImage
                 ),
                 "/events" => new SeoMeta(
@@ -341,8 +341,8 @@ $@"<script type=""module"">
                     "Track Longevity World Cup highlights, announcements, and major milestones from the current season.",
                     "index, follow",
                     canonicalUrl,
-                    "Longevity World Cup Highlights",
-                    "Longevity World Cup Highlights",
+                    "Highlights | Longevity World Cup",
+                    "Highlights | Longevity World Cup",
                     "Follow key Longevity World Cup events, season updates, and competition highlights.",
                     DefaultOgImage
                 ),
@@ -351,8 +351,8 @@ $@"<script type=""module"">
                     "Download official Longevity World Cup media assets, logos, and press materials.",
                     "index, follow",
                     canonicalUrl,
-                    "Longevity World Cup Media Kit",
-                    "Longevity World Cup Media Kit",
+                    "Media Kit | Longevity World Cup",
+                    "Media Kit | Longevity World Cup",
                     "Access the Longevity World Cup media kit with press-ready branding assets and resources.",
                     DefaultOgImage
                 ),
