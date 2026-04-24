@@ -328,12 +328,12 @@ $@"<script type=""module"">
                 ),
                 "/leaderboard" => new SeoMeta(
                     canonicalPath,
-                    "Current Longevity World Cup rankings for verified biological age reduction across athletes, leagues, and categories.",
+                    "View the Longevity World Cup leaderboard for verified biological age reduction rankings across athletes, leagues, and categories.",
                     "index, follow",
                     canonicalUrl,
                     "Leaderboard | Longevity World Cup",
                     "Leaderboard | Longevity World Cup",
-                    "Explore the current Longevity World Cup leaderboard and see who is leading the verified biological age reduction rankings.",
+                    "View the Longevity World Cup leaderboard for verified biological age reduction rankings across athletes, leagues, and categories.",
                     DefaultOgImage
                 ),
                 "/events" => new SeoMeta(
