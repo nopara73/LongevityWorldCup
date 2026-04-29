@@ -1,0 +1,40 @@
+{
+  "Name": "Julia Arakaki",
+  "DisplayName": null,
+  "MediaContact": "julia.arakaki@gmail.com",
+  "DateOfBirth": {
+    "Year": 1991,
+    "Month": 4,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-14",
+      "AlbGL": 43,
+      "CreatUmolL": 64.6,
+      "GluMmolL": 4.16,
+      "CrpMgL": 0.3,
+      "LymPc": 44.4,
+      "McvFL": 85.8,
+      "RdwPc": 11.5,
+      "AlpUL": 49,
+      "Wbc1000cellsuL": 6.47,
+	  "NeutrophilPc": 46.9,
+	  "MonocytePc": 6.8,
+	  "Rbc10e12L": 3.96,
+	  "MchPg": 29.6,
+	  "UreaMmolL": 3.16,
+	  "Hba1cMmolMol": 36.6,
+	  "CholesterolMmolL": 4.16,
+	  "ApoA1GL": 1.41,
+	  "AltUL": 18,
+	  "GgtUL": 14,
+	  "ShbgNmolL": 42.7,
+	  "VitaminDNmolL": 84.864
+	}
+  ],
+  "Division": "Open",
+  "Flag": "Brazil",
+  "Why": "Slow living surrounded by nature in Brazil.",
+  "PersonalLink": "https://www.instagram.com/slo.living.life/"
+}
