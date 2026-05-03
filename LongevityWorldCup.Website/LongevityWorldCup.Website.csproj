@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
-    <PackageReference Include="MailKit" Version="4.13.0" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="9.0.8" />
     <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
