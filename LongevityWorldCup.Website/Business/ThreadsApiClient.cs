@@ -8,9 +8,9 @@ public class ThreadsApiClient
     private const string CreateThreadEndpoint = "https://graph.threads.net/me/threads";
     private const string PublishThreadEndpoint = "https://graph.threads.net/me/threads_publish";
     private const string RefreshAccessTokenEndpoint = "https://graph.threads.net/refresh_access_token";
-    private const string ContainerFields = "id,status,status_code,error_message";
+    private const string ContainerFields = "id,status,error_message";
     private const int MaxTextLength = 500;
-    private static readonly int[] ContainerReadyPollDelaysMs = [500, 1000, 1500, 2000, 3000];
+    private static readonly int[] ContainerReadyPollDelaysMs = [1000, 2000, 3000, 5000, 5000, 10000, 10000, 15000];
 
     private readonly HttpClient _http;
     private readonly Config _config;
@@ -279,9 +279,8 @@ public class ThreadsApiClient
             if (status.IsError)
             {
                 _log.LogError(
-                    "Threads container {CreationId} entered error state before publish. StatusCode={StatusCode} Status={Status} ErrorMessage={ErrorMessage}",
+                    "Threads container {CreationId} entered error state before publish. Status={Status} ErrorMessage={ErrorMessage}",
                     creationId,
-                    status.StatusCode,
                     status.Status,
                     status.ErrorMessage);
                 return (false, false);
@@ -290,9 +289,8 @@ public class ThreadsApiClient
             if (attempt >= ContainerReadyPollDelaysMs.Length)
             {
                 _log.LogWarning(
-                    "Threads container {CreationId} did not reach FINISHED before timeout. LastStatusCode={StatusCode} LastStatus={Status} ErrorMessage={ErrorMessage}",
+                    "Threads container {CreationId} did not reach FINISHED before timeout. LastStatus={Status} ErrorMessage={ErrorMessage}",
                     creationId,
-                    status.StatusCode,
                     status.Status,
                     status.ErrorMessage);
                 return (false, false);
@@ -300,9 +298,8 @@ public class ThreadsApiClient
 
             var delayMs = ContainerReadyPollDelaysMs[attempt];
             _log.LogInformation(
-                "Threads container {CreationId} not ready yet. StatusCode={StatusCode} Status={Status}. Polling again in {DelayMs}ms.",
+                "Threads container {CreationId} not ready yet. Status={Status}. Polling again in {DelayMs}ms.",
                 creationId,
-                status.StatusCode,
                 status.Status,
                 delayMs);
             await Task.Delay(delayMs);
@@ -345,7 +342,7 @@ public class ThreadsApiClient
         return (false, null, false, json);
     }
 
-    private async Task<(bool IsFinished, bool IsError, bool ShouldRefreshToken, string? StatusCode, string? Status, string? ErrorMessage)> GetContainerStatusAsync(string creationId, string token)
+    private async Task<(bool IsFinished, bool IsError, bool ShouldRefreshToken, string? Status, string? ErrorMessage)> GetContainerStatusAsync(string creationId, string token)
     {
         var url = $"https://graph.threads.net/{Uri.EscapeDataString(creationId)}?fields={Uri.EscapeDataString(ContainerFields)}";
         using var req = new HttpRequestMessage(HttpMethod.Get, url);
@@ -357,36 +354,30 @@ public class ThreadsApiClient
         if (!res.IsSuccessStatusCode)
         {
             _log.LogError("Threads container status check failed for creationId {CreationId}: {StatusCode} {Body}", creationId, res.StatusCode, json);
-            return (false, false, ShouldRefreshToken(res.StatusCode, json), null, null, null);
+            return (false, false, ShouldRefreshToken(res.StatusCode, json), null, null);
         }
 
         try
         {
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
-            var statusCode = root.TryGetProperty("status_code", out var statusCodeEl) ? statusCodeEl.GetString() : null;
             var status = root.TryGetProperty("status", out var statusEl) ? statusEl.GetString() : null;
             var errorMessage = root.TryGetProperty("error_message", out var errorEl) ? errorEl.GetString() : null;
 
-            var normalizedStatusCode = (statusCode ?? "").Trim();
             var normalizedStatus = (status ?? "").Trim();
 
-            var isFinished =
-                string.Equals(normalizedStatusCode, "FINISHED", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(normalizedStatus, "FINISHED", StringComparison.OrdinalIgnoreCase);
+            var isFinished = string.Equals(normalizedStatus, "FINISHED", StringComparison.OrdinalIgnoreCase);
 
             var isError =
-                string.Equals(normalizedStatusCode, "ERROR", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(normalizedStatus, "ERROR", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(normalizedStatusCode, "EXPIRED", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(normalizedStatus, "EXPIRED", StringComparison.OrdinalIgnoreCase);
 
-            return (isFinished, isError, false, statusCode, status, errorMessage);
+            return (isFinished, isError, false, status, errorMessage);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Threads container status response parse failed for creationId {CreationId}: {Json}", creationId, json);
-            return (false, false, false, null, null, null);
+            return (false, false, false, null, null);
         }
     }
 
