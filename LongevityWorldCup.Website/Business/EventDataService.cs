@@ -30,6 +30,17 @@ public enum EventType
     SeasonFinalResult = 7
 }
 
+public sealed class NonRetryableCustomEventDispatchException : Exception
+{
+    public NonRetryableCustomEventDispatchException(string message) : base(message)
+    {
+    }
+
+    public NonRetryableCustomEventDispatchException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
+}
+
 public sealed class EventDataService : IDisposable
 {
     private const double DefaultRelevanceJoined = 5d;
@@ -37,6 +48,7 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceDonation = 9d;
     private const double DefaultRelevanceAthleteMilestone = 8d;
     private const double DefaultRelevanceBadgeAward = 8d;
+    private const int MaxCustomEventRetries = 3;
 
     private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
@@ -45,6 +57,10 @@ public sealed class EventDataService : IDisposable
     private readonly FacebookEventService _facebookEvents;
     private readonly ILogger<EventDataService> _log;
     private int _processingImmediateCustomEvents;
+    
+    // Track failed attempts for custom events per platform: "eventId:platform" -> attempt count
+    private readonly Dictionary<string, int> _customEventRetryCount = new();
+    private readonly object _retryCountLock = new();
 
     public JsonArray Events { get; private set; } = [];
 
@@ -282,6 +298,28 @@ public sealed class EventDataService : IDisposable
         var claimed = ClaimPendingCustomEvents(processedColumn);
         foreach (var (id, rawText, visibleOnWebsite) in claimed)
         {
+            // Check if we've exceeded max retries for this event/platform
+            var retryKey = $"{id}:{processedColumn}";
+            int attemptCount = 0;
+            lock (_retryCountLock)
+            {
+                if (_customEventRetryCount.TryGetValue(retryKey, out var count))
+                {
+                    attemptCount = count;
+                }
+            }
+
+            if (attemptCount >= MaxCustomEventRetries)
+            {
+                _log.LogWarning("Custom event {EventId} exceeded max retries ({Attempts}/{Max}) for platform {Platform}. Marking as processed.", id, attemptCount, MaxCustomEventRetries, processedColumn);
+                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: true);
+                lock (_retryCountLock)
+                {
+                    _customEventRetryCount.Remove(retryKey);
+                }
+                continue;
+            }
+
             _log.LogInformation(
                 "Immediate custom event dispatch started for platform column {ProcessedColumn}, event {EventId}, visibleOnWebsite {VisibleOnWebsite}, textLength {TextLength}",
                 processedColumn,
@@ -290,9 +328,20 @@ public sealed class EventDataService : IDisposable
                 rawText?.Length ?? 0);
 
             var sent = false;
+            var terminalFailure = false;
             try
             {
                 sent = trySend(id, rawText ?? "", visibleOnWebsite);
+            }
+            catch (NonRetryableCustomEventDispatchException ex)
+            {
+                _log.LogWarning(
+                    ex,
+                    "Immediate custom event send failed permanently for platform column {ProcessedColumn} and event {EventId}.",
+                    processedColumn,
+                    id);
+                terminalFailure = true;
+                sent = false;
             }
             catch (Exception ex)
             {
@@ -306,7 +355,35 @@ public sealed class EventDataService : IDisposable
                 id,
                 sent);
 
-            FinalizeClaimedCustomEvent(processedColumn, id, sent);
+            if (sent)
+            {
+                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: true);
+                lock (_retryCountLock)
+                {
+                    _customEventRetryCount.Remove(retryKey);
+                }
+            }
+            else if (terminalFailure)
+            {
+                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: true);
+                lock (_retryCountLock)
+                {
+                    _customEventRetryCount.Remove(retryKey);
+                }
+            }
+            else
+            {
+                // Increment retry count and reset to unprocessed for retry
+                lock (_retryCountLock)
+                {
+                    if (!_customEventRetryCount.TryGetValue(retryKey, out var count))
+                    {
+                        count = 0;
+                    }
+                    _customEventRetryCount[retryKey] = count + 1;
+                }
+                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: false);
+            }
         }
     }
 
@@ -357,6 +434,7 @@ public sealed class EventDataService : IDisposable
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
         });
+
     }
 
     private void MarkPendingCustomEventsProcessedWithoutSend(string processedColumn)
