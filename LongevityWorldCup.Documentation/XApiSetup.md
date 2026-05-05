@@ -1,77 +1,84 @@
-# X API – Obtaining Keys (Step by Step)
+# X API - Obtaining Keys and Tokens
 
-Prerequisite: you already have an X (Twitter) account. Goal: API keys and tokens so the application can post to X.
+Prerequisite: you already have an X account. Goal: obtain all credentials needed so the application can:
 
----
+- post text tweets through `POST /2/tweets`
+- upload media through `POST upload.twitter.com/1.1/media/upload.json`
 
 ## 1. Developer Portal Registration
 
-1. Open: [developer.x.com](https://developer.x.com)
-2. Sign in with your existing X account
-3. Scroll down to the **"Find the right access for you"** section
-4. Select the **Free** package and click **Get Started**
-5. Complete the wizard that pops up
-6. The Console portal will open – you can continue with step 2
-
----
+1. Open [developer.x.com](https://developer.x.com).
+2. Sign in with your existing X account.
+3. In the "Find the right access for you" section, choose the package you want to use.
+4. Complete the onboarding wizard.
 
 ## 2. Create Project and App
 
-1. In the portal, open the **Apps** menu
-2. Under **Pay Per Use**, a pre-created app may appear – delete it via **Manage Apps**
-3. Click **Create your first app**
-4. Create a new app and complete the form
-5. You will receive **Consumer Key** and **Secret Key** – save both
-6. If the app is created but does not appear, refresh the page
-7. Then proceed to step 3
+1. In the portal, open **Apps**.
+2. Create a new app if needed.
+3. Save the app/API keys shown under the app.
 
----
+You need two different credential families from the same app:
+
+- OAuth 1.0a app/API credentials:
+  - **Consumer Key**
+  - **Consumer Secret**
+- OAuth 2.0 user-auth credentials:
+  - **Client ID**
+  - **Client Secret**
 
 ## 3. User Authentication (OAuth 2.0) Setup
 
-1. Click on your app
-2. Under **User authentication settings**, click **Set up**
+1. Open your app.
+2. Under **User authentication settings**, click **Set up**.
 3. Configure:
    - **App permissions:** **Read and write**
    - **Type of App:** **Web App, Automated App or Bot**
-   - **Callback URI / Redirect URL:** `http://127.0.0.1:8765/callback`
+   - **Callback URI / Redirect URL:**
+     - `http://127.0.0.1:8765/callback`
+     - `http://127.0.0.1:8765/oauth1-callback`
    - **Website URL:** `https://longevityworldcup.com`
-4. Click **Save changes**
-5. You will receive **Client Secret ID** and **Client Secret** – save both
+4. Save the changes.
+5. Save the resulting **Client ID** and **Client Secret**.
 
----
+## 4. Generate Tokens with XOAuthHelper
 
-## 4. Getting Access Token and Refresh Token (XOAuthHelper)
-
-1. Open the project and go to the `LongevityWorldCup.XOAuthHelper` folder
+1. Open the project and go to `LongevityWorldCup.XOAuthHelper`.
 2. Run:
-   ```
-   dotnet run -- --client-id <Client_Secret_ID> --client-secret <Client_Secret>
-   ```
-   Use **Client Secret ID** for `--client-id` and **Client Secret** for `--client-secret`.
-3. A browser opens with the X authorization page
-4. Log in with the **account that will post** (e.g. the LWC X account). If the wrong account appears, clear the browser cache on that page and try again
-5. Click **Authorize app**
-6. The terminal displays **XAccessToken** and **XRefreshToken** – save both (they go into `config.json`)
 
----
+```bash
+dotnet run -- --client-id <Client_ID> --client-secret <Client_Secret> --consumer-key <Consumer_Key> --consumer-secret <Consumer_Secret>
+```
+
+3. The helper first runs OAuth 2.0 PKCE.
+4. Log in with the X account that will post.
+5. Authorize the app.
+6. The helper then runs OAuth 1.0a user-context authorization.
+7. Authorize the same X account again.
+8. The helper prints every `config.json` field you need.
 
 ## 5. Config Setup
 
-Add this to `config.json` (Website project):
+Add this to the Website `config.json`:
 
 ```json
-"XApiKey": "<Client_Secret_ID>",
+"XApiKey": "<Client_ID>",
 "XApiSecret": "<Client_Secret>",
-"XAccessToken": "<XAccessToken>",
-"XRefreshToken": "<XRefreshToken>"
+"XAccessToken": "<OAuth2_Access_Token>",
+"XRefreshToken": "<OAuth2_Refresh_Token>",
+"XConsumerKey": "<Consumer_Key>",
+"XConsumerSecret": "<Consumer_Secret>",
+"XUserAccessToken": "<OAuth1_User_Access_Token>",
+"XUserAccessTokenSecret": "<OAuth1_User_Access_Token_Secret>"
 ```
 
----
+Meaning:
 
-## 6. Billing / Credits (Important)
+- `XApiKey` / `XApiSecret`: OAuth 2.0 client credentials used for refresh
+- `XAccessToken` / `XRefreshToken`: OAuth 2.0 user tokens used for tweet creation
+- `XConsumerKey` / `XConsumerSecret`: OAuth 1.0a app/API keys used for signing media upload requests
+- `XUserAccessToken` / `XUserAccessTokenSecret`: OAuth 1.0a user-context tokens used for media upload
 
-Posting tweets consumes **credits**. If you get **402 Payment Required**:
+## 6. Billing / Credits
 
-1. **Billing** → **Credits** → **Purchase credits**
-
+Posting on X consumes credits. If you receive `402 Payment Required`, check billing and credits in the X developer portal.
