@@ -24,7 +24,7 @@ You need two different credential families from the same app:
   - **Consumer Key**
   - **Consumer Secret**
 - OAuth 2.0 user-auth credentials:
-  - **Client Secret ID**
+  - **Client ID**
   - **Client Secret**
 
 ## 3. User Authentication (OAuth 2.0) Setup
@@ -39,7 +39,7 @@ You need two different credential families from the same app:
      - `http://127.0.0.1:8765/oauth1-callback`
    - **Website URL:** `https://longevityworldcup.com`
 4. Save the changes.
-5. Save the resulting **Client Secret ID** and **Client Secret**.
+5. Save the resulting **Client ID** and **Client Secret**.
 
 ## 4. Generate Tokens with XOAuthHelper
 
@@ -47,11 +47,7 @@ You need two different credential families from the same app:
 2. Run:
 
 ```bash
-dotnet run -- \
-  --client-id <Client_Secret_ID> \
-  --client-secret <Client_Secret> \
-  --consumer-key <Consumer_Key> \
-  --consumer-secret <Consumer_Secret>
+dotnet run -- --client-id <Client_ID> --client-secret <Client_Secret> --consumer-key <Consumer_Key> --consumer-secret <Consumer_Secret>
 ```
 
 3. The helper first runs OAuth 2.0 PKCE.
@@ -66,7 +62,7 @@ dotnet run -- \
 Add this to the Website `config.json`:
 
 ```json
-"XApiKey": "<Client_Secret_ID>",
+"XApiKey": "<Client_ID>",
 "XApiSecret": "<Client_Secret>",
 "XAccessToken": "<OAuth2_Access_Token>",
 "XRefreshToken": "<OAuth2_Refresh_Token>",
