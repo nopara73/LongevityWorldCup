@@ -1,30 +1,46 @@
 # X OAuth Helper
 
-One-off OAuth 2.0 PKCE flow to obtain X Access Token and Refresh Token for the LWC X account.
+One-off helper that obtains both credential sets required by this project:
+
+- OAuth 2.0 PKCE access + refresh token for `POST /2/tweets`
+- OAuth 1.0a user access token + token secret for `POST upload.twitter.com/1.1/media/upload.json`
 
 ## Prerequisites
 
-- X Developer Portal app with **User authentication** (OAuth 2.0) set up (Read and write)
-- **Callback URL** in the app allowlist: `http://127.0.0.1:8765/callback`
+- X Developer Portal app with **User authentication** (OAuth 2.0) set up as **Read and write**
+- OAuth 1.0a app/API keys available: consumer key and consumer secret
+- These callback URLs in the app allowlist:
+  - `http://127.0.0.1:8765/callback`
+  - `http://127.0.0.1:8765/oauth1-callback`
 
-See `LongevityWorldCup.Documentation/XApiSetup.md` for full setup steps.
+See [XApiSetup.md](../LongevityWorldCup.Documentation/XApiSetup.md) for the full setup steps.
 
 ## Usage
 
-Pass **Client Secret ID** and **Client Secret** (from User authentication setup) as arguments:
-
 ```bash
 cd LongevityWorldCup.XOAuthHelper
-dotnet run -- --client-id <Client_Secret_ID> --client-secret <Client_Secret>
+dotnet run -- \
+  --client-id <oauth2-client-id> \
+  --client-secret <oauth2-client-secret> \
+  --consumer-key <oauth1-consumer-key> \
+  --consumer-secret <oauth1-consumer-secret>
 ```
 
-Example (PowerShell, secrets in env):
+Example in PowerShell:
 
 ```powershell
-dotnet run -- --client-id $env:X_CLIENT_SECRET_ID --client-secret $env:X_CLIENT_SECRET
+dotnet run -- `
+  --client-id $env:X_CLIENT_SECRET_ID `
+  --client-secret $env:X_CLIENT_SECRET `
+  --consumer-key $env:X_CONSUMER_KEY `
+  --consumer-secret $env:X_CONSUMER_SECRET
 ```
 
-1. A browser opens with the X authorization page
-2. Log in with the **account that will post** (e.g. the LWC X account). If the wrong account appears, clear the browser cache on that page and try again
-3. Click **Authorize app**
-4. The terminal displays **XAccessToken** and **XRefreshToken** – save both and add to the Website `config.json` (see XApiSetup.md section 5)
+Flow:
+
+1. A browser opens for OAuth 2.0 authorization.
+2. Log in with the account that will post.
+3. Authorize the app.
+4. A second browser window opens for OAuth 1.0a user-context authorization.
+5. Authorize the same account again.
+6. The terminal prints all `config.json` fields needed by the Website project.

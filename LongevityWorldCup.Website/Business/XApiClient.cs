@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
@@ -69,18 +70,36 @@ public class XApiClient
             return new XMediaUploadResult(null, new XApiFailure(false, null, "X credentials not configured", null, null, null));
         }
 
+        var oauth1 = GetOAuth1MediaCredentials();
+        if (oauth1 is null)
+        {
+            _log.LogError(
+                "X media upload cannot start because OAuth 1.0a media credentials are missing. HasConsumerKey={HasConsumerKey} HasConsumerSecret={HasConsumerSecret} HasUserAccessToken={HasUserAccessToken} HasUserAccessTokenSecret={HasUserAccessTokenSecret}",
+                !string.IsNullOrWhiteSpace(_config.XConsumerKey),
+                !string.IsNullOrWhiteSpace(_config.XConsumerSecret),
+                !string.IsNullOrWhiteSpace(_config.XUserAccessToken),
+                !string.IsNullOrWhiteSpace(_config.XUserAccessTokenSecret));
+            return new XMediaUploadResult(null, new XApiFailure(false, null, "Missing OAuth 1.0a media credentials", null, null, null));
+        }
+
         using var form = new MultipartFormDataContent();
         var streamContent = new StreamContent(content);
         streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
         form.Add(streamContent, "media", "media");
 
         _log.LogInformation(
-            "X media upload started with contentType {ContentType}. AuthMode=OAuth2 Bearer. HasRefreshToken={HasRefreshToken}",
+            "X media upload started with contentType {ContentType}. AuthMode=OAuth1 user context. HasRefreshToken={HasRefreshToken}",
             contentType,
             !string.IsNullOrWhiteSpace(_config.XRefreshToken));
 
         using var req = new HttpRequestMessage(HttpMethod.Post, MediaUploadEndpoint);
-        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        req.Headers.TryAddWithoutValidation("Authorization", BuildOAuth1AuthorizationHeader(
+            HttpMethod.Post,
+            MediaUploadEndpoint,
+            oauth1.Value.ConsumerKey,
+            oauth1.Value.ConsumerSecret,
+            oauth1.Value.AccessToken,
+            oauth1.Value.AccessTokenSecret));
         req.Content = form;
 
         var res = await _http.SendAsync(req);
@@ -319,6 +338,112 @@ public class XApiClient
         {
             _refreshLock.Release();
         }
+    }
+
+    private (string ConsumerKey, string ConsumerSecret, string AccessToken, string AccessTokenSecret)? GetOAuth1MediaCredentials()
+    {
+        var consumerKey = _config.XConsumerKey?.Trim();
+        var consumerSecret = _config.XConsumerSecret?.Trim();
+        var accessToken = _config.XUserAccessToken?.Trim();
+        var accessTokenSecret = _config.XUserAccessTokenSecret?.Trim();
+
+        if (string.IsNullOrWhiteSpace(consumerKey) ||
+            string.IsNullOrWhiteSpace(consumerSecret) ||
+            string.IsNullOrWhiteSpace(accessToken) ||
+            string.IsNullOrWhiteSpace(accessTokenSecret))
+            return null;
+
+        return (consumerKey, consumerSecret, accessToken, accessTokenSecret);
+    }
+
+    private static string BuildOAuth1AuthorizationHeader(
+        HttpMethod method,
+        string url,
+        string consumerKey,
+        string consumerSecret,
+        string accessToken,
+        string accessTokenSecret,
+        IReadOnlyDictionary<string, string>? additionalParameters = null)
+    {
+        var uri = new Uri(url);
+        var oauthParameters = new SortedDictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["oauth_consumer_key"] = consumerKey,
+            ["oauth_nonce"] = Guid.NewGuid().ToString("N"),
+            ["oauth_signature_method"] = "HMAC-SHA1",
+            ["oauth_timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+            ["oauth_token"] = accessToken,
+            ["oauth_version"] = "1.0"
+        };
+
+        if (additionalParameters is not null)
+        {
+            foreach (var pair in additionalParameters)
+                oauthParameters[pair.Key] = pair.Value;
+        }
+
+        var signature = CreateOAuth1Signature(
+            method.Method,
+            uri,
+            oauthParameters,
+            consumerSecret,
+            accessTokenSecret);
+        oauthParameters["oauth_signature"] = signature;
+
+        var headerValue = string.Join(", ",
+            oauthParameters
+                .Where(kv => kv.Key.StartsWith("oauth_", StringComparison.Ordinal))
+                .Select(kv => $"{PercentEncode(kv.Key)}=\"{PercentEncode(kv.Value)}\""));
+
+        return $"OAuth {headerValue}";
+    }
+
+    private static string CreateOAuth1Signature(
+        string httpMethod,
+        Uri uri,
+        SortedDictionary<string, string> oauthParameters,
+        string consumerSecret,
+        string accessTokenSecret)
+    {
+        var allParameters = new List<KeyValuePair<string, string>>();
+
+        if (!string.IsNullOrWhiteSpace(uri.Query))
+        {
+            var query = uri.Query.TrimStart('?')
+                .Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var pair in query)
+            {
+                var parts = pair.Split('=', 2);
+                var key = Uri.UnescapeDataString(parts[0]);
+                var value = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty;
+                allParameters.Add(new KeyValuePair<string, string>(key, value));
+            }
+        }
+
+        allParameters.AddRange(oauthParameters.Select(kv => new KeyValuePair<string, string>(kv.Key, kv.Value)));
+
+        var normalizedParameters = string.Join("&",
+            allParameters
+                .OrderBy(kv => PercentEncode(kv.Key), StringComparer.Ordinal)
+                .ThenBy(kv => PercentEncode(kv.Value), StringComparer.Ordinal)
+                .Select(kv => $"{PercentEncode(kv.Key)}={PercentEncode(kv.Value)}"));
+
+        var normalizedUrl = $"{uri.Scheme}://{uri.Host}{(uri.IsDefaultPort ? "" : ":" + uri.Port)}{uri.AbsolutePath}";
+        var signatureBaseString =
+            $"{httpMethod.ToUpperInvariant()}&{PercentEncode(normalizedUrl)}&{PercentEncode(normalizedParameters)}";
+
+        var signingKey = $"{PercentEncode(consumerSecret)}&{PercentEncode(accessTokenSecret)}";
+        using var hmac = new HMACSHA1(Encoding.ASCII.GetBytes(signingKey));
+        var hash = hmac.ComputeHash(Encoding.ASCII.GetBytes(signatureBaseString));
+        return Convert.ToBase64String(hash);
+    }
+
+    private static string PercentEncode(string value)
+    {
+        return Uri.EscapeDataString(value ?? string.Empty)
+            .Replace("+", "%20", StringComparison.Ordinal)
+            .Replace("*", "%2A", StringComparison.Ordinal)
+            .Replace("%7E", "~", StringComparison.Ordinal);
     }
 
     private static XApiFailure BuildFailure(
