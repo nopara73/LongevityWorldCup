@@ -8,7 +8,9 @@ public class ThreadsApiClient
     private const string CreateThreadEndpoint = "https://graph.threads.net/me/threads";
     private const string PublishThreadEndpoint = "https://graph.threads.net/me/threads_publish";
     private const string RefreshAccessTokenEndpoint = "https://graph.threads.net/refresh_access_token";
+    private const string ContainerFields = "id,status,error_message";
     private const int MaxTextLength = 500;
+    private static readonly int[] ContainerReadyPollDelaysMs = [1000, 2000, 3000, 5000, 5000, 10000, 10000, 15000];
 
     private readonly HttpClient _http;
     private readonly Config _config;
@@ -66,7 +68,7 @@ public class ThreadsApiClient
             var creation = await CreateTextContainerAsync(text, token);
             if (creation.Success && !string.IsNullOrWhiteSpace(creation.Id))
             {
-                var publish = await PublishContainerAsync(creation.Id, token);
+                var publish = await PublishCreatedContainerAsync(creation.Id, token);
                 if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
                     return publish.Id;
 
@@ -136,7 +138,7 @@ public class ThreadsApiClient
                     text.Length,
                     imageUrl);
 
-                var publish = await PublishContainerAsync(creation.Id, token);
+                var publish = await PublishCreatedContainerAsync(creation.Id, token);
                 if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
                     return publish.Id;
 
@@ -242,7 +244,71 @@ public class ThreadsApiClient
         return (false, null, false);
     }
 
-    private async Task<(bool Success, string? Id, bool ShouldRefreshToken)> PublishContainerAsync(string creationId, string token)
+    private async Task<(bool Success, string? Id, bool ShouldRefreshToken)> PublishCreatedContainerAsync(string creationId, string token)
+    {
+        var ready = await WaitForContainerReadyAsync(creationId, token);
+        if (!ready.IsReady)
+        {
+            if (ready.ShouldRefreshToken)
+                return (false, null, true);
+
+            return (false, null, false);
+        }
+
+        var publish = await PublishContainerAsync(creationId, token);
+        if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
+            return (true, publish.Id, false);
+
+        if (publish.ShouldRefreshToken)
+            return (false, null, true);
+
+        return (false, null, false);
+    }
+
+    private async Task<(bool IsReady, bool ShouldRefreshToken)> WaitForContainerReadyAsync(string creationId, string token)
+    {
+        for (var attempt = 0; attempt <= ContainerReadyPollDelaysMs.Length; attempt++)
+        {
+            var status = await GetContainerStatusAsync(creationId, token);
+            if (status.ShouldRefreshToken)
+                return (false, true);
+
+            if (status.IsFinished)
+                return (true, false);
+
+            if (status.IsError)
+            {
+                _log.LogError(
+                    "Threads container {CreationId} entered error state before publish. Status={Status} ErrorMessage={ErrorMessage}",
+                    creationId,
+                    status.Status,
+                    status.ErrorMessage);
+                return (false, false);
+            }
+
+            if (attempt >= ContainerReadyPollDelaysMs.Length)
+            {
+                _log.LogWarning(
+                    "Threads container {CreationId} did not reach FINISHED before timeout. LastStatus={Status} ErrorMessage={ErrorMessage}",
+                    creationId,
+                    status.Status,
+                    status.ErrorMessage);
+                return (false, false);
+            }
+
+            var delayMs = ContainerReadyPollDelaysMs[attempt];
+            _log.LogInformation(
+                "Threads container {CreationId} not ready yet. Status={Status}. Polling again in {DelayMs}ms.",
+                creationId,
+                status.Status,
+                delayMs);
+            await Task.Delay(delayMs);
+        }
+
+        return (false, false);
+    }
+
+    private async Task<(bool Success, string? Id, bool ShouldRefreshToken, string? ErrorBody)> PublishContainerAsync(string creationId, string token)
     {
         using var req = new HttpRequestMessage(HttpMethod.Post, PublishThreadEndpoint);
         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
@@ -257,23 +323,62 @@ public class ThreadsApiClient
         if (!res.IsSuccessStatusCode)
         {
             _log.LogError("Threads publish failed for creationId {CreationId}: {StatusCode} {Body}", creationId, res.StatusCode, json);
-            return (false, null, ShouldRefreshToken(res.StatusCode, json));
+            return (false, null, ShouldRefreshToken(res.StatusCode, json), json);
         }
 
         try
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("id", out var idEl))
-                return (true, idEl.GetString(), false);
+                return (true, idEl.GetString(), false, null);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Threads publish response parse failed: {Json}", json);
-            return (false, null, false);
+            return (false, null, false, json);
         }
 
         _log.LogWarning("Threads publish returned no id.");
-        return (false, null, false);
+        return (false, null, false, json);
+    }
+
+    private async Task<(bool IsFinished, bool IsError, bool ShouldRefreshToken, string? Status, string? ErrorMessage)> GetContainerStatusAsync(string creationId, string token)
+    {
+        var url = $"https://graph.threads.net/{Uri.EscapeDataString(creationId)}?fields={Uri.EscapeDataString(ContainerFields)}";
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var res = await _http.SendAsync(req);
+        var json = await res.Content.ReadAsStringAsync();
+
+        if (!res.IsSuccessStatusCode)
+        {
+            _log.LogError("Threads container status check failed for creationId {CreationId}: {StatusCode} {Body}", creationId, res.StatusCode, json);
+            return (false, false, ShouldRefreshToken(res.StatusCode, json), null, null);
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var status = root.TryGetProperty("status", out var statusEl) ? statusEl.GetString() : null;
+            var errorMessage = root.TryGetProperty("error_message", out var errorEl) ? errorEl.GetString() : null;
+
+            var normalizedStatus = (status ?? "").Trim();
+
+            var isFinished = string.Equals(normalizedStatus, "FINISHED", StringComparison.OrdinalIgnoreCase);
+
+            var isError =
+                string.Equals(normalizedStatus, "ERROR", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "EXPIRED", StringComparison.OrdinalIgnoreCase);
+
+            return (isFinished, isError, false, status, errorMessage);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Threads container status response parse failed for creationId {CreationId}: {Json}", creationId, json);
+            return (false, false, false, null, null);
+        }
     }
 
     private string? GetAccessToken()
@@ -365,4 +470,5 @@ public class ThreadsApiClient
                responseBody.Contains("Error validating access token", StringComparison.OrdinalIgnoreCase) ||
                responseBody.Contains("Session has expired", StringComparison.OrdinalIgnoreCase);
     }
+
 }
