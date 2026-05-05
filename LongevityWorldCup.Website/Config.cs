@@ -29,6 +29,10 @@ namespace LongevityWorldCup.Website
         public string? XApiSecret { get; set; }
         public string? XAccessToken { get; set; }
         public string? XRefreshToken { get; set; }
+        public string? XConsumerKey { get; set; }
+        public string? XConsumerSecret { get; set; }
+        public string? XUserAccessToken { get; set; }
+        public string? XUserAccessTokenSecret { get; set; }
 
         public string? ThreadsAppId { get; set; }
         public string? ThreadsAppSecret { get; set; }

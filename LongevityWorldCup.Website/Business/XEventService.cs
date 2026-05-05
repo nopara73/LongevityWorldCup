@@ -205,9 +205,16 @@ public class XEventService
             return false;
         }
 
-        var mediaId = await _x.UploadMediaAsync(imageStream, "image/png");
-        if (string.IsNullOrWhiteSpace(mediaId))
+        var upload = await _x.UploadMediaDetailedAsync(imageStream, "image/png");
+        if (string.IsNullOrWhiteSpace(upload.MediaId))
         {
+            if (upload.Failure is { Retryable: false })
+            {
+                throw new NonRetryableCustomEventDispatchException(
+                    $"X custom event media upload failed permanently for event {eventId}. " +
+                    $"StatusCode={upload.Failure.StatusCode} Summary={upload.Failure.Summary}");
+            }
+
             _log.LogWarning("X custom event media upload returned no media id for event {EventId}.", eventId);
             return false;
         }
@@ -215,10 +222,10 @@ public class XEventService
         _log.LogInformation(
             "X custom event {EventId} sending image post with mediaId {MediaId} and postLength {PostLength}",
             eventId,
-            mediaId,
+            upload.MediaId,
             plan.PostText.Length);
 
-        return await TrySendAsync(plan.PostText, new[] { mediaId });
+        return await TrySendAsync(plan.PostText, new[] { upload.MediaId });
     }
 
     private string SlugToName(string slug)

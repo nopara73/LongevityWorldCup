@@ -30,6 +30,17 @@ public enum EventType
     SeasonFinalResult = 7
 }
 
+public sealed class NonRetryableCustomEventDispatchException : Exception
+{
+    public NonRetryableCustomEventDispatchException(string message) : base(message)
+    {
+    }
+
+    public NonRetryableCustomEventDispatchException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
+}
+
 public sealed class EventDataService : IDisposable
 {
     private const double DefaultRelevanceJoined = 5d;
@@ -317,9 +328,20 @@ public sealed class EventDataService : IDisposable
                 rawText?.Length ?? 0);
 
             var sent = false;
+            var terminalFailure = false;
             try
             {
                 sent = trySend(id, rawText ?? "", visibleOnWebsite);
+            }
+            catch (NonRetryableCustomEventDispatchException ex)
+            {
+                _log.LogWarning(
+                    ex,
+                    "Immediate custom event send failed permanently for platform column {ProcessedColumn} and event {EventId}.",
+                    processedColumn,
+                    id);
+                terminalFailure = true;
+                sent = false;
             }
             catch (Exception ex)
             {
@@ -334,6 +356,14 @@ public sealed class EventDataService : IDisposable
                 sent);
 
             if (sent)
+            {
+                FinalizeClaimedCustomEvent(processedColumn, id, succeeded: true);
+                lock (_retryCountLock)
+                {
+                    _customEventRetryCount.Remove(retryKey);
+                }
+            }
+            else if (terminalFailure)
             {
                 FinalizeClaimedCustomEvent(processedColumn, id, succeeded: true);
                 lock (_retryCountLock)
