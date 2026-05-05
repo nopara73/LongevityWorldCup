@@ -124,14 +124,9 @@ static async Task<(string ClientId, string ClientSecret, string AccessToken, str
     Console.WriteLine();
     TryOpenBrowser(authFull);
 
-    var context = await listener.GetContextAsync();
+    var context = await WaitForExpectedCallbackAsync(listener, OAuth2CallbackPath);
     var request = context.Request;
     var response = context.Response;
-    if (!string.Equals(request.Url?.AbsolutePath, OAuth2CallbackPath, StringComparison.OrdinalIgnoreCase))
-    {
-        await WriteResponseAsync(response, 400, "Unexpected callback path for OAuth 2.0.");
-        return null;
-    }
 
     var parsed = ParseQueryString(request.Url?.Query?.TrimStart('?') ?? "");
     parsed.TryGetValue("code", out var code);
@@ -223,14 +218,9 @@ static async Task<(string ConsumerKey, string ConsumerSecret, string AccessToken
     Console.WriteLine();
     TryOpenBrowser(authorizeUrl);
 
-    var context = await listener.GetContextAsync();
+    var context = await WaitForExpectedCallbackAsync(listener, OAuth1CallbackPath);
     var request = context.Request;
     var response = context.Response;
-    if (!string.Equals(request.Url?.AbsolutePath, OAuth1CallbackPath, StringComparison.OrdinalIgnoreCase))
-    {
-        await WriteResponseAsync(response, 400, "Unexpected callback path for OAuth 1.0a.");
-        return null;
-    }
 
     var parsed = ParseQueryString(request.Url?.Query?.TrimStart('?') ?? "");
     parsed.TryGetValue("oauth_token", out var returnedRequestToken);
@@ -300,6 +290,30 @@ static Dictionary<string, string> ParseQueryString(string qs)
         d[k] = v;
     }
     return d;
+}
+
+static async Task<HttpListenerContext> WaitForExpectedCallbackAsync(HttpListener listener, string expectedPath)
+{
+    while (true)
+    {
+        var context = await listener.GetContextAsync();
+        var path = context.Request.Url?.AbsolutePath ?? string.Empty;
+
+        if (string.Equals(path, expectedPath, StringComparison.OrdinalIgnoreCase))
+            return context;
+
+        if (string.Equals(path, "/favicon.ico", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = 204;
+            context.Response.Close();
+            continue;
+        }
+
+        await WriteResponseAsync(
+            context.Response,
+            404,
+            $"Unexpected callback path: {path}. Expected: {expectedPath}");
+    }
 }
 
 static byte[] RandomBytes(int n)

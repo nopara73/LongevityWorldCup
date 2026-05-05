@@ -19,18 +19,14 @@ See [XApiSetup.md](../LongevityWorldCup.Documentation/XApiSetup.md) for the full
 
 ```bash
 cd LongevityWorldCup.XOAuthHelper
-dotnet run -- \
-  --client-id <oauth2-client-id> \
-  --client-secret <oauth2-client-secret> \
-  --consumer-key <oauth1-consumer-key> \
-  --consumer-secret <oauth1-consumer-secret>
+dotnet run -- --client-id <oauth2-client-id> --client-secret <oauth2-client-secret> --consumer-key <oauth1-consumer-key> --consumer-secret <oauth1-consumer-secret>
 ```
 
 Example in PowerShell:
 
 ```powershell
 dotnet run -- `
-  --client-id $env:X_CLIENT_SECRET_ID `
+  --client-id $env:X_CLIENT_ID `
   --client-secret $env:X_CLIENT_SECRET `
   --consumer-key $env:X_CONSUMER_KEY `
   --consumer-secret $env:X_CONSUMER_SECRET
