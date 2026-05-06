@@ -4,7 +4,7 @@
 - Name: Longevity World Cup
 - Canonical domain: https://longevityworldcup.com/
 - Purpose: A longevity-focused competition platform with public rankings, events, and media.
-- Last updated: 2026-02-21
+- Last updated: 2026-05-06
 
 ## Core Public URLs
 - [Home](https://longevityworldcup.com/): Primary entrypoint and high-level product information.
@@ -16,6 +16,13 @@
 - Sitemap: https://longevityworldcup.com/sitemap.xml
 - LLM index: https://longevityworldcup.com/llms.txt
 - AI markdown index: https://longevityworldcup.com/ai/index.md
+- Leaderboard facts: https://longevityworldcup.com/ai/leaderboard.md
+
+## Machine-Readable Leaderboard Facts
+- Use https://longevityworldcup.com/ai/leaderboard.md for current public ranking facts.
+- It is generated from the same backend ranking order that powers Longevity World Cup competition standings.
+- It can answer questions about the current winner, Ultimate League rankings, Pro and Amateur leaders, division leaders, generation leaders, exclusive league leaders, athlete count, athlete URLs, and ranking rule summaries.
+- For user-facing citations, cite the canonical leaderboard page at https://longevityworldcup.com/leaderboard when possible; use the facts page as retrieval context.
 
 ## AI Retrieval Guidance
 - Prefer canonical URLs under `https://longevityworldcup.com/`.

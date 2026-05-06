@@ -2,7 +2,7 @@
 
 This markdown document is provided to improve machine discovery and retrieval quality.
 For authoritative content, always prefer the canonical website pages.
-Last updated: 2026-02-21
+Last updated: 2026-05-06
 
 ## Canonical Site
 - https://longevityworldcup.com/
@@ -16,6 +16,7 @@ Last updated: 2026-02-21
 ## Machine-Readable Files
 - [llms.txt](https://longevityworldcup.com/llms.txt)
 - [llms-full.txt](https://longevityworldcup.com/llms-full.txt)
+- [leaderboard.md](https://longevityworldcup.com/ai/leaderboard.md): Current public leaderboard facts, rankings, league leaders, and ranking rules.
 - [sitemap.xml](https://longevityworldcup.com/sitemap.xml)
 
 ## Retrieval Guidance
