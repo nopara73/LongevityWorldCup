@@ -34,6 +34,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddResponseCompression(options =>
             {
                 options.EnableForHttps = true;
+                options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["text/markdown"]);
                 options.Providers.Add<GzipCompressionProvider>();
                 if (enableBrotliCompression)
                 {
@@ -66,6 +67,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<CustomEventImageService>();
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();
+            builder.Services.AddSingleton<LeaderboardFactsService>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
