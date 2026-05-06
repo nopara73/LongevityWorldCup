@@ -504,15 +504,16 @@ $@"<script type=""module"">
         {
             leagueSlug = "";
             var requestPath = context.Request.Path.Value ?? "";
+            var canonicalPath = RouteCanonicalization.GetCanonicalPath(requestPath);
 
-            if (IsLeagueRoute(requestPath))
+            if (IsLeagueRoute(canonicalPath))
             {
-                var raw = requestPath["/league/".Length..].Trim('/');
+                var raw = canonicalPath["/league/".Length..].Trim('/');
                 return LeagueOgImageService.TryNormalizeLeagueSlug(raw, out leagueSlug);
             }
 
-            if (!string.Equals(requestPath, "/", StringComparison.Ordinal) &&
-                !string.Equals(requestPath, "/leaderboard", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(canonicalPath, "/", StringComparison.Ordinal) &&
+                !string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -529,7 +530,7 @@ $@"<script type=""module"">
                 }
             }
 
-            if (string.Equals(requestPath, "/leaderboard", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase))
             {
                 return LeagueOgImageService.TryNormalizeLeagueSlug("ultimate", out leagueSlug);
             }
