@@ -228,6 +228,14 @@
         background-color:rgba(240,244,248,.8);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
+    .events-board table tbody tr.custom-event-row.is-open:hover,
+    .events-board table tbody tr.custom-event-row.is-open.group-hover,
+    .events-board table tbody tr.custom-event-row.is-open:hover + tr.custom-event-details,
+    .events-board table tbody tr.custom-event-row.is-open + tr.custom-event-details:hover,
+    .events-board table tbody tr.custom-event-row.is-open:has(+ tr.custom-event-details:hover){
+        transform:none;
+        transition-property:box-shadow,background-color;
+    }
 
     .events-board tbody td{
         height:auto;
@@ -494,11 +502,9 @@
         max-height:0;
         opacity:0;
         overflow:hidden;
-        transform:translateY(-2px);
-        will-change:max-height,opacity,transform,padding;
+        will-change:max-height,opacity,padding;
         transition:
                 max-height .34s cubic-bezier(.2,.85,.2,1),
-                transform .34s cubic-bezier(.2,.85,.2,1),
                 padding .34s cubic-bezier(.2,.85,.2,1),
                 opacity .18s linear .16s;
     }
@@ -507,10 +513,8 @@
         padding:10px 0;
         max-height:1400px;
         opacity:1;
-        transform:translateY(0);
         transition:
                 max-height .34s cubic-bezier(.2,.85,.2,1),
-                transform .34s cubic-bezier(.2,.85,.2,1),
                 padding .34s cubic-bezier(.2,.85,.2,1),
                 opacity .18s linear;
     }

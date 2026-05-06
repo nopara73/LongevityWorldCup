@@ -469,7 +469,11 @@ $@"<script type=""module"">
                 return false;
             }
 
-            var canonicalPath = $"/league/{payload.RouteSlug}";
+            var requestCanonicalPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
+            var canonicalPath = string.Equals(requestCanonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
+                                string.Equals(payload.InternalSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
+                ? "/leaderboard"
+                : $"/league/{payload.RouteSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var title = $"{payload.DisplayName} | Longevity World Cup";
             var top3Text = payload.Top3Names.Count > 0
