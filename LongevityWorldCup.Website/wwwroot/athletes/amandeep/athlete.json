@@ -1,0 +1,28 @@
+{
+  "Name": "Amandeep",
+  "DisplayName": null,
+  "MediaContact": "amandeep.bathla@gmail.com",
+  "DateOfBirth": {
+    "Year": 1980,
+    "Month": 12,
+    "Day": 7
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-24",
+      "AlbGL": 43.8,
+      "CreatUmolL": 75.22,
+      "GluMmolL": 5.18,
+      "CrpMgL": 1.16,
+      "LymPc": 36.3,
+      "McvFL": 89.9,
+      "RdwPc": 13.1,
+      "AlpUL": 48.1,
+      "Wbc1000cellsuL": 3.77
+    }
+  ],
+  "Division": "Open",
+  "Flag": "India",
+  "Why": "I believe in the saying that life meets you at your level of audacity",
+  "PersonalLink": "https://www.linkedin.com/in/amanbathla"
+}
