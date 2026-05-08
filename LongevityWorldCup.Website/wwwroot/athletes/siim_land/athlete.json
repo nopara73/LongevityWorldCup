@@ -1,0 +1,41 @@
+{
+  "Name": "Siim Land",
+  "DisplayName": null,
+  "MediaContact": "info@siimland.com",
+  "DateOfBirth": {
+    "Year": 1994,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-05-05",
+      "AlbGL": 48,
+      "CreatUmolL": 84.07,
+      "GluMmolL": 4.28,
+      "CrpMgL": 0.1,
+      "LymPc": 50.6,
+      "McvFL": 88.1,
+      "RdwPc": 11.9,
+      "AlpUL": 52.12,
+      "Wbc1000cellsuL": 4.4,
+      "NeutrophilPc": 42.3,
+      "MonocytePc": 2.9,
+      "Rbc10e12L": 4.9,
+      "MchPg": 28.1,
+      "UreaMmolL": 6.07,
+      "CystatinCMgL": 0.6,
+      "Hba1cMmolMol": 25.68,
+      "CholesterolMmolL": 4.42,
+      "ApoA1GL": 1.67,
+      "AltUL": 16.6,
+      "GgtUL": 11.3,
+      "ShbgNmolL": 33,
+      "VitaminDNmolL": 136.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Estonia",
+  "Why": "I want to see humans solve the hardest problems in history, such as aging and longevity.",
+  "PersonalLink": "https://www.youtube.com/c/siimland"
+}
