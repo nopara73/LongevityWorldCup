@@ -18,11 +18,24 @@
       "McvFL": 89.9,
       "RdwPc": 13.1,
       "AlpUL": 48.1,
-      "Wbc1000cellsuL": 3.77
+      "Wbc1000cellsuL": 3.77,
+      "NeutrophilPc": 55.4,
+      "MonocytePc": 5.6,
+      "Rbc10e12L": 4.67,
+      "MchPg": 30.6,
+      "UreaMmolL": 4.07,
+      "CystatinCMgL": 0.85,
+      "Hba1cMmolMol": 33.33,
+      "CholesterolMmolL": 6.75,
+      "ApoA1GL": 1.48,
+      "AltUL": 18.9,
+      "GgtUL": 10.5,
+      "ShbgNmolL": 25.4,
+      "VitaminDNmolL": 181.75
     }
   ],
   "Division": "Open",
   "Flag": "India",
-  "Why": "I believe in the saying that life meets you at your level of audacity",
+  "Why": "Life meets you at your level of audacity",
   "PersonalLink": "https://www.linkedin.com/in/amanbathla"
 }
