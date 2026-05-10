@@ -252,9 +252,8 @@
     .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
     .sidebar-toggle:hover i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state::after{
-        content:attr(data-active-count); position:absolute; top:-7px; right:-7px; min-width:18px; height:18px; padding:0 4px; border-radius:999px;
-        background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
-        color:var(--card-bg); font-size:.68rem; font-weight:700; line-height:14px; text-align:center;
+        content:''; position:absolute; top:-4px; right:-4px; width:12px; height:12px; border-radius:50%;
+        background:#e53935; border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
     }
 
     .sidebar-close{
@@ -281,7 +280,7 @@
     .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; position:relative; }
     .sidebar.has-active-state .sidebar-title .sidebar-icon::after{
         content:''; position:absolute; top:0; right:-4px; width:12px; height:12px; border-radius:50%;
-        background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
+        background:#e53935; border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
     }
     .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:2rem; }
     .sidebar:hover .sidebar-title .sidebar-title-text,
@@ -3031,25 +3030,10 @@
     }
 
     function hasActiveLeaderboardFilterState() {
-        return getActiveLeaderboardFilterGroupCount() > 0;
-    }
-
-    function getActiveLeaderboardFilterGroupCount() {
-        const hasSelectedDivisions = document.querySelectorAll('input[name="division"]:checked').length > 0;
-        const hasSelectedGenerations = document.querySelectorAll('input[name="generation"]:checked').length > 0;
-        const hasSelectedExclusiveLeagues = document.querySelectorAll('input[name="exclusiveLeague"]:checked').length > 0;
-        const hasSelectedTrack = document.querySelectorAll('input[name="leagueTrack"]:checked').length === 1;
+        const hasCheckedFilters = document.querySelector('input[name="division"]:checked, input[name="generation"]:checked, input[name="exclusiveLeague"]:checked, input[name="leagueTrack"]:checked');
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
-        const hasSelectedAgingClock = currentLeaderboardView !== 'ultimate';
-
-        return [
-            hasSelectedAgingClock,
-            hasSelectedTrack,
-            hasSelectedDivisions,
-            hasSelectedGenerations,
-            hasSelectedExclusiveLeagues
-        ].filter(Boolean).length;
+        return !!hasCheckedFilters || currentLeaderboardView !== 'ultimate';
     }
 
     function syncAgingClockFilters(currentLeaderboardView) {
@@ -3076,15 +3060,9 @@
         const sidebarToggle = document.querySelector('.sidebar-toggle');
         const sidebar = document.querySelector('.sidebar');
 
-        const activeGroupCount = getActiveLeaderboardFilterGroupCount();
-        const hasActiveState = activeGroupCount > 0;
+        const hasActiveState = hasActiveLeaderboardFilterState();
         if (sidebarToggle) {
             sidebarToggle.classList.toggle('has-active-state', hasActiveState);
-            if (hasActiveState) {
-                sidebarToggle.dataset.activeCount = String(activeGroupCount);
-            } else {
-                delete sidebarToggle.dataset.activeCount;
-            }
         }
         if (sidebar) {
             sidebar.classList.toggle('has-active-state', hasActiveState);
