@@ -23,6 +23,23 @@
     .highlight{ background-color: rgba(255,255,0,.5); color:#000; }
     .fade-out{ opacity:0; transition:opacity .4s ease; }
     .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
+    .leaderboard table tbody tr.no-results{ cursor:default; }
+    .leaderboard table tbody tr.no-results:hover{ transform:none; box-shadow:none; }
+    .leaderboard table tbody tr.no-results td{ cursor:default; }
+    .no-results-empty-state{ display:flex; flex-direction:column; align-items:center; gap:.65rem; padding:1.25rem 1rem; }
+    .no-results-empty-state p{ margin:0; }
+    .show-all-athletes-btn{
+        border:1px solid var(--primary-color); border-radius:4px; background:transparent; color:var(--primary-color);
+        font:inherit; font-size:.9rem; font-weight:700; padding:.35rem .7rem; cursor:pointer; transform:none !important;
+        appearance:none; -webkit-appearance:none; box-shadow:none;
+        transition:border-color .2s ease, color .2s ease;
+    }
+    .show-all-athletes-btn:hover,
+    .show-all-athletes-btn:active,
+    .show-all-athletes-btn:focus{
+        background:transparent; color:var(--secondary-color); border-color:var(--secondary-color);
+        outline:none; box-shadow:none; transform:none !important; font:inherit; font-size:.9rem; font-weight:700;
+    }
     #comingSoon{ font-size:.5rem; font-weight:normal; }
 
     /* Common transition for table rows and podium items */
@@ -302,6 +319,19 @@
     .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:2rem; }
     .sidebar:hover .sidebar-title .sidebar-title-text,
     .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
+    .clear-sidebar-filters{
+        display:none; align-items:center; gap:.25rem; margin:.6rem 0 1rem; padding:0; color:#777;
+        font-size:.85rem; font-weight:700; cursor:pointer; line-height:1.2;
+    }
+    .clear-sidebar-filters .clear-sidebar-filters-icon{
+        display:inline-block; width:.85rem; color:inherit; font-size:.85rem; line-height:1; text-align:center; vertical-align:-.05em;
+    }
+    .clear-sidebar-filters:hover,
+    .clear-sidebar-filters:focus,
+    .clear-sidebar-filters:active{ color:#777; outline:none; }
+    .clear-sidebar-filters[hidden]{ display:none !important; }
+    .sidebar.has-active-state:hover .clear-sidebar-filters,
+    .sidebar.has-active-state.expanded .clear-sidebar-filters{ display:inline-flex; }
 
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
@@ -1086,6 +1116,10 @@
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
+                <span class="clear-sidebar-filters" id="clearSidebarFiltersBtn" role="button" tabindex="0" hidden>
+                    <i class="fa fa-times clear-sidebar-filters-icon" aria-hidden="true"></i>
+                    <span>Clear filters</span>
+                </span>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="filter-section" id="aging-clock-filter-section">
                     <h3>Aging Clocks</h3>
@@ -3121,6 +3155,34 @@
         if (sidebar) {
             sidebar.classList.toggle('has-active-state', hasActiveState);
         }
+        const clearFiltersButton = document.getElementById('clearSidebarFiltersBtn');
+        if (clearFiltersButton) {
+            clearFiltersButton.hidden = !hasActiveState;
+        }
+    }
+
+    function clearSidebarFilters() {
+        document.querySelectorAll('input[name="division"], input[name="generation"], input[name="exclusiveLeague"], input[name="leagueTrack"]').forEach(input => {
+            input.checked = false;
+        });
+
+        const ultimateView = document.getElementById('view-ultimate');
+        if (ultimateView) {
+            ultimateView.checked = true;
+        }
+
+        performFilter();
+    }
+
+    function showAllAthletes() {
+        const searchInput = document.getElementById('athleteSearch');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        document.querySelector('.clear-icon')?.classList.remove('visible');
+        window.removeAllHighlights();
+        clearSidebarFilters();
     }
 
     window.getFullLeaderboardUrlWithCurrentState = function () {
@@ -3646,20 +3708,17 @@
         const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
 
         if (!anyVisible) {
-            if (query.trim() !== '') {
-                const tableBody = document.querySelector('.leaderboard table tbody');
-                const noResults = document.createElement('tr');
-                noResults.classList.add('no-results');
-                noResults.innerHTML = `<td colspan="6">No results found for "<strong>${window.escapeHTML(query)}</strong>".</td>`;
-                tableBody.appendChild(noResults);
-            }
-            else {
-                const tableBody = document.querySelector('.leaderboard table tbody');
-                const noResults = document.createElement('tr');
-                noResults.classList.add('no-results');
-                noResults.innerHTML = `<td colspan="6">It looks like no athletes have joined this league yet.</td>`;
-                tableBody.appendChild(noResults);
-            }
+            const tableBody = document.querySelector('.leaderboard table tbody');
+            const noResults = document.createElement('tr');
+            noResults.classList.add('no-results');
+            noResults.innerHTML = `
+                <td colspan="6">
+                    <div class="no-results-empty-state">
+                        <p>No athletes match this leaderboard.</p>
+                        <button type="button" class="show-all-athletes-btn">Show all athletes</button>
+                    </div>
+                </td>`;
+            tableBody.appendChild(noResults);
         }
     }
 
@@ -3705,6 +3764,26 @@
             event.preventDefault();
             clearSearch();
         }
+    });
+
+    const clearSidebarFiltersButton = document.getElementById('clearSidebarFiltersBtn');
+    clearSidebarFiltersButton?.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        clearSidebarFilters();
+    });
+    clearSidebarFiltersButton?.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+            event.preventDefault();
+            event.stopPropagation();
+            clearSidebarFilters();
+        }
+    });
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.show-all-athletes-btn')) return;
+
+        event.preventDefault();
+        showAllAthletes();
     });
 
     document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
