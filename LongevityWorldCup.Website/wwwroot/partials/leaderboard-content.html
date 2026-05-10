@@ -23,10 +23,44 @@
     .highlight{ background-color: rgba(255,255,0,.5); color:#000; }
     .fade-out{ opacity:0; transition:opacity .4s ease; }
     .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
+    .leaderboard table tbody tr.no-results{ cursor:default; }
+    .leaderboard table tbody tr.no-results:hover{ transform:none; box-shadow:none; }
+    .leaderboard table tbody tr.no-results td{ cursor:default; }
+    .no-results-empty-state{ display:flex; flex-direction:column; align-items:center; gap:.65rem; padding:1.25rem 1rem; }
+    .no-results-empty-state p{ margin:0; }
+    .show-all-athletes-btn{
+        border:1px solid var(--primary-color); border-radius:4px; background:transparent; color:var(--primary-color);
+        font:inherit; font-size:.9rem; font-weight:700; padding:.35rem .7rem; cursor:pointer; transform:none !important;
+        appearance:none; -webkit-appearance:none; box-shadow:none;
+        transition:border-color .2s ease, color .2s ease;
+    }
+    .show-all-athletes-btn:hover,
+    .show-all-athletes-btn:active,
+    .show-all-athletes-btn:focus{
+        background:transparent; color:var(--secondary-color); border-color:var(--secondary-color);
+        outline:none; box-shadow:none; transform:none !important; font:inherit; font-size:.9rem; font-weight:700;
+    }
     #comingSoon{ font-size:.5rem; font-weight:normal; }
 
     /* Common transition for table rows and podium items */
     .leaderboard table tbody tr, .podium-item{ transition:opacity .3s ease, transform .3s ease; }
+    .leaderboard table tbody tr.fade-in{ animation:filterRowFade .22s ease-out both; }
+    .podium-item.fade-in{ animation:filterPodiumFade .22s ease-out both; }
+
+    @keyframes filterRowFade{
+        from{ opacity:.82; }
+        to{ opacity:1; }
+    }
+
+    @keyframes filterPodiumFade{
+        from{ opacity:.82; transform:translateY(1px); }
+        to{ opacity:1; transform:translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+        .leaderboard table tbody tr.fade-in,
+        .podium-item.fade-in{ animation:none; }
+    }
 
     /* =========================
        3) Global layout / shell
@@ -244,13 +278,17 @@
     .sidebar.partially-expanded{ width:80px; }
     .sidebar-toggle{
         background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:40px; height:40px;
-        display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color .3s ease, transform .3s ease; margin-right:1rem;
+        display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color .3s ease, border-color .3s ease, box-shadow .3s ease, transform .3s ease; margin-right:1rem; position:relative;
     }
     .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
     .sidebar-toggle.active i{ color:var(--card-bg); }
     .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
     .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
     .sidebar-toggle:hover i{ color:var(--card-bg); }
+    .sidebar-toggle.has-active-state::after{
+        content:''; position:absolute; top:-4px; right:-4px; width:12px; height:12px; border-radius:50%;
+        background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
+    }
 
     .sidebar-close{
         display:none; background:none; border:none; font-size:1.5rem; color:var(--primary-color); cursor:pointer;
@@ -273,20 +311,41 @@
         margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color);
         display:flex; align-items:center; justify-content:left; border-bottom:2px solid var(--primary-color);
     }
-    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; }
+    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; position:relative; }
+    .sidebar.has-active-state .sidebar-title .sidebar-icon::after{
+        content:''; position:absolute; top:0; right:-4px; width:12px; height:12px; border-radius:50%;
+        background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
+    }
     .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:2rem; }
     .sidebar:hover .sidebar-title .sidebar-title-text,
     .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
+    .clear-sidebar-filters{
+        display:none; align-items:center; gap:.25rem; margin:.6rem 0 1rem; padding:0; color:#777;
+        font-size:.85rem; font-weight:700; cursor:pointer; line-height:1.2;
+    }
+    .clear-sidebar-filters .clear-sidebar-filters-icon{
+        display:inline-block; width:.85rem; color:inherit; font-size:.85rem; line-height:1; text-align:center; vertical-align:-.05em;
+    }
+    .clear-sidebar-filters:hover,
+    .clear-sidebar-filters:focus,
+    .clear-sidebar-filters:active{ color:#777; outline:none; }
+    .clear-sidebar-filters[hidden]{ display:none !important; }
+    .sidebar.has-active-state:hover .clear-sidebar-filters,
+    .sidebar.has-active-state.expanded .clear-sidebar-filters{ display:inline-flex; }
 
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
     .filter-section{ margin-bottom:1.5rem; }
-    .filter-section h3{ margin-bottom:.5rem; color:var(--secondary-color); font-size:1.2rem; }
+    .filter-section h3{ margin-bottom:.5rem; color:var(--primary-color); font-size:1.2rem; transition:color .2s ease; }
+    .filter-section.has-active-filter h3{ color:var(--secondary-color); }
     .filter-section ul{ list-style:none; padding:0; }
     .filter-section li{ margin-bottom:.5rem; }
     .filter-section label{ display:flex; align-items:center; cursor:pointer; color:#555; transition:color .2s; }
+    .filter-section label.is-zero-count:not(.active){ opacity:.55; cursor:default; }
+    .filter-section label.is-zero-count:not(.active) input[type="checkbox"]{ pointer-events:none; }
     .filter-section input[type="checkbox"]{ margin-right:.5rem; accent-color:var(--primary-color); }
     .filter-section label:hover{ color:var(--primary-color); }
+    .filter-section label.active{ font-weight:bold; color:var(--secondary-color); }
     .filter-section input[type="checkbox"]:checked + label{ font-weight:bold; color:var(--secondary-color); }
 
     /* =========================
@@ -1057,9 +1116,30 @@
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
+                <span class="clear-sidebar-filters" id="clearSidebarFiltersBtn" role="button" tabindex="0" hidden>
+                    <i class="fa fa-times clear-sidebar-filters-icon" aria-hidden="true"></i>
+                    <span>Clear filters</span>
+                </span>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
+                <div class="filter-section" id="aging-clock-filter-section">
+                    <h3>Aging Clocks</h3>
+                    <ul>
+                        <li>
+                            <label data-aging-clock-view="bortz">
+                                <input type="checkbox" name="agingClockView" value="bortz">
+                                🩸 Bortz Age (<span class="filter-count">0</span>)
+                            </label>
+                        </li>
+                        <li>
+                            <label data-aging-clock-view="pheno">
+                                <input type="checkbox" name="agingClockView" value="pheno">
+                                🩸 Pheno Age (<span class="filter-count">0</span>)
+                            </label>
+                        </li>
+                    </ul>
+                </div>
                 <div class="filter-section" id="league-track-filter-section">
-                    <h3>Track</h3>
+                    <h3>Tracks</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
                 <div class="filter-section" id="division-filter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
@@ -1646,7 +1726,7 @@
                 // Array to store athletes with their lowest PhenoAge and age reduction
                 var viewAllAthletesBtn = document.getElementById('viewAllAthletesBtn');
                 if (viewAllAthletesBtn) {
-                    document.getElementById('viewAllAthletesBtn').textContent = `VIEW ALL ATHLETES (${athletes.length})`;
+                    updateViewAllAthletesButton(athletes.length);
                 }
                 athleteResults = athletes.map(athlete => {
                     // Calculate the chronological age from the athlete's DateOfBirth
@@ -1975,6 +2055,7 @@
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
                 generateLeagueTrackFilters(athleteResults);
+                updateFilterCounts(athleteResults);
 
                 // Sort the athletes by age reduction in ascending order
                 athleteResults.sort(window.compareAthleteRank);
@@ -3002,6 +3083,149 @@
         return !!hasCheckedFilters || currentLeaderboardView !== 'ultimate' || hasSearch;
     }
 
+    function hasActiveLeaderboardFilterState() {
+        const hasCheckedFilters = document.querySelector('input[name="division"]:checked, input[name="generation"]:checked, input[name="exclusiveLeague"]:checked, input[name="leagueTrack"]:checked');
+        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+        const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
+        return !!hasCheckedFilters || currentLeaderboardView !== 'ultimate';
+    }
+
+    function syncAgingClockFilters(currentLeaderboardView) {
+        document.querySelectorAll('input[name="agingClockView"]').forEach(input => {
+            const isActive = input.value === currentLeaderboardView;
+            input.checked = isActive;
+            input.closest('label')?.classList.toggle('active', isActive);
+        });
+    }
+
+    function updateActiveFilterSections() {
+        document.querySelectorAll('.filter-section input[type="checkbox"]').forEach(input => {
+            input.closest('label')?.classList.toggle('active', input.checked);
+        });
+
+        const sectionFilters = {
+            'aging-clock-filter-section': document.querySelectorAll('input[name="agingClockView"]:checked').length > 0,
+            'league-track-filter-section': document.querySelectorAll('input[name="leagueTrack"]:checked').length === 1,
+            'division-filter-section': document.querySelectorAll('input[name="division"]:checked').length > 0,
+            'generation-filter-section': document.querySelectorAll('input[name="generation"]:checked').length > 0,
+            'exclusive-filter-section': document.querySelectorAll('input[name="exclusiveLeague"]:checked').length > 0
+        };
+
+        Object.entries(sectionFilters).forEach(([sectionId, hasActiveFilter]) => {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+
+            section.classList.toggle('has-active-filter', hasActiveFilter);
+        });
+    }
+
+    function updateFilterCountLabel(label, count) {
+        const countSpan = label.querySelector('.filter-count');
+        if (countSpan) {
+            countSpan.textContent = count;
+        }
+
+        const input = label.querySelector('input[type="checkbox"]');
+        label.classList.toggle('is-zero-count', count === 0);
+        if (input) {
+            input.disabled = count === 0 && !input.checked;
+        }
+    }
+
+    function updateViewAllAthletesButton(count) {
+        const button = document.getElementById('viewAllAthletesBtn');
+        if (!button) return;
+
+        const hasResults = Number.isFinite(count) && count > 0;
+        const totalCount = Array.isArray(athleteResults) && athleteResults.length > 0 ? athleteResults.length : count;
+        const label = hasActiveLeaderboardState() && hasResults ? 'VIEW THIS LEADERBOARD' : 'VIEW ALL ATHLETES';
+        const displayCount = hasResults ? count : totalCount;
+        button.dataset.useDefaultLeaderboardUrl = hasResults ? 'false' : 'true';
+        button.textContent = Number.isFinite(displayCount) ? `${label} (${displayCount})` : label;
+    }
+
+    function updateLeaderboardStateIndicator() {
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const sidebar = document.querySelector('.sidebar');
+
+        const hasActiveState = hasActiveLeaderboardFilterState();
+        if (sidebarToggle) {
+            sidebarToggle.classList.toggle('has-active-state', hasActiveState);
+        }
+        if (sidebar) {
+            sidebar.classList.toggle('has-active-state', hasActiveState);
+        }
+        const clearFiltersButton = document.getElementById('clearSidebarFiltersBtn');
+        if (clearFiltersButton) {
+            clearFiltersButton.hidden = !hasActiveState;
+        }
+    }
+
+    function clearSidebarFilters() {
+        document.querySelectorAll('input[name="division"], input[name="generation"], input[name="exclusiveLeague"], input[name="leagueTrack"]').forEach(input => {
+            input.checked = false;
+        });
+
+        const ultimateView = document.getElementById('view-ultimate');
+        if (ultimateView) {
+            ultimateView.checked = true;
+        }
+
+        performFilter();
+    }
+
+    function showAllAthletes() {
+        const searchInput = document.getElementById('athleteSearch');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        document.querySelector('.clear-icon')?.classList.remove('visible');
+        window.removeAllHighlights();
+        clearSidebarFilters();
+    }
+
+    window.getFullLeaderboardUrlWithCurrentState = function () {
+        const button = document.getElementById('viewAllAthletesBtn');
+        if (button?.dataset.useDefaultLeaderboardUrl === 'true') {
+            return '/leaderboard';
+        }
+
+        const url = new URL('/leaderboard', window.location.origin);
+        const searchInput = document.getElementById('athleteSearch');
+        const searchQuery = searchInput ? searchInput.value.trim() : '';
+        if (searchQuery) {
+            url.searchParams.set('search', encodeURIComponent(searchQuery));
+        }
+
+        const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+        const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+        const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+        const selectedLeagueTracks = Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+
+        const filters = [
+            ...selectedDivisions,
+            ...selectedGenerations,
+            ...selectedExclusiveLeagues,
+            ...(selectedLeagueTracks.length === 1 ? selectedLeagueTracks : [])
+        ];
+        if (filters.length > 0) {
+            url.searchParams.set('filters', filters.join(','));
+        }
+
+        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+        const currentLeaderboardView = viewRadio ? viewRadio.value.toLowerCase() : 'ultimate';
+        if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno') {
+            url.searchParams.set('view', currentLeaderboardView);
+        }
+
+        return `${url.pathname}${url.search}${url.hash}`;
+    };
+
     function performFilter() {
         // Get selected divisions
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
@@ -3023,6 +3247,8 @@
         // Get leaderboard view (ultimate | bortz | pheno)
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
+        syncAgingClockFilters(currentLeaderboardView);
+        updateActiveFilterSections();
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
 
@@ -3119,6 +3345,7 @@
         const unslicedFilteredAthletes = filteredAthletes;
 
         filteredAthletes = filteredAthletes.slice(0, maxAthletesGlobal);
+        updateViewAllAthletesButton(unslicedFilteredAthletes.length);
 
         // Determine if filters are used (league track counts only when exactly one selected)
         const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
@@ -3170,6 +3397,7 @@
             const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
             if (item) {
                 item.style.display = '';
+                window.showWithDelay(item);
                 anyPodiumVisible = true;
             }
         });
@@ -3267,6 +3495,8 @@
         if (typeof AOS !== 'undefined') {
             AOS.refresh();
         }
+
+        updateLeaderboardStateIndicator();
 
         const url = new URL(window.location.href);
         url.hash = ""; // <- this line removes #ABCD or any other fragment
@@ -3416,6 +3646,20 @@
     }
 
     function updateFilterCounts(filteredAthletes) {
+        // Update aging clock counts
+        const hasBortzForClockCount = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const hasPhenoForClockCount = (a) => a.ageReduction != null && Number.isFinite(a.ageReduction);
+        const agingClockCounts = {
+            bortz: filteredAthletes.filter(hasBortzForClockCount).length,
+            pheno: filteredAthletes.filter(hasPhenoForClockCount).length
+        };
+
+        document.querySelectorAll('.filter-section label[data-aging-clock-view]').forEach(label => {
+            const clock = label.getAttribute('data-aging-clock-view');
+            const count = agingClockCounts[clock] || 0;
+            updateFilterCountLabel(label, count);
+        });
+
         // Update division counts
         const divisionCounts = {};
         filteredAthletes.forEach(athlete => {
@@ -3426,10 +3670,7 @@
         document.querySelectorAll('.filter-section label[data-division]').forEach(label => {
             const division = label.getAttribute('data-division');
             const count = divisionCounts[division] || 0;
-            const countSpan = label.querySelector('.filter-count');
-            if (countSpan) {
-                countSpan.textContent = count;
-            }
+            updateFilterCountLabel(label, count);
         });
 
         // Update generation counts
@@ -3442,10 +3683,7 @@
         document.querySelectorAll('.filter-section label[data-generation]').forEach(label => {
             const generation = label.getAttribute('data-generation');
             const count = generationCounts[generation] || 0;
-            const countSpan = label.querySelector('.filter-count');
-            if (countSpan) {
-                countSpan.textContent = count;
-            }
+            updateFilterCountLabel(label, count);
         });
 
         // Update league track counts (Amateur / Professional by tier)
@@ -3455,10 +3693,7 @@
         document.querySelectorAll('.filter-section label[data-league-track]').forEach(label => {
             const track = label.getAttribute('data-league-track');
             const count = (track === 'Amateur') ? amateurCount : (track === 'Professional') ? professionalCount : 0;
-            const countSpan = label.querySelector('.filter-count');
-            if (countSpan) {
-                countSpan.textContent = count;
-            }
+            updateFilterCountLabel(label, count);
         });
     }
 
@@ -3473,20 +3708,17 @@
         const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
 
         if (!anyVisible) {
-            if (query.trim() !== '') {
-                const tableBody = document.querySelector('.leaderboard table tbody');
-                const noResults = document.createElement('tr');
-                noResults.classList.add('no-results');
-                noResults.innerHTML = `<td colspan="6">No results found for "<strong>${window.escapeHTML(query)}</strong>".</td>`;
-                tableBody.appendChild(noResults);
-            }
-            else {
-                const tableBody = document.querySelector('.leaderboard table tbody');
-                const noResults = document.createElement('tr');
-                noResults.classList.add('no-results');
-                noResults.innerHTML = `<td colspan="6">It looks like no athletes have joined this league yet.</td>`;
-                tableBody.appendChild(noResults);
-            }
+            const tableBody = document.querySelector('.leaderboard table tbody');
+            const noResults = document.createElement('tr');
+            noResults.classList.add('no-results');
+            noResults.innerHTML = `
+                <td colspan="6">
+                    <div class="no-results-empty-state">
+                        <p>No athletes match this leaderboard.</p>
+                        <button type="button" class="show-all-athletes-btn">Show all athletes</button>
+                    </div>
+                </td>`;
+            tableBody.appendChild(noResults);
         }
     }
 
@@ -3534,8 +3766,39 @@
         }
     });
 
+    const clearSidebarFiltersButton = document.getElementById('clearSidebarFiltersBtn');
+    clearSidebarFiltersButton?.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        clearSidebarFilters();
+    });
+    clearSidebarFiltersButton?.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+            event.preventDefault();
+            event.stopPropagation();
+            clearSidebarFilters();
+        }
+    });
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.show-all-athletes-btn')) return;
+
+        event.preventDefault();
+        showAllAthletes();
+    });
+
     document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
         radio.addEventListener('change', function () { performFilter(); });
+    });
+    document.querySelectorAll('input[name="agingClockView"]').forEach(input => {
+        input.addEventListener('change', function (event) {
+            event.stopPropagation();
+            const targetView = this.checked ? this.value : 'ultimate';
+            const viewRadio = document.getElementById(`view-${targetView}`);
+            if (viewRadio) {
+                viewRadio.checked = true;
+            }
+            performFilter();
+        });
     });
     // Clicking the active Bortz or Pheno badge again deselects it (none = Ultimate view)
     document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(label => {
@@ -3650,8 +3913,8 @@
         const professionalCount = athletes.filter(a => isPro(a)).length;
 
         const tracks = [
-            { value: 'Amateur', label: 'Amateur', count: amateurCount },
-            { value: 'Professional', label: 'Pro', count: professionalCount }
+            { value: 'Professional', label: 'Pro', count: professionalCount },
+            { value: 'Amateur', label: 'Amateur', count: amateurCount }
         ];
 
         tracks.forEach(({ value, label, count }) => {
