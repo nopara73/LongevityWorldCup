@@ -3002,6 +3002,42 @@
         return !!hasCheckedFilters || currentLeaderboardView !== 'ultimate' || hasSearch;
     }
 
+    window.getFullLeaderboardUrlWithCurrentState = function () {
+        const url = new URL('/leaderboard', window.location.origin);
+        const searchInput = document.getElementById('athleteSearch');
+        const searchQuery = searchInput ? searchInput.value.trim() : '';
+        if (searchQuery) {
+            url.searchParams.set('search', searchQuery);
+        }
+
+        const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+        const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+        const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+        const selectedLeagueTracks = Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
+            .map(checkbox => checkbox.value.toLowerCase());
+
+        const filters = [
+            ...selectedDivisions,
+            ...selectedGenerations,
+            ...selectedExclusiveLeagues,
+            ...(selectedLeagueTracks.length === 1 ? selectedLeagueTracks : [])
+        ];
+        if (filters.length > 0) {
+            url.searchParams.set('filters', filters.join(','));
+        }
+
+        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+        const currentLeaderboardView = viewRadio ? viewRadio.value.toLowerCase() : 'ultimate';
+        if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno') {
+            url.searchParams.set('view', currentLeaderboardView);
+        }
+
+        return `${url.pathname}${url.search}${url.hash}`;
+    };
+
     function performFilter() {
         // Get selected divisions
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
