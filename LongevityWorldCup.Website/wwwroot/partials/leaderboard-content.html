@@ -27,6 +27,23 @@
 
     /* Common transition for table rows and podium items */
     .leaderboard table tbody tr, .podium-item{ transition:opacity .3s ease, transform .3s ease; }
+    .leaderboard table tbody tr.fade-in{ animation:filterRowFade .22s ease-out both; }
+    .podium-item.fade-in{ animation:filterPodiumFade .22s ease-out both; }
+
+    @keyframes filterRowFade{
+        from{ opacity:.82; }
+        to{ opacity:1; }
+    }
+
+    @keyframes filterPodiumFade{
+        from{ opacity:.82; transform:translateY(1px); }
+        to{ opacity:1; transform:translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+        .leaderboard table tbody tr.fade-in,
+        .podium-item.fade-in{ animation:none; }
+    }
 
     /* =========================
        3) Global layout / shell
@@ -3280,6 +3297,7 @@
             const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
             if (item) {
                 item.style.display = '';
+                window.showWithDelay(item);
                 anyPodiumVisible = true;
             }
         });
