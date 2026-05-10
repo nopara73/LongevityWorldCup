@@ -306,10 +306,12 @@
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
     .filter-section{ margin-bottom:1.5rem; }
-    .filter-section h3{ margin-bottom:.5rem; color:var(--secondary-color); font-size:1.2rem; }
+    .filter-section h3{ margin-bottom:.5rem; color:var(--primary-color); font-size:1.2rem; transition:color .2s ease; }
+    .filter-section.has-active-filter h3{ color:var(--secondary-color); }
     .filter-section ul{ list-style:none; padding:0; }
     .filter-section li{ margin-bottom:.5rem; }
     .filter-section label{ display:flex; align-items:center; cursor:pointer; color:#555; transition:color .2s; }
+    .filter-section label.is-zero-count:not(.active){ opacity:.55; }
     .filter-section input[type="checkbox"]{ margin-right:.5rem; accent-color:var(--primary-color); }
     .filter-section label:hover{ color:var(--primary-color); }
     .filter-section label.active{ font-weight:bold; color:var(--secondary-color); }
@@ -3061,6 +3063,36 @@
         });
     }
 
+    function updateActiveFilterSections() {
+        document.querySelectorAll('.filter-section input[type="checkbox"]').forEach(input => {
+            input.closest('label')?.classList.toggle('active', input.checked);
+        });
+
+        const sectionFilters = {
+            'aging-clock-filter-section': document.querySelectorAll('input[name="agingClockView"]:checked').length > 0,
+            'league-track-filter-section': document.querySelectorAll('input[name="leagueTrack"]:checked').length === 1,
+            'division-filter-section': document.querySelectorAll('input[name="division"]:checked').length > 0,
+            'generation-filter-section': document.querySelectorAll('input[name="generation"]:checked').length > 0,
+            'exclusive-filter-section': document.querySelectorAll('input[name="exclusiveLeague"]:checked').length > 0
+        };
+
+        Object.entries(sectionFilters).forEach(([sectionId, hasActiveFilter]) => {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+
+            section.classList.toggle('has-active-filter', hasActiveFilter);
+        });
+    }
+
+    function updateFilterCountLabel(label, count) {
+        const countSpan = label.querySelector('.filter-count');
+        if (countSpan) {
+            countSpan.textContent = count;
+        }
+
+        label.classList.toggle('is-zero-count', count === 0);
+    }
+
     function updateViewAllAthletesButton(count) {
         const button = document.getElementById('viewAllAthletesBtn');
         if (!button) return;
@@ -3149,6 +3181,7 @@
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         syncAgingClockFilters(currentLeaderboardView);
+        updateActiveFilterSections();
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
 
@@ -3557,10 +3590,7 @@
         document.querySelectorAll('.filter-section label[data-aging-clock-view]').forEach(label => {
             const clock = label.getAttribute('data-aging-clock-view');
             const count = agingClockCounts[clock] || 0;
-            const countSpan = label.querySelector('.filter-count');
-            if (countSpan) {
-                countSpan.textContent = count;
-            }
+            updateFilterCountLabel(label, count);
         });
 
         // Update division counts
@@ -3573,10 +3603,7 @@
         document.querySelectorAll('.filter-section label[data-division]').forEach(label => {
             const division = label.getAttribute('data-division');
             const count = divisionCounts[division] || 0;
-            const countSpan = label.querySelector('.filter-count');
-            if (countSpan) {
-                countSpan.textContent = count;
-            }
+            updateFilterCountLabel(label, count);
         });
 
         // Update generation counts
@@ -3589,10 +3616,7 @@
         document.querySelectorAll('.filter-section label[data-generation]').forEach(label => {
             const generation = label.getAttribute('data-generation');
             const count = generationCounts[generation] || 0;
-            const countSpan = label.querySelector('.filter-count');
-            if (countSpan) {
-                countSpan.textContent = count;
-            }
+            updateFilterCountLabel(label, count);
         });
 
         // Update league track counts (Amateur / Professional by tier)
@@ -3602,10 +3626,7 @@
         document.querySelectorAll('.filter-section label[data-league-track]').forEach(label => {
             const track = label.getAttribute('data-league-track');
             const count = (track === 'Amateur') ? amateurCount : (track === 'Professional') ? professionalCount : 0;
-            const countSpan = label.querySelector('.filter-count');
-            if (countSpan) {
-                countSpan.textContent = count;
-            }
+            updateFilterCountLabel(label, count);
         });
     }
 
