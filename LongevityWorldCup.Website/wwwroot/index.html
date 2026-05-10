@@ -1371,7 +1371,7 @@
 
         <!-- Bitcoin Donation Section -->
         <div id="donation-section" class="section-container contribute-section" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <div class="progress-overlay"></div>
+            <div class="progress-overlay" role="progressbar" aria-label="Bitcoin prize pool progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="21"></div>
             <div class="contribute-content">
                 <!-- In the Contribute section -->
                 <h2><i class="fa-brands fa-btc"></i> Contribute</h2>
@@ -1868,6 +1868,8 @@
 
                 document.getElementById('current-btc').textContent = displayPrizeFundBTC;
                 document.getElementById('goal-btc').textContent = goalBTC;
+                document.querySelector('.progress-overlay').setAttribute('aria-valuenow', Math.round(progressPercentage));
+                document.querySelector('.progress-overlay').setAttribute('aria-valuetext', `${displayPrizeFundBTC} of ${goalBTC} BTC`);
             })
             .catch(error => {
                 console.error('Error fetching BTC data:', error);
