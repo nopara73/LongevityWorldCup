@@ -3195,7 +3195,7 @@
         const searchInput = document.getElementById('athleteSearch');
         const searchQuery = searchInput ? searchInput.value.trim() : '';
         if (searchQuery) {
-            url.searchParams.set('search', searchQuery);
+            url.searchParams.set('search', encodeURIComponent(searchQuery));
         }
 
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
