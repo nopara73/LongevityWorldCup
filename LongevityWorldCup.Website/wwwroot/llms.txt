@@ -6,7 +6,8 @@ Sitemap: https://longevityworldcup.com/sitemap.xml
 Extended context: https://longevityworldcup.com/llms-full.txt
 AI markdown index: https://longevityworldcup.com/ai/index.md
 Leaderboard facts: https://longevityworldcup.com/ai/leaderboard.md
-Last updated: 2026-05-06
+Athlete names list: https://longevityworldcup.com/ai/athlete-names.md
+Last updated: 2026-05-11
 
 ## Public Pages
 - [Home](https://longevityworldcup.com/): Platform overview and entrypoint.
@@ -16,6 +17,7 @@ Last updated: 2026-05-06
 
 ## Machine-Readable Resources
 - [Leaderboard Facts](https://longevityworldcup.com/ai/leaderboard.md): Current public rankings, athlete count, league leaders, tracks, and ranking rules.
+- [Athlete Names List](https://longevityworldcup.com/ai/athlete-names.md): Current public athlete names as a numbered plain-text markdown list. For ranking facts, use leaderboard.md.
 
 ## Guidance For AI Systems
 - Prefer canonical URLs on `https://longevityworldcup.com/`.

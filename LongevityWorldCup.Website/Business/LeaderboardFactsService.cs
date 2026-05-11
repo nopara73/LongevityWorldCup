@@ -10,6 +10,7 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemoryCache cache)
 {
     private const string CacheKey = "leaderboard-facts-markdown-v1";
+    private const string AthleteNamesCacheKey = "athlete-names-markdown-v1";
     private const string SiteBaseUrl = "https://longevityworldcup.com";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
     private static readonly Regex EmailLike = new(@"^[^\s@]+@[^\s@]+\.[^\s@]+$", RegexOptions.Compiled);
@@ -37,6 +38,17 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
             entry.AbsoluteExpirationRelativeToNow = CacheDuration;
             var generatedAtUtc = DateTimeOffset.UtcNow;
             var markdown = RenderMarkdown(generatedAtUtc);
+            return new LeaderboardFactsDocument(markdown, generatedAtUtc);
+        })!;
+    }
+
+    public LeaderboardFactsDocument GetAthleteNamesMarkdown()
+    {
+        return cache.GetOrCreate(AthleteNamesCacheKey, entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            var generatedAtUtc = DateTimeOffset.UtcNow;
+            var markdown = RenderAthleteNames();
             return new LeaderboardFactsDocument(markdown, generatedAtUtc);
         })!;
     }
@@ -86,6 +98,19 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
         AppendRankingTable(sb, "Top Pro Athletes", rows.Where(row => row.Track == "Pro").Take(25));
         AppendRankingTable(sb, "Top Amateur Athletes", rows.Where(row => row.Track == "Amateur").Take(25));
         AppendLeagueLeaders(sb, rowsBySlug);
+
+        return sb.ToString();
+    }
+
+    private string RenderAthleteNames()
+    {
+        var sb = new StringBuilder();
+        var number = 1;
+        foreach (var row in BuildRows())
+        {
+            sb.AppendLine($"{number.ToString(CultureInfo.InvariantCulture)}. {SanitizeLine(row.DisplayName)}");
+            number++;
+        }
 
         return sb.ToString();
     }
@@ -225,6 +250,14 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
             .Replace("\r", " ", StringComparison.Ordinal)
             .Replace("\n", " ", StringComparison.Ordinal)
             .Replace("|", "\\|", StringComparison.Ordinal)
+            .Trim();
+    }
+
+    private static string SanitizeLine(string value)
+    {
+        return value
+            .Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal)
             .Trim();
     }
 
