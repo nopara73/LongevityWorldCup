@@ -3,6 +3,7 @@ Allow: /
 Allow: /llms.txt
 Allow: /llms-full.txt
 Allow: /ai/index.md
+Allow: /ai/athlete-names.md
 Disallow: /onboarding/
 Disallow: /play/
 Disallow: /error/
