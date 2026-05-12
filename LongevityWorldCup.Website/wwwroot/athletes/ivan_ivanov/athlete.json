@@ -1,0 +1,41 @@
+{
+  "Name": "Ivan Ivanov",
+  "DisplayName": null,
+  "MediaContact": "inivanov@atomicmail.io",
+  "DateOfBirth": {
+    "Year": 1978,
+    "Month": 3,
+    "Day": 2
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-02-19",
+      "AlbGL": 48,
+      "CreatUmolL": 107,
+      "GluMmolL": 5.62,
+      "CrpMgL": 0.16,
+      "LymPc": 30.65,
+      "McvFL": 80.8,
+      "RdwPc": 12.6,
+      "AlpUL": 91.1,
+      "Wbc1000cellsuL": 6.2,
+      "NeutrophilPc": 52,
+      "MonocytePc": 5,
+      "Rbc10e12L": 5.36,
+      "MchPg": 29.1,
+      "UreaMmolL": 4,
+      "CystatinCMgL": 0.83,
+      "Hba1cMmolMol": 36.61,
+      "CholesterolMmolL": 5.62,
+      "ApoA1GL": 1.73,
+      "AltUL": 28.5,
+      "GgtUL": 21.9,
+      "ShbgNmolL": 44.53,
+      "VitaminDNmolL": 87
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Bulgaria",
+  "Why": "Getting there in one piece enjoying the ride.",
+  "PersonalLink": null
+}
