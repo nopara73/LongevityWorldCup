@@ -250,6 +250,8 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/leagueIcons.js",
+                        "/js/badges.js",
                         "/js/proof-helpers.js",
                         "/js/pro-discounts.js"
                     ]),

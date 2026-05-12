@@ -458,10 +458,31 @@ function getDiscountBadgeBackground(component) {
     return BADGE_BG_DEFAULT;
 }
 
+function getDiscountBadgeFamilyClass(component) {
+    if (!component || !component.isBadge) return "";
+    if (component.kind === "serverBadge" && component.badge) {
+        const picker = window.getBadgeFamilyClass;
+        if (typeof picker === "function") {
+            return picker(component.badge) || "";
+        }
+    }
+    return "badge-family-utility";
+}
+
+function getDiscountBadgeStyle(component) {
+    const background = getDiscountBadgeBackground(component);
+    if (component?.kind === "serverBadge" && typeof window.styleWithBadgeVars === "function") {
+        return window.styleWithBadgeVars(background);
+    }
+    return background;
+}
+
 function createDiscountBadgeChipHtml(component) {
     if (!component || !component.isBadge) return "";
     const icon = getDiscountIconClass(component) || "fa-award";
-    const background = getDiscountBadgeBackground(component);
+    const familyClass = getDiscountBadgeFamilyClass(component);
+    const badgeClasses = `badge-class${familyClass ? ` ${familyClass}` : ""}`;
+    const badgeStyle = getDiscountBadgeStyle(component);
     const compact = "display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:22px;height:22px;font-size:0.78rem;margin:0;";
     let tooltip = "";
     let clickUrl = null;
@@ -493,9 +514,9 @@ function createDiscountBadgeChipHtml(component) {
         const personalLinkAttrs = component.kind === "personalLink"
             ? ` target="_blank" rel="noopener"`
             : "";
-        return `<a class="badge-class badge-clickable" href="${escapeHtml(clickUrl)}"${personalLinkAttrs}${titleAttr} style="${escapeHtml(background)} ${compact}">${chipInner}</a>`;
+        return `<a class="${escapeHtml(`${badgeClasses} badge-clickable`)}" href="${escapeHtml(clickUrl)}"${personalLinkAttrs}${titleAttr} style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</a>`;
     }
-    return `<span class="badge-class"${titleAttr} aria-hidden="true" style="${escapeHtml(background)} ${compact}">${chipInner}</span>`;
+    return `<span class="${escapeHtml(badgeClasses)}"${titleAttr} aria-hidden="true" style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</span>`;
 }
 
 function createBreakdownHtml(result) {
