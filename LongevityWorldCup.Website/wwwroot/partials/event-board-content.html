@@ -394,6 +394,22 @@
     .events-board .badge-class.badge-family-domain::before{content:"";position:absolute;inset:1px;z-index:0;background:var(--badge-bg,linear-gradient(135deg,#555,#222));clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%)}
     .events-board .badge-class.badge-family-pace{border-radius:8px}
     .events-board .badge-class.badge-family-utility{border-radius:6px}
+    .events-board .badge-class.badge-overflow-count{
+        background:linear-gradient(135deg,#f8fbfc,#dfe9ec)!important;
+        border:1px solid rgba(0,188,212,.42)!important;
+        color:var(--primary-color);
+        font-size:.72rem;
+        font-weight:800;
+        letter-spacing:.01em;
+        text-decoration:none;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 2px 4px rgba(0,0,0,.12);
+    }
+    .events-board .badge-class.badge-overflow-count::after{display:none}
+    .events-board a.badge-class.badge-overflow-count:hover,
+    .events-board a.badge-class.badge-overflow-count:focus{
+        color:var(--primary-color);
+        text-decoration:none;
+    }
     .events-board .badge-class i{position:absolute;inset:0;display:block;width:auto;height:auto;font-size:calc(var(--badge-icon-size) * .9);line-height:1;text-align:center;text-shadow:none;-webkit-font-smoothing:antialiased}
     .events-board .badge-class i::before{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);line-height:1}
     .events-board .badge-chip{
@@ -1475,7 +1491,7 @@
                         const moreCount = totalCount - visibleItems.length;
 
                         const moreLink = (moreCount > 0 && url)
-                            ? ` <a href="${url}" class="more-link"${openLinksInNewTab ? ` target="_blank" rel="noopener"` : ` target="_top"`}>(+${moreCount} more)</a>`
+                            ? ` <a href="${url}" class="badge-class badge-family-utility badge-overflow-count badge-clickable"${openLinksInNewTab ? ` target="_blank" rel="noopener"` : ` target="_top"`} title="${esc(`${moreCount} more badges`)}" aria-label="${esc(`Open ${name} profile to view ${moreCount} more badges`)}">+${moreCount}</a>`
                             : ``;
 
                         if(isLost){
