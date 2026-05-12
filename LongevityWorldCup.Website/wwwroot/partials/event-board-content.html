@@ -318,6 +318,7 @@
     .event-message a:hover,
     .event-message a:focus{color:var(--secondary-color,#ff4f87);text-decoration-color:var(--secondary-color,#ff4f87)}
     .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
+    .event-message .event-inline-text{min-width:0;white-space:normal}
     .name-and-rank{display:inline-flex;align-items:baseline;gap:.15rem}
     .event-message .rank-badge{display:inline-flex;align-items:baseline;gap:.15rem;white-space:nowrap}
     .event-message .rank-icon{margin-left:.2rem}
@@ -1448,7 +1449,7 @@
                                 ? `<a href="${esc(podcastUrl)}" target="_top" rel="noopener">episode</a>`
                                 : `episode`);
 
-                        msgHtml = `${nameWithRank} was featured in a new ${episodeHtml} of our podcast`;
+                        msgHtml = `<span class="event-inline-text">${nameWithRank} was featured in a new ${episodeHtml} of our podcast</span>`;
                     } else if (
                         (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) ||
                         (Number.isFinite(r.totalBadgeCount) && r.totalBadgeCount > 1)
