@@ -376,16 +376,25 @@
     .events-board .badge-class{
         display:inline-grid;
         place-items:center;
+        box-sizing:border-box;
+        overflow:hidden;
         width:var(--badge-size);
         height:var(--badge-size);
+        border:1px solid rgba(0,0,0,.48)!important;
         border-radius:999px;
         line-height:1;
-        box-shadow:0 1px 2px rgba(0,0,0,.05);
+        box-shadow:0 1px 2px rgba(0,0,0,.12);
         margin-inline:var(--badge-inline-gap);
         margin-block:1px;
         vertical-align:middle
     }
-    .events-board .badge-class i{font-size:var(--badge-icon-size);line-height:1}
+    .events-board .badge-class.badge-family-rank{border-radius:999px}
+    .events-board .badge-class.badge-family-domain{border:0!important;border-radius:0;clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);background:#111!important;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.16))}
+    .events-board .badge-class.badge-family-domain::before{content:"";position:absolute;inset:1px;z-index:0;background:var(--badge-bg,linear-gradient(135deg,#555,#222));clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%)}
+    .events-board .badge-class.badge-family-pace{border-radius:8px}
+    .events-board .badge-class.badge-family-utility{border-radius:6px}
+    .events-board .badge-class i{position:absolute;inset:0;display:block;width:auto;height:auto;font-size:calc(var(--badge-icon-size) * .9);line-height:1;text-align:center;text-shadow:none;-webkit-font-smoothing:antialiased}
+    .events-board .badge-class i::before{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);line-height:1}
     .events-board .badge-chip{
         font-size:var(--badge-chip-font);
         padding:var(--badge-chip-pad-y) var(--badge-chip-pad-x);
@@ -1025,12 +1034,14 @@
 
                 const b = ownedBadge ?? { BadgeLabel:String(label), LeagueCategory:leagueCategory, LeagueValue:leagueValue, Place:place };
                 const icon=typeof window.pickIconForServerBadge==='function'?window.pickIconForServerBadge(b):'fa-award';
-                const style=typeof window.pickBackgroundForServerBadge==='function'?window.pickBackgroundForServerBadge(b):'';
+                const rawStyle=typeof window.pickBackgroundForServerBadge==='function'?window.pickBackgroundForServerBadge(b):'';
+                const style=typeof window.styleWithBadgeVars==='function'?window.styleWithBadgeVars(rawStyle):rawStyle;
                 const tip=typeof window.makeTooltipFromServerBadge==='function'
                     ? window.makeTooltipFromServerBadge(b, athlete||null, { suppressValues: !ownedNow })
                     : String(label);
                 const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
-                const attrs=url?`class="badge-class badge-clickable" role="button" tabindex="0" onclick="window.location.href='${url}'"`:`class="badge-class"`;
+                const familyClass=typeof window.getBadgeFamilyClass==='function'?window.getBadgeFamilyClass(b):'badge-family-utility';
+                const attrs=url?`class="badge-class ${familyClass} badge-clickable" role="button" tabindex="0" onclick="window.location.href='${url}'"`:`class="badge-class ${familyClass}"`;
                 return `<span ${attrs} title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
             }catch(e){
                 return `<span class="badge-chip"><strong>${esc(String(label))}</strong></span>`;
@@ -1043,6 +1054,41 @@
             if(!prevSlug) return `<span class="${cls}">${iconHtml}</span>`;
             const donorHtml = renderTextWithSlugLinks(`slug[${prevSlug}]`, linkNames, athletesIndex, afterSlugFn);
             return `<span class="${cls}">${iconHtml}<span class="badge-from"> from ${donorHtml}</span></span>`;
+        }
+
+        function badgeFamilyForItem(item){
+            if(typeof window.getBadgeFamilyClass!=="function") return "badge-family-utility";
+            return window.getBadgeFamilyClass({
+                BadgeLabel:item && item.label,
+                LeagueCategory:item && item.leagueCategory,
+                LeagueValue:item && item.leagueValue,
+                Place:item && item.place
+            });
+        }
+
+        function pickRepresentativeBadgeItems(items, maxCount=4){
+            const source=Array.isArray(items)?items.slice():[];
+            if(source.length<=maxCount) return source;
+
+            const picked=[];
+            const used=new Set();
+            ["badge-family-rank","badge-family-domain","badge-family-pace","badge-family-utility"].forEach(family=>{
+                if(picked.length>=maxCount) return;
+                const idx=source.findIndex((item,i)=>!used.has(i)&&badgeFamilyForItem(item)===family);
+                if(idx>=0){
+                    picked.push(source[idx]);
+                    used.add(idx);
+                }
+            });
+
+            for(let i=0;i<source.length&&picked.length<maxCount;i++){
+                if(!used.has(i)){
+                    picked.push(source[i]);
+                    used.add(i);
+                }
+            }
+
+            return picked;
         }
 
         function toRows(rawEvents){
@@ -1407,9 +1453,11 @@
                         (r.isGroup && Number.isFinite(r.badgeCount) && r.badgeCount > 1) ||
                         (Number.isFinite(r.totalBadgeCount) && r.totalBadgeCount > 1)
                     ) {
-                        const items = (r.isGroup && Array.isArray(r.items))
-                            ? r.items
-                            : [{ label:r.badgeLabel||"badge", leagueCategory:r.leagueCategory||null, leagueValue:r.leagueValue||null, place:r.place??null }];
+                        const items = Array.isArray(r.allItems)
+                            ? r.allItems
+                            : ((r.isGroup && Array.isArray(r.items))
+                                ? r.items
+                                : [{ label:r.badgeLabel||"badge", leagueCategory:r.leagueCategory||null, leagueValue:r.leagueValue||null, place:r.place??null }]);
 
                         const orderFn = typeof window.computeOrder === 'function' ? window.computeOrder : null;
                         const orderedItems = orderFn
@@ -1421,7 +1469,7 @@
                             : items;
 
                         const totalCount = Number.isFinite(r.totalBadgeCount) ? r.totalBadgeCount : orderedItems.length;
-                        const visibleItems = orderedItems;
+                        const visibleItems = pickRepresentativeBadgeItems(orderedItems, 4);
                         const icons = visibleItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
                         const moreCount = totalCount - visibleItems.length;
 
@@ -1753,7 +1801,8 @@
                             leagueCategory: it.leagueCategory || null,
                             leagueValue: it.leagueValue || null,
                             place: (it.place ?? null),
-                            totalBadgeCount: total
+                            totalBadgeCount: total,
+                            allItems: r.items
                         });
                         continue;
                     }
@@ -1765,6 +1814,7 @@
                         badgeCount: kept.length,
                         badges: uniqueLabels,
                         items: kept,
+                        allItems: r.items,
                         totalBadgeCount: total
                     });
                     continue;

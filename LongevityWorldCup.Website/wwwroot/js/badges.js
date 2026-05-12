@@ -77,6 +77,71 @@ function getCat(b)   { return b.LeagueCategory || b.Category || 'Global'; }
 function getVal(b)   { return b.LeagueValue ?? b.Value ?? null; }
 function getPlace(b) { return (typeof b.Place === 'number') ? b.Place : null; }
 
+function escapeAttr(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function styleWithBadgeVars(style) {
+    const raw = String(style || '');
+    const match = /background\s*:\s*([^;]+);?/i.exec(raw);
+    return match ? `${raw}--badge-bg:${match[1]};` : raw;
+}
+
+function getAthleteProfileSlug(athlete) {
+    const explicitSlug = athlete && (athlete.AthleteSlug || athlete.athleteSlug || athlete.Slug || athlete.slug);
+    const raw = explicitSlug || (athlete && (athlete.name || athlete.Name || athlete.displayName || athlete.DisplayName));
+    if (!raw) return '';
+
+    if (typeof window.slugifyName === 'function') {
+        return window.slugifyName(String(raw), false);
+    }
+
+    let s = String(raw).toLowerCase();
+    try { s = s.normalize('NFKD'); } catch (_) {}
+    return s.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function getAthleteProfileUrl(athlete) {
+    const slug = getAthleteProfileSlug(athlete);
+    return slug ? `/athlete/${encodeURIComponent(slug)}` : '';
+}
+
+function getBadgeFamilyClass(b) {
+    const label = getLabel(b);
+    const place = getPlace(b);
+
+    if (typeof label === 'string' && label.startsWith('Best Domain')) {
+        return 'badge-family-domain';
+    }
+
+    if (
+        label === 'Pheno Pace of Aging' ||
+        label === 'Bortz Pace of Aging' ||
+        label === 'PhenoAge Best Improvement' ||
+        label === 'Bortz Age Best Improvement'
+    ) {
+        return 'badge-family-pace';
+    }
+
+    if (
+        label === 'Age Reduction' ||
+        (typeof label === 'string' && label.startsWith('Crowd – ')) ||
+        label === 'Chronological Age – Oldest' ||
+        label === 'Chronological Age – Youngest' ||
+        label === 'PhenoAge – Lowest' ||
+        label === 'Bortz Age – Lowest' ||
+        (label === 'S25' && place)
+    ) {
+        return 'badge-family-rank';
+    }
+
+    return 'badge-family-utility';
+}
+
 // Choose proper icon; override special cases
 function pickIconForServerBadge(b) {
     const label = getLabel(b);
@@ -568,14 +633,16 @@ function buildServerBadgeHtml(b, athlete) {
     const style = pickBackgroundForServerBadge(b);
     const url = pickClickUrl(b, athlete);
     const order = computeOrder(b);
+    const familyClass = getBadgeFamilyClass(b);
 
     const clickableAttrs = url
-        ? `class="badge-class badge-clickable" ${spanA11y} onclick="window.location.href='${url}';"`
-        : `class="badge-class"`;
+        ? `class="badge-class ${familyClass} badge-clickable" ${spanA11y} onclick="window.location.href='${url}';"`
+        : `class="badge-class ${familyClass}"`;
 
     return {
         order,
-        html: `<span ${clickableAttrs} title="${tooltip}" style="${style}"><i class="fa ${icon}"></i></span>`
+        searchText: tooltip,
+        html: `<span ${clickableAttrs} title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></span>`
     };
 }
 
@@ -598,7 +665,8 @@ window.setBadges = function (athlete, athleteCell) {
         const href = personalLink.startsWith('http') ? personalLink : `https://${personalLink}`;
         items.push({
             order: 0,
-            html: `<a class="badge-class badge-clickable" ${spanA11y} href="${href}" target="_blank" rel="noopener"
+            searchText: 'Personal page',
+            html: `<a class="badge-class badge-family-utility badge-clickable" ${spanA11y} href="${href}" target="_blank" rel="noopener"
                title="Personal page" style="${LEGACY_BG.personal}">
                <i class="fa fa-link"></i>
              </a>`
@@ -636,7 +704,8 @@ window.setBadges = function (athlete, athleteCell) {
                 }
                 items.push({
                     order: 1.194,
-                    html: `<span class="badge-class" title="Bullseye: You guessed their age perfectly!" style="${LEGACY_BG.black}">
+                    searchText: 'Bullseye: You guessed their age perfectly!',
+                    html: `<span class="badge-class badge-family-utility" title="Bullseye: You guessed their age perfectly!" style="${LEGACY_BG.black}">
                                <i class="fa fa-bullseye"></i>
                            </span>`
                 });
@@ -645,20 +714,53 @@ window.setBadges = function (athlete, athleteCell) {
     } catch {}
 
     items.sort((a, b) => a.order - b.order);
-    badgeContainer.innerHTML = items.map(x => x.html).join('');
+    const isModalStrip =
+        (badgeContainer.id && badgeContainer.id === 'modalBadgeStrip') ||
+        (typeof badgeContainer.closest === 'function' && !!badgeContainer.closest('#detailsModal'));
+
+    let renderedItems = items;
+    if (!isModalStrip && items.length > 6) {
+        const visibleItems = items.slice(0, 5);
+        const hiddenItems = items.slice(5);
+        const hiddenTitle = hiddenItems
+            .map(x => x.searchText)
+            .filter(Boolean)
+            .join('\n');
+        const athleteSlug = getAthleteProfileSlug(athlete);
+        const athleteProfileUrl = getAthleteProfileUrl(athlete);
+        const overflowTitle = hiddenTitle || `${hiddenItems.length} more badges`;
+        const athleteName = athlete.displayName || athlete.DisplayName || athlete.name || athlete.Name || 'athlete';
+        const overflowHtml = athleteProfileUrl
+            ? `<a class="badge-class badge-family-utility badge-overflow-count badge-clickable" href="${escapeAttr(athleteProfileUrl)}" data-athlete-slug="${escapeAttr(athleteSlug)}" title="${escapeAttr(overflowTitle)}" aria-label="Open ${escapeAttr(athleteName)} profile to view ${hiddenItems.length} more badges">+${hiddenItems.length}</a>`
+            : `<span class="badge-class badge-family-utility badge-overflow-count" title="${escapeAttr(overflowTitle)}">+${hiddenItems.length}</span>`;
+
+        renderedItems = [
+            ...visibleItems,
+            {
+                order: 99,
+                searchText: hiddenTitle,
+                html: overflowHtml
+            }
+        ];
+    }
+
+    badgeContainer.innerHTML = renderedItems.map(x => x.html).join('');
 
     try {
-        const isModalStrip =
-            (badgeContainer.id && badgeContainer.id === 'modalBadgeStrip') ||
-            (typeof badgeContainer.closest === 'function' && !!badgeContainer.closest('#detailsModal'));
+        const overflowLinks = badgeContainer.querySelectorAll('.badge-overflow-count[data-athlete-slug]');
+        overflowLinks.forEach(link => {
+            link.addEventListener('click', event => {
+                event.stopPropagation();
+                const slug = link.getAttribute('data-athlete-slug');
+                if (slug && typeof window.openAthleteModalBySlug === 'function' && window.openAthleteModalBySlug(slug, { suppressGuessMyAge: true })) {
+                    event.preventDefault();
+                }
+            });
+        });
 
         if (!isModalStrip) {
-            Array.from(badgeContainer.children).forEach((badge, i) => {
-                badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
-                badge.addEventListener('animationend', function handler() {
-                    badge.style.animation = '';
-                    badge.removeEventListener('animationend', handler);
-                });
+            Array.from(badgeContainer.children).forEach(badge => {
+                badge.style.animation = '';
             });
         }
     } catch {}
@@ -669,5 +771,7 @@ window.pickIconForServerBadge = pickIconForServerBadge;
 window.pickBackgroundForServerBadge = pickBackgroundForServerBadge;
 window.makeTooltipFromServerBadge = makeTooltipFromServerBadge;
 window.pickClickUrl = pickClickUrl;
+window.getBadgeFamilyClass = getBadgeFamilyClass;
+window.styleWithBadgeVars = styleWithBadgeVars;
 
 

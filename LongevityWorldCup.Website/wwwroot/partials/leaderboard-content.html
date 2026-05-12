@@ -580,7 +580,13 @@
        ========================= */
     .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
     .age-reduction{ font-weight:700; color:#4caf50; text-align:left; }
-    .athlete-td{ display:flex; align-items:center; text-align:left; gap:.5rem; }
+    .athlete-td{
+        display:flex;
+        align-items:center;
+        text-align:left;
+        gap:.5rem;
+    }
+    .athlete-td .badge-section{ flex:0 0 auto; flex-wrap:nowrap; }
 
     .athlete-name{
         color:var(--primary-color); text-decoration:underline; text-align:left; cursor:pointer; transition:color .2s ease-in-out;
@@ -4436,14 +4442,6 @@
         const athleteForBadges = { ...athleteData, personalLink: null };
         window.setBadges(athleteForBadges, {
             querySelector: () => modalBadgeSection
-        });
-        Array.from(modalBadgeSection.children).forEach((badge, i) => {
-            badge.style.animation = `pop .55s ease-out both ${i * 0.2}s`;
-            badge.addEventListener('animationend', function handler() {
-                // Clear the animation so CSS hover-transform can take over
-                badge.style.animation = '';
-                badge.removeEventListener('animationend', handler);
-            });
         });
 
         // wrap each badge in a column with its name

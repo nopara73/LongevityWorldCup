@@ -1,10 +1,68 @@
 .badge-section{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem}
-.badge-class{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;width:32px;height:32px;border-radius:50%;font-size:1rem;font-weight:bold;color:#fff;margin-left:.3rem;box-shadow:0 2px 4px rgba(0,0,0,.3);transition:transform .2s ease}
+.badge-class{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    isolation:isolate;
+    overflow:hidden;
+    box-sizing:border-box;
+    text-decoration:none;
+    width:32px;
+    height:32px;
+    flex:0 0 auto;
+    border:1px solid rgba(0,0,0,.48)!important;
+    border-radius:50%;
+    font-size:.95rem;
+    line-height:1;
+    font-weight:bold;
+    color:#fff;
+    margin-left:0;
+    box-shadow:0 1px 2px rgba(0,0,0,.18);
+    transition:transform .2s ease,filter .2s ease,box-shadow .2s ease
+}
+.badge-class::after{
+    content:"";
+    position:absolute;
+    inset:2px 3px auto;
+    height:42%;
+    border-radius:inherit;
+    background:transparent;
+    pointer-events:none;
+    z-index:0
+}
+.badge-class i{position:absolute;inset:0;z-index:1;display:block;width:auto;height:auto;font-size:.86em;line-height:1;text-align:center;text-shadow:none;-webkit-font-smoothing:antialiased}
+.badge-class i::before{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);line-height:1}
+.badge-class.badge-family-rank{border-radius:50%}
+.badge-class.badge-family-domain{
+    border:0!important;
+    border-radius:0;
+    clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);
+    background:#111!important;
+    box-shadow:none;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))
+}
+.badge-class.badge-family-domain::before{
+    content:"";
+    position:absolute;
+    inset:1px;
+    z-index:0;
+    background:var(--badge-bg,linear-gradient(135deg,#555,#222));
+    clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%)
+}
+.badge-class.badge-family-domain::after{inset:3px 5px auto;height:38%;clip-path:polygon(20% 0,80% 0,100% 55%,76% 100%,24% 100%,0 55%)}
+.badge-class.badge-family-pace{border-radius:12px}
+.badge-class.badge-family-utility{border-radius:9px}
+.badge-class.badge-overflow-count{background:linear-gradient(135deg,#f8fbfc,#dfe9ec)!important;border:1px solid rgba(0,188,212,.42)!important;color:var(--primary-color);font-size:.78rem;font-weight:800;letter-spacing:.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 2px 4px rgba(0,0,0,.16)}
+.badge-class.badge-overflow-count::after{display:none}
 .badge-class:hover{transform:scale(1.08)}
 a.badge-class:hover,.badge-class.badge-clickable:hover,.badge-class[data-clickable="true"]:hover,.modal-badge-item>a.badge-class:hover{transform:scale(1.2);animation:shadowPulse 1s ease-in-out 1 forwards}
 a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-class[data-clickable="true"]:focus-visible,.modal-badge-item>a.badge-class:focus-visible{transform:scale(1.2);animation:shadowPulse 1s ease-in-out 1 forwards;outline:none}
 .modal-badge-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:.25rem;margin:.5rem 0 1rem}
 .modal-badge-strip .badge-class{width:70px;height:70px;font-size:2rem;margin:.4rem}
+.modal-badge-strip .badge-class i{font-size:.78em}
+.modal-badge-strip .badge-class.badge-family-pace{border-radius:22px}
+.modal-badge-strip .badge-class.badge-family-utility{border-radius:16px}
 .modal-badge-strip .modal-badge-item{display:inline-flex;flex-direction:column;align-items:center;margin:.4rem}
 .modal-badge-strip .modal-badge-name{font-size:.75rem;margin-top:.2rem;color:var(--primary-color);text-align:center;width:100px;white-space:normal;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .modal-badge-name .modal-badge-title{display:block;font-weight:bold}
