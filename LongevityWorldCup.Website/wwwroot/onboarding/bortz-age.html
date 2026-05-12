@@ -1064,6 +1064,7 @@
         const isUpdate = urlParams.get('update') === '1';
         const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
         const bloodDrawDateInput = document.getElementById('blood-draw-date');
+        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
 
         if (bloodDrawDateInput) {
             const todayLocal = new Date();
@@ -2338,6 +2339,14 @@
              if (isUpdate) {
                  window.location.href = '/proofs';
              } else {
+                 if (!sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
+                     sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify({
+                         source: 'direct-bortz-age',
+                         offerType: 'pro',
+                         currency: 'USD',
+                         amountUsd: 100
+                     }));
+                 }
                  window.location.href = '/apply';
              }
         }
