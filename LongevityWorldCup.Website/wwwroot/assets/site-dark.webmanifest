@@ -1,0 +1,37 @@
+{
+  "name": "Longevity World Cup",
+  "short_name": "LWC",
+  "description": "The official site of the Longevity World Cup, showcasing leaderboards, events, and latest updates.",
+  "start_url": "/",
+  "display": "browser",
+  "orientation": "portrait",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/assets/favicon-dark-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/favicon-dark-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/favicon-dark-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/favicon-dark-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/apple-touch-icon-dark.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
