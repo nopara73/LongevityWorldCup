@@ -20,11 +20,15 @@
 <link rel="alternate" type="application/tor-hidden-service" href="http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion">
 
 <!-- Favicon Links -->
-<link rel="icon" href="/assets/favicon.ico" type="image/x-icon" />
-<link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192x192.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+<link rel="icon" href="{{ASSET_FAVICON_ICO}}" type="image/x-icon" />
+<link rel="icon" href="{{ASSET_FAVICON_DARK_ICO}}" type="image/x-icon" media="(prefers-color-scheme: dark)" />
+<link rel="icon" type="image/png" sizes="192x192" href="{{ASSET_FAVICON_192}}" />
+<link rel="icon" type="image/png" sizes="192x192" href="{{ASSET_FAVICON_DARK_192}}" media="(prefers-color-scheme: dark)" />
+<link rel="apple-touch-icon" sizes="180x180" href="{{ASSET_APPLE_TOUCH_ICON}}" />
+<link rel="apple-touch-icon" sizes="180x180" href="{{ASSET_APPLE_TOUCH_ICON_DARK}}" media="(prefers-color-scheme: dark)" />
 
-<link rel="manifest" href="/assets/site.webmanifest">
+<link rel="manifest" href="{{ASSET_SITE_WEBMANIFEST}}">
+<link rel="manifest" href="{{ASSET_SITE_DARK_WEBMANIFEST}}" media="(prefers-color-scheme: dark)">
 
 <!-- Preconnect for FontAwesome and CDN -->
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous">
