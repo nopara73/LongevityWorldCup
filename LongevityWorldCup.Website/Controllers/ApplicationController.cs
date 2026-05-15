@@ -345,6 +345,13 @@ namespace LongevityWorldCup.Website.Controllers
                 var paymentRequired = requestedAmountUsd > 0m;
                 if (!paymentRequired)
                 {
+                    await TrySendApplicationConfirmationEmailAsync(
+                        config,
+                        accountEmail,
+                        displayNameOrName,
+                        isResultSubmissionOnly,
+                        isEditSubmissionOnly);
+
                     return Ok(new
                     {
                         success = true,
@@ -367,6 +374,14 @@ namespace LongevityWorldCup.Website.Controllers
                     return StatusCode(500, $"Application sent, but failed to create BTCPay invoice: {invoiceResult.Error}");
                 }
 
+                await TrySendApplicationConfirmationEmailAsync(
+                    config,
+                    accountEmail,
+                    displayNameOrName,
+                    isResultSubmissionOnly,
+                    isEditSubmissionOnly,
+                    invoiceResult.CheckoutLink);
+
                 return Ok(new
                 {
                     success = true,
@@ -380,6 +395,72 @@ namespace LongevityWorldCup.Website.Controllers
                 // Handle exception
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        private async Task TrySendApplicationConfirmationEmailAsync(
+            Config config,
+            string? accountEmail,
+            string? applicantName,
+            bool isResultSubmissionOnly,
+            bool isEditSubmissionOnly,
+            string? checkoutLink = null)
+        {
+            if (isResultSubmissionOnly || isEditSubmissionOnly)
+                return;
+
+            if (string.IsNullOrWhiteSpace(accountEmail))
+                return;
+
+            var trimmedEmail = accountEmail.Trim();
+            if (!new EmailAddressAttribute().IsValid(trimmedEmail))
+            {
+                _logger.LogWarning("Skipping application confirmation email because applicant email is invalid: {Email}", trimmedEmail);
+                return;
+            }
+
+            try
+            {
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress("Longevity World Cup", config.EmailFrom));
+                message.To.Add(new MailboxAddress(applicantName?.Trim() ?? "", trimmedEmail));
+                message.Subject = "Your Longevity World Cup application was received";
+                message.Body = new BodyBuilder
+                {
+                    TextBody = BuildApplicationConfirmationBody(applicantName, checkoutLink)
+                }.ToMessageBody();
+
+                await SendEmailThroughSmtpAsync(config, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send application confirmation email to {Email}", trimmedEmail);
+            }
+        }
+
+        private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink)
+        {
+            var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            var body = new StringBuilder()
+                .AppendLine($"Hi {greetingName},")
+                .AppendLine()
+                .AppendLine("We received your Longevity World Cup application.")
+                .AppendLine()
+                .AppendLine("We'll review it and contact you at this email address when the review is done.");
+
+            if (!string.IsNullOrWhiteSpace(checkoutLink))
+            {
+                body
+                    .AppendLine()
+                    .AppendLine("Your application also has a payment step. If you were not redirected automatically, you can continue here:")
+                    .AppendLine(checkoutLink.Trim());
+            }
+
+            return body
+                .AppendLine()
+                .AppendLine("Questions or corrections? Reply to this email.")
+                .AppendLine()
+                .AppendLine("Longevity World Cup")
+                .ToString();
         }
 
         [HttpPost("interview-request")]
