@@ -198,10 +198,11 @@
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
             document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                        <img src="${athlete.ProfilePic}"
+                                                                                                                                                                                                                                        <img src="${window.getProfilePicUrl(athlete.ProfilePic)}"
                                                                                                                                                                                                                                                  alt="${athleteDisplayName} headshot"
                                                                                                                                                                                                                                                 class="illustration"
                                                                                                                                                                                                                                                 loading="lazy">`;
+            window.applyProfilePicFallback(document.querySelector('.illustration'), athleteDisplayName);
 
             const optionsContainer = document.querySelector('.options-container');
             const backButton = document.getElementById('characterBackButton');

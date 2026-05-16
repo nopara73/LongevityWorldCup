@@ -92,6 +92,27 @@ window.escapeHTML = function (string) {
     return div.innerHTML;
 }
 
+window.DEFAULT_PROFILE_PIC = '/assets/content-images/headshot.jpg';
+
+window.getProfilePicUrl = function (src) {
+    if (typeof src !== 'string') return window.DEFAULT_PROFILE_PIC;
+    const trimmed = src.trim();
+    if (!trimmed || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
+        return window.DEFAULT_PROFILE_PIC;
+    }
+    return trimmed;
+}
+
+window.applyProfilePicFallback = function (img, displayName) {
+    if (!img) return;
+    img.src = window.getProfilePicUrl(img.getAttribute('src'));
+    img.onerror = function () {
+        if (img.src.endsWith(window.DEFAULT_PROFILE_PIC)) return;
+        img.src = window.DEFAULT_PROFILE_PIC;
+        img.alt = displayName ? `${displayName} headshot placeholder` : 'Headshot placeholder';
+    };
+}
+
 /**
  * Comparator function to rank athletes based on competition rules.
  * The ranking is determined by:
@@ -335,8 +356,12 @@ window.optimizeImageClient = async function (dataUri) {
     }
     const blob = new Blob([bytes], { type: contentType });
 
-    // Create ImageBitmap for resizing
-    const img = await createImageBitmap(blob);
+    let img;
+    try {
+        img = await createImageBitmap(blob);
+    } catch (e) {
+        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
+    }
 
     // Determine new size
     const maxSize = 2048;
@@ -373,6 +398,8 @@ window.optimizeImageClient = async function (dataUri) {
     }
     const webpBase64 = btoa(binary);
     const webpDataUrl = 'data:image/webp;base64,' + webpBase64;
+
+    if (typeof img.close === 'function') img.close();
 
     return {
         dataUrl: webpDataUrl,

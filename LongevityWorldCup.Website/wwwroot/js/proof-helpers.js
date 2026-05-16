@@ -102,16 +102,22 @@ window.getProofChecklistLabelsFromSession = function () {
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers) {
     nextButton.disabled = true;
 
-    // ——— Load PDF.js if not already loaded ———
-    if (!window.pdfjsLib) {
+    function ensurePdfJsLoaded() {
+        if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+        if (window.__pdfJsLoadingPromise) return window.__pdfJsLoadingPromise;
+
         const pdfScript = document.createElement('script');
-        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
-        pdfScript.onload = () => {
-            // point to the worker
-            pdfjsLib.GlobalWorkerOptions.workerSrc =
-                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
-        };
-        document.head.appendChild(pdfScript);
+        window.__pdfJsLoadingPromise = new Promise((resolve, reject) => {
+            pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
+            pdfScript.onload = () => {
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
+                resolve(window.pdfjsLib);
+            };
+            pdfScript.onerror = reject;
+            document.head.appendChild(pdfScript);
+        });
+        return window.__pdfJsLoadingPromise;
     }
 
     // Attach event listener to the Upload Proof button
@@ -145,8 +151,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
                     // process one by one to preserve order
                     for (const file of Array.from(files)) {
-                        const raw = await readDataURL(file);
                         if (file.type === 'application/pdf') {
+                            await ensurePdfJsLoaded();
                             // read file as arrayBuffer
                             const arrayBuffer = await file.arrayBuffer();
                             // load PDF
@@ -154,8 +160,12 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                             const pdfDoc = await loadingTask.promise;
                             // render each page
                             for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                                if (proofPics.length >= 9) {
+                                    customAlert('Only the first 9 proof images were added.');
+                                    break;
+                                }
                                 const page = await pdfDoc.getPage(pageNum);
-                                const viewport = page.getViewport({ scale: 1 });
+                                const viewport = page.getViewport({ scale: 2 });
                                 const canvas = document.createElement('canvas');
                                 canvas.width = viewport.width;
                                 canvas.height = viewport.height;
@@ -170,6 +180,12 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                             continue;
                         }
 
+                        if (proofPics.length >= 9) {
+                            customAlert('You can upload a maximum of 9 images.');
+                            break;
+                        }
+
+                        const raw = await readDataURL(file);
                         const { dataUrl } = await window.optimizeImageClient(raw);
                         if (dataUrl) {
                             proofPics.push(dataUrl);
@@ -210,7 +226,7 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
             let img = document.createElement('img');
             img.src = proofPics[i];
             img.alt = 'Proof image ' + (i + 1);
-            img.style = 'max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px;';
+            img.style = 'display: block; width: 100%; height: auto; max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px; background: #fff;';
 
             let removeButton = document.createElement('button');
             removeButton.textContent = 'Remove';

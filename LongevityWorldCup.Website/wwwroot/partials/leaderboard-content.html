@@ -849,10 +849,10 @@
     /* =========================
        11) Proofs & enlarged overlay
        ========================= */
-    .proofs-gallery{ display:flex; flex-direction:column; align-items:center; flex-wrap:wrap; gap:1rem; justify-content:center; padding:0; }
-    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; }
-    .proof-item:hover{ transform: scale(1.05); }
-    .proof-item img{ width:100%; height:100%; object-fit:cover; }
+    .proofs-gallery{ display:flex; flex-direction:column; align-items:center; gap:1rem; justify-content:center; padding:0; }
+    .proof-item{ width:100%; max-width:960px; height:auto; border-radius:8px; overflow:hidden; cursor:pointer; transition:transform .3s ease; background:#fff; border:1px solid rgba(0,0,0,.12); }
+    .proof-item:hover{ transform: scale(1.01); }
+    .proof-item img{ display:block; width:100%; height:auto; max-height:none; object-fit:contain; background:#fff; }
 
     .enlarged-portrait{
         position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85);
@@ -1028,7 +1028,7 @@
 
         /* Mobile modal improvements */
         .modal-content{
-            width:95%; padding:15px; margin:0; max-height:100vh; height:100vh;
+            width:100%; padding:15px; margin:0; max-height:100dvh; height:100dvh;
             border-radius:0 !important; /* Remove rounded corners on mobile immediately */
             padding-top:max(15px, env(safe-area-inset-top));
             padding-bottom:max(15px, env(safe-area-inset-bottom));
@@ -1039,6 +1039,8 @@
             border-radius:0 !important; /* Also remove rounded corners in guess-mode on mobile */
         }
         #athlete-profile .portrait-wrapper{ width:50%; }
+        .proof-item{ max-width:100%; border-radius:6px; }
+        .proofs-gallery{ gap:.75rem; }
         .modal-scroll-progress{ height:2px; }
         
         /* Ensure minimum touch target sizes */
@@ -2018,8 +2020,8 @@
                         bestBiomarkerValues: bestBiomarkerValues,
                         bestBortzValues: bestBortzValues,
                         personalLink: athlete.PersonalLink,
-                        profilePic: athlete.ProfilePic,
-                        profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
+                        profilePic: window.getProfilePicUrl(athlete.ProfilePic),
+                        profilePicThumb: window.getProfilePicUrl(athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic),
                         flag: athlete.Flag || '',
                         why: athlete.Why || '',
                         division: athlete.Division,
@@ -2200,7 +2202,7 @@
                                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                                 ${rankEmoji}
                                             </div>
-                                            <img src="${athlete.profilePicThumb || athlete.profilePic}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
+                                            <img src="${window.getProfilePicUrl(athlete.profilePicThumb || athlete.profilePic)}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
                                             <div class="name-row">
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
                                             </div>
@@ -2219,6 +2221,7 @@
 
                                         // Append the podiumItem to the podium container
                                         podium.appendChild(podiumItem);
+                                        window.applyProfilePicFallback(podiumItem.querySelector('.podium-portrait'), athlete.displayName);
 
                                         // After appending the podium item
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
@@ -2322,8 +2325,9 @@
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
                     const portraitImg = athleteCell.querySelector('img.portrait');
-                    portraitImg.src = athlete.profilePicThumb || athlete.profilePic;
+                    portraitImg.src = window.getProfilePicUrl(athlete.profilePicThumb || athlete.profilePic);
                     portraitImg.alt = `${athlete.displayName} portrait`;
+                    window.applyProfilePicFallback(portraitImg, athlete.displayName);
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
                         applyNewUI(portraitImg);
@@ -4348,9 +4352,10 @@
         }
         
         const profilePic = document.getElementById('modalProfilePic');
-        profilePic.src = fullAthleteData.ProfilePic;
+        profilePic.src = window.getProfilePicUrl(fullAthleteData.ProfilePic);
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
+        window.applyProfilePicFallback(profilePic, modalDisplayName);
 
         const athleteProfileEl = document.getElementById('athlete-profile');
         if (athleteProfileEl) {
@@ -4878,13 +4883,18 @@
         const proofsGallery = document.getElementById('proofsGallery');
         proofsGallery.innerHTML = '';
 
-        fullAthleteData.Proofs.forEach(proofUrl => {
+        (fullAthleteData.Proofs || []).forEach((proofUrl, index) => {
             const proofItem = document.createElement('div');
             proofItem.classList.add('proof-item');
-            proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image" loading="lazy">`;
+            const img = document.createElement('img');
+            img.src = proofUrl;
+            img.alt = `Proof image ${index + 1}`;
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            proofItem.appendChild(img);
             proofsGallery.appendChild(proofItem);
 
-            proofItem.querySelector('img').addEventListener('click', function () {
+            img.addEventListener('click', function () {
                 openEnlargedView(this);
             });
         });
