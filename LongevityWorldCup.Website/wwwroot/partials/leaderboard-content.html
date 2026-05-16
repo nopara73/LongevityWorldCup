@@ -422,6 +422,13 @@
         transition: transform .3s ease;
     }
     .portrait:hover{ transform: scale(var(--portrait-hover-scale)); }
+    .portrait.portrait-fallback,
+    #modalProfilePic.portrait-fallback,
+    .podium-item .podium-portrait.portrait-fallback{
+        object-fit:contain;
+        background:#fff;
+        padding:.35rem;
+    }
 
     /* PODIUM portrait (bounded even if not wrapped) */
     .podium-item .podium-portrait{
@@ -849,10 +856,11 @@
     /* =========================
        11) Proofs & enlarged overlay
        ========================= */
-    .proofs-gallery{ display:flex; flex-direction:column; align-items:center; flex-wrap:wrap; gap:1rem; justify-content:center; padding:0; }
-    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; }
+    .proofs-gallery{ display:flex; flex-direction:column; align-items:stretch; gap:1rem; justify-content:center; padding:0; width:100%; }
+    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.08); }
     .proof-item:hover{ transform: scale(1.05); }
-    .proof-item img{ width:100%; height:100%; object-fit:cover; }
+    .proof-item img{ display:block; width:auto; max-width:100%; height:auto; max-height:72vh; object-fit:contain; margin:0 auto; background:#fff; }
+    .proofs-empty{ margin:.5rem 0 0; color:#666; text-align:center; font-size:.95rem; }
 
     .enlarged-portrait{
         position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85);
@@ -1028,7 +1036,7 @@
 
         /* Mobile modal improvements */
         .modal-content{
-            width:95%; padding:15px; margin:0; max-height:100vh; height:100vh;
+            width:100%; padding:15px; margin:0; max-height:100vh; height:100vh; box-sizing:border-box;
             border-radius:0 !important; /* Remove rounded corners on mobile immediately */
             padding-top:max(15px, env(safe-area-inset-top));
             padding-bottom:max(15px, env(safe-area-inset-bottom));
@@ -1039,6 +1047,7 @@
             border-radius:0 !important; /* Also remove rounded corners in guess-mode on mobile */
         }
         #athlete-profile .portrait-wrapper{ width:50%; }
+        .proof-item img{ max-height:80vh; }
         .modal-scroll-progress{ height:2px; }
         
         /* Ensure minimum touch target sizes */
@@ -1431,10 +1440,24 @@
     let athleteResults = [];
     let athletesOrderedByPace;
     let athletesOrderedByBortzPace;
+    const defaultProfilePic = '/assets/HdLogo_thumb_sm.png';
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
     markAthleteSkippedIfInURL();
+
+    function getAthletePortraitUrl(athlete) {
+        return (athlete && (athlete.profilePicThumb || athlete.profilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic)) || defaultProfilePic;
+    }
+
+    function wirePortraitFallback(img) {
+        if (!img) return;
+        img.onerror = function () {
+            this.onerror = null;
+            this.src = defaultProfilePic;
+            this.classList.add('portrait-fallback');
+        };
+    }
 
     function markAthleteSkippedForGuessMyAge(athleteSlug) {
         if (!athleteSlug) {
@@ -2195,12 +2218,14 @@
                                         const podiumItem = document.createElement('div');
                                         podiumItem.classList.add('podium-item', rankClass);
 
+                                        const podiumPortraitUrl = getAthletePortraitUrl(athlete);
+
                                         // Populate the inner HTML of podiumItem
                                         podiumItem.innerHTML = `
                                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                                 ${rankEmoji}
                                             </div>
-                                            <img src="${athlete.profilePicThumb || athlete.profilePic}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
+                                            <img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
                                             <div class="name-row">
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
                                             </div>
@@ -2219,6 +2244,7 @@
 
                                         // Append the podiumItem to the podium container
                                         podium.appendChild(podiumItem);
+                                        wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'));
 
                                         // After appending the podium item
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
@@ -2322,8 +2348,9 @@
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
                     const portraitImg = athleteCell.querySelector('img.portrait');
-                    portraitImg.src = athlete.profilePicThumb || athlete.profilePic;
+                    portraitImg.src = getAthletePortraitUrl(athlete);
                     portraitImg.alt = `${athlete.displayName} portrait`;
+                    wirePortraitFallback(portraitImg);
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
                         applyNewUI(portraitImg);
@@ -4348,9 +4375,11 @@
         }
         
         const profilePic = document.getElementById('modalProfilePic');
-        profilePic.src = fullAthleteData.ProfilePic;
+        profilePic.src = getAthletePortraitUrl(fullAthleteData);
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
+        profilePic.classList.remove('portrait-fallback');
+        wirePortraitFallback(profilePic);
 
         const athleteProfileEl = document.getElementById('athlete-profile');
         if (athleteProfileEl) {
@@ -4876,15 +4905,31 @@
 
     function populateProofsGallery(fullAthleteData) {
         const proofsGallery = document.getElementById('proofsGallery');
+        if (!proofsGallery) return;
         proofsGallery.innerHTML = '';
 
-        fullAthleteData.Proofs.forEach(proofUrl => {
+        const proofs = Array.isArray(fullAthleteData && fullAthleteData.Proofs)
+            ? fullAthleteData.Proofs.filter(Boolean)
+            : [];
+        if (proofs.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'proofs-empty';
+            empty.textContent = 'No public proofs available yet.';
+            proofsGallery.appendChild(empty);
+            return;
+        }
+
+        proofs.forEach((proofUrl, index) => {
             const proofItem = document.createElement('div');
             proofItem.classList.add('proof-item');
-            proofItem.innerHTML = `<img src="${proofUrl}" alt="Proof Image" loading="lazy">`;
+            const img = document.createElement('img');
+            img.src = proofUrl;
+            img.alt = `Proof image ${index + 1}`;
+            img.loading = 'lazy';
+            proofItem.appendChild(img);
             proofsGallery.appendChild(proofItem);
 
-            proofItem.querySelector('img').addEventListener('click', function () {
+            img.addEventListener('click', function () {
                 openEnlargedView(this);
             });
         });
