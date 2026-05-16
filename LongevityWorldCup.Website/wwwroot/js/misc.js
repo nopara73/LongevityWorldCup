@@ -335,8 +335,12 @@ window.optimizeImageClient = async function (dataUri) {
     }
     const blob = new Blob([bytes], { type: contentType });
 
-    // Create ImageBitmap for resizing
-    const img = await createImageBitmap(blob);
+    let img;
+    try {
+        img = await createImageBitmap(blob);
+    } catch (e) {
+        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
+    }
 
     // Determine new size
     const maxSize = 2048;
@@ -373,6 +377,8 @@ window.optimizeImageClient = async function (dataUri) {
     }
     const webpBase64 = btoa(binary);
     const webpDataUrl = 'data:image/webp;base64,' + webpBase64;
+
+    if (typeof img.close === 'function') img.close();
 
     return {
         dataUrl: webpDataUrl,
