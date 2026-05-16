@@ -558,18 +558,10 @@ public class XDevPreviewService
             sb.Append(WebUtility.HtmlEncode(card.Host));
         }
         sb.Append("</div>");
-        if (hasImage)
-        {
-            sb.Append("</a>");
-            sb.Append("<div class=\"link-preview-source\">From ");
-            sb.Append(WebUtility.HtmlEncode(displaySource));
-            sb.Append("</div>");
-            return;
-        }
 
         sb.Append("<div class=\"link-preview-meta\">");
         sb.Append("<div class=\"link-preview-domain\">");
-        sb.Append(WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(card.SiteName) ? card.Host : card.SiteName));
+        sb.Append(WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(card.SiteName) ? displaySource : card.SiteName));
         sb.Append("</div>");
         if (!string.IsNullOrWhiteSpace(card.Title))
         {

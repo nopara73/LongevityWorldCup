@@ -102,16 +102,28 @@ window.getProofChecklistLabelsFromSession = function () {
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers) {
     nextButton.disabled = true;
 
-    // ——— Load PDF.js if not already loaded ———
-    if (!window.pdfjsLib) {
-        const pdfScript = document.createElement('script');
-        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
-        pdfScript.onload = () => {
-            // point to the worker
-            pdfjsLib.GlobalWorkerOptions.workerSrc =
-                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
-        };
-        document.head.appendChild(pdfScript);
+    if (!window.pdfjsLib && !window.__proofPdfJsReady) {
+        window.__proofPdfJsReady = new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[data-proof-pdfjs="true"]');
+            if (existing) {
+                existing.addEventListener('load', resolve, { once: true });
+                existing.addEventListener('error', reject, { once: true });
+                return;
+            }
+
+            const pdfScript = document.createElement('script');
+            pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
+            pdfScript.dataset.proofPdfjs = 'true';
+            pdfScript.onload = () => {
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
+                resolve();
+            };
+            pdfScript.onerror = reject;
+            document.head.appendChild(pdfScript);
+        });
+    } else if (window.pdfjsLib) {
+        window.__proofPdfJsReady = Promise.resolve();
     }
 
     // Attach event listener to the Upload Proof button
@@ -147,13 +159,15 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     for (const file of Array.from(files)) {
                         const raw = await readDataURL(file);
                         if (file.type === 'application/pdf') {
-                            // read file as arrayBuffer
+                            await window.__proofPdfJsReady;
                             const arrayBuffer = await file.arrayBuffer();
-                            // load PDF
                             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                             const pdfDoc = await loadingTask.promise;
-                            // render each page
                             for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                                if (proofPics.length >= 9) {
+                                    customAlert('Only the first 9 proof images were added.');
+                                    break;
+                                }
                                 const page = await pdfDoc.getPage(pageNum);
                                 const viewport = page.getViewport({ scale: 1 });
                                 const canvas = document.createElement('canvas');
@@ -180,6 +194,9 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 }
                 // Reset the file input's value to allow re-uploading the same file if needed
                 proofPicInput.value = "";
+            } catch (error) {
+                customAlert('We could not read one of those proof files. Please try an image or a smaller PDF.');
+                throw error;
             } finally {
                 hideLoading();
             }
@@ -200,21 +217,20 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
 function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton) {
     container.innerHTML = '';
-    // Use the global `proofPics` variable directly
     if (proofPics.length > 0) {
         container.innerHTML = '<p><strong>Proof uploaded successfully.</strong></p>';
         for (let i = 0; i < proofPics.length; i++) {
             let imgContainer = document.createElement('div');
-            imgContainer.style = 'position: relative; display: inline-block; margin: 0.5rem;';
+            imgContainer.style = 'position: relative; display: block; margin: 0.75rem auto; max-width: min(100%, 760px);';
 
             let img = document.createElement('img');
             img.src = proofPics[i];
             img.alt = 'Proof image ' + (i + 1);
-            img.style = 'max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px;';
+            img.style = 'display: block; width: auto; max-width: 100%; max-height: 70vh; margin: 0 auto; object-fit: contain; background: #fff; border: 2px solid var(--dark-text-color); border-radius: 8px;';
 
             let removeButton = document.createElement('button');
             removeButton.textContent = 'Remove';
-            removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
+            removeButton.style = 'position: absolute; top: 8px; right: 8px; background-color: rgba(120, 0, 0, 0.82); color: var(--light-text-color); border: none; border-radius: 999px; cursor: pointer; padding: 0.35rem 0.65rem;';
             removeButton.addEventListener('click', function () {
                 proofPics.splice(i, 1);
                 updateProofImageContainer(container, nextButton, proofPics, uploadProofButton);

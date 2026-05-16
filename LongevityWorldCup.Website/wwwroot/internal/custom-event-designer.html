@@ -1187,7 +1187,15 @@
                 return "";
             }
 
-            const data = ogPreviewCache.get(url) || buildOgPlaceholder(url);
+            const data = ogPreviewCache.get(url) || (ogPreviewPending.has(url)
+                ? {
+                    url,
+                    domain: getUrlDomain(url),
+                    title: "Loading link preview...",
+                    description: "",
+                    image: ""
+                }
+                : buildOgPlaceholder(url));
             const mediaHtml = data.image
                 ? `<img alt="link preview image" src="${escapeHtml(data.image)}" loading="lazy" referrerpolicy="no-referrer">`
                 : `

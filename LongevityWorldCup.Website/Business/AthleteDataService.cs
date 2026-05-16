@@ -302,6 +302,7 @@ public class AthleteDataService : IDisposable
             // PROFILE PIC: look for "{key}.*" in that same folder
             var pic = Directory
                 .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
+                .Where(IsSupportedImageFile)
                 .OrderByDescending(File.GetLastWriteTimeUtc)
                 .FirstOrDefault();
             var profilePicUrl = pic is null
@@ -331,7 +332,7 @@ public class AthleteDataService : IDisposable
                 .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
                 .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
             foreach (var p in proofFiles)
-                proofs.Add($"/athletes/{folderName}/{Path.GetFileName(p)}");
+                proofs.Add(BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(p), File.GetLastWriteTimeUtc(p).Ticks));
             athlete["Proofs"] = proofs;
 
             CanonicalizeIsoDatesInPlace(athlete);
@@ -343,6 +344,15 @@ public class AthleteDataService : IDisposable
 
     private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, long version)
         => $"/athletes/{folderName}/{fileName}?v={version}";
+
+    private static bool IsSupportedImageFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return extension.Equals(".webp", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase);
+    }
 
     private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName, string thumbSuffix, int sizePx, int quality)
     {
