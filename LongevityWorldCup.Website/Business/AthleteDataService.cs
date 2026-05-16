@@ -331,7 +331,7 @@ public class AthleteDataService : IDisposable
                 .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
                 .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
             foreach (var p in proofFiles)
-                proofs.Add($"/athletes/{folderName}/{Path.GetFileName(p)}");
+                proofs.Add(BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(p), File.GetLastWriteTimeUtc(p).Ticks));
             athlete["Proofs"] = proofs;
 
             CanonicalizeIsoDatesInPlace(athlete);

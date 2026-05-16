@@ -72,7 +72,7 @@ namespace LongevityWorldCup.Website.Middleware
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("<!--HEAD-->", head)
-                        .Replace("<!--HEADER-->", header)
+                        .Replace("<!--HEADER-->", ApplySharedAssetPlaceholders(header))
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
                         .Replace("<!--SUB-PROGRESS-BAR-->", subProgressBar)
@@ -112,7 +112,7 @@ namespace LongevityWorldCup.Website.Middleware
             var optionalHeadScripts = BuildOptionalHeadScripts(config);
             var modulesBootstrap = BuildModulesBootstrap(config);
 
-            return html
+            return ApplySharedAssetPlaceholders(html)
                 .Replace("{{OPTIONAL_HEAD_SCRIPTS}}", optionalHeadScripts)
                 .Replace("{{MODULES_BOOTSTRAP}}", modulesBootstrap)
                 .Replace("{{ASSET_FAVICON_ICO}}", _assetVersionProvider.AppendVersion("/assets/favicon.ico"))
@@ -132,6 +132,12 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                 .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
                 .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
+        }
+
+        private string ApplySharedAssetPlaceholders(string html)
+        {
+            return html
+                .Replace("{{ASSET_FAVICON_128}}", _assetVersionProvider.AppendVersion("/assets/favicon-128x128.png"));
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)
