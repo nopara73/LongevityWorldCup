@@ -263,10 +263,11 @@
             athleteInput.value = a.Name;
             document.getElementById('character-title').textContent = a.Name;
             document.querySelector('picture').innerHTML = `
-                                                                                                            <img src="${a.ProfilePic}"
+                                                                                                            <img src="${window.getProfilePicUrl(a.ProfilePic)}"
                                                                                                                     alt="${a.Name} headshot"
                                                                                                                     class="illustration"
                                                                                                                     loading="lazy">`;
+            window.applyProfilePicFallback(document.querySelector('.illustration'), a.Name);
             confirmBtn.style.display = 'inline-block';
             confirmBtn.disabled = false;
             currentAthlete = a;

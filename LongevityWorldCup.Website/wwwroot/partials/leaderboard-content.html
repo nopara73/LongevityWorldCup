@@ -2018,8 +2018,8 @@
                         bestBiomarkerValues: bestBiomarkerValues,
                         bestBortzValues: bestBortzValues,
                         personalLink: athlete.PersonalLink,
-                        profilePic: athlete.ProfilePic,
-                        profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
+                        profilePic: window.getProfilePicUrl(athlete.ProfilePic),
+                        profilePicThumb: window.getProfilePicUrl(athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic),
                         flag: athlete.Flag || '',
                         why: athlete.Why || '',
                         division: athlete.Division,
@@ -2200,7 +2200,7 @@
                                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                                 ${rankEmoji}
                                             </div>
-                                            <img src="${athlete.profilePicThumb || athlete.profilePic}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
+                                            <img src="${window.getProfilePicUrl(athlete.profilePicThumb || athlete.profilePic)}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
                                             <div class="name-row">
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
                                             </div>
@@ -2219,6 +2219,7 @@
 
                                         // Append the podiumItem to the podium container
                                         podium.appendChild(podiumItem);
+                                        window.applyProfilePicFallback(podiumItem.querySelector('.podium-portrait'), athlete.displayName);
 
                                         // After appending the podium item
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
@@ -2322,8 +2323,9 @@
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
                     const portraitImg = athleteCell.querySelector('img.portrait');
-                    portraitImg.src = athlete.profilePicThumb || athlete.profilePic;
+                    portraitImg.src = window.getProfilePicUrl(athlete.profilePicThumb || athlete.profilePic);
                     portraitImg.alt = `${athlete.displayName} portrait`;
+                    window.applyProfilePicFallback(portraitImg, athlete.displayName);
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
                         applyNewUI(portraitImg);
@@ -4348,9 +4350,10 @@
         }
         
         const profilePic = document.getElementById('modalProfilePic');
-        profilePic.src = fullAthleteData.ProfilePic;
+        profilePic.src = window.getProfilePicUrl(fullAthleteData.ProfilePic);
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
+        window.applyProfilePicFallback(profilePic, modalDisplayName);
 
         const athleteProfileEl = document.getElementById('athlete-profile');
         if (athleteProfileEl) {

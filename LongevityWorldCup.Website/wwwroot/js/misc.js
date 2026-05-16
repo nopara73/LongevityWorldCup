@@ -92,6 +92,27 @@ window.escapeHTML = function (string) {
     return div.innerHTML;
 }
 
+window.DEFAULT_PROFILE_PIC = '/assets/content-images/headshot.jpg';
+
+window.getProfilePicUrl = function (src) {
+    if (typeof src !== 'string') return window.DEFAULT_PROFILE_PIC;
+    const trimmed = src.trim();
+    if (!trimmed || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
+        return window.DEFAULT_PROFILE_PIC;
+    }
+    return trimmed;
+}
+
+window.applyProfilePicFallback = function (img, displayName) {
+    if (!img) return;
+    img.src = window.getProfilePicUrl(img.getAttribute('src'));
+    img.onerror = function () {
+        if (img.src.endsWith(window.DEFAULT_PROFILE_PIC)) return;
+        img.src = window.DEFAULT_PROFILE_PIC;
+        img.alt = displayName ? `${displayName} headshot placeholder` : 'Headshot placeholder';
+    };
+}
+
 /**
  * Comparator function to rank athletes based on competition rules.
  * The ranking is determined by:
