@@ -237,8 +237,13 @@ namespace LongevityWorldCup.Website
             {
                 OnPrepareResponse = ctx =>
                 {
-                    ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000";
-                    ctx.Context.Response.Headers.Expires = DateTime.UtcNow.AddYears(1).ToString("R");
+                    var hasVersion = ctx.Context.Request.Query.ContainsKey("v");
+                    ctx.Context.Response.Headers.CacheControl = hasVersion
+                        ? "public,max-age=31536000,immutable"
+                        : "public,max-age=300,must-revalidate";
+                    ctx.Context.Response.Headers.Expires = (hasVersion
+                        ? DateTime.UtcNow.AddYears(1)
+                        : DateTime.UtcNow.AddMinutes(5)).ToString("R");
                 }
             });
 
