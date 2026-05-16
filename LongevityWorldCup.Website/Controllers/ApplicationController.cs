@@ -32,7 +32,7 @@ namespace LongevityWorldCup.Website.Controllers
         //  - compatibility-decompose (FormKD) to split accents & ligatures
         //  - strip all non-spacing marks (accents)
         //  - allow only ASCII letters, digits, hyphens/underscores
-        //  - convert spaces & hyphens to single underscores
+        //  - convert spaces to single underscores while preserving meaningful hyphens
         //  - collapse multiple underscores, trim edges
         private static string SanitizeFileName(string name)
         {
@@ -57,10 +57,14 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     sb.Append(c);
                 }
-                // 4) Treat whitespace or hyphens as underscores
-                else if (char.IsWhiteSpace(c) || c == '-')
+                // 4) Treat whitespace as underscores
+                else if (char.IsWhiteSpace(c))
                 {
                     sb.Append('_');
+                }
+                else if (c == '-')
+                {
+                    sb.Append(c);
                 }
                 // everything else dropped
             }
