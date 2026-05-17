@@ -8,6 +8,11 @@
         --details-bg:rgba(0,188,212,.08);
         --zebra-even:rgba(240,244,248,.5);
         --zebra-odd:transparent;
+        --events-text:var(--dark-text-color);
+        --events-muted:#7a8a99;
+        --events-border:rgba(0,0,0,.06);
+        --events-hover-bg:rgba(240,244,248,.8);
+        --events-header-bg:#e6f7fa;
         --event-row-min:44px;
         --row-pad-y:2px;
         --badge-size:24px;
@@ -45,6 +50,7 @@
         display:flex;
         align-items:stretch;
         background-color:var(--card-bg);
+        color:var(--events-text);
         border-radius:20px;
         box-shadow:0 10px 30px rgba(0,0,0,.1);
         overflow:hidden;
@@ -123,9 +129,9 @@
 
     .events-board.athlete-events-scroll #eventsTable thead th{
         position:static;
-        background:#e6f7fa;
+        background:var(--events-header-bg);
         z-index:auto;
-        box-shadow:0 1px 0 rgba(0,0,0,.08);
+        box-shadow:0 1px 0 var(--events-border);
     }
 
     .events-board table{
@@ -140,7 +146,7 @@
     .events-board thead th{
         background:
                 linear-gradient(rgba(0,188,212,.12),rgba(0,188,212,.12)),
-                var(--card-bg);
+                var(--events-header-bg, var(--card-bg));
         color:var(--primary-color);
         text-transform:uppercase;
         font-weight:800;
@@ -148,7 +154,7 @@
         letter-spacing:1px;
         text-align:left;
         padding:15px 20px;
-        border-bottom:1px solid rgba(0,0,0,.03);
+        border-bottom:1px solid var(--events-border);
         position:relative;
         z-index:2
     }
@@ -200,19 +206,20 @@
         height:auto;
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease;
         cursor:default;
-        background-color:var(--zebra-odd)
+        background-color:var(--zebra-odd);
+        box-shadow:inset 0 -1px 0 var(--events-border)
     }
     .events-board table tbody tr.zebra-even{background-color:var(--zebra-even)}
     .events-board table tbody tr.zebra-odd{background-color:var(--zebra-odd)}
     .events-board table tbody tr:hover{
         transform:scale(1.01);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
-        background-color:rgba(240,244,248,.8)
+        background-color:var(--events-hover-bg)
     }
     .events-board table tbody tr.group-hover{
         transform:scale(1.01);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
-        background-color:rgba(240,244,248,.8);
+        background-color:var(--events-hover-bg);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
 
@@ -225,7 +232,7 @@
     .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover){
         transform:scale(1.01);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
-        background-color:rgba(240,244,248,.8);
+        background-color:var(--events-hover-bg);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
     .events-board table tbody tr.custom-event-row.is-open:hover,
@@ -248,7 +255,7 @@
     .events-board td.event-message{padding-left:0}
 
     .col-avatar{width:36px}
-    .col-date{text-align:right;white-space:nowrap;color:#7a8a99;font-weight:400;font-size:.8rem;opacity:.5}
+    .col-date{text-align:right;white-space:nowrap;color:var(--events-muted);font-weight:400;font-size:.8rem;opacity:.7}
 
     .avatar,.avatar-fallback{
         width:24px;height:24px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;
@@ -326,7 +333,7 @@
     .event-message a.placement-link:hover,
     .event-message a.placement-link:focus{text-decoration:none}
     .event-message a.more-link{
-        color:#7a8a99;
+        color:var(--events-muted);
         opacity:.75;
         font-size:.85em;
         text-decoration:none;
@@ -336,13 +343,14 @@
     }
     .event-message a.more-link:hover,
     .event-message a.more-link:focus{
-        color:#7a8a99;
+        color:var(--events-muted);
         opacity:1;
         text-decoration:underline;
-        text-decoration-color:#7a8a99;
+        text-decoration-color:var(--events-muted);
     }
 
     .donation-amount{color:var(--secondary-color,#ff4f87);font-weight:700}
+    .age-years-accent{color:#4caf50;font-weight:700}
     .donation-gift-avatar{
         width:24px;height:24px;border-radius:50%;
         background:var(--donation-gift,#10b981);
@@ -384,7 +392,7 @@
         border:1px solid rgba(0,0,0,.48)!important;
         border-radius:999px;
         line-height:1;
-        box-shadow:0 1px 2px rgba(0,0,0,.12);
+        box-shadow:0 1px 2px rgba(0,0,0,.22);
         margin-inline:var(--badge-inline-gap);
         margin-block:1px;
         vertical-align:middle
@@ -428,7 +436,7 @@
     .events-board .others-flyout{
         position:absolute;top:1.3em;left:0;display:none;
         background:var(--card-bg,#fff);padding:.35rem .5rem;border-radius:8px;
-        box-shadow:0 8px 24px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.06);
+        box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid var(--events-border);
         z-index:3;white-space:nowrap
     }
     .events-board .others-wrapper:hover .others-flyout{display:block}
@@ -493,7 +501,7 @@
         margin-left:.35rem;
         padding:0;
 
-        color:#000;
+        color:var(--events-text);
         cursor:pointer;
         vertical-align:middle;
     }
@@ -545,7 +553,7 @@
                 opacity .18s linear;
     }
 
-    .details-cell{padding:10px 20px;background:var(--details-bg);border-top:1px solid rgba(0,0,0,.06)}
+    .details-cell{padding:10px 20px;background:var(--details-bg);border-top:1px solid var(--events-border)}
 
     @media (prefers-reduced-motion:reduce){
         .custom-event-content{transition:none;transform:none}
@@ -805,7 +813,7 @@
             if(n===3) return '<i class="fa-solid fa-award rank-icon" style="color: #cd7f32;" title="3rd place" aria-label="3rd place"></i>';
             return '';
         }
-        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"";}
+        function setViewAllVisible(show){const link=document.getElementById("eventsViewAll"); if(link) link.style.display=show?"":"none";}
         function parseTimeVar(varName, fallbackMs){
             const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
             if(!v) return fallbackMs;
@@ -1357,7 +1365,7 @@
             }
 
             if (!Array.isArray(rows) || rows.length === 0){
-                tbody.innerHTML = `<tr><td colspan="3">No events yet</td></tr>`;
+                tbody.innerHTML = `<tr class="events-empty-row"><td colspan="3">No events yet</td></tr>`;
                 return;
             }
 
@@ -1595,7 +1603,7 @@
                     const years = ageDiffN !== null
                         ? new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Math.abs(ageDiffN))
                         : "?";
-                    const yearsHtml = `<strong style="color: #4caf50">${esc(years)} years</strong>`;
+                    const yearsHtml = `<strong class="age-years-accent">${esc(years)} years</strong>`;
 
                     msgHtml = seasonText
                         ? `${nameWithRank} finished ${placeHtml} in ${esc(seasonText)} with a biological age ${yearsHtml} ${esc(dir)} (${esc(clockText)})`
@@ -1903,16 +1911,19 @@
                 let rows=toRows(Array.isArray(events)?events:[]);
 
                 const targetArg=normalizeIncomingAthleteId(athleteId);
+                const root=document.getElementById('events-root');
+                const rootContainerId = root && root.parentElement ? root.parentElement.id : "";
+                const canInferAthleteFromLocation = rootContainerId !== "events-root-index";
 
                 const targetPath=(function(){
-                    if(targetArg) return "";
+                    if(targetArg || !canInferAthleteFromLocation) return "";
                     const p=String(window.location.pathname||"");
                     if(!/\/athlete\//i.test(p)) return "";
                     return normalizeIncomingAthleteId(p);
                 })();
 
                 const targetParentPath=(function(){
-                    if(targetArg || targetPath) return "";
+                    if(targetArg || targetPath || !canInferAthleteFromLocation) return "";
                     try{
                         if(window===window.parent) return "";
                         const pp=String(window.parent.location && window.parent.location.pathname || "");
@@ -1927,7 +1938,6 @@
 
                 allowBadgeClicks = !target;
 
-                const root=document.getElementById('events-root');
                 if(root) root.classList.toggle('athlete-scroll', !!target);
 
                 athletePageTargetSlug = target || null;

@@ -530,9 +530,9 @@
         font-weight:800;
         letter-spacing:0.12em;
         padding:0.4em 0.85em;
-        color:#fff;
-        text-shadow:0 1px 2px rgba(0,0,0,.6);
-        background:linear-gradient(160deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.75) 100%);
+        color:rgba(12,16,16,.94);
+        text-shadow:none;
+        background:linear-gradient(160deg, rgba(246,244,237,.96) 0%, rgba(210,215,212,.86) 100%);
         border:2px solid rgba(255,255,255,.2);
         border-radius:0.5em;
         box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
@@ -655,6 +655,67 @@
         -webkit-overflow-scrolling:touch; scroll-behavior:smooth; overscroll-behavior:contain;
         position:relative;
     }
+    #detailsModal{
+        --athlete-modal-surface: var(--background-color, linear-gradient(120deg, #000000, #555555));
+        --athlete-modal-card: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
+        --athlete-modal-card-strong: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
+        --athlete-modal-card-hover: rgba(255,255,255,.16);
+        --athlete-modal-text: rgba(255,255,255,.94);
+        --athlete-modal-cream: rgba(246,244,237,.92);
+        --athlete-modal-cream-soft: rgba(246,244,237,.18);
+        --athlete-modal-cream-border: rgba(246,244,237,.52);
+        --athlete-modal-link: rgba(246,244,237,.9);
+        --athlete-modal-muted: rgba(255,255,255,.68);
+        --athlete-modal-subtle: rgba(255,255,255,.48);
+        --athlete-modal-border: rgba(246,244,237,.34);
+        --athlete-modal-border-strong: rgba(246,244,237,.48);
+        --athlete-modal-shadow: 0 22px 60px rgba(0,0,0,.48);
+        --athlete-modal-focus: 0 0 0 3px rgba(246,244,237,.28);
+        --athlete-modal-chart-grid: rgba(255,255,255,.16);
+        --athlete-modal-chart-bortz: rgba(154,232,178,.96);
+        --athlete-modal-chart-pheno: rgba(135,229,229,.96);
+        --athlete-modal-chart-biomarker: rgba(255,125,125,.96);
+        --athlete-modal-chart-panel: rgba(8,10,10,.28);
+        --athlete-modal-section-width: 640px;
+    }
+    #detailsModal.modal{
+        background-color: rgba(0,0,0,.72);
+        backdrop-filter: blur(10px) saturate(.8);
+        -webkit-backdrop-filter: blur(10px) saturate(.8);
+    }
+    #detailsModal .modal-content{
+        background: var(--athlete-modal-surface);
+        background-clip: padding-box;
+        color: var(--athlete-modal-text);
+        border: 1px solid var(--athlete-modal-border);
+        box-shadow: var(--athlete-modal-shadow), inset 0 0 0 1px rgba(246,244,237,.08);
+        isolation: isolate;
+    }
+    #detailsModal .modal-content::before{
+        content:"";
+        position:absolute;
+        inset:1px;
+        pointer-events:none;
+        border-radius:14px;
+        z-index:0;
+        background:
+            radial-gradient(circle at 50% 0%, rgba(246,244,237,.11), transparent 32%),
+            radial-gradient(circle at 72% 8%, rgba(181,226,226,.06), transparent 26%),
+            linear-gradient(180deg, rgba(255,255,255,.065), transparent 18%);
+        opacity:.64;
+    }
+    #detailsModal .modal-content > *{
+        position:relative;
+        z-index:1;
+    }
+    #detailsModal .modal-scroll-progress,
+    #detailsModal .modal-sticky-header{
+        position: sticky;
+    }
+    #detailsModal .modal-content > .gma-trollface-container{
+        position:absolute;
+        z-index:10000;
+    }
     /* Remove border-radius on mobile immediately (before animation) */
     @media (max-width: 768px) {
         .modal-content{
@@ -662,6 +723,9 @@
         }
         .modal-content.guess-mode{
             border-radius:0 !important;
+        }
+        #detailsModal .modal-content::before{
+            border-radius:0;
         }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -720,15 +784,75 @@
         transform:scale(0.95);
         background:rgba(0,0,0,0.1);
     }
+    #detailsModal .modal-sticky-header{
+        top: -20px;
+        margin: -20px -20px 1.25rem -20px;
+        padding: 1.25rem 1.25rem .85rem;
+        z-index: 30;
+        isolation: isolate;
+        background: linear-gradient(180deg, rgba(17,19,19,.96), rgba(9,10,10,.92));
+        color: var(--athlete-modal-text);
+        border-bottom: 1px solid var(--athlete-modal-border);
+        box-shadow: 0 12px 28px rgba(0,0,0,.22), inset 0 -1px 0 rgba(246,244,237,.06);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+    #detailsModal .modal-sticky-header.visible::before{
+        top: -80px;
+        height: 80px;
+        background: linear-gradient(180deg, rgba(4,5,5,.98), rgba(17,19,19,.96));
+    }
+    #detailsModal .modal-sticky-header .sticky-athlete-name{
+        color: var(--athlete-modal-text);
+    }
+    #detailsModal .modal-sticky-header .sticky-pro-badge{
+        background: linear-gradient(145deg, rgba(246,244,237,.96), rgba(210,215,212,.82));
+        color: rgba(12,16,16,.92);
+        border-color: rgba(255,255,255,.72);
+        text-shadow: none;
+        box-shadow: 0 12px 26px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.7);
+    }
+    #detailsModal .modal-sticky-header .sticky-close-btn,
+    #detailsModal #closeAthleteDetailsModal{
+        position:absolute;
+        top:24px;
+        left:24px;
+        z-index:60;
+        width:44px;
+        height:44px;
+        min-width:44px;
+        min-height:44px;
+        padding:0;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        color: rgba(255,255,255,.78);
+        background: rgba(255,255,255,.08);
+        border: 1px solid var(--athlete-modal-border);
+    }
+    #detailsModal .modal-sticky-header .sticky-close-btn{
+        position:static;
+        width:auto;
+    }
+    #detailsModal .modal-sticky-header .sticky-close-btn:hover,
+    #detailsModal .modal-sticky-header .sticky-close-btn:focus-visible,
+    #detailsModal #closeAthleteDetailsModal:hover,
+    #detailsModal #closeAthleteDetailsModal:focus-visible{
+        color: #fff;
+        background: rgba(246,244,237,.16);
+        border-color: rgba(246,244,237,.56);
+        box-shadow: 0 0 0 3px rgba(246,244,237,.18), 0 10px 22px rgba(0,0,0,.26);
+        outline: none;
+    }
     .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 
     /* Modal portrait: wrapper defines picture bounds so PRO badge sits on the image */
     #athlete-profile .portrait-wrapper{
         position:relative;
         display:block;
-        width:70%;
+        width:62%;
         aspect-ratio:1/1;
-        max-width:320px;
+        max-width:292px;
         margin:0 auto;
         container-type:inline-size;
         container-name:portrait;
@@ -745,6 +869,32 @@
     #athlete-profile .portrait-wrapper:hover #modalProfilePic{ transform: scale(1.05); }
     #athlete-profile.is-pro .pro-badge{ transition:transform .3s ease; }
     #athlete-profile .portrait-wrapper:hover .pro-badge{ transform:rotate(-12deg) scale(1.05); }
+
+    #detailsModal #athlete-profile{
+        color: var(--athlete-modal-text);
+    }
+    #detailsModal #athlete-profile .portrait-wrapper{
+        filter: drop-shadow(0 18px 28px rgba(0,0,0,.42));
+    }
+    #detailsModal #modalProfilePic{
+        border: 3px solid rgba(246,244,237,.62);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), 0 12px 30px rgba(0,0,0,.38);
+    }
+    #detailsModal #athleteName{
+        color: var(--athlete-modal-text);
+        margin-bottom: .25rem;
+        text-shadow: 0 2px 16px rgba(0,0,0,.45);
+    }
+    #detailsModal #athleteBio{
+        max-width: 560px;
+        color: rgba(255,255,255,.74);
+        line-height: 1.55;
+        margin: .9rem auto 1.35rem;
+        font-weight: 600;
+        letter-spacing: -.01em;
+        overflow-wrap:anywhere;
+        word-break:normal;
+    }
 
     .athlete-info {
         text-align: left;
@@ -812,6 +962,33 @@
         white-space: nowrap;
         margin-left: .25ch;
     }
+    #detailsModal .athlete-info,
+    #detailsModal .biomarkers-section,
+    #detailsModal .proofs-section,
+    #detailsModal .events-embed{
+        background: var(--athlete-modal-card);
+        border: 1px solid var(--athlete-modal-border);
+        border-radius: 22px;
+        box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    #detailsModal .athlete-info{
+        padding: 1.1rem 1.25rem;
+        max-width: var(--athlete-modal-section-width);
+        box-sizing:border-box;
+    }
+    #detailsModal .athlete-info-table th,
+    #detailsModal .athlete-info-table td{
+        color: var(--athlete-modal-text) !important;
+    }
+    #detailsModal .athlete-info-table th{
+        color: var(--athlete-modal-muted) !important;
+    }
+    #detailsModal .athlete-info-table .unit{
+        color: var(--athlete-modal-muted);
+    }
+    #detailsModal .athlete-info-table tr{
+        border-color: var(--athlete-modal-border);
+    }
 
     /* Visual break (horizontal line) — same row spacing as other rows */
     .athlete-info-divider-row td {
@@ -828,6 +1005,9 @@
         background: var(--border-color, rgba(0,0,0,.14));
         border: 0;
     }
+    #detailsModal .athlete-info-divider{
+        background: var(--athlete-modal-border);
+    }
 
     /* === FIX: Pace of Aging sor biztosan egy sorban === */
     #bortzPaceOfAgingContainer td{ white-space: nowrap; }
@@ -843,14 +1023,83 @@
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
     .athlete-links a:hover{ color:var(--secondary-color); }
+    #detailsModal .athlete-links{
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: .7rem;
+        margin: 1.25rem auto 1.05rem;
+    }
+    #detailsModal .athlete-links a,
+    #detailsModal .modal-link,
+    #detailsModal .league-link{
+        color: var(--athlete-modal-link);
+    }
+    #detailsModal .athlete-links a{
+        min-height: 0;
+        padding: .5rem .85rem;
+        border: 1px solid var(--athlete-modal-cream-border);
+        border-radius: 999px;
+        background: rgba(246,244,237,.08);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(0,0,0,.18);
+        font-size: .95rem;
+        font-weight: 700;
+    }
+    #detailsModal .modal-link i{
+        font-size: 1.15rem;
+    }
+    #detailsModal .athlete-links a:hover,
+    #detailsModal .athlete-links a:focus-visible,
+    #detailsModal .modal-link:hover,
+    #detailsModal .modal-link:focus-visible,
+    #detailsModal .league-link:hover,
+    #detailsModal .league-link:focus-visible{
+        color: #fff;
+        outline: none;
+        text-shadow: none;
+        background: rgba(246,244,237,.15);
+        border-color: rgba(246,244,237,.72);
+    }
+    #detailsModal .modal-rank-icon{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:1.05em;
+        height:1.05em;
+        margin-left:.25em;
+        border-radius:50%;
+        color:rgba(15,18,18,.9);
+        background:var(--athlete-modal-cream);
+        box-shadow:0 4px 10px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.72);
+        font-size:.7em;
+        vertical-align:.12em;
+    }
 
     /* Scroll progress indicator */
     .modal-scroll-progress{
-        position:sticky; top:0; left:0; width:0%; height:3px; background:var(--primary-color);
-        z-index:10; transition:width 0.1s ease-out; opacity:0; pointer-events:none;
+        position:absolute;
+        top:.45rem;
+        left:1.25rem;
+        right:1.25rem;
+        width:auto;
+        height:3px;
+        margin:0;
+        background:var(--primary-color);
+        z-index:70;
+        transform:scaleX(var(--modal-scroll-progress, 0));
+        transform-origin:left center;
+        transition:transform 0.1s ease-out;
+        opacity:0;
+        pointer-events:none;
         border-radius:0 2px 2px 0;
     }
     .modal-scroll-progress.visible{ opacity:1; }
+    #detailsModal .modal-scroll-progress{
+        background: linear-gradient(90deg, rgba(246,244,237,.45), rgba(246,244,237,.9));
+        box-shadow: 0 0 16px rgba(246,244,237,.22);
+        position:absolute;
+        z-index:70;
+    }
     .modal-content{ position:relative; }
 
     /* =========================
@@ -861,6 +1110,129 @@
     .proof-item:hover{ transform: scale(1.05); }
     .proof-item img{ display:block; width:auto; max-width:100%; height:auto; max-height:72vh; object-fit:contain; margin:0 auto; background:#fff; }
     .proofs-empty{ margin:.5rem 0 0; color:#666; text-align:center; font-size:.95rem; }
+    #detailsModal .biomarkers-section,
+    #detailsModal .proofs-section,
+    #detailsModal .events-embed{
+        background: var(--athlete-modal-card-strong);
+        width: min(100%, var(--athlete-modal-section-width));
+        box-sizing: border-box;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 1rem;
+        color: var(--athlete-modal-text);
+    }
+    #detailsModal .events-embed{
+        position:relative;
+        padding:.75rem;
+        overflow:hidden;
+    }
+    #detailsModal .events-embed::before{
+        content:none;
+        display:none;
+    }
+    #detailsModal #events-frame{
+        position:relative;
+        z-index:1;
+        display:block;
+        border-radius:16px;
+    }
+    #detailsModal .biomarkers-section h3,
+    #detailsModal .proofs-section h3{
+        margin:0 0 .85rem;
+        padding:0 0 .7rem;
+        color:var(--athlete-modal-link);
+        border-bottom:1px solid rgba(246,244,237,.16);
+        text-align:left;
+        text-transform:uppercase;
+        font-size:.85rem;
+        font-weight:800;
+        letter-spacing:.06em;
+    }
+    #detailsModal .biomarkers-section{
+        overflow:hidden;
+        margin-top:1.6rem;
+        margin-bottom:1.6rem;
+    }
+    #detailsModal .biomarkers-section::after{
+        content:none;
+        display:none;
+    }
+    #detailsModal .biomarker-chart-controls{
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        width:100%;
+        max-width:100%;
+        margin:.35rem auto 1rem;
+        padding:0;
+        background:none;
+        border:0;
+        box-shadow:none;
+    }
+    #detailsModal .biomarker-chart-controls select{
+        width:min(100%, 280px);
+        color:var(--athlete-modal-text);
+        background:rgba(18,20,20,.82);
+        border:1px solid rgba(246,244,237,.48);
+        border-radius:999px;
+        padding:.55rem 2.25rem .55rem 1rem;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 3px rgba(0,0,0,.16);
+        font-size:.88rem;
+        font-weight:700;
+    }
+    #detailsModal .biomarker-chart-controls option{
+        color:#111;
+    }
+    #detailsModal .biomarker-chart-controls select:focus-visible{
+        outline:none;
+        box-shadow:var(--athlete-modal-focus);
+    }
+    #detailsModal #biomarkerChart{
+        display:block;
+        max-height:360px;
+        margin-top:.15rem;
+        border-radius:16px;
+        background:var(--athlete-modal-chart-panel);
+    }
+    #detailsModal .proofs-section{
+        margin-top:1.9rem;
+        overflow:hidden;
+    }
+    #detailsModal .proofs-gallery{
+        display:grid;
+        grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+        gap:.85rem;
+        max-height:min(58vh, 560px);
+        overflow-y:auto;
+        justify-content:stretch;
+        padding:.15rem .35rem .15rem .15rem;
+        overscroll-behavior:contain;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-gutter:stable;
+    }
+    #detailsModal .proof-item{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        aspect-ratio:4 / 3;
+        background: rgba(255,255,255,.95);
+        border: 1px solid var(--athlete-modal-border);
+        box-shadow: 0 14px 30px rgba(0,0,0,.28);
+    }
+    #detailsModal .proof-item img{
+        width:100%;
+        height:100%;
+        max-height:none;
+        object-fit:contain;
+    }
+    #detailsModal .proof-item:hover{
+        transform: translateY(-2px);
+        box-shadow: 0 18px 38px rgba(0,0,0,.34);
+    }
+    #detailsModal .proofs-empty{
+        grid-column:1 / -1;
+        color: var(--athlete-modal-muted);
+    }
 
     .enlarged-portrait{
         position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85);
@@ -874,7 +1246,14 @@
         transition:color .3s, background-color .3s, transform .2s; padding:0;
     }
     .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
-    .enlarged-portrait img{ max-width:90%; max-height:90%; object-fit:contain; cursor:default; }
+    .enlarged-portrait img{
+        width:min(90vw, 90vh, 900px);
+        height:auto;
+        max-width:90vw;
+        max-height:90vh;
+        object-fit:contain;
+        cursor:default;
+    }
 
     /* =========================
        12) Links & animations / stamps
@@ -900,6 +1279,12 @@
     .athlete-info-table .golden-stamp{
         display:inline-block; padding:.2rem .5rem; border:1px solid #c9a227; border-radius:4px; background:rgba(255,215,0,.2);
         letter-spacing:.5px; margin:0; box-shadow:0 1px 2px rgba(0,0,0,.08); color:inherit;
+    }
+    #detailsModal .athlete-info-table .first-guess-stamp,
+    #detailsModal .athlete-info-table .primary-stamp,
+    #detailsModal .athlete-info-table .golden-stamp{
+        background: rgba(255,255,255,.08);
+        box-shadow: 0 6px 14px rgba(0,0,0,.2);
     }
 
     @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
@@ -1046,14 +1431,56 @@
         .modal-content.guess-mode{
             border-radius:0 !important; /* Also remove rounded corners in guess-mode on mobile */
         }
-        #athlete-profile .portrait-wrapper{ width:50%; }
-        .proof-item img{ max-height:80vh; }
-        .modal-scroll-progress{ height:2px; }
+        #athlete-profile .portrait-wrapper{
+            width:min(46vw, 188px);
+        }
+        #detailsModal #athleteName{
+            font-size:clamp(1.9rem, 7.5vw, 2.35rem);
+            line-height:1.08;
+            margin-top:.75rem;
+        }
+        #detailsModal #athleteBio,
+        #detailsModal .athlete-info,
+        #detailsModal .age-visualization,
+        #detailsModal .events-embed,
+        #detailsModal .biomarkers-section,
+        #detailsModal .proofs-section{
+            width:calc(100% - 1.5rem) !important;
+            max-width:calc(100% - 1.5rem) !important;
+            margin-left:auto;
+            margin-right:auto;
+            box-sizing:border-box;
+        }
+        #detailsModal #athleteBio{
+            margin:.75rem auto 1rem;
+            text-wrap:balance;
+        }
+        #detailsModal .age-visualization{
+            margin-top:1.25rem;
+        }
+        #detailsModal .proofs-gallery{
+            grid-template-columns:1fr;
+            max-height:58vh;
+        }
+        #detailsModal .proof-item{
+            aspect-ratio:3 / 2;
+        }
+        .modal-scroll-progress{
+            left:1rem;
+            right:1rem;
+            width:auto;
+            height:2px;
+            margin:0;
+        }
         
         /* Ensure minimum touch target sizes */
         .modal-content a, .modal-content button, .close{
             min-height:44px; min-width:44px;
             display:inline-flex; align-items:center; justify-content:center;
+        }
+        #detailsModal #closeAthleteDetailsModal{
+            top:18px;
+            left:18px;
         }
         
         /* Sticky header adjustments for mobile */
@@ -1263,8 +1690,8 @@
 
         <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="athleteName">
             <div class="modal-content">
-                <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
                 <div class="modal-sticky-header" id="modalStickyHeader">
+                    <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
                     <div class="sticky-header-left">
                         <span class="sticky-athlete-name" id="stickyAthleteName"></span>
                         <span class="sticky-pro-badge" id="stickyProBadge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
@@ -2643,7 +3070,7 @@
 
         // Set the image source and alt attributes based on the clicked image
         const img = clone.querySelector("img");
-        img.src = imgElement.src;
+        img.src = imgElement.dataset.fullSrc || imgElement.src;
         img.alt = imgElement.alt;
 
         // Append the cloned element to the document (it will be added where it fits in your DOM structure)
@@ -2731,6 +3158,26 @@
         }
     }
 
+    function resetAthleteEventsFrame(athleteSlug) {
+        const eventsFrame = document.getElementById('events-frame');
+        if (!eventsFrame) return null;
+
+        const freshFrame = eventsFrame.cloneNode(false);
+        freshFrame.removeAttribute('src');
+        freshFrame.dataset.expectedAthlete = athleteSlug || '';
+        freshFrame.style.height = '1px';
+        freshFrame.style.visibility = 'hidden';
+        eventsFrame.replaceWith(freshFrame);
+
+        if (typeof window.__sendThemeToEventsFrame === 'function') {
+            freshFrame.addEventListener('load', function () {
+                window.__sendThemeToEventsFrame(freshFrame);
+            });
+        }
+
+        return freshFrame;
+    }
+
     function resetModalForLoading(athleteSlug) {
         ensureAthleteModalDeferredSections();
 
@@ -2770,8 +3217,7 @@
 
         const eventsFrame = document.getElementById('events-frame');
         if (eventsFrame) {
-            eventsFrame.removeAttribute('src');
-            eventsFrame.style.height = '1px';
+            resetAthleteEventsFrame(athleteSlug);
         }
 
         if (window.biomarkerChartInstance) {
@@ -2842,7 +3288,7 @@
             const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
             
             if (progressBar) {
-                progressBar.style.width = `${progress}%`;
+                progressBar.style.setProperty('--modal-scroll-progress', String(Math.min(Math.max(progress / 100, 0), 1)));
                 progressBar.setAttribute('aria-valuenow', Math.round(progress));
                 
                 // Show/hide progress bar
@@ -2878,7 +3324,7 @@
             const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
             
             if (progressBar) {
-                progressBar.style.width = `${progress}%`;
+                progressBar.style.setProperty('--modal-scroll-progress', String(Math.min(Math.max(progress / 100, 0), 1)));
                 progressBar.setAttribute('aria-valuenow', Math.round(progress));
                 if (scrollHeight > 50) {
                     progressBar.classList.add('visible');
@@ -3285,6 +3731,29 @@
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
 
+        const getAgeReductionValueForView = (athlete) => {
+            if (currentLeaderboardView === 'pheno') {
+                return athlete.ageReduction;
+            }
+
+            return (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction))
+                ? athlete.bortzAgeReduction
+                : athlete.ageReduction;
+        };
+
+        const getAgeReductionDecimalsForView = (athletes, index) => {
+            const value = getAgeReductionValueForView(athletes[index]);
+            if (!Number.isFinite(value)) return 1;
+
+            const rounded = value.toFixed(1);
+            const previousValue = index > 0 ? getAgeReductionValueForView(athletes[index - 1]) : null;
+            const nextValue = index < athletes.length - 1 ? getAgeReductionValueForView(athletes[index + 1]) : null;
+            const previousRounded = Number.isFinite(previousValue) ? previousValue.toFixed(1) : null;
+            const nextRounded = Number.isFinite(nextValue) ? nextValue.toFixed(1) : null;
+
+            return rounded === previousRounded || rounded === nextRounded ? 2 : 1;
+        };
+
         // Step 1: Apply view inclusion and order
         let baseList;
         if (currentLeaderboardView === 'bortz') {
@@ -3327,8 +3796,10 @@
             const athleteNameNormalized = window.normalizeString(athlete.name);
             const athleteBadgeTextNormalized = athleteBadgeTextByName.get(athlete.name) || '';
             const athleteMediaContactNormalized = window.normalizeString((athlete.mediaContact || '').toLowerCase());
-            const displayAgeReduction = (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction)) ? athlete.bortzAgeReduction : athlete.ageReduction;
-            const displayAgeReductionPercent = (athlete.bortzAgeReductionPercent != null && Number.isFinite(athlete.bortzAgeReductionPercent)) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent;
+            const displayAgeReduction = getAgeReductionValueForView(athlete);
+            const displayAgeReductionPercent = currentLeaderboardView === 'pheno'
+                ? athlete.ageReductionPercent
+                : ((athlete.bortzAgeReductionPercent != null && Number.isFinite(athlete.bortzAgeReductionPercent)) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
             const ageReductionSearchParts = [];
             if (Number.isFinite(displayAgeReduction)) ageReductionSearchParts.push(displayAgeReduction.toFixed(1));
             if (Number.isFinite(displayAgeReductionPercent)) ageReductionSearchParts.push(displayAgeReductionPercent.toFixed(1));
@@ -3424,6 +3895,14 @@
                 const rankCell = row.querySelector('td[data-label="Rank"] .rank');
                 if (rankCell) {
                     rankCell.textContent = athlete.filteredRank;
+                }
+
+                const ageReductionCell = row.querySelector('.age-reduction');
+                const athleteIndex = filteredAthletes.indexOf(athlete);
+                const displayAgeReduction = getAgeReductionValueForView(athlete);
+                if (ageReductionCell && Number.isFinite(displayAgeReduction)) {
+                    const decimals = getAgeReductionDecimalsForView(filteredAthletes, athleteIndex);
+                    ageReductionCell.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(decimals) + ' years';
                 }
 
             }
@@ -3820,7 +4299,9 @@
     });
 
     document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
-        radio.addEventListener('change', function () { performFilter(); });
+        radio.addEventListener('change', function () {
+            performFilter();
+        });
     });
     document.querySelectorAll('input[name="agingClockView"]').forEach(input => {
         input.addEventListener('change', function (event) {
@@ -3981,6 +4462,17 @@
         const safeName = escapeHtml(name);
         if (window.innerWidth >= 480) return safeName;
         return safeName.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
+    }
+
+    function getModalRankMarkup(rank) {
+        if (rank === 1) return '<span class="modal-rank-icon" aria-label="1st place"><i class="fa-solid fa-crown" aria-hidden="true"></i></span>';
+        if (rank === 2) return '<span class="modal-rank-icon" aria-label="2nd place"><i class="fa-solid fa-medal" aria-hidden="true"></i></span>';
+        if (rank === 3) return '<span class="modal-rank-icon" aria-label="3rd place"><i class="fa-solid fa-award" aria-hidden="true"></i></span>';
+        return ` <span class="modal-rank-text">(#${rank})</span>`;
+    }
+
+    function getModalTitleRankMarkup(rank) {
+        return ` <span class="modal-rank-text">(#${rank})</span>`;
     }
 
     function fitTextToWidth(el, minPx = 12, maxPx = null) {
@@ -4184,7 +4676,13 @@
 
                 var frame = document.getElementById('events-frame');
                 if (frame) {
-                    frame.src = `/event-board-embed.html?athlete=${encodeURIComponent(athleteSlug)}&rows=10&viewAll=false&linkNames=false&embed=1`;
+                    const frameSrc = `/event-board-embed.html?athlete=${encodeURIComponent(athleteSlug)}&rows=10&viewAll=false&linkNames=false&embed=1&theme=dark`;
+                    frame.addEventListener('load', function () {
+                        if (frame.dataset.expectedAthlete === athleteSlug) {
+                            frame.style.visibility = '';
+                        }
+                    }, { once: true });
+                    frame.src = frameSrc;
                 }
 
                 const gmaCard = document.getElementById('guessAgeContainer');
@@ -4363,9 +4861,9 @@
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
-        const athleteNameWithRank = `${modalDisplayName}${window.getRankText(ultimateRank)}`;
+        const athleteNameWithRank = `${escapeHtml(modalDisplayName)}${getModalTitleRankMarkup(ultimateRank)}`;
         const athleteNameElement = document.getElementById('athleteName');
-        athleteNameElement.textContent = athleteNameWithRank;
+        athleteNameElement.innerHTML = athleteNameWithRank;
         
         // Set sticky header name - use the full content including rank badges/emojis
         const stickyAthleteName = document.getElementById('stickyAthleteName');
@@ -4376,6 +4874,7 @@
         
         const profilePic = document.getElementById('modalProfilePic');
         profilePic.src = getAthletePortraitUrl(fullAthleteData);
+        profilePic.dataset.fullSrc = fullAthleteData.ProfilePic || profilePic.src;
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
         profilePic.classList.remove('portrait-fallback');
@@ -4413,8 +4912,8 @@
         }
 
         document.getElementById('athleteRank').innerHTML = rankText;
-        document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${athleteData.division}</a>${window.getRankText(athleteData.ranks[athleteData.division])}`;
-        document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${athleteData.generation}</a>${window.getRankText(athleteData.ranks[athleteData.generation])}`;
+        document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
+        document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(0);
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
@@ -4615,6 +5114,71 @@
             },
             options: getBiomarkerChartOptions()
         });
+        renderBiomarkerChartControls(window.biomarkerChartInstance);
+    }
+
+    function renderBiomarkerChartControls(chart) {
+        const section = document.getElementById('athlete-biomarkers');
+        const canvas = document.getElementById('biomarkerChart');
+        if (!section || !canvas || !chart) return;
+
+        const existing = section.querySelector('.biomarker-chart-controls');
+        if (existing) existing.remove();
+
+        const biomarkerDatasets = chart.data.datasets
+            .map((dataset, index) => ({ dataset, index }))
+            .filter(item => item.dataset.yAxisID === 'y2');
+
+        if (biomarkerDatasets.length === 0) return;
+
+        const controls = document.createElement('div');
+        controls.className = 'biomarker-chart-controls';
+
+        const select = document.createElement('select');
+        select.id = 'biomarkerOverlaySelect';
+        select.setAttribute('aria-label', 'Compare biomarker');
+
+        const none = document.createElement('option');
+        none.value = '';
+        none.textContent = 'Select a biomarker';
+        select.appendChild(none);
+
+        biomarkerDatasets.forEach(item => {
+            const option = document.createElement('option');
+            option.value = String(item.index);
+            option.textContent = item.dataset.label;
+            select.appendChild(option);
+        });
+        select.value = '';
+        const initialSelectedIndex = null;
+        biomarkerDatasets.forEach(item => {
+            chart.setDatasetVisibility(item.index, item.index === initialSelectedIndex);
+        });
+        if (chart.options.scales && chart.options.scales.y2) {
+            chart.options.scales.y2.display = false;
+        }
+        chart.update('none');
+
+        select.addEventListener('change', function () {
+            const selectedIndex = select.value === '' ? null : Number(select.value);
+            let state = localStorage.getItem('biomarkerVisibilityState');
+            state = state ? JSON.parse(state) : {};
+
+            biomarkerDatasets.forEach(item => {
+                const shouldHide = item.index !== selectedIndex;
+                chart.setDatasetVisibility(item.index, !shouldHide);
+                state[item.dataset.label] = shouldHide;
+            });
+            if (chart.options.scales && chart.options.scales.y2) {
+                chart.options.scales.y2.display = selectedIndex !== null;
+            }
+
+            localStorage.setItem('biomarkerVisibilityState', JSON.stringify(state));
+            chart.update();
+        });
+
+        controls.appendChild(select);
+        section.insertBefore(controls, canvas);
     }
 
     // Biomarker key order matches bortz-age.html card order (WBC, Lymphocytes, Neutrophils, …)
@@ -4711,15 +5275,30 @@
         return biomarkersZScores;
     }
 
+    function getAthleteModalCssVar(name, fallback) {
+        const modal = document.getElementById('detailsModal');
+        const value = modal ? window.getComputedStyle(modal).getPropertyValue(name).trim() : '';
+        return value || fallback;
+    }
+
     function prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores) {
         const hasBortzAge = bortzAges.some(v => v != null && Number.isFinite(Number(v)));
+        const bortzColor = getAthleteModalCssVar('--athlete-modal-chart-bortz', 'rgba(154,232,178,.96)');
+        const phenoColor = getAthleteModalCssVar('--athlete-modal-chart-pheno', 'rgba(135,229,229,.96)');
+        const biomarkerOverlayColor = getAthleteModalCssVar('--athlete-modal-chart-biomarker', 'rgba(255,125,125,.96)');
+        const pointBorderColor = 'rgba(8,10,10,.94)';
         const datasets = [];
         if (hasBortzAge) {
             datasets.push({
                 label: 'Bortz Age',
                 data: bortzAges,
-                borderColor: 'rgba(0, 128, 0, 1)',
-                backgroundColor: 'rgba(0, 128, 0, 0.1)',
+                borderColor: bortzColor,
+                backgroundColor: 'rgba(154,232,178,.14)',
+                pointBackgroundColor: bortzColor,
+                pointBorderColor: pointBorderColor,
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
                 fill: false,
                 tension: 0.1,
                 borderWidth: 3,
@@ -4730,38 +5309,18 @@
         datasets.push({
             label: 'Pheno Age',
             data: phenoAges,
-            borderColor: 'rgba(0, 0, 255, 1)',
-            backgroundColor: 'rgba(0, 0, 255, 0.1)',
+            borderColor: phenoColor,
+            backgroundColor: 'rgba(135,229,229,.14)',
+            pointBackgroundColor: phenoColor,
+            pointBorderColor: pointBorderColor,
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
             fill: false,
             tension: 0.1,
             borderWidth: 3,
             yAxisID: 'y1'
         });
-
-        const biomarkerColors = {
-            'WBC (10^3 cells/µL)': 'rgba(34, 139, 34, 1)',
-            'Lymphocytes (%)': 'rgba(0, 100, 0, 1)',
-            'Neutrophils (%)': 'rgba(100, 149, 237, 1)',
-            'Monocytes (%)': 'rgba(148, 0, 211, 1)',
-            'RBC (10¹²/L)': 'rgba(178, 34, 34, 1)',
-            'MCV (fL)': 'rgba(70, 130, 180, 1)',
-            'MCH (pg)': 'rgba(210, 105, 30, 1)',
-            'RDW (%)': 'rgba(220, 20, 60, 1)',
-            'Albumin (g/L)': 'rgba(0, 128, 255, 1)',
-            'ALT (U/L)': 'rgba(85, 107, 47, 1)',
-            'ALP (U/L)': 'rgba(218, 165, 32, 1)',
-            'GGT (U/L)': 'rgba(139, 90, 43, 1)',
-            'Urea (mmol/L)': 'rgba(72, 61, 139, 1)',
-            'Creatinine (µmol/L)': 'rgba(128, 0, 128, 1)',
-            'Cystatin C (mg/L)': 'rgba(60, 179, 113, 1)',
-            'Glucose (mmol/L)': 'rgba(255, 165, 0, 1)',
-            'HbA1c (mmol/mol)': 'rgba(255, 99, 71, 1)',
-            'Cholesterol (mmol/L)': 'rgba(184, 134, 11, 1)',
-            'ApoA1 (g/L)': 'rgba(0, 191, 255, 1)',
-            'CRP (mg/L)': 'rgba(255, 69, 0, 1)',
-            'SHBG (nmol/L)': 'rgba(199, 21, 133, 1)',
-            'Vitamin D (nmol/L)': 'rgba(255, 215, 0, 1)'
-        };
 
         for (const [key, zScores] of Object.entries(biomarkersZScores)) {
             const actualValues = biomarkersRaw[key];
@@ -4789,10 +5348,16 @@
             datasets.push({
                 label: key,
                 data: dataPoints,
-                borderColor: biomarkerColors[key],
-                backgroundColor: 'rgba(0, 0, 0, 0)',
+                borderColor: biomarkerOverlayColor,
+                backgroundColor: 'rgba(255,125,125,.16)',
+                pointBackgroundColor: biomarkerOverlayColor,
+                pointBorderColor: pointBorderColor,
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
                 fill: false,
                 tension: 0.1,
+                borderWidth: 3,
                 yAxisID: 'y2',
                 hidden: isHidden,
                 spanGaps: true
@@ -4802,8 +5367,20 @@
     }
 
     function getBiomarkerChartOptions() {
+        const chartTextColor = getAthleteModalCssVar('--athlete-modal-text', '#333');
+        const chartMutedColor = getAthleteModalCssVar('--athlete-modal-muted', '#666');
+        const chartGridColor = getAthleteModalCssVar('--athlete-modal-chart-grid', 'rgba(0,0,0,0.08)');
         return {
             responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: window.innerWidth < 768 ? 1.05 : 1.6,
+            layout: {
+                padding: {
+                    left: window.innerWidth < 768 ? 4 : 12,
+                    right: window.innerWidth < 768 ? 4 : 12,
+                    top: 4
+                }
+            },
             interaction: {
                 mode: 'index',
                 intersect: false
@@ -4811,11 +5388,19 @@
             stacked: false,
             plugins: {
                 tooltip: {
+                    backgroundColor: 'rgba(5,7,7,.94)',
+                    titleColor: 'rgba(255,255,255,.96)',
+                    bodyColor: 'rgba(255,255,255,.9)',
+                    borderColor: 'rgba(246,244,237,.34)',
+                    borderWidth: 1,
+                    cornerRadius: 6,
+                    padding: 10,
+                    displayColors: true,
                     callbacks: {
                         label: function (context) {
                             const label = context.dataset.label || '';
                             const yValue = context.parsed.y;
-                            const actualValue = context.raw.actualValue;
+                            const actualValue = context.raw && context.raw.actualValue;
                             if (label === 'Pheno Age' || label === 'Bortz Age') {
                                 return yValue != null ? `${label}: ${yValue}` : `${label}: N/A`;
                             }
@@ -4827,9 +5412,20 @@
                     }
                 },
                 legend: {
+                    position: 'bottom',
                     labels: {
+                        color: chartMutedColor,
+                        boxWidth: 9,
+                        boxHeight: 9,
+                        padding: 14,
+                        usePointStyle: true,
                         font: {
-                            size: window.innerWidth < 768 ? 10 : 12 // Adjust font size for mobile
+                            size: window.innerWidth < 768 ? 10 : 12,
+                            weight: '600'
+                        },
+                        filter: function (legendItem, chartData) {
+                            const dataset = chartData.datasets[legendItem.datasetIndex];
+                            return dataset && dataset.yAxisID === 'y1';
                         }
                     },
                     onHover: function (event) {
@@ -4867,12 +5463,17 @@
                     title: {
                         display: true,
                         text: 'Age (years)',
+                        color: chartTextColor,
                         font: {
                             size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
                         }
                     },
+                    ticks: {
+                        color: chartMutedColor
+                    },
                     grid: {
-                        drawOnChartArea: true
+                        drawOnChartArea: true,
+                        color: chartGridColor
                     }
                 },
                 y2: {
@@ -4882,21 +5483,33 @@
                     title: {
                         display: true,
                         text: 'Biomarkers (Z-scores)',
+                        color: chartTextColor,
                         font: {
                             size: window.innerWidth < 768 ? 10 : 14
                         }
                     },
+                    ticks: {
+                        color: chartMutedColor
+                    },
                     grid: {
-                        drawOnChartArea: false
+                        drawOnChartArea: false,
+                        color: chartGridColor
                     }
                 },
                 x: {
                     title: {
                         display: true,
                         text: 'Date',
+                        color: chartTextColor,
                         font: {
                             size: window.innerWidth < 768 ? 10 : 14
                         }
+                    },
+                    ticks: {
+                        color: chartMutedColor
+                    },
+                    grid: {
+                        color: chartGridColor
                     }
                 }
             }
@@ -5140,7 +5753,7 @@
             var d = e.data;
             if (d && d.type === 'events-embed-height') {
                 var f = document.getElementById('events-frame');
-                if (f) f.style.height = d.h + 'px';
+                if (f && e.source === f.contentWindow) f.style.height = d.h + 'px';
             }
         })
     }
@@ -5153,6 +5766,22 @@
             var vars = ['--primary-color', '--secondary-color', '--card-bg', '--dark-text-color', '--light-text-color', '--body-bg'];
             var payload = { type: 'events-theme-vars', 'font-family': bs.getPropertyValue('font-family'), 'background-color': bs.getPropertyValue('background-color') };
             vars.forEach(function (v) { payload[v] = cs.getPropertyValue(v) });
+            if (f.closest && f.closest('#detailsModal')) {
+                var modal = document.getElementById('detailsModal');
+                var ms = modal ? getComputedStyle(modal) : null;
+                payload['--card-bg'] = 'rgba(255,255,255,.045)';
+                payload['--dark-text-color'] = ms ? ms.getPropertyValue('--athlete-modal-text') : 'rgba(255,255,255,.94)';
+                payload['--body-bg'] = 'transparent';
+                payload['--zebra-even'] = 'transparent';
+                payload['--zebra-odd'] = 'transparent';
+                payload['--details-bg'] = 'rgba(246,244,237,.06)';
+                payload['--events-text'] = ms ? ms.getPropertyValue('--athlete-modal-text') : 'rgba(255,255,255,.94)';
+                payload['--events-muted'] = ms ? ms.getPropertyValue('--athlete-modal-muted') : 'rgba(255,255,255,.68)';
+                payload['--events-border'] = ms ? ms.getPropertyValue('--athlete-modal-border') : 'rgba(255,255,255,.16)';
+                payload['--events-hover-bg'] = 'rgba(246,244,237,.07)';
+                payload['--events-header-bg'] = 'rgba(246,244,237,.06)';
+                payload['--event-link'] = 'rgba(213,224,221,.92)';
+            }
             f.contentWindow.postMessage(payload, '*');
         }
         window.__sendThemeToEventsFrame = sendThemeToFrame;

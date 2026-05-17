@@ -634,10 +634,21 @@ function buildServerBadgeHtml(b, athlete) {
     const url = pickClickUrl(b, athlete);
     const order = computeOrder(b);
     const familyClass = getBadgeFamilyClass(b);
+    const label = getLabel(b);
+    const typeClass = label === 'Podcast' ? 'badge-podcast' : '';
+    const className = `badge-class ${familyClass}${typeClass ? ` ${typeClass}` : ''}`;
+
+    if (url && label === 'Podcast') {
+        return {
+            order,
+            searchText: tooltip,
+            html: `<a class="${className} badge-clickable" href="${escapeAttr(url)}" target="_blank" rel="noopener" aria-label="Open podcast" title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></a>`
+        };
+    }
 
     const clickableAttrs = url
-        ? `class="badge-class ${familyClass} badge-clickable" ${spanA11y} onclick="window.location.href='${url}';"`
-        : `class="badge-class ${familyClass}"`;
+        ? `class="${className} badge-clickable" ${spanA11y} onclick="window.location.href='${url}';"`
+        : `class="${className}"`;
 
     return {
         order,

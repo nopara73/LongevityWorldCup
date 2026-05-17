@@ -5,6 +5,13 @@
     <!--HEAD-->
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
     <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">
+    <script>
+        (function(){
+            if(new URLSearchParams(window.location.search).get('theme')==='dark'){
+                document.documentElement.setAttribute('data-embed-theme','dark');
+            }
+        })();
+    </script>
     <style>
         html, body {
             margin: 0;
@@ -12,6 +19,22 @@
             height: auto;
             min-height: 0;
             background: transparent
+        }
+        :root[data-embed-theme="dark"]{
+            --card-bg:rgba(255,255,255,.045);
+            --dark-text-color:rgba(255,255,255,.94);
+            --body-bg:transparent;
+            --zebra-even:transparent;
+            --zebra-odd:transparent;
+            --details-bg:rgba(246,244,237,.06);
+            --events-text:rgba(255,255,255,.94);
+            --events-muted:rgba(255,255,255,.68);
+            --events-border:rgba(255,255,255,.16);
+            --events-hover-bg:rgba(246,244,237,.07);
+            --events-header-bg:rgba(246,244,237,.06);
+            --event-cream:rgba(246,244,237,.92);
+            --event-cream-border:rgba(246,244,237,.5);
+            --event-link:rgba(213,224,221,.92);
         }
     </style>
     <style>
@@ -27,6 +50,373 @@
             #events-embed-root .events-board thead th {
                 font-weight: 700 !important;
             }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board{
+            background:transparent !important;
+            border:0 !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board table{
+            padding-bottom:0 !important;
+            border-collapse:separate !important;
+            border-spacing:0 !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board thead th{
+            background:transparent !important;
+            border-bottom:1px solid rgba(246,244,237,.16) !important;
+            border-radius:0 !important;
+            padding:10px 4px 11px !important;
+            letter-spacing:.06em !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .header-bar{
+            align-items:center !important;
+            min-height:18px;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .header-bar > span{
+            display:inline-flex;
+            align-items:center;
+            gap:0;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board thead th,
+        :root[data-embed-theme="dark"] #events-embed-root .view-all{
+            color:var(--event-link) !important;
+            text-shadow:none !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody{
+            max-height:none !important;
+            overflow:visible !important;
+            background:transparent !important;
+            border-radius:0 !important;
+            padding-top:8px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board table tbody tr.main-row,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board table tbody tr.events-skeleton-row{
+            border-color:transparent !important;
+            background:rgba(255,255,255,.045) !important;
+            box-shadow:inset 0 0 0 1px rgba(246,244,237,.105) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.main-row{
+            display:grid !important;
+            grid-template-columns:40px minmax(0,1fr) max-content;
+            align-items:center;
+            column-gap:0;
+            min-height:50px;
+            margin-bottom:6px;
+            border-radius:12px;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.events-skeleton-row{
+            display:grid !important;
+            grid-template-columns:40px minmax(0,1fr) max-content;
+            align-items:center;
+            min-height:50px;
+            margin-bottom:6px;
+            border-radius:12px;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.main-row:last-child{
+            margin-bottom:0;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.events-skeleton-row:last-child{
+            margin-bottom:0;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.custom-event-row.is-open{
+            margin-bottom:0;
+            border-radius:12px 12px 8px 8px;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.custom-event-row.is-open + tr.custom-event-details{
+            display:block !important;
+            margin-bottom:6px;
+            border-radius:0 0 12px 12px;
+            background:transparent !important;
+            box-shadow:none !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.custom-event-row.is-open + tr.custom-event-details .details-cell{
+            display:block !important;
+            padding:0 12px 10px 48px !important;
+            border-radius:0 0 12px 12px;
+            background:rgba(255,255,255,.032) !important;
+            box-shadow:inset 0 -1px 0 rgba(246,244,237,.09), inset 1px 0 0 rgba(246,244,237,.09), inset -1px 0 0 rgba(246,244,237,.09);
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-content{
+            padding:8px 0 0 !important;
+            color:rgba(246,244,237,.82);
+            font-size:.9rem;
+            line-height:1.45;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board table tbody tr.main-row.zebra-even,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board table tbody tr.events-skeleton-row.zebra-even{
+            background:rgba(255,255,255,.055) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.main-row > td{
+            display:flex !important;
+            align-items:center !important;
+            min-width:0 !important;
+            padding-top:7px !important;
+            padding-bottom:7px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.events-skeleton-row > td{
+            display:flex !important;
+            align-items:center !important;
+            min-width:0 !important;
+            padding-top:7px !important;
+            padding-bottom:7px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.main-row > td:first-child{
+            border-radius:12px 0 0 12px !important;
+            padding-left:9px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.events-skeleton-row > td:first-child{
+            border-radius:12px 0 0 12px !important;
+            padding-left:9px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.main-row > td:last-child{
+            border-radius:0 12px 12px 0 !important;
+            padding-right:9px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.events-skeleton-row > td:last-child{
+            border-radius:0 12px 12px 0 !important;
+            padding-right:9px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll td.col-avatar{
+            width:auto !important;
+            padding-right:8px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll .athlete-td{
+            min-height:0 !important;
+            padding-top:0 !important;
+            padding-bottom:0 !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date{
+            width:auto !important;
+            justify-content:flex-end !important;
+            align-self:center;
+            min-height:22px;
+            padding:2px 7px !important;
+            margin-right:4px;
+            border-radius:999px !important;
+            background:rgba(246,244,237,.045);
+            box-shadow:none;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message{
+            overflow:hidden !important;
+            padding-right:6px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell{
+            min-height:0 !important;
+            gap:.28rem !important;
+            font-size:.93rem !important;
+            line-height:1.36 !important;
+            color:rgba(246,244,237,.86);
+            font-weight:560;
+            flex-wrap:wrap !important;
+            overflow:visible !important;
+            white-space:normal !important;
+            row-gap:.12rem !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell *{
+            white-space:normal !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .name-and-rank,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .rank-badge,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .badge-class,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .badge-chip,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message .event-message-cell .more-link{
+            white-space:nowrap !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board table tbody tr.main-row:hover{
+            background:rgba(255,255,255,.07) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .col-date{
+            opacity:.62 !important;
+            font-size:.72rem !important;
+            font-weight:650 !important;
+            letter-spacing:.01em;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date{
+            color:rgba(246,244,237,.7) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date{
+            position:relative;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date:empty{
+            background:transparent;
+            box-shadow:none;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date:not(:empty){
+            align-items:center !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date:not(:empty){
+            text-shadow:none;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .event-message a,
+        :root[data-embed-theme="dark"] #events-embed-root .event-message .athlete-name-text{
+            color:var(--event-link) !important;
+            text-decoration:none !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .event-message a:hover,
+        :root[data-embed-theme="dark"] #events-embed-root .event-message a:focus{
+            color:#fff !important;
+            text-decoration:underline !important;
+            text-decoration-color:rgba(255,255,255,.5) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root a:focus-visible,
+        :root[data-embed-theme="dark"] #events-embed-root .badge-clickable:focus-visible,
+        :root[data-embed-theme="dark"] #events-embed-root .custom-event-expander:focus-visible{
+            outline:none !important;
+            box-shadow:0 0 0 3px rgba(246,244,237,.22), inset 0 0 0 1px rgba(246,244,237,.42) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .avatar-link:focus-visible{
+            border-radius:999px;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .event-message .name-and-rank{
+            font-weight:720;
+            letter-spacing:-.01em;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .custom-event-title{
+            display:inline-flex;
+            align-items:center;
+            min-width:0;
+            gap:.25rem;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .custom-event-expander{
+            width:20px;
+            height:20px;
+            margin-left:.15rem;
+            color:var(--event-cream);
+            border-radius:999px !important;
+            background:rgba(246,244,237,.1) !important;
+            box-shadow:inset 0 0 0 1px rgba(246,244,237,.22) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .custom-event-expander::before{
+            font-size:10px;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .event-message .rank-badge,
+        :root[data-embed-theme="dark"] #events-embed-root .event-message .rank-icon,
+        :root[data-embed-theme="dark"] #events-embed-root .event-message .rank-badge strong,
+        :root[data-embed-theme="dark"] #events-embed-root .count-accent,
+        :root[data-embed-theme="dark"] #events-embed-root .age-years-accent,
+        :root[data-embed-theme="dark"] #events-embed-root .milestone-count{
+            color:var(--event-cream) !important;
+            text-shadow:none !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .avatar,
+        :root[data-embed-theme="dark"] #events-embed-root .avatar-fallback{
+            width:22px !important;
+            height:22px !important;
+            border-color:rgba(255,255,255,.72) !important;
+            background:rgba(246,244,237,.12) !important;
+            box-shadow:0 4px 10px rgba(0,0,0,.22) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class{
+            width:22px !important;
+            height:22px !important;
+            border:1px solid rgba(255,255,255,.86) !important;
+            background:var(--badge-bg, rgba(246,244,237,.12)) !important;
+            color:var(--event-cream) !important;
+            box-shadow:0 3px 8px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.2) !important;
+            filter:none !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class i{
+            font-size:.67rem !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .skeleton-shimmer{
+            background:linear-gradient(90deg, rgba(246,244,237,.08) 25%, rgba(246,244,237,.2) 50%, rgba(246,244,237,.08) 75%) !important;
+            background-size:200% 100% !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-skeleton-avatar{
+            width:22px !important;
+            height:22px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-skeleton-line{
+            height:11px !important;
+            max-width:86% !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class.badge-family-domain{
+            background:linear-gradient(90deg, rgba(255,255,255,.78), rgba(246,244,237,.5) 18%, rgba(246,244,237,.42) 50%, rgba(246,244,237,.5) 82%, rgba(255,255,255,.78)) !important;
+            filter:drop-shadow(0 4px 8px rgba(0,0,0,.2)) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class.badge-family-domain::before{
+            background:var(--badge-bg, rgba(246,244,237,.2)) !important;
+            inset:1px !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class.badge-family-domain::after{
+            background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0)) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class.badge-overflow-count,
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-chip{
+            background:rgba(255,255,255,.12) !important;
+            border:1px solid rgba(255,255,255,.42) !important;
+            color:var(--event-cream) !important;
+            box-shadow:0 3px 8px rgba(0,0,0,.2) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .donation-gift-avatar,
+        :root[data-embed-theme="dark"] #events-embed-root .milestone-people-avatar{
+            background:rgba(246,244,237,.16) !important;
+            border-color:var(--event-cream-border) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .donation-gift-avatar i,
+        :root[data-embed-theme="dark"] #events-embed-root .milestone-people-avatar i{
+            color:var(--event-cream) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root td.event-message .event-message-cell{
+            scrollbar-width:none;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root td.event-message .event-message-cell::-webkit-scrollbar{
+            display:none;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-empty-row{
+            display:block !important;
+            margin-top:7px;
+            border-radius:14px;
+            background:rgba(255,255,255,.055) !important;
+            box-shadow:inset 0 0 0 1px rgba(255,255,255,.085) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-empty-row td{
+            display:block !important;
+            padding:1rem !important;
+            color:var(--events-muted) !important;
+            text-align:center !important;
+            font-weight:700;
+        }
+        @media (max-width:520px){
+            :root[data-embed-theme="dark"] #events-embed-root .events-board thead th{
+                padding-left:14px !important;
+                padding-right:14px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.main-row{
+                grid-template-columns:32px minmax(0,1fr) 44px;
+                min-height:46px;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.events-skeleton-row{
+                grid-template-columns:32px minmax(0,1fr) 44px;
+                min-height:46px;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.main-row > td{
+                padding-top:6px !important;
+                padding-bottom:6px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.events-skeleton-row > td{
+                padding-top:6px !important;
+                padding-bottom:6px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.main-row > td:first-child{
+                padding-left:6px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.events-skeleton-row > td:first-child{
+                padding-left:6px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.main-row > td:last-child{
+                padding-right:8px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.events-skeleton-row > td:last-child{
+                padding-right:8px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .col-date{
+                font-size:.66rem !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date{
+                min-height:22px;
+                padding:2px 7px !important;
+                margin-right:6px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -35,6 +425,9 @@
 </div>
 <script>
     (function(){
+        function isDarkEmbed(){
+            return document.documentElement.getAttribute('data-embed-theme')==='dark';
+        }
         function applyParentTheme(){
             try{
                 if(window.parent&&window.parent!==window){
@@ -42,6 +435,7 @@
                     var pr=window.parent.getComputedStyle(pdoc.documentElement);
                     var vars=['--primary-color','--secondary-color','--card-bg','--dark-text-color','--light-text-color','--body-bg'];
                     for(var i=0;i<vars.length;i++){
+                        if(isDarkEmbed()&&(vars[i]==='--card-bg'||vars[i]==='--dark-text-color'||vars[i]==='--body-bg'))continue;
                         var v=pr.getPropertyValue(vars[i]).trim();
                         if(v)document.documentElement.style.setProperty(vars[i],v);
                     }
