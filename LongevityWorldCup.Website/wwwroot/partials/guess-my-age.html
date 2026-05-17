@@ -63,8 +63,8 @@
     .modal-content.guess-mode #guessAgeContainer .gma-actions {
         opacity: 0;
         /* ⚡️ use CSS vars so we can override on repeat views */
-        animation: fadeIn var(--gma-duration, 0.6s) ease-out forwards;
-        animation-delay: var(--gma-delay, 3s);
+        animation: fadeIn var(--gma-duration, 0.35s) ease-out forwards;
+        animation-delay: var(--gma-delay, .85s);
     }
 
     .modal-content.guess-mode.gma-fast #guessAgeContainer {
@@ -82,6 +82,34 @@
     /* .portrait-wrapper contains #modalProfilePic; keep it visible so the picture shows */
     .modal-content.guess-mode .athlete-profile > *:not(#modalProfilePic):not(#guessAgeContainer):not(.portrait-wrapper) {
         display: none;
+    }
+
+    #detailsModal .modal-content.guess-mode {
+        overflow: hidden;
+    }
+
+    #detailsModal .modal-content.guess-mode #athlete-profile {
+        --gma-portrait-gap: clamp(2rem, 4vh, 3rem);
+        --gma-portrait-size: clamp(220px, min(58vw, 40vh), 430px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0;
+        height: 100%;
+        min-height: 0;
+        box-sizing: border-box;
+        padding-block: clamp(3rem, 4.5vh, 4rem) clamp(0.5rem, 2vh, 1.5rem);
+    }
+
+    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
+        width: var(--gma-portrait-size);
+        height: auto;
+        aspect-ratio: 1 / 1;
+        max-width: none;
+        max-height: none;
+        flex: 0 0 auto;
+        margin: 0 0 var(--gma-portrait-gap);
     }
 
     /* ✨ card container */
@@ -725,6 +753,150 @@
         100% {
             transform: scale(1) rotate(15deg);
             opacity: 0;
+        }
+    }
+
+    #detailsModal .gma-card {
+        width: min(680px, calc(100% - 2rem));
+        margin-top: 0;
+        margin-bottom: 0;
+        box-sizing: border-box;
+        background: linear-gradient(180deg, rgba(246,244,237,.105), rgba(246,244,237,.055));
+        color: var(--athlete-modal-text, rgba(255,255,255,.94));
+        border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+        box-shadow: 0 18px 42px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.1);
+        padding: 1.65rem 2rem 2rem;
+    }
+    #detailsModal .gma-avatar {
+        background: rgba(255,255,255,.08);
+        box-shadow: 0 10px 24px rgba(0,0,0,.28);
+    }
+    #detailsModal .gma-heading,
+    #detailsModal .chrono-age-heading {
+        color: var(--athlete-modal-text, rgba(255,255,255,.94));
+        text-shadow: 0 2px 16px rgba(0,0,0,.4);
+    }
+    #detailsModal #gmaRange {
+        background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
+    }
+    #detailsModal #gmaRange::-moz-range-track {
+        background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
+    }
+    #detailsModal #gmaRange::-webkit-slider-thumb {
+        background: linear-gradient(145deg, rgba(246,244,237,.98), rgba(202,207,204,.92));
+        border-color: rgba(255,255,255,.95);
+        box-shadow: 0 8px 20px rgba(0,0,0,.35);
+    }
+    #detailsModal #gmaRange::-moz-range-thumb {
+        background: linear-gradient(145deg, rgba(246,244,237,.98), rgba(202,207,204,.92));
+        border-color: rgba(255,255,255,.95);
+        box-shadow: 0 8px 20px rgba(0,0,0,.35);
+    }
+    #detailsModal #gmaBubble,
+    #detailsModal #gmaRealBubble {
+        background: rgba(10,12,12,.96);
+        color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+        border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+        box-shadow: 0 12px 28px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.08);
+    }
+    #detailsModal #gmaBubble::after,
+    #detailsModal #gmaRealBubble::after {
+        background: rgba(10,12,12,.96);
+        border-left-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+        border-bottom-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+    }
+    #detailsModal .gma-btn {
+        box-shadow: 0 10px 22px rgba(0,0,0,.22);
+    }
+    #detailsModal .gma-btn:focus-visible {
+        outline: none;
+        box-shadow: var(--athlete-modal-focus, 0 0 0 3px rgba(0,188,212,.34)), 0 10px 22px rgba(0,0,0,.22);
+    }
+    #detailsModal .gma-btn--ghost {
+        background: rgba(246,244,237,.06);
+        color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+        border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+    }
+    #detailsModal .gma-btn--ghost:hover,
+    #detailsModal .gma-btn--ghost:focus-visible {
+        color: rgba(12,16,16,.94);
+        background: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    }
+    #detailsModal .gma-btn--primary {
+        background: var(--athlete-modal-cream, rgba(246,244,237,.92));
+        color: rgba(12,16,16,.94);
+        box-shadow: 0 12px 26px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.72);
+    }
+    #detailsModal .gma-btn--primary:hover,
+    #detailsModal .gma-btn--primary:focus-visible {
+        filter: brightness(1.04);
+    }
+    #detailsModal .gma-card.celebrate-exact {
+        border-color: rgba(255,215,0,.52);
+        box-shadow: 0 0 28px rgba(255,215,0,.18), 0 16px 36px rgba(0,0,0,.28);
+    }
+    #detailsModal .gma-card.gma-done {
+        display: none !important;
+        margin: 0;
+        border: 0;
+        box-shadow: none;
+    }
+    @media (max-width: 768px) {
+        #detailsModal .modal-content.guess-mode #athlete-profile {
+            --gma-portrait-gap: clamp(1.5rem, 3.5vh, 2.5rem);
+            --gma-portrait-size: clamp(180px, min(70vw, 36vh), 320px);
+            padding-block: clamp(3.5rem, 5.5vh, 4.5rem) clamp(0.5rem, 2vh, 1.25rem);
+        }
+        #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
+            width: var(--gma-portrait-size);
+            height: auto;
+        }
+        #detailsModal .gma-card {
+            width: 100%;
+            padding: 1.75rem 1.25rem 2rem;
+        }
+        #detailsModal .gma-slider-wrap {
+            width: 86%;
+        }
+    }
+
+    @media (max-height: 680px) {
+        #detailsModal .modal-content.guess-mode #athlete-profile {
+            --gma-portrait-gap: 1.35rem;
+            --gma-portrait-size: clamp(140px, min(64vw, 32vh), 260px);
+            padding-block: 3rem 0.5rem;
+        }
+        #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
+            width: var(--gma-portrait-size);
+            height: auto;
+        }
+        #detailsModal .modal-content.guess-mode .gma-card {
+            margin-bottom: 0;
+            padding: 1rem 1rem 1.15rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-heading,
+        #detailsModal .modal-content.guess-mode .chrono-age-heading {
+            margin-bottom: 1.25rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-slider-wrap {
+            margin: 1rem auto;
+            padding-top: 2.25rem;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange {
+            height: 2.5rem;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
+            width: 52px;
+            height: 52px;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
+            width: 52px;
+            height: 52px;
+        }
+        #detailsModal .modal-content.guess-mode #gmaBubble,
+        #detailsModal .modal-content.guess-mode #gmaRealBubble {
+            font-size: 2rem;
+            padding: 0.55rem 1.1rem;
         }
     }
 </style>

@@ -69,6 +69,54 @@ a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-cl
 .modal-badge-name .modal-badge-detail{display:none}
 .modal-badge-item:hover .modal-badge-detail,.modal-badge-item.expanded .modal-badge-detail{display:block}
 .modal-badge-item:hover .modal-badge-name,.modal-badge-item.expanded .modal-badge-name{-webkit-line-clamp:unset;max-height:none;overflow:visible}
+#detailsModal .modal-badge-strip{
+    width:min(100%, var(--athlete-modal-section-width, 680px));
+    box-sizing:border-box;
+    background:linear-gradient(180deg, rgba(246,244,237,.105), rgba(246,244,237,.05));
+    border:1px solid var(--athlete-modal-cream-border,rgba(246,244,237,.52));
+    border-radius:22px;
+    padding:.85rem 1rem;
+    margin-top:.75rem;
+    margin-bottom:1.15rem;
+    box-shadow:0 18px 44px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1);
+}
+#detailsModal .modal-badge-strip:empty{
+    display:none;
+}
+#detailsModal .modal-badge-strip .modal-badge-name{
+    color:var(--athlete-modal-muted,rgba(255,255,255,.68));
+    font-weight:800;
+    line-height:1.15;
+}
+#detailsModal .modal-badge-name .modal-badge-title{
+    color:var(--athlete-modal-text,rgba(255,255,255,.94));
+}
+#detailsModal .modal-badge-name .modal-badge-detail{
+    color:inherit;
+    font-weight:400;
+}
+#detailsModal .modal-badge-item:hover .modal-badge-name,
+#detailsModal .modal-badge-item.expanded .modal-badge-name{
+    color:var(--athlete-modal-text,rgba(255,255,255,.94));
+}
+#detailsModal .modal-badge-strip .badge-class{
+    border:1px solid rgba(246,244,237,.5)!important;
+    outline:none;
+    box-shadow:0 10px 24px rgba(0,0,0,.28), inset 1px 0 0 rgba(255,255,255,.46), inset -1px 0 0 rgba(255,255,255,.46), inset 0 0 0 1px rgba(255,255,255,.12), inset 0 1px 0 rgba(255,255,255,.22);
+}
+#detailsModal .modal-badge-strip .badge-class.badge-family-domain{
+    background:linear-gradient(90deg, rgba(255,255,255,.78), rgba(246,244,237,.48) 18%, rgba(246,244,237,.42) 50%, rgba(246,244,237,.48) 82%, rgba(255,255,255,.78))!important;
+    filter:drop-shadow(0 8px 16px rgba(0,0,0,.24));
+}
+#detailsModal .modal-badge-strip .badge-class.badge-family-domain::before{
+    inset:1px;
+}
+#detailsModal a.badge-class:focus-visible,
+#detailsModal .badge-class.badge-clickable:focus-visible,
+#detailsModal .badge-class[data-clickable="true"]:focus-visible,
+#detailsModal .modal-badge-item>a.badge-class:focus-visible{
+    box-shadow:0 0 0 3px rgba(246,244,237,.28),0 10px 22px rgba(0,0,0,.32);
+}
 .badge-class{cursor:default!important}
 a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.modal-badge-item>a.badge-class{cursor:pointer!important}
 
@@ -79,6 +127,30 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 }
 
 @media (max-width:768px){
+    #detailsModal .modal-badge-strip{
+        width:calc(100% - 1.5rem)!important;
+        max-width:calc(100% - 1.5rem)!important;
+        box-sizing:border-box;
+        gap:.25rem;
+        padding:.65rem .45rem;
+        margin:.45rem auto .9rem;
+    }
+    #detailsModal .modal-badge-strip .modal-badge-item{
+        flex:0 1 calc(50% - .75rem);
+        max-width:none;
+        margin:.25rem;
+    }
+    #detailsModal .modal-badge-strip .badge-class{
+        width:54px;
+        height:54px;
+        font-size:1.55rem;
+        margin:.15rem;
+    }
+    #detailsModal .modal-badge-strip .modal-badge-name{
+        width:auto;
+        max-width:110px;
+        font-size:.7rem;
+    }
     #detailsModal .badge-class{pointer-events:none;cursor:default}
     #detailsModal .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}
 }

@@ -155,6 +155,84 @@
         outline: 2px solid var(--primary-color, #00bcd4);
         outline-offset: 2px;
     }
+    #detailsModal .age-visualization {
+        width: min(100%, var(--athlete-modal-section-width, 640px));
+        box-sizing: border-box;
+        padding: .95rem 1rem 1.05rem;
+        background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
+        border-color: var(--athlete-modal-border, rgba(255,255,255,.16));
+        border-radius: 22px;
+        box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
+        color: var(--athlete-modal-text, rgba(255,255,255,.94));
+    }
+    #detailsModal .age-radar-wrapper {
+        width: clamp(230px, 55vw, 340px);
+    }
+    #detailsModal .age-radar-summary,
+    #detailsModal .age-radar-fallback {
+        background: linear-gradient(180deg, rgba(246,244,237,.1), rgba(246,244,237,.055));
+        border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 26px rgba(0,0,0,.22);
+    }
+    #detailsModal .age-radar-summary .age-diff,
+    #detailsModal .age-radar-fallback .age-diff {
+        color: var(--athlete-modal-text, rgba(255,255,255,.94));
+    }
+    #detailsModal .age-radar-summary .age-bio-age,
+    #detailsModal .age-radar-fallback .age-bio-age,
+    #detailsModal .age-radar-caption {
+        color: var(--athlete-modal-muted, rgba(255,255,255,.68));
+    }
+    #detailsModal .age-radar-summary.positive .age-diff,
+    #detailsModal .age-radar-summary.positive .age-diff-label {
+        color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    }
+    #detailsModal .age-radar-summary.positive {
+        background: linear-gradient(180deg, rgba(246,244,237,.11), rgba(246,244,237,.055));
+        border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+    }
+    #detailsModal .age-radar-summary.negative .age-diff,
+    #detailsModal .age-radar-summary.negative .age-diff-label {
+        color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    }
+    #detailsModal .age-radar-summary.negative {
+        background: linear-gradient(180deg, rgba(246,244,237,.11), rgba(246,244,237,.055));
+        border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+    }
+    #detailsModal .age-clock-switch [role="tablist"] {
+        background: rgba(0,0,0,.22);
+        border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+    }
+    #detailsModal .age-clock-switch [role="tab"] {
+        color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+        border: 1px solid transparent;
+    }
+    #detailsModal .age-clock-switch [role="tab"]:hover,
+    #detailsModal .age-clock-switch [role="tab"]:focus-visible {
+        background: rgba(246,244,237,.12);
+        color: #fff;
+    }
+    #detailsModal .age-clock-switch [role="tab"][aria-selected="true"] {
+        background: var(--athlete-modal-cream, rgba(246,244,237,.92));
+        color: rgba(12,16,16,.94);
+        border-color: rgba(255,255,255,.78);
+        box-shadow: 0 8px 18px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.72);
+    }
+    @media (max-width: 768px) {
+        #detailsModal .age-visualization {
+            width: calc(100% - 1.5rem) !important;
+            max-width: calc(100% - 1.5rem) !important;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #detailsModal .age-radar-wrapper {
+            width: min(100%, 280px);
+        }
+        #detailsModal .age-radar-summary {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+    }
 </style>
 
 <div class="age-visualization" id="ageVisualization" aria-label="Age profile radar chart">

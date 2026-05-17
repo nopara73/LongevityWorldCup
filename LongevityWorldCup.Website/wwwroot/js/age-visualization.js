@@ -332,8 +332,13 @@
         destroyRadarChart();
         var ctx = canvas.getContext('2d');
         var fontFamily = window.getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif';
-        var primaryRgb = '0, 188, 212';
-        var secondaryRgb = '255, 64, 129';
+        var modal = document.getElementById('detailsModal');
+        var modalStyles = modal ? window.getComputedStyle(modal) : null;
+        var radarLabelColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-muted').trim() || 'rgba(0,0,0,0.7)') : 'rgba(0,0,0,0.7)';
+        var radarGridColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-grid').trim() || 'rgba(0,0,0,0.08)') : 'rgba(0,0,0,0.08)';
+        var radarFill = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream-soft').trim() || 'rgba(246,244,237,.18)') : 'rgba(246,244,237,.18)';
+        var radarStroke = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
+        var radarPoint = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
         var contributors = data.tooltipContributors || [];
 
         radarChartInstance = new window.Chart(ctx, {
@@ -343,14 +348,14 @@
                 datasets: [{
                     label: 'Percentile (higher = better)',
                     data: data.values,
-                    backgroundColor: 'rgba(' + primaryRgb + ', 0.18)',
-                    borderColor: 'rgba(' + primaryRgb + ', 0.85)',
+                    backgroundColor: radarFill,
+                    borderColor: radarStroke,
                     borderWidth: 2.5,
-                    pointBackgroundColor: 'rgba(' + secondaryRgb + ', 0.9)',
-                    pointBorderColor: '#fff',
+                    pointBackgroundColor: radarPoint,
+                    pointBorderColor: 'rgba(18,20,20,.95)',
                     pointBorderWidth: 2,
-                    pointHoverBackgroundColor: 'rgba(' + secondaryRgb + ', 1)',
-                    pointHoverBorderColor: '#fff',
+                    pointHoverBackgroundColor: radarPoint,
+                    pointHoverBorderColor: 'rgba(18,20,20,.95)',
                     pointHoverBorderWidth: 2,
                     pointRadius: 5,
                     pointHoverRadius: 7
@@ -398,12 +403,12 @@
                         },
                         pointLabels: {
                             font: { family: fontFamily, size: 11, weight: '500' },
-                            color: 'rgba(0,0,0,0.7)',
+                            color: radarLabelColor,
                             padding: 3,
                             z: 1
                         },
-                        grid: { color: 'rgba(0,0,0,0.08)', lineWidth: 1 },
-                        angleLines: { color: 'rgba(0,0,0,0.08)', lineWidth: 1 }
+                        grid: { color: radarGridColor, lineWidth: 1 },
+                        angleLines: { color: radarGridColor, lineWidth: 1 }
                     }
                 },
                 animation: { duration: 500 },
@@ -458,16 +463,16 @@
         var chronoPct = Math.min((chronoAge / maxAge) * 100, 100);
         var gradient;
         if (bioAge === chronoAge) {
-            gradient = 'radial-gradient(circle, #3498db 100%, #3498db 100%)';
+            gradient = 'radial-gradient(circle, rgba(246,244,237,.72) 100%, rgba(246,244,237,.72) 100%)';
         } else if (bioAge < chronoAge) {
-            gradient = 'radial-gradient(circle, #3498db ' + bioPct + '%, #2ecc71 ' + chronoPct + '%, #ccc 100%)';
+            gradient = 'radial-gradient(circle, rgba(246,244,237,.78) ' + bioPct + '%, rgba(181,226,226,.45) ' + chronoPct + '%, rgba(255,255,255,.18) 100%)';
         } else {
-            gradient = 'radial-gradient(circle, #3498db ' + chronoPct + '%, #e74c3c ' + bioPct + '%, #ccc 100%)';
+            gradient = 'radial-gradient(circle, rgba(246,244,237,.78) ' + chronoPct + '%, rgba(213,224,221,.42) ' + bioPct + '%, rgba(255,255,255,.18) 100%)';
         }
         visualizationContainer.style.background = gradient;
         visualizationContainer.style.borderRadius = '50%';
         visualizationContainer.style.position = 'relative';
-        visualizationContainer.style.border = '2px solid #ccc';
+        visualizationContainer.style.border = '2px solid rgba(246,244,237,.5)';
         visualizationContainer.innerHTML = '';
         var diff = (bioAge - chronoAge).toFixed(1);
         var text = (diff > 0 ? '+' : '') + diff + ' yrs';
