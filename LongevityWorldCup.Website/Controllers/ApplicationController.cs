@@ -152,12 +152,6 @@ namespace LongevityWorldCup.Website.Controllers
             string? accountEmail = applicantData.AccountEmail?.Trim();
             string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
-            var differenceLines = new List<string>();
-            if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
-                differenceLines.Add($"Pheno Age difference: {chronoPhenoDifference}");
-            if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
-                differenceLines.Add($"Bortz Age difference: {chronoBortzDifference}");
-            var differenceBlock = differenceLines.Count > 0 ? string.Join("\n", differenceLines) : string.Empty;
 
             // Prepare the email body (excluding the images)
             // Moved this block after processing images to include paths
@@ -261,12 +255,12 @@ namespace LongevityWorldCup.Website.Controllers
             );
 
             // 3) Attach the ZIP
-            builder.Attachments.Add($"{folderKey}.zip",
+            var attachmentFilename = $"{folderKey}.zip";
+            builder.Attachments.Add(attachmentFilename,
                                     await System.IO.File.ReadAllBytesAsync(zipPath),
                                     new ContentType("application", "zip"));
 
             // 3a) Prepare email body based on submission type
-            string emailBody;
             var paymentAmountUsd = applicantData.PaymentOffer?.AmountUsd ?? 0m;
             var paymentCurrency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
                 ? "USD"
@@ -275,22 +269,19 @@ namespace LongevityWorldCup.Website.Controllers
                 ? $"free ({paymentCurrency})"
                 : $"{paymentCurrency} {paymentAmountUsd:0.##}";
 
-            if (isResultSubmissionOnly)
-            {
-                emailBody = $"Someone’s been bullying Father Time again...\nPayment due: {paymentDueText}\n";
-                if (!string.IsNullOrWhiteSpace(differenceBlock))
-                    emailBody += differenceBlock;
-            }
-            else if (isEditSubmissionOnly)
-            {
-                emailBody = $"Update profile request...";
-            }
-            else
-            {
-                emailBody = $"\nAccount email: {accountEmail}\nPayment due: {paymentDueText}\n";
-                if (!string.IsNullOrWhiteSpace(differenceBlock))
-                    emailBody += differenceBlock;
-            }
+            var emailBody = BuildApplicationAuditEmailBody(
+                applicantData,
+                accountEmail,
+                correctedPersonalLink,
+                folderKey,
+                attachmentFilename,
+                paymentDueText,
+                chronoPhenoDifference,
+                chronoBortzDifference,
+                isResultSubmissionOnly,
+                isEditSubmissionOnly,
+                Request,
+                _environment);
             builder.TextBody = emailBody;
 
             message.Body = builder.ToMessageBody();
@@ -765,6 +756,389 @@ namespace LongevityWorldCup.Website.Controllers
         private static string BuildApplicationSubject(string? applicantName)
         {
             return $"[LWC26] Application: {applicantName?.Trim() ?? "Unknown"}";
+        }
+
+        private static string BuildApplicationAuditEmailBody(
+            ApplicantData applicantData,
+            string? accountEmail,
+            string? correctedPersonalLink,
+            string folderKey,
+            string attachmentFilename,
+            string paymentDueText,
+            string? chronoPhenoDifference,
+            string? chronoBortzDifference,
+            bool isResultSubmissionOnly,
+            bool isEditSubmissionOnly,
+            HttpRequest request,
+            IWebHostEnvironment environment)
+        {
+            var profileSlug = BuildProfileSlug(applicantData.Name);
+            var profileUrl = BuildProfileUrl(request, profileSlug);
+            var submittedAtUtc = DateTimeOffset.UtcNow;
+            var updateType = isResultSubmissionOnly
+                ? "Results submission"
+                : isEditSubmissionOnly
+                    ? "Profile metadata update"
+                    : "Full athlete application";
+            var submissionKind = isResultSubmissionOnly || isEditSubmissionOnly
+                ? "Update"
+                : "New submission";
+
+            var changedFields = BuildChangedFieldSummary(
+                applicantData,
+                correctedPersonalLink,
+                folderKey,
+                isResultSubmissionOnly,
+                isEditSubmissionOnly,
+                environment);
+
+            var sb = new StringBuilder();
+            AppendLegacyApplicationEmailIntro(
+                sb,
+                accountEmail,
+                paymentDueText,
+                chronoPhenoDifference,
+                chronoBortzDifference,
+                isResultSubmissionOnly,
+                isEditSubmissionOnly);
+
+            sb.AppendLine("Audit summary")
+                .AppendLine()
+                .AppendLine($"Athlete name: {FormatAuditValue(applicantData.Name)}")
+                .AppendLine($"Account email: {FormatAuditValue(accountEmail)}")
+                .AppendLine($"Profile URL: {profileUrl}")
+                .AppendLine($"Profile slug: {profileSlug}")
+                .AppendLine($"Archive folder key: {folderKey}")
+                .AppendLine($"Update type: {updateType}")
+                .AppendLine($"Submission kind: {submissionKind}")
+                .AppendLine($"Submitted at: {submittedAtUtc:yyyy-MM-dd HH:mm:ss 'UTC'}")
+                .AppendLine($"Attachment filename: {attachmentFilename}")
+                .AppendLine($"Payment due: {paymentDueText}")
+                .AppendLine()
+                .AppendLine("Changed fields:")
+                .AppendLine(changedFields)
+                .AppendLine()
+                .AppendLine("Submitted biomarkers/results summary:")
+                .AppendLine(BuildBiomarkerResultsSummary(
+                    applicantData,
+                    chronoPhenoDifference,
+                    chronoBortzDifference));
+
+            return sb.ToString();
+        }
+
+        private static void AppendLegacyApplicationEmailIntro(
+            StringBuilder sb,
+            string? accountEmail,
+            string paymentDueText,
+            string? chronoPhenoDifference,
+            string? chronoBortzDifference,
+            bool isResultSubmissionOnly,
+            bool isEditSubmissionOnly)
+        {
+            if (isResultSubmissionOnly)
+            {
+                sb.AppendLine("Someone’s been bullying Father Time again...")
+                    .AppendLine($"Payment due: {paymentDueText}");
+            }
+            else if (isEditSubmissionOnly)
+            {
+                sb.AppendLine("Update profile request...");
+            }
+            else
+            {
+                sb.AppendLine($"Account email: {FormatAuditValue(accountEmail)}")
+                    .AppendLine($"Payment due: {paymentDueText}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
+                sb.AppendLine($"Pheno Age difference: {chronoPhenoDifference.Trim()}");
+            if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
+                sb.AppendLine($"Bortz Age difference: {chronoBortzDifference.Trim()}");
+
+            sb.AppendLine();
+        }
+
+        private static string BuildChangedFieldSummary(
+            ApplicantData applicantData,
+            string? correctedPersonalLink,
+            string folderKey,
+            bool isResultSubmissionOnly,
+            bool isEditSubmissionOnly,
+            IWebHostEnvironment environment)
+        {
+            var fields = new List<string>();
+
+            if (isResultSubmissionOnly)
+            {
+                if (applicantData.Biomarkers?.Any() is true)
+                    fields.Add($"- Biomarkers/results: {applicantData.Biomarkers.Count} record(s) submitted");
+                if (applicantData.ProofPics?.Any() is true)
+                    fields.Add($"- Proof attachments: {applicantData.ProofPics.Count} file(s) submitted");
+                if (!string.IsNullOrWhiteSpace(applicantData.ChronoPhenoDifference))
+                    fields.Add("- Pheno Age result");
+                if (!string.IsNullOrWhiteSpace(applicantData.ChronoBortzDifference))
+                    fields.Add("- Bortz Age result");
+            }
+            else if (isEditSubmissionOnly)
+            {
+                var existing = TryReadExistingAthleteFields(environment, folderKey, applicantData.Name);
+                var canCompare = existing.Count > 0;
+
+                if (IsSubmittedImageData(applicantData.ProfilePic))
+                    fields.Add("- Profile picture: new image submitted");
+
+                if (canCompare)
+                {
+                    AddChangedField(fields, "Division", existing.GetValueOrDefault("Division"), applicantData.Division);
+                    AddChangedField(fields, "Flag", existing.GetValueOrDefault("Flag"), applicantData.Flag);
+                    AddChangedField(fields, "Personal link", existing.GetValueOrDefault("PersonalLink"), correctedPersonalLink);
+                    AddChangedField(fields, "Media contact", existing.GetValueOrDefault("MediaContact"), applicantData.MediaContact);
+                    AddChangedField(fields, "Why", existing.GetValueOrDefault("Why"), applicantData.Why);
+                    AddChangedField(fields, "Display name", existing.GetValueOrDefault("DisplayName"), applicantData.DisplayName);
+                }
+                else
+                {
+                    AddSubmittedField(fields, "Division", applicantData.Division);
+                    AddSubmittedField(fields, "Flag", applicantData.Flag);
+                    AddSubmittedField(fields, "Personal link", correctedPersonalLink);
+                    AddSubmittedField(fields, "Media contact", applicantData.MediaContact);
+                    AddSubmittedField(fields, "Why", applicantData.Why);
+                    AddSubmittedField(fields, "Display name", applicantData.DisplayName);
+                    if (fields.Count == 0)
+                        fields.Add("- Current athlete record was not found for comparison");
+                }
+            }
+            else
+            {
+                AddSubmittedField(fields, "Name", applicantData.Name);
+                AddSubmittedField(fields, "Display name", applicantData.DisplayName);
+                AddSubmittedField(fields, "Division", applicantData.Division);
+                AddSubmittedField(fields, "Flag", applicantData.Flag);
+                AddSubmittedField(fields, "Personal link", correctedPersonalLink);
+                AddSubmittedField(fields, "Media contact", applicantData.MediaContact);
+                AddSubmittedField(fields, "Why", applicantData.Why);
+                if (applicantData.DateOfBirth is not null)
+                    fields.Add("- Date of birth");
+                if (IsSubmittedImageData(applicantData.ProfilePic))
+                    fields.Add("- Profile picture");
+                if (applicantData.Biomarkers?.Any() is true)
+                    fields.Add($"- Biomarkers/results: {applicantData.Biomarkers.Count} record(s) submitted");
+                if (applicantData.ProofPics?.Any() is true)
+                    fields.Add($"- Proof attachments: {applicantData.ProofPics.Count} file(s) submitted");
+            }
+
+            return fields.Count == 0
+                ? "- No changed fields were detected from the submitted payload"
+                : string.Join(Environment.NewLine, fields);
+        }
+
+        private static string BuildBiomarkerResultsSummary(
+            ApplicantData applicantData,
+            string? chronoPhenoDifference,
+            string? chronoBortzDifference)
+        {
+            var lines = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
+                lines.Add($"- Pheno Age difference: {chronoPhenoDifference.Trim()}");
+            if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
+                lines.Add($"- Bortz Age difference: {chronoBortzDifference.Trim()}");
+
+            var biomarkers = applicantData.Biomarkers;
+            if (biomarkers?.Any() is true)
+            {
+                lines.Add($"- Biomarker records submitted: {biomarkers.Count}");
+                foreach (var (biomarker, index) in biomarkers.Select((value, index) => (value, index)))
+                {
+                    var metrics = GetSubmittedBiomarkerMetrics(biomarker);
+                    var date = string.IsNullOrWhiteSpace(biomarker.Date) ? "date not provided" : biomarker.Date.Trim();
+                    lines.Add($"- Record {index + 1} ({date}): {metrics}");
+                }
+            }
+            else
+            {
+                lines.Add("- No biomarkers submitted");
+            }
+
+            var proofCount = applicantData.ProofPics?.Count ?? 0;
+            lines.Add($"- Proof files submitted: {proofCount}");
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        private static string GetSubmittedBiomarkerMetrics(BiomarkerData biomarker)
+        {
+            var metrics = typeof(BiomarkerData)
+                .GetProperties()
+                .Where(property => !string.Equals(property.Name, nameof(BiomarkerData.Date), StringComparison.Ordinal))
+                .Select(property => new
+                {
+                    property.Name,
+                    Value = property.GetValue(biomarker)
+                })
+                .Where(item => item.Value is not null)
+                .Select(item => $"{item.Name}={Convert.ToString(item.Value, CultureInfo.InvariantCulture)}")
+                .ToList();
+
+            return metrics.Count == 0
+                ? "no metric values provided"
+                : string.Join(", ", metrics);
+        }
+
+        private static Dictionary<string, string?> TryReadExistingAthleteFields(
+            IWebHostEnvironment environment,
+            string folderKey,
+            string? athleteName)
+        {
+            var athletesRoot = Path.Combine(environment.WebRootPath, "athletes");
+            if (!Directory.Exists(athletesRoot))
+                return new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+            var candidatePaths = new List<string>
+            {
+                Path.Combine(athletesRoot, folderKey, "athlete.json"),
+                Path.Combine(athletesRoot, folderKey.Replace('_', '-'), "athlete.json")
+            };
+
+            foreach (var path in candidatePaths.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var fields = TryReadAthleteJsonFields(path);
+                if (fields.Count > 0)
+                    return fields;
+            }
+
+            if (string.IsNullOrWhiteSpace(athleteName))
+                return new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var path in Directory.EnumerateFiles(athletesRoot, "athlete.json", SearchOption.AllDirectories))
+            {
+                var fields = TryReadAthleteJsonFields(path);
+                if (fields.Count == 0)
+                    continue;
+
+                if (string.Equals(fields.GetValueOrDefault("Name"), athleteName.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(fields.GetValueOrDefault("DisplayName"), athleteName.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return fields;
+                }
+            }
+
+            return new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static Dictionary<string, string?> TryReadAthleteJsonFields(string path)
+        {
+            var fields = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            if (!System.IO.File.Exists(path))
+                return fields;
+
+            try
+            {
+                using var document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                    return fields;
+
+                foreach (var property in document.RootElement.EnumerateObject())
+                {
+                    fields[property.Name] = property.Value.ValueKind switch
+                    {
+                        JsonValueKind.String => property.Value.GetString(),
+                        JsonValueKind.Null => null,
+                        JsonValueKind.Undefined => null,
+                        _ => property.Value.ToString()
+                    };
+                }
+            }
+            catch
+            {
+                return new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return fields;
+        }
+
+        private static void AddChangedField(List<string> fields, string label, string? previousValue, string? submittedValue)
+        {
+            var normalizedPrevious = NormalizeAuditValue(previousValue);
+            var normalizedSubmitted = NormalizeAuditValue(submittedValue);
+            if (string.Equals(normalizedPrevious, normalizedSubmitted, StringComparison.Ordinal))
+                return;
+
+            fields.Add($"- {label}: {FormatAuditValue(previousValue)} -> {FormatAuditValue(submittedValue)}");
+        }
+
+        private static void AddSubmittedField(List<string> fields, string label, string? submittedValue)
+        {
+            if (!string.IsNullOrWhiteSpace(submittedValue))
+                fields.Add($"- {label}: {FormatAuditValue(submittedValue)}");
+        }
+
+        private static string NormalizeAuditValue(string? value)
+        {
+            return (value ?? string.Empty).Trim();
+        }
+
+        private static string FormatAuditValue(string? value)
+        {
+            var normalized = NormalizeAuditValue(value);
+            if (string.IsNullOrWhiteSpace(normalized))
+                return "not provided";
+
+            const int maxLength = 240;
+            return normalized.Length <= maxLength
+                ? normalized
+                : normalized[..maxLength] + "...";
+        }
+
+        private static bool IsSubmittedImageData(string? value)
+        {
+            return !string.IsNullOrWhiteSpace(value)
+                && value.TrimStart().StartsWith("data:image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildProfileUrl(HttpRequest request, string profileSlug)
+        {
+            if (request.Host.HasValue)
+                return $"{request.Scheme}://{request.Host}/athlete/{profileSlug}";
+
+            return $"https://www.longevityworldcup.com/athlete/{profileSlug}";
+        }
+
+        private static string BuildProfileSlug(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return "unknown";
+
+            var normalized = name
+                .Trim()
+                .ToLowerInvariant()
+                .Normalize(NormalizationForm.FormKD);
+            var sb = new StringBuilder();
+            var previousWasHyphen = false;
+
+            foreach (var c in normalized)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+                    continue;
+
+                if (c >= 'a' && c <= 'z' || c >= '0' && c <= '9')
+                {
+                    sb.Append(c);
+                    previousWasHyphen = false;
+                }
+                else if (char.IsWhiteSpace(c) || c == '-')
+                {
+                    if (!previousWasHyphen && sb.Length > 0)
+                    {
+                        sb.Append('-');
+                        previousWasHyphen = true;
+                    }
+                }
+            }
+
+            var slug = sb.ToString().Trim('-');
+            return string.IsNullOrWhiteSpace(slug) ? "unknown" : slug;
         }
 
         private static async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message)
