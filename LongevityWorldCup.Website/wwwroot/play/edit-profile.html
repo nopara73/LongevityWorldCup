@@ -488,6 +488,11 @@
 
                 const applicantData = {
                     name: athlete.Name,
+                    accountEmail: athlete.AccountEmail
+                        || originalAthlete.AccountEmail
+                        || sessionStorage.getItem('contactEmail')
+                        || localStorage.getItem('contactEmail')
+                        || null,
                     profilePic: athlete.ProfilePic,
                     division: athlete.Division,
                     flag: athlete.Flag,
