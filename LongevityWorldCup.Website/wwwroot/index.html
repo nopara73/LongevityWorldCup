@@ -1194,10 +1194,9 @@
                         <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
                            href="https://merch.longevityworldcup.com/"
                            target="_blank"
-                           rel="noopener">Merch store</a> by <a class="lwc-merch-copy-link"
-                           href="https://klaustownsend.com/"
-                           target="_blank"
-                           rel="noopener">Klaus Townsend</a>. Open source contributor. High end, <strong>longevitymaxxing</strong>, organic cotton swag. From New Zealand.</p>
+                           rel="noopener">Merch store</a> by <a class="lwc-merch-copy-link lwc-merch-athlete-link"
+                           href="/athlete/klaus-townsend"
+                           data-athlete-slug="klaus-townsend">Klaus Townsend</a>. Open source contributor. High end, <strong>longevitymaxxing</strong>, organic cotton swag. From New Zealand.</p>
                         <div class="lwc-merch-grid">
                             <a class="lwc-merch-item"
                                href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
@@ -1571,6 +1570,24 @@
                 window.clearTimeout(homepageHighlightsResizeTimer);
                 homepageHighlightsResizeTimer = window.setTimeout(fitHomepageHighlights, 180);
             });
+        });
+
+        document.addEventListener('click', function (event) {
+            const link = event.target && event.target.closest ? event.target.closest('a.lwc-merch-athlete-link[data-athlete-slug]') : null;
+            if (!link) return;
+            if (event.defaultPrevented) return;
+            if (event.button !== 0) return;
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            if (typeof window.openAthleteModalBySlug !== 'function') return;
+
+            const athleteSlug = link.getAttribute('data-athlete-slug');
+            if (!athleteSlug) return;
+
+            const opened = window.openAthleteModalBySlug(athleteSlug, { suppressGuessMyAge: true });
+            if (!opened) return;
+
+            event.preventDefault();
+            event.stopPropagation();
         });
 
         document.addEventListener('DOMContentLoaded', function () {
