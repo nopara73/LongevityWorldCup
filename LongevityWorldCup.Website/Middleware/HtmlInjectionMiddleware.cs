@@ -13,7 +13,7 @@ namespace LongevityWorldCup.Website.Middleware
         private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;
         private readonly AssetVersionProvider _assetVersionProvider = assetVersionProvider;
         private const string SiteBaseUrl = "https://longevityworldcup.com";
-        private const string DefaultOgImage = "https://longevityworldcup.com/assets/og-image.png";
+        private const string DefaultOgImagePath = "/assets/og-image.png";
         private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
         {
             "/",
@@ -325,10 +325,11 @@ $@"<script type=""module"">
             return baseSeo;
         }
 
-        private static SeoMeta GetBaseSeoMeta(string requestPath)
+        private SeoMeta GetBaseSeoMeta(string requestPath)
         {
             var canonicalPath = RouteCanonicalization.GetCanonicalPath(requestPath);
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
+            var defaultOgImage = BuildDefaultOgImageUrl();
 
             return canonicalPath switch
             {
@@ -340,7 +341,7 @@ $@"<script type=""module"">
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Too old for your sport? Not this one. Join the Longevity World Cup and rise on the leaderboard by improving your biological age.",
-                    DefaultOgImage
+                    defaultOgImage
                 ),
                 "/leaderboard" => new SeoMeta(
                     canonicalPath,
@@ -350,7 +351,7 @@ $@"<script type=""module"">
                     "Leaderboard | Longevity World Cup",
                     "Leaderboard | Longevity World Cup",
                     "View the Longevity World Cup leaderboard for verified biological age reduction rankings across athletes, leagues, and categories.",
-                    DefaultOgImage
+                    defaultOgImage
                 ),
                 "/events" => new SeoMeta(
                     canonicalPath,
@@ -360,7 +361,7 @@ $@"<script type=""module"">
                     "Highlights | Longevity World Cup",
                     "Highlights | Longevity World Cup",
                     "Follow key Longevity World Cup events, season updates, and competition highlights.",
-                    DefaultOgImage
+                    defaultOgImage
                 ),
                 "/media" => new SeoMeta(
                     canonicalPath,
@@ -370,7 +371,7 @@ $@"<script type=""module"">
                     "Media Kit | Longevity World Cup",
                     "Media Kit | Longevity World Cup",
                     "Access the Longevity World Cup media kit with press-ready branding assets and resources.",
-                    DefaultOgImage
+                    defaultOgImage
                 ),
                 _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
                     canonicalPath,
@@ -380,7 +381,7 @@ $@"<script type=""module"">
                     "Longevity World Cup",
                     "Longevity World Cup",
                     "Longevity World Cup member page.",
-                    DefaultOgImage
+                    defaultOgImage
                 ),
                 _ => new SeoMeta(
                     canonicalPath,
@@ -390,9 +391,14 @@ $@"<script type=""module"">
                     "Longevity World Cup",
                     "Longevity World Cup",
                     "Longevity World Cup - reverse biological age and compete globally.",
-                    DefaultOgImage
+                    defaultOgImage
                 )
             };
+        }
+
+        private string BuildDefaultOgImageUrl()
+        {
+            return $"{SiteBaseUrl}{_assetVersionProvider.AppendVersion(DefaultOgImagePath)}";
         }
 
         private static string ReplacePageTitle(string html, string title)
@@ -498,7 +504,7 @@ $@"<script type=""module"">
             var description = $"Track rankings in the {payload.DisplayName}.{top3Text}";
             var ogImageUrl = _leagueOgImages.IsConfigured
                 ? _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload)
-                : DefaultOgImage;
+                : BuildDefaultOgImageUrl();
 
             seo = new SeoMeta(
                 canonicalPath,
@@ -558,7 +564,7 @@ $@"<script type=""module"">
             return false;
         }
 
-        private static string BuildStructuredDataJson(SeoMeta seo)
+        private string BuildStructuredDataJson(SeoMeta seo)
         {
             var breadcrumbItems = new List<object>
             {
@@ -593,7 +599,7 @@ $@"<script type=""module"">
                         ["@id"] = $"{SiteBaseUrl}/#organization",
                         ["name"] = "Longevity World Cup",
                         ["url"] = SiteBaseUrl,
-                        ["logo"] = DefaultOgImage
+                        ["logo"] = BuildDefaultOgImageUrl()
                     },
                     new Dictionary<string, object>
                     {
