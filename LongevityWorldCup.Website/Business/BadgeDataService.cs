@@ -19,16 +19,20 @@ public sealed class BadgeDataService : IDisposable
     private readonly DatabaseManager _db;
     private readonly DateTime _asOfUtc;
     private readonly EventDataService _events; // NEW: event sink for BadgeAward events via DI
+    private readonly ILogger<BadgeDataService> _log;
 
     private const string AwardsTable = "BadgeAwards";
+    private const double SuspiciousSnapshotDropRatio = 0.75d;
+    private const int MaxBadgeEventsPerRecompute = 12;
     private readonly SemaphoreSlim _athletesChangedRecomputeGate = new SemaphoreSlim(1, 1);
     private int _athletesChangedRecomputeAgain;
 
-    public BadgeDataService(AthleteDataService athletes, EventDataService events, DatabaseManager db)
+    public BadgeDataService(AthleteDataService athletes, EventDataService events, DatabaseManager db, ILogger<BadgeDataService> log)
     {
         _athletes = athletes ?? throw new ArgumentNullException(nameof(athletes));
         _events = events ?? throw new ArgumentNullException(nameof(events));
         _db = db ?? throw new ArgumentNullException(nameof(db));
+        _log = log;
         _asOfUtc = DateTime.UtcNow.Date;
 
         EnsureTables();
@@ -158,7 +162,20 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         AddSeasonFinalResultsAwards(awards);
 
         var previous = ReadCurrentAwardsSnapshot();
-        EmitBadgeAwardEvents(previous, awards, DateTime.UtcNow);
+        if (IsSuspiciousSnapshotDrop(previous, awards, stats.Count))
+            return;
+
+        var badgeEvents = BuildBadgeAwardEvents(previous, awards, DateTime.UtcNow);
+        var suppressBadgeEvents = badgeEvents.Count > MaxBadgeEventsPerRecompute;
+        if (suppressBadgeEvents)
+        {
+            _log.LogError(
+                "Suppressing {BadgeEventCount} badge event(s) from a single recompute. PreviousAwards={PreviousAwardCount}; NewAwards={NewAwardCount}; AthleteStats={AthleteStatsCount}.",
+                badgeEvents.Count,
+                previous.Count,
+                awards.Count,
+                stats.Count);
+        }
 
         var now = DateTime.UtcNow.ToString("o");
 
@@ -202,6 +219,31 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
             tx.Commit();
         });
+
+        if (!suppressBadgeEvents)
+            CreateBadgeAwardEvents(badgeEvents);
+    }
+
+    private bool IsSuspiciousSnapshotDrop(IReadOnlyList<AwardRow> previous, IReadOnlyList<AwardRow> next, int athleteStatsCount)
+    {
+        if (previous.Count == 0)
+            return false;
+
+        var previousAthletes = previous.Select(x => x.AthleteSlug).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        var minAwards = (int)Math.Floor(previous.Count * SuspiciousSnapshotDropRatio);
+        var minAthletes = (int)Math.Floor(previousAthletes * SuspiciousSnapshotDropRatio);
+
+        if (next.Count >= minAwards && athleteStatsCount >= minAthletes)
+            return false;
+
+        _log.LogError(
+            "Refusing to persist suspicious badge snapshot drop. PreviousAwards={PreviousAwardCount}; NewAwards={NewAwardCount}; PreviousAthletes={PreviousAthleteCount}; AthleteStats={AthleteStatsCount}.",
+            previous.Count,
+            next.Count,
+            previousAthletes,
+            athleteStatsCount);
+
+        return true;
     }
 
     private void HydrateComputedStatsIntoAthletes(Dictionary<string, AthleteStats> stats)
@@ -268,7 +310,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         return list;
     }
 
-    private void EmitBadgeAwardEvents(
+    private List<BadgeEventItem> BuildBadgeAwardEvents(
         IReadOnlyList<AwardRow> before,
         IReadOnlyList<AwardRow> after,
         DateTime occurredAtUtc)
@@ -489,10 +531,17 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             }
         }
 
-        if (items.Count > 0)
-            _events.CreateBadgeAwardEvents(
-                items.Select(i => (i.AthleteSlug, i.OccurredAtUtc, i.BadgeLabel, i.LeagueCategory, i.LeagueValue, i.Place, i.BecameSoloOwner, i.ReplacedSlug, i.ReplacedSlugs)),
-                skipIfExists: true);
+        return items;
+    }
+
+    private void CreateBadgeAwardEvents(IReadOnlyList<BadgeEventItem> items)
+    {
+        if (items.Count == 0)
+            return;
+
+        _events.CreateBadgeAwardEvents(
+            items.Select(i => (i.AthleteSlug, i.OccurredAtUtc, i.BadgeLabel, i.LeagueCategory, i.LeagueValue, i.Place, i.BecameSoloOwner, i.ReplacedSlug, i.ReplacedSlugs)),
+            skipIfExists: true);
     }
 
     private static string? TryGetStringNode(JsonObject o, string key)
