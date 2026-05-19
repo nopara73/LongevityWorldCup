@@ -168,7 +168,17 @@ public sealed class AthleteOgImageService
                 return outputPath;
             }
 
-            await RenderImageAsync(payload, outputPath, ct);
+            var tempPath = BuildTempRenderPath(outputPath);
+            try
+            {
+                await RenderImageAsync(payload, tempPath, ct);
+                PublishTempRender(tempPath, outputPath);
+            }
+            finally
+            {
+                DeleteTempRender(tempPath);
+            }
+
             CleanupOldRenders(renderPrefix, outputPath);
             return outputPath;
         }
@@ -303,6 +313,36 @@ public sealed class AthleteOgImageService
         });
 
         await image.SaveAsPngAsync(outputPath, ct);
+    }
+
+    private static string BuildTempRenderPath(string outputPath)
+    {
+        return $"{outputPath}.{Guid.NewGuid():N}.tmp";
+    }
+
+    private static void PublishTempRender(string tempPath, string outputPath)
+    {
+        try
+        {
+            File.Move(tempPath, outputPath);
+        }
+        catch (IOException) when (File.Exists(outputPath))
+        {
+            // Another app instance finished the same render first.
+        }
+    }
+
+    private static void DeleteTempRender(string tempPath)
+    {
+        try
+        {
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
+        }
+        catch
+        {
+            // Best-effort cleanup for abandoned temp renders.
+        }
     }
 
     private FontFamily GetFontFamily()
