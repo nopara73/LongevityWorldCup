@@ -16,6 +16,11 @@
             text-align: center;
         }
 
+            #proofImageContainer:empty,
+            #proofImageContainer:not(:has(img)) {
+                display: none !important;
+            }
+
             #proofImageContainer div {
                 position: relative;
                 display: inline-block;
