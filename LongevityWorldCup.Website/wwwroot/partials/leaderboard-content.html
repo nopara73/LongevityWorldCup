@@ -1427,8 +1427,25 @@
         .leaderboard table th:nth-child(4),
         .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
         .leaderboard table td .badge-section{ display:none; }
-        .leaderboard table th{ font-size:.6rem; }
+        .leaderboard table th{
+            font-size:.6rem;
+            line-height:1.05;
+            letter-spacing:.08em;
+            padding:.82rem .55rem;
+        }
         .leaderboard table td{ font-size:.8rem; }
+        .leaderboard table th:nth-child(4),
+        .leaderboard table td.age-reduction-td{
+            width:6.4rem;
+            min-width:6.4rem;
+            text-align:right;
+            padding-left:.4rem;
+            padding-right:1.1rem;
+        }
+        .leaderboard table td.rank-td{
+            padding-left:1rem;
+            padding-right:.65rem;
+        }
 
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
