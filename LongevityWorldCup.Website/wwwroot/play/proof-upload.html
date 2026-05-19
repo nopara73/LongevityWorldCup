@@ -88,8 +88,9 @@
             text-align: center;
         }
 
-            #proofImageContainer:empty {
-                display: none;
+            #proofImageContainer:empty,
+            #proofImageContainer:not(:has(img)) {
+                display: none !important;
             }
 
             #proofImageContainer div {
