@@ -3,7 +3,7 @@
     .footer {
         background: var(--background-color);
         color: var(--light-text-color);
-        padding: 2rem 0;
+        padding: 1.75rem 0 1.6rem;
         margin-top: 4rem;
         position: relative;
         width: 100%;
@@ -21,7 +21,7 @@
         width: 100%;
         will-change: transform;
         font-weight: 400;
-        font-size: 0.975rem;
+        font-size: 0.95rem;
         letter-spacing: 0.005em;
     }
 
@@ -41,36 +41,45 @@
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 1.5rem;
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(8.5rem, max-content));
+        column-gap: clamp(2.5rem, 8vw, 6rem);
         justify-content: center;
-        align-items: flex-start;
-        flex-direction: row;
+        align-items: start;
         margin-bottom: 0;
     }
 
     .footer-column {
         display: flex;
         flex-direction: column;
-        margin-bottom: 1rem;
-        width: auto;
-        margin: 0 3rem;
+        gap: 0.05rem;
+        margin: 0;
         align-items: flex-start;
     }
 
     @media (max-width: 768px) {
+        .footer {
+            padding: 1.65rem 0 1.35rem;
+        }
+
         .footer-container {
-            margin-bottom: 60px; /* Leave room for play button */
+            margin-bottom: 0;
+            padding: 0 2.5rem;
+            column-gap: clamp(2rem, 9vw, 3.25rem);
+        }
+
+        .footer-link {
+            padding: 0.42rem 0;
         }
     }
 
     @media (max-width: 375px) {
         .footer-container {
-            flex-direction: column;
-            margin-bottom: 0; /* It's a column now, so play button have space */
+            padding: 0 1.5rem;
+            column-gap: 1.75rem;
         }
 
         .footer-column {
-            width: 100%;
             margin: 0;
         }
     }
