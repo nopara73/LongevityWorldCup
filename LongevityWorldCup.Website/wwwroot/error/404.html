@@ -8,22 +8,97 @@
         .join-game {
             display: none;
         }
+
+        .not-found-main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 2.5rem 1rem 3.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .not-found-main [data-aos]:not(.aos-animate) {
+            opacity: 1;
+            transform: none;
+        }
+
+        .not-found-title {
+            margin: 0 0 1.35rem;
+            text-align: center;
+        }
+
+        .not-found-visual {
+            margin: 0 auto 1.45rem;
+            text-align: center;
+        }
+
+        .not-found-visual .illustration {
+            width: min(100%, 360px);
+            margin-bottom: 0;
+            box-sizing: border-box;
+        }
+
+        .not-found-copy {
+            max-width: 42ch;
+            margin: 0 auto 1.5rem;
+            color: #3f3f3f;
+            line-height: 1.45;
+            text-align: center;
+        }
+
+        .not-found-actions {
+            width: min(100%, 408px);
+            min-width: 0;
+            max-width: 408px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            margin: 0 auto;
+        }
+
+        .not-found-actions .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .not-found-actions .back-button {
+            margin-left: 0;
+        }
+
+        @media (max-width: 600px) {
+            .not-found-main {
+                padding: 2rem 1.35rem 2.75rem;
+            }
+
+            .not-found-title {
+                margin-bottom: 1rem;
+                font-size: 2rem;
+            }
+
+            .not-found-visual {
+                margin-bottom: 1.25rem;
+            }
+        }
     </style>
 </head>
 <body>
     <!--HEADER-->
-    <main>
+    <main class="not-found-main">
 
-        <h1 id="appReviewTitle" data-aos="fade" data-aos-duration="700" data-aos-delay="200">404 not found</h1>
-        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
+        <h1 id="appReviewTitle" class="not-found-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">404 not found</h1>
+        <div class="not-found-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
             <picture>
                 <img src="../error/herold.png" alt="Illustration for page not found" class="illustration" loading="lazy">
             </picture>
         </div>
-        <p data-aos="fade" data-aos-duration="700" data-aos-delay="300" style="text-align:center">
+        <p class="not-found-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             This page didn’t qualify for the Longevity World Cup
         </p>
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+        <div class="options-container not-found-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button class="option-button back-button" onclick="window.location.href = '/'">
                 <i class="fas fa-home"></i>&nbsp;Home
             </button>
