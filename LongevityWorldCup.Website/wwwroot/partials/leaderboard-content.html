@@ -1408,14 +1408,20 @@
         .content{ margin-left:0; }
 
         .podium{
-            display:flex; flex-direction:row; justify-content:center; align-items:flex-end; gap:3rem; margin:0; padding:0; flex-wrap:wrap; width:100%;
+            display:flex; flex-direction:row; justify-content:center; align-items:flex-end; gap:1.6rem; margin:0; padding:0; flex-wrap:wrap; width:100%;
         }
-        .podium .athlete-name{ font-size:1.5rem; }
-        .podium-item{ width:100%; }
-        .podium-item.first{ order:1; }
-        .podium-item.second{ order:2; }
-        .podium-item.third{ order:3; }
-        .podium-rank{ left:5%; }
+        .podium .athlete-name{ font-size:1.32rem; }
+        .podium-item{ width:100%; max-width:320px; padding:.85rem; }
+        .podium-item.first{ order:1; height:300px; }
+        .podium-item.second{ order:2; height:286px; }
+        .podium-item.third{ order:3; height:274px; }
+        .podium-item .podium-portrait,
+        .podium-item .rank-change{ height:36%; margin:.65rem 0 .55rem; }
+        .podium-item .name-row{ justify-content:center; }
+        .podium-item-lower{ padding:8px 0; }
+        .podium-rank{ left:5%; width:54px; height:54px; font-size:1.75rem; }
+        .podium .btc-amount{ margin-top:.75rem; font-size:.76rem; }
+        .podium .prize-money{ font-size:1.8rem; }
 
         .leaderboard table{ width:100%; table-layout:auto; }
         .leaderboard table th:last-child,
