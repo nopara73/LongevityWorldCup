@@ -116,7 +116,7 @@
       .track-card h2 {
         margin: 0 0 0.35rem;
         line-height: 1.2;
-        white-space: nowrap;
+        white-space: normal;
       }
 
       .track-card h2 .track-name {
@@ -382,6 +382,25 @@
       /* Keep title clear of the prize-money ribbon */
       .track-card.pro h2 {
         padding-right: 4rem;
+      }
+
+      @media (max-width: 360px) {
+        .track-card.pro h2 {
+          padding-right: 2.5rem;
+        }
+
+        .track-card-meta {
+          grid-template-columns: 1fr;
+          gap: 0.2rem;
+        }
+
+        .track-card-meta dt {
+          margin-top: 0.45rem;
+        }
+
+        .track-card-meta dt:first-child {
+          margin-top: 0;
+        }
       }
 
       /* Only the direct child is the ribbon band; .btc-symbol stays inline on it */
