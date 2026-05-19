@@ -11,7 +11,7 @@
             --bg: #0f1115;
             --panel: #171b22;
             --text: #eef2f7;
-            --muted: #a8b0bf;
+            --muted: #c4ccd8;
             --line: #293243;
             --accent: #72c16b;
         }
@@ -31,15 +31,15 @@
         }
 
         .wrap {
-            width: min(900px, calc(100% - 32px));
-            margin: 40px auto 64px;
+            width: min(820px, calc(100% - 32px));
+            margin: clamp(24px, 5vw, 48px) auto 64px;
         }
 
         .card {
             background: rgba(23, 27, 34, 0.92);
             border: 1px solid var(--line);
-            border-radius: 20px;
-            padding: 32px;
+            border-radius: 18px;
+            padding: clamp(24px, 5vw, 40px);
             box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
         }
 
@@ -51,18 +51,32 @@
         }
 
         h2 {
-            margin: 32px 0 10px;
+            margin: 34px 0 10px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(168, 176, 191, 0.18);
             font-size: 20px;
+            line-height: 1.25;
+        }
+
+        h2:first-of-type {
+            border-top: 0;
+            padding-top: 0;
         }
 
         p, li {
             color: var(--muted);
             font-size: 16px;
+            max-width: 68ch;
+        }
+
+        p {
+            margin: 0 0 16px;
         }
 
         .lead {
             margin: 0 0 24px;
             color: var(--text);
+            max-width: 64ch;
         }
 
         .meta {
@@ -81,7 +95,31 @@
         }
 
         ul {
+            margin: 0 0 18px;
             padding-left: 20px;
+        }
+
+        li + li {
+            margin-top: 4px;
+        }
+
+        @media (max-width: 520px) {
+            .wrap {
+                width: min(100% - 24px, 820px);
+                margin-top: 20px;
+            }
+
+            .card {
+                border-radius: 16px;
+            }
+
+            .meta {
+                margin-bottom: 16px;
+            }
+
+            h2 {
+                margin-top: 28px;
+            }
         }
     </style>
 </head>
