@@ -1,5 +1,6 @@
 ﻿using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -22,6 +23,10 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpGet("athletes")]
-        public IActionResult GetAthletes() => Ok(_svc.GetAthletesSnapshot());
+        public IActionResult GetAthletes()
+        {
+            Response.Headers[HeaderNames.CacheControl] = "no-cache,max-age=0,must-revalidate";
+            return Ok(_svc.GetAthletesSnapshot());
+        }
     }
 }
