@@ -648,6 +648,31 @@
             table-layout:auto;
         }
     }
+
+    @media (max-width:380px){
+        .events-board:not(.athlete-scroll){
+            --badge-size:20px;
+            --badge-icon-size:.66rem;
+            --badge-gap:.12rem;
+        }
+
+        .events-board:not(.athlete-scroll) .event-message{
+            font-size:.86rem;
+        }
+
+        .events-board:not(.athlete-scroll) td.col-avatar{
+            width:30px;
+            padding-right:6px;
+        }
+
+        .events-board:not(.athlete-scroll) td.event-message .event-message-cell{
+            column-gap:.16rem;
+            row-gap:.14rem;
+            min-height:44px;
+            padding-top:.28rem;
+            padding-bottom:.28rem;
+        }
+    }
 </style>
 
 <div id="events-root" class="events-board" aria-busy="true">
