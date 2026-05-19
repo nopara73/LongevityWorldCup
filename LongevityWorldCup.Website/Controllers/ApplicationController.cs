@@ -434,9 +434,8 @@ namespace LongevityWorldCup.Website.Controllers
             var body = new StringBuilder()
                 .AppendLine($"Hi {greetingName},")
                 .AppendLine()
-                .AppendLine("We received your Longevity World Cup application.")
-                .AppendLine()
-                .AppendLine("We'll review it and contact you at this email address when the review is done.");
+                .AppendLine("We'll review your Longevity World Cup application, which usually takes a day or two.")
+                .AppendLine("When the review is done, we'll contact you at this email address.");
 
             if (!string.IsNullOrWhiteSpace(checkoutLink))
             {
