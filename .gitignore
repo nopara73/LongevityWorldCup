@@ -43,6 +43,7 @@ AppData
 !.codex/environments/
 !.codex/environments/environment.toml
 .codex-temp-build/
+LongevityWorldCup.Documentation/pr-screenshots/
 
 # Generated proof quality checks
 /proof-upload-simulation-output/
