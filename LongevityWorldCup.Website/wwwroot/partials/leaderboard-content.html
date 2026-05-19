@@ -321,7 +321,7 @@
     .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
     .clear-sidebar-filters{
         display:none; align-items:center; gap:.25rem; margin:.6rem 0 1rem; padding:0; color:#777;
-        font-size:.85rem; font-weight:700; cursor:pointer; line-height:1.2;
+        font-size:.85rem; font-weight:700; cursor:pointer; line-height:1.2; visibility:hidden; pointer-events:none;
     }
     .clear-sidebar-filters .clear-sidebar-filters-icon{
         display:inline-block; width:.85rem; color:inherit; font-size:.85rem; line-height:1; text-align:center; vertical-align:-.05em;
@@ -329,9 +329,10 @@
     .clear-sidebar-filters:hover,
     .clear-sidebar-filters:focus,
     .clear-sidebar-filters:active{ color:#777; outline:none; }
-    .clear-sidebar-filters[hidden]{ display:none !important; }
+    .sidebar:hover .clear-sidebar-filters,
+    .sidebar.expanded .clear-sidebar-filters{ display:inline-flex; }
     .sidebar.has-active-state:hover .clear-sidebar-filters,
-    .sidebar.has-active-state.expanded .clear-sidebar-filters{ display:inline-flex; }
+    .sidebar.has-active-state.expanded .clear-sidebar-filters{ visibility:visible; pointer-events:auto; }
 
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
@@ -1600,7 +1601,7 @@
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
-                <span class="clear-sidebar-filters" id="clearSidebarFiltersBtn" role="button" tabindex="0" hidden>
+                <span class="clear-sidebar-filters" id="clearSidebarFiltersBtn" role="button" tabindex="-1" aria-hidden="true">
                     <i class="fa fa-times clear-sidebar-filters-icon" aria-hidden="true"></i>
                     <span>Clear filters</span>
                 </span>
@@ -3681,7 +3682,8 @@
         }
         const clearFiltersButton = document.getElementById('clearSidebarFiltersBtn');
         if (clearFiltersButton) {
-            clearFiltersButton.hidden = !hasActiveState;
+            clearFiltersButton.setAttribute('aria-hidden', hasActiveState ? 'false' : 'true');
+            clearFiltersButton.tabIndex = hasActiveState ? 0 : -1;
         }
     }
 
