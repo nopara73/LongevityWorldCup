@@ -3,6 +3,7 @@ using System.Globalization;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
@@ -80,13 +81,14 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--GUESS-MY-AGE-->", guessMyAge)
                         .Replace("<!--EVENT-BOARD-CONTENT-->", eventBoardContent)
                         .Replace("<!--AGE-VISUALIZATION-->", ageVisualization)
+                        .Replace("{{ASSET_BIOAGEFORM_CSS}}", _assetVersionProvider.AppendVersion("/css/bioageform.css"))
                         .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"));
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
                     // Optionally remove the play button on certain pages
                     if (path?.Contains("join-game", StringComparison.OrdinalIgnoreCase) is true)
                     {
-                        bodyContent = bodyContent.Replace("<button class=\"join-game\">", "<!-- Removed Join Game Button -->");
+                        bodyContent = RemoveJoinGameButtons(bodyContent);
                     }
 
                     // Write the modified content to the response
@@ -432,6 +434,15 @@ $@"<script type=""module"">
 
             end += titleClose.Length;
             return html.Remove(start, end - start).Insert(start, replacement);
+        }
+
+        private static string RemoveJoinGameButtons(string html)
+        {
+            return Regex.Replace(
+                html,
+                @"\s*<button\b(?=[^>]*\bclass\s*=\s*[""'][^""']*\bjoin-game\b)[\s\S]*?</button>",
+                "",
+                RegexOptions.IgnoreCase);
         }
 
         private static string EncodeMeta(string value)
