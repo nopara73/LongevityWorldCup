@@ -280,6 +280,7 @@
         /* Contribute Section Styles */
         .contribute-section {
             position: relative;
+            isolation: isolate;
             overflow: hidden;
             color: var(--dark-text-color); /* Use light text color */
             padding: 2rem;
@@ -288,15 +289,25 @@
             background: var(--card-bg);
         }
 
+        .contribute-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 0.38rem;
+            background: rgba(247, 147, 26, 0.12);
+            z-index: 0;
+        }
+
         .progress-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 0%; /* Updated dynamically */
-            height: 0.45rem;
+            height: 0.38rem;
             background: linear-gradient(90deg, rgba(247, 147, 26, 0.85), rgba(255, 193, 7, 0.55));
-            border-radius: 15px 0 999px 0;
-            box-shadow: 0 2px 8px rgba(247, 147, 26, 0.18);
+            border-radius: 0 999px 999px 0;
             z-index: 1;
             transition: width 0.5s ease-in-out; /* Smooth animation for width changes */
         }
