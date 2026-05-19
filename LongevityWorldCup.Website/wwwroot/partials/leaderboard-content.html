@@ -1386,17 +1386,20 @@
         }
         .leaderboard-toolbar{
             flex-direction:column; align-items:stretch; gap:.75rem; margin-top:1.25rem;
+            max-width:calc(100vw - 4rem);
+            margin-left:auto;
+            margin-right:auto;
         }
         .leaderboard-view-switcher{
             margin-left:0; order:1;
         }
-        .search-container{ max-width:100%; margin-top:0; }
+        .search-container{ flex:1 1 auto; min-width:0; width:auto; max-width:none; margin-top:0; margin-right:0; }
         #athleteSearch{ padding:.5rem 2.5rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
         .clear-icon{ right:3rem; }
-        .search-wrapper{ display:flex; align-items:center; flex:1; min-width:0; width:100%; order:2; }
+        .search-wrapper{ display:flex; align-items:center; gap:.45rem; flex:1; min-width:0; width:100%; order:2; }
 
-        .sidebar-toggle{ align-self:center; height:40px; flex-shrink:0; }
+        .sidebar-toggle{ align-self:center; width:40px; height:40px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
 
         .main-container{ flex-direction:column; }
         .sidebar{
@@ -1516,6 +1519,41 @@
         #bortzAgeReduction,
         #bortzAgeReductionPercent {
             white-space: normal;
+        }
+
+        @media (max-width: 360px) {
+            .content {
+                padding-left: max(0.5rem, env(safe-area-inset-left));
+                padding-right: max(0.5rem, env(safe-area-inset-right));
+            }
+
+            .leaderboard table th {
+                padding-left: 0.4rem;
+                padding-right: 0.4rem;
+                font-size: 0.56rem;
+            }
+
+            .leaderboard table td {
+                font-size: 0.76rem;
+            }
+
+            .leaderboard table th:nth-child(4),
+            .leaderboard table td.age-reduction-td {
+                width: 5.5rem;
+                min-width: 5.5rem;
+                padding-left: 0.25rem;
+                padding-right: 0.55rem;
+            }
+
+            .leaderboard table td.rank-td {
+                padding-left: 0.7rem;
+                padding-right: 0.45rem;
+            }
+
+            .leaderboard .portrait {
+                width: 36px;
+                height: 36px;
+            }
         }
 
         /* Mobile modal improvements */
