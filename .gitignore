@@ -43,3 +43,7 @@ AppData
 !.codex/environments/
 !.codex/environments/environment.toml
 .codex-temp-build/
+
+# Generated proof quality checks
+/proof-upload-simulation-output/
+/proof-quality-regression-output/

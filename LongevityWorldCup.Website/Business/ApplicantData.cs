@@ -13,6 +13,7 @@ namespace LongevityWorldCup.Website.Business
         public string? AccountEmail { get; set; }
         public string? ChronoPhenoDifference { get; set; }
         public string? ChronoBortzDifference { get; set; }
+        public string? SubmissionId { get; set; }
         public string? PersonalLink { get; set; }
         public string? ProfilePic { get; set; } // Base64 string
         public List<string>? ProofPics { get; set; } // List of Base64 strings
@@ -22,6 +23,20 @@ namespace LongevityWorldCup.Website.Business
 
         public List<BiomarkerData>? Biomarkers { get; set; }
         public PaymentOfferData? PaymentOffer { get; set; }
+    }
+
+    public class SubmissionReportData
+    {
+        public string? SubmissionId { get; set; }
+        public string? Phase { get; set; }
+        public string? PagePath { get; set; }
+        public string? SubmissionKind { get; set; }
+        public int? ProofCount { get; set; }
+        public List<int>? ProofDataUrlLengths { get; set; }
+        public int? ProfilePicDataUrlLength { get; set; }
+        public int? JsonBodyLength { get; set; }
+        public string? ErrorType { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 
     public class PaymentOfferData
