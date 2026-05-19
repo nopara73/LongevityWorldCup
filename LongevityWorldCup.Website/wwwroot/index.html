@@ -1160,11 +1160,11 @@
 
             .archive-mobile-card {
                 display: block;
-                background-color: var(--card-bg);
-                border-radius: 12px;
-                padding: 1rem;
-                margin-bottom: 1rem;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                background: rgba(240, 248, 250, 0.52);
+                border: 1px solid rgba(0, 188, 212, 0.14);
+                border-radius: 10px;
+                padding: 0.9rem;
+                margin-bottom: 0.95rem;
             }
 
             .archive-mobile-card-header {
@@ -1172,9 +1172,9 @@
                 justify-content: space-between;
                 align-items: center;
                 gap: 0.75rem;
-                margin-bottom: 0.75rem;
-                padding-bottom: 0.75rem;
-                border-bottom: 2px solid rgba(0, 188, 212, 0.12);
+                margin-bottom: 0.65rem;
+                padding-bottom: 0.65rem;
+                border-bottom: 1px solid rgba(0, 188, 212, 0.22);
             }
 
             .archive-mobile-card-year {
@@ -1200,7 +1200,7 @@
             .archive-mobile-card-winners {
                 display: flex;
                 flex-direction: column;
-                gap: 0.75rem;
+                gap: 0.62rem;
             }
 
             .archive-mobile-card-winner {
@@ -1262,19 +1262,24 @@
             }
 
             .archive-section {
-                padding: 1rem;
+                padding: 1rem 1rem 1.2rem;
             }
 
             .archive-section h2 {
                 font-size: 1.3rem;
                 margin-bottom: 1rem;
             }
+
+            .archive-section > p {
+                margin: 1.05rem 0 0 !important;
+                line-height: 1.35;
+            }
         }
 
         /* Very small screens - further optimize */
         @media (max-width: 480px) {
             .archive-mobile-card {
-                padding: 0.75rem;
+                padding: 0.75rem 0.7rem;
             }
 
             .archive-mobile-card-header {
