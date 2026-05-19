@@ -193,7 +193,17 @@ public sealed class LeagueOgImageService
                 return outputPath;
             }
 
-            await RenderImageAsync(payload, outputPath, ct);
+            var tempPath = BuildTempRenderPath(outputPath);
+            try
+            {
+                await RenderImageAsync(payload, tempPath, ct);
+                PublishTempRender(tempPath, outputPath);
+            }
+            finally
+            {
+                DeleteTempRender(tempPath);
+            }
+
             CleanupOldRenders(payload.InternalSlug, outputPath);
             return outputPath;
         }
@@ -255,6 +265,36 @@ public sealed class LeagueOgImageService
         DrawAthleteNameLabels(image, payload.Top3Names, fontFamily);
 
         await image.SaveAsPngAsync(outputPath, ct);
+    }
+
+    private static string BuildTempRenderPath(string outputPath)
+    {
+        return $"{outputPath}.{Guid.NewGuid():N}.tmp";
+    }
+
+    private static void PublishTempRender(string tempPath, string outputPath)
+    {
+        try
+        {
+            File.Move(tempPath, outputPath);
+        }
+        catch (IOException) when (File.Exists(outputPath))
+        {
+            // Another app instance finished the same render first.
+        }
+    }
+
+    private static void DeleteTempRender(string tempPath)
+    {
+        try
+        {
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
+        }
+        catch
+        {
+            // Best-effort cleanup for abandoned temp renders.
+        }
     }
 
     private static void DrawAthleteNameLabels(Image<Rgba32> image, IReadOnlyList<string> top3Names, FontFamily fontFamily)
