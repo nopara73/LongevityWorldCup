@@ -1021,8 +1021,10 @@
     #bortzAgeReductionPercent{ white-space: nowrap; }
 
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
-    .athlete-links a{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
-    .athlete-links a:hover{ color:var(--secondary-color); }
+    .athlete-links a,
+    .athlete-links button{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
+    .athlete-links a:hover,
+    .athlete-links button:hover{ color:var(--secondary-color); }
     #detailsModal .athlete-links{
         flex-direction: row;
         justify-content: center;
@@ -1031,11 +1033,13 @@
         margin: 1.25rem auto 1.05rem;
     }
     #detailsModal .athlete-links a,
+    #detailsModal .athlete-links button,
     #detailsModal .modal-link,
     #detailsModal .league-link{
         color: var(--athlete-modal-link);
     }
-    #detailsModal .athlete-links a{
+    #detailsModal .athlete-links a,
+    #detailsModal .athlete-links button{
         min-height: 0;
         padding: .5rem .85rem;
         border: 1px solid var(--athlete-modal-cream-border);
@@ -1044,12 +1048,25 @@
         box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(0,0,0,.18);
         font-size: .95rem;
         font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        gap: .4rem;
+    }
+    #detailsModal .athlete-links button{
+        appearance: none;
+        -webkit-appearance: none;
+    }
+    #detailsModal .athlete-links button:disabled{
+        cursor: default;
+        opacity: .82;
     }
     #detailsModal .modal-link i{
         font-size: 1.15rem;
     }
     #detailsModal .athlete-links a:hover,
     #detailsModal .athlete-links a:focus-visible,
+    #detailsModal .athlete-links button:hover,
+    #detailsModal .athlete-links button:focus-visible,
     #detailsModal .modal-link:hover,
     #detailsModal .modal-link:focus-visible,
     #detailsModal .league-link:hover,
@@ -1828,6 +1845,9 @@
                         </table>
                     </div>
                     <div class="athlete-links">
+                        <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile">
+                            <i class="fa fa-share-nodes"></i> Share
+                        </button>
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
                             <i class="fa fa-link"></i> Personal page
                         </a>
@@ -2882,7 +2902,7 @@
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
                 const urlParams = new URLSearchParams(window.location.search);
                 const leagueRouteState = getLeagueRouteState(window.location.pathname);
-                const athleteParam = new URLSearchParams(window.location.search).get('athlete') || '';
+                const athleteParam = getInitialAthleteSlug();
                 if (athleteParam) {
                     const normalizedAthlete = window.slugifyName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
@@ -4602,6 +4622,97 @@
     let originalAthletelessURL = getAthletelessURL();
     let originalLeaguelessURL = getLeaguelessURL();
 
+    function getInitialAthleteSlug() {
+        const athleteParam = new URLSearchParams(window.location.search).get('athlete');
+        if (athleteParam) {
+            return athleteParam;
+        }
+
+        const match = window.location.pathname.match(/^\/athlete\/([^/]+)\/?$/i);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function getCanonicalAthleteShareUrl(athleteSlug) {
+        return new URL(`/athlete/${encodeURIComponent(athleteSlug)}`, window.location.origin).toString();
+    }
+
+    function setShareButtonState(button, label, disabled) {
+        if (!button) return;
+        button.disabled = !!disabled;
+        button.innerHTML = `<i class="fa fa-share-nodes"></i> ${escapeHtml(label)}`;
+    }
+
+    function copyTextToClipboard(text) {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            return navigator.clipboard.writeText(text);
+        }
+
+        return new Promise((resolve, reject) => {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy') ? resolve() : reject(new Error('copy failed'));
+            } catch (error) {
+                reject(error);
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        });
+    }
+
+    function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
+        const button = document.getElementById('shareAthleteProfile');
+        if (!button || !athleteSlug) return;
+
+        const url = getCanonicalAthleteShareUrl(athleteSlug);
+        const title = `${displayName} | Longevity World Cup`;
+        const text = Number.isFinite(ultimateRank)
+            ? `${displayName} is ranked #${ultimateRank} in the Longevity World Cup.`
+            : `View ${displayName} in the Longevity World Cup.`;
+
+        button.dataset.shareUrl = url;
+        button.dataset.shareTitle = title;
+        button.dataset.shareText = text;
+        button.setAttribute('aria-label', `Share ${displayName}'s athlete profile`);
+        setShareButtonState(button, 'Share', false);
+
+        button.onclick = async () => {
+            if (button.disabled) return;
+
+            const sharePayload = {
+                title: button.dataset.shareTitle,
+                text: button.dataset.shareText,
+                url: button.dataset.shareUrl
+            };
+
+            if (navigator.share && (!navigator.canShare || navigator.canShare(sharePayload))) {
+                try {
+                    await navigator.share(sharePayload);
+                    return;
+                } catch (error) {
+                    if (error && error.name === 'AbortError') {
+                        return;
+                    }
+                }
+            }
+
+            try {
+                await copyTextToClipboard(sharePayload.url);
+                setShareButtonState(button, 'Copied', true);
+                window.setTimeout(() => setShareButtonState(button, 'Share', false), 1600);
+            } catch (error) {
+                setShareButtonState(button, 'Copy failed', true);
+                window.setTimeout(() => setShareButtonState(button, 'Share', false), 1800);
+            }
+        };
+    }
+
     function fetchFullAthleteData(athleteNameText, athleteData, options) {
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
@@ -4886,9 +4997,12 @@
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
+        const shareSlugSource = String(fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName).replace(/_/g, '-');
+        const shareAthleteSlug = window.slugifyName(shareSlugSource, true);
         const athleteNameWithRank = `${escapeHtml(modalDisplayName)}${getModalTitleRankMarkup(ultimateRank)}`;
         const athleteNameElement = document.getElementById('athleteName');
         athleteNameElement.innerHTML = athleteNameWithRank;
+        configureAthleteShareButton(modalDisplayName, shareAthleteSlug, ultimateRank);
         
         // Set sticky header name - use the full content including rank badges/emojis
         const stickyAthleteName = document.getElementById('stickyAthleteName');
