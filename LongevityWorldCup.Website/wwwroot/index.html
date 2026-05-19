@@ -510,6 +510,53 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
+        @media (min-width: 900px) {
+            .contribute-section {
+                padding: 2.25rem 3rem 2.35rem;
+            }
+
+            .contribute-content {
+                display: grid;
+                grid-template-columns: minmax(280px, 360px) minmax(190px, 220px);
+                justify-content: center;
+                align-items: center;
+                column-gap: clamp(2rem, 5vw, 4rem);
+                row-gap: 1.15rem;
+            }
+
+                .contribute-content h2,
+                .contribute-content p,
+                .contribute-content .btc-address {
+                    grid-column: 1 / -1;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+
+                .contribute-content h2 {
+                    margin-bottom: 0;
+                }
+
+                .contribute-content p {
+                    margin-bottom: 0;
+                    max-width: 64rem;
+                }
+
+            .btc-status {
+                width: 100%;
+                margin: 0;
+            }
+
+            .qr-code-container {
+                margin: 0;
+            }
+
+            .btc-address {
+                margin-top: 0.25rem;
+                margin-bottom: 0;
+                width: min(100%, 540px);
+            }
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .contribute-section {
