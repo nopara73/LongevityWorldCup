@@ -7,33 +7,133 @@
         .join-game {
             display: none;
         }
+
+        .unsubscribe-panel {
+            max-width: 620px;
+            margin: 2.5rem auto;
+            padding: 1.75rem;
+            background: rgba(255, 255, 255, 0.72);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .unsubscribe-panel h1 {
+            margin-top: 0;
+            margin-bottom: 0.9rem;
+        }
+
+        .unsubscribe-panel h1[data-aos]:not(.aos-animate) {
+            opacity: 1;
+            transform: none;
+        }
+
+        .unsubscribe-copy {
+            max-width: 34rem;
+            margin: 0 auto;
+            color: #243446;
+            line-height: 1.45;
+        }
+
+        .unsubscribe-form {
+            display: grid;
+            gap: 0.65rem;
+            max-width: 420px;
+            margin: 1.35rem auto 0;
+            text-align: left;
+        }
+
+        .unsubscribe-form label {
+            font-weight: 700;
+            color: #243446;
+        }
+
+        .unsubscribe-form input {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 44px;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid rgba(80, 97, 118, 0.28);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.92);
+            color: #243446;
+            font: inherit;
+        }
+
+        .unsubscribe-form input:focus {
+            border-color: var(--primary-color);
+            outline: 3px solid rgba(0, 188, 212, 0.18);
+            outline-offset: 1px;
+        }
+
+        .unsubscribe-button {
+            justify-self: start;
+            min-height: 42px;
+            margin-top: 0.25rem;
+            padding: 0.75rem 1.15rem;
+            border: none;
+            border-radius: 8px;
+            background: #0a7c0a;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(10, 124, 10, 0.16);
+        }
+
+        .unsubscribe-button:hover,
+        .unsubscribe-button:focus-visible {
+            background: #096f09;
+        }
+
+        .unsubscribe-message {
+            min-height: 1.35rem;
+            margin: 1rem 0 0;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .unsubscribe-panel {
+                margin: 1.5rem 1rem;
+                padding: 1.35rem 1rem;
+                border-radius: 14px;
+            }
+
+            .unsubscribe-panel h1 {
+                font-size: 2rem;
+            }
+
+            .unsubscribe-button {
+                width: 100%;
+                justify-self: stretch;
+            }
+        }
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main>
-        <section style="max-width:900px;margin:2rem auto;padding:1rem 1.25rem;">
+        <section class="unsubscribe-panel">
             <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Unsubscribe</h1>
-            <p>Remove your email from the Longevity World Cup yearly newsletter.</p>
+            <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
 
-            <form id="unsubscribe-form" novalidate style="max-width:520px;margin-top:1rem;">
-                <label for="email" style="display:block;margin-bottom:0.5rem;">Email address</label>
+            <form id="unsubscribe-form" class="unsubscribe-form" novalidate>
+                <label for="email">Email address</label>
                 <input id="email"
                        name="email"
                        type="email"
                        autocomplete="email"
                        placeholder="you@example.com"
-                       required
-                       style="width:100%;padding:0.75rem;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;" />
+                       required />
 
                 <button id="unsubscribe-button"
                         type="submit"
-                        style="display:inline-block;margin-top:0.75rem;padding:0.75rem 1.25rem;border-radius:6px;background:#0a7c0a;color:#fff;text-decoration:none;border:none;cursor:pointer;">
+                        class="unsubscribe-button">
                     Unsubscribe
                 </button>
             </form>
 
-            <p id="message" aria-live="polite" style="margin-top:1rem;"></p>
+            <p id="message" class="unsubscribe-message" aria-live="polite"></p>
         </section>
     </main>
 
