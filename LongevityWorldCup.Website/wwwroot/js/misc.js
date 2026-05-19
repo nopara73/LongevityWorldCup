@@ -312,7 +312,8 @@ window.goBackOrHome = function () {
     }
 }
 
-window.optimizeImageClient = async function (dataUri) {
+window.optimizeImageClient = async function (dataUri, options) {
+    options = options || {};
     const MaxBase64Length = 50 * 1024 * 1024; // 50 MB
     if (!dataUri || dataUri.length > MaxBase64Length) {
         return { dataUrl: null, contentType: null, extension: null };
@@ -335,48 +336,137 @@ window.optimizeImageClient = async function (dataUri) {
     }
     const blob = new Blob([bytes], { type: contentType });
 
-    // Create ImageBitmap for resizing
-    const img = await createImageBitmap(blob);
-
-    // Determine new size
-    const maxSize = 2048;
-    let { width, height } = img;
-    if (width > maxSize || height > maxSize) {
-        const ratio = Math.min(maxSize / width, maxSize / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
+    let img;
+    try {
+        img = await createImageBitmap(blob);
+    } catch (_) {
+        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
     }
 
-    // Draw into canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
+    const targetContentType = options.contentType || 'image/webp';
+    const initialQuality = Number.isFinite(options.quality) ? options.quality : 0.8;
+    const initialMaxSize = Number.isFinite(options.maxSize) ? options.maxSize : 2048;
+    const targetMaxBytes = Number.isFinite(options.targetMaxBytes) && options.targetMaxBytes > 0
+        ? options.targetMaxBytes
+        : null;
 
-    // Export as WebP Blob
-    const webpBlob = await new Promise(resolve =>
-        canvas.toBlob(resolve, 'image/webp', 0.8)
-    );
-    if (!webpBlob) {
+    const encode = async (maxSize, quality) => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+            const ratio = Math.min(maxSize / width, maxSize / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        return await new Promise(resolve =>
+            canvas.toBlob(resolve, targetContentType, quality)
+        );
+    };
+
+    let optimizedBlob = null;
+    let maxSize = initialMaxSize;
+    let quality = initialQuality;
+    for (let attempt = 0; attempt < 5; attempt++) {
+        optimizedBlob = await encode(maxSize, quality);
+        if (!optimizedBlob || !targetMaxBytes || optimizedBlob.size <= targetMaxBytes) {
+            break;
+        }
+
+        if (quality > 0.76) {
+            quality = Math.max(0.76, quality - 0.06);
+        } else if (maxSize > 2048) {
+            maxSize = Math.max(2048, Math.round(maxSize * 0.86));
+            quality = Math.max(0.72, quality - 0.04);
+        } else {
+            break;
+        }
+    }
+
+    if (typeof img.close === 'function') img.close();
+
+    if (!optimizedBlob) {
         // fallback to original if conversion failed
         return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
     }
 
-    // Convert WebP Blob back to Base64 data URI
-    const arrayBuffer = await webpBlob.arrayBuffer();
+    // Convert Blob back to Base64 data URI
+    const arrayBuffer = await optimizedBlob.arrayBuffer();
     const u8 = new Uint8Array(arrayBuffer);
     let binary = '';
     const chunk = 0x8000;
     for (let i = 0; i < u8.length; i += chunk) {
         binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
     }
-    const webpBase64 = btoa(binary);
-    const webpDataUrl = 'data:image/webp;base64,' + webpBase64;
+    const optimizedBase64 = btoa(binary);
+    const optimizedDataUrl = 'data:' + targetContentType + ';base64,' + optimizedBase64;
 
     return {
-        dataUrl: webpDataUrl,
-        contentType: 'image/webp',
-        extension: 'webp'
+        dataUrl: optimizedDataUrl,
+        contentType: targetContentType,
+        extension: targetContentType.split('/')[1]
     };
+};
+
+window.createApplicationSubmissionId = function () {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+    }
+
+    return 'submission-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+};
+
+window.buildApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
+    applicantData = applicantData || {};
+    const proofs = Array.isArray(applicantData.proofPics) ? applicantData.proofPics : [];
+    const profilePic = typeof applicantData.profilePic === 'string' && applicantData.profilePic.startsWith('data:')
+        ? applicantData.profilePic
+        : null;
+    let jsonBodyLength = null;
+    try {
+        jsonBodyLength = JSON.stringify(applicantData).length;
+    } catch (_) {
+        jsonBodyLength = null;
+    }
+
+    return {
+        submissionId,
+        phase,
+        pagePath: window.location.pathname,
+        submissionKind,
+        proofCount: proofs.length,
+        proofDataUrlLengths: proofs.map(value => typeof value === 'string' ? value.length : 0),
+        profilePicDataUrlLength: profilePic ? profilePic.length : null,
+        jsonBodyLength,
+        errorType: error && error.type || null,
+        errorMessage: error && error.message ? String(error.message).slice(0, 500) : null
+    };
+};
+
+window.sendApplicationSubmissionReport = async function (report) {
+    if (!report || !report.submissionId) {
+        return;
+    }
+
+    let body;
+    try {
+        body = JSON.stringify(report);
+    } catch (_) {
+        return;
+    }
+
+    try {
+        await fetch('/api/application/submission-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+            keepalive: body.length < 60000
+        });
+    } catch (_) {
+        // Best-effort diagnostics must never block an application attempt.
+    }
 };

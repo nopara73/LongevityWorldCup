@@ -900,7 +900,7 @@
         });
 
         // "Next" Button Click Event Handler
-        document.getElementById('nextButton').addEventListener('click', function (event) {
+        document.getElementById('nextButton').addEventListener('click', async function (event) {
             event.preventDefault(); // Prevent default button action
 
             // Scroll the heading into view
@@ -935,6 +935,10 @@
                 if (isValid) {
                     // Collect all the data and send it to the backend via an API call
                     const applicantData = collectApplicantData();
+                    if (!applicantData) return;
+                    const submissionId = window.createApplicationSubmissionId();
+                    const submissionKind = 'full-application';
+                    applicantData.submissionId = submissionId;
 
                     // remember this athlete for next time
                     localStorage.setItem('selectedAthleteName', applicantData.name);
@@ -945,6 +949,10 @@
                     accountEmailInput.setAttribute("disabled", "true");
                     applyButton.textContent = 'Submitting...';
                     showLoading();
+
+                    await window.sendApplicationSubmissionReport(
+                        window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
+                    );
 
                     // Send the data via fetch POST request
                     fetchWithTimeout('/api/application/application', {
@@ -990,6 +998,12 @@
                                 });
                             } else {
                                 response.text().then(badResponse => {
+                                    window.sendApplicationSubmissionReport(
+                                        window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                            type: `HTTP ${response.status}`,
+                                            message: badResponse
+                                        })
+                                    );
                                     customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                         applyButton.disabled = false;
                                         accountEmailInput.setAttribute("disabled", "false");
@@ -1000,6 +1014,12 @@
                         })
                         .catch(error => {
                             hideLoading();
+                            window.sendApplicationSubmissionReport(
+                                window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                    type: error && error.name || 'Error',
+                                    message: error && error.message || String(error)
+                                })
+                            );
                             customAlert(`An error occurred while submitting your application:\n\n${error}`).then(() => {
                                 applyButton.disabled = false;
                                 accountEmailInput.setAttribute("disabled", "false");

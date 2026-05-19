@@ -470,7 +470,7 @@
             }
 
             // — SUBMIT CHANGE REQUEST —
-            submitButton.addEventListener('click', function () {
+            submitButton.addEventListener('click', async function () {
                 // click-guard: validate before submitting
                 if (
                     !validateFlagDisplay(flagInput.value) ||
@@ -486,6 +486,8 @@
                     return;
                 }
 
+                const submissionId = window.createApplicationSubmissionId();
+                const submissionKind = 'edit-request';
                 const applicantData = {
                     name: athlete.Name,
                     accountEmail: athlete.AccountEmail
@@ -493,6 +495,7 @@
                         || sessionStorage.getItem('contactEmail')
                         || localStorage.getItem('contactEmail')
                         || null,
+                    submissionId: submissionId,
                     profilePic: athlete.ProfilePic,
                     division: athlete.Division,
                     flag: athlete.Flag,
@@ -504,6 +507,10 @@
                 submitButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
                 showLoading();
+
+                await window.sendApplicationSubmissionReport(
+                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
+                );
 
                 fetchWithTimeout('/api/application/application', {
                     method: 'POST',
@@ -518,12 +525,29 @@
                                 window.location.href = '/review';
                             });
                         } else {
-                            return response.text().then(txt => Promise.reject(txt));
+                            return response.text().then(txt => {
+                                window.sendApplicationSubmissionReport(
+                                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                        type: `HTTP ${response.status}`,
+                                        message: txt
+                                    })
+                                );
+                                return Promise.reject(txt);
+                            });
                         }
                     })
                     .catch(err => {
                         hideLoading();
-                        customAlert(`Submission failed:\n\n${err}`).then(() => {
+                        if (typeof err !== 'string') {
+                            window.sendApplicationSubmissionReport(
+                                window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                    type: err && err.name || 'Error',
+                                    message: err && err.message || String(err)
+                                })
+                            );
+                        }
+                        const displayError = typeof err === 'string' ? err : (err && err.message || String(err));
+                        customAlert(`Submission failed:\n\n${displayError}`).then(() => {
                             submitButton.disabled = false;
                             submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
                         });

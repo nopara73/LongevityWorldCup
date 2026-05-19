@@ -73,6 +73,10 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         private const int MaxBase64Length = 10 * 1024 * 1024; // 10 MB
+        private const int ProfileImageMaxDimension = 2048;
+        private const int ProofImageMaxDimension = 2560;
+        private const int ExistingWebpProfilePassthroughBytes = 1 * 1024 * 1024;
+        private const int ExistingWebpProofPassthroughBytes = 2 * 1024 * 1024;
 
         // Helper method to parse Base64 image strings and extract bytes, content type, and extension
         private static (byte[]? bytes, string? contentType, string? extension) ParseBase64Image(string base64String)
@@ -120,6 +124,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
@@ -147,6 +152,20 @@ namespace LongevityWorldCup.Website.Controllers
                 && applicantData.Biomarkers is null
                 && applicantData.ProofPics is null
                 && applicantData.DateOfBirth is null;
+
+            var submissionId = NormalizeSubmissionId(applicantData.SubmissionId);
+            applicantData.SubmissionId = submissionId;
+            var submissionKind = GetSubmissionKind(isResultSubmissionOnly, isEditSubmissionOnly);
+            var proofLengths = GetDataUrlLengths(applicantData.ProofPics);
+            var profilePicLength = GetDataUrlLength(applicantData.ProfilePic);
+
+            _logger.LogInformation(
+                "Application submission started. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
+                submissionId,
+                submissionKind,
+                applicantData.ProofPics?.Count ?? 0,
+                string.Join(",", proofLengths),
+                profilePicLength);
 
             // Get AccountEmail from the json and trim it
             string? accountEmail = applicantData.AccountEmail?.Trim();
@@ -220,11 +239,34 @@ namespace LongevityWorldCup.Website.Controllers
             await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson);
 
             // 1b) Save profile picture
-            if (!string.IsNullOrEmpty(applicantData.ProfilePic))
+            var hasSubmittedProfileImage = IsSubmittedImageData(applicantData.ProfilePic);
+            if (!string.IsNullOrWhiteSpace(applicantData.ProfilePic) && !hasSubmittedProfileImage && !isEditSubmissionOnly)
             {
-                var (bytes, _, ext) = OptimizeImage(ParseBase64Image(applicantData.ProfilePic));
-                if (bytes != null)
-                    await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{ext}"), bytes);
+                _logger.LogError(
+                    "Application submission rejected because profile image was present but was not image data. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
+                    submissionId,
+                    submissionKind,
+                    profilePicLength);
+                return BadRequest("The profile image could not be read. Please upload a smaller image and try again.");
+            }
+
+            if (hasSubmittedProfileImage)
+            {
+                var parsedProfile = ParseBase64Image(applicantData.ProfilePic!);
+                if (parsedProfile.bytes is null)
+                {
+                    _logger.LogError(
+                        "Application submission rejected because profile image could not be parsed. SubmissionId={SubmissionId} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
+                        submissionId,
+                        profilePicLength);
+                    return BadRequest("The profile image could not be read. Please upload a smaller image and try again.");
+                }
+
+                var profileImage = OptimizeProfileImage(parsedProfile, submissionId);
+                if (!profileImage.Success)
+                    return BadRequest(profileImage.ErrorMessage);
+
+                await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{profileImage.Extension}"), profileImage.Bytes!);
             }
 
             // 1c) Save each proof
@@ -233,11 +275,25 @@ namespace LongevityWorldCup.Website.Controllers
                 int idx = 1;
                 foreach (var b64 in applicantData.ProofPics)
                 {
-                    var (bytes, _, ext) = OptimizeImage(ParseBase64Image(b64));
-                    if (bytes != null)
+                    var parsedProof = ParseBase64Image(b64);
+                    if (parsedProof.bytes is null)
                     {
-                        var proofName = $"proof_{idx}.{ext}";
-                        await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, proofName), bytes);
+                        _logger.LogError(
+                            "Application submission rejected because proof image could not be parsed. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ProofDataUrlLength={ProofDataUrlLength}",
+                            submissionId,
+                            idx,
+                            b64?.Length ?? 0);
+                        return BadRequest($"Proof image {idx} could not be read. Please upload a smaller image or PDF page and try again.");
+                    }
+
+                    var proofImage = OptimizeProofImage(parsedProof, submissionId, idx);
+                    if (!proofImage.Success)
+                        return BadRequest(proofImage.ErrorMessage);
+
+                    if (proofImage.Bytes != null)
+                    {
+                        var proofName = $"proof_{idx}.{proofImage.Extension}";
+                        await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, proofName), proofImage.Bytes!);
                         idx++;
                     }
                 }
@@ -253,6 +309,7 @@ namespace LongevityWorldCup.Website.Controllers
                 compressionLevel: System.IO.Compression.CompressionLevel.Optimal,
                 includeBaseDirectory: false
             );
+            var zipSizeBytes = new FileInfo(zipPath).Length;
 
             // 3) Attach the ZIP
             var attachmentFilename = $"{folderKey}.zip";
@@ -343,6 +400,14 @@ namespace LongevityWorldCup.Website.Controllers
                         isResultSubmissionOnly,
                         isEditSubmissionOnly);
 
+                    _logger.LogInformation(
+                        "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
+                        submissionId,
+                        submissionKind,
+                        applicantData.ProofPics?.Count ?? 0,
+                        zipSizeBytes,
+                        false);
+
                     return Ok(new
                     {
                         success = true,
@@ -362,6 +427,12 @@ namespace LongevityWorldCup.Website.Controllers
 
                 if (!invoiceResult.Success)
                 {
+                    _logger.LogError(
+                        "Application submission email was sent but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} Error={Error}",
+                        submissionId,
+                        submissionKind,
+                        zipSizeBytes,
+                        invoiceResult.Error);
                     return StatusCode(500, $"Application sent, but failed to create BTCPay invoice: {invoiceResult.Error}");
                 }
 
@@ -373,6 +444,14 @@ namespace LongevityWorldCup.Website.Controllers
                     isEditSubmissionOnly,
                     invoiceResult.CheckoutLink);
 
+                _logger.LogInformation(
+                    "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
+                    submissionId,
+                    submissionKind,
+                    applicantData.ProofPics?.Count ?? 0,
+                    zipSizeBytes,
+                    true);
+
                 return Ok(new
                 {
                     success = true,
@@ -383,9 +462,67 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
-                // Handle exception
+                _logger.LogError(
+                    ex,
+                    "Application submission failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength} ZipSizeBytes={ZipSizeBytes}",
+                    submissionId,
+                    submissionKind,
+                    applicantData.ProofPics?.Count ?? 0,
+                    string.Join(",", proofLengths),
+                    profilePicLength,
+                    zipSizeBytes);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        [HttpPost("submission-report")]
+        public IActionResult SubmissionReport([FromBody] SubmissionReportData report)
+        {
+            if (report is null)
+            {
+                _logger.LogWarning("Empty application submission report received.");
+                return BadRequest("Report is required.");
+            }
+
+            var submissionId = NormalizeSubmissionId(report.SubmissionId);
+            var phase = TrimForLog(report.Phase, 40);
+            var pagePath = TrimForLog(report.PagePath, 160);
+            var submissionKind = TrimForLog(report.SubmissionKind, 80);
+            var errorType = TrimForLog(report.ErrorType, 120);
+            var errorMessage = TrimForLog(report.ErrorMessage, 500);
+            var proofLengths = report.ProofDataUrlLengths is null
+                ? ""
+                : string.Join(",", report.ProofDataUrlLengths);
+
+            if (string.Equals(phase, "failed", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError(
+                    "Application submission client report failed. SubmissionId={SubmissionId} PagePath={PagePath} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength} JsonBodyLength={JsonBodyLength} ErrorType={ErrorType} ErrorMessage={ErrorMessage}",
+                    submissionId,
+                    pagePath,
+                    submissionKind,
+                    report.ProofCount,
+                    proofLengths,
+                    report.ProfilePicDataUrlLength,
+                    report.JsonBodyLength,
+                    errorType,
+                    errorMessage);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Application submission client report received. SubmissionId={SubmissionId} Phase={Phase} PagePath={PagePath} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength} JsonBodyLength={JsonBodyLength}",
+                    submissionId,
+                    phase,
+                    pagePath,
+                    submissionKind,
+                    report.ProofCount,
+                    proofLengths,
+                    report.ProfilePicDataUrlLength,
+                    report.JsonBodyLength);
+            }
+
+            return Ok(new { success = true });
         }
 
         private async Task TrySendApplicationConfirmationEmailAsync(
@@ -474,6 +611,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Interview request failed because configuration could not be loaded.");
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
@@ -507,7 +645,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send interview request email for {Email}", email);
+                _logger.LogError(ex, "Failed to send interview request email for {Email}", email);
                 return StatusCode(500, "Failed to send interview request.");
             }
         }
@@ -527,6 +665,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Payment status check failed because configuration could not be loaded. InvoiceId={InvoiceId}", request.InvoiceId);
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
@@ -1236,19 +1375,82 @@ namespace LongevityWorldCup.Website.Controllers
             return false;
         }
 
-        // Helper method to optimize images
-        private (byte[]? optimizedBytes, string? contentType, string? extension) OptimizeImage((byte[]? bytes, string? contentType, string? extension) imageData)
+        private static string NormalizeSubmissionId(string? value)
+        {
+            var trimmed = value?.Trim();
+            return string.IsNullOrWhiteSpace(trimmed)
+                ? Guid.NewGuid().ToString("N")
+                : trimmed.Length <= 80 ? trimmed : trimmed[..80];
+        }
+
+        private static string GetSubmissionKind(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
+        {
+            if (isResultSubmissionOnly) return "result-upload";
+            if (isEditSubmissionOnly) return "edit-request";
+            return "full-application";
+        }
+
+        private static IReadOnlyList<int> GetDataUrlLengths(IReadOnlyList<string>? values)
+        {
+            if (values is null || values.Count == 0)
+                return Array.Empty<int>();
+
+            return values.Select(value => value?.Length ?? 0).ToArray();
+        }
+
+        private static int? GetDataUrlLength(string? value)
+        {
+            return string.IsNullOrEmpty(value) ? null : value.Length;
+        }
+
+        private static string TrimForLog(string? value, int maxLength)
+        {
+            var trimmed = value?.Trim() ?? "";
+            return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
+        }
+
+        private ImageOptimizationResult OptimizeProfileImage((byte[]? bytes, string? contentType, string? extension) imageData, string submissionId)
+        {
+            return OptimizeImage(
+                imageData,
+                submissionId,
+                proofIndex: null,
+                maxDimension: ProfileImageMaxDimension,
+                webpQuality: null,
+                existingWebpPassthroughBytes: ExistingWebpProfilePassthroughBytes,
+                userErrorMessage: "The profile image could not be processed. Please upload a smaller image and try again.");
+        }
+
+        private ImageOptimizationResult OptimizeProofImage((byte[]? bytes, string? contentType, string? extension) imageData, string submissionId, int proofIndex)
+        {
+            return OptimizeImage(
+                imageData,
+                submissionId,
+                proofIndex,
+                maxDimension: ProofImageMaxDimension,
+                webpQuality: 88,
+                existingWebpPassthroughBytes: ExistingWebpProofPassthroughBytes,
+                userErrorMessage: $"Proof image {proofIndex} could not be processed. Please upload a smaller image or PDF page and try again.");
+        }
+
+        private ImageOptimizationResult OptimizeImage(
+            (byte[]? bytes, string? contentType, string? extension) imageData,
+            string submissionId,
+            int? proofIndex,
+            int maxDimension,
+            int? webpQuality,
+            int existingWebpPassthroughBytes,
+            string userErrorMessage)
         {
             if (imageData.bytes == null || imageData.contentType == null || imageData.extension == null)
             {
-                return (null, null, null);
+                return ImageOptimizationResult.Failure(userErrorMessage);
             }
 
-            // if it’s already WebP and under 1 MB, skip all processing
             if (imageData.extension.Equals("webp", StringComparison.OrdinalIgnoreCase)
-                && imageData.bytes.Length <= 1 * 1024 * 1024)
+                && imageData.bytes.Length <= existingWebpPassthroughBytes)
             {
-                return (imageData.bytes, imageData.contentType, imageData.extension);
+                return ImageOptimizationResult.Ok(imageData.bytes, imageData.contentType, imageData.extension);
             }
 
             try
@@ -1257,39 +1459,57 @@ namespace LongevityWorldCup.Website.Controllers
                 using var inputStream = new MemoryStream(imageData.bytes);
                 using var image = SixLabors.ImageSharp.Image.Load(inputStream);
 
-                // Makei it webp
-                var webpEncoder = new WebpEncoder
-                {
-                    FileFormat = WebpFileFormatType.Lossy
-                };
+                var webpEncoder = webpQuality.HasValue
+                    ? new WebpEncoder
+                    {
+                        FileFormat = WebpFileFormatType.Lossy,
+                        Quality = webpQuality.Value
+                    }
+                    : new WebpEncoder
+                    {
+                        FileFormat = WebpFileFormatType.Lossy
+                    };
+
                 using var outputStream = new MemoryStream();
 
-                // Resize to a maximum size if needed (e.g., 2048x2048)
                 image.Mutate(x =>
                 {
                     x.Resize(new ResizeOptions
                     {
                         Mode = ResizeMode.Max,
-                        Size = new SixLabors.ImageSharp.Size(2048, 2048)
+                        Size = new SixLabors.ImageSharp.Size(maxDimension, maxDimension)
                     });
                 });
 
-                // Save the image as WebP
                 image.Save(outputStream, webpEncoder);
 
-                // Return the optimized WebP image
-                return (outputStream.ToArray(), "image/webp", "webp");
+                return ImageOptimizationResult.Ok(outputStream.ToArray(), "image/webp", "webp");
             }
             catch (Exception ex)
             {
-                // If optimization fails, return the original image data
-                _logger.LogWarning("Image optimization failed. Returning original image data. Exception: {Message}", ex.Message);
-                return imageData;
+                _logger.LogError(
+                    ex,
+                    "Image optimization failed. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ContentType={ContentType} Extension={Extension} Bytes={Bytes}",
+                    submissionId,
+                    proofIndex,
+                    imageData.contentType,
+                    imageData.extension,
+                    imageData.bytes.Length);
+                return ImageOptimizationResult.Failure(userErrorMessage);
             }
         }
 
         [GeneratedRegex(@"data:(?<type>.+?);base64,(?<data>.+)")]
         protected static partial Regex DataUriRegex();
+
+        private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)
+        {
+            public static ImageOptimizationResult Ok(byte[] bytes, string contentType, string extension)
+                => new(true, bytes, contentType, extension, "");
+
+            public static ImageOptimizationResult Failure(string errorMessage)
+                => new(false, null, null, null, errorMessage);
+        }
     }
 
     public sealed class PaymentStatusRequest
