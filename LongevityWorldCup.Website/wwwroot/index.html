@@ -559,8 +559,19 @@
 
             #newsletter-form {
                 flex-direction: column;
-                width: 100%; /* Ensure the container doesn't cause layout issues */
+                width: min(100%, 18.75rem);
+                margin: 0 auto;
+                gap: 0.85rem;
             }
+
+                .newsletter-section .shared-email-input {
+                    margin: 0;
+                }
+
+                .newsletter-section .shared-email-button {
+                    width: 100%;
+                    max-width: none;
+                }
         }
 
         /* ===== Season countdown next to events board ===== */
