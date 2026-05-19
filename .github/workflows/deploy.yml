@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,13 +17,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check whether this deploy is still current
+        id: freshness
+        run: |
+          latest_sha="$(git ls-remote origin refs/heads/master | cut -f1)"
+          if [ "$latest_sha" != "$GITHUB_SHA" ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping stale deploy for $GITHUB_SHA; latest master is $latest_sha."
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy via SSH
+        if: steps.freshness.outputs.deploy == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
+          command_timeout: 30m
           script: |
             cd ~/LongevityWorldCup
             git pull
