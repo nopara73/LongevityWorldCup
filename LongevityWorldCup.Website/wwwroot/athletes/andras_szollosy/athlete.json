@@ -1,0 +1,28 @@
+{
+  "Name": "András Szollosy",
+  "DisplayName": null,
+  "MediaContact": "andris.szollosy@gmail.com",
+  "DateOfBirth": {
+    "Year": 2002,
+    "Month": 10,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-03-17",
+      "AlbGL": 53,
+      "CreatUmolL": 70,
+      "GluMmolL": 4.5,
+      "CrpMgL": 0.08,
+      "LymPc": 32.6,
+      "McvFL": 92,
+      "RdwPc": 12.3,
+      "AlpUL": 106,
+      "Wbc1000cellsuL": 3.6
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Hungary",
+  "Why": "A normal lifetime is not enough with my loved ones.",
+  "PersonalLink": null
+}
