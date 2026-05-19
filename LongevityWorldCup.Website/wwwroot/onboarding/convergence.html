@@ -124,11 +124,47 @@
             width: 100%;
         }
 
+        .convergence-main [data-aos]:not(.aos-animate) {
+            opacity: 1;
+            transform: none;
+        }
+
+        .convergence-actions {
+            width: min(100%, 400px);
+            min-width: 0;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.85rem;
+            margin: 1.4rem auto 0;
+        }
+
+        .convergence-actions .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .convergence-actions .back-button {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        @media (max-width: 600px) {
+            .convergence-actions {
+                width: min(100%, 320px);
+                margin-top: 1.25rem;
+            }
+        }
+
     </style>
 </head>
 <body>
     <!--HEADER-->
-    <main>
+    <main class="convergence-main">
         <!--MAIN-PROGRESS-BAR-->
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
@@ -256,7 +292,7 @@
                 <div id="whyCharCounter" class="char-counter">0/250</div>
             </div>
 
-            <div class="options-container">
+            <div class="options-container convergence-actions">
                 <button type="button" class="option-button green" id="nextButton" aria-label="Proceed to the next stage">Next</button>
                 <button type="button" class="option-button back-button" id="backButton">
                     <i class="fas fa-arrow-left"></i>&nbsp;Back
