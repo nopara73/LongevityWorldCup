@@ -705,9 +705,9 @@
     handleScroll(window.scrollY);
 
     function handleScroll(scrollPos) {
-        if (scrollPos > 100 && window.getComputedStyle(joinGameBtn).display !== 'none') {
+        if (scrolledJoinButton && joinGameBtn && scrollPos > 100 && window.getComputedStyle(joinGameBtn).display !== 'none') {
             scrolledJoinButton.style.display = 'block';
-        } else {
+        } else if (scrolledJoinButton) {
             scrolledJoinButton.style.display = 'none';
         }
         const mainHeader = document.querySelector('header[role="banner"]');
