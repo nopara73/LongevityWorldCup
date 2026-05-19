@@ -1,7 +1,7 @@
 <style>
     :root{
-        --row-fade-duration:.35s;
-        --row-stagger-step:40ms;
+        --row-fade-duration:.24s;
+        --row-stagger-step:24ms;
         --row-stagger-group-size:8;
         --row-delay:0ms;
         --donation-gift:#10b981;
@@ -29,12 +29,12 @@
     }
 
     @keyframes fadeInBoard{
-        from{opacity:0;transform:translateY(10px)}
+        from{opacity:.9;transform:translateY(4px)}
         to{opacity:1;transform:translateY(0)}
     }
 
-    .fade-in-board{animation:fadeInBoard .6s ease-in-out both}
-    .row-appear{opacity:0;transform:translateY(8px)}
+    .fade-in-board{animation:fadeInBoard .42s ease-in-out both}
+    .row-appear{opacity:.82;transform:translateY(4px)}
     .row-appear.is-visible{
         opacity:1;
         transform:translateY(0);
