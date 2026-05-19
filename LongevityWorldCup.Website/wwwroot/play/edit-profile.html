@@ -10,6 +10,36 @@
             display: none;
         }
 
+        .edit-profile-main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 2.5rem 1rem 3.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .edit-profile-main [data-aos]:not(.aos-animate) {
+            opacity: 1;
+            transform: none;
+        }
+
+        .edit-profile-title {
+            margin: 0 0 1.25rem;
+            text-align: center;
+        }
+
+        .edit-profile-visual {
+            margin: 0 auto 1.45rem;
+            text-align: center;
+        }
+
+        .edit-profile-visual .illustration {
+            width: min(100%, 408px);
+            margin-bottom: 0;
+            box-sizing: border-box;
+        }
+
         .autocomplete-items {
             position: absolute;
             background: white; /* white panel */
@@ -43,7 +73,7 @@
 
         .niceInputFieldDisplayWrapper {
             position: relative;
-            width: 80%;
+            width: min(100%, 408px);
             max-width: 400px;
             margin: 0.1rem auto;
         }
@@ -56,6 +86,7 @@
             font-size: 1rem;
             transition: border-color 0.2s;
             background-color: #f9f9f9;
+            box-sizing: border-box;
         }
 
             #divisionDisplayInput:focus, #flagDisplayInput:focus, #mediaContactInput:focus, #personalLinkInput:focus, #whyDisplayInput:focus {
@@ -73,6 +104,7 @@
             transition: border-color 0.2s;
             background-color: #f9f9f9;
             appearance: none;
+            box-sizing: border-box;
         }
 
             #divisionDisplaySelect:focus {
@@ -150,7 +182,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            width: 80%;
+            width: min(100%, 408px);
             max-width: 400px;
             margin: 0 auto;
         }
@@ -183,13 +215,51 @@
             width: 60px;
             height: 60px;
         }
+
+        .edit-profile-actions {
+            width: min(100%, 408px);
+            min-width: 0;
+            max-width: 408px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.85rem;
+            margin: 1rem auto 0;
+        }
+
+        .edit-profile-actions .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .edit-profile-actions .back-button {
+            margin-left: 0;
+        }
+
+        @media (max-width: 600px) {
+            .edit-profile-main {
+                padding: 2rem 1.35rem 2.75rem;
+            }
+
+            .edit-profile-title {
+                margin-bottom: 1rem;
+                font-size: 2rem;
+            }
+
+            .edit-profile-visual {
+                margin-bottom: 1.25rem;
+            }
+        }
     </style>
 </head>
 <body>
     <!--HEADER-->
-    <main>
-        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
-        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+    <main class="edit-profile-main">
+        <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
+        <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
                 <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
@@ -253,7 +323,7 @@
                 </button>
             </div>
         </div>
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+        <div class="options-container edit-profile-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="submitButton" type="submit" disabled class="option-button green"></button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
