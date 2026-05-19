@@ -1161,16 +1161,34 @@
         display:flex;
         justify-content:center;
         align-items:center;
-        width:100%;
+        position:relative;
+        width:min(100%, 280px);
         max-width:100%;
-        margin:.35rem auto 1rem;
+        margin:.65rem auto 1.45rem;
         padding:0;
         background:none;
         border:0;
         box-shadow:none;
+        color:var(--athlete-modal-text);
+    }
+    #detailsModal .biomarker-chart-controls::after{
+        content:"";
+        position:absolute;
+        right:1.05rem;
+        top:50%;
+        width:.42rem;
+        height:.42rem;
+        border-right:2px solid currentColor;
+        border-bottom:2px solid currentColor;
+        transform:translateY(-65%) rotate(45deg);
+        opacity:.9;
+        pointer-events:none;
     }
     #detailsModal .biomarker-chart-controls select{
-        width:min(100%, 280px);
+        appearance:none;
+        -webkit-appearance:none;
+        width:100%;
+        min-height:38px;
         color:var(--athlete-modal-text);
         background:rgba(18,20,20,.82);
         border:1px solid rgba(246,244,237,.48);
@@ -1179,6 +1197,7 @@
         box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 3px rgba(0,0,0,.16);
         font-size:.88rem;
         font-weight:700;
+        line-height:1.15;
     }
     #detailsModal .biomarker-chart-controls option{
         color:#f6f4ed;
