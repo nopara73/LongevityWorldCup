@@ -606,6 +606,35 @@
             padding-inline: 1.45rem;
         }
     }
+
+    @media (max-width: 420px) and (max-height: 820px) {
+        header {
+            padding-top: 1.05rem;
+            padding-bottom: 1.35rem;
+        }
+
+        .header-link > .main-logo-image {
+            width: clamp(78px, 23vw, 94px);
+            margin-bottom: 0.7rem;
+        }
+
+        .bannertext {
+            font-size: clamp(2rem, 9.2vw, 2.35rem);
+            line-height: 1.05;
+            max-width: 340px;
+        }
+
+        .tagline {
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .join-game {
+            margin-top: 1.15rem;
+            padding: 0.82rem 1.65rem;
+            font-size: 1.2rem;
+        }
+    }
     /* Always reserve space so scrollIntoView/anchor links are not covered by the sticky bar (works on load and when sticky is visible) */
     html {
         scroll-padding-top: 52px;
