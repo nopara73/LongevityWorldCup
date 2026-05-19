@@ -51,11 +51,11 @@
 
     .tagline {
         display: block;
-        margin-top: 0.8rem;
-        font-size: 1.1rem;
+        margin-top: 0.65rem;
+        font-size: clamp(1rem, 1.5vw, 1.1rem);
         font-weight: 400;
-        color: #cccccc; /* Soft gray for subtle contrast */
-        letter-spacing: 1px;
+        color: #e2e8f0;
+        letter-spacing: 0.04em;
     }
 
     body {
@@ -69,7 +69,7 @@
 
     main {
         max-width: 1200px;
-        margin: 3rem auto;
+        margin: 2.5rem auto 3rem;
         padding: 0 1rem;
     }
 
@@ -78,7 +78,7 @@
         background: var(--background-color);
         color: var(--light-text-color);
         text-align: center;
-        padding: 2rem 0;
+        padding: clamp(1.35rem, 2.6vw, 1.75rem) 0 clamp(1.6rem, 3vw, 2rem);
         position: relative;
         overflow: hidden;
         display: flex;
@@ -91,14 +91,27 @@
         filter: invert(100%);
     }
 
+    .header-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .header-link > .main-logo-image {
+        width: clamp(92px, 10vw, 112px);
+        height: auto;
+        margin-bottom: 0.9rem;
+    }
+
     .bannertext {
         text-align: center; /* Optional */
-        font-size: 2.7rem;
+        font-size: clamp(2.15rem, 5vw, 2.7rem);
+        line-height: 1.08;
         font-weight: 700;
         text-transform: capitalize;
-        letter-spacing: 2px;
+        letter-spacing: 0.05em;
         position: relative;
-        text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
+        text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35);
         padding: 0 1rem;
     }
 
@@ -129,9 +142,10 @@
     }
 
     .join-game {
-        margin-top: 2rem;
-        padding: 1rem 2rem;
-        font-size: 1.5rem;
+        margin-top: 1.5rem;
+        padding: 0.9rem 1.9rem;
+        font-size: clamp(1.25rem, 2vw, 1.5rem);
+        line-height: 1;
         background: var(--main-action-color);
         color: var(--light-text-color);
         border: none;
@@ -142,15 +156,19 @@
         animation: glow 1s ease-in-out 3;
         position: relative;
         z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
     }
 
     .join-game-middle {
         display: inline-block;
-        line-height: 1; /* Reset line height */
-        vertical-align: middle; /* Align vertically in relation to other text */
-        font-size: 1rem; /* Adjust font size to fit within the button */
+        line-height: 1;
+        vertical-align: middle;
+        font-size: 0.68em;
         position: relative;
-        top: -2px; /* Fine-tune vertical alignment */
+        top: -1px;
     }
 
     .join-game::before {
@@ -177,43 +195,45 @@
 
     .join-game:hover {
         background: var(--main-action-selected-color);
-        transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
+        transform: scale(1.04) rotate(1deg); /* Slight enlarge and tilt effect */
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.26), 0 0 16px rgba(72, 187, 120, 0.45); /* Enhanced shadow and glow */
         transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
     }
 
     .scrolled-button {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        transform: scale(0.9); /* Slightly reduce size */
+        top: 7px;
+        bottom: auto;
+        right: 24px;
+        transform: none;
         z-index: 1000;
-        padding: 0.8rem 1.5rem;
+        margin-top: 0;
+        padding: 0.45rem 0.95rem;
+        font-size: 1rem;
         background: var(--main-action-color);
         transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
     }
 
         .scrolled-button:hover {
             background: var(--main-action-selected-color);
-            transform: scale(1.1) rotate(1deg); /* Slight enlarge and tilt effect */
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(72, 187, 120, 0.6); /* Enhanced shadow and glow */
+            transform: scale(1.04);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.26), 0 0 16px rgba(72, 187, 120, 0.45); /* Enhanced shadow and glow */
             transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
         }
 
     @keyframes glow {
         0%, 100% {
-            box-shadow: 0 0 5px #B3E5FC, 0 0 10px #B3E5FC, 0 0 15px #CFD8DC, 0 0 20px #CFD8DC;
+            box-shadow: 0 0 4px rgba(179, 229, 252, 0.65), 0 0 10px rgba(179, 229, 252, 0.45), 0 0 16px rgba(207, 216, 220, 0.36);
         }
 
         50% {
-            box-shadow: 0 0 20px #CFD8DC, 0 0 30px #B3E5FC, 0 0 40px #B3E5FC, 0 0 50px #CFD8DC;
+            box-shadow: 0 0 10px rgba(207, 216, 220, 0.5), 0 0 18px rgba(179, 229, 252, 0.5), 0 0 26px rgba(179, 229, 252, 0.36);
         }
     }
 
     .header-link {
         text-decoration: none;
         color: inherit; /* Inherit the color from the parent element */
-        display: block; /* Makes the entire anchor area clickable */
     }
 
         .header-link h1 {
@@ -540,6 +560,50 @@
     @media (prefers-reduced-motion: reduce) {
         .site-sticky-header {
             transition: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+        main {
+            margin-top: 2rem;
+        }
+
+        header {
+            padding: 1.45rem 0 1.85rem;
+        }
+
+        .header-link > .main-logo-image {
+            width: clamp(88px, 25vw, 108px);
+            margin-bottom: 0.85rem;
+        }
+
+        .bannertext {
+            font-size: clamp(2.2rem, 10vw, 2.55rem);
+            letter-spacing: 0.035em;
+        }
+
+        .join-game {
+            margin-top: 1.35rem;
+            padding: 0.9rem 1.7rem;
+            max-width: calc(100vw - 3rem);
+        }
+
+        .scrolled-button {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .bannertext {
+            font-size: 2.1rem;
+        }
+
+        .tagline {
+            font-size: 0.96rem;
+        }
+
+        .join-game {
+            padding-inline: 1.45rem;
         }
     }
     /* Always reserve space so scrollIntoView/anchor links are not covered by the sticky bar (works on load and when sticky is visible) */
