@@ -177,8 +177,8 @@ namespace LongevityWorldCup.Website.Controllers
 
             // Create the email message
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(applicantData.Name, config.EmailFrom));
-            message.To.Add(new MailboxAddress("", config.EmailTo));
+            message.From.Add(CreateConfiguredFromAddress(config, applicantData.Name));
+            message.To.Add(CreateConfiguredToAddress(config));
             var applicationSubject = BuildApplicationSubject(applicantData.Name);
             message.Subject = applicationSubject;
 
@@ -549,7 +549,7 @@ namespace LongevityWorldCup.Website.Controllers
             try
             {
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress("Longevity World Cup", config.EmailFrom));
+                message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
                 message.To.Add(new MailboxAddress(applicantName?.Trim() ?? "", trimmedEmail));
                 message.Subject = "Your Longevity World Cup application was received";
                 message.Body = new BodyBuilder
@@ -616,8 +616,8 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Longevity World Cup", config.EmailFrom));
-            message.To.Add(new MailboxAddress("", config.EmailTo));
+            message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
+            message.To.Add(CreateConfiguredToAddress(config));
             message.Subject = "LWC Interview Request";
             message.Body = new BodyBuilder
             {
@@ -876,8 +876,8 @@ namespace LongevityWorldCup.Website.Controllers
             try
             {
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress("Longevity World Cup", config.EmailFrom));
-                message.To.Add(new MailboxAddress("", config.EmailTo));
+                message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
+                message.To.Add(CreateConfiguredToAddress(config));
                 message.Subject = subject; // exact subject for thread grouping
                 message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
 
@@ -1281,15 +1281,45 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message)
         {
+            var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
+            var smtpUser = RequireConfiguredValue(config.SmtpUser, nameof(config.SmtpUser));
+            var smtpPort = RequireConfiguredPort(config.SmtpPort, nameof(config.SmtpPort));
+
             using var client = new SmtpClient();
-            await client.ConnectAsync(config.SmtpServer, config.SmtpPort, SecureSocketOptions.StartTls);
+            await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls);
             var accessTok = await GmailAuth.GetAccessTokenAsync(config);
             client.AuthenticationMechanisms.Remove("LOGIN");
             client.AuthenticationMechanisms.Remove("PLAIN");
-            var oauth2 = new SaslMechanismOAuth2(config.SmtpUser, accessTok);
+            var oauth2 = new SaslMechanismOAuth2(smtpUser, accessTok);
             await client.AuthenticateAsync(oauth2);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
+        }
+
+        private static MailboxAddress CreateConfiguredFromAddress(Config config, string? displayName)
+        {
+            return new MailboxAddress(displayName ?? string.Empty, RequireConfiguredValue(config.EmailFrom, nameof(config.EmailFrom)));
+        }
+
+        private static MailboxAddress CreateConfiguredToAddress(Config config)
+        {
+            return new MailboxAddress(string.Empty, RequireConfiguredValue(config.EmailTo, nameof(config.EmailTo)));
+        }
+
+        private static string RequireConfiguredValue(string? value, string name)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException($"{name} is not configured.");
+
+            return value.Trim();
+        }
+
+        private static int RequireConfiguredPort(int value, string name)
+        {
+            if (value <= 0)
+                throw new InvalidOperationException($"{name} must be configured with a positive port.");
+
+            return value;
         }
 
         private static async Task<bool> IsInvoiceNotificationAlreadySentAsync(string invoiceId, IWebHostEnvironment environment)
