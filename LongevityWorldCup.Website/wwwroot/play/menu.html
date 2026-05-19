@@ -9,13 +9,27 @@
             display: none;
         }
 
+        .play-menu-hero {
+            text-align: center;
+            padding: clamp(1.4rem, 3vh, 2.25rem) 1rem 0;
+        }
+
+        .play-menu-hero[data-aos]:not(.aos-animate),
+        .play-menu-actions[data-aos]:not(.aos-animate) {
+            opacity: 1;
+            transform: none;
+        }
+
         .img-crop {
-            height: clamp(240px, 60vh, 720px);
+            width: min(92vw, 408px);
+            height: clamp(360px, 60vh, 720px);
             overflow: hidden;
-            display: inline-block; /* keeps same width as before */
+            display: block;
+            margin: 0 auto;
         }
 
             .img-crop .illustration {
+                box-sizing: border-box;
                 width: 100%; /* same width behavior */
                 height: auto;
                 display: block;
@@ -23,13 +37,32 @@
                 top: 50%;
                 transform: translateY(-50%); /* equal crop top/bottom */
             }
+
+        .play-menu-actions {
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .play-menu-hero {
+                padding: 1.1rem 1rem 0;
+            }
+
+            .img-crop {
+                width: min(91vw, 380px);
+                height: clamp(420px, 68vh, 650px);
+            }
+
+            .play-menu-actions {
+                margin-top: 1.35rem;
+            }
+        }
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main>
         <h1 class="visually-hidden">Game menu</h1>
-        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+        <div class="play-menu-hero" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <div class="img-crop">
                 <img src="../assets/content-images/JustTrackIt.jpg"
                      alt="Illustration encouraging athletes to track their progress"
@@ -40,7 +73,7 @@
             </div>
         </div>
 
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+        <div class="options-container play-menu-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/join'">
                 I'm a new athlete
             </button>
