@@ -25,11 +25,11 @@ namespace LongevityWorldCup.Website.Middleware
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.Value;
-            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path))
+            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path) || IsAthleteRoute(path))
             {
                 string filePath;
 
-                if (path == "/" || IsLeagueRoute(path))
+                if (path == "/" || IsLeagueRoute(path) || IsAthleteRoute(path))
                 {
                     filePath = Path.Combine("wwwroot", "index.html");
                 }
@@ -175,7 +175,7 @@ $@"<script type=""module"">
 
         private static HeadAssetConfig GetHeadAssetConfig(string path)
         {
-            if (IsLeagueRoute(path))
+            if (IsLeagueRoute(path) || IsAthleteRoute(path))
             {
                 return new HeadAssetConfig(
                     IncludeValidator: true,
@@ -442,13 +442,11 @@ $@"<script type=""module"">
         private bool TryGetAthleteSeoMeta(HttpContext context, SeoMeta baseSeo, out SeoMeta seo)
         {
             seo = baseSeo;
-            if (!string.Equals(baseSeo.CanonicalPath, "/", StringComparison.Ordinal) ||
-                !context.Request.Query.TryGetValue("athlete", out var athleteQuery))
+            if (!TryResolveAthleteSlug(context, baseSeo.CanonicalPath, out var rawSlug))
             {
                 return false;
             }
 
-            var rawSlug = athleteQuery.ToString();
             var rawContext = context.Request.Query.TryGetValue("ctx", out var ctxQuery)
                 ? ctxQuery.ToString()
                 : null;
@@ -524,6 +522,33 @@ $@"<script type=""module"">
             return !string.IsNullOrWhiteSpace(path)
                    && path.StartsWith("/league/", StringComparison.OrdinalIgnoreCase)
                    && path.Length > "/league/".Length;
+        }
+
+        private static bool IsAthleteRoute(string? path)
+        {
+            return !string.IsNullOrWhiteSpace(path)
+                   && path.StartsWith("/athlete/", StringComparison.OrdinalIgnoreCase)
+                   && path.Length > "/athlete/".Length;
+        }
+
+        private static bool TryResolveAthleteSlug(HttpContext context, string canonicalPath, out string rawSlug)
+        {
+            rawSlug = "";
+
+            if (IsAthleteRoute(canonicalPath))
+            {
+                rawSlug = canonicalPath["/athlete/".Length..].Trim('/');
+                return !string.IsNullOrWhiteSpace(rawSlug);
+            }
+
+            if (!string.Equals(canonicalPath, "/", StringComparison.Ordinal) ||
+                !context.Request.Query.TryGetValue("athlete", out var athleteQuery))
+            {
+                return false;
+            }
+
+            rawSlug = athleteQuery.ToString();
+            return !string.IsNullOrWhiteSpace(rawSlug);
         }
 
         private static bool TryResolveLeagueSlug(HttpContext context, out string leagueSlug)
