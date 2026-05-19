@@ -9,6 +9,36 @@
             display: none;
         }
 
+        .character-selection-main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 2.5rem 1rem 3.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .character-selection-main [data-aos]:not(.aos-animate) {
+            opacity: 1;
+            transform: none;
+        }
+
+        .character-selection-title {
+            margin: 0 0 1.25rem;
+            text-align: center;
+        }
+
+        .character-selection-visual {
+            margin: 0 auto 1.4rem;
+            text-align: center;
+        }
+
+        .character-selection-visual .illustration {
+            width: min(100%, 408px);
+            margin-bottom: 0;
+            box-sizing: border-box;
+        }
+
         .autocomplete-wrapper {
             position: relative;
             z-index: 1000;
@@ -16,13 +46,14 @@
             flex-direction: column;
             align-items: center;
             width: 100%; /* Make the container fill the form width */
+            margin-bottom: 1.4rem;
         }
 
         .autocomplete-container {
             position: relative;
-            padding: 2rem 2rem;
+            padding: 0;
             font-size: 1.2rem;
-            width: 80%;
+            width: min(100%, 408px);
             max-width: 400px;
             display: flex;
             justify-content: center;
@@ -36,6 +67,7 @@
                 border-radius: 30px;
                 font-size: 1rem;
                 transition: border-color 0.2s;
+                box-sizing: border-box;
             }
 
                 .autocomplete-container input:focus {
@@ -81,13 +113,54 @@
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
+
+        .character-selection-actions {
+            width: min(100%, 408px);
+            min-width: 0;
+            max-width: 408px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.85rem;
+        }
+
+        .character-selection-actions .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .character-selection-actions .back-button {
+            margin-left: 0;
+        }
+
+        @media (max-width: 600px) {
+            .character-selection-main {
+                padding: 2rem 1.35rem 2.75rem;
+            }
+
+            .character-selection-title {
+                margin-bottom: 1rem;
+                font-size: 2rem;
+            }
+
+            .character-selection-visual {
+                margin-bottom: 1.25rem;
+            }
+
+            .autocomplete-wrapper {
+                margin-bottom: 1.25rem;
+            }
+        }
     </style>
 </head>
 <body>
     <!--HEADER-->
-    <main>
-        <h1 id="character-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
-        <div style="text-align: center;" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+    <main class="character-selection-main">
+        <h1 id="character-title" class="character-selection-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
+        <div class="character-selection-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
                 <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
@@ -105,7 +178,7 @@
                 <span id="athleteError" class="error-message"></span>
             </div>
         </div>
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+        <div class="options-container character-selection-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button disabled id="confirmBtn" class="option-button green"
                     onclick="window.location.href='/dashboard'">
                 Select&nbsp;<i class="fas fa-arrow-right"></i>
