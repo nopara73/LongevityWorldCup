@@ -85,8 +85,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"));
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
-                    // Optionally remove the play button on certain pages
-                    if (path?.Contains("join-game", StringComparison.OrdinalIgnoreCase) is true)
+                    if (ShouldRemoveJoinGameButtons(path))
                     {
                         bodyContent = RemoveJoinGameButtons(bodyContent);
                     }
@@ -443,6 +442,15 @@ $@"<script type=""module"">
                 @"\s*<button\b(?=[^>]*\bclass\s*=\s*[""'][^""']*\bjoin-game\b)[\s\S]*?</button>",
                 "",
                 RegexOptions.IgnoreCase);
+        }
+
+        private static bool ShouldRemoveJoinGameButtons(string? path)
+        {
+            var normalizedPath = RouteCanonicalization.NormalizePath(path);
+
+            return normalizedPath.Equals("/play", StringComparison.OrdinalIgnoreCase)
+                || normalizedPath.StartsWith("/play/", StringComparison.OrdinalIgnoreCase)
+                || normalizedPath.Contains("/join-game", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string EncodeMeta(string value)
