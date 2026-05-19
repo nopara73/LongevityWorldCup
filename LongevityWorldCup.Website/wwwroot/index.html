@@ -111,21 +111,19 @@
 
         .game-description {
             text-align: center;
-            margin: 0.5rem 0 2rem;
-            line-height: 1.7;
-            color: #4a5568;
-            font-size: 1.05rem;
+            margin: 0.25rem auto 2rem;
+            line-height: 1.65;
+            color: #334155;
+            font-size: clamp(1.02rem, 1.3vw, 1.08rem);
             font-weight: 400;
             letter-spacing: 0.005em;
-            max-width: 42em;
-            margin-left: auto;
-            margin-right: auto;
+            max-width: 43em;
             padding: 0 1rem;
         }
 
         .game-description strong {
             font-weight: 600;
-            color: #2d3748;
+            color: #1f2937;
         }
 
         /* Common container for sections */
@@ -137,6 +135,16 @@
             max-width: 1250px; /* Adjusted to better match the leaderboard width */
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             text-align: center;
+        }
+
+        .section-container[data-aos]:not(.aos-animate) {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        .section-container [data-aos]:not(.aos-animate) {
+            opacity: 1 !important;
+            transform: none !important;
         }
 
             /* Heading style */
@@ -193,8 +201,8 @@
 
         /* Styling for the VIEW FULL RANKINGS button */
         .rankings-btn {
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
+            padding: 0.9rem 1.8rem;
+            font-size: 1.08rem;
             background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
             color: var(--light-text-color);
             border: none;
@@ -203,6 +211,11 @@
             transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             font-weight: bold;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+
+        .full-rankings-action {
+            text-align: center;
+            margin: 1.5rem auto 0;
         }
 
             /* Hover effect for the VIEW FULL RANKINGS button */
@@ -217,6 +230,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         /* Styles for the copy button */
@@ -278,8 +293,10 @@
             top: 0;
             left: 0;
             width: 0%; /* Updated dynamically */
-            height: 100%;
-            background: linear-gradient(90deg, rgba(255, 165, 0, 0.3), rgba(255, 223, 186, 0.1)); /* Light orange gradient */
+            height: 0.45rem;
+            background: linear-gradient(90deg, rgba(247, 147, 26, 0.85), rgba(255, 193, 7, 0.55));
+            border-radius: 15px 0 999px 0;
+            box-shadow: 0 2px 8px rgba(247, 147, 26, 0.18);
             z-index: 1;
             transition: width 0.5s ease-in-out; /* Smooth animation for width changes */
         }
@@ -307,17 +324,38 @@
             background: var(--card-bg);
             color: var(--dark-text-color);
             border-radius: 15px;
-            padding: 2rem;
+            padding: 1.85rem 2rem 1.95rem;
             margin: 2rem auto;
+            max-width: 980px;
             text-align: center;
         }
 
-            .newsletter-section h3,
+            .newsletter-section h2 {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.55rem;
+                margin: 0 0 1.15rem;
+                font-size: clamp(1.45rem, 2.4vw, 2rem);
+                color: #2d3748;
+            }
+
+            .newsletter-section h2 i {
+                font-size: 0.9em;
+            }
+
             .newsletter-section p {
                 color: #4a5568;
                 line-height: 1.7;
                 font-weight: 400;
                 letter-spacing: 0.005em;
+            }
+
+            .newsletter-section p {
+                max-width: 56rem;
+                margin-left: auto;
+                margin-right: auto;
+                margin-bottom: 1.35rem;
             }
 
             .newsletter-section strong {
@@ -333,6 +371,7 @@
                 padding: 0.6rem 1rem;
                 border-radius: 25px;
                 box-sizing: border-box;
+                height: 42px;
             }
 
                 .shared-email-input:focus {
@@ -340,8 +379,8 @@
                 }
 
             .newsletter-section .shared-email-input {
-                width: 250px;
-                margin-right: 1rem;
+                width: clamp(280px, 34vw, 420px);
+                margin-right: 0;
             }
 
             .shared-email-button {
@@ -360,6 +399,8 @@
                 align-items: center;
                 justify-content: center;
                 gap: 0.45rem;
+                min-width: 9rem;
+                height: 42px;
             }
 
                 .shared-email-button:hover {
@@ -445,6 +486,21 @@
                 padding: 1.5rem;
             }
 
+            .newsletter-section {
+                padding: 1.45rem 1.35rem 1.5rem;
+            }
+
+                .newsletter-section h2 {
+                    gap: 0.45rem;
+                    margin-bottom: 1rem;
+                    font-size: clamp(1.35rem, 6vw, 1.6rem);
+                    line-height: 1.25;
+                }
+
+                .newsletter-section p {
+                    margin-bottom: 1.25rem;
+                }
+
             .btc-status {
                 font-size: 1.2rem;
                 margin: 0;
@@ -479,7 +535,7 @@
 
         .lwc-highlights-countdown-wrapper {
             max-width: 1250px;
-            margin: 2rem auto;
+            margin: 2rem auto 2.25rem;
             display: flex;
             gap: 1.75rem;
             align-items: stretch;
@@ -507,7 +563,7 @@
             padding: 0; /* spacing handled inside */
             margin-bottom: 0;
             background-color: var(--card-bg);
-            border-radius: 20px;
+            border-radius: 18px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
@@ -769,7 +825,9 @@
         @media (max-width: 991px) {
             .lwc-highlights-countdown-wrapper {
                 flex-direction: column;
-                margin-top: 1.5rem;
+                gap: 1.35rem;
+                margin-top: 1.35rem;
+                margin-bottom: 2rem;
             }
 
                 .lwc-highlights-countdown-wrapper > #events-root-index,
@@ -784,6 +842,28 @@
         }
 
         @media (max-width: 576px) {
+            .game-description {
+                margin-bottom: 1.75rem;
+                padding: 0 1.35rem;
+                line-height: 1.6;
+            }
+
+            .lwc-highlights-countdown-wrapper {
+                margin-top: 1.25rem;
+                gap: 1.2rem;
+            }
+
+            #events-root-index .events-board,
+            .events-board--timer {
+                border-radius: 14px;
+            }
+
+            #events-root-index .events-board thead th,
+            .lwc-countdown-header-row {
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
             .lwc-countdown-body {
                 padding: 18px 14px 20px;
             }
@@ -818,6 +898,16 @@
             .lwc-merch-mobile-slide .lwc-merch-item-price {
                 font-size: 0.68rem;
             }
+
+            .full-rankings-action {
+                margin-top: 1.25rem;
+            }
+
+            .rankings-btn {
+                width: min(100%, 19rem);
+                padding: 0.85rem 1.4rem;
+                font-size: 1rem;
+            }
         }
 
         @media (max-width: 400px) {
@@ -842,16 +932,19 @@
         /* ===== Historical Archive Section ===== */
         .archive-section {
             text-align: center;
+            padding-top: 1.75rem;
+            padding-bottom: 1.55rem;
         }
 
         .archive-section h2 {
-            margin-bottom: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 1.15rem;
         }
 
         /* Table Wrapper */
         .archive-table-wrapper {
             overflow-x: auto;
-            margin: 2rem 0;
+            margin: 1.35rem 0 1.1rem;
             max-width: 100%;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
@@ -893,7 +986,7 @@
             text-transform: uppercase;
             font-size: .85rem;
             letter-spacing: 0.08em;
-            padding: 1rem 1.5rem;
+            padding: 0.85rem 1.35rem;
             text-align: center;
             border-bottom: 1px solid rgba(0,0,0,.03);
         }
@@ -943,7 +1036,7 @@
 
         /* Table Cells */
         .archive-table td {
-            padding: 1rem 1.5rem;
+            padding: 0.85rem 1.35rem;
             text-align: center;
             font-size: 0.975rem;
             color: #4a5568;
@@ -979,7 +1072,7 @@
             font-weight: 600;
             font-size: 0.9rem;
             display: block;
-            margin-top: 0.25rem;
+            margin-top: 0.18rem;
             margin-left: 0;
             white-space: nowrap;
         }
@@ -1293,7 +1386,7 @@
 
 
         <!--LEADERBOARD-CONTENT-->
-        <div style="text-align: center; margin-top: 20px;">
+        <div class="full-rankings-action">
             <button id="viewAllAthletesBtn" onclick="window.location.href = window.getFullLeaderboardUrlWithCurrentState ? window.getFullLeaderboardUrlWithCurrentState() : '/leaderboard'" class="rankings-btn" aria-label="View all athletes on the leaderboard">
                 View all athletes
             </button>
