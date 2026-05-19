@@ -1521,6 +1521,41 @@
             white-space: normal;
         }
 
+        @media (max-width: 360px) {
+            .content {
+                padding-left: max(0.5rem, env(safe-area-inset-left));
+                padding-right: max(0.5rem, env(safe-area-inset-right));
+            }
+
+            .leaderboard table th {
+                padding-left: 0.4rem;
+                padding-right: 0.4rem;
+                font-size: 0.56rem;
+            }
+
+            .leaderboard table td {
+                font-size: 0.76rem;
+            }
+
+            .leaderboard table th:nth-child(4),
+            .leaderboard table td.age-reduction-td {
+                width: 5.5rem;
+                min-width: 5.5rem;
+                padding-left: 0.25rem;
+                padding-right: 0.55rem;
+            }
+
+            .leaderboard table td.rank-td {
+                padding-left: 0.7rem;
+                padding-right: 0.45rem;
+            }
+
+            .leaderboard .portrait {
+                width: 36px;
+                height: 36px;
+            }
+        }
+
         /* Mobile modal improvements */
         .modal-content{
             width:100%; padding:15px; margin:0; max-height:100vh; height:100vh; box-sizing:border-box;
