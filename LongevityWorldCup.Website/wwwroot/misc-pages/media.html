@@ -95,12 +95,17 @@
         .media-file-name {
             min-width: 0;
             color: #243446;
-            overflow-wrap: anywhere;
+            overflow-wrap: break-word;
+            word-break: normal;
             line-height: 1.35;
         }
 
         .media-file-button {
             box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.38rem;
             min-height: 34px;
             padding: 0.42rem 0.75rem;
             border: 1px solid rgba(0, 188, 212, 0.34);
@@ -109,6 +114,15 @@
             color: var(--primary-color);
             font-weight: 700;
             cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .media-file-button::before {
+            content: "\f019";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.9em;
+            line-height: 1;
         }
 
         .media-file-button:hover,
@@ -138,13 +152,31 @@
             }
 
             .media-file-row {
-                grid-template-columns: 1fr;
-                gap: 0.55rem;
-                align-items: stretch;
+                grid-template-columns: minmax(0, 1fr) 38px;
+                gap: 0.45rem;
+                align-items: center;
+            }
+
+            .media-file-name {
+                font-size: 0.88rem;
+                line-height: 1.32;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .media-file-button {
-                width: 100%;
+                width: 38px;
+                min-width: 38px;
+                min-height: 40px;
+                padding: 0;
+                border-radius: 10px;
+                justify-self: end;
+                font-size: 0;
+            }
+
+            .media-file-button::before {
+                font-size: 1rem;
             }
         }
     </style>
