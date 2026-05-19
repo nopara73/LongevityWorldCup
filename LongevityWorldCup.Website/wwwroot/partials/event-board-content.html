@@ -13,6 +13,8 @@
         --events-border:rgba(0,0,0,.06);
         --events-hover-bg:rgba(240,244,248,.8);
         --events-header-bg:#e6f7fa;
+        --events-header-ink:#065f6b;
+        --events-header-action:#067487;
         --event-row-min:44px;
         --row-pad-y:2px;
         --badge-size:24px;
@@ -147,7 +149,7 @@
         background:
                 linear-gradient(rgba(0,188,212,.12),rgba(0,188,212,.12)),
                 var(--events-header-bg, var(--card-bg));
-        color:var(--primary-color);
+        color:var(--events-header-ink);
         text-transform:uppercase;
         font-weight:800;
         font-size:.85rem;
@@ -199,8 +201,28 @@
     .events-board.athlete-scroll tbody tr.custom-event-row.is-open + tr.custom-event-details{display:table}
 
     .header-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem}
-    .view-all{text-decoration:none;color:var(--primary-color);opacity:.8;font-weight:400;font-size:.85rem}
-    .view-all:hover{opacity:1;text-decoration:underline}
+    .header-bar span{line-height:1.15}
+    .view-all{
+        display:inline-flex;
+        align-items:center;
+        color:var(--events-header-action);
+        font-weight:700;
+        font-size:.85rem;
+        line-height:1.1;
+        text-decoration:underline;
+        text-decoration-color:rgba(6,116,135,.35);
+        text-underline-offset:2px;
+    }
+    .view-all:hover,
+    .view-all:focus{
+        color:#055563;
+        text-decoration-color:currentColor;
+    }
+    .view-all:focus-visible{
+        outline:2px solid rgba(6,116,135,.45);
+        outline-offset:3px;
+        border-radius:4px;
+    }
 
     .events-board table tbody tr{
         height:auto;
@@ -560,8 +582,8 @@
     }
 
     @media (max-width:600px){
-        .events-board thead th{font-size:.82rem;padding:11px 12px;color:#087f8f}
-        .view-all{font-size:.75rem;color:#087f8f;opacity:1}
+        .events-board thead th{font-size:.82rem;padding:11px 12px;color:var(--events-header-ink)}
+        .view-all{font-size:.78rem;color:var(--events-header-action)}
         .events-board tbody td{padding:0 12px;height:auto;line-height:1.28}
         .events-board table tbody tr{height:auto}
         .col-avatar{width:28px}
