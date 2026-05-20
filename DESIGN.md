@@ -111,3 +111,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Drawer close controls should be visible framed 44px targets when the drawer itself is a foreground surface, instead of tiny loose icons near the panel edge.
 
 - Unavailable filter rows should look intentionally unavailable, not simply inactive: use muted text, non-hovering rows, and a distinct edge treatment when the count reaches zero.
+
+- Toolbar buttons that summarize a hidden active state should use more than a tiny badge; pair the badge with a subtle active border or surface so the state remains clear when the drawer is closed.

@@ -303,9 +303,18 @@
     }
     .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
     .sidebar-toggle.active i{ color:var(--card-bg); }
+    .sidebar-toggle.has-active-state:not(.active){
+        background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.07)); border-color:var(--secondary-color);
+        box-shadow:0 0 0 3px rgba(255,64,129,.14), 0 8px 18px rgba(0,0,0,.1);
+    }
+    .sidebar-toggle.has-active-state:not(.active) i{ color:var(--secondary-color); }
     .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
     .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
     .sidebar-toggle:hover i{ color:var(--card-bg); }
+    .sidebar-toggle.has-active-state:not(.active):hover{
+        background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 10px 22px rgba(255,64,129,.24);
+    }
+    .sidebar-toggle.has-active-state:not(.active):hover i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state::after{
         content:''; position:absolute; top:-4px; right:-4px; width:12px; height:12px; border-radius:50%;
         background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
