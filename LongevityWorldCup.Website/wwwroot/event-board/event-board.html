@@ -11,6 +11,13 @@
         .event-board-page .events-board table {
             padding-bottom: 0;
         }
+
+        @media (min-width: 720px) {
+            .event-board-page .events-board {
+                flex-grow: 0;
+                width: min(100% - 2rem, 1080px);
+            }
+        }
     </style>
 </head>
 <body>
