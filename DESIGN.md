@@ -109,3 +109,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Active filter drawers should give the clear action a real control shape, and mobile drawers should dim the page behind them so the foreground panel reads as the current surface.
 
 - Drawer close controls should be visible framed 44px targets when the drawer itself is a foreground surface, instead of tiny loose icons near the panel edge.
+
+- Unavailable filter rows should look intentionally unavailable, not simply inactive: use muted text, non-hovering rows, and a distinct edge treatment when the count reaches zero.
