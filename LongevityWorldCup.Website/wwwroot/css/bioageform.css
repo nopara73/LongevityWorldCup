@@ -70,6 +70,10 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
+.bioageform fieldset:first-of-type {
+    margin-top: 1rem;
+}
+
 .bioageform legend {
     font-weight: bold;
     padding: 0 0.5rem;

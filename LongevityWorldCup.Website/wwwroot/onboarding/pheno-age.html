@@ -9,13 +9,23 @@
         /* Match join-game biological age intro styling; align width with .bioageform */
         .lab-reassurance {
             margin: 1.5rem auto 0;
+            width: min(100%, 600px);
             max-width: 600px;
             padding: 1rem 1.25rem;
+            box-sizing: border-box;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
             background: #f8f9fa;
             font-size: 0.95rem;
             text-align: center;
+            overflow-wrap: break-word;
+        }
+
+        #mainPageTitleH2 {
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            text-wrap: balance;
         }
 
         /* Hide the join-game button in the header */
@@ -583,8 +593,10 @@
         /* --- LWC 2-step wizard --- */
         .lwc-steps-shell {
             position: relative;
+            width: min(100%, 780px);
             max-width: 780px;
             margin: 0 auto;
+            box-sizing: border-box;
         }
 
         .lwc-step {
@@ -637,6 +649,15 @@
             gap: .75rem;
             justify-content: center;
             margin-top: 1rem;
+        }
+
+        @media (max-width: 480px) {
+            #mainPageTitleH2 {
+                font-size: clamp(1.55rem, 7vw, 1.9rem);
+                letter-spacing: 0.035em;
+                line-height: 1.12;
+                padding-inline: 0.25rem;
+            }
         }
     </style>
 </head>
