@@ -25,6 +25,7 @@ This is a living record of durable UI decisions for Longevity World Cup. Update 
 ## Interaction
 
 - Interactive controls should generally meet a 44px minimum touch target on mobile and in dense modal/footer contexts.
+- Shared form controls should use the same 44px minimum height as action buttons, with readable 1rem text and a visible focus ring.
 - Hover and focus states should be visually related. A focus state must be visible without relying only on color.
 - Do not add animated scale or shadow effects that cause layout shift or make compact controls feel jumpy.
 - Disabled controls should look intentionally inactive across the site, not like a one-off local override.
