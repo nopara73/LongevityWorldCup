@@ -21,11 +21,24 @@
     .bioageform input,
     .bioageform select {
         width: 100%;
-        padding: 0.5rem;
+        min-height: 44px;
+        padding: 0.65rem 0.75rem;
         margin-top: 0.5rem;
         box-sizing: border-box;
         border: 1px solid #ccc;
         border-radius: 4px;
+        font-size: 1rem;
+        line-height: 1.3;
+        background-color: #fff;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .bioageform input:focus,
+    .bioageform select:focus,
+    .bioageform textarea:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+        outline: none;
     }
 
 /* Responsive adjustments */
@@ -56,10 +69,14 @@
 
 .bioageform textarea {
     width: 100%;
-    padding: 0.5rem;
+    min-height: 7rem;
+    padding: 0.65rem 0.75rem;
     margin-top: 0.5rem;
     box-sizing: border-box;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 1rem;
+    line-height: 1.45;
     resize: vertical; /* Allow users to resize vertically */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
