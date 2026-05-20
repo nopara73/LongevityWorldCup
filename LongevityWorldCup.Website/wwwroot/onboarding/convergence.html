@@ -190,6 +190,11 @@
             margin-top: 1.35rem;
         }
 
+        #whyField .char-counter {
+            bottom: 1.55rem;
+            right: 1.75rem;
+        }
+
         @media (max-width: 600px) {
             .convergence-actions {
                 width: min(100%, 320px);
@@ -343,12 +348,13 @@
                 <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
-            <!-- New WHY Field (Initially Hidden) -->
-            <div id="whyField" style="width:90%; display: none; position: relative;">
+            <!-- WHY Field (Initially Hidden) -->
+            <fieldset id="whyField" style="display: none; position: relative;">
+                <legend>Motivation</legend>
                 <label for="why">What drives you forward?</label>
                 <textarea id="why" name="why" rows="5" placeholder="Share your motivation here..."></textarea>
                 <div id="whyCharCounter" class="char-counter">0/250</div>
-            </div>
+            </fieldset>
 
             <div class="options-container convergence-actions">
                 <button type="button" class="option-button green" id="nextButton" aria-label="Proceed to the next stage">Next</button>
