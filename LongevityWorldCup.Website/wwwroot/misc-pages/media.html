@@ -172,9 +172,11 @@
             .media-file-name {
                 font-size: 0.88rem;
                 line-height: 1.32;
+                display: -webkit-box;
                 overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
+                overflow-wrap: anywhere;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
             }
 
             .media-file-button {
