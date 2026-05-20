@@ -92,14 +92,6 @@
             cursor: pointer;
         }
 
-        /* Style for the cropping image */
-        #cropperImage {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
-
         .convergence-upload-guidance {
             width: min(100%, 408px);
             margin: 0.75rem auto 1.2rem;
@@ -134,6 +126,35 @@
             max-width: none;
             margin: 0;
             box-sizing: border-box;
+        }
+
+        .convergence-crop-preview {
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 0.75rem auto 0;
+            padding: 0.45rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .convergence-crop-preview #cropperImage {
+            display: block;
+            max-width: 100%;
+            max-height: 320px;
+            height: auto;
+            margin: 0 auto;
+            border-radius: 6px;
+            background: #f8fafc;
+        }
+
+        .convergence-crop-preview .cropper-container {
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 6px;
         }
 
         #proofImageContainer {
@@ -333,7 +354,8 @@
             }
 
             .convergence-upload-guidance,
-            .convergence-upload-action {
+            .convergence-upload-action,
+            .convergence-crop-preview {
                 width: min(100%, 320px);
             }
 
@@ -429,7 +451,9 @@
                     </div>
                 </div>
                 <div id="croppingPart" style="display:none">
-                    <img id="cropperImage" src="" alt="Selected profile image preview for cropping" style="max-width: 100%; display: block; margin: 0 auto;">
+                    <div class="convergence-crop-preview">
+                        <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                    </div>
                     <div class="convergence-upload-action">
                         <button type="button" id="cropButton" class="option-button">
                             Crop and save
