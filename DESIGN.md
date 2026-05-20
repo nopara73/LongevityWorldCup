@@ -35,3 +35,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Convergence helper and confirmation copy should sit in light bordered panels when it explains an adjacent form field, making the form easier to scan than loose paragraphs between inputs.
 
 - Character counters should sit outside text inputs as compact status pills when space allows, so they do not cover typed content or resize handles.
+
+- Convergence stage-intro copy should use the same light bordered panel language as field helper copy when it sits under the stage image, so narrative text remains distinct from form controls.
