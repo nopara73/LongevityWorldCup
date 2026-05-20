@@ -484,6 +484,13 @@
                 word-break: break-all;
             }
 
+            .btc-address a {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
         .copy-btn {
             color: var(--primary-color);
             font-size: 1.5rem;
@@ -609,6 +616,14 @@
                 .section-container button {
                     flex-direction: column;
                     width: 100%;
+                }
+
+                .section-container .copy-btn {
+                    flex: 0 0 auto;
+                    width: auto;
+                    min-width: 2rem;
+                    margin-left: 0.35rem;
+                    padding: 0.35rem;
                 }
 
                 .section-container .shared-email-button {
