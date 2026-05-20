@@ -32,10 +32,21 @@
         }
 
         .error-message {
-            color: red;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .error-message:not(:empty) {
             display: block;
+            margin-top: 0.55rem;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid rgba(220, 38, 38, 0.24);
+            border-radius: 8px;
+            background: rgba(254, 242, 242, 0.94);
+            color: #b91c1c;
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.35;
+            box-sizing: border-box;
         }
 
         .char-counter {
