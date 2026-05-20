@@ -49,3 +49,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - End-of-flow confirmation/status copy should be grouped in a light bordered panel when it is the primary message below an illustration, so the page reads as a clear result state instead of loose supporting text.
 
 - Autocomplete menus that open above nearby action buttons should reserve vertical space while open, so suggestions do not cover the next available control on mobile or short desktop viewports.
+
+- Poster-like onboarding/play visuals should use the same modest border, radius, and shadow language as adjacent image surfaces when they sit directly above stacked action buttons.
