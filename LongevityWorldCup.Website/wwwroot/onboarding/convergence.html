@@ -135,9 +135,12 @@
         #proofImageContainer img {
             display: block !important;
             width: 100%;
+            height: clamp(160px, 46vw, 240px);
             max-width: 100% !important;
             border: 0 !important;
             border-radius: 6px;
+            background: #f8fafc;
+            object-fit: contain;
         }
 
         #proofImageContainer button {
