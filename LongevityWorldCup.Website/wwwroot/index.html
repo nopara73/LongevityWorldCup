@@ -485,11 +485,24 @@
             }
 
             .btc-address a {
+                display: inline-flex;
+                align-items: center;
+                min-height: 2rem;
+                padding: 0 0.2rem;
+                margin-top: 0.25rem;
+                margin-bottom: 0.25rem;
+                border-radius: 999px;
+                box-sizing: border-box;
                 min-width: 0;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
+
+                .btc-address a:hover,
+                .btc-address a:focus-visible {
+                    background: rgba(0, 188, 212, 0.08);
+                }
 
         .copy-btn {
             color: var(--primary-color);
