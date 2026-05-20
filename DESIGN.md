@@ -31,3 +31,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Convergence upload steps use constrained full-width action blocks and compact guidance panels instead of narrow one-off upload buttons, keeping profile and proof upload steps aligned.
 
 - Convergence profile crop previews use the same centered card treatment as proof previews so selected images feel anchored before the crop/save action.
+
+- Convergence helper and confirmation copy should sit in light bordered panels when it explains an adjacent form field, making the form easier to scan than loose paragraphs between inputs.
