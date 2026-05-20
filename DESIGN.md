@@ -19,3 +19,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Bioage biomarker accordion cards use white card surfaces, soft slate borders, a distinct active header/content treatment, and a compact circular toggle affordance so dense lab groups scan clearly inside the lighter fieldsets.
 
 - Bioage biomarker input/unit rows rely on row gaps instead of per-control margins, with numeric inputs allowed to shrink before unit selects wrap on narrow screens.
+
+- Bioage CRP negative toggles sit in a compact helper panel with a 44px label target so the optional switch reads as part of the opened biomarker card.

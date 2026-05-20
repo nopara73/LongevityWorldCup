@@ -431,13 +431,21 @@
         }
 
         .crp-container {
-            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 0;
         }
 
         .label-toggle-group {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: space-between;
+            gap: 0.85rem;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 8px;
+            background: #fff;
         }
 
             .label-toggle-group label {
@@ -448,15 +456,15 @@
         .negative-toggle {
             display: flex;
             align-items: center;
-            gap: 0.5rem; /* This sets a small gap between the toggle and the text */
+            flex: 0 0 auto;
             min-height: 44px;
         }
 
         .toggle-label {
             position: relative;
             display: inline-block;
-            width: 44px;
-            height: 28px;
+            width: 52px;
+            height: 44px;
             margin-right: 0rem;
         }
 
@@ -469,10 +477,10 @@
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
+            top: 6px;
             left: 0;
             right: 0;
-            bottom: 0;
+            bottom: 6px;
             background-color: #ccc;
             transition: 0.4s;
             border-radius: 999px;
@@ -481,8 +489,8 @@
             .slider:before {
                 position: absolute;
                 content: "";
-                height: 20px;
-                width: 20px;
+                height: 24px;
+                width: 24px;
                 left: 4px;
                 bottom: 4px;
                 background-color: white;
@@ -499,11 +507,14 @@
         }
 
             .toggle-label input:checked + .slider:before {
-                transform: translateX(16px);
+                transform: translateX(20px);
             }
 
         .bioageform-toggle-text {
             font-size: 1rem;
+            color: #2d3748;
+            font-weight: 600;
+            line-height: 1.3;
         }
 
         /* Mini-card container */
