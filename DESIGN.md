@@ -65,3 +65,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Proof-upload instruction copy should read as a compact light panel above the upload action, matching the checklist and helper-panel treatment used later in the same flow.
 
 - Proof tracker checklist rows should be label-sized tap targets with accent-colored checkboxes, keeping long biomarker lists scannable without reverting to raw browser defaults.
+
+- Uploaded proof success messages should appear as compact success panels directly above the preview card, so the confirmed upload state is grouped with the evidence being reviewed.
