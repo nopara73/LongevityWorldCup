@@ -382,12 +382,12 @@
         .leaderboard-toolbar{ flex-wrap:nowrap; }
     }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
-    .search-container{ position:relative; max-width:250px; width:100%; margin-right:.5rem; }
+    .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
-        width:100%; padding:.5rem 4.75rem .5rem 1rem; border:2px solid var(--primary-color); border-radius:25px; font-size:1rem;
-        transition:border-color .3s ease; outline:none; box-sizing:border-box;
+        width:100%; min-height:44px; padding:.55rem 4.75rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-size:1rem;
+        transition:border-color .3s ease, box-shadow .2s ease; outline:none; box-sizing:border-box;
     }
-    #athleteSearch:focus{ border-color:var(--secondary-color); }
+    #athleteSearch:focus{ border-color:var(--secondary-color); box-shadow:0 0 0 3px rgba(0,188,212,.14); }
     .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
     .clear-icon{
         position:absolute; right:2.5rem; top:50%; transform:translateY(-50%); width:2rem; height:2rem;
@@ -407,11 +407,11 @@
         font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#666; margin-right:.25rem;
     }
     .leaderboard-view-switcher .view-switcher-chips{
-        display:inline-flex; align-items:stretch; min-height:2.5rem; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px; padding:3px; gap:2px;
+        display:inline-flex; align-items:stretch; min-height:44px; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px; padding:3px; gap:2px;
         box-sizing:border-box;
     }
     .leaderboard-view-switcher .view-badge{
-        display:inline-flex; align-items:center; justify-content:center; min-height:2rem; padding:.4rem .85rem; border-radius:999px;
+        display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:.45rem .95rem; border-radius:999px;
         border:none; background:transparent; color:#555;
         font-size:.85rem; font-weight:600; line-height:1.1; white-space:nowrap; box-sizing:border-box; cursor:pointer; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
     }
@@ -1392,6 +1392,12 @@
             margin-left:0;
             order:1;
         }
+        .leaderboard-view-switcher .view-switcher-chips{
+            width:100%;
+        }
+        .leaderboard-view-switcher .view-badge{
+            flex:1 1 0;
+        }
         .search-container{ flex:0 1 calc(100% - 52px); min-width:0; width:calc(100% - 52px); max-width:none; margin-top:0; }
         .search-wrapper{ display:flex; align-items:center; gap:.5rem; flex:1; min-width:0; width:100%; order:2; }
         .sidebar-toggle{ align-self:center; height:44px; flex-shrink:0; margin-right:0; }
@@ -1427,6 +1433,12 @@
         }
         .leaderboard-view-switcher{
             margin-left:0; order:1;
+        }
+        .leaderboard-view-switcher .view-switcher-chips{
+            width:100%;
+        }
+        .leaderboard-view-switcher .view-badge{
+            flex:1 1 0;
         }
         .search-container{ flex:1 1 auto; min-width:0; width:auto; max-width:none; margin-top:0; margin-right:0; }
         #athleteSearch{ padding:.5rem 4.75rem .5rem 1rem; font-size:1rem; }
