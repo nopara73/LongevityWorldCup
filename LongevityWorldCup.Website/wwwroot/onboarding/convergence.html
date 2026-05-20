@@ -186,6 +186,22 @@
             margin-top: 1.35rem;
         }
 
+        .convergence-stage-copy {
+            max-width: 32rem;
+            margin: 1rem auto 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .convergence-stage-copy p {
+            margin: 0.75rem 0 0;
+        }
+
+        .convergence-stage-copy p:first-child {
+            margin-top: 0;
+        }
+
         .convergence-application-copy {
             margin: 0.75rem 0 1.1rem;
             color: #4a5568;
@@ -244,7 +260,7 @@
                 <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
-            <div id="privacyText" style="display:none">
+            <div id="privacyText" class="convergence-stage-copy" style="display:none">
                 <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
                 <p>
                     Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
@@ -254,11 +270,11 @@
                 </p>
             </div>
 
-            <div id="profilePicText" style="display:none">
+            <div id="profilePicText" class="convergence-stage-copy" style="display:none">
                 <p>Next, provide your profile picture. Smiling is optional!</p>
             </div>
 
-            <div id="proofText" style="display:none">
+            <div id="proofText" class="convergence-stage-copy" style="display:none">
                 <p id="mainProofInstructions"></p>
                 <span id="subProofInstructions" class="smaller-text"></span>
             </div>
