@@ -528,7 +528,7 @@
         z-index: 999;
         background: var(--background-color);
         color: var(--light-text-color);
-        padding: 0.5rem 1rem;
+        padding: 0.25rem 1rem;
         display: none;
         align-items: center;
         justify-content: center;
@@ -552,11 +552,17 @@
         z-index: -1;
     }
     .site-sticky-header-link {
-        display: flex;
+        display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.5rem;
+        min-height: 2.5rem;
+        padding: 0 0.25rem;
+        box-sizing: border-box;
+        border-radius: 6px;
         text-decoration: none;
         color: inherit;
+        white-space: nowrap;
     }
     .site-sticky-header-logo {
         width: 32px;
