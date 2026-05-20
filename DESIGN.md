@@ -16,4 +16,4 @@ This file records durable UI decisions that have proven useful across repeated L
 
 - Onboarding fieldsets that represent a distinct step section should use a short legend when neighboring step sections do, so multi-step forms keep a consistent scanning rhythm.
 
-- Bioage biomarker accordion cards use white card surfaces, soft slate borders, and a compact circular toggle affordance so dense lab groups scan clearly inside the lighter fieldsets.
+- Bioage biomarker accordion cards use white card surfaces, soft slate borders, a distinct active header/content treatment, and a compact circular toggle affordance so dense lab groups scan clearly inside the lighter fieldsets.

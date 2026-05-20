@@ -532,10 +532,16 @@
             color: #2d3748;
             font-weight: 600;
             line-height: 1.25;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
             .biomarker-card-header:hover {
                 background: #f1f5f9;
+            }
+
+            .biomarker-card.active .biomarker-card-header {
+                background: #f8feff;
+                color: #1f2937;
             }
 
         /* Toggle icon */
@@ -552,6 +558,13 @@
             font-weight: bold;
             font-size: 1.1rem;
             line-height: 1;
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .biomarker-card.active .toggle-icon {
+            background: var(--primary-color);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 188, 212, 0.26);
         }
 
         /* Hidden content by default */
@@ -559,7 +572,12 @@
             max-height: 0;
             overflow: hidden;
             padding: 0 1rem; /* keep horizontal padding */
-            transition: max-height 0.3s ease, padding 0.3s ease;
+            transition: max-height 0.3s ease, padding 0.3s ease, border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .biomarker-card.active .biomarker-card-content {
+            border-top: 1px solid rgba(148, 163, 184, 0.24);
+            background: #fbfdff;
         }
 
             .biomarker-card-content > .input-group:first-of-type {
