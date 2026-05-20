@@ -1336,24 +1336,28 @@
     }
 
     .enlarged-portrait{
-        position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85);
+        position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.92);
         display:flex; justify-content:center; align-items:center; z-index:1000; cursor:pointer;
+        box-sizing:border-box;
+        padding:max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
         opacity:0; transform:scale(.95); transition:opacity .5s ease, transform .5s ease;
     }
     .enlarged-portrait.show{ opacity:1; transform:scale(1); filter:blur(0); }
     .enlarged-portrait .close-btn{
-        position:absolute; top:20px; left:20px; font-size:1.8rem; color:rgba(255,255,255,.85); background:rgba(0,0,0,.6);
-        width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
-        transition:color .3s, background-color .3s, transform .2s; padding:0;
+        position:absolute; top:max(16px, env(safe-area-inset-top)); left:max(16px, env(safe-area-inset-left)); font-size:1.9rem; color:rgba(255,255,255,.9); background:rgba(12,14,14,.78);
+        width:48px; height:48px; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
+        border:1px solid rgba(246,244,237,.26); box-shadow:0 10px 28px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.08);
+        transition:color .3s, background-color .3s, transform .2s; padding:0; z-index:1;
     }
     .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
     .enlarged-portrait img{
-        width:min(90vw, 90vh, 900px);
+        width:auto;
         height:auto;
-        max-width:90vw;
-        max-height:90vh;
+        max-width:min(900px, calc(100vw - 2rem));
+        max-height:calc(100vh - 2rem);
         object-fit:contain;
         cursor:default;
+        box-shadow:0 24px 70px rgba(0,0,0,.42);
     }
 
     /* =========================
