@@ -112,9 +112,9 @@
         }
 
         #proofImageContainer {
-            width: 90%;
-            max-width: 600px;
-            margin: 1.25rem auto 0;
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 1rem auto 0;
             padding: 0;
             border: 0;
             min-inline-size: 0;
@@ -126,27 +126,45 @@
                 display: none !important;
             }
 
+            #proofImageContainer p {
+                margin: 0 0 0.75rem;
+                color: #111827;
+                font-weight: 700;
+            }
+
             #proofImageContainer div {
                 position: relative;
-                display: inline-block;
-                margin: 0.5rem;
+                display: block !important;
+                margin: 0 !important;
+                padding: 0.45rem;
+                border: 1px solid rgba(15, 23, 42, 0.14);
+                border-radius: 8px;
+                background: #fff;
+                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+                overflow: hidden;
             }
 
             #proofImageContainer img {
-                max-width: 200px;
-                border: 2px solid var(--dark-text-color);
-                border-radius: 8px;
+                display: block !important;
+                width: 100%;
+                max-width: 100% !important;
+                border: 0 !important;
+                border-radius: 6px;
             }
 
             #proofImageContainer button {
                 position: absolute;
-                top: 5px;
-                right: 5px;
-                background-color: rgba(255, 0, 0, 0.7);
+                top: 0.75rem !important;
+                right: 0.75rem !important;
+                padding: 0.35rem 0.55rem !important;
+                background-color: #b91c1c !important;
                 color: var(--light-text-color);
                 border: none;
-                border-radius: 3px;
+                border-radius: 999px !important;
+                box-shadow: 0 3px 8px rgba(127, 29, 29, 0.28);
                 cursor: pointer;
+                font-size: 0.8rem;
+                font-weight: 700;
             }
 
         #biomarker-checklist {
