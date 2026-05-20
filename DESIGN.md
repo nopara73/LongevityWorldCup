@@ -83,3 +83,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Athlete modal bio copy should sit in a subtle constrained panel when it appears between framed modal sections, so profile intent reads as first-class content instead of loose text.
 
 - Athlete modal action links should align to the same section width as neighboring modal cards and keep 44px tap targets, so sharing and external-link actions read as one control cluster.
+
+- Dense athlete modal stat tables should use subtle row separators and modest vertical padding, especially on mobile where label/value pairs stack.
