@@ -89,3 +89,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Athlete modal chart controls should keep the same 44px touch rhythm as other modal actions, and chart panels should have a subtle edge so data areas remain distinct inside dark cards.
 
 - Athlete-modal event feeds on narrow screens should prioritize readable message spacing over preserving the date column; keep the avatar/message gap clear before reintroducing secondary metadata.
+
+- Athlete modal proof thumbnails should use taller stacked frames on mobile so portrait lab reports remain inspectable instead of collapsing into shallow strips.
