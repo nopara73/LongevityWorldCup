@@ -73,3 +73,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Proof upload action shadows should follow the current button state: green depth while upload is the primary required action, neutral depth once it becomes a secondary add-more-proofs action.
 
 - Dashboard titles that render athlete-provided names should use a tight line-height and responsive mobile sizing so long display names stay readable without pushing the action stack too far down.
+
+- Dashboard action buttons should wrap generated text in a label span and keep icons in fixed edge slots, so long action names stay centered when they wrap on narrow screens.
