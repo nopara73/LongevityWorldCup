@@ -620,9 +620,14 @@
     .media-contact:hover{ color:var(--primary-color); }
     .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
 
-    .personal-link-icon{ color:var(--primary-color); font-size:1rem; text-decoration:none; transition:color .2s ease-in-out; margin-left:.2rem; }
+    .personal-link-icon{
+        display:inline-flex; align-items:center; justify-content:center; width:2rem; height:2rem;
+        color:var(--primary-color); font-size:1rem; text-decoration:none; transition:color .2s ease-in-out, background-color .2s ease-in-out;
+        margin-left:.15rem; border-radius:50%; box-sizing:border-box; vertical-align:middle;
+    }
     .personal-link-icon:first-of-type{ margin-left:0; }
-    .personal-link-icon:hover{ color:var(--secondary-color); }
+    .personal-link-icon:hover,
+    .personal-link-icon:focus-visible{ color:var(--secondary-color); background-color:rgba(0,188,212,.08); }
 
     .leaderboard table tbody tr{ scroll-margin-top:0; }
     .leaderboard table tbody tr:target{ background:rgba(255,255,0,.35); transition:background-color 1.2s ease; }
