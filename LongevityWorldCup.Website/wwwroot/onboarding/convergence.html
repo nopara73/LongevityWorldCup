@@ -186,6 +186,12 @@
             margin-top: 1.35rem;
         }
 
+        .convergence-application-copy {
+            margin: 0.75rem 0 1.1rem;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
         #whyField .char-counter {
             bottom: 1.55rem;
             right: 1.75rem;
@@ -258,9 +264,6 @@
             </div>
 
             <div id="finalDetailsText" style="display:none"></div>
-            <div id="congratsText" style="display:none">
-                <p><strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.</p>
-            </div>
         </form>
 
         <form id="inputForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
@@ -350,6 +353,9 @@
             <fieldset id="applyDetails">
                 <!-- Email Field -->
                 <legend for="accountEmail">Contact email</legend>
+                <div id="congratsText" class="convergence-application-copy" style="display:none">
+                    <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
+                </div>
                 <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
@@ -545,6 +551,8 @@
 
         // Function to update the UI based on the current stage
         function goToStage(stage) {
+            document.getElementById('descriptionForm').style.display = '';
+
             // Clear out any lingering click‐handlers on the illustration
             const oldImg = document.getElementById('illustrationImage');
             const newImg = oldImg.cloneNode(true);
@@ -772,6 +780,7 @@
                     break;
                 case 7:
                     // Stage 7: Application
+                    document.getElementById('descriptionForm').style.display = 'none';
                     document.getElementById('illustrationPicture').style.display = 'none';
 
                     document.querySelector('h1').textContent = "Application";
