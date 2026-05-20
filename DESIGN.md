@@ -67,3 +67,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Proof tracker checklist rows should be label-sized tap targets with accent-colored checkboxes, keeping long biomarker lists scannable without reverting to raw browser defaults.
 
 - Uploaded proof success messages should appear as compact success panels directly above the preview card, so the confirmed upload state is grouped with the evidence being reviewed.
+
+- Multiple uploaded proof preview cards should keep a visible vertical gap between cards so each evidence image remains individually scannable on mobile and desktop.
