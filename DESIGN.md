@@ -97,3 +97,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Athlete modal badge strips should stay compact on mobile by using a predictable grid; badges are visual tokens first, so avoid two-column layouts or accidental hover expansion that turn many badges into a long vertical detour.
 
 - Athlete modal segmented controls should follow the same 44px control rhythm as other modal actions, especially when switching chart or data views.
+
+- Mobile athlete stat tables should keep stacked labels and values, but use compact row spacing and muted, smaller labels so long stat lists scan without excessive vertical drift.
