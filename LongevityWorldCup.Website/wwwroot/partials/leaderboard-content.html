@@ -1350,6 +1350,9 @@
         .content{
             padding-left:max(1rem, env(safe-area-inset-left));
             padding-right:max(1rem, env(safe-area-inset-right));
+            box-sizing:border-box;
+            width:100%;
+            max-width:100%;
         }
         .leaderboard-toolbar{
             flex-direction:column;
@@ -1383,6 +1386,9 @@
         .content{
             padding-left:max(1rem, env(safe-area-inset-left));
             padding-right:max(1rem, env(safe-area-inset-right));
+            box-sizing:border-box;
+            width:100%;
+            max-width:100%;
         }
         .leaderboard-toolbar{
             flex-direction:column; align-items:stretch; gap:.75rem; margin-top:1.25rem;
@@ -1523,14 +1529,19 @@
         }
 
         @media (max-width: 360px) {
+            .main-container {
+                margin-left: -0.5rem;
+                margin-right: -0.5rem;
+            }
+
             .content {
-                padding-left: max(0.5rem, env(safe-area-inset-left));
-                padding-right: max(0.5rem, env(safe-area-inset-right));
+                padding-left: 0;
+                padding-right: 0;
             }
 
             .leaderboard-toolbar {
-                width: calc(100vw - 2.5rem);
-                max-width: calc(100vw - 2.5rem);
+                width: 100%;
+                max-width: 100%;
             }
 
             .leaderboard table th {
