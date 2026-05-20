@@ -29,3 +29,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Proof upload images sit in a bounded `object-fit: contain` preview frame so unusual receipt, lab-report, or generated image ratios do not dominate the mobile flow.
 
 - Convergence upload steps use constrained full-width action blocks and compact guidance panels instead of narrow one-off upload buttons, keeping profile and proof upload steps aligned.
+
+- Convergence profile crop previews use the same centered card treatment as proof previews so selected images feel anchored before the crop/save action.
