@@ -54,29 +54,38 @@
             position: absolute;
             top: 100%;
             left: 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            margin-top: 0.35rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
             background-color: white;
             z-index: 9999;
             max-height: 150px;
             overflow-y: auto;
             width: 100%;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
         }
 
             .autocomplete-items .autocomplete-active {
-                background-color: #0069d9;
-                color: var(--light-text-color);
+                background-color: rgba(0, 188, 212, 0.12);
+                color: #243446;
             }
 
             .autocomplete-items div {
-                padding: 10px;
-                cursor: default;
-                border-bottom: 1px solid #eee;
+                display: flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.65rem 0.75rem;
+                box-sizing: border-box;
+                cursor: pointer;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+                color: #2d3748;
+                font-size: 1rem;
+                line-height: 1.25;
             }
 
                 .autocomplete-items div:hover {
-                    background-color: #0069d9; /* Blue hover color from the picture */
-                    color: var(--light-text-color); /* Ensure text is visible on blue background */
+                    background-color: rgba(0, 188, 212, 0.12);
+                    color: #243446;
                 }
         /* Add a new class for the pointer cursor */
         .clickable {
