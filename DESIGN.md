@@ -41,3 +41,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Convergence field validation errors should appear as compact alert panels only when populated, rather than reserving empty space or showing bare red text.
 
 - Convergence autocomplete menus use a padded floating panel with rounded rows and an explicit inline match highlight, matching the form-control and helper-panel polish without changing selection behavior.
+
+- Sub-progress rails should read as light bordered panels with a subtle track and distinct completed/current dot states, so step position feels integrated with the surrounding onboarding cards.
