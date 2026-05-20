@@ -42,33 +42,44 @@
 
         .autocomplete-items {
             position: absolute;
-            background: white; /* white panel */
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* soft drop shadow */
-            border: none; /* no harsh border */
-            max-height: 150px; /* scroll if too tall */
-            overflow-y: auto;
-            z-index: 9999;
+            top: calc(100% + 0.45rem);
             left: 0;
-            right: 0; /* ensures it spans exactly the container */
-            box-sizing: border-box; /* include any padding/borders in that width */
-            top: calc(100% - 2px); /* slide up by the input’s 2px bottom border so it’s flush */
-            border-radius: 0 0 30px 30px; /* match your input’s 30px pill corners */
+            right: 0;
+            padding: 0.25rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
             width: 100%;
+            max-height: min(12rem, 36vh);
+            overflow-y: auto;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-sizing: border-box;
+            z-index: 9999;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
         }
 
             .autocomplete-items div {
-                padding: 0.75rem 1rem; /* generous touch targets */
-                font-size: 0.95rem;
+                display: flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.6rem 0.7rem;
+                border-radius: 6px;
+                box-sizing: border-box;
+                color: #2d3748;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1.25;
             }
 
-                .autocomplete-items div:not(:last-child) {
-                    border-bottom: 1px solid #eee; /* light separator between items */
+                .autocomplete-items div + div {
+                    margin-top: 0.15rem;
                 }
 
                 .autocomplete-items div:hover,
                 .autocomplete-active {
-                    background-color: #0069d9; /* your blue hover */
-                    color: #fff;
+                    background-color: rgba(0, 188, 212, 0.12);
+                    color: #243446;
                 }
 
         .niceInputFieldDisplayWrapper {
@@ -76,6 +87,12 @@
             width: min(100%, 408px);
             max-width: 408px;
             margin: 0 auto;
+        }
+
+        @supports selector(:has(*)) {
+            .niceInputFieldDisplayWrapper:has(.autocomplete-items) {
+                margin-bottom: calc(min(12rem, 36vh) + 0.65rem);
+            }
         }
 
         #divisionDisplayInput, #flagDisplayInput, #mediaContactInput, #personalLinkInput, #whyDisplayInput {
@@ -191,10 +208,16 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.65rem;
             width: min(100%, 408px);
             max-width: 400px;
             margin: 0 auto;
+        }
+
+        @supports selector(:has(*)) {
+            .options-container.inline-option-group.niceInputFieldDisplayWrapper:has(.autocomplete-items) {
+                margin-bottom: calc(min(12rem, 36vh) + 0.65rem);
+            }
         }
 
         /* shrink any icon-only button down to its icon */

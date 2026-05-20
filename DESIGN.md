@@ -55,3 +55,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Helper or discount panels that appear inside a stacked action block should align to the same width as the surrounding actions unless there is a clear reason to make them narrower.
 
 - Edit-profile text fields, selects, and textareas should share the same inherited font, light border, modest radius, and cyan focus ring so editable profile details do not switch visual languages mid-form.
+
+- Edit-profile autocomplete menus should use the same light floating-panel treatment as other polished autocomplete surfaces and reserve vertical space while open.
