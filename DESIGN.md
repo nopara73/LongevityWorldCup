@@ -57,3 +57,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Edit-profile text fields, selects, and textareas should share the same inherited font, light border, modest radius, and cyan focus ring so editable profile details do not switch visual languages mid-form.
 
 - Edit-profile autocomplete menus should use the same light floating-panel treatment as other polished autocomplete surfaces and reserve vertical space while open.
+
+- Inline restore controls in edit-profile rows should match the 44px field height so pending-change affordances stay tappable without stretching the row.
