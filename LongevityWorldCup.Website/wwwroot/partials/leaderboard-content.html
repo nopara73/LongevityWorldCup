@@ -298,7 +298,7 @@
 
     .sidebar.partially-expanded{ width:80px; }
     .sidebar-toggle{
-        background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:40px; height:40px;
+        background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:44px; height:44px;
         display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color .3s ease, border-color .3s ease, box-shadow .3s ease, transform .3s ease; margin-right:1rem; position:relative;
     }
     .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
@@ -314,7 +314,7 @@
     .sidebar-close{
         display:none; background:none; border:none; font-size:1.5rem; color:var(--primary-color); cursor:pointer;
         position:absolute; top:3px; right:3px; z-index:10; transition:background-color .3s ease, color .3s ease;
-        width:40px; height:40px; border-radius:50%;
+        width:44px; height:44px; border-radius:50%;
     }
     .sidebar.expanded .sidebar-close{ display:block; }
     .sidebar-close:hover{ background:var(--primary-color); color:var(--card-bg); transform:scale(1.1); }
@@ -1392,9 +1392,9 @@
             margin-left:0;
             order:1;
         }
-        .search-container{ flex:0 1 calc(100% - 48px); min-width:0; width:calc(100% - 48px); max-width:none; margin-top:0; }
+        .search-container{ flex:0 1 calc(100% - 52px); min-width:0; width:calc(100% - 52px); max-width:none; margin-top:0; }
         .search-wrapper{ display:flex; align-items:center; gap:.5rem; flex:1; min-width:0; width:100%; order:2; }
-        .sidebar-toggle{ align-self:center; height:40px; flex-shrink:0; margin-right:0; }
+        .sidebar-toggle{ align-self:center; height:44px; flex-shrink:0; margin-right:0; }
         .leaderboard table{ width:100%; table-layout:auto; }
         .leaderboard table .sponsor-th,
         .leaderboard table .sponsor-td,
@@ -1434,7 +1434,7 @@
         .clear-icon{ right:2.5rem; }
         .search-wrapper{ display:flex; align-items:center; gap:.45rem; flex:1; min-width:0; width:100%; order:2; }
 
-        .sidebar-toggle{ align-self:center; width:40px; height:40px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
+        .sidebar-toggle{ align-self:center; width:44px; height:44px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
 
         .main-container{ flex-direction:column; }
         .sidebar{
