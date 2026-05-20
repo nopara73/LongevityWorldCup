@@ -203,6 +203,24 @@
                 white-space: normal;
                 text-align: center;
             }
+
+            .media-file-row {
+                grid-template-columns: 1fr;
+                gap: 0.55rem;
+                align-items: stretch;
+            }
+
+            .media-file-button {
+                width: 100%;
+                min-width: 0;
+                min-height: 38px;
+                font-size: 0.85rem;
+                justify-self: stretch;
+            }
+
+            .media-file-button::before {
+                font-size: 0.95rem;
+            }
         }
     </style>
 </head>
