@@ -1064,8 +1064,15 @@
         flex-direction: row;
         justify-content: center;
         flex-wrap: wrap;
-        gap: .7rem;
-        margin: 1.25rem auto 1.05rem;
+        gap: .65rem;
+        width: min(100%, var(--athlete-modal-section-width));
+        margin: 1rem auto 1.35rem;
+        padding: .6rem;
+        box-sizing: border-box;
+        background: rgba(246,244,237,.055);
+        border: 1px solid rgba(246,244,237,.16);
+        border-radius: 20px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 24px rgba(0,0,0,.15);
     }
     #detailsModal .athlete-links a,
     #detailsModal .athlete-links button,
@@ -1075,8 +1082,8 @@
     }
     #detailsModal .athlete-links a,
     #detailsModal .athlete-links button{
-        min-height: 0;
-        padding: .5rem .85rem;
+        min-height: 44px;
+        padding: .55rem 1rem;
         border: 1px solid var(--athlete-modal-cream-border);
         border-radius: 999px;
         background: rgba(246,244,237,.08);
@@ -1086,6 +1093,7 @@
         font-family: inherit;
         cursor: pointer;
         gap: .4rem;
+        line-height: 1.15;
     }
     #detailsModal .athlete-links button{
         appearance: none;
@@ -1798,6 +1806,19 @@
             padding:.85rem 1rem;
             border-radius:16px;
             text-wrap:balance;
+        }
+        #detailsModal .athlete-links{
+            width:calc(100% - 1.5rem);
+            max-width:calc(100% - 1.5rem);
+            margin:.85rem auto 1.2rem;
+            padding:.55rem;
+            border-radius:18px;
+            gap:.55rem;
+        }
+        #detailsModal .athlete-links a,
+        #detailsModal .athlete-links button{
+            flex:1 1 10rem;
+            padding:.55rem .85rem;
         }
         #detailsModal .age-visualization{
             margin-top:1.25rem;

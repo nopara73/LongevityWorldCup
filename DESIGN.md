@@ -81,3 +81,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Leaderboard toolbar controls should share a 44px control rhythm across view switches, search fields, and filter buttons; on mobile, view switches should span the toolbar width so the control stack feels aligned.
 
 - Athlete modal bio copy should sit in a subtle constrained panel when it appears between framed modal sections, so profile intent reads as first-class content instead of loose text.
+
+- Athlete modal action links should align to the same section width as neighboring modal cards and keep 44px tap targets, so sharing and external-link actions read as one control cluster.
