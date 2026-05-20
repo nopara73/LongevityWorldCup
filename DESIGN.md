@@ -27,3 +27,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Proof upload previews use a centered card with a clearly tappable remove control and a compact checklist panel. This keeps Convergence proof submission aligned with the standalone proof-upload surface that uses the same helper.
 
 - Proof upload images sit in a bounded `object-fit: contain` preview frame so unusual receipt, lab-report, or generated image ratios do not dominate the mobile flow.
+
+- Convergence upload steps use constrained full-width action blocks and compact guidance panels instead of narrow one-off upload buttons, keeping profile and proof upload steps aligned.
