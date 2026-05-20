@@ -105,3 +105,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Mobile proof galleries inside the athlete modal should avoid nested scrolling when proof cards are stacked; let the modal handle vertical scroll so document previews are not clipped inside the section.
 
 - Leaderboard filter rows should read as compact row controls with clear active, unavailable, and count states; on mobile, the filter drawer should sit above the leaderboard card rather than being clipped by it.
+
+- Active filter drawers should give the clear action a real control shape, and mobile drawers should dim the page behind them so the foreground panel reads as the current surface.
