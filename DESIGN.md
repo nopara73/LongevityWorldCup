@@ -33,3 +33,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Convergence profile crop previews use the same centered card treatment as proof previews so selected images feel anchored before the crop/save action.
 
 - Convergence helper and confirmation copy should sit in light bordered panels when it explains an adjacent form field, making the form easier to scan than loose paragraphs between inputs.
+
+- Character counters should sit outside text inputs as compact status pills when space allows, so they do not cover typed content or resize handles.
