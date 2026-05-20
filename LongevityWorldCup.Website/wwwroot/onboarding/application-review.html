@@ -13,9 +13,10 @@
             max-width: 720px;
             margin: 2.25rem auto;
             padding: 1.75rem;
-            background: rgba(255, 255, 255, 0.68);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 12px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
             text-align: center;
         }
 
@@ -56,14 +57,23 @@
         }
 
         .application-review-copy.primary {
+            max-width: 560px;
+            margin-top: 1rem;
+            padding: 0.95rem 1.05rem;
+            border: 1px solid rgba(76, 175, 80, 0.22);
+            border-radius: 8px;
+            background: rgba(240, 253, 244, 0.68);
             font-size: 1.02rem;
-            color: #3f4a56;
+            color: #334155;
+            box-sizing: border-box;
         }
 
         .application-review-highlight {
-            color: #4CAF50;
+            color: #2e7d32;
             font-weight: 700;
             text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 0.14em;
         }
 
         .application-review-actions {
@@ -82,9 +92,8 @@
 
         @media (max-width: 600px) {
             .application-review-panel {
-                margin: 1rem 0.75rem;
-                padding: 1rem 0.85rem 1.15rem;
-                border-radius: 14px;
+                margin: 1.2rem 0.75rem;
+                padding: 1.15rem 0.85rem 1.15rem;
             }
 
             .application-review-title {
@@ -110,6 +119,11 @@
                 margin-top: 0.65rem;
                 font-size: 0.95rem;
                 line-height: 1.4;
+            }
+
+            .application-review-copy.primary {
+                padding: 0.85rem 0.9rem;
+                line-height: 1.42;
             }
 
             .application-review-actions {
