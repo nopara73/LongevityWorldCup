@@ -129,10 +129,6 @@
             margin-left: 0 !important; /* Resets left margin */
         }
 
-        #profileUploadSection {
-            width: 100%;
-        }
-
         .convergence-main [data-aos]:not(.aos-animate) {
             opacity: 1;
             transform: none;
@@ -193,6 +189,11 @@
         #whyField .char-counter {
             bottom: 1.55rem;
             right: 1.75rem;
+        }
+
+        #profileUploadSection .option-button {
+            width: min(100%, 260px);
+            white-space: nowrap;
         }
 
         @media (max-width: 600px) {
@@ -293,7 +294,8 @@
                     </span>
                 </p>
             </div>
-            <div id="profileUploadSection">
+            <fieldset id="profileUploadSection">
+                <legend>Profile photo</legend>
                 <div id="uploadPart" style="display:block">
                     <p><strong>Upload a clear headshot:</strong></p>
                     <ol class="smaller-text" style="padding-left: 20px; line-height: 1.6;">
@@ -312,7 +314,7 @@
                         Crop and save
                     </button>
                 </div>
-            </div>
+            </fieldset>
             <div id="proofUploadSection" style="width:90%;">
                 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
