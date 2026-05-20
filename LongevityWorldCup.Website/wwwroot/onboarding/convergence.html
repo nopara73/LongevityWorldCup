@@ -100,27 +100,84 @@
             margin: 0 auto;
         }
 
+        #proofImageContainer {
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 1rem auto 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        #proofImageContainer:empty,
+        #proofImageContainer:not(:has(img)) {
+            display: none !important;
+        }
+
+        #proofImageContainer p {
+            margin: 0 0 0.75rem;
+            color: #111827;
+            font-weight: 700;
+        }
+
         #proofImageContainer div {
             position: relative;
-            display: inline-block;
-            margin: 0.5rem;
+            display: block !important;
+            margin: 0 !important;
+            padding: 0.45rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         #proofImageContainer img {
-            max-width: 200px;
-            border: 2px solid var(--dark-text-color);
-            border-radius: 8px;
+            display: block !important;
+            width: 100%;
+            max-width: 100% !important;
+            border: 0 !important;
+            border-radius: 6px;
         }
 
         #proofImageContainer button {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            background-color: rgba(255, 0, 0, 0.7);
+            top: 0.75rem !important;
+            right: 0.75rem !important;
+            min-height: 32px;
+            padding: 0.35rem 0.65rem !important;
+            background-color: #b91c1c !important;
             color: var(--light-text-color);
             border: none;
-            border-radius: 3px;
+            border-radius: 999px !important;
+            box-shadow: 0 3px 8px rgba(127, 29, 29, 0.28);
             cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        #biomarker-checklist {
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 1.25rem auto 1.35rem;
+            padding: 0.9rem 1.05rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            box-sizing: border-box;
+            color: #222;
+        }
+
+        #biomarker-checklist h4 {
+            margin: 0 0 0.35rem !important;
+            color: #111827;
+        }
+
+        #biomarker-checklist p {
+            margin: 0 !important;
+            color: #334155;
+            line-height: 1.35;
         }
 
         /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
@@ -240,6 +297,10 @@
             #descriptionForm .sub-progress-container {
                 margin-bottom: 1rem;
                 padding-inline: 12px;
+            }
+
+            #biomarker-checklist {
+                margin: 1.05rem auto 1.1rem;
             }
         }
 

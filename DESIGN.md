@@ -23,3 +23,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Bioage CRP negative toggles sit in a compact helper panel with a 44px label target so the optional switch reads as part of the opened biomarker card.
 
 - Bioage final calculate CTAs are centered with an explicit max width instead of inline full-width styles so step actions stay visually consistent across Bortz and Pheno.
+
+- Proof upload previews use a centered card with a clearly tappable remove control and a compact checklist panel. This keeps Convergence proof submission aligned with the standalone proof-upload surface that uses the same helper.
