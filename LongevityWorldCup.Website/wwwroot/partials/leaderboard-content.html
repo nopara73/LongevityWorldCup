@@ -379,12 +379,20 @@
         border-radius:12px; box-sizing:border-box; cursor:pointer; color:#555; line-height:1.25;
         background:rgba(0,0,0,.025); transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
     }
-    .filter-section label.is-zero-count:not(.active){ opacity:.58; cursor:default; }
-    .filter-section label.is-zero-count:not(.active) input[type="checkbox"]{ pointer-events:none; }
+    .filter-section label.is-zero-count:not(.active){
+        color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055); border-style:dashed;
+        cursor:not-allowed; box-shadow:none; filter:grayscale(.65);
+    }
+    .filter-section label.is-zero-count:not(.active) input[type="checkbox"]{
+        pointer-events:none; opacity:.45; cursor:not-allowed;
+    }
     .filter-section input[type="checkbox"]{
         flex:0 0 auto; width:18px; height:18px; margin:0 .55rem 0 0; accent-color:var(--primary-color); cursor:inherit;
     }
     .filter-section label:hover{ color:var(--primary-color); background:rgba(0,188,212,.06); border-color:rgba(0,188,212,.18); }
+    .filter-section label.is-zero-count:not(.active):hover{
+        color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055);
+    }
     .filter-section label.active{
         font-weight:bold; color:var(--secondary-color); background:rgba(0,188,212,.1); border-color:rgba(0,188,212,.28);
         box-shadow:inset 0 0 0 1px rgba(0,188,212,.05);
@@ -393,6 +401,7 @@
         color:#666; font-size:.95em; font-weight:700;
     }
     .filter-section label.active .filter-count{ color:var(--secondary-color); }
+    .filter-section label.is-zero-count:not(.active) .filter-count{ color:#909090; }
     .filter-section input[type="checkbox"]:focus-visible{ outline:2px solid var(--secondary-color); outline-offset:2px; }
 
     /* =========================
