@@ -53,3 +53,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Poster-like onboarding/play visuals should use the same modest border, radius, and shadow language as adjacent image surfaces when they sit directly above stacked action buttons.
 
 - Helper or discount panels that appear inside a stacked action block should align to the same width as the surrounding actions unless there is a clear reason to make them narrower.
+
+- Edit-profile text fields, selects, and textareas should share the same inherited font, light border, modest radius, and cyan focus ring so editable profile details do not switch visual languages mid-form.
