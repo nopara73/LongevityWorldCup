@@ -480,6 +480,10 @@
         overflow: hidden;
         white-space: nowrap;
         display: inline-block;
+        max-width: 100%;
+        box-sizing: border-box;
+        line-height: 1.08;
+        text-align: center;
         /* steps() can take a var() number for the step count */
         animation: typing 2s steps(var(--ch), end) forwards;
     }
@@ -490,7 +494,7 @@
         }
         /* multiply the integer in --ch by 1ch */
         to {
-            width: calc(var(--ch) * 1ch);
+            width: min(calc(var(--ch) * 1.35ch), 100%);
         }
     }
 
@@ -774,6 +778,8 @@
     #detailsModal .gma-heading,
     #detailsModal .chrono-age-heading {
         color: var(--athlete-modal-text, rgba(255,255,255,.94));
+        font-size: clamp(2.1rem, 4.5vw, 2.75rem);
+        margin-bottom: clamp(1.55rem, 3vh, 2rem);
         text-shadow: 0 2px 16px rgba(0,0,0,.4);
     }
     #detailsModal #gmaRange {

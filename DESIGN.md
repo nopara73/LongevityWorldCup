@@ -75,3 +75,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Dashboard titles that render athlete-provided names should use a tight line-height and responsive mobile sizing so long display names stay readable without pushing the action stack too far down.
 
 - Dashboard action buttons should wrap generated text in a label span and keep icons in fixed edge slots, so long action names stay centered when they wrap on narrow screens.
+
+- Animated text-reveal headings should size against the rendered font, not just the character count, so bold display text does not clip its final characters.
