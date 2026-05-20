@@ -33,6 +33,17 @@
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
+    .bioageform select {
+        padding-right: 2.25rem;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 12px 12px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
     .bioageform input:focus,
     .bioageform select:focus,
     .bioageform textarea:focus {
@@ -50,16 +61,19 @@
 
 /* Fieldset Styles */
 .bioageform fieldset {
-    border: 1px solid #ccc;
-    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.72);
+    padding: 1.15rem;
     margin-top: 2rem;
-    border-radius: 8px;
+    border-radius: 10px;
     width: 90%; /* Allow fieldset to fill available space */
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .bioageform legend {
     font-weight: bold;
     padding: 0 0.5rem;
+    color: #2d3748;
 }
 
 .bioageform legend .category-icon {
