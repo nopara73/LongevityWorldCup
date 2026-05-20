@@ -15,3 +15,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - `bioageform` legends use a small surface-label treatment so section titles sit clearly on grouped controls instead of competing with the fieldset border.
 
 - Onboarding fieldsets that represent a distinct step section should use a short legend when neighboring step sections do, so multi-step forms keep a consistent scanning rhythm.
+
+- Bioage biomarker accordion cards use white card surfaces, soft slate borders, and a compact circular toggle affordance so dense lab groups scan clearly inside the lighter fieldsets.
