@@ -99,3 +99,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Athlete modal segmented controls should follow the same 44px control rhythm as other modal actions, especially when switching chart or data views.
 
 - Mobile athlete stat tables should keep stacked labels and values, but use compact row spacing and muted, smaller labels so long stat lists scan without excessive vertical drift.
+
+- Adjacent athlete modal cards should avoid double-stacking vertical margins; keep the relationship between action clusters and the next data card close enough to read as one flow.
