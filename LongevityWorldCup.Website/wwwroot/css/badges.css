@@ -128,28 +128,41 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 
 @media (max-width:768px){
     #detailsModal .modal-badge-strip{
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        justify-items:center;
+        align-items:start;
         width:calc(100% - 1.5rem)!important;
         max-width:calc(100% - 1.5rem)!important;
         box-sizing:border-box;
-        gap:.25rem;
-        padding:.65rem .45rem;
+        gap:.7rem .35rem;
+        padding:.75rem .55rem;
         margin:.45rem auto .9rem;
     }
     #detailsModal .modal-badge-strip .modal-badge-item{
-        flex:0 1 calc(50% - .75rem);
-        max-width:none;
-        margin:.25rem;
+        width:100%;
+        max-width:92px;
+        margin:0;
     }
     #detailsModal .modal-badge-strip .badge-class{
-        width:54px;
-        height:54px;
-        font-size:1.55rem;
+        width:50px;
+        height:50px;
+        font-size:1.45rem;
         margin:.15rem;
     }
     #detailsModal .modal-badge-strip .modal-badge-name{
         width:auto;
-        max-width:110px;
-        font-size:.7rem;
+        max-width:86px;
+        font-size:.66rem;
+        line-height:1.12;
+    }
+    #detailsModal .modal-badge-item:hover .modal-badge-detail{
+        display:none;
+    }
+    #detailsModal .modal-badge-item:hover .modal-badge-name{
+        -webkit-line-clamp:3;
+        max-height:none;
+        overflow:hidden;
     }
     #detailsModal .badge-class{pointer-events:none;cursor:default}
     #detailsModal .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}

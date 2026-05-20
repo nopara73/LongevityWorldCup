@@ -93,3 +93,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Athlete modal proof thumbnails should use taller stacked frames on mobile so portrait lab reports remain inspectable instead of collapsing into shallow strips.
 
 - Full-screen proof/image viewers should use a 44px-or-larger safe-area-aware close target and a strong enough backdrop that the underlying modal does not compete with the inspected document.
+
+- Athlete modal badge strips should stay compact on mobile by using a predictable grid; badges are visual tokens first, so avoid two-column layouts or accidental hover expansion that turn many badges into a long vertical detour.
