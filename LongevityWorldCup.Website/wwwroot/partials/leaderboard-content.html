@@ -372,17 +372,18 @@
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; margin-right:.5rem; }
     #athleteSearch{
-        width:100%; padding:.5rem 2.5rem .5rem 1rem; border:2px solid var(--primary-color); border-radius:25px; font-size:1rem;
+        width:100%; padding:.5rem 4.75rem .5rem 1rem; border:2px solid var(--primary-color); border-radius:25px; font-size:1rem;
         transition:border-color .3s ease; outline:none; box-sizing:border-box;
     }
     #athleteSearch:focus{ border-color:var(--secondary-color); }
     .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
     .clear-icon{
-        position:absolute; right:3rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; cursor:pointer; z-index:2;
-        opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s ease;
+        position:absolute; right:2.5rem; top:50%; transform:translateY(-50%); width:2rem; height:2rem;
+        display:inline-flex; align-items:center; justify-content:center; color:var(--primary-color); font-size:1.05rem; cursor:pointer; z-index:2;
+        border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s ease, color .2s ease;
     }
     .clear-icon.visible{ opacity:1; visibility:visible; }
-    .clear-icon:hover{ color:var(--secondary-color); }
+    .clear-icon:hover, .clear-icon:focus-visible{ color:var(--secondary-color); }
 
     /* =========================
        5b) Leaderboard view switcher (Bortz / Pheno) – optional toggles
@@ -1410,9 +1411,9 @@
             margin-left:0; order:1;
         }
         .search-container{ flex:1 1 auto; min-width:0; width:auto; max-width:none; margin-top:0; margin-right:0; }
-        #athleteSearch{ padding:.5rem 2.5rem .5rem 1rem; font-size:1rem; }
+        #athleteSearch{ padding:.5rem 4.75rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
-        .clear-icon{ right:3rem; }
+        .clear-icon{ right:2.5rem; }
         .search-wrapper{ display:flex; align-items:center; gap:.45rem; flex:1; min-width:0; width:100%; order:2; }
 
         .sidebar-toggle{ align-self:center; width:40px; height:40px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
