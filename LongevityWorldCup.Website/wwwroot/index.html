@@ -23,7 +23,7 @@
         .dialog-content {
             background-color: #fefefe;
             margin: 5% auto;
-            padding: 20px;
+            padding: 2.25rem 1.25rem 1.25rem;
             border: none;
             border-radius: 15px;
             text-align: center;
@@ -33,6 +33,7 @@
             overflow-y: auto;
             max-height: 90vh;
             animation: fadeIn 0.5s ease-out;
+            position: relative;
         }
 
         .checkmark-container::before {
@@ -50,6 +51,26 @@
         .dialog-content * {
             position: relative;
             z-index: 1;
+        }
+
+        .dialog-content .close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 44px;
+            height: 44px;
+            background: rgba(15, 23, 42, 0.06);
+            color: rgba(15, 23, 42, 0.68);
+            z-index: 2;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .dialog-content .close:hover,
+        .dialog-content .close:focus-visible {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.14);
+            outline: none;
         }
 
         .dialog-content p {
