@@ -158,6 +158,9 @@
 
             .media-kit-primary-download {
                 width: 100%;
+                padding-inline: 0.9rem;
+                font-size: 0.92rem;
+                white-space: nowrap;
             }
 
             .media-file-row {
@@ -186,6 +189,14 @@
 
             .media-file-button::before {
                 font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 340px) {
+            .media-kit-primary-download {
+                gap: 0.35rem;
+                padding-inline: 0.75rem;
+                font-size: 0.86rem;
             }
         }
     </style>
