@@ -312,12 +312,18 @@
     }
 
     .sidebar-close{
-        display:none; background:none; border:none; font-size:1.5rem; color:var(--primary-color); cursor:pointer;
-        position:absolute; top:3px; right:3px; z-index:10; transition:background-color .3s ease, color .3s ease;
-        width:44px; height:44px; border-radius:50%;
+        display:none; align-items:center; justify-content:center; background:rgba(0,188,212,.08); border:1px solid rgba(0,188,212,.22);
+        font-size:1rem; color:var(--primary-color); cursor:pointer; position:absolute; top:.9rem; right:.9rem; z-index:10;
+        transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
+        width:44px; height:44px; border-radius:50%; box-sizing:border-box;
     }
     .sidebar.expanded .sidebar-close{ display:block; }
-    .sidebar-close:hover{ background:var(--primary-color); color:var(--card-bg); transform:scale(1.1); }
+    .sidebar-close i{ font-size:.95rem; line-height:1; }
+    .sidebar-close:hover,
+    .sidebar-close:focus-visible{
+        background:var(--primary-color); border-color:var(--primary-color); color:var(--card-bg); box-shadow:0 8px 18px rgba(0,188,212,.22);
+        outline:none; transform:translateX(-1px);
+    }
 
     .collapsed-title{
         display:block; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
@@ -1995,7 +2001,7 @@
 
         <div class="leaderboard">
             <div class="sidebar">
-                <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-chevron-left" style="font-size: 12px;"></i></button>
+                <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-chevron-left"></i></button>
                 <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>

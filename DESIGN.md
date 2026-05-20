@@ -107,3 +107,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Leaderboard filter rows should read as compact row controls with clear active, unavailable, and count states; on mobile, the filter drawer should sit above the leaderboard card rather than being clipped by it.
 
 - Active filter drawers should give the clear action a real control shape, and mobile drawers should dim the page behind them so the foreground panel reads as the current surface.
+
+- Drawer close controls should be visible framed 44px targets when the drawer itself is a foreground surface, instead of tiny loose icons near the panel edge.
