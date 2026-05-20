@@ -180,6 +180,16 @@
             margin-right: 0 !important;
         }
 
+        .convergence-helper-text {
+            margin: 0.55rem 0 0;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        .convergence-helper-text + label {
+            margin-top: 1.35rem;
+        }
+
         @media (max-width: 600px) {
             .convergence-actions {
                 width: min(100%, 320px);
@@ -308,10 +318,12 @@
                 <div id="biomarker-checklist"></div>
             </div>
             <fieldset id="finalDetails">
+                <legend>Public profile</legend>
+
                 <!-- Link to Personal Page (Optional) -->
                 <label for="personalLink">Link (optional)</label>
                 <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
-                <p style="margin-top: 0.5rem; color: #555;">
+                <p class="convergence-helper-text">
                     Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
                 </p>
 
@@ -319,7 +331,7 @@
                 <label for="mediaContact">Media contact (required)</label>
                 <input id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@coolpeopleonly.com">
 
-                <p style="margin-top: 0.5rem; color: #555;">
+                <p class="convergence-helper-text">
                     <span class="smaller-text">
                         Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
                     </span>
