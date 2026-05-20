@@ -47,3 +47,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Decision cards with substantially different content heights should size to their own content instead of stretching to match the tallest card when stretching creates large empty space before the call to action.
 
 - End-of-flow confirmation/status copy should be grouped in a light bordered panel when it is the primary message below an illustration, so the page reads as a clear result state instead of loose supporting text.
+
+- Autocomplete menus that open above nearby action buttons should reserve vertical space while open, so suggestions do not cover the next available control on mobile or short desktop viewports.
