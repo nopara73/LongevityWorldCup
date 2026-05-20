@@ -191,7 +191,8 @@
             right: 1.75rem;
         }
 
-        #profileUploadSection .option-button {
+        #profileUploadSection .option-button,
+        #proofUploadSection .option-button {
             width: min(100%, 260px);
             white-space: nowrap;
         }
@@ -315,15 +316,16 @@
                     </button>
                 </div>
             </fieldset>
-            <div id="proofUploadSection" style="width:90%;">
+            <fieldset id="proofUploadSection">
+                <legend>Proof upload</legend>
                 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
                     <button type="button" id="uploadProofButton" class="option-button grey">Upload proofs</button>
                 </div>
                 <!-- Proof Image Container -->
-                <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
+                <div id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></div>
                 <div id="biomarker-checklist"></div>
-            </div>
+            </fieldset>
             <fieldset id="finalDetails">
                 <legend>Public profile</legend>
 
