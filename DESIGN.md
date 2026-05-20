@@ -79,3 +79,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Animated text-reveal headings should size against the rendered font, not just the character count, so bold display text does not clip its final characters.
 
 - Leaderboard toolbar controls should share a 44px control rhythm across view switches, search fields, and filter buttons; on mobile, view switches should span the toolbar width so the control stack feels aligned.
+
+- Athlete modal bio copy should sit in a subtle constrained panel when it appears between framed modal sections, so profile intent reads as first-class content instead of loose text.
