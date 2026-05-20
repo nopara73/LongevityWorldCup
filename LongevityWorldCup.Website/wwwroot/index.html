@@ -972,12 +972,13 @@
         .lwc-merch-mobile-dots {
             display: flex;
             justify-content: center;
-            gap: 0.15rem;
+            gap: 0.2rem;
+            margin-top: 0.1rem;
         }
 
         .lwc-merch-mobile-dot {
-            width: 2rem;
-            height: 2rem;
+            width: 44px;
+            height: 44px;
             padding: 0;
             border: 0;
             border-radius: 999px;
@@ -991,21 +992,27 @@
 
         .lwc-merch-mobile-dot::before {
             content: "";
-            width: 0.72rem;
-            height: 0.72rem;
+            width: 0.6rem;
+            height: 0.6rem;
             border-radius: inherit;
             background: rgba(0, 188, 212, 0.22);
-            transition: transform 180ms ease, background-color 180ms ease;
+            transition: width 180ms ease, transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
         }
 
         .lwc-merch-mobile-dot.is-active::before {
-            background: rgba(0, 188, 212, 0.9);
-            transform: scale(1.12);
+            width: 1.55rem;
+            background: rgba(0, 188, 212, 0.92);
+            box-shadow: 0 4px 10px rgba(0, 188, 212, 0.22);
+        }
+
+        .lwc-merch-mobile-dot:hover {
+            background: rgba(0, 188, 212, 0.08);
         }
 
         .lwc-merch-mobile-dot:focus-visible {
-            outline: 2px solid rgba(0, 188, 212, 0.35);
-            outline-offset: 2px;
+            background: rgba(0, 188, 212, 0.1);
+            outline: 3px solid rgba(0, 188, 212, 0.32);
+            outline-offset: 0;
         }
 
         /* mobile: stack the cards */
