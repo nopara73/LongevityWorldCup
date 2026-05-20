@@ -13,6 +13,7 @@ This is a living record of durable UI decisions for Longevity World Cup. Update 
 
 - Use existing content widths before inventing new ones: homepage sections generally align to the leaderboard/card rhythm, with generous but not ornamental spacing.
 - Cards should feel related across the site: light surfaces, modest shadow, rounded corners, and compact internal spacing. Avoid nesting cards inside other cards.
+- Fieldsets and grouped form sections should look intentional, with subtle borders/backgrounds that match card surfaces rather than browser-default boxes.
 - On mobile, controls and key content should stack predictably without horizontal overflow. Always verify at a narrow viewport after spacing changes.
 - Sticky elements must not cover anchor targets or primary actions. Preserve scroll padding and reserved space around sticky headers.
 
