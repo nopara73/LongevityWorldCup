@@ -417,6 +417,24 @@
                 margin-right:6px;
             }
         }
+        @media (max-width:420px){
+            :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.main-row,
+            :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable tbody tr.events-skeleton-row{
+                grid-template-columns:38px minmax(0,1fr);
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board.athlete-scroll #eventsTable td.col-date{
+                display:none !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.main-row > td:first-child,
+            :root[data-embed-theme="dark"] #events-embed-root .events-board tbody tr.events-skeleton-row > td:first-child{
+                padding-left:8px !important;
+                padding-right:8px !important;
+            }
+            :root[data-embed-theme="dark"] #events-embed-root .events-board td.event-message{
+                padding-left:4px !important;
+                padding-right:10px !important;
+            }
+        }
     </style>
 </head>
 <body>
