@@ -140,7 +140,6 @@
                 box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
             }
 
-        /* center the cropper modal and its buttons */
         #changeProfileCropperModal {
             display: none;
             position: fixed;
@@ -149,41 +148,48 @@
             transform: translate(-50%, -50%);
             background: white;
             z-index: 10000;
-            padding: 1.5rem;
-            width: 80vw;
-            max-width: 360px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+            padding: 1.25rem;
+            width: min(calc(100vw - 2rem), 430px);
+            max-width: 430px;
+            border: 1px solid rgba(15, 23, 42, 0.12);
             border-radius: 8px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1rem;
+            gap: 0.95rem;
         }
 
             #changeProfileCropperModal button {
-                margin-top: 0.5rem;
+                margin-top: 0;
                 width: auto;
             }
 
-            /* make the modal’s inner options fill its container */
             #changeProfileCropperModal .options-container {
                 width: 100%;
-                max-width: none; /* override any global cap */
+                max-width: none;
                 display: flex;
                 flex-direction: column;
-                gap: 0.75rem; /* adjust spacing between buttons if you like */
+                gap: 0.75rem;
+                margin: 0;
             }
 
             #changeProfileCropperModal .option-button {
                 width: 100%;
-                max-width: none; /* ensure they stretch edge-to-edge */
+                max-width: none;
             }
 
         #changeProfileCropperImage {
-            max-width: 100%;
-            max-height: 300px;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            max-height: min(54vh, 360px);
             object-fit: contain;
+            box-sizing: border-box;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #f8fafc;
         }
 
         /* dark backdrop & lock scroll when modal is open */
@@ -194,7 +200,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0,0,0,0.5);
+            background: rgba(15, 23, 42, 0.58);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
             z-index: 9998; /* sits just under the modal’s 10000 */
@@ -286,6 +292,15 @@
 
             .edit-profile-visual {
                 margin-bottom: 1.25rem;
+            }
+
+            #changeProfileCropperModal {
+                width: calc(100vw - 1.5rem);
+                padding: 1rem;
+            }
+
+            #changeProfileCropperImage {
+                max-height: min(48vh, 320px);
             }
         }
     </style>

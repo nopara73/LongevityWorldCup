@@ -59,3 +59,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Edit-profile autocomplete menus should use the same light floating-panel treatment as other polished autocomplete surfaces and reserve vertical space while open.
 
 - Inline restore controls in edit-profile rows should match the 44px field height so pending-change affordances stay tappable without stretching the row.
+
+- Profile cropper modals should keep the selected image in a bounded, lightly framed preview so unusual image proportions remain inspectable before saving.
