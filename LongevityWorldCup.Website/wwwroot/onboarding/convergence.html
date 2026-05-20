@@ -100,6 +100,42 @@
             margin: 0 auto;
         }
 
+        .convergence-upload-guidance {
+            width: min(100%, 408px);
+            margin: 0.75rem auto 1.2rem;
+            padding: 0.85rem 1rem 0.85rem 2.25rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.92);
+            box-sizing: border-box;
+            color: #334155;
+            line-height: 1.55;
+        }
+
+        .convergence-upload-guidance li + li {
+            margin-top: 0.25rem;
+        }
+
+        .convergence-upload-action {
+            width: min(100%, 408px);
+            min-width: 0;
+            max-width: 408px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.85rem;
+            margin: 1rem auto 0;
+        }
+
+        #profileUploadSection .convergence-upload-action .option-button,
+        #proofUploadSection .convergence-upload-action .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
         #proofImageContainer {
             width: min(100%, 408px);
             max-width: 408px;
@@ -273,12 +309,6 @@
             right: 1.75rem;
         }
 
-        #profileUploadSection .option-button,
-        #proofUploadSection .option-button {
-            width: min(100%, 260px);
-            white-space: nowrap;
-        }
-
         @media (max-width: 600px) {
             .convergence-actions {
                 width: min(100%, 320px);
@@ -300,6 +330,11 @@
             #descriptionForm .sub-progress-container {
                 margin-bottom: 1rem;
                 padding-inline: 12px;
+            }
+
+            .convergence-upload-guidance,
+            .convergence-upload-action {
+                width: min(100%, 320px);
             }
 
             #biomarker-checklist {
@@ -383,31 +418,33 @@
                 <legend>Profile photo</legend>
                 <div id="uploadPart" style="display:block">
                     <p><strong>Upload a clear headshot:</strong></p>
-                    <ol class="smaller-text" style="padding-left: 20px; line-height: 1.6;">
+                    <ol class="smaller-text convergence-upload-guidance">
                         <li>It must be you.</li>
                         <li>Face the camera directly.</li>
                         <li>Include head and shoulders.</li>
                     </ol>
-                    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
+                    <div class="convergence-upload-action">
                         <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
                         <button type="button" id="uploadButton" class="option-button grey">Upload profile picture</button>
                     </div>
                 </div>
                 <div id="croppingPart" style="display:none">
                     <img id="cropperImage" src="" alt="Selected profile image preview for cropping" style="max-width: 100%; display: block; margin: 0 auto;">
-                    <button type="button" id="cropButton" class="option-button" style="margin-top: 1rem; display: block; margin: 1rem auto 0;">
-                        Crop and save
-                    </button>
+                    <div class="convergence-upload-action">
+                        <button type="button" id="cropButton" class="option-button">
+                            Crop and save
+                        </button>
+                    </div>
                 </div>
             </fieldset>
             <fieldset id="proofUploadSection">
                 <legend>Proof upload</legend>
-                <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
+                <div class="convergence-upload-action">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
                     <button type="button" id="uploadProofButton" class="option-button grey">Upload proofs</button>
                 </div>
                 <!-- Proof Image Container -->
-                <div id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></div>
+                <div id="proofImageContainer"></div>
                 <div id="biomarker-checklist"></div>
             </fieldset>
             <fieldset id="finalDetails">
