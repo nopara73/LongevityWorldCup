@@ -85,3 +85,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Athlete modal action links should align to the same section width as neighboring modal cards and keep 44px tap targets, so sharing and external-link actions read as one control cluster.
 
 - Dense athlete modal stat tables should use subtle row separators and modest vertical padding, especially on mobile where label/value pairs stack.
+
+- Athlete modal chart controls should keep the same 44px touch rhythm as other modal actions, and chart panels should have a subtle edge so data areas remain distinct inside dark cards.
