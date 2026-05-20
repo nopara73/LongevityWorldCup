@@ -103,3 +103,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Adjacent athlete modal cards should avoid double-stacking vertical margins; keep the relationship between action clusters and the next data card close enough to read as one flow.
 
 - Mobile proof galleries inside the athlete modal should avoid nested scrolling when proof cards are stacked; let the modal handle vertical scroll so document previews are not clipped inside the section.
+
+- Leaderboard filter rows should read as compact row controls with clear active, unavailable, and count states; on mobile, the filter drawer should sit above the leaderboard card rather than being clipped by it.
