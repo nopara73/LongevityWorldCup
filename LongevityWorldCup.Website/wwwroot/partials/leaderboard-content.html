@@ -1863,8 +1863,11 @@
         }
         #detailsModal .proofs-gallery{
             grid-template-columns:1fr;
-            max-height:58vh;
+            max-height:none;
+            overflow:visible;
+            padding:.15rem;
             gap:.95rem;
+            scrollbar-gutter:auto;
         }
         #detailsModal .proof-item{
             aspect-ratio:4 / 5;
