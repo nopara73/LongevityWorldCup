@@ -51,3 +51,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Autocomplete menus that open above nearby action buttons should reserve vertical space while open, so suggestions do not cover the next available control on mobile or short desktop viewports.
 
 - Poster-like onboarding/play visuals should use the same modest border, radius, and shadow language as adjacent image surfaces when they sit directly above stacked action buttons.
+
+- Helper or discount panels that appear inside a stacked action block should align to the same width as the surrounding actions unless there is a clear reason to make them narrower.
