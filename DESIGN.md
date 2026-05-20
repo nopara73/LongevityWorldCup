@@ -101,3 +101,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Mobile athlete stat tables should keep stacked labels and values, but use compact row spacing and muted, smaller labels so long stat lists scan without excessive vertical drift.
 
 - Adjacent athlete modal cards should avoid double-stacking vertical margins; keep the relationship between action clusters and the next data card close enough to read as one flow.
+
+- Mobile proof galleries inside the athlete modal should avoid nested scrolling when proof cards are stacked; let the modal handle vertical scroll so document previews are not clipped inside the section.
