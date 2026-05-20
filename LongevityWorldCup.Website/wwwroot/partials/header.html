@@ -475,24 +475,43 @@
         }
     }
 
-    /* Make the label a flex-row aligned to the text baseline */
     #biomarker-checklist .biomarker-item {
-        display: inline-flex;
-        align-items: baseline;
-        vertical-align: middle;
-        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        min-height: 32px;
+        gap: 0.55rem;
+        padding: 0.25rem 0.4rem;
+        border-radius: 6px;
+        box-sizing: border-box;
+        color: #0f172a;
         font-weight: normal;
+        line-height: 1.25;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
     }
 
-    /* Reset any browser margins and nudge the checkbox into optical center */
+    #biomarker-checklist .biomarker-item:hover {
+        background: rgba(0, 188, 212, 0.08);
+    }
+
     #biomarker-checklist .biomarker-checkbox {
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
         margin: 0;
-        transform: translateY(1px);
+        accent-color: var(--primary-color, #00bcd4);
     }
 
-    /* Add a little space between checkbox and text */
-    #biomarker-checklist .biomarker-item span {
-        margin-left: 0.4em;
+    #biomarker-checklist .biomarker-checkbox:focus-visible {
+        outline: 3px solid rgba(0, 188, 212, 0.22);
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 600px) {
+        #biomarker-checklist .biomarker-item {
+            min-height: 36px;
+            padding: 0.3rem 0.45rem;
+        }
     }
 
     /* LOADING DIALOG */

@@ -63,3 +63,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Profile cropper modals should keep the selected image in a bounded, lightly framed preview so unusual image proportions remain inspectable before saving.
 
 - Proof-upload instruction copy should read as a compact light panel above the upload action, matching the checklist and helper-panel treatment used later in the same flow.
+
+- Proof tracker checklist rows should be label-sized tap targets with accent-colored checkboxes, keeping long biomarker lists scannable without reverting to raw browser defaults.
