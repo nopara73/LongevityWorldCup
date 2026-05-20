@@ -45,14 +45,23 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 0.5rem;
             min-height: 44px;
             padding: 0.78rem 1.25rem;
-            border-radius: 8px;
+            border-radius: 999px;
             background: #0a7c0a;
             color: #fff;
             font-weight: 700;
             text-decoration: none;
             box-shadow: 0 8px 18px rgba(10, 124, 10, 0.16);
+        }
+
+        .media-kit-primary-download::before {
+            content: "\f019";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.95em;
+            line-height: 1;
         }
 
         .media-kit-primary-download:hover,
