@@ -508,10 +508,8 @@
     }
 
     .custom-event-expander,
-    .custom-event-expander:hover,
     .custom-event-expander:focus,
-    .custom-event-expander:active,
-    .custom-event-expander:focus-visible{
+    .custom-event-expander:active{
         background:transparent !important;
         border:0 !important;
         box-shadow:none !important;
@@ -528,14 +526,20 @@
         align-items:center;
         justify-content:center;
 
-        width:18px;
-        height:18px;
-        margin-left:.35rem;
+        width:2rem;
+        height:2rem;
+        margin:-.45rem 0 -.45rem .2rem;
         padding:0;
 
         color:var(--events-text);
+        border-radius:50%;
+        box-sizing:border-box;
         cursor:pointer;
         vertical-align:middle;
+    }
+    .custom-event-expander:hover,
+    .custom-event-expander:focus-visible{
+        background:rgba(0,188,212,.08) !important;
     }
 
     .custom-event-expander::before{
