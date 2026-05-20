@@ -657,7 +657,15 @@
             white-space:normal;
             overflow-x:hidden;
             flex-wrap:wrap;
+            column-gap:.22rem;
             row-gap:.15rem;
+        }
+        .events-board.athlete-scroll td.col-avatar{
+            width:34px;
+            padding-right:8px;
+        }
+        .events-board.athlete-scroll td.event-message{
+            padding-left:2px;
         }
         .events-board.athlete-scroll td.event-message .event-message-cell *{
             white-space:normal;
@@ -681,6 +689,15 @@
         }
 
         .events-board:not(.athlete-scroll) table{
+            table-layout:auto;
+        }
+
+        .events-board.athlete-scroll td.col-date{
+            display:none;
+        }
+
+        .events-board.athlete-scroll #eventsTable thead,
+        .events-board.athlete-scroll #eventsTable tbody tr{
             table-layout:auto;
         }
     }
