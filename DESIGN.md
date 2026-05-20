@@ -77,3 +77,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Dashboard action buttons should wrap generated text in a label span and keep icons in fixed edge slots, so long action names stay centered when they wrap on narrow screens.
 
 - Animated text-reveal headings should size against the rendered font, not just the character count, so bold display text does not clip its final characters.
+
+- Leaderboard toolbar controls should share a 44px control rhythm across view switches, search fields, and filter buttons; on mobile, view switches should span the toolbar width so the control stack feels aligned.
