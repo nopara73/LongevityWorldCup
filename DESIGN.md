@@ -69,3 +69,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Uploaded proof success messages should appear as compact success panels directly above the preview card, so the confirmed upload state is grouped with the evidence being reviewed.
 
 - Multiple uploaded proof preview cards should keep a visible vertical gap between cards so each evidence image remains individually scannable on mobile and desktop.
+
+- Proof upload action shadows should follow the current button state: green depth while upload is the primary required action, neutral depth once it becomes a secondary add-more-proofs action.
