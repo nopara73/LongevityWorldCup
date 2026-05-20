@@ -39,3 +39,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Convergence stage-intro copy should use the same light bordered panel language as field helper copy when it sits under the stage image, so narrative text remains distinct from form controls.
 
 - Convergence field validation errors should appear as compact alert panels only when populated, rather than reserving empty space or showing bare red text.
+
+- Convergence autocomplete menus use a padded floating panel with rounded rows and an explicit inline match highlight, matching the form-control and helper-panel polish without changing selection behavior.
