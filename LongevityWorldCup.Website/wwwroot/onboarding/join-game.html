@@ -25,7 +25,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
         margin: 2rem 0;
-        align-items: stretch;
+        align-items: start;
       }
 
       @media (max-width: 700px) {
@@ -51,7 +51,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         background: #fff;
         display: grid;
-        grid-template-rows: auto auto 1fr auto;
+        grid-template-rows: auto auto auto auto;
         min-height: 0;
         overflow: hidden;
         transition:
@@ -61,7 +61,7 @@
 
       /* Pro card has 5 grid children (ribbon, h2, tagline, details, cta): row 1 forced to 0 so content aligns with Amateur card */
       .track-card.pro {
-        grid-template-rows: minmax(0, 0) auto auto 1fr auto;
+        grid-template-rows: minmax(0, 0) auto auto auto auto;
       }
 
       /* Ribbon lives in a slot so it’s anchored to the card corner, not the grid area */
@@ -196,7 +196,6 @@
         margin-top: 0.35rem;
         padding-top: 0.5rem;
         min-height: 0;
-        overflow-y: auto;
       }
 
       .track-card-meta {
@@ -231,7 +230,6 @@
 
       .track-card.pro .track-card-meta .entry-aside {
         color: #4b7c59;
-      }
       }
 
       .track-card li {
@@ -342,8 +340,7 @@
       }
 
       .track-card .card-cta {
-        margin-top: auto;
-        padding-top: 1rem;
+        margin-top: 1.35rem;
         display: flex;
         justify-content: center;
       }
