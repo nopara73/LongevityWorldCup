@@ -61,3 +61,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Inline restore controls in edit-profile rows should match the 44px field height so pending-change affordances stay tappable without stretching the row.
 
 - Profile cropper modals should keep the selected image in a bounded, lightly framed preview so unusual image proportions remain inspectable before saving.
+
+- Proof-upload instruction copy should read as a compact light panel above the upload action, matching the checklist and helper-panel treatment used later in the same flow.
