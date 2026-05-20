@@ -79,16 +79,20 @@
 
         .input-group {
             display: flex;
-            align-items: center;
+            align-items: stretch;
+            gap: 0.65rem;
             margin-top: 0.5rem;
         }
 
             .input-group input {
-                flex: 1;
+                flex: 1 1 auto;
+                min-width: 0;
+                margin-top: 0;
             }
 
             .input-group select {
-                margin-left: 0.5rem;
+                margin-top: 0;
+                margin-left: 0;
                 padding: 0.5rem;
                 border: 1px solid #ccc;
                 border-radius: 4px;
@@ -102,6 +106,16 @@
                 min-height: 44px; /* visually matches your other controls */
                 box-sizing: border-box;
             }
+
+        @media (max-width: 360px) {
+            .biomarker-card-content .input-group {
+                flex-wrap: wrap;
+            }
+
+                .biomarker-card-content .input-group select {
+                    flex: 1 1 8rem;
+                }
+        }
 
         /* Give all selects proper right padding and a consistent arrow */
         .bioageform select,
