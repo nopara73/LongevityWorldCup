@@ -95,3 +95,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Full-screen proof/image viewers should use a 44px-or-larger safe-area-aware close target and a strong enough backdrop that the underlying modal does not compete with the inspected document.
 
 - Athlete modal badge strips should stay compact on mobile by using a predictable grid; badges are visual tokens first, so avoid two-column layouts or accidental hover expansion that turn many badges into a long vertical detour.
+
+- Athlete modal segmented controls should follow the same 44px control rhythm as other modal actions, especially when switching chart or data views.
