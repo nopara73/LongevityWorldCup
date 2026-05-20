@@ -749,6 +749,17 @@
             margin-top: 1rem;
         }
 
+        .bioageform button.bioage-calculate-button {
+            width: 100%;
+            min-width: 0;
+            max-width: 400px;
+            display: flex;
+            box-sizing: border-box;
+            margin: 1.35rem auto 0;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
         @media (max-width: 480px) {
             #mainPageTitleH2 {
                 font-size: clamp(1.55rem, 7vw, 1.9rem);
@@ -1184,7 +1195,7 @@
                     </fieldset>
 
                     <!-- Calculate Button -->
-                    <button type="submit" class="option-button grey" aria-label="Calculate your biological age" style="width: 100%; display: block; box-sizing: border-box; margin-top: 1rem;">
+                    <button type="submit" class="option-button grey bioage-calculate-button" aria-label="Calculate your biological age">
                         <i class="fas fa-heartbeat"></i>&nbsp;Calculate my biological&nbsp;age
                     </button>
                 </section>
