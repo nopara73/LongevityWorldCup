@@ -65,15 +65,19 @@
             position: absolute;
             top: 100%;
             left: 0;
-            margin-top: 0.35rem;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            border-radius: 10px;
+            margin-top: 0.45rem;
+            padding: 0.25rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
             background-color: white;
             z-index: 9999;
-            max-height: 150px;
+            max-height: min(14rem, 42vh);
             overflow-y: auto;
             width: 100%;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
         }
 
             .autocomplete-items .autocomplete-active {
@@ -85,18 +89,30 @@
                 display: flex;
                 align-items: center;
                 min-height: 44px;
-                padding: 0.65rem 0.75rem;
+                padding: 0.6rem 0.7rem;
                 box-sizing: border-box;
                 cursor: pointer;
-                border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+                border-radius: 6px;
                 color: #2d3748;
                 font-size: 1rem;
                 line-height: 1.25;
             }
 
+                .autocomplete-items div + div {
+                    margin-top: 0.15rem;
+                }
+
                 .autocomplete-items div:hover {
                     background-color: rgba(0, 188, 212, 0.12);
                     color: #243446;
+                }
+
+                .autocomplete-items div strong {
+                    padding: 0 0.12rem;
+                    border-radius: 4px;
+                    background: rgba(0, 188, 212, 0.12);
+                    color: #007f90;
+                    font-weight: 800;
                 }
         /* Add a new class for the pointer cursor */
         .clickable {
