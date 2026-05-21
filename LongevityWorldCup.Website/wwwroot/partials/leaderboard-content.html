@@ -534,12 +534,14 @@
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable:hover::after{
         opacity:1;
     }
-    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge{
+    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge,
+    .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge{
         outline:2px solid var(--secondary-color); outline-offset:2px;
         color:var(--secondary-color); background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.08));
         box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
     }
-    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge.is-clearable::after{
+    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge.is-clearable::after,
+    .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge.is-clearable::after{
         background:rgba(255,64,129,.12); color:var(--secondary-color);
     }
 
@@ -4890,7 +4892,23 @@
             if ((event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') || this.value === 'ultimate' || !this.checked) return;
 
             event.preventDefault();
-            document.getElementById('view-ultimate').checked = true;
+            const defaultViewRadio = document.getElementById('view-ultimate');
+            if (!defaultViewRadio) return;
+
+            defaultViewRadio.checked = true;
+            document.querySelectorAll('input[name="leaderboardView"].is-keyboard-focus').forEach(input => {
+                input.classList.remove('is-keyboard-focus');
+            });
+            defaultViewRadio.classList.add('is-keyboard-focus');
+            defaultViewRadio.addEventListener('blur', () => {
+                defaultViewRadio.classList.remove('is-keyboard-focus');
+            }, { once: true });
+            try {
+                defaultViewRadio.focus({ preventScroll: true, focusVisible: true });
+            }
+            catch {
+                defaultViewRadio.focus({ preventScroll: true });
+            }
             performFilter();
         });
     });
