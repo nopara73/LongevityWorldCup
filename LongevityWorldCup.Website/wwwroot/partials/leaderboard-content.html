@@ -1573,7 +1573,10 @@
         #athleteSearch{ padding:.5rem 4.75rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
         .clear-icon{ right:2.5rem; }
-        .search-wrapper{ display:flex; align-items:center; gap:.45rem; flex:1; min-width:0; width:100%; order:2; }
+        .search-wrapper{
+            display:flex; align-items:center; gap:.45rem; flex:0 1 auto; min-width:0;
+            width:min(100%, 20.5rem); max-width:100%; order:2;
+        }
 
         .sidebar-toggle{ align-self:center; width:44px; height:44px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
 
