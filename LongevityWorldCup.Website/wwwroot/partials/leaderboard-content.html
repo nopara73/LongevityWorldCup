@@ -343,10 +343,13 @@
     }
     .sidebar.expanded .sidebar-close{ display:block; }
     .sidebar-close i{ font-size:.95rem; line-height:1; }
-    .sidebar-close:hover,
-    .sidebar-close:focus-visible{
+    .sidebar-close:hover{
         background:var(--primary-color); border-color:var(--primary-color); color:var(--card-bg); box-shadow:0 8px 18px rgba(0,188,212,.22);
         outline:none; transform:scale(1.04);
+    }
+    .sidebar-close:focus-visible{
+        background:var(--card-bg); border-color:var(--secondary-color); color:var(--secondary-color);
+        outline:none; transform:scale(1.04); box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(255,64,129,.16);
     }
 
     .collapsed-title{
