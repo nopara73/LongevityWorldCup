@@ -418,9 +418,12 @@
         color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055);
     }
     .filter-section label.active{
-        font-weight:bold; color:var(--secondary-color); background:rgba(0,188,212,.1); border-color:rgba(0,188,212,.28);
-        box-shadow:inset 0 0 0 1px rgba(0,188,212,.05);
+        font-weight:bold; color:var(--secondary-color);
+        background:linear-gradient(90deg, rgba(255,64,129,.13), rgba(0,188,212,.08));
+        border-color:rgba(255,64,129,.38);
+        box-shadow:inset 4px 0 0 var(--secondary-color), inset 0 0 0 1px rgba(255,64,129,.08), 0 6px 14px rgba(255,64,129,.08);
     }
+    .filter-section label.active input[type="checkbox"]{ accent-color:var(--secondary-color); }
     .filter-section .filter-count{
         color:#666; font-size:.95em; font-weight:700;
     }
