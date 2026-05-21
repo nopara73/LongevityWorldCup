@@ -446,7 +446,10 @@
         transition:border-color .3s ease, box-shadow .2s ease; outline:none; box-sizing:border-box;
     }
     #athleteSearch::placeholder{ color:#56666f; opacity:1; }
-    #athleteSearch:focus{ border-color:var(--secondary-color); box-shadow:0 0 0 3px rgba(0,188,212,.14); }
+    #athleteSearch:focus{
+        border-color:var(--secondary-color);
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
+    }
     .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
     .clear-icon{
         position:absolute; right:2.2rem; top:50%; transform:translateY(-50%); width:2.75rem; height:2.75rem;
