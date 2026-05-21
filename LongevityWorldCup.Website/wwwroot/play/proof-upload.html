@@ -341,7 +341,22 @@
     </main>
     <!--FOOTER-->
     <script>
-        const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        let athlete = null;
+
+        try {
+            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
+        } catch {
+            athlete = null;
+        }
+
+        if (!athlete || typeof athlete !== 'object' || !athlete.Name) {
+            sessionStorage.removeItem('selectedAthlete');
+            sessionStorage.removeItem('tempAthlete');
+            window.location.replace('/select-athlete');
+            athlete = {};
+        }
+
         let proofPics = [];
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
