@@ -356,7 +356,8 @@
         background:var(--primary-color); border-color:var(--primary-color); color:var(--card-bg); box-shadow:0 8px 18px rgba(0,188,212,.22);
         outline:none; transform:scale(1.04);
     }
-    .sidebar-close:focus-visible{
+    .sidebar-close:focus-visible,
+    .sidebar-close.is-keyboard-focus{
         background:var(--card-bg); border-color:var(--secondary-color); color:var(--secondary-color);
         outline:none; transform:scale(1.04); box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(255,64,129,.16);
     }
@@ -4884,14 +4885,40 @@
         event.preventDefault();
         event.stopPropagation();
         clearSidebarFilters();
+        focusAfterClearingSidebarFilters();
     });
     clearSidebarFiltersButton?.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
             event.preventDefault();
             event.stopPropagation();
             clearSidebarFilters();
+            focusAfterClearingSidebarFilters();
         }
     });
+    function focusAfterClearingSidebarFilters() {
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarClose = document.querySelector('.sidebar-close');
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const focusTarget = isMobileDrawer && sidebar?.classList.contains('expanded')
+            ? sidebarClose
+            : sidebarToggle;
+
+        if (!focusTarget) return;
+
+        requestAnimationFrame(() => {
+            focusTarget.classList.add('is-keyboard-focus');
+            focusTarget.addEventListener('blur', () => {
+                focusTarget.classList.remove('is-keyboard-focus');
+            }, { once: true });
+            try {
+                focusTarget.focus({ preventScroll: true, focusVisible: true });
+            }
+            catch {
+                focusTarget.focus({ preventScroll: true });
+            }
+        });
+    }
     document.addEventListener('click', function (event) {
         if (!event.target.closest('.show-all-athletes-btn')) return;
 
