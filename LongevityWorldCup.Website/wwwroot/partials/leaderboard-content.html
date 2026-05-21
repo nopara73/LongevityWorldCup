@@ -1491,12 +1491,24 @@
         .leaderboard-view-switcher{
             margin-left:0;
             order:1;
+            align-items:stretch;
+            width:100%;
+            max-width:100%;
+            min-width:0;
+            gap:.35rem;
+        }
+        .leaderboard-view-switcher .view-switcher-label{
+            flex:0 0 100%;
+            margin-right:0;
         }
         .leaderboard-view-switcher .view-switcher-chips{
             width:100%;
+            min-width:0;
         }
         .leaderboard-view-switcher .view-badge{
             flex:1 1 0;
+            min-width:0;
+            padding:.45rem .55rem;
         }
         .search-container{ flex:0 1 calc(100% - 52px); min-width:0; width:calc(100% - 52px); max-width:none; margin-top:0; }
         .search-wrapper{ display:flex; align-items:center; gap:.5rem; flex:1; min-width:0; width:100%; order:2; }
@@ -1539,13 +1551,16 @@
             backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:none;
         }
         .leaderboard-view-switcher{
-            margin-left:0; order:1;
+            margin-left:0; order:1; align-items:stretch; width:100%; max-width:100%; min-width:0; gap:.35rem;
+        }
+        .leaderboard-view-switcher .view-switcher-label{
+            flex:0 0 100%; margin-right:0;
         }
         .leaderboard-view-switcher .view-switcher-chips{
-            width:100%;
+            width:100%; min-width:0;
         }
         .leaderboard-view-switcher .view-badge{
-            flex:1 1 0;
+            flex:1 1 0; min-width:0; padding:.45rem .55rem;
         }
         .search-container{ flex:1 1 auto; min-width:0; width:auto; max-width:none; margin-top:0; margin-right:0; }
         #athleteSearch{ padding:.5rem 4.75rem .5rem 1rem; font-size:1rem; }
@@ -2016,7 +2031,8 @@
         </div>
 
         <div class="leaderboard-toolbar">
-            <div class="leaderboard-view-switcher" role="radiogroup" aria-label="Leaderboard view">
+            <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
+                <span class="view-switcher-label" id="leaderboardViewLabel">Ranking</span>
                 <div class="view-switcher-chips">
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked>
                     <label for="view-ultimate" class="view-badge" title="Show the overall Ultimate League ranking.">Overall</label>
