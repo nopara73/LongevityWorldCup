@@ -6278,8 +6278,8 @@
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
 
-    sidebarToggle.addEventListener('click', () => {
-        toggleSidebar();
+    sidebarToggle.addEventListener('click', (event) => {
+        toggleSidebar({ focusDrawerClose: event.detail === 0 });
     });
 
     sidebarToggle.addEventListener('mouseenter', () => {
@@ -6321,16 +6321,16 @@
         document.body.classList.toggle('sidebar-drawer-open', isMobileDrawer && sidebar.classList.contains('expanded'));
     }
 
-    function toggleSidebar() {
+    function toggleSidebar(options = {}) {
         if (sidebar.classList.contains('expanded')) {
             closeSidebar();
         }
         else {
-            openSidebar();
+            openSidebar(options);
         }
     }
 
-    function openSidebar() {
+    function openSidebar(options = {}) {
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.remove('collapsed');
 
@@ -6344,6 +6344,17 @@
 
         sidebarToggle.title = "Hide leagues";
         sidebarToggle.setAttribute('aria-label', 'Hide sidebar');
+
+        if (options.focusDrawerClose && window.matchMedia('(max-width: 768px)').matches) {
+            requestAnimationFrame(() => {
+                try {
+                    sidebarClose.focus({ preventScroll: true, focusVisible: true });
+                }
+                catch {
+                    sidebarClose.focus({ preventScroll: true });
+                }
+            });
+        }
 
         // Scroll to the leaderboard table
         if (canAutoScroll()) {
