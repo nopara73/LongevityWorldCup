@@ -6,7 +6,7 @@
     <style>
       /* Hide the join-game button in the header */
       .join-game {
-        display: none;
+        display: none !important;
       }
 
       /* Single content column so title, intro, and cards share the same width */
@@ -25,7 +25,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
         margin: 2rem 0;
-        align-items: stretch;
+        align-items: start;
       }
 
       @media (max-width: 700px) {
@@ -51,7 +51,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         background: #fff;
         display: grid;
-        grid-template-rows: auto auto 1fr auto;
+        grid-template-rows: auto auto auto auto;
         min-height: 0;
         overflow: hidden;
         transition:
@@ -61,7 +61,7 @@
 
       /* Pro card has 5 grid children (ribbon, h2, tagline, details, cta): row 1 forced to 0 so content aligns with Amateur card */
       .track-card.pro {
-        grid-template-rows: minmax(0, 0) auto auto 1fr auto;
+        grid-template-rows: minmax(0, 0) auto auto auto auto;
       }
 
       /* Ribbon lives in a slot so it’s anchored to the card corner, not the grid area */
@@ -116,6 +116,7 @@
       .track-card h2 {
         margin: 0 0 0.35rem;
         line-height: 1.2;
+        text-align: left;
         white-space: normal;
       }
 
@@ -195,7 +196,6 @@
         margin-top: 0.35rem;
         padding-top: 0.5rem;
         min-height: 0;
-        overflow-y: auto;
       }
 
       .track-card-meta {
@@ -231,7 +231,6 @@
       .track-card.pro .track-card-meta .entry-aside {
         color: #4b7c59;
       }
-      }
 
       .track-card li {
         margin: 0.25rem 0;
@@ -240,7 +239,7 @@
       /* Biomarkers section: distinct panel with label + list */
       .biomarkers-section {
         margin-top: 0.75rem;
-        padding: 0.875rem 1rem 1rem;
+        padding: 0.72rem 0.9rem 0.85rem;
         border-radius: 10px;
         border: 1px solid #e2e8f0;
         background: #f8fafc;
@@ -275,7 +274,7 @@
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: #475569;
-        margin: 0 0 0.6rem;
+        margin: 0 0 0.45rem;
       }
 
       .track-card.pro .biomarkers-section .biomarker-count {
@@ -299,9 +298,9 @@
       }
 
       .biomarkers-section .card-bio-list li {
-        margin: 0.2rem 0;
+        margin: 0.12rem 0;
         font-size: 0.8rem;
-        line-height: 1.35;
+        line-height: 1.28;
         color: #334155;
       }
 
@@ -326,7 +325,7 @@
         display: inline-block;
         width: 1.15em;
         text-align: center;
-        margin-right: 0.45rem;
+        margin-right: 0.36rem;
         color: #5a6c7d;
         font-size: 0.9em;
         vertical-align: middle;
@@ -341,8 +340,7 @@
       }
 
       .track-card .card-cta {
-        margin-top: auto;
-        padding-top: 1.25rem;
+        margin-top: 1.35rem;
         display: flex;
         justify-content: center;
       }
@@ -390,12 +388,12 @@
         }
 
         .track-card-meta {
-          grid-template-columns: 1fr;
-          gap: 0.2rem;
+          grid-template-columns: minmax(6.5em, auto) 1fr;
+          gap: 0.5rem 0.75rem;
         }
 
         .track-card-meta dt {
-          margin-top: 0.45rem;
+          margin-top: 0;
         }
 
         .track-card-meta dt:first-child {
@@ -418,6 +416,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
+        white-space: nowrap;
         color: #5c4a0a;
         background: linear-gradient(
           135deg,
@@ -434,6 +433,17 @@
         color: inherit;
         display: inline;
         margin-right: 0.05em;
+      }
+
+      @media (max-width: 1100px) {
+        .track-card-ribbon.prize-money > span {
+          right: -32px;
+          top: 22px;
+          width: 132px;
+          padding: 5px 10px;
+          font-size: 0.62rem;
+          letter-spacing: 0.035em;
+        }
       }
 
       .track-card-badge.street-cred {

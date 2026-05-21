@@ -8,7 +8,7 @@
     <style>
         /* Hide the join-game button in the header */
         .join-game {
-            display: none;
+            display: none !important;
         }
 
         .autocomplete-container {
@@ -32,10 +32,21 @@
         }
 
         .error-message {
-            color: red;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .error-message:not(:empty) {
             display: block;
+            margin-top: 0.55rem;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid rgba(220, 38, 38, 0.24);
+            border-radius: 8px;
+            background: rgba(254, 242, 242, 0.94);
+            color: #b91c1c;
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.35;
+            box-sizing: border-box;
         }
 
         .char-counter {
@@ -54,74 +65,228 @@
             position: absolute;
             top: 100%;
             left: 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            margin-top: 0.45rem;
+            padding: 0.25rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
             background-color: white;
             z-index: 9999;
-            max-height: 150px;
+            max-height: min(14rem, 42vh);
             overflow-y: auto;
             width: 100%;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
         }
 
             .autocomplete-items .autocomplete-active {
-                background-color: #0069d9;
-                color: var(--light-text-color);
+                background-color: rgba(0, 188, 212, 0.12);
+                color: #243446;
             }
 
             .autocomplete-items div {
-                padding: 10px;
-                cursor: default;
-                border-bottom: 1px solid #eee;
+                display: flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.6rem 0.7rem;
+                box-sizing: border-box;
+                cursor: pointer;
+                border-radius: 6px;
+                color: #2d3748;
+                font-size: 1rem;
+                line-height: 1.25;
             }
 
+                .autocomplete-items div + div {
+                    margin-top: 0.15rem;
+                }
+
                 .autocomplete-items div:hover {
-                    background-color: #0069d9; /* Blue hover color from the picture */
-                    color: var(--light-text-color); /* Ensure text is visible on blue background */
+                    background-color: rgba(0, 188, 212, 0.12);
+                    color: #243446;
+                }
+
+                .autocomplete-items div strong {
+                    padding: 0 0.12rem;
+                    border-radius: 4px;
+                    background: rgba(0, 188, 212, 0.12);
+                    color: #007f90;
+                    font-weight: 800;
                 }
         /* Add a new class for the pointer cursor */
         .clickable {
             cursor: pointer;
         }
 
-        /* Style for the cropping image */
-        #cropperImage {
-            max-width: 100%;
-            height: auto;
+        .convergence-upload-guidance {
+            width: min(100%, 408px);
+            margin: 0.75rem auto 1.2rem;
+            padding: 0.85rem 1rem 0.85rem 2.25rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.92);
+            box-sizing: border-box;
+            color: #334155;
+            line-height: 1.55;
+        }
+
+        .convergence-upload-guidance li + li {
+            margin-top: 0.25rem;
+        }
+
+        .convergence-upload-action {
+            width: min(100%, 408px);
+            min-width: 0;
+            max-width: 408px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.85rem;
+            margin: 1rem auto 0;
+        }
+
+        #profileUploadSection .convergence-upload-action .option-button,
+        #proofUploadSection .convergence-upload-action .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .convergence-crop-preview {
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 0.75rem auto 0;
+            padding: 0.45rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .convergence-crop-preview #cropperImage {
             display: block;
+            max-width: 100%;
+            max-height: 320px;
+            height: auto;
             margin: 0 auto;
+            border-radius: 6px;
+            background: #f8fafc;
+        }
+
+        .convergence-crop-preview .cropper-container {
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 6px;
+        }
+
+        #proofImageContainer {
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 1rem auto 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        #proofImageContainer:empty,
+        #proofImageContainer:not(:has(img)) {
+            display: none !important;
+        }
+
+        #proofImageContainer p {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            margin: 0 0 0.75rem;
+            padding: 0.6rem 0.85rem;
+            border: 1px solid rgba(22, 163, 74, 0.22);
+            border-radius: 8px;
+            background: rgba(240, 253, 244, 0.94);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 1px 2px rgba(15, 23, 42, 0.04);
+            box-sizing: border-box;
+            color: #166534;
+            font-weight: 700;
+            line-height: 1.25;
         }
 
         #proofImageContainer div {
             position: relative;
-            display: inline-block;
-            margin: 0.5rem;
+            display: block !important;
+            margin: 0 !important;
+            padding: 0.45rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        #proofImageContainer div + div {
+            margin-top: 0.85rem !important;
         }
 
         #proofImageContainer img {
-            max-width: 200px;
-            border: 2px solid var(--dark-text-color);
-            border-radius: 8px;
+            display: block !important;
+            width: 100%;
+            height: clamp(160px, 46vw, 240px);
+            max-width: 100% !important;
+            border: 0 !important;
+            border-radius: 6px;
+            background: #f8fafc;
+            object-fit: contain;
         }
 
         #proofImageContainer button {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            background-color: rgba(255, 0, 0, 0.7);
+            top: 0.75rem !important;
+            right: 0.75rem !important;
+            min-height: 32px;
+            padding: 0.35rem 0.65rem !important;
+            background-color: #b91c1c !important;
             color: var(--light-text-color);
             border: none;
-            border-radius: 3px;
+            border-radius: 999px !important;
+            box-shadow: 0 3px 8px rgba(127, 29, 29, 0.28);
+            box-sizing: border-box;
             cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        #biomarker-checklist {
+            width: min(100%, 408px);
+            max-width: 408px;
+            margin: 1.25rem auto 1.35rem;
+            padding: 0.9rem 1.05rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            box-sizing: border-box;
+            color: #222;
+        }
+
+        #biomarker-checklist h4 {
+            margin: 0 0 0.35rem !important;
+            color: #111827;
+        }
+
+        #biomarker-checklist p {
+            margin: 0 !important;
+            color: #334155;
+            line-height: 1.35;
         }
 
         /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
         .back-button {
             margin-right: auto !important;
             margin-left: 0 !important; /* Resets left margin */
-        }
-
-        #profileUploadSection {
-            width: 100%;
         }
 
         .convergence-main [data-aos]:not(.aos-animate) {
@@ -148,15 +313,141 @@
             box-sizing: border-box;
         }
 
+        .convergence-actions .option-button:disabled {
+            background: #eef2f7 !important;
+            border: 1px solid rgba(100, 116, 139, 0.16);
+            color: #64748b;
+            box-shadow: none !important;
+            cursor: not-allowed;
+            opacity: 1;
+            transform: none;
+        }
+
+        .convergence-actions .option-button:disabled:hover {
+            background: #eef2f7 !important;
+            border-color: rgba(100, 116, 139, 0.16);
+            color: #64748b;
+            box-shadow: none !important;
+            transform: none;
+        }
+
         .convergence-actions .back-button {
             margin-left: 0 !important;
             margin-right: 0 !important;
+        }
+
+        .convergence-helper-text {
+            margin: 0.75rem 0 0;
+            padding: 0.8rem 0.9rem;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.92);
+            color: #334155;
+            line-height: 1.48;
+            box-sizing: border-box;
+        }
+
+        .convergence-helper-text + label {
+            margin-top: 1.5rem;
+        }
+
+        .convergence-helper-text a,
+        .convergence-application-copy a {
+            font-weight: 700;
+        }
+
+        .convergence-stage-copy {
+            max-width: 32rem;
+            margin: 1.1rem auto 0;
+            padding: 0.95rem 1rem;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.92);
+            color: #334155;
+            line-height: 1.5;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .convergence-stage-copy p {
+            margin: 0.65rem 0 0;
+        }
+
+        .convergence-stage-copy p:first-child {
+            margin-top: 0;
+        }
+
+        .convergence-stage-copy strong {
+            color: #1f2937;
+        }
+
+        .convergence-stage-copy em {
+            color: #1f2937;
+        }
+
+        .convergence-application-copy {
+            margin: 0.75rem 0 1.1rem;
+            padding: 0.85rem 0.95rem;
+            border: 1px solid rgba(0, 188, 212, 0.22);
+            border-radius: 8px;
+            background: rgba(0, 188, 212, 0.08);
+            color: #2d3748;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        #whyField textarea {
+            margin-bottom: 0;
+        }
+
+        #whyField .char-counter {
+            position: static;
+            display: flex;
+            width: fit-content;
+            min-height: 28px;
+            align-items: center;
+            margin: 0.55rem 0 0 auto;
+            padding: 0.25rem 0.65rem;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 999px;
+            background: rgba(248, 250, 252, 0.96);
+            box-sizing: border-box;
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         }
 
         @media (max-width: 600px) {
             .convergence-actions {
                 width: min(100%, 320px);
                 margin-top: 1.25rem;
+            }
+
+            #descriptionForm {
+                padding: 0.9rem;
+            }
+
+            #descriptionForm .illustration {
+                width: min(100%, 290px);
+                max-height: 218px;
+                object-fit: cover;
+                border-width: 3px;
+                margin-bottom: 1rem;
+            }
+
+            #descriptionForm .sub-progress-container {
+                margin-bottom: 1rem;
+                padding-inline: 12px;
+            }
+
+            .convergence-upload-guidance,
+            .convergence-upload-action,
+            .convergence-crop-preview {
+                width: min(100%, 320px);
+            }
+
+            #biomarker-checklist {
+                margin: 1.05rem auto 1.1rem;
             }
         }
 
@@ -177,7 +468,7 @@
                 <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
-            <div id="privacyText" style="display:none">
+            <div id="privacyText" class="convergence-stage-copy" style="display:none">
                 <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
                 <p>
                     Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
@@ -187,23 +478,22 @@
                 </p>
             </div>
 
-            <div id="profilePicText" style="display:none">
+            <div id="profilePicText" class="convergence-stage-copy" style="display:none">
                 <p>Next, provide your profile picture. Smiling is optional!</p>
             </div>
 
-            <div id="proofText" style="display:none">
+            <div id="proofText" class="convergence-stage-copy" style="display:none">
                 <p id="mainProofInstructions"></p>
                 <span id="subProofInstructions" class="smaller-text"></span>
             </div>
 
             <div id="finalDetailsText" style="display:none"></div>
-            <div id="congratsText" style="display:none">
-                <p><strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.</p>
-            </div>
         </form>
 
         <form id="inputForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
             <fieldset id="personalDetails">
+                <legend>Athlete details</legend>
+
                 <!-- Name Field -->
                 <label for="name">Name</label>
                 <input type="text" id="name" name="name" required aria-required="true" placeholder="Real name or cyber alias — your call">
@@ -222,7 +512,8 @@
                     <span id="flagError" class="error-message"></span>
                 </div>
             </fieldset>
-            <div id="privacyDetails">
+            <fieldset id="privacyDetails">
+                <legend>Visibility choice</legend>
                 <p>
                     <strong>It's now your turn to make that decision.</strong>
                 </p>
@@ -231,41 +522,49 @@
                         Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.
                     </span>
                 </p>
-            </div>
-            <div id="profileUploadSection">
+            </fieldset>
+            <fieldset id="profileUploadSection">
+                <legend>Profile photo</legend>
                 <div id="uploadPart" style="display:block">
                     <p><strong>Upload a clear headshot:</strong></p>
-                    <ol class="smaller-text" style="padding-left: 20px; line-height: 1.6;">
+                    <ol class="smaller-text convergence-upload-guidance">
                         <li>It must be you.</li>
                         <li>Face the camera directly.</li>
                         <li>Include head and shoulders.</li>
                     </ol>
-                    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
+                    <div class="convergence-upload-action">
                         <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
                         <button type="button" id="uploadButton" class="option-button grey">Upload profile picture</button>
                     </div>
                 </div>
                 <div id="croppingPart" style="display:none">
-                    <img id="cropperImage" src="" alt="Selected profile image preview for cropping" style="max-width: 100%; display: block; margin: 0 auto;">
-                    <button type="button" id="cropButton" class="option-button" style="margin-top: 1rem; display: block; margin: 1rem auto 0;">
-                        Crop and save
-                    </button>
+                    <div class="convergence-crop-preview">
+                        <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                    </div>
+                    <div class="convergence-upload-action">
+                        <button type="button" id="cropButton" class="option-button">
+                            Crop and save
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div id="proofUploadSection" style="width:90%;">
-                <div style="display: flex; flex-direction: column; align-items: center; margin-top: 1rem;">
+            </fieldset>
+            <fieldset id="proofUploadSection">
+                <legend>Proof upload</legend>
+                <div class="convergence-upload-action">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
                     <button type="button" id="uploadProofButton" class="option-button grey">Upload proofs</button>
                 </div>
                 <!-- Proof Image Container -->
-                <fieldset id="proofImageContainer" style="text-align: center; margin-top: 1rem;"></fieldset>
+                <div id="proofImageContainer"></div>
                 <div id="biomarker-checklist"></div>
-            </div>
+            </fieldset>
             <fieldset id="finalDetails">
+                <legend>Public profile</legend>
+
                 <!-- Link to Personal Page (Optional) -->
                 <label for="personalLink">Link (optional)</label>
                 <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
-                <p style="margin-top: 0.5rem; color: #555;">
+                <p class="convergence-helper-text">
                     Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
                 </p>
 
@@ -273,7 +572,7 @@
                 <label for="mediaContact">Media contact (required)</label>
                 <input id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@coolpeopleonly.com">
 
-                <p style="margin-top: 0.5rem; color: #555;">
+                <p class="convergence-helper-text">
                     <span class="smaller-text">
                         Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
                     </span>
@@ -282,15 +581,19 @@
             <fieldset id="applyDetails">
                 <!-- Email Field -->
                 <legend for="accountEmail">Contact email</legend>
+                <div id="congratsText" class="convergence-application-copy" style="display:none">
+                    <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
+                </div>
                 <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
-            <!-- New WHY Field (Initially Hidden) -->
-            <div id="whyField" style="width:90%; display: none; position: relative;">
+            <!-- WHY Field (Initially Hidden) -->
+            <fieldset id="whyField" style="display: none; position: relative;">
+                <legend>Motivation</legend>
                 <label for="why">What drives you forward?</label>
                 <textarea id="why" name="why" rows="5" placeholder="Share your motivation here..."></textarea>
                 <div id="whyCharCounter" class="char-counter">0/250</div>
-            </div>
+            </fieldset>
 
             <div class="options-container convergence-actions">
                 <button type="button" class="option-button green" id="nextButton" aria-label="Proceed to the next stage">Next</button>
@@ -476,6 +779,8 @@
 
         // Function to update the UI based on the current stage
         function goToStage(stage) {
+            document.getElementById('descriptionForm').style.display = '';
+
             // Clear out any lingering click‐handlers on the illustration
             const oldImg = document.getElementById('illustrationImage');
             const newImg = oldImg.cloneNode(true);
@@ -703,6 +1008,7 @@
                     break;
                 case 7:
                     // Stage 7: Application
+                    document.getElementById('descriptionForm').style.display = 'none';
                     document.getElementById('illustrationPicture').style.display = 'none';
 
                     document.querySelector('h1').textContent = "Application";
