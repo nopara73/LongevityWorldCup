@@ -1602,13 +1602,15 @@
         .main-container{ flex-direction:column; }
         .leaderboard{ overflow:visible; }
         .sidebar{
-            width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem; padding:1rem;
+            width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
+            padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
             position:fixed; top:0; left:0; height:100%; align-items:stretch; border-radius:0 18px 18px 0;
             background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-y:auto; transform:translateX(-105%);
             transition:transform .3s ease-in-out; box-sizing:border-box; overscroll-behavior:contain;
         }
         .sidebar.expanded{
-            display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem); padding:1rem;
+            display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem);
+            padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
             transform:translateX(0);
         }
         .sidebar .filter-section{ display:block; }
