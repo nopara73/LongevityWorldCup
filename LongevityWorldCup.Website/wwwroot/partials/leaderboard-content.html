@@ -28,19 +28,23 @@
     .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
     .leaderboard table tbody tr.no-results{ cursor:default; }
     .leaderboard table tbody tr.no-results:hover{ transform:none; box-shadow:none; }
-    .leaderboard table tbody tr.no-results td{ cursor:default; }
-    .no-results-empty-state{ display:flex; flex-direction:column; align-items:center; gap:.65rem; padding:1.25rem 1rem; }
+    .leaderboard table tbody tr.no-results td{ cursor:default; padding:1.5rem 1rem; }
+    .no-results-empty-state{
+        display:flex; flex-direction:column; align-items:center; gap:.85rem; width:min(100%, 380px); margin:0 auto;
+        padding:1.15rem 1rem; border:1px solid rgba(0,188,212,.18); border-radius:14px; background:rgba(0,188,212,.045);
+        box-sizing:border-box;
+    }
     .no-results-empty-state p{ margin:0; }
     .show-all-athletes-btn{
-        border:1px solid var(--primary-color); border-radius:4px; background:transparent; color:var(--primary-color);
-        font:inherit; font-size:.9rem; font-weight:700; padding:.35rem .7rem; cursor:pointer; transform:none !important;
+        min-height:44px; border:1px solid var(--primary-color); border-radius:999px; background:var(--card-bg); color:var(--primary-color);
+        font:inherit; font-size:.9rem; font-weight:700; padding:.55rem 1rem; cursor:pointer; transform:none !important;
         appearance:none; -webkit-appearance:none; box-shadow:none;
-        transition:border-color .2s ease, color .2s ease;
+        transition:border-color .2s ease, color .2s ease, background-color .2s ease, box-shadow .2s ease;
     }
     .show-all-athletes-btn:hover,
     .show-all-athletes-btn:active,
     .show-all-athletes-btn:focus{
-        background:transparent; color:var(--secondary-color); border-color:var(--secondary-color);
+        background:rgba(255,64,129,.08); color:var(--secondary-color); border-color:var(--secondary-color);
         outline:none; box-shadow:none; transform:none !important; font:inherit; font-size:.9rem; font-weight:700;
     }
     #comingSoon{ font-size:.5rem; font-weight:normal; }

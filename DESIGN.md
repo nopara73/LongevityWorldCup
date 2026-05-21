@@ -119,3 +119,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Inline search clear controls should use a contained button treatment when they sit beside a persistent search icon, so the destructive/clearing action does not read as decorative chrome.
 
 - Search result highlights inside dense tables should be obvious but not marker-yellow loud; prefer a soft accent fill with a small shape or underline cue.
+
+- Empty states inside data tables should be compact panels with an obvious recovery action; reset actions should keep the same rounded, 44px control rhythm as adjacent toolbar controls.
