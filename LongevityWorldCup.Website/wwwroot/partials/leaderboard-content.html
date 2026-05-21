@@ -1621,6 +1621,10 @@
         .sidebar .sidebar-title{ width:100%; padding:.75rem 2.75rem .75rem 0; }
         .sidebar .sidebar-title .sidebar-title-text{ display:inline-block; }
         .clear-sidebar-filters{ min-height:44px; align-items:center; align-self:flex-start; padding:.45rem .75rem; }
+        .sidebar.has-active-state.expanded .clear-sidebar-filters{
+            display:flex; width:max-content; position:sticky; top:calc(env(safe-area-inset-top) + 4rem); z-index:8; align-self:flex-end; margin-left:auto; margin-right:.75rem;
+            background:#fff6fa; box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(255,64,129,.16);
+        }
         .filter-section label{ min-height:44px; padding:.52rem .65rem; }
         .content{ margin-left:0; }
 
