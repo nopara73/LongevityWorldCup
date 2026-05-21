@@ -393,9 +393,32 @@
     <script>
         let currentFlagFocus = -1;
 
-        const originalAthlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
-        const tempAthlete = JSON.parse(sessionStorage.getItem('tempAthlete'));
-        const athlete = tempAthlete
+        let originalAthlete = null;
+        let tempAthlete = null;
+
+        try {
+            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            originalAthlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
+        } catch {
+            originalAthlete = null;
+        }
+
+        if (!originalAthlete || typeof originalAthlete !== 'object') {
+            sessionStorage.removeItem('selectedAthlete');
+            sessionStorage.removeItem('tempAthlete');
+            window.location.replace('/select-athlete');
+            originalAthlete = {};
+        }
+
+        try {
+            const tempAthleteJson = sessionStorage.getItem('tempAthlete');
+            tempAthlete = tempAthleteJson ? JSON.parse(tempAthleteJson) : null;
+        } catch {
+            sessionStorage.removeItem('tempAthlete');
+            tempAthlete = null;
+        }
+
+        const athlete = tempAthlete && typeof tempAthlete === 'object'
             ? tempAthlete
             : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
 
