@@ -117,3 +117,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Optional segmented controls that can be cleared should make the selected chip read as active first, with any clear affordance contained inside the chip rather than appearing as loose text.
 
 - Inline search clear controls should use a contained button treatment when they sit beside a persistent search icon, so the destructive/clearing action does not read as decorative chrome.
+
+- Search result highlights inside dense tables should be obvious but not marker-yellow loud; prefer a soft accent fill with a small shape or underline cue.

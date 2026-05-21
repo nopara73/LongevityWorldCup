@@ -20,7 +20,10 @@
        2) Utilities / helpers
        ========================= */
     .visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
-    .highlight{ background-color: rgba(255,255,0,.5); color:#000; }
+    .highlight{
+        background:rgba(0,188,212,.16); color:#10333a; border-radius:.28em; padding:0 .12em;
+        box-shadow:inset 0 -0.12em 0 rgba(255,64,129,.34);
+    }
     .fade-out{ opacity:0; transition:opacity .4s ease; }
     .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
     .leaderboard table tbody tr.no-results{ cursor:default; }
