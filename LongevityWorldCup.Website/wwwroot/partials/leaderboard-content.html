@@ -450,7 +450,8 @@
         border-color:var(--secondary-color);
         box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
     }
-    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
+    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; transition:color .2s ease; }
+    .search-container:focus-within .search-icon{ color:var(--secondary-color); }
     .clear-icon{
         position:absolute; right:2.2rem; top:50%; transform:translateY(-50%); width:2.75rem; height:2.75rem;
         display:inline-flex; align-items:center; justify-content:center; color:var(--primary-color); font-size:1.05rem; cursor:pointer; z-index:2;
