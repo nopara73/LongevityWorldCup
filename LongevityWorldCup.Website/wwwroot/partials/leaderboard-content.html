@@ -321,6 +321,11 @@
     .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
     .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
     .sidebar-toggle:hover i{ color:var(--card-bg); }
+    .sidebar-toggle:focus-visible{
+        outline:2px solid var(--secondary-color); outline-offset:3px;
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(0,0,0,.12);
+    }
+    .sidebar-toggle:focus-visible i{ color:var(--secondary-color); }
     .sidebar-toggle.has-active-state:not(.active):hover{
         background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 10px 22px rgba(255,64,129,.24);
     }
