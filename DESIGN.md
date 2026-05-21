@@ -115,3 +115,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Toolbar buttons that summarize a hidden active state should use more than a tiny badge; pair the badge with a subtle active border or surface so the state remains clear when the drawer is closed.
 
 - Optional segmented controls that can be cleared should make the selected chip read as active first, with any clear affordance contained inside the chip rather than appearing as loose text.
+
+- Inline search clear controls should use a contained button treatment when they sit beside a persistent search icon, so the destructive/clearing action does not read as decorative chrome.
