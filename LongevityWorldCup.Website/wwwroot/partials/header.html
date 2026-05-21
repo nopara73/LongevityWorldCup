@@ -210,7 +210,7 @@
         transform: none;
         z-index: 1000;
         margin-top: 0;
-        min-height: 2.25rem;
+        min-height: 44px;
         padding: 0.55rem 1rem;
         box-sizing: border-box;
         font-size: 1rem;
@@ -344,8 +344,9 @@
         border: none;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
         transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
-        width: 100px; /* Match "Next" button width */
-        height: 40px; /* Match "Next" button height */
+        min-width: 100px; /* Match "Next" button width */
+        min-height: 44px;
+        height: auto;
         font-size: 1rem; /* Adjust font size for consistency */
         padding: 0.5rem 1.5rem;
         border-radius: 30px; /* Keep consistent rounding */
@@ -368,8 +369,10 @@
         font-weight: bold;
         background: none;
         border: none;
-        width: 40px; /* Set width */
-        height: 40px; /* Set height */
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -412,9 +415,11 @@
     #custom-alert {
         border: none;
         border-radius: 15px;
-        padding: 20px;
+        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
         max-width: 400px;
         width: 90%;
+        max-height: calc(100dvh - 1.5rem);
+        overflow: auto;
         background: var(--card-bg);
         color: var(--dark-text-color);
         text-align: center;
@@ -439,6 +444,7 @@
             display: block;
             margin: 0 auto;
             padding: 0.7rem 1.5rem;
+            min-height: 44px;
             font-size: 1rem;
             background: var(--main-action-color);
             color: var(--light-text-color);
@@ -518,8 +524,9 @@
     #loading-dialog {
         border: none;
         border-radius: 15px;
-        padding: 2rem;
+        padding: max(2rem, env(safe-area-inset-top)) max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(2rem, env(safe-area-inset-left));
         max-width: 200px;
+        max-height: calc(100dvh - 1.5rem);
         background: var(--card-bg);
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         text-align: center;
@@ -620,13 +627,13 @@
         }
 
         .header-link > .main-logo-image {
-            width: clamp(88px, 25vw, 108px);
+            width: 96px;
             margin-bottom: 0.85rem;
         }
 
         .bannertext {
-            font-size: clamp(2.2rem, 10vw, 2.55rem);
-            letter-spacing: 0.035em;
+            font-size: 2.35rem;
+            letter-spacing: 0;
             max-width: calc(100vw - 1.5rem);
             padding-inline: 0.5rem;
         }
@@ -644,8 +651,8 @@
 
     @media (max-width: 600px) {
         .bannertext {
-            font-size: clamp(1.85rem, 6vw, 2.05rem);
-            letter-spacing: 0.025em;
+            font-size: 2rem;
+            letter-spacing: 0;
             max-width: calc(100vw - 1.25rem);
         }
 
@@ -665,12 +672,12 @@
         }
 
         .header-link > .main-logo-image {
-            width: clamp(78px, 23vw, 94px);
+            width: 86px;
             margin-bottom: 0.7rem;
         }
 
         .bannertext {
-            font-size: clamp(1.85rem, 8vw, 2.05rem);
+            font-size: 1.9rem;
             line-height: 1.05;
             max-width: calc(100vw - 1.25rem);
         }
@@ -694,12 +701,12 @@
         }
 
         .header-link > .main-logo-image {
-            width: clamp(62px, 11vw, 76px);
+            width: 68px;
             margin-bottom: 0.5rem;
         }
 
         .bannertext {
-            font-size: clamp(1.9rem, 6vw, 2.35rem);
+            font-size: 2rem;
             line-height: 1.02;
         }
 

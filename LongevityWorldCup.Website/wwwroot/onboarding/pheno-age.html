@@ -10,7 +10,7 @@
         .lab-reassurance {
             margin: 1.5rem auto 0;
             width: min(100%, 600px);
-            max-width: 600px;
+            max-width: calc(100vw - 2rem);
             padding: 1rem 1.25rem;
             box-sizing: border-box;
             border-radius: 8px;
@@ -111,13 +111,14 @@
                 box-sizing: border-box;
             }
 
-        @media (max-width: 360px) {
+        @media (max-width: 420px) {
             .biomarker-card-content .input-group {
                 flex-wrap: wrap;
             }
 
                 .biomarker-card-content .input-group select {
                     flex: 1 1 8rem;
+                    width: 100%;
                 }
         }
 

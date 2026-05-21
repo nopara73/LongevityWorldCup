@@ -1588,6 +1588,55 @@
         .leaderboard .portrait{ width:44px; height:44px; }
     }
 
+    @media (min-width: 769px) and (max-width: 900px){
+        .content{
+            padding-left:max(1rem, env(safe-area-inset-left));
+            padding-right:max(1rem, env(safe-area-inset-right));
+            box-sizing:border-box;
+            width:100%;
+            max-width:100%;
+        }
+        .leaderboard{ overflow:visible; }
+        .leaderboard table{
+            width:100%;
+            max-width:100%;
+            table-layout:auto;
+        }
+        .leaderboard table tbody tr:hover{
+            transform:none;
+        }
+        .leaderboard table .sponsor-th,
+        .leaderboard table .sponsor-td,
+        .leaderboard table .media-contact-th,
+        .leaderboard table .media-contact-td{
+            display:none;
+        }
+        .leaderboard table td .badge-section{ display:none; }
+        .leaderboard table th{
+            font-size:.66rem;
+            line-height:1.05;
+            letter-spacing:.05em;
+            padding:.82rem .55rem;
+        }
+        .leaderboard table td{
+            font-size:.82rem;
+            padding-left:.55rem;
+            padding-right:.55rem;
+        }
+        .leaderboard table th:nth-child(4),
+        .leaderboard table td.age-reduction-td{
+            width:7rem;
+            min-width:7rem;
+            text-align:right;
+            padding-left:.4rem;
+            padding-right:.8rem;
+        }
+        .leaderboard table td.rank-td{
+            padding-left:.8rem;
+            padding-right:.5rem;
+        }
+    }
+
     @media (max-width: 768px){
         .content{
             padding-left:max(1rem, env(safe-area-inset-left));
@@ -1643,12 +1692,13 @@
             padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
             position:fixed; top:0; left:0; height:100%; align-items:stretch; border-radius:0 18px 18px 0;
             background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-y:auto; transform:translateX(-105%);
-            transition:transform .3s ease-in-out; box-sizing:border-box; overscroll-behavior:contain;
+            visibility:hidden; pointer-events:none;
+            transition:transform .3s ease-in-out, visibility 0s linear .3s; box-sizing:border-box; overscroll-behavior:contain;
         }
         .sidebar.expanded{
             display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem);
             padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
-            transform:translateX(0);
+            transform:translateX(0); visibility:visible; pointer-events:auto; transition-delay:0s;
         }
         .sidebar .filter-section{ display:block; }
         .sidebar .collapsed-title{ display:none; }
@@ -1900,17 +1950,17 @@
             }
         }
 
-        @media (max-width: 300px) {
+        @media (max-width: 420px) {
             .leaderboard table thead {
                 display: none;
             }
 
             .leaderboard table tbody tr:not(.tier-separator) {
                 display: grid;
-                grid-template-columns: 2.2rem minmax(0, 1fr);
+                grid-template-columns: 2.25rem minmax(0, 1fr);
                 align-items: center;
-                row-gap: 0.08rem;
-                padding: 0.58rem 0.7rem;
+                row-gap: 0.12rem;
+                padding: 0.68rem 0.85rem;
             }
 
             .leaderboard table tbody tr:not(.tier-separator):hover {
@@ -1949,13 +1999,13 @@
                 grid-row: 2;
                 width: auto !important;
                 min-width: 0 !important;
-                padding: 0 0 0 calc(32px + 0.45rem) !important;
+                padding: 0 0 0 calc(34px + 0.45rem) !important;
                 text-align: left !important;
             }
 
             .leaderboard .portrait {
-                width: 32px;
-                height: 32px;
+                width: 34px;
+                height: 34px;
             }
 
             .leaderboard .athlete-name {
@@ -1986,7 +2036,7 @@
 
         /* Mobile modal improvements */
         .modal-content{
-            width:100%; padding:15px; margin:0; max-height:100vh; height:100vh; box-sizing:border-box;
+            width:100%; padding:15px; margin:0; max-height:100dvh; height:100dvh; box-sizing:border-box;
             border-radius:0 !important; /* Remove rounded corners on mobile immediately */
             padding-top:max(15px, env(safe-area-inset-top));
             padding-bottom:max(15px, env(safe-area-inset-bottom));
@@ -2064,8 +2114,8 @@
             display:inline-flex; align-items:center; justify-content:center;
         }
         #detailsModal #closeAthleteDetailsModal{
-            top:18px;
-            left:18px;
+            top:max(18px, env(safe-area-inset-top));
+            left:max(18px, env(safe-area-inset-left));
         }
         
         /* Sticky header adjustments for mobile */
@@ -6373,7 +6423,9 @@
 
     function syncSidebarDrawerBackdrop() {
         const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
-        document.body.classList.toggle('sidebar-drawer-open', isMobileDrawer && sidebar.classList.contains('expanded'));
+        const isOpenMobileDrawer = isMobileDrawer && sidebar.classList.contains('expanded');
+        document.body.classList.toggle('sidebar-drawer-open', isOpenMobileDrawer);
+        sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
     }
 
     function getSidebarFocusableControls() {
@@ -6418,6 +6470,7 @@
         if (!sidebar.classList.contains('expanded')) {
             sidebar.classList.add('expanded');
         }
+        sidebar.setAttribute('aria-hidden', 'false');
         if (!sidebarToggle.classList.contains('active')) {
             sidebarToggle.classList.add('active')
         }
@@ -6452,6 +6505,7 @@
 
     function closeSidebar(options = {}) {
         sidebar.classList.remove('expanded');
+        sidebar.setAttribute('aria-hidden', 'true');
         sidebarToggle.classList.remove('active');
         sidebar.classList.remove('partially-expanded');
         if (!sidebar.classList.contains('button-collapsed')) {
@@ -6482,6 +6536,7 @@
         }, 50);
     }
 
+    syncSidebarDrawerBackdrop();
     window.addEventListener('resize', syncSidebarDrawerBackdrop);
 
     // Sidebar swipe gesture
