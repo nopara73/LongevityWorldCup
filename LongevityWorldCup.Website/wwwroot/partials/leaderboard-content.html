@@ -321,6 +321,20 @@
     .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
     .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
     .sidebar-toggle:hover i{ color:var(--card-bg); }
+    .sidebar-toggle:focus-visible,
+    .sidebar-toggle.is-keyboard-focus{
+        outline:2px solid var(--secondary-color); outline-offset:3px;
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(0,0,0,.12);
+    }
+    .sidebar-toggle:focus-visible i,
+    .sidebar-toggle.is-keyboard-focus i{ color:var(--secondary-color); }
+    .sidebar-toggle.active:focus-visible,
+    .sidebar-toggle.active.is-keyboard-focus{
+        border-color:var(--secondary-color);
+        box-shadow:0 0 0 4px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
+    }
+    .sidebar-toggle.active:focus-visible i,
+    .sidebar-toggle.active.is-keyboard-focus i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state:not(.active):hover{
         background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 10px 22px rgba(255,64,129,.24);
     }
@@ -338,10 +352,14 @@
     }
     .sidebar.expanded .sidebar-close{ display:block; }
     .sidebar-close i{ font-size:.95rem; line-height:1; }
-    .sidebar-close:hover,
-    .sidebar-close:focus-visible{
+    .sidebar-close:hover{
         background:var(--primary-color); border-color:var(--primary-color); color:var(--card-bg); box-shadow:0 8px 18px rgba(0,188,212,.22);
-        outline:none; transform:translateX(-1px);
+        outline:none; transform:scale(1.04);
+    }
+    .sidebar-close:focus-visible,
+    .sidebar-close.is-keyboard-focus{
+        background:var(--card-bg); border-color:var(--secondary-color); color:var(--secondary-color);
+        outline:none; transform:scale(1.04); box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(255,64,129,.16);
     }
 
     .collapsed-title{
@@ -385,12 +403,23 @@
     .sidebar.has-active-state.expanded .clear-sidebar-filters{
         visibility:visible; pointer-events:auto; color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
     }
+    .clear-sidebar-filters:focus-visible{
+        color:var(--secondary-color); background:linear-gradient(90deg, rgba(255,64,129,.1), rgba(0,188,212,.06));
+        border-color:rgba(255,64,129,.42); outline:none; box-shadow:0 0 0 4px rgba(255,64,129,.14), 0 6px 14px rgba(255,64,129,.1);
+    }
 
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
     .filter-section{ margin-bottom:1.5rem; width:100%; }
-    .filter-section h3{ margin-bottom:.55rem; color:var(--primary-color); font-size:1.2rem; transition:color .2s ease; }
+    .filter-section h3{
+        display:flex; align-items:center; gap:.5rem; margin-bottom:.55rem; color:var(--primary-color); font-size:1.2rem;
+        transition:color .2s ease;
+    }
     .filter-section.has-active-filter h3{ color:var(--secondary-color); }
+    .filter-section.has-active-filter h3::after{
+        content:''; flex:1 1 auto; height:2px; border-radius:999px;
+        background:linear-gradient(90deg, rgba(255,64,129,.75), rgba(0,188,212,.14));
+    }
     .filter-section ul{ list-style:none; padding:0; margin:0; display:grid; gap:.35rem; }
     .filter-section li{ margin:0; }
     .filter-section label{
@@ -413,14 +442,22 @@
         color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055);
     }
     .filter-section label.active{
-        font-weight:bold; color:var(--secondary-color); background:rgba(0,188,212,.1); border-color:rgba(0,188,212,.28);
-        box-shadow:inset 0 0 0 1px rgba(0,188,212,.05);
+        font-weight:bold; color:var(--secondary-color);
+        background:linear-gradient(90deg, rgba(255,64,129,.13), rgba(0,188,212,.08));
+        border-color:rgba(255,64,129,.38);
+        box-shadow:inset 4px 0 0 var(--secondary-color), inset 0 0 0 1px rgba(255,64,129,.08), 0 6px 14px rgba(255,64,129,.08);
     }
+    .filter-section label.active input[type="checkbox"]{ accent-color:var(--secondary-color); }
     .filter-section .filter-count{
         color:#666; font-size:.95em; font-weight:700;
     }
     .filter-section label.active .filter-count{ color:var(--secondary-color); }
     .filter-section label.is-zero-count:not(.active) .filter-count{ color:#909090; }
+    .filter-section label:has(input[type="checkbox"]:focus-visible){
+        color:var(--secondary-color); border-color:rgba(255,64,129,.42);
+        background:linear-gradient(90deg, rgba(255,64,129,.08), rgba(0,188,212,.06));
+        box-shadow:0 0 0 4px rgba(255,64,129,.14);
+    }
     .filter-section input[type="checkbox"]:focus-visible{ outline:2px solid var(--secondary-color); outline-offset:2px; }
 
     /* =========================
@@ -437,23 +474,33 @@
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
-        width:100%; min-height:44px; padding:.55rem 4.75rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-size:1rem;
+        width:100%; min-height:44px; padding:.55rem 5.4rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-family:inherit; font-size:1rem; color:var(--dark-text-color);
         transition:border-color .3s ease, box-shadow .2s ease; outline:none; box-sizing:border-box;
     }
-    #athleteSearch:focus{ border-color:var(--secondary-color); box-shadow:0 0 0 3px rgba(0,188,212,.14); }
-    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
+    #athleteSearch::placeholder{ color:#56666f; opacity:1; }
+    #athleteSearch:focus{
+        border-color:var(--secondary-color);
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
+    }
+    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; transition:color .2s ease; }
+    .search-container:focus-within .search-icon{ color:var(--secondary-color); }
     .clear-icon{
-        position:absolute; right:2.5rem; top:50%; transform:translateY(-50%); width:2.1rem; height:2.1rem;
+        position:absolute; right:2.2rem; top:50%; transform:translateY(-50%); width:2.75rem; height:2.75rem;
         display:inline-flex; align-items:center; justify-content:center; color:var(--primary-color); font-size:1.05rem; cursor:pointer; z-index:2;
-        border:1px solid transparent; border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden;
+        appearance:none; padding:0; font:inherit; line-height:1; background:transparent; border:1px solid transparent; border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden;
         transition:opacity .3s ease, visibility .3s ease, color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
     }
     .clear-icon.visible{
         opacity:1; visibility:visible; background:rgba(0,188,212,.09); border-color:rgba(0,188,212,.24);
     }
-    .clear-icon:hover, .clear-icon:focus-visible{
+    .clear-icon:hover,
+    .clear-icon:focus-visible{
         color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
-        box-shadow:0 3px 8px rgba(0,0,0,.08); outline:none;
+        box-shadow:0 3px 8px rgba(0,0,0,.08);
+    }
+    .clear-icon:focus-visible{
+        outline:2px solid var(--secondary-color); outline-offset:2px;
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.1);
     }
 
     /* =========================
@@ -466,11 +513,11 @@
         font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#666; margin-right:.25rem;
     }
     .leaderboard-view-switcher .view-switcher-chips{
-        display:inline-flex; align-items:stretch; min-height:44px; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px; padding:3px; gap:2px;
-        box-sizing:border-box;
+        display:inline-flex; align-items:stretch; min-height:44px; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px;
+        padding:0; gap:0; box-sizing:border-box;
     }
     .leaderboard-view-switcher .view-badge{
-        display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:.45rem .95rem; border-radius:999px;
+        display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:.45rem 1rem; border-radius:999px;
         border:none; background:transparent; color:#555;
         font-size:.85rem; font-weight:600; line-height:1.1; white-space:nowrap; box-sizing:border-box; cursor:pointer; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
     }
@@ -481,16 +528,27 @@
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
         background:linear-gradient(180deg, var(--card-bg), rgba(0,188,212,.08)); color:var(--primary-color);
         box-shadow:0 0 0 1px rgba(0,188,212,.32), 0 3px 9px rgba(0,0,0,.12);
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable{
         padding-right:.42rem;
     }
-    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge::after{
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable::after{
         content:'×'; display:inline-flex; align-items:center; justify-content:center; width:1.1rem; height:1.1rem; margin-left:.4rem;
         border-radius:50%; background:rgba(0,188,212,.12); color:var(--primary-color); font-size:.85rem; line-height:1; opacity:.88; font-weight:700;
     }
-    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge:hover::after{
+    .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable:hover::after{
         opacity:1;
     }
-    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge{ outline:2px solid var(--secondary-color); outline-offset:2px; }
+    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge,
+    .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge{
+        outline:2px solid var(--secondary-color); outline-offset:2px;
+        color:var(--secondary-color); background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.08));
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
+    }
+    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge.is-clearable::after,
+    .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge.is-clearable::after{
+        background:rgba(255,64,129,.12); color:var(--secondary-color);
+    }
 
     /* =========================
        6) Portraits & rank indicators
@@ -1489,12 +1547,28 @@
         .leaderboard-view-switcher{
             margin-left:0;
             order:1;
+            align-items:stretch;
+            width:100%;
+            max-width:100%;
+            min-width:0;
+            gap:.35rem;
+        }
+        .leaderboard-view-switcher .view-switcher-label{
+            flex:0 0 100%;
+            margin-right:0;
         }
         .leaderboard-view-switcher .view-switcher-chips{
+            display:grid;
+            grid-template-columns:repeat(3, minmax(0, 1fr));
             width:100%;
+            min-width:0;
         }
         .leaderboard-view-switcher .view-badge{
-            flex:1 1 0;
+            min-width:0;
+            padding:.45rem .55rem;
+        }
+        .leaderboard-view-switcher .view-badge-suffix{
+            display:none;
         }
         .search-container{ flex:0 1 calc(100% - 52px); min-width:0; width:calc(100% - 52px); max-width:none; margin-top:0; }
         .search-wrapper{ display:flex; align-items:center; gap:.5rem; flex:1; min-width:0; width:100%; order:2; }
@@ -1534,39 +1608,63 @@
         }
         body.sidebar-drawer-open::before{
             content:''; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.38);
-            backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:none;
+            backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:auto; cursor:pointer;
         }
         .leaderboard-view-switcher{
-            margin-left:0; order:1;
+            margin-left:0; order:1; align-items:stretch; width:min(100%, 20.5rem); max-width:100%; min-width:0; gap:.35rem;
+        }
+        .leaderboard-view-switcher .view-switcher-label{
+            flex:0 0 100%; margin-right:0;
         }
         .leaderboard-view-switcher .view-switcher-chips{
-            width:100%;
+            display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); width:100%; max-width:20.5rem; min-width:0; flex:0 0 100%;
         }
         .leaderboard-view-switcher .view-badge{
-            flex:1 1 0;
+            min-width:0; padding:.45rem .55rem;
+        }
+        .leaderboard-view-switcher .view-badge-suffix{
+            display:none;
         }
         .search-container{ flex:1 1 auto; min-width:0; width:auto; max-width:none; margin-top:0; margin-right:0; }
-        #athleteSearch{ padding:.5rem 4.75rem .5rem 1rem; font-size:1rem; }
+        #athleteSearch{ padding:.5rem 5.4rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
-        .clear-icon{ right:2.5rem; }
-        .search-wrapper{ display:flex; align-items:center; gap:.45rem; flex:1; min-width:0; width:100%; order:2; }
+        .clear-icon{ right:2.2rem; }
+        .search-wrapper{
+            display:flex; align-items:center; gap:.45rem; flex:0 1 auto; min-width:0;
+            width:min(100%, 20.5rem); max-width:100%; order:2;
+        }
 
         .sidebar-toggle{ align-self:center; width:44px; height:44px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
 
         .main-container{ flex-direction:column; }
         .leaderboard{ overflow:visible; }
         .sidebar{
-            width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem; padding:1rem;
+            width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
+            padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
             position:fixed; top:0; left:0; height:100%; align-items:stretch; border-radius:0 18px 18px 0;
             background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-y:auto; transform:translateX(-105%);
             transition:transform .3s ease-in-out; box-sizing:border-box; overscroll-behavior:contain;
         }
-        .sidebar.expanded{ display:block; transform:translateX(0); }
+        .sidebar.expanded{
+            display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem);
+            padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
+            transform:translateX(0);
+        }
         .sidebar .filter-section{ display:block; }
         .sidebar .collapsed-title{ display:none; }
+        .sidebar .sidebar-close{
+            position:sticky; top:calc(env(safe-area-inset-top) + .9rem); right:auto; margin-left:auto; margin-bottom:-44px;
+        }
         .sidebar .sidebar-title{ width:100%; padding:.75rem 2.75rem .75rem 0; }
         .sidebar .sidebar-title .sidebar-title-text{ display:inline-block; }
         .clear-sidebar-filters{ min-height:44px; align-items:center; align-self:flex-start; padding:.45rem .75rem; }
+        .sidebar.has-active-state.expanded .clear-sidebar-filters{
+            display:flex; width:max-content; position:sticky; top:calc(env(safe-area-inset-top) + 4rem); z-index:8; align-self:flex-end; margin-left:auto; margin-right:.75rem;
+            background:#fff6fa; box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(255,64,129,.16);
+        }
+        .sidebar.has-active-state.expanded .clear-sidebar-filters:focus-visible{
+            box-shadow:0 0 0 8px var(--card-bg), 0 0 0 12px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
+        }
         .filter-section label{ min-height:44px; padding:.52rem .65rem; }
         .content{ margin-left:0; }
 
@@ -2014,33 +2112,35 @@
         </div>
 
         <div class="leaderboard-toolbar">
-            <div class="leaderboard-view-switcher" role="radiogroup" aria-label="Leaderboard view">
+            <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
+                <span class="view-switcher-label" id="leaderboardViewLabel">Ranking</span>
                 <div class="view-switcher-chips">
-                    <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Default view">
-                    <input type="radio" name="leaderboardView" id="view-bortz" value="bortz">
-                    <label for="view-bortz" class="view-badge" title="Rank by Bortz Age (biological age). Click again to show default ranking.">Bortz Age</label>
-                    <input type="radio" name="leaderboardView" id="view-pheno" value="pheno">
-                    <label for="view-pheno" class="view-badge" title="Rank by Pheno Age. Click again to show default ranking.">Pheno Age</label>
+                    <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Overall ranking">
+                    <label for="view-ultimate" class="view-badge" title="Show the overall Ultimate League ranking.">Overall</label>
+                    <input type="radio" name="leaderboardView" id="view-bortz" value="bortz" aria-label="Bortz Age ranking">
+                    <label for="view-bortz" class="view-badge is-clearable" title="Rank by Bortz Age (biological age). Click again to show default ranking.">Bortz<span class="view-badge-suffix"> Age</span></label>
+                    <input type="radio" name="leaderboardView" id="view-pheno" value="pheno" aria-label="Pheno Age ranking">
+                    <label for="view-pheno" class="view-badge is-clearable" title="Rank by Pheno Age. Click again to show default ranking.">Pheno<span class="view-badge-suffix"> Age</span></label>
                 </div>
             </div>
             <div class="search-wrapper">
                 <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
                     <label for="athleteSearch" class="visually-hidden">Search athletes</label>
-                    <input type="text" id="athleteSearch" placeholder="Search..." aria-label="Search athletes">
+                    <input type="text" id="athleteSearch" placeholder="Search athletes" aria-label="Search athletes">
                     <span class="search-icon"><i class="fa fa-search"></i></span>
-                    <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
+                    <button type="button" class="clear-icon" aria-label="Clear search">
                         <i class="fa fa-times"></i>
-                    </span>
+                    </button>
                 </div>
-                <button class="sidebar-toggle" aria-label="Toggle sidebar" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
+                <button class="sidebar-toggle" aria-label="Show leagues" aria-controls="leaderboardFilters" aria-expanded="false" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
                     <i class="fa fa-sliders-h"></i>
                 </button>
             </div>
         </div>
 
         <div class="leaderboard">
-            <div class="sidebar">
-                <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-chevron-left"></i></button>
+            <div class="sidebar" id="leaderboardFilters">
+                <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-times"></i></button>
                 <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
@@ -4744,9 +4844,10 @@
 
     document.addEventListener('keydown', function (event) {
         const searchInput = document.getElementById('athleteSearch');
-        if (event.key === 'Escape' && searchInput.value.trim().length > 0) {
+        if (document.activeElement === searchInput && event.key === 'Escape' && searchInput.value.trim().length > 0) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
             clearSearch();
-            searchInput.blur(); // Optionally remove focus
         }
     });
 
@@ -4761,11 +4862,21 @@
     });
 
     const clearSearchButton = document.querySelector('.clear-icon');
-    clearSearchButton.addEventListener('click', clearSearch);
+    clearSearchButton.addEventListener('click', function () {
+        clearSearch();
+        document.getElementById('athleteSearch')?.focus({ preventScroll: true });
+    });
     clearSearchButton.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
             event.preventDefault();
             clearSearch();
+            const searchInput = document.getElementById('athleteSearch');
+            try {
+                searchInput?.focus({ preventScroll: true, focusVisible: true });
+            }
+            catch {
+                searchInput?.focus({ preventScroll: true });
+            }
         }
     });
 
@@ -4774,14 +4885,40 @@
         event.preventDefault();
         event.stopPropagation();
         clearSidebarFilters();
+        focusAfterClearingSidebarFilters();
     });
     clearSidebarFiltersButton?.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
             event.preventDefault();
             event.stopPropagation();
             clearSidebarFilters();
+            focusAfterClearingSidebarFilters();
         }
     });
+    function focusAfterClearingSidebarFilters() {
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarClose = document.querySelector('.sidebar-close');
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const focusTarget = isMobileDrawer && sidebar?.classList.contains('expanded')
+            ? sidebarClose
+            : sidebarToggle;
+
+        if (!focusTarget) return;
+
+        requestAnimationFrame(() => {
+            focusTarget.classList.add('is-keyboard-focus');
+            focusTarget.addEventListener('blur', () => {
+                focusTarget.classList.remove('is-keyboard-focus');
+            }, { once: true });
+            try {
+                focusTarget.focus({ preventScroll: true, focusVisible: true });
+            }
+            catch {
+                focusTarget.focus({ preventScroll: true });
+            }
+        });
+    }
     document.addEventListener('click', function (event) {
         if (!event.target.closest('.show-all-athletes-btn')) return;
 
@@ -4791,6 +4928,29 @@
 
     document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
         radio.addEventListener('change', function () {
+            performFilter();
+        });
+        radio.addEventListener('keydown', function (event) {
+            if ((event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') || this.value === 'ultimate' || !this.checked) return;
+
+            event.preventDefault();
+            const defaultViewRadio = document.getElementById('view-ultimate');
+            if (!defaultViewRadio) return;
+
+            defaultViewRadio.checked = true;
+            document.querySelectorAll('input[name="leaderboardView"].is-keyboard-focus').forEach(input => {
+                input.classList.remove('is-keyboard-focus');
+            });
+            defaultViewRadio.classList.add('is-keyboard-focus');
+            defaultViewRadio.addEventListener('blur', () => {
+                defaultViewRadio.classList.remove('is-keyboard-focus');
+            }, { once: true });
+            try {
+                defaultViewRadio.focus({ preventScroll: true, focusVisible: true });
+            }
+            catch {
+                defaultViewRadio.focus({ preventScroll: true });
+            }
             performFilter();
         });
     });
@@ -6145,8 +6305,8 @@
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
 
-    sidebarToggle.addEventListener('click', () => {
-        toggleSidebar();
+    sidebarToggle.addEventListener('click', (event) => {
+        toggleSidebar({ focusDrawerClose: event.detail === 0 });
     });
 
     sidebarToggle.addEventListener('mouseenter', () => {
@@ -6158,8 +6318,57 @@
         sidebar.classList.remove('partially-expanded');
     });
 
-    sidebarClose.addEventListener('click', () => {
+    sidebarClose.addEventListener('click', (event) => {
+        closeSidebar({ restoreFocus: event.detail === 0 });
+    });
+
+    document.addEventListener('click', (event) => {
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+        if (sidebar.contains(event.target) || sidebarToggle.contains(event.target)) return;
         closeSidebar();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Tab') return;
+        if (modal.style.display === "block") return;
+
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+
+        const focusableDrawerControls = getSidebarFocusableControls();
+        if (focusableDrawerControls.length === 0) return;
+
+        const firstControl = focusableDrawerControls[0];
+        const lastControl = focusableDrawerControls[focusableDrawerControls.length - 1];
+        const activeElement = document.activeElement;
+
+        if (!sidebar.contains(activeElement)) {
+            event.preventDefault();
+            focusSidebarControl(firstControl);
+        }
+        else if (event.shiftKey && activeElement === firstControl) {
+            event.preventDefault();
+            focusSidebarControl(lastControl);
+        }
+        else if (!event.shiftKey && activeElement === lastControl) {
+            event.preventDefault();
+            focusSidebarControl(firstControl);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' && event.key !== 'Esc') return;
+        if (modal.style.display === "block") return;
+
+        const searchInput = document.getElementById('athleteSearch');
+        if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
+
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+
+        event.preventDefault();
+        closeSidebar({ restoreFocus: true });
     });
 
     function syncSidebarDrawerBackdrop() {
@@ -6167,16 +6376,42 @@
         document.body.classList.toggle('sidebar-drawer-open', isMobileDrawer && sidebar.classList.contains('expanded'));
     }
 
-    function toggleSidebar() {
+    function getSidebarFocusableControls() {
+        return Array.from(sidebar.querySelectorAll('a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'))
+            .filter(element => {
+                if (element.disabled || element.getAttribute('aria-hidden') === 'true') return false;
+
+                const style = window.getComputedStyle(element);
+                if (style.display === 'none' || style.visibility === 'hidden') return false;
+
+                const rect = element.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+            });
+    }
+
+    function focusSidebarControl(element) {
+        try {
+            element.focus({ focusVisible: true });
+        }
+        catch {
+            element.focus();
+        }
+    }
+
+    function toggleSidebar(options = {}) {
         if (sidebar.classList.contains('expanded')) {
             closeSidebar();
         }
         else {
-            openSidebar();
+            openSidebar(options);
         }
     }
 
-    function openSidebar() {
+    function openSidebar(options = {}) {
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const drawerScrollX = window.scrollX;
+        const drawerScrollY = window.scrollY;
+
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.remove('collapsed');
 
@@ -6189,10 +6424,25 @@
         syncSidebarDrawerBackdrop();
 
         sidebarToggle.title = "Hide leagues";
-        sidebarToggle.setAttribute('aria-label', 'Hide sidebar');
+        sidebarToggle.setAttribute('aria-label', 'Hide leagues');
+        sidebarToggle.setAttribute('aria-expanded', 'true');
+
+        if (isMobileDrawer) {
+            requestAnimationFrame(() => {
+                if (options.focusDrawerClose) {
+                    try {
+                        sidebarClose.focus({ preventScroll: true, focusVisible: true });
+                    }
+                    catch {
+                        sidebarClose.focus({ preventScroll: true });
+                    }
+                }
+                window.scrollTo(drawerScrollX, drawerScrollY);
+            });
+        }
 
         // Scroll to the leaderboard table
-        if (canAutoScroll()) {
+        if (!isMobileDrawer && canAutoScroll()) {
             document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
                 behavior: 'smooth',
                 block: 'start',
@@ -6200,7 +6450,7 @@
         }
     }
 
-    function closeSidebar() {
+    function closeSidebar(options = {}) {
         sidebar.classList.remove('expanded');
         sidebarToggle.classList.remove('active');
         sidebar.classList.remove('partially-expanded');
@@ -6208,8 +6458,24 @@
             sidebar.classList.add('button-collapsed');
         }
         sidebarToggle.title = "Show leagues";
-        sidebarToggle.setAttribute('aria-label', 'Show sidebar');
+        sidebarToggle.setAttribute('aria-label', 'Show leagues');
+        sidebarToggle.setAttribute('aria-expanded', 'false');
         syncSidebarDrawerBackdrop();
+
+        if (options.restoreFocus) {
+            requestAnimationFrame(() => {
+                sidebarToggle.classList.add('is-keyboard-focus');
+                sidebarToggle.addEventListener('blur', () => {
+                    sidebarToggle.classList.remove('is-keyboard-focus');
+                }, { once: true });
+                try {
+                    sidebarToggle.focus({ preventScroll: true, focusVisible: true });
+                }
+                catch {
+                    sidebarToggle.focus({ preventScroll: true });
+                }
+            });
+        }
 
         setTimeout(() => {
             sidebar.classList.remove('button-collapsed');
