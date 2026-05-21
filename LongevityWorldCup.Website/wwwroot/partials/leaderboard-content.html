@@ -442,16 +442,16 @@
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
-        width:100%; min-height:44px; padding:.55rem 4.75rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-family:inherit; font-size:1rem; color:var(--dark-text-color);
+        width:100%; min-height:44px; padding:.55rem 5.4rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-family:inherit; font-size:1rem; color:var(--dark-text-color);
         transition:border-color .3s ease, box-shadow .2s ease; outline:none; box-sizing:border-box;
     }
     #athleteSearch::placeholder{ color:#56666f; opacity:1; }
     #athleteSearch:focus{ border-color:var(--secondary-color); box-shadow:0 0 0 3px rgba(0,188,212,.14); }
     .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
     .clear-icon{
-        position:absolute; right:2.5rem; top:50%; transform:translateY(-50%); width:2.1rem; height:2.1rem;
+        position:absolute; right:2.2rem; top:50%; transform:translateY(-50%); width:2.75rem; height:2.75rem;
         display:inline-flex; align-items:center; justify-content:center; color:var(--primary-color); font-size:1.05rem; cursor:pointer; z-index:2;
-        border:1px solid transparent; border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden;
+        appearance:none; padding:0; font:inherit; line-height:1; background:transparent; border:1px solid transparent; border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden;
         transition:opacity .3s ease, visibility .3s ease, color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
     }
     .clear-icon.visible{
@@ -1576,9 +1576,9 @@
             display:none;
         }
         .search-container{ flex:1 1 auto; min-width:0; width:auto; max-width:none; margin-top:0; margin-right:0; }
-        #athleteSearch{ padding:.5rem 4.75rem .5rem 1rem; font-size:1rem; }
+        #athleteSearch{ padding:.5rem 5.4rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
-        .clear-icon{ right:2.5rem; }
+        .clear-icon{ right:2.2rem; }
         .search-wrapper{
             display:flex; align-items:center; gap:.45rem; flex:0 1 auto; min-width:0;
             width:min(100%, 20.5rem); max-width:100%; order:2;
@@ -2063,9 +2063,9 @@
                     <label for="athleteSearch" class="visually-hidden">Search athletes</label>
                     <input type="text" id="athleteSearch" placeholder="Search athletes" aria-label="Search athletes">
                     <span class="search-icon"><i class="fa fa-search"></i></span>
-                    <span class="clear-icon" tabindex="0" role="button" aria-label="Clear search">
+                    <button type="button" class="clear-icon" aria-label="Clear search">
                         <i class="fa fa-times"></i>
-                    </span>
+                    </button>
                 </div>
                 <button class="sidebar-toggle" aria-label="Toggle sidebar" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
                     <i class="fa fa-sliders-h"></i>
