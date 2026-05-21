@@ -2131,14 +2131,14 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
-                <button class="sidebar-toggle" aria-label="Toggle sidebar" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
+                <button class="sidebar-toggle" aria-label="Show leagues" aria-controls="leaderboardFilters" aria-expanded="false" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
                     <i class="fa fa-sliders-h"></i>
                 </button>
             </div>
         </div>
 
         <div class="leaderboard">
-            <div class="sidebar">
+            <div class="sidebar" id="leaderboardFilters">
                 <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-times"></i></button>
                 <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
@@ -6397,7 +6397,8 @@
         syncSidebarDrawerBackdrop();
 
         sidebarToggle.title = "Hide leagues";
-        sidebarToggle.setAttribute('aria-label', 'Hide sidebar');
+        sidebarToggle.setAttribute('aria-label', 'Hide leagues');
+        sidebarToggle.setAttribute('aria-expanded', 'true');
 
         if (isMobileDrawer) {
             requestAnimationFrame(() => {
@@ -6430,7 +6431,8 @@
             sidebar.classList.add('button-collapsed');
         }
         sidebarToggle.title = "Show leagues";
-        sidebarToggle.setAttribute('aria-label', 'Show sidebar');
+        sidebarToggle.setAttribute('aria-label', 'Show leagues');
+        sidebarToggle.setAttribute('aria-expanded', 'false');
         syncSidebarDrawerBackdrop();
 
         if (options.restoreFocus) {
