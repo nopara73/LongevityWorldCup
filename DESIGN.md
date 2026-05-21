@@ -2,6 +2,10 @@
 
 This file records durable UI decisions for Longevity World Cup. Keep it short: add only reusable product-design guidance, not implementation history, workflow rules, or one-off polish notes.
 
+## Principles
+
+- Text should earn its place. Do not add explanatory UI copy, labels, hints, subtitles, or helper text unless the user would otherwise hesitate, misunderstand, or fail. Prefer clearer layout, stronger affordance, better grouping, or more obvious controls before adding words.
+
 ## Decisions
 
 - Direct-tap controls in mobile, toolbar, footer, and modal contexts should generally be easy to hit, with about a 44px target when space allows.
