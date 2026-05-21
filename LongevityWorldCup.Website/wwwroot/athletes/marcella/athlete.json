@@ -1,0 +1,28 @@
+{
+  "Name": "Marcella",
+  "DisplayName": null,
+  "MediaContact": "marcellatesilva@gmail.com",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 11,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-05-08",
+      "AlbGL": 49,
+      "CreatUmolL": 65.49,
+      "GluMmolL": 5.16,
+      "CrpMgL": 0.37,
+      "LymPc": 44.3,
+      "McvFL": 91.1,
+      "RdwPc": 13.4,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 7.8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Brazil",
+  "Why": "To have great health so I can live many long and happy years by my husband's side.",
+  "PersonalLink": "https://www.instagram.com/herbiohackerlab"
+}
