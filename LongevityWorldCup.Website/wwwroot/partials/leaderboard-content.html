@@ -433,12 +433,18 @@
     #athleteSearch:focus{ border-color:var(--secondary-color); box-shadow:0 0 0 3px rgba(0,188,212,.14); }
     .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
     .clear-icon{
-        position:absolute; right:2.5rem; top:50%; transform:translateY(-50%); width:2rem; height:2rem;
+        position:absolute; right:2.5rem; top:50%; transform:translateY(-50%); width:2.1rem; height:2.1rem;
         display:inline-flex; align-items:center; justify-content:center; color:var(--primary-color); font-size:1.05rem; cursor:pointer; z-index:2;
-        border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s ease, color .2s ease;
+        border:1px solid transparent; border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden;
+        transition:opacity .3s ease, visibility .3s ease, color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
     }
-    .clear-icon.visible{ opacity:1; visibility:visible; }
-    .clear-icon:hover, .clear-icon:focus-visible{ color:var(--secondary-color); }
+    .clear-icon.visible{
+        opacity:1; visibility:visible; background:rgba(0,188,212,.09); border-color:rgba(0,188,212,.24);
+    }
+    .clear-icon:hover, .clear-icon:focus-visible{
+        color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
+        box-shadow:0 3px 8px rgba(0,0,0,.08); outline:none;
+    }
 
     /* =========================
        5b) Leaderboard view switcher (Bortz / Pheno) – optional toggles
