@@ -6,7 +6,7 @@
     <style>
         /* Hide the join-game button in the header */
         .join-game {
-            display: none;
+            display: none !important;
         }
 
         .not-found-main {
@@ -81,6 +81,10 @@
 
             .not-found-visual {
                 margin-bottom: 1.25rem;
+            }
+
+            .not-found-visual .illustration {
+                width: min(100%, 300px);
             }
         }
     </style>

@@ -9,18 +9,28 @@
         /* Match join-game biological age intro styling; align width with .bioageform */
         .lab-reassurance {
             margin: 1.5rem auto 0;
+            width: min(100%, 600px);
             max-width: 600px;
             padding: 1rem 1.25rem;
+            box-sizing: border-box;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
             background: #f8f9fa;
             font-size: 0.95rem;
             text-align: center;
+            overflow-wrap: break-word;
+        }
+
+        #mainPageTitleH2 {
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            text-wrap: balance;
         }
 
         /* Hide the join-game button in the header */
         .join-game {
-            display: none;
+            display: none !important;
         }
 
         .bioage-main [data-aos]:not(.aos-animate) {
@@ -45,8 +55,9 @@
 
         .privacy-note {
             font-size: 0.9rem;
-            color: #666;
-            margin-top: 0.5rem;
+            color: #4a5568;
+            line-height: 1.45;
+            margin: 0.65rem 0 0;
         }
 
         /* Initial state: hidden and rotated to the left */
@@ -68,16 +79,20 @@
 
         .input-group {
             display: flex;
-            align-items: center;
+            align-items: stretch;
+            gap: 0.65rem;
             margin-top: 0.5rem;
         }
 
             .input-group input {
-                flex: 1;
+                flex: 1 1 auto;
+                min-width: 0;
+                margin-top: 0;
             }
 
             .input-group select {
-                margin-left: 0.5rem;
+                margin-top: 0;
+                margin-left: 0;
                 padding: 0.5rem;
                 border: 1px solid #ccc;
                 border-radius: 4px;
@@ -88,9 +103,19 @@
             .input-group.lwc-date-flex input[type="date"] {
                 flex: 1;
                 padding: 0.5rem;
-                min-height: 40px; /* visually matches your other controls */
+                min-height: 44px; /* visually matches your other controls */
                 box-sizing: border-box;
             }
+
+        @media (max-width: 360px) {
+            .biomarker-card-content .input-group {
+                flex-wrap: wrap;
+            }
+
+                .biomarker-card-content .input-group select {
+                    flex: 1 1 8rem;
+                }
+        }
 
         /* Give all selects proper right padding and a consistent arrow */
         .bioageform select,
@@ -416,13 +441,21 @@
         }
 
         .crp-container {
-            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 0;
         }
 
         .label-toggle-group {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: space-between;
+            gap: 0.85rem;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 8px;
+            background: #fff;
         }
 
             .label-toggle-group label {
@@ -433,14 +466,15 @@
         .negative-toggle {
             display: flex;
             align-items: center;
-            gap: 0.5rem; /* This sets a small gap between the toggle and the text */
+            flex: 0 0 auto;
+            min-height: 44px;
         }
 
         .toggle-label {
             position: relative;
             display: inline-block;
-            width: 36px;
-            height: 20px;
+            width: 52px;
+            height: 44px;
             margin-right: 0rem;
         }
 
@@ -453,71 +487,109 @@
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
+            top: 6px;
             left: 0;
             right: 0;
-            bottom: 0;
+            bottom: 6px;
             background-color: #ccc;
             transition: 0.4s;
-            border-radius: 20px;
+            border-radius: 999px;
         }
 
             .slider:before {
                 position: absolute;
                 content: "";
-                height: 14px;
-                width: 14px;
-                left: 3px;
-                bottom: 3px;
+                height: 24px;
+                width: 24px;
+                left: 4px;
+                bottom: 4px;
                 background-color: white;
                 transition: 0.4s;
                 border-radius: 50%;
             }
+
+        .toggle-label input:focus-visible + .slider {
+            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
+        }
 
         .toggle-label input:checked + .slider {
             background-color: #f4a6a6; /* Pale red */
         }
 
             .toggle-label input:checked + .slider:before {
-                transform: translateX(16px);
+                transform: translateX(20px);
             }
 
         .bioageform-toggle-text {
-            font-size: 0.9rem;
+            font-size: 1rem;
+            color: #2d3748;
+            font-weight: 600;
+            line-height: 1.3;
         }
 
         /* Mini-card container */
         .biomarker-card {
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.32);
+            border-radius: 10px;
+            margin-bottom: 0.9rem;
             overflow: hidden;
-            transition: box-shadow 0.2s ease;
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
             .biomarker-card.active {
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                border-color: rgba(0, 188, 212, 0.38);
+                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
             }
 
         /* Header bar */
         .biomarker-card-header {
-            background: #f7f7f7;
-            padding: 0.75rem 1rem;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            padding: 0.78rem 1rem;
+            min-height: 48px;
+            box-sizing: border-box;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 0.75rem;
+            color: #2d3748;
+            font-weight: 600;
+            line-height: 1.25;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
             .biomarker-card-header:hover {
-                background: #ececec;
+                background: #f1f5f9;
+            }
+
+            .biomarker-card.active .biomarker-card-header {
+                background: #f8feff;
+                color: #1f2937;
             }
 
         /* Toggle icon */
         .toggle-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 26px;
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            background: rgba(0, 188, 212, 0.1);
+            color: #2d3748;
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             line-height: 1;
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .biomarker-card.active .toggle-icon {
+            background: var(--primary-color);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 188, 212, 0.26);
         }
 
         /* Hidden content by default */
@@ -525,7 +597,12 @@
             max-height: 0;
             overflow: hidden;
             padding: 0 1rem; /* keep horizontal padding */
-            transition: max-height 0.3s ease, padding 0.3s ease;
+            transition: max-height 0.3s ease, padding 0.3s ease, border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .biomarker-card.active .biomarker-card-content {
+            border-top: 1px solid rgba(148, 163, 184, 0.24);
+            background: #fbfdff;
         }
 
             .biomarker-card-content > .input-group:first-of-type {
@@ -584,8 +661,10 @@
         /* --- LWC 2-step wizard --- */
         .lwc-steps-shell {
             position: relative;
+            width: min(100%, 780px);
             max-width: 780px;
             margin: 0 auto;
+            box-sizing: border-box;
         }
 
         .lwc-step {
@@ -607,29 +686,59 @@
         .lwc-wizard-nav {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin: 0.75rem 0 1.25rem 0;
+            gap: 0;
+            margin: -0.25rem 0 0.25rem 0;
             user-select: none;
         }
 
         .lwc-dot {
-            width: 10px;
-            height: 10px;
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
             border-radius: 50%;
-            border: 2px solid #bbb;
+            border: 0;
             background: transparent;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
         }
+
+        .lwc-dot::before {
+            content: "";
+            width: 12px;
+            height: 12px;
+            box-sizing: border-box;
+            border-radius: 50%;
+            border: 2px solid #b8bec5;
+            background: transparent;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
         @media (hover: hover) and (pointer: fine) {
             .lwc-dot {
                 cursor: pointer;
             }
+
+            .lwc-dot:not(.lwc-dot--on):hover {
+                background: rgba(0, 188, 212, 0.08);
+            }
         }
 
         .lwc-dot.lwc-dot--on {
-            background: #4CAF50;
-            border-color: #4CAF50;
             cursor: default;
             pointer-events: none;
+        }
+
+        .lwc-dot.lwc-dot--on::before {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            transform: scale(1.08);
+        }
+
+        .lwc-dot:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
         }
 
 
@@ -638,6 +747,26 @@
             gap: .75rem;
             justify-content: center;
             margin-top: 1rem;
+        }
+
+        .bioageform button.bioage-calculate-button {
+            width: 100%;
+            min-width: 0;
+            max-width: 400px;
+            display: flex;
+            box-sizing: border-box;
+            margin: 1.35rem auto 0;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 480px) {
+            #mainPageTitleH2 {
+                font-size: clamp(1.55rem, 7vw, 1.9rem);
+                letter-spacing: 0.035em;
+                line-height: 1.12;
+                padding-inline: 0.25rem;
+            }
         }
     </style>
 </head>
@@ -1066,7 +1195,7 @@
                     </fieldset>
 
                     <!-- Calculate Button -->
-                    <button type="submit" class="option-button grey" aria-label="Calculate your biological age" style="width: 100%; display: block; box-sizing: border-box; margin-top: 1rem;">
+                    <button type="submit" class="option-button grey bioage-calculate-button" aria-label="Calculate your biological age">
                         <i class="fas fa-heartbeat"></i>&nbsp;Calculate my biological&nbsp;age
                     </button>
                 </section>

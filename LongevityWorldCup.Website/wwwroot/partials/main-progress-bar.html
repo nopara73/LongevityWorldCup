@@ -5,7 +5,7 @@
         max-width: 800px;
         margin: 40px auto;
         position: relative;
-        padding: 20px 0;
+        padding: 20px 0 28px;
     }
 
     .progress-bar {
@@ -65,6 +65,12 @@
 
     .stage.active .stage-label {
         color: var(--dark-text-color);
+        line-height: 1;
+        padding: 0.3rem 0.55rem;
+        border: 1px solid rgba(45, 55, 72, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     }
 
     .stage.completed .stage-label {
@@ -80,11 +86,15 @@
         z-index: 998;
         background: var(--background-color);
         color: var(--light-text-color);
-        padding: 0.4rem 1rem;
+        min-height: 44px;
+        box-sizing: border-box;
+        padding: 0.35rem 1rem;
         display: none;
         align-items: center;
         justify-content: center;
         gap: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.34);
         transition: opacity 0.2s ease;
     }
 
@@ -122,6 +132,11 @@
         font-size: 13px;
         font-weight: bold;
         color: var(--light-text-color);
+        line-height: 1;
+        padding: 0.3rem 0.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
     }
 
 </style>

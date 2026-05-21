@@ -105,6 +105,7 @@
 
     .bannertext {
         text-align: center; /* Optional */
+        box-sizing: border-box;
         font-size: clamp(2.15rem, 5vw, 2.7rem);
         line-height: 1.08;
         font-weight: 700;
@@ -112,6 +113,7 @@
         letter-spacing: 0.05em;
         position: relative;
         text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35);
+        max-width: 100%;
         padding: 0 1rem;
     }
 
@@ -208,7 +210,9 @@
         transform: none;
         z-index: 1000;
         margin-top: 0;
-        padding: 0.45rem 0.95rem;
+        min-height: 2.25rem;
+        padding: 0.55rem 1rem;
+        box-sizing: border-box;
         font-size: 1rem;
         background: var(--main-action-color);
         transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
@@ -286,6 +290,12 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
         }
 
+        .option-button:focus-visible {
+            outline: 3px solid rgba(0, 188, 212, 0.78);
+            outline-offset: 4px;
+            box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.82), 0 6px 12px rgba(0, 0, 0, 0.18);
+        }
+
         /* Specific styles for different buttons */
         .option-button.grey {
             background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
@@ -305,16 +315,27 @@
             }
 
     button.option-button:disabled {
-        /* Visual fade */
-        opacity: 0.5;
+        background: #eef2f7 !important;
+        border: 1px solid rgba(100, 116, 139, 0.16);
+        color: #64748b;
+        opacity: 1;
         /* Prevent all pointer events */
         pointer-events: none;
         cursor: not-allowed;
         /* Remove depth cues */
-        box-shadow: none;
+        box-shadow: none !important;
+        transform: none;
         /* Disable text selection */
         user-select: none;
     }
+
+        button.option-button:disabled:hover {
+            background: #eef2f7 !important;
+            border-color: rgba(100, 116, 139, 0.16);
+            color: #64748b;
+            box-shadow: none !important;
+            transform: none;
+        }
 
     /* Adjust the back button styling */
     .back-button {
@@ -373,6 +394,7 @@
 
     .smaller-text {
         font-size: 0.85em;
+        overflow-wrap: anywhere;
     }
 
     .visually-hidden {
@@ -453,24 +475,43 @@
         }
     }
 
-    /* Make the label a flex-row aligned to the text baseline */
     #biomarker-checklist .biomarker-item {
-        display: inline-flex;
-        align-items: baseline;
-        vertical-align: middle;
-        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        min-height: 32px;
+        gap: 0.55rem;
+        padding: 0.25rem 0.4rem;
+        border-radius: 6px;
+        box-sizing: border-box;
+        color: #0f172a;
         font-weight: normal;
+        line-height: 1.25;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
     }
 
-    /* Reset any browser margins and nudge the checkbox into optical center */
+    #biomarker-checklist .biomarker-item:hover {
+        background: rgba(0, 188, 212, 0.08);
+    }
+
     #biomarker-checklist .biomarker-checkbox {
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
         margin: 0;
-        transform: translateY(1px);
+        accent-color: var(--primary-color, #00bcd4);
     }
 
-    /* Add a little space between checkbox and text */
-    #biomarker-checklist .biomarker-item span {
-        margin-left: 0.4em;
+    #biomarker-checklist .biomarker-checkbox:focus-visible {
+        outline: 3px solid rgba(0, 188, 212, 0.22);
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 600px) {
+        #biomarker-checklist .biomarker-item {
+            min-height: 36px;
+            padding: 0.3rem 0.45rem;
+        }
     }
 
     /* LOADING DIALOG */
@@ -516,7 +557,7 @@
         z-index: 999;
         background: var(--background-color);
         color: var(--light-text-color);
-        padding: 0.5rem 1rem;
+        padding: 0.25rem 1rem;
         display: none;
         align-items: center;
         justify-content: center;
@@ -540,11 +581,17 @@
         z-index: -1;
     }
     .site-sticky-header-link {
-        display: flex;
+        display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.5rem;
+        min-height: 2.75rem;
+        padding: 0 0.25rem;
+        box-sizing: border-box;
+        border-radius: 6px;
         text-decoration: none;
         color: inherit;
+        white-space: nowrap;
     }
     .site-sticky-header-logo {
         width: 32px;
@@ -580,6 +627,8 @@
         .bannertext {
             font-size: clamp(2.2rem, 10vw, 2.55rem);
             letter-spacing: 0.035em;
+            max-width: calc(100vw - 1.5rem);
+            padding-inline: 0.5rem;
         }
 
         .join-game {
@@ -593,9 +642,11 @@
         }
     }
 
-    @media (max-width: 380px) {
+    @media (max-width: 600px) {
         .bannertext {
-            font-size: 2.1rem;
+            font-size: clamp(1.85rem, 6vw, 2.05rem);
+            letter-spacing: 0.025em;
+            max-width: calc(100vw - 1.25rem);
         }
 
         .tagline {
@@ -619,9 +670,9 @@
         }
 
         .bannertext {
-            font-size: clamp(2rem, 9.2vw, 2.35rem);
+            font-size: clamp(1.85rem, 8vw, 2.05rem);
             line-height: 1.05;
-            max-width: 340px;
+            max-width: calc(100vw - 1.25rem);
         }
 
         .tagline {

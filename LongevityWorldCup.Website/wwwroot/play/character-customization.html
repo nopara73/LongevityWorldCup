@@ -6,7 +6,7 @@
     <style>
         /* Hide the join-game button in the header */
         .join-game {
-            display: none;
+            display: none !important;
         }
 
         .character-dashboard-main {
@@ -27,6 +27,7 @@
             max-width: 100%;
             margin: 0 0 1.25rem;
             text-align: center;
+            line-height: 1.12;
             overflow-wrap: anywhere;
         }
 
@@ -53,18 +54,45 @@
         }
 
         .character-dashboard-actions .option-button {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 100%;
             min-width: 0;
             max-width: none;
             margin: 0;
+            padding-inline: 3rem;
             box-sizing: border-box;
-            gap: 0.35rem;
+            column-gap: 0.55rem;
+            row-gap: 0.25rem;
             line-height: 1.25;
+            text-align: center;
             white-space: normal;
+        }
+
+        .character-dashboard-actions .dashboard-action-label {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            text-align: center;
+        }
+
+        .character-dashboard-actions .option-button i {
+            position: absolute;
+            top: 50%;
+            right: 1.35rem;
+            flex: 0 0 auto;
+            transform: translateY(-50%);
         }
 
         .character-dashboard-actions .back-button {
             margin-left: 0;
+        }
+
+        .character-dashboard-actions .back-button i {
+            right: auto;
+            left: 1.35rem;
         }
 
         @media (max-width: 600px) {
@@ -74,11 +102,24 @@
 
             .character-dashboard-title {
                 margin-bottom: 1rem;
-                font-size: 2rem;
+                font-size: clamp(1.65rem, 7vw, 1.9rem);
             }
 
             .character-dashboard-visual {
                 margin-bottom: 1.25rem;
+            }
+
+            .character-dashboard-actions .option-button {
+                padding-inline: 2.75rem;
+            }
+
+            .character-dashboard-actions .option-button i {
+                right: 1.2rem;
+            }
+
+            .character-dashboard-actions .back-button i {
+                right: auto;
+                left: 1.2rem;
             }
         }
 
@@ -156,17 +197,19 @@
         }
 
         .pro-discount-box {
-            width: 80%;
-            max-width: 400px;
-            margin: 0.35rem auto 0.75rem;
-            padding: 0.75rem 0.85rem;
-            border: 1px solid #d6e7d7;
-            border-radius: 10px;
-            background: #f3faf3;
-            color: #1f3f22;
+            width: 100%;
+            max-width: none;
+            margin: -0.1rem 0 0.35rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid rgba(76, 175, 80, 0.22);
+            border-radius: 8px;
+            background: rgba(240, 253, 244, 0.82);
+            color: #24442a;
             font-size: 0.88rem;
             line-height: 1.35;
-            text-align: center;
+            text-align: left;
+            box-sizing: border-box;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
         }
 
         .pro-discount-box .pro-discount-breakdown {
@@ -178,6 +221,7 @@
         .pro-discount-box .pro-discount-breakdown .pro-discount-line {
             display: flex;
             align-items: center;
+            justify-content: flex-start;
             gap: 0.42rem;
             margin-bottom: 0.5rem;
         }
@@ -224,10 +268,10 @@
         </div>
         <div class="options-container character-dashboard-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <button class="option-button grey" onclick="window.location.href='/edit-profile'">
-                Edit profile&nbsp;<i class="fas fa-pen"></i>
+                <span class="dashboard-action-label">Edit profile</span><i class="fas fa-pen"></i>
             </button>
             <button id="characterBackButton" class="option-button back-button" onclick="window.goBackOrHome()">
-                <i class="fas fa-arrow-left"></i>&nbsp;Back
+                <i class="fas fa-arrow-left"></i><span class="dashboard-action-label">Back</span>
             </button>
         </div>
     </main>
@@ -317,13 +361,13 @@
 
                 if (isPro) {
                     const phenoButton = createButton(
-                        'Submit new Pheno&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
+                        '<span class="dashboard-action-label">Submit new Pheno&nbsp;Age</span><i class="fas fa-rocket"></i>',
                         'option-button grey',
                         '/pheno-age?update=1',
                         () => clearPendingPaymentOffer()
                     );
                     const bortzButton = createButton(
-                        'Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age&nbsp;<i class="fas fa-rocket"></i>',
+                        '<span class="dashboard-action-label">Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age</span><i class="fas fa-rocket"></i>',
                         'option-button grey',
                         '/bortz-age?update=1',
                         () => clearPendingPaymentOffer()
@@ -332,7 +376,7 @@
                     optionsContainer.insertBefore(bortzButton, backButton);
                 } else {
                     const submitButton = createButton(
-                        'Submit new results&nbsp;<i class="fas fa-rocket"></i>',
+                        '<span class="dashboard-action-label">Submit new results</span><i class="fas fa-rocket"></i>',
                         'option-button grey',
                         '/pheno-age?update=1',
                         () => clearPendingPaymentOffer()
@@ -343,8 +387,8 @@
                             : null;
                     const goProButton = createButton(
                         goProDiscountResult
-                            ? `Go pro for&nbsp;${typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult)}&nbsp;<i class="fas fa-bolt"></i>`
-                            : 'Go pro for&nbsp;<i class="fas fa-bolt"></i>',
+                            ? `<span class="dashboard-action-label">Go pro for&nbsp;${typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult)}</span><i class="fas fa-bolt"></i>`
+                            : '<span class="dashboard-action-label">Go pro for</span><i class="fas fa-bolt"></i>',
                         'option-button green',
                         '/bortz-age?update=1',
                         () => {

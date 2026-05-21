@@ -205,6 +205,9 @@
     .view-all{
         display:inline-flex;
         align-items:center;
+        min-height:2rem;
+        padding:0 .25rem;
+        box-sizing:border-box;
         color:var(--events-header-action);
         font-weight:700;
         font-size:.85rem;
@@ -212,6 +215,7 @@
         text-decoration:underline;
         text-decoration-color:rgba(6,116,135,.35);
         text-underline-offset:2px;
+        border-radius:6px;
     }
     .view-all:hover,
     .view-all:focus{
@@ -296,14 +300,20 @@
 
     .avatar{object-fit:cover;display:block;image-rendering:auto}
     .avatar-fallback{display:inline-flex;align-items:center;justify-content:center;color:#5a6b7b;font-weight:800;font-size:.7rem;text-transform:uppercase;line-height:24px}
-    .avatar-link{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+    .avatar-link{
+        display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+        min-width:2rem;min-height:2rem;box-sizing:border-box;border-radius:999px;
+    }
     .avatar,
     .avatar-fallback{transition:transform .15s ease,box-shadow .15s ease;will-change:transform}
     .avatar-link:hover .avatar,
     .avatar-link:focus .avatar,
     .avatar-link:hover .avatar-fallback,
     .avatar-link:focus .avatar-fallback{transform:scale(1.15);box-shadow:0 2px 6px rgba(0,0,0,.16)}
-    .avatar-disabled{display:inline-flex;align-items:center;justify-content:center;cursor:default}
+    .avatar-disabled{
+        display:inline-flex;align-items:center;justify-content:center;cursor:default;
+        min-width:2rem;min-height:2rem;box-sizing:border-box;border-radius:999px;
+    }
     .avatar-disabled .avatar,.avatar-disabled .avatar-fallback{transition:none;transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
     .avatar-disabled:hover .avatar,.avatar-disabled:focus .avatar,
     .avatar-disabled:hover .avatar-fallback,.avatar-disabled:focus .avatar-fallback{transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
@@ -498,10 +508,8 @@
     }
 
     .custom-event-expander,
-    .custom-event-expander:hover,
     .custom-event-expander:focus,
-    .custom-event-expander:active,
-    .custom-event-expander:focus-visible{
+    .custom-event-expander:active{
         background:transparent !important;
         border:0 !important;
         box-shadow:none !important;
@@ -518,14 +526,20 @@
         align-items:center;
         justify-content:center;
 
-        width:18px;
-        height:18px;
-        margin-left:.35rem;
+        width:2rem;
+        height:2rem;
+        margin:-.45rem 0 -.45rem .2rem;
         padding:0;
 
         color:var(--events-text);
+        border-radius:50%;
+        box-sizing:border-box;
         cursor:pointer;
         vertical-align:middle;
+    }
+    .custom-event-expander:hover,
+    .custom-event-expander:focus-visible{
+        background:rgba(0,188,212,.08) !important;
     }
 
     .custom-event-expander::before{
@@ -643,7 +657,15 @@
             white-space:normal;
             overflow-x:hidden;
             flex-wrap:wrap;
+            column-gap:.22rem;
             row-gap:.15rem;
+        }
+        .events-board.athlete-scroll td.col-avatar{
+            width:34px;
+            padding-right:8px;
+        }
+        .events-board.athlete-scroll td.event-message{
+            padding-left:2px;
         }
         .events-board.athlete-scroll td.event-message .event-message-cell *{
             white-space:normal;
@@ -667,6 +689,15 @@
         }
 
         .events-board:not(.athlete-scroll) table{
+            table-layout:auto;
+        }
+
+        .events-board.athlete-scroll td.col-date{
+            display:none;
+        }
+
+        .events-board.athlete-scroll #eventsTable thead,
+        .events-board.athlete-scroll #eventsTable tbody tr{
             table-layout:auto;
         }
     }

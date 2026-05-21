@@ -6,7 +6,7 @@
     <style>
         /* Hide the join-game button in the header */
         .join-game {
-            display: none;
+            display: none !important;
         }
 
         .character-selection-main {
@@ -47,6 +47,13 @@
             align-items: center;
             width: 100%; /* Make the container fill the form width */
             margin-bottom: 1.4rem;
+            transition: margin-bottom 0.2s ease;
+        }
+
+        @supports selector(:has(*)) {
+            .autocomplete-wrapper:has(.autocomplete-items) {
+                margin-bottom: calc(1.4rem + min(12rem, 36vh));
+            }
         }
 
         .autocomplete-container {
@@ -57,61 +64,93 @@
             max-width: 408px;
             display: flex;
             justify-content: center;
-            align-items: center; /* Vertically center the text */
+            flex-direction: column;
+            align-items: stretch;
         }
 
             .autocomplete-container input {
                 width: 100%;
-                padding: 0.75rem 1rem;
-                border: 2px solid #ccc;
-                border-radius: 30px;
+                min-height: 44px;
+                padding: 0.65rem 1rem;
+                border: 1px solid #cbd5e1;
+                border-radius: 999px;
                 font-size: 1rem;
-                transition: border-color 0.2s;
+                line-height: 1.3;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
                 box-sizing: border-box;
             }
 
                 .autocomplete-container input:focus {
                     outline: none;
-                    border-color: #4CAF50;
-                    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+                    border-color: var(--primary-color, #00bcd4);
+                    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
                 }
 
         .autocomplete-items {
             position: absolute;
-            background: white; /* white panel */
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* soft drop shadow */
-            border: none; /* no harsh border */
-            max-height: 150px; /* scroll if too tall */
-            overflow-y: auto;
-            z-index: 9999;
+            top: calc(100% + 0.45rem);
             left: 0;
-            right: 0; /* ensures it spans exactly the container */
-            box-sizing: border-box; /* include any padding/borders in that width */
-            top: calc(100% - 2px); /* slide up by the input’s 2px bottom border so it’s flush */
-            border-radius: 0 0 30px 30px; /* match your input’s 30px pill corners */
+            right: 0;
+            padding: 0.25rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
             width: 100%;
+            max-height: min(12rem, 36vh);
+            overflow-y: auto;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-sizing: border-box;
+            z-index: 9999;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
         }
 
             .autocomplete-items div {
-                padding: 0.75rem 1rem; /* generous touch targets */
-                font-size: 0.95rem;
+                display: flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.6rem 0.7rem;
+                border-radius: 6px;
+                box-sizing: border-box;
+                color: #2d3748;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1.25;
             }
 
-                .autocomplete-items div:not(:last-child) {
-                    border-bottom: 1px solid #eee; /* light separator between items */
+                .autocomplete-items div + div {
+                    margin-top: 0.15rem;
                 }
 
                 .autocomplete-items div:hover,
                 .autocomplete-active {
-                    background-color: #0069d9; /* your blue hover */
-                    color: #fff;
+                    background-color: rgba(0, 188, 212, 0.12);
+                    color: #243446;
+                }
+
+                .autocomplete-items div strong {
+                    padding: 0 0.12rem;
+                    border-radius: 4px;
+                    background: rgba(0, 188, 212, 0.16);
+                    color: #0f5965;
                 }
 
         .error-message {
+            display: none;
+        }
+
+        .error-message:not(:empty) {
             display: block;
-            color: red;
+            margin-top: 0.55rem;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid rgba(220, 38, 38, 0.24);
+            border-radius: 8px;
+            background: rgba(254, 242, 242, 0.94);
+            color: #b91c1c;
             font-size: 0.9rem;
-            margin-top: 0.5rem;
+            font-weight: 700;
+            line-height: 1.35;
+            box-sizing: border-box;
         }
 
         .character-selection-actions {
@@ -152,6 +191,12 @@
 
             .autocomplete-wrapper {
                 margin-bottom: 1.25rem;
+            }
+
+            @supports selector(:has(*)) {
+                .autocomplete-wrapper:has(.autocomplete-items) {
+                    margin-bottom: calc(1.25rem + min(11.5rem, 34vh));
+                }
             }
         }
     </style>

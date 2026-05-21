@@ -2,6 +2,10 @@
 
 This file documents project-specific rules that agents commonly get wrong. It is intentionally focused on domain constraints, not generic development advice.
 
+## Design Standards
+
+Before making user-facing UI changes, read `DESIGN.md` and preserve its visual, layout, typography, and interaction rules.
+
 ## Ranking Logic Must Stay Aligned
 
 - Ranking is currently calculated in both the backend and the frontend.
