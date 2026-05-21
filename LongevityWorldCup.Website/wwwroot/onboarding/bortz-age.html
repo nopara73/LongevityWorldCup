@@ -95,9 +95,13 @@
         }
 
         #mainPageTitleH2 {
+            width: min(100%, 600px);
             max-width: 100%;
+            margin-inline: auto;
             box-sizing: border-box;
             overflow-wrap: break-word;
+            letter-spacing: 0;
+            line-height: 1.12;
             text-wrap: balance;
         }
 
@@ -734,7 +738,7 @@
         /* --- LWC 2-step wizard --- */
         .lwc-steps-shell {
             position: relative;
-            width: min(100%, 780px);
+            width: calc(100vw - 2rem);
             max-width: 780px;
             margin: 0 auto;
             box-sizing: border-box;
@@ -835,10 +839,14 @@
 
         @media (max-width: 480px) {
             #mainPageTitleH2 {
-                font-size: clamp(1.55rem, 7vw, 1.9rem);
-                letter-spacing: 0.035em;
-                line-height: 1.12;
+                font-size: 1.42rem;
                 padding-inline: 0.25rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            #mainPageTitleH2 {
+                font-size: 1.32rem;
             }
         }
     </style>
@@ -1317,7 +1325,23 @@
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
         const isUpdate = urlParams.get('update') === '1';
-        const athlete = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+        let athlete = null;
+
+        try {
+            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
+        } catch {
+            athlete = null;
+        }
+
+        const hasSelectedAthlete = athlete && typeof athlete === 'object' && athlete.Name && athlete.DateOfBirth;
+        if (isUpdate && !hasSelectedAthlete) {
+            sessionStorage.removeItem('selectedAthlete');
+            sessionStorage.removeItem('tempAthlete');
+            window.location.replace('/select-athlete');
+            athlete = null;
+        }
+
         const bloodDrawDateInput = document.getElementById('blood-draw-date');
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const BORTZ_LAB_GEO_CACHE_KEY = 'bortzLabGeoEligibility';
@@ -2348,7 +2372,7 @@
             }
             overwriteBortzFormFromUrlParams();
 
-            if (isUpdate) {
+            if (isUpdate && hasSelectedAthlete) {
                 hideMainProgress();
 
                 document.getElementById('mainPageTitleH2').innerHTML = athlete.Name;

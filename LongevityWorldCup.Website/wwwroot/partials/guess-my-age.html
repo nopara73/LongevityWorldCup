@@ -905,6 +905,57 @@
             padding: 0.55rem 1.1rem;
         }
     }
+
+    @media (min-width: 769px) and (max-height: 760px) {
+        #detailsModal .modal-content.guess-mode {
+            box-sizing: border-box;
+            height: 96vh;
+            max-height: 96vh;
+            margin: 1vh auto;
+        }
+        #detailsModal .modal-content.guess-mode #athlete-profile {
+            --gma-portrait-gap: .8rem;
+            --gma-portrait-size: clamp(150px, min(34vw, 28vh), 230px);
+            padding-block: 2.25rem .5rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-card {
+            width: min(620px, calc(100% - 2rem));
+            padding: .95rem 1.25rem 1.15rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-heading,
+        #detailsModal .modal-content.guess-mode .chrono-age-heading {
+            font-size: 2rem;
+            margin-bottom: .9rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-slider-wrap {
+            width: 84%;
+            margin: .75rem auto .85rem;
+            padding-top: 2.15rem;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange {
+            height: 2.35rem;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
+            width: 50px;
+            height: 50px;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
+            width: 50px;
+            height: 50px;
+        }
+        #detailsModal .modal-content.guess-mode #gmaBubble,
+        #detailsModal .modal-content.guess-mode #gmaRealBubble {
+            font-size: 1.9rem;
+            padding: .48rem .95rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-actions {
+            gap: .75rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-btn {
+            min-height: 44px;
+            padding: .75rem 1.45rem;
+        }
+    }
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
