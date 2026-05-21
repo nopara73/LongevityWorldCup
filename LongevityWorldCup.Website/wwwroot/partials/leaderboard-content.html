@@ -6223,6 +6223,20 @@
         closeSidebar();
     });
 
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' && event.key !== 'Esc') return;
+        if (modal.style.display === "block") return;
+
+        const searchInput = document.getElementById('athleteSearch');
+        if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
+
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+
+        event.preventDefault();
+        closeSidebar();
+    });
+
     function syncSidebarDrawerBackdrop() {
         const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
         document.body.classList.toggle('sidebar-drawer-open', isMobileDrawer && sidebar.classList.contains('expanded'));
