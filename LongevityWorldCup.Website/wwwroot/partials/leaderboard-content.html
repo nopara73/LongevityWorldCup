@@ -4865,6 +4865,13 @@
         if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
             event.preventDefault();
             clearSearch();
+            const searchInput = document.getElementById('athleteSearch');
+            try {
+                searchInput?.focus({ preventScroll: true, focusVisible: true });
+            }
+            catch {
+                searchInput?.focus({ preventScroll: true });
+            }
         }
     });
 
