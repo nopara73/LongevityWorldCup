@@ -436,6 +436,11 @@
     }
     .filter-section label.active .filter-count{ color:var(--secondary-color); }
     .filter-section label.is-zero-count:not(.active) .filter-count{ color:#909090; }
+    .filter-section label:has(input[type="checkbox"]:focus-visible){
+        color:var(--secondary-color); border-color:rgba(255,64,129,.42);
+        background:linear-gradient(90deg, rgba(255,64,129,.08), rgba(0,188,212,.06));
+        box-shadow:0 0 0 4px rgba(255,64,129,.14);
+    }
     .filter-section input[type="checkbox"]:focus-visible{ outline:2px solid var(--secondary-color); outline-offset:2px; }
 
     /* =========================
