@@ -1571,7 +1571,7 @@
         }
         body.sidebar-drawer-open::before{
             content:''; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.38);
-            backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:none;
+            backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:auto; cursor:pointer;
         }
         .leaderboard-view-switcher{
             margin-left:0; order:1; align-items:stretch; width:min(100%, 20.5rem); max-width:100%; min-width:0; gap:.35rem;
@@ -6213,6 +6213,13 @@
     });
 
     sidebarClose.addEventListener('click', () => {
+        closeSidebar();
+    });
+
+    document.addEventListener('click', (event) => {
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+        if (sidebar.contains(event.target) || sidebarToggle.contains(event.target)) return;
         closeSidebar();
     });
 
