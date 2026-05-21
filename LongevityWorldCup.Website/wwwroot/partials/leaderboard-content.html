@@ -457,9 +457,14 @@
     .clear-icon.visible{
         opacity:1; visibility:visible; background:rgba(0,188,212,.09); border-color:rgba(0,188,212,.24);
     }
-    .clear-icon:hover, .clear-icon:focus-visible{
+    .clear-icon:hover,
+    .clear-icon:focus-visible{
         color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
-        box-shadow:0 3px 8px rgba(0,0,0,.08); outline:none;
+        box-shadow:0 3px 8px rgba(0,0,0,.08);
+    }
+    .clear-icon:focus-visible{
+        outline:2px solid var(--secondary-color); outline-offset:2px;
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.1);
     }
 
     /* =========================
