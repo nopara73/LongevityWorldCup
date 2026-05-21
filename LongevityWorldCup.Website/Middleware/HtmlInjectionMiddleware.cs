@@ -113,7 +113,7 @@ namespace LongevityWorldCup.Website.Middleware
             var optionalHeadScripts = BuildOptionalHeadScripts(config);
             var modulesBootstrap = BuildModulesBootstrap(config);
 
-            return ApplySharedAssetPlaceholders(html)
+            return ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(html))
                 .Replace("{{OPTIONAL_HEAD_SCRIPTS}}", optionalHeadScripts)
                 .Replace("{{MODULES_BOOTSTRAP}}", modulesBootstrap)
                 .Replace("{{ASSET_FAVICON_ICO}}", _assetVersionProvider.AppendVersion("/assets/favicon.ico"))
@@ -139,6 +139,12 @@ namespace LongevityWorldCup.Website.Middleware
         {
             return html
                 .Replace("{{ASSET_FAVICON_128}}", _assetVersionProvider.AppendVersion("/assets/favicon-128x128.png"));
+        }
+
+        private string ApplySharedCssPlaceholders(string html)
+        {
+            return html
+                .Replace("{{ASSET_MOBILE_ROUGHNESS_CSS}}", _assetVersionProvider.AppendVersion("/css/mobile-roughness.css"));
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)

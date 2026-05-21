@@ -1,6 +1,7 @@
 /* Add these styles inside your <style> tag */
 .bioageform {
-    max-width: 600px;
+    width: min(100%, 600px);
+    max-width: calc(100vw - 2rem);
     margin: 2rem auto;
     padding: 1rem;
     background-color: #f9f9f9;
@@ -9,6 +10,8 @@
     flex-direction: column;
     align-items: center; /* Centers the button horizontally */
     position: relative; /* Position relative to make dropdown align correctly */
+    min-width: 0;
+    box-sizing: border-box;
 }
 
     .bioageform label {
@@ -21,6 +24,7 @@
     .bioageform input,
     .bioageform select {
         width: 100%;
+        min-width: 0;
         min-height: 44px;
         padding: 0.65rem 0.75rem;
         margin-top: 0.5rem;
@@ -55,7 +59,10 @@
 /* Responsive adjustments */
 @media (max-width: 600px) {
     .bioageform {
-        padding: 1rem;
+        width: 100%;
+        max-width: calc(100vw - 1.5rem);
+        margin: 1.35rem auto;
+        padding: 0.9rem;
     }
 }
 
@@ -66,8 +73,11 @@
     padding: 1.2rem 1.15rem;
     margin-top: 2rem;
     border-radius: 12px;
-    width: 90%; /* Allow fieldset to fill available space */
+    width: 100%;
+    max-width: 100%;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .bioageform fieldset:first-of-type {
@@ -88,6 +98,7 @@
     line-height: 1.2;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
     white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .bioageform legend .category-icon {
@@ -101,6 +112,7 @@
 
 .bioageform textarea {
     width: 100%;
+    min-width: 0;
     min-height: 7rem;
     padding: 0.65rem 0.75rem;
     margin-top: 0.5rem;
@@ -111,4 +123,25 @@
     line-height: 1.45;
     resize: vertical; /* Allow users to resize vertically */
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (max-width: 420px) {
+    .bioageform {
+        max-width: calc(100vw - 1rem);
+        padding: 0.75rem;
+    }
+
+    .bioageform fieldset {
+        padding: 1rem 0.85rem;
+        margin-top: 1.35rem;
+    }
+
+    .bioageform legend {
+        max-width: 100%;
+        font-size: 0.95rem;
+    }
+
+    .bioageform label {
+        line-height: 1.25;
+    }
 }

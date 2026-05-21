@@ -205,8 +205,9 @@
     .view-all{
         display:inline-flex;
         align-items:center;
-        min-height:2rem;
-        padding:0 .25rem;
+        justify-content:center;
+        min-height:44px;
+        padding:0 .55rem;
         box-sizing:border-box;
         color:var(--events-header-action);
         font-weight:700;
@@ -269,6 +270,15 @@
         transform:none;
         transition-property:box-shadow,background-color;
     }
+    @media (max-width:900px){
+        .events-board table tbody tr:hover,
+        .events-board table tbody tr.group-hover,
+        .events-board table tbody tr.custom-event-row:hover,
+        .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover),
+        .events-board table tbody tr.custom-event-details:hover{
+            transform:none;
+        }
+    }
 
     .events-board tbody td{
         height:auto;
@@ -302,7 +312,8 @@
     .avatar-fallback{display:inline-flex;align-items:center;justify-content:center;color:#5a6b7b;font-weight:800;font-size:.7rem;text-transform:uppercase;line-height:24px}
     .avatar-link{
         display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
-        min-width:2rem;min-height:2rem;box-sizing:border-box;border-radius:999px;
+        min-width:44px;min-height:44px;box-sizing:border-box;border-radius:999px;
+        margin:-6px;
     }
     .avatar,
     .avatar-fallback{transition:transform .15s ease,box-shadow .15s ease;will-change:transform}
@@ -312,7 +323,8 @@
     .avatar-link:focus .avatar-fallback{transform:scale(1.15);box-shadow:0 2px 6px rgba(0,0,0,.16)}
     .avatar-disabled{
         display:inline-flex;align-items:center;justify-content:center;cursor:default;
-        min-width:2rem;min-height:2rem;box-sizing:border-box;border-radius:999px;
+        min-width:44px;min-height:44px;box-sizing:border-box;border-radius:999px;
+        margin:-6px;
     }
     .avatar-disabled .avatar,.avatar-disabled .avatar-fallback{transition:none;transform:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
     .avatar-disabled:hover .avatar,.avatar-disabled:focus .avatar,
@@ -361,7 +373,26 @@
     .name-and-rank{display:inline-flex;align-items:baseline;gap:.15rem}
     .event-message .rank-badge{display:inline-flex;align-items:baseline;gap:.15rem;white-space:nowrap}
     .event-message .rank-icon{margin-left:.2rem}
-    .event-message a.placement-link{text-decoration:none}
+    .event-message a.event-athlete-link:not(.avatar-link){
+        display:inline-flex;
+        align-items:center;
+        min-height:44px;
+        min-width:44px;
+        justify-content:center;
+        margin:-11px 0;
+        padding:0 .05rem;
+        line-height:1.1;
+    }
+    .event-message a.placement-link{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:44px;
+        min-width:44px;
+        margin:-12px -.3rem;
+        padding:0 .25rem;
+        text-decoration:none;
+    }
     .event-message a.placement-link:hover,
     .event-message a.placement-link:focus{text-decoration:none}
     .event-message a.more-link{
@@ -526,9 +557,9 @@
         align-items:center;
         justify-content:center;
 
-        width:2rem;
-        height:2rem;
-        margin:-.45rem 0 -.45rem .2rem;
+        width:44px;
+        height:44px;
+        margin:-.82rem 0 -.82rem .2rem;
         padding:0;
 
         color:var(--events-text);
