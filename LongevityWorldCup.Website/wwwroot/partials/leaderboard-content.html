@@ -390,6 +390,10 @@
     .sidebar.has-active-state.expanded .clear-sidebar-filters{
         visibility:visible; pointer-events:auto; color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
     }
+    .clear-sidebar-filters:focus-visible{
+        color:var(--secondary-color); background:linear-gradient(90deg, rgba(255,64,129,.1), rgba(0,188,212,.06));
+        border-color:rgba(255,64,129,.42); outline:none; box-shadow:0 0 0 4px rgba(255,64,129,.14), 0 6px 14px rgba(255,64,129,.1);
+    }
 
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
@@ -1639,6 +1643,9 @@
         .sidebar.has-active-state.expanded .clear-sidebar-filters{
             display:flex; width:max-content; position:sticky; top:calc(env(safe-area-inset-top) + 4rem); z-index:8; align-self:flex-end; margin-left:auto; margin-right:.75rem;
             background:#fff6fa; box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(255,64,129,.16);
+        }
+        .sidebar.has-active-state.expanded .clear-sidebar-filters:focus-visible{
+            box-shadow:0 0 0 8px var(--card-bg), 0 0 0 12px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
         }
         .filter-section label{ min-height:44px; padding:.52rem .65rem; }
         .content{ margin-left:0; }
