@@ -113,3 +113,5 @@ This file records durable UI decisions that have proven useful across repeated L
 - Unavailable filter rows should look intentionally unavailable, not simply inactive: use muted text, non-hovering rows, and a distinct edge treatment when the count reaches zero.
 
 - Toolbar buttons that summarize a hidden active state should use more than a tiny badge; pair the badge with a subtle active border or surface so the state remains clear when the drawer is closed.
+
+- Optional segmented controls that can be cleared should make the selected chip read as active first, with any clear affordance contained inside the chip rather than appearing as loose text.
