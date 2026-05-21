@@ -394,8 +394,15 @@
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
     .filter-section{ margin-bottom:1.5rem; width:100%; }
-    .filter-section h3{ margin-bottom:.55rem; color:var(--primary-color); font-size:1.2rem; transition:color .2s ease; }
+    .filter-section h3{
+        display:flex; align-items:center; gap:.5rem; margin-bottom:.55rem; color:var(--primary-color); font-size:1.2rem;
+        transition:color .2s ease;
+    }
     .filter-section.has-active-filter h3{ color:var(--secondary-color); }
+    .filter-section.has-active-filter h3::after{
+        content:''; flex:1 1 auto; height:2px; border-radius:999px;
+        background:linear-gradient(90deg, rgba(255,64,129,.75), rgba(0,188,212,.14));
+    }
     .filter-section ul{ list-style:none; padding:0; margin:0; display:grid; gap:.35rem; }
     .filter-section li{ margin:0; }
     .filter-section label{
