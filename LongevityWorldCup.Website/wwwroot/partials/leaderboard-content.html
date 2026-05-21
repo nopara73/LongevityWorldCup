@@ -506,7 +506,11 @@
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable:hover::after{
         opacity:1;
     }
-    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge{ outline:2px solid var(--secondary-color); outline-offset:2px; }
+    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge{
+        outline:2px solid var(--secondary-color); outline-offset:2px;
+        color:var(--secondary-color); background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.08));
+        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
+    }
 
     /* =========================
        6) Portraits & rank indicators
