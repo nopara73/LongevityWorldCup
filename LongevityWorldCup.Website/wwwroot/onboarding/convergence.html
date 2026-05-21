@@ -246,8 +246,9 @@
             position: absolute;
             top: 0.75rem !important;
             right: 0.75rem !important;
-            min-height: 32px;
-            padding: 0.35rem 0.65rem !important;
+            min-height: 44px;
+            min-width: 44px;
+            padding: 0.45rem 0.75rem !important;
             background-color: #b91c1c !important;
             color: var(--light-text-color);
             border: none;
@@ -496,7 +497,7 @@
 
                 <!-- Name Field -->
                 <label for="name">Name</label>
-                <input type="text" id="name" name="name" required aria-required="true" placeholder="Real name or cyber alias — your call">
+                <input type="text" id="name" name="name" required aria-required="true" autocomplete="name" placeholder="Real name or cyber alias — your call">
                 <span id="nameError" class="error-message"></span>
 
                 <!-- Division Field -->
@@ -563,7 +564,7 @@
 
                 <!-- Link to Personal Page (Optional) -->
                 <label for="personalLink">Link (optional)</label>
-                <input type="url" id="personalLink" name="personalLink" placeholder="https://yourwebsite.com">
+                <input type="url" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" placeholder="https://yourwebsite.com">
                 <p class="convergence-helper-text">
                     Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
                 </p>
@@ -584,7 +585,7 @@
                 <div id="congratsText" class="convergence-application-copy" style="display:none">
                     <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
                 </div>
-                <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" placeholder="pizza_lover@hungry.com">
+                <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" autocomplete="email" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
             <!-- WHY Field (Initially Hidden) -->

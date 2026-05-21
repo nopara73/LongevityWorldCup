@@ -22,6 +22,8 @@
 
         body {
             margin: 0;
+            max-width: 100%;
+            overflow-x: clip;
             font-family: Roboto, Arial, sans-serif;
             background:
                 radial-gradient(circle at top right, rgba(114, 193, 107, 0.14), transparent 30%),
@@ -32,22 +34,23 @@
 
         .wrap {
             width: min(820px, calc(100% - 32px));
-            margin: clamp(24px, 5vw, 48px) auto 64px;
+            margin: 32px auto 64px;
         }
 
         .card {
             background: rgba(23, 27, 34, 0.92);
             border: 1px solid var(--line);
             border-radius: 18px;
-            padding: clamp(24px, 5vw, 40px);
+            padding: 32px;
             box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
         }
 
         h1 {
             margin: 0 0 8px;
             font-family: Orbitron, Roboto, Arial, sans-serif;
-            font-size: clamp(28px, 5vw, 42px);
+            font-size: 2.4rem;
             line-height: 1.15;
+            overflow-wrap: anywhere;
         }
 
         h2 {
@@ -112,6 +115,10 @@
             .card {
                 border-radius: 16px;
                 padding: 22px 20px 28px;
+            }
+
+            h1 {
+                font-size: 2rem;
             }
 
             .meta {
