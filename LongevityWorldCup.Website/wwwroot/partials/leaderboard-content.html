@@ -442,9 +442,10 @@
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
-        width:100%; min-height:44px; padding:.55rem 4.75rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-size:1rem;
+        width:100%; min-height:44px; padding:.55rem 4.75rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-family:inherit; font-size:1rem; color:var(--dark-text-color);
         transition:border-color .3s ease, box-shadow .2s ease; outline:none; box-sizing:border-box;
     }
+    #athleteSearch::placeholder{ color:#56666f; opacity:1; }
     #athleteSearch:focus{ border-color:var(--secondary-color); box-shadow:0 0 0 3px rgba(0,188,212,.14); }
     .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; }
     .clear-icon{
