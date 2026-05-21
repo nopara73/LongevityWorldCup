@@ -463,11 +463,13 @@
     }
     .leaderboard-view-switcher input[name="leaderboardView"]{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
-        background:var(--card-bg); color:var(--primary-color); box-shadow:0 1px 3px rgba(0,0,0,.12);
-        padding-right:.5rem;
+        background:linear-gradient(180deg, var(--card-bg), rgba(0,188,212,.08)); color:var(--primary-color);
+        box-shadow:0 0 0 1px rgba(0,188,212,.32), 0 3px 9px rgba(0,0,0,.12);
+        padding-right:.42rem;
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge::after{
-        content:'×'; margin-left:.35rem; font-size:1rem; line-height:1; opacity:.7; font-weight:400;
+        content:'×'; display:inline-flex; align-items:center; justify-content:center; width:1.1rem; height:1.1rem; margin-left:.4rem;
+        border-radius:50%; background:rgba(0,188,212,.12); color:var(--primary-color); font-size:.85rem; line-height:1; opacity:.88; font-weight:700;
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge:hover::after{
         opacity:1;
