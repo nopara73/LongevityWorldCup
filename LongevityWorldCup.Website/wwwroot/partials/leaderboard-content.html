@@ -4843,7 +4843,7 @@
 
     document.addEventListener('keydown', function (event) {
         const searchInput = document.getElementById('athleteSearch');
-        if (event.key === 'Escape' && searchInput.value.trim().length > 0) {
+        if (document.activeElement === searchInput && event.key === 'Escape' && searchInput.value.trim().length > 0) {
             clearSearch();
         }
     });
