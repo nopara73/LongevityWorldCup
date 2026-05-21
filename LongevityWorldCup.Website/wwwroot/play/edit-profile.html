@@ -152,6 +152,8 @@
             padding: 1.25rem;
             width: min(calc(100vw - 2rem), 430px);
             max-width: 430px;
+            max-height: calc(100dvh - 1.5rem);
+            overflow: auto;
             border: 1px solid rgba(15, 23, 42, 0.12);
             border-radius: 8px;
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
@@ -199,7 +201,7 @@
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             background: rgba(15, 23, 42, 0.58);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
@@ -296,6 +298,7 @@
 
             #changeProfileCropperModal {
                 width: calc(100vw - 1.5rem);
+                max-height: calc(100dvh - 1rem);
                 padding: 1rem;
             }
 
@@ -346,6 +349,7 @@
                 <input type="text"
                        id="personalLinkInput"
                        name="personalLink"
+                       inputmode="url"
                        autocomplete="off"
                        placeholder="Enter personal link…">
                 <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link">
