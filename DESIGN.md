@@ -1,125 +1,29 @@
 # LongevityWorldCup Design Decisions
 
-This file records durable UI decisions that have proven useful across repeated Longevity World Cup surfaces. Keep it short. Add to it only when a design choice is solid enough to guide future UI work; do not use it for workflow rules, business constraints, or broad taste preferences.
+This file records durable UI decisions for Longevity World Cup. Keep it short: add only reusable product-design guidance, not implementation history, workflow rules, or one-off polish notes.
 
 ## Decisions
 
-- Mobile and dense interactive controls should generally provide a 44px touch target when they are meant to be tapped directly. This has been applied to footer links, modal close controls, carousel dots, and shared onboarding form controls.
+- Direct-tap controls in mobile, toolbar, footer, and modal contexts should generally be easy to hit, with about a 44px target when space allows.
 
-- Shared onboarding form controls in `bioageform` use a 44px minimum height, 1rem text, and a visible cyan focus ring. This keeps convergence, Bortz Age, and PhenoAge forms consistent after the shared form-control polish.
+- Controls that belong to the same flow should share the same visual language: inherited font, consistent height, modest radius, light border, and a visible focus state.
 
-- `bioageform` selects use a consistent custom chevron treatment, while text inputs remain plain. This avoids mixing native and custom select arrows inside the same onboarding flow.
+- Helper, confirmation, validation, and empty-state copy should be grouped in compact light panels when grouping improves scanning or anchors the message to nearby controls.
 
-- `bioageform` fieldsets use a subtle light surface, soft border, and modest radius so grouped form sections look intentional next to the site’s card-like UI.
+- File, proof, and profile-image previews should stay inside bounded frames with `object-fit: contain` when unusual aspect ratios are likely.
 
-- `bioageform` legends use a small surface-label treatment so section titles sit clearly on grouped controls instead of competing with the fieldset border.
+- Autocomplete and suggestion menus should appear as padded floating panels with clear row hover/focus states; on constrained viewports, avoid covering the next likely action.
 
-- Onboarding fieldsets that represent a distinct step section should use a short legend when neighboring step sections do, so multi-step forms keep a consistent scanning rhythm.
+- Dense table and list hovers should not change font size or reflow neighboring content. Prefer color, underline, surface, edge, shadow, or slight lift for feedback.
 
-- Bioage biomarker accordion cards use white card surfaces, soft slate borders, a distinct active header/content treatment, and a compact circular toggle affordance so dense lab groups scan clearly inside the lighter fieldsets.
+- Empty states inside data tables should be compact and include an obvious recovery action whose shape matches nearby controls.
 
-- Bioage biomarker input/unit rows rely on row gaps instead of per-control margins, with numeric inputs allowed to shrink before unit selects wrap on narrow screens.
+- Filter and segmented controls should make active, clearable, and unavailable states visually distinct without relying on a tiny badge alone.
 
-- Bioage CRP negative toggles sit in a compact helper panel with a 44px label target so the optional switch reads as part of the opened biomarker card.
+- Mobile foreground surfaces such as drawers and full-screen viewers should have clear close targets and enough backdrop contrast that the active surface is unambiguous.
 
-- Bioage final calculate CTAs are centered with an explicit max width instead of inline full-width styles so step actions stay visually consistent across Bortz and Pheno.
+- Long user-generated labels, names, and button text should wrap without clipping; icons in action buttons should stay in fixed slots when labels wrap.
 
-- Proof upload previews use a centered card with a clearly tappable remove control and a compact checklist panel. This keeps Convergence proof submission aligned with the standalone proof-upload surface that uses the same helper.
+- Badges are compact visual tokens. Keep badge groups predictable and avoid hover behavior that turns them into unstable or overly tall content.
 
-- Proof upload images sit in a bounded `object-fit: contain` preview frame so unusual receipt, lab-report, or generated image ratios do not dominate the mobile flow.
-
-- Convergence upload steps use constrained full-width action blocks and compact guidance panels instead of narrow one-off upload buttons, keeping profile and proof upload steps aligned.
-
-- Convergence profile crop previews use the same centered card treatment as proof previews so selected images feel anchored before the crop/save action.
-
-- Convergence helper and confirmation copy should sit in light bordered panels when it explains an adjacent form field, making the form easier to scan than loose paragraphs between inputs.
-
-- Character counters should sit outside text inputs as compact status pills when space allows, so they do not cover typed content or resize handles.
-
-- Convergence stage-intro copy should use the same light bordered panel language as field helper copy when it sits under the stage image, so narrative text remains distinct from form controls.
-
-- Convergence field validation errors should appear as compact alert panels only when populated, rather than reserving empty space or showing bare red text.
-
-- Convergence autocomplete menus use a padded floating panel with rounded rows and an explicit inline match highlight, matching the form-control and helper-panel polish without changing selection behavior.
-
-- Sub-progress rails should read as light bordered panels with a subtle track and distinct completed/current dot states, so step position feels integrated with the surrounding onboarding cards.
-
-- Decision cards with substantially different content heights should size to their own content instead of stretching to match the tallest card when stretching creates large empty space before the call to action.
-
-- End-of-flow confirmation/status copy should be grouped in a light bordered panel when it is the primary message below an illustration, so the page reads as a clear result state instead of loose supporting text.
-
-- Autocomplete menus that open above nearby action buttons should reserve vertical space while open, so suggestions do not cover the next available control on mobile or short desktop viewports.
-
-- Poster-like onboarding/play visuals should use the same modest border, radius, and shadow language as adjacent image surfaces when they sit directly above stacked action buttons.
-
-- Helper or discount panels that appear inside a stacked action block should align to the same width as the surrounding actions unless there is a clear reason to make them narrower.
-
-- Edit-profile text fields, selects, and textareas should share the same inherited font, light border, modest radius, and cyan focus ring so editable profile details do not switch visual languages mid-form.
-
-- Edit-profile autocomplete menus should use the same light floating-panel treatment as other polished autocomplete surfaces and reserve vertical space while open.
-
-- Inline restore controls in edit-profile rows should match the 44px field height so pending-change affordances stay tappable without stretching the row.
-
-- Profile cropper modals should keep the selected image in a bounded, lightly framed preview so unusual image proportions remain inspectable before saving.
-
-- Proof-upload instruction copy should read as a compact light panel above the upload action, matching the checklist and helper-panel treatment used later in the same flow.
-
-- Proof tracker checklist rows should be label-sized tap targets with accent-colored checkboxes, keeping long biomarker lists scannable without reverting to raw browser defaults.
-
-- Uploaded proof success messages should appear as compact success panels directly above the preview card, so the confirmed upload state is grouped with the evidence being reviewed.
-
-- Multiple uploaded proof preview cards should keep a visible vertical gap between cards so each evidence image remains individually scannable on mobile and desktop.
-
-- Proof upload action shadows should follow the current button state: green depth while upload is the primary required action, neutral depth once it becomes a secondary add-more-proofs action.
-
-- Dashboard titles that render athlete-provided names should use a tight line-height and responsive mobile sizing so long display names stay readable without pushing the action stack too far down.
-
-- Dashboard action buttons should wrap generated text in a label span and keep icons in fixed edge slots, so long action names stay centered when they wrap on narrow screens.
-
-- Animated text-reveal headings should size against the rendered font, not just the character count, so bold display text does not clip its final characters.
-
-- Leaderboard toolbar controls should share a 44px control rhythm across view switches, search fields, and filter buttons; on mobile, view switches should span the toolbar width so the control stack feels aligned.
-
-- Athlete modal bio copy should sit in a subtle constrained panel when it appears between framed modal sections, so profile intent reads as first-class content instead of loose text.
-
-- Athlete modal action links should align to the same section width as neighboring modal cards and keep 44px tap targets, so sharing and external-link actions read as one control cluster.
-
-- Dense athlete modal stat tables should use subtle row separators and modest vertical padding, especially on mobile where label/value pairs stack.
-
-- Athlete modal chart controls should keep the same 44px touch rhythm as other modal actions, and chart panels should have a subtle edge so data areas remain distinct inside dark cards.
-
-- Athlete-modal event feeds on narrow screens should prioritize readable message spacing over preserving the date column; keep the avatar/message gap clear before reintroducing secondary metadata.
-
-- Athlete modal proof thumbnails should use taller stacked frames on mobile so portrait lab reports remain inspectable instead of collapsing into shallow strips.
-
-- Full-screen proof/image viewers should use a 44px-or-larger safe-area-aware close target and a strong enough backdrop that the underlying modal does not compete with the inspected document.
-
-- Athlete modal badge strips should stay compact on mobile by using a predictable grid; badges are visual tokens first, so avoid two-column layouts or accidental hover expansion that turn many badges into a long vertical detour.
-
-- Athlete modal segmented controls should follow the same 44px control rhythm as other modal actions, especially when switching chart or data views.
-
-- Mobile athlete stat tables should keep stacked labels and values, but use compact row spacing and muted, smaller labels so long stat lists scan without excessive vertical drift.
-
-- Adjacent athlete modal cards should avoid double-stacking vertical margins; keep the relationship between action clusters and the next data card close enough to read as one flow.
-
-- Mobile proof galleries inside the athlete modal should avoid nested scrolling when proof cards are stacked; let the modal handle vertical scroll so document previews are not clipped inside the section.
-
-- Leaderboard filter rows should read as compact row controls with clear active, unavailable, and count states; on mobile, the filter drawer should sit above the leaderboard card rather than being clipped by it.
-
-- Active filter drawers should give the clear action a real control shape, and mobile drawers should dim the page behind them so the foreground panel reads as the current surface.
-
-- Drawer close controls should be visible framed 44px targets when the drawer itself is a foreground surface, instead of tiny loose icons near the panel edge.
-
-- Unavailable filter rows should look intentionally unavailable, not simply inactive: use muted text, non-hovering rows, and a distinct edge treatment when the count reaches zero.
-
-- Toolbar buttons that summarize a hidden active state should use more than a tiny badge; pair the badge with a subtle active border or surface so the state remains clear when the drawer is closed.
-
-- Optional segmented controls that can be cleared should make the selected chip read as active first, with any clear affordance contained inside the chip rather than appearing as loose text.
-
-- Inline search clear controls should use a contained button treatment when they sit beside a persistent search icon, so the destructive/clearing action does not read as decorative chrome.
-
-- Search result highlights inside dense tables should be obvious but not marker-yellow loud; prefer a soft accent fill with a small shape or underline cue.
-
-- Empty states inside data tables should be compact panels with an obvious recovery action; reset actions should keep the same rounded, 44px control rhythm as adjacent toolbar controls.
-
-- Clickable text inside dense leaderboard rows should not change font size on hover; use color, surface, or underline treatment so hover feedback does not shift neighboring badges or columns.
+- Mobile modal content should prefer readable stacked sections over preserving desktop columns; avoid nested scrolling when stacked content can use the modal's main scroll.
