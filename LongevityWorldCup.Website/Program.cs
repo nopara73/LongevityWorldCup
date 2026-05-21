@@ -20,6 +20,8 @@ namespace LongevityWorldCup.Website
 
             var builder = WebApplication.CreateBuilder(args);
             var enableBrotliCompression = !builder.Environment.IsDevelopment();
+            var enableScheduledJobs = builder.Configuration.GetValue("EnableScheduledJobs", !builder.Environment.IsDevelopment());
+            var enableStartupBadgeRefresh = builder.Configuration.GetValue("EnableStartupBadgeRefresh", !builder.Environment.IsDevelopment());
             Batteries.Init();
 
             // Configure Kestrel to use settings from appsettings.json
@@ -86,100 +88,103 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
 
-            builder.Services.AddQuartz(q =>
+            if (enableScheduledJobs)
             {
-                // UseMicrosoftDependencyInjectionJobFactory() was intentionally removed: as of Quartz.NET 3.3.2
-                // the default job factory is already DI/scoped; calling it is redundant and docs recommend against it.
-                var dailyKey = new JobKey("DailyJob");
-                var weeklyKey = new JobKey("WeeklyJob");
-                var monthlyKey = new JobKey("MonthlyJob");
-                var yearlyKey = new JobKey("YearlyJob");
-                var donationKey = new JobKey("BitcoinDonationCheckJob");
-                var backupKey = new JobKey("DatabaseBackupJob");
-                var seasonFinalizerKey = new JobKey("SeasonFinalizerJob");
-                var xDailyPostKey = new JobKey("XDailyPostJob");
-                var threadsDailyPostKey = new JobKey("ThreadsDailyPostJob");
-                var facebookDailyPostKey = new JobKey("FacebookDailyPostJob");
+                builder.Services.AddQuartz(q =>
+                {
+                    // UseMicrosoftDependencyInjectionJobFactory() was intentionally removed: as of Quartz.NET 3.3.2
+                    // the default job factory is already DI/scoped; calling it is redundant and docs recommend against it.
+                    var dailyKey = new JobKey("DailyJob");
+                    var weeklyKey = new JobKey("WeeklyJob");
+                    var monthlyKey = new JobKey("MonthlyJob");
+                    var yearlyKey = new JobKey("YearlyJob");
+                    var donationKey = new JobKey("BitcoinDonationCheckJob");
+                    var backupKey = new JobKey("DatabaseBackupJob");
+                    var seasonFinalizerKey = new JobKey("SeasonFinalizerJob");
+                    var xDailyPostKey = new JobKey("XDailyPostJob");
+                    var threadsDailyPostKey = new JobKey("ThreadsDailyPostJob");
+                    var facebookDailyPostKey = new JobKey("FacebookDailyPostJob");
 
-                // Every day 00:00
-                q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
-                q.AddTrigger(t => t.ForJob(dailyKey)
-                    .WithIdentity("DailyTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    // Every day 00:00
+                    q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
+                    q.AddTrigger(t => t.ForJob(dailyKey)
+                        .WithIdentity("DailyTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 * * ?").InTimeZone(TimeZoneInfo.Utc)));
 
-                // Every Monday 00:00
-                q.AddJob<WeeklyJob>(o => o.WithIdentity(weeklyKey));
-                q.AddTrigger(t => t.ForJob(weeklyKey)
-                    .WithIdentity("WeeklyTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 ? * MON").InTimeZone(TimeZoneInfo.Utc)));
+                    // Every Monday 00:00
+                    q.AddJob<WeeklyJob>(o => o.WithIdentity(weeklyKey));
+                    q.AddTrigger(t => t.ForJob(weeklyKey)
+                        .WithIdentity("WeeklyTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 ? * MON").InTimeZone(TimeZoneInfo.Utc)));
 
-                // Every month first day 00:00
-                q.AddJob<MonthlyJob>(o => o.WithIdentity(monthlyKey));
-                q.AddTrigger(t => t.ForJob(monthlyKey)
-                    .WithIdentity("MonthlyTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    // Every month first day 00:00
+                    q.AddJob<MonthlyJob>(o => o.WithIdentity(monthlyKey));
+                    q.AddTrigger(t => t.ForJob(monthlyKey)
+                        .WithIdentity("MonthlyTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 * ?").InTimeZone(TimeZoneInfo.Utc)));
 
-                // Every year first day 00:00
-                q.AddJob<YearlyJob>(o => o.WithIdentity(yearlyKey));
-                q.AddTrigger(t => t.ForJob(yearlyKey)
-                    .WithIdentity("YearlyTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 1 ?").InTimeZone(TimeZoneInfo.Utc)));
+                    // Every year first day 00:00
+                    q.AddJob<YearlyJob>(o => o.WithIdentity(yearlyKey));
+                    q.AddTrigger(t => t.ForJob(yearlyKey)
+                        .WithIdentity("YearlyTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 1 ?").InTimeZone(TimeZoneInfo.Utc)));
 
-                // On every start and every day 00:05 (Database backup)
-                q.AddJob<DatabaseBackupJob>(o => o.WithIdentity(backupKey));
-                q.AddTrigger(t => t.ForJob(backupKey)
-                    .WithIdentity("DatabaseBackupTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 5 0 * * ?").InTimeZone(TimeZoneInfo.Utc)));
-                q.AddTrigger(t => t.ForJob(backupKey) // on start
-                    .WithIdentity("DatabaseBackupTrigger_Immediate")
-                    .StartNow()
-                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+                    // On every start and every day 00:05 (Database backup)
+                    q.AddJob<DatabaseBackupJob>(o => o.WithIdentity(backupKey));
+                    q.AddTrigger(t => t.ForJob(backupKey)
+                        .WithIdentity("DatabaseBackupTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 5 0 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddTrigger(t => t.ForJob(backupKey) // on start
+                        .WithIdentity("DatabaseBackupTrigger_Immediate")
+                        .StartNow()
+                        .WithSimpleSchedule(x => x.WithRepeatCount(0)));
 
-                // On every start and 10 minutes
-                q.AddJob<BitcoinDonationCheckJob>(o => o.WithIdentity(donationKey));
-                q.AddTrigger(t => t.ForJob(donationKey)
-                    .WithIdentity("BitcoinDonationCheckTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
-                q.AddTrigger(t => t.ForJob(donationKey) // on start
-                    .WithIdentity("BitcoinDonationCheckTrigger_Immediate")
-                    .StartNow()
-                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+                    // On every start and 10 minutes
+                    q.AddJob<BitcoinDonationCheckJob>(o => o.WithIdentity(donationKey));
+                    q.AddTrigger(t => t.ForJob(donationKey)
+                        .WithIdentity("BitcoinDonationCheckTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddTrigger(t => t.ForJob(donationKey) // on start
+                        .WithIdentity("BitcoinDonationCheckTrigger_Immediate")
+                        .StartNow()
+                        .WithSimpleSchedule(x => x.WithRepeatCount(0)));
 
-                // On every start and every 10 minutes
-                q.AddJob<SeasonFinalizerJob>(o => o.WithIdentity(seasonFinalizerKey));
-                q.AddTrigger(t => t.ForJob(seasonFinalizerKey)
-                    .WithIdentity("SeasonFinalizerTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
-                q.AddTrigger(t => t.ForJob(seasonFinalizerKey) // on start
-                    .WithIdentity("SeasonFinalizerTrigger_Immediate")
-                    .StartNow()
-                    .WithSimpleSchedule(x => x.WithRepeatCount(0)));
+                    // On every start and every 10 minutes
+                    q.AddJob<SeasonFinalizerJob>(o => o.WithIdentity(seasonFinalizerKey));
+                    q.AddTrigger(t => t.ForJob(seasonFinalizerKey)
+                        .WithIdentity("SeasonFinalizerTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/10 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddTrigger(t => t.ForJob(seasonFinalizerKey) // on start
+                        .WithIdentity("SeasonFinalizerTrigger_Immediate")
+                        .StartNow()
+                        .WithSimpleSchedule(x => x.WithRepeatCount(0)));
 
-                q.AddJob<XDailyPostJob>(o => o.WithIdentity(xDailyPostKey));
-                q.AddTrigger(t => t.ForJob(xDailyPostKey)
-                    .WithIdentity("XDailyPostTrigger_0800")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 8 * * ?").InTimeZone(TimeZoneInfo.Utc)));
-                q.AddTrigger(t => t.ForJob(xDailyPostKey)
-                    .WithIdentity("XDailyPostTrigger_1200")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 12 * * ?").InTimeZone(TimeZoneInfo.Utc)));
-                q.AddTrigger(t => t.ForJob(xDailyPostKey)
-                    .WithIdentity("XDailyPostTrigger_1600")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 16 * * ?").InTimeZone(TimeZoneInfo.Utc)));
-                q.AddTrigger(t => t.ForJob(xDailyPostKey)
-                    .WithIdentity("XDailyPostTrigger_2000")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 20 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddJob<XDailyPostJob>(o => o.WithIdentity(xDailyPostKey));
+                    q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                        .WithIdentity("XDailyPostTrigger_0800")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 8 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                        .WithIdentity("XDailyPostTrigger_1200")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 12 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                        .WithIdentity("XDailyPostTrigger_1600")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 16 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddTrigger(t => t.ForJob(xDailyPostKey)
+                        .WithIdentity("XDailyPostTrigger_2000")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 20 * * ?").InTimeZone(TimeZoneInfo.Utc)));
 
-                q.AddJob<ThreadsDailyPostJob>(o => o.WithIdentity(threadsDailyPostKey));
-                q.AddTrigger(t => t.ForJob(threadsDailyPostKey)
-                    .WithIdentity("ThreadsDailyPostTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 14 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddJob<ThreadsDailyPostJob>(o => o.WithIdentity(threadsDailyPostKey));
+                    q.AddTrigger(t => t.ForJob(threadsDailyPostKey)
+                        .WithIdentity("ThreadsDailyPostTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 14 * * ?").InTimeZone(TimeZoneInfo.Utc)));
 
-                q.AddJob<FacebookDailyPostJob>(o => o.WithIdentity(facebookDailyPostKey));
-                q.AddTrigger(t => t.ForJob(facebookDailyPostKey)
-                    .WithIdentity("FacebookDailyPostTrigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 2 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
-            });
-            builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
+                    q.AddJob<FacebookDailyPostJob>(o => o.WithIdentity(facebookDailyPostKey));
+                    q.AddTrigger(t => t.ForJob(facebookDailyPostKey)
+                        .WithIdentity("FacebookDailyPostTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 2 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                });
+                builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
+            }
 
             // Add CORS policy
             builder.Services.AddCors(options =>
@@ -198,8 +203,10 @@ namespace LongevityWorldCup.Website
 
             var app = builder.Build();
 
-            // TODO: remove later
-            app.Services.GetRequiredService<BadgeDataService>();
+            if (enableStartupBadgeRefresh)
+            {
+                app.Services.GetRequiredService<BadgeDataService>();
+            }
 
             var lf = app.Services.GetRequiredService<ILoggerFactory>();
             EnvironmentHelpers.Log = lf.CreateLogger(nameof(EnvironmentHelpers));

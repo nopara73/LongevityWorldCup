@@ -5318,7 +5318,7 @@
 
                 var frame = document.getElementById('events-frame');
                 if (frame) {
-                    const frameSrc = `/event-board-embed.html?athlete=${encodeURIComponent(athleteSlug)}&rows=10&viewAll=false&linkNames=false&embed=1&theme=dark`;
+                    const frameSrc = `/event-board-embed.html?athlete=${encodeURIComponent(athleteSlug)}&rows=all&viewAll=false&linkNames=false&embed=1&theme=dark`;
                     frame.addEventListener('load', function () {
                         if (frame.dataset.expectedAthlete === athleteSlug) {
                             frame.style.visibility = '';

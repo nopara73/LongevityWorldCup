@@ -9,6 +9,7 @@ public class XDevPreviewService
 {
     private readonly ILogger<XDevPreviewService> _log;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly bool _openPreviewInBrowser;
     private readonly object _lockObj = new();
     private long _seq;
     private readonly Dictionary<string, DevPreviewThread> _threadsByRoot = new(StringComparer.Ordinal);
@@ -65,10 +66,11 @@ public class XDevPreviewService
         @"<title\b[^>]*>(?<value>.*?)</title>",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-    public XDevPreviewService(ILogger<XDevPreviewService> log, IHttpClientFactory httpClientFactory)
+    public XDevPreviewService(ILogger<XDevPreviewService> log, IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _log = log;
         _httpClientFactory = httpClientFactory;
+        _openPreviewInBrowser = configuration.GetValue("EnableXDevPreviewBrowser", false);
     }
 
     public async Task<string?> UploadMediaPreviewAsync(Stream content, string contentType)
@@ -174,7 +176,7 @@ public class XDevPreviewService
                     _rootByTweetId[inReplyToTweetId] = rootTweetId;
 
                 postsSnapshot = thread.Posts.ToList();
-                openBrowser = openInBrowser && _openedRoots.Add(rootTweetId);
+                openBrowser = openInBrowser && _openPreviewInBrowser && _openedRoots.Add(rootTweetId);
             }
 
             var sb = new StringBuilder();
