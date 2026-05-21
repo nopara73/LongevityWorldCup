@@ -6331,6 +6331,10 @@
     }
 
     function openSidebar(options = {}) {
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const drawerScrollX = window.scrollX;
+        const drawerScrollY = window.scrollY;
+
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.remove('collapsed');
 
@@ -6345,19 +6349,22 @@
         sidebarToggle.title = "Hide leagues";
         sidebarToggle.setAttribute('aria-label', 'Hide sidebar');
 
-        if (options.focusDrawerClose && window.matchMedia('(max-width: 768px)').matches) {
+        if (isMobileDrawer) {
             requestAnimationFrame(() => {
-                try {
-                    sidebarClose.focus({ preventScroll: true, focusVisible: true });
+                if (options.focusDrawerClose) {
+                    try {
+                        sidebarClose.focus({ preventScroll: true, focusVisible: true });
+                    }
+                    catch {
+                        sidebarClose.focus({ preventScroll: true });
+                    }
                 }
-                catch {
-                    sidebarClose.focus({ preventScroll: true });
-                }
+                window.scrollTo(drawerScrollX, drawerScrollY);
             });
         }
 
         // Scroll to the leaderboard table
-        if (canAutoScroll()) {
+        if (!isMobileDrawer && canAutoScroll()) {
             document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
                 behavior: 'smooth',
                 block: 'start',
