@@ -489,7 +489,9 @@
             var mo=new MutationObserver(function(){requestAnimationFrame(post)});if(root)mo.observe(root,{childList:true,subtree:true});
             window.addEventListener('load',post);
             var q=new URLSearchParams(window.location.search);
-            var rows=parseInt(q.get('rows')||'5',10);
+            var rawRows=(q.get('rows')||'5').trim();
+            var rows=/^(all|full|0)$/i.test(rawRows)?null:parseInt(rawRows,10);
+            if(rows!==null&&(!Number.isFinite(rows)||rows<1))rows=5;
             var viewAll=(q.get('viewAll')||'true')==='true';
             var athlete=q.get('athlete')||null;
             var ln=q.get('linkNames');
