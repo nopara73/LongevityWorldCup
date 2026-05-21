@@ -6303,6 +6303,34 @@
     });
 
     document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Tab') return;
+        if (modal.style.display === "block") return;
+
+        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+
+        const focusableDrawerControls = getSidebarFocusableControls();
+        if (focusableDrawerControls.length === 0) return;
+
+        const firstControl = focusableDrawerControls[0];
+        const lastControl = focusableDrawerControls[focusableDrawerControls.length - 1];
+        const activeElement = document.activeElement;
+
+        if (!sidebar.contains(activeElement)) {
+            event.preventDefault();
+            focusSidebarControl(firstControl);
+        }
+        else if (event.shiftKey && activeElement === firstControl) {
+            event.preventDefault();
+            focusSidebarControl(lastControl);
+        }
+        else if (!event.shiftKey && activeElement === lastControl) {
+            event.preventDefault();
+            focusSidebarControl(firstControl);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' && event.key !== 'Esc') return;
         if (modal.style.display === "block") return;
 
@@ -6319,6 +6347,28 @@
     function syncSidebarDrawerBackdrop() {
         const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
         document.body.classList.toggle('sidebar-drawer-open', isMobileDrawer && sidebar.classList.contains('expanded'));
+    }
+
+    function getSidebarFocusableControls() {
+        return Array.from(sidebar.querySelectorAll('a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'))
+            .filter(element => {
+                if (element.disabled || element.getAttribute('aria-hidden') === 'true') return false;
+
+                const style = window.getComputedStyle(element);
+                if (style.display === 'none' || style.visibility === 'hidden') return false;
+
+                const rect = element.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+            });
+    }
+
+    function focusSidebarControl(element) {
+        try {
+            element.focus({ focusVisible: true });
+        }
+        catch {
+            element.focus();
+        }
     }
 
     function toggleSidebar(options = {}) {
