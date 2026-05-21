@@ -326,6 +326,11 @@
         box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(0,0,0,.12);
     }
     .sidebar-toggle:focus-visible i{ color:var(--secondary-color); }
+    .sidebar-toggle.active:focus-visible{
+        border-color:var(--secondary-color);
+        box-shadow:0 0 0 4px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
+    }
+    .sidebar-toggle.active:focus-visible i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state:not(.active):hover{
         background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 10px 22px rgba(255,64,129,.24);
     }
