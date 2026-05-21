@@ -56,6 +56,7 @@ public sealed class EventDataService : IDisposable
     private readonly ThreadsEventService _threadsEvents;
     private readonly FacebookEventService _facebookEvents;
     private readonly ILogger<EventDataService> _log;
+    private readonly bool _enableEventDispatch;
     private int _processingImmediateCustomEvents;
     
     // Track failed attempts for custom events per platform: "eventId:platform" -> attempt count
@@ -64,15 +65,15 @@ public sealed class EventDataService : IDisposable
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log, IConfiguration configuration)
     {
-        _ = env;
         _slackEvents = slackEvents;
         _xEvents = xEvents;
         _threadsEvents = threadsEvents;
         _facebookEvents = facebookEvents;
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _log = log;
+        _enableEventDispatch = configuration.GetValue("EnableEventDispatch", !env.IsDevelopment());
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -194,8 +195,11 @@ public sealed class EventDataService : IDisposable
             }
         });
 
-        ProcessPendingSlackEvents();
-        ProcessPendingImmediateCustomEvents();
+        if (_enableEventDispatch)
+        {
+            ProcessPendingSlackEvents();
+            ProcessPendingImmediateCustomEvents();
+        }
         ReloadIntoCache();
 
         _db.DatabaseChanged += OnDatabaseChanged;
@@ -205,8 +209,11 @@ public sealed class EventDataService : IDisposable
     {
         try
         {
-            ProcessPendingSlackEvents();
-            ProcessPendingImmediateCustomEvents();
+            if (_enableEventDispatch)
+            {
+                ProcessPendingSlackEvents();
+                ProcessPendingImmediateCustomEvents();
+            }
             ReloadIntoCache();
         }
         catch (Exception ex)
@@ -1045,10 +1052,9 @@ public sealed class EventDataService : IDisposable
 
             using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
-            var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
 
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
@@ -1092,7 +1098,6 @@ public sealed class EventDataService : IDisposable
                 {
                     exType.Value = (int)EventType.BadgeAward;
                     exText.Value = text;
-                    exOcc.Value = occurredAt;
                     shouldInsert = existsCmd.ExecuteScalar() == null;
                 }
 
@@ -1120,7 +1125,7 @@ public sealed class EventDataService : IDisposable
             ReloadIntoCache();
         }
 
-        if (podcastEvents.Count > 0)
+        if (_enableEventDispatch && podcastEvents.Count > 0)
         {
             var sentXIds = new List<string>();
             var sentThreadsIds = new List<string>();
