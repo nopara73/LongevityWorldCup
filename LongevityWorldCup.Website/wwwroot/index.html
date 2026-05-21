@@ -698,10 +698,10 @@
             margin: 2rem auto 2.25rem;
             display: flex;
             gap: 1.75rem;
-            align-items: flex-start;
+            align-items: stretch;
         }
 
-            /* Let both cards share the row without stretching sparse highlights into blank space */
+            /* Keep the paired highlights/swag cards visually locked to the same row height */
             .lwc-highlights-countdown-wrapper > #events-root-index,
             .lwc-highlights-countdown-wrapper > #lwc-countdown-box {
                 flex: 1 1 0;
@@ -709,12 +709,11 @@
 
             .lwc-highlights-countdown-wrapper > #events-root-index {
                 display: flex;
-                align-self: flex-start;
             }
 
             .lwc-highlights-countdown-wrapper > #events-root-index > .events-board {
                 flex: 1 1 auto;
-                height: auto;
+                height: 100%;
             }
 
         /* modifier so we don't mess with the table board */
