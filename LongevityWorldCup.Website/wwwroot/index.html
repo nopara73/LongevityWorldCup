@@ -742,28 +742,28 @@
             height: 100%;
         }
 
-        /* header matches HIGHLIGHTS header bar */
         .lwc-countdown-header-row {
             background:
                 linear-gradient(rgba(0, 188, 212, 0.12), rgba(0, 188, 212, 0.12)),
-                var(--card-bg);
+                var(--events-header-bg, var(--card-bg));
             color: var(--primary-color);
             padding: 15px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
+            box-sizing: border-box;
             text-transform: uppercase;
             font-size: 0.85rem;
             letter-spacing: 1px;
             font-weight: 800;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+            border-bottom: 1px solid var(--events-border, rgba(0, 0, 0, 0.06));
         }
 
         .lwc-countdown-title {
             display: inline-flex;
             align-items: center;
-            min-height: 2rem;
+            min-height: 44px;
             padding: 0 0.25rem;
             box-sizing: border-box;
             border-radius: 6px;
@@ -781,18 +781,19 @@
         .lwc-merch-header-link {
             display: inline-flex;
             align-items: center;
-            min-height: 2rem;
-            padding: 0 0.25rem;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 0.55rem;
             box-sizing: border-box;
-            border-radius: 6px;
             color: inherit;
             text-decoration: underline;
             text-decoration-color: rgba(0, 150, 166, 0.35);
             text-underline-offset: 2px;
             font-size: 0.85rem;
             font-weight: 700;
-            letter-spacing: normal;
+            line-height: 1.1;
             white-space: nowrap;
+            border-radius: 6px;
             opacity: 1;
         }
 
