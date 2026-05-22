@@ -82,7 +82,10 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--EVENT-BOARD-CONTENT-->", eventBoardContent)
                         .Replace("<!--AGE-VISUALIZATION-->", ageVisualization)
                         .Replace("{{ASSET_BIOAGEFORM_CSS}}", _assetVersionProvider.AppendVersion("/css/bioageform.css"))
-                        .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"));
+                        .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"))
+                        .Replace("{{ASSET_CUSTOM_EVENT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/custom_event.png"))
+                        .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
+                        .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"));
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
                     if (ShouldRemoveJoinGameButtons(path))
