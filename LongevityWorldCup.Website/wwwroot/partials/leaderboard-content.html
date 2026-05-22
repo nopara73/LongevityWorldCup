@@ -1541,64 +1541,6 @@
     /* =========================
        13) Mobile
        ========================= */
-    @media (min-width: 769px) and (max-width: 800px){
-        .content{
-            padding-left:max(1rem, env(safe-area-inset-left));
-            padding-right:max(1rem, env(safe-area-inset-right));
-            box-sizing:border-box;
-            width:100%;
-            max-width:100%;
-        }
-        .leaderboard-toolbar{
-            flex-direction:column;
-            align-items:stretch;
-            gap:.75rem;
-            margin-top:1.25rem;
-        }
-        .leaderboard-view-switcher{
-            margin-left:0;
-            order:1;
-            align-items:stretch;
-            width:100%;
-            max-width:100%;
-            min-width:0;
-            gap:.35rem;
-        }
-        .leaderboard-view-switcher .view-switcher-label{
-            flex:0 0 100%;
-            margin-right:0;
-        }
-        .leaderboard-view-switcher .view-switcher-chips{
-            display:grid;
-            grid-template-columns:repeat(3, minmax(0, 1fr));
-            width:100%;
-            min-width:0;
-        }
-        .leaderboard-view-switcher .view-badge{
-            min-width:0;
-            padding:.45rem .55rem;
-        }
-        .leaderboard-view-switcher .view-badge-suffix{
-            display:none;
-        }
-        .search-container{ flex:0 1 calc(100% - 52px); min-width:0; width:calc(100% - 52px); max-width:none; margin-top:0; }
-        .search-wrapper{ display:flex; align-items:center; gap:.5rem; flex:1; min-width:0; width:100%; order:2; }
-        .sidebar-toggle{ align-self:center; height:44px; flex-shrink:0; margin-right:0; }
-        .leaderboard table{ width:100%; table-layout:auto; }
-        .leaderboard table .sponsor-th,
-        .leaderboard table .sponsor-td,
-        .leaderboard table .media-contact-th,
-        .leaderboard table .media-contact-td{
-            display:none;
-        }
-        .leaderboard table th:nth-child(4),
-        .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
-        .leaderboard table td .badge-section{ display:none; }
-        .leaderboard table th{ font-size:.62rem; }
-        .leaderboard table td{ font-size:.84rem; }
-        .leaderboard .portrait{ width:44px; height:44px; }
-    }
-
     @media (min-width: 769px) and (max-width: 900px){
         .content{
             padding-left:max(1rem, env(safe-area-inset-left));
@@ -1623,29 +1565,6 @@
             display:none;
         }
         .leaderboard table td .badge-section{ display:none; }
-        .leaderboard table th{
-            font-size:.66rem;
-            line-height:1.05;
-            letter-spacing:.05em;
-            padding:.82rem .55rem;
-        }
-        .leaderboard table td{
-            font-size:.82rem;
-            padding-left:.55rem;
-            padding-right:.55rem;
-        }
-        .leaderboard table th:nth-child(4),
-        .leaderboard table td.age-reduction-td{
-            width:7rem;
-            min-width:7rem;
-            text-align:right;
-            padding-left:.4rem;
-            padding-right:.8rem;
-        }
-        .leaderboard table td.rank-td{
-            padding-left:.8rem;
-            padding-right:.5rem;
-        }
     }
 
     @media (max-width: 768px){
