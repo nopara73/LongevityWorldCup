@@ -1900,6 +1900,13 @@
                 width: 36px;
                 height: 36px;
             }
+
+            .leaderboard .athlete-td .portrait-wrapper,
+            .leaderboard .athlete-td .rank-change {
+                flex: 0 0 36px;
+                width: 36px;
+                min-width: 36px;
+            }
         }
 
         @media (max-width: 360px) {
@@ -1959,89 +1966,19 @@
                 width: 36px;
                 height: 36px;
             }
+
+            .leaderboard .athlete-td .portrait-wrapper,
+            .leaderboard .athlete-td .rank-change {
+                flex: 0 0 36px;
+                width: 36px;
+                min-width: 36px;
+            }
         }
 
         @media (max-width: 420px) {
-            .leaderboard table thead {
-                display: none;
-            }
-
-            .leaderboard table tbody tr:not(.tier-separator) {
-                display: grid;
-                grid-template-columns: 2.25rem minmax(0, 1fr);
-                align-items: center;
-                row-gap: 0.12rem;
-                padding: 0.68rem 0.85rem;
-            }
-
-            .leaderboard table tbody tr:not(.tier-separator):hover {
-                transform: none;
-            }
-
-            .leaderboard table tbody tr:not(.tier-separator) td {
-                display: block;
-                min-width: 0;
-                padding: 0;
-            }
-
-            .leaderboard table tbody tr:not(.tier-separator) .sponsor-td,
-            .leaderboard table tbody tr:not(.tier-separator) .media-contact-td {
-                display: none !important;
-            }
-
-            .leaderboard table td.rank-td {
-                grid-column: 1;
-                grid-row: 1 / span 2;
-                padding: 0 !important;
-                text-align: left;
-            }
-
+            .leaderboard table th:nth-child(2),
             .leaderboard table td.athlete-td {
-                grid-column: 2;
-                grid-row: 1;
-                display: flex;
-                align-items: center;
-                gap: 0.45rem;
-                text-align: left;
-            }
-
-            .leaderboard table td.age-reduction-td {
-                grid-column: 2;
-                grid-row: 2;
-                width: auto !important;
-                min-width: 0 !important;
-                padding: 0 0 0 calc(34px + 0.45rem) !important;
-                text-align: left !important;
-            }
-
-            .leaderboard .portrait {
-                width: 34px;
-                height: 34px;
-            }
-
-            .leaderboard .athlete-name {
-                min-width: 0;
-                padding: 0.15rem 0.15rem 0.1rem 0;
-                line-height: 1.12;
-                white-space: normal;
-                overflow-wrap: anywhere;
-            }
-
-            .leaderboard .age-reduction {
-                display: inline-block;
-                font-size: 0.75rem;
-                line-height: 1.15;
-                text-align: left !important;
-                white-space: nowrap;
-            }
-
-            .leaderboard table tbody tr.tier-separator {
-                display: block;
-            }
-
-            .leaderboard table tbody tr.tier-separator .tier-separator-cell {
-                display: block;
-                padding: 0.5rem 0.7rem;
+                padding-left: 0.7rem;
             }
         }
 
