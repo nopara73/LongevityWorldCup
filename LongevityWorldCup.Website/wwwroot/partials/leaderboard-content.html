@@ -764,6 +764,15 @@
     .personal-link-icon:first-of-type{ margin-left:0; }
     .personal-link-icon:hover,
     .personal-link-icon:focus-visible{ color:var(--secondary-color); background-color:rgba(0,188,212,.08); }
+    .podium-link-row{ display:inline-flex; align-items:center; justify-content:center; gap:0; }
+    .podium-link-row .personal-link-icon{
+        width:2rem;
+        height:1.75rem;
+        margin-left:0;
+        margin-right:0;
+    }
+    .podium-link-row .personal-link-icon + .personal-link-icon{ margin-left:-.85rem !important; }
+    .podium-link-row .personal-link-icon i{ width:auto; }
 
     .leaderboard table tbody tr{ scroll-margin-top:0; }
     .leaderboard table tbody tr:target{ background:rgba(255,255,0,.35); transition:background-color 1.2s ease; }
@@ -3298,10 +3307,11 @@
                                             <div class="name-row">
                                                 <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
                                             </div>
-                                            <div>
-                                                ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.displayName}">
+                                            <div class="podium-link-row">
+                                                ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.displayName}">
                                                 <i class="fa fa-link"></i>
                                                 </a>` : ''}
+                                                ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
                                             <div><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
@@ -3752,10 +3762,10 @@
         const tooltipText = isEmail ? `Email ${athleteName}` : `Contact ${athleteName}`;
         if (isPodium) {
             return `${isEmail
-                ? `<a href="mailto:${contact}" aria-label="Email ${contact}" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
+                ? `<a href="mailto:${contact}" aria-label="Email ${contact}" class="personal-link-icon podium-media-link" title="${tooltipText}">
                 ${window.getIcon(contact)}
                </a>`
-                : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon" style="margin-left: 0.2rem;" title="${tooltipText}">
+                : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" aria-label="Contact the athlete" class="personal-link-icon podium-media-link" title="${tooltipText}">
                 ${window.getIcon(contact)}
                </a>`
             }`;
@@ -3768,6 +3778,14 @@
             ${window.getIcon(contact)}
            </a>`
         }`;
+    }
+
+    function renderPodcastLink(link, athleteName) {
+        if (!link) return '';
+        const href = link.startsWith('http') ? link : 'https://' + link;
+        return `<a href="${href}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="Listen to ${athleteName}'s podcast appearance" title="Listen to ${athleteName}'s podcast appearance">
+            <i class="fa fa-microphone"></i>
+        </a>`;
     }
 
     const modal = document.getElementById("detailsModal");
