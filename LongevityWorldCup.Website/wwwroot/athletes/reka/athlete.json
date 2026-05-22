@@ -1,0 +1,28 @@
+{
+  "Name": "Réka",
+  "DisplayName": null,
+  "MediaContact": "https://instagram.com/bajzathreka",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 6,
+    "Day": 29
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-05-21",
+      "AlbGL": 45,
+      "CreatUmolL": 86,
+      "GluMmolL": 4.2,
+      "CrpMgL": 3.2,
+      "LymPc": 24.7,
+      "McvFL": 90,
+      "RdwPc": 12.3,
+      "AlpUL": 67,
+      "Wbc1000cellsuL": 7.9
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "To keep myself on track and get as fit as possible after 3 kids\uD83D\uDCAA\uD83C\uDFFB\uD83D\uDE4C\uD83C\uDFFB",
+  "PersonalLink": "https://instagram.com/bajzathreka"
+}
