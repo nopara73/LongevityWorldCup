@@ -380,8 +380,15 @@ public class XDevPreviewService
 
             if (match.Groups["url"].Success)
             {
-                var url = match.Value;
+                var (url, trailing) = NormalizePreviewUrlToken(match.Value);
                 urls.Add(url);
+                builder.Append("<a href=\"");
+                builder.Append(WebUtility.HtmlEncode(url));
+                builder.Append("\" target=\"_blank\" rel=\"noopener noreferrer\">");
+                builder.Append(WebUtility.HtmlEncode(url));
+                builder.Append("</a>");
+                if (!string.IsNullOrEmpty(trailing))
+                    builder.Append(WebUtility.HtmlEncode(trailing));
             }
             else if (match.Groups["mention"].Success)
             {
@@ -411,6 +418,26 @@ public class XDevPreviewService
 
         if (lastIndex < text.Length)
             builder.Append(WebUtility.HtmlEncode(text.Substring(lastIndex)));
+    }
+
+    private static (string Url, string Trailing) NormalizePreviewUrlToken(string rawUrl)
+    {
+        var url = rawUrl ?? "";
+        var trailing = "";
+        while (url.Length > 0 && IsPreviewUrlTrailingPunctuation(url[^1]))
+        {
+            trailing = url[^1] + trailing;
+            url = url[..^1];
+        }
+
+        return string.IsNullOrWhiteSpace(url)
+            ? (rawUrl ?? "", "")
+            : (url, trailing);
+    }
+
+    private static bool IsPreviewUrlTrailingPunctuation(char ch)
+    {
+        return ch is '.' or ',' or '!' or '?' or ':' or ';' or ')' or ']' or '}';
     }
 
     private async Task<IReadOnlyList<LinkPreviewCard>> BuildLinkPreviewCardsAsync(IReadOnlyList<string> urls)

@@ -7,13 +7,13 @@
     <style>
         @font-face {
             font-family: "Poppins";
-            src: url("/assets/fonts/Poppins-Regular.ttf") format("truetype");
+            src: url("{{ASSET_POPPINS_REGULAR}}") format("truetype");
             font-weight: 400;
         }
 
         @font-face {
             font-family: "Poppins";
-            src: url("/assets/fonts/Poppins-Bold.ttf") format("truetype");
+            src: url("{{ASSET_POPPINS_BOLD}}") format("truetype");
             font-weight: 700;
         }
 
@@ -637,8 +637,25 @@
             top: 0;
             width: 1200px;
             height: 675px;
-            background: #050505 url("/assets/custom_event.png") center / cover no-repeat;
+            background: #050505 url("{{ASSET_CUSTOM_EVENT_IMAGE}}") center / cover no-repeat;
             transform-origin: top left;
+        }
+
+        .custom-event-image-frame {
+            width: 100%;
+            aspect-ratio: 1200 / 675;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #050505;
+        }
+
+        .custom-event-image-frame img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .image-card {
@@ -882,6 +899,8 @@
         let previewCopyPayloads = new Map();
         let ogPreviewCache = new Map();
         let ogPreviewPending = new Set();
+        let imagePreviewCache = new Map();
+        let imagePreviewPending = new Set();
 
         const PLATFORM_CONFIGS = [
             { key: "slack", label: "Slack", checkbox: sendSlack, fixedMode: "slack" },
@@ -1039,7 +1058,8 @@
             const seen = new Set();
 
             for (const match of value.matchAll(/https?:\/\/[^\s<>|]+/gi)) {
-                const raw = String(match[0] || "");
+                const token = normalizePreviewLinkToken(String(match[0] || ""));
+                const raw = token.raw;
                 const start = match.index ?? -1;
                 if (!raw || start < 0) {
                     continue;
@@ -1053,14 +1073,15 @@
                 seen.add(key);
                 matches.push({
                     raw,
-                    normalized: raw,
+                    normalized: token.normalized,
                     start,
                     end: start + raw.length
                 });
             }
 
             for (const match of value.matchAll(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim)) {
-                const raw = String(match[2] || "");
+                const token = normalizePreviewLinkToken(String(match[2] || ""));
+                const raw = token.raw;
                 const offset = String(match[1] || "").length;
                 const start = (match.index ?? -1) + offset;
                 if (!raw || start < 0) {
@@ -1080,13 +1101,29 @@
                 seen.add(key);
                 matches.push({
                     raw,
-                    normalized: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
+                    normalized: token.normalized,
                     start,
                     end: start + raw.length
                 });
             }
 
             return matches.sort((a, b) => a.start - b.start);
+        }
+
+        function normalizePreviewLinkToken(value) {
+            let raw = String(value || "");
+            while (raw && isPreviewLinkTrailingPunctuation(raw.charAt(raw.length - 1))) {
+                raw = raw.slice(0, -1);
+            }
+
+            return {
+                raw,
+                normalized: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+            };
+        }
+
+        function isPreviewLinkTrailingPunctuation(ch) {
+            return ".,!?:;)]}".includes(ch);
         }
 
         function getOgPreviewUrl(platformKey, plan) {
@@ -1221,6 +1258,52 @@
                 </div>`;
         }
 
+        function buildImagePreviewKey(platformKey, titleRaw, contentRaw) {
+            return `${platformKey || "x"}\n${titleRaw || ""}\n${contentRaw || ""}`;
+        }
+
+        async function fetchImagePreview(platformKey, titleRaw, contentRaw) {
+            const response = await fetch("/api/custom-event-preview/image", {
+                method: "POST",
+                headers: {
+                    "accept": "image/png",
+                    "content-type": "application/json"
+                },
+                body: JSON.stringify({
+                    title: titleRaw || "",
+                    content: contentRaw || "",
+                    platform: platformKey || "x"
+                })
+            });
+            if (!response.ok) {
+                throw new Error(`Image preview failed: ${response.status}`);
+            }
+
+            return URL.createObjectURL(await response.blob());
+        }
+
+        function ensureImagePreview(platformKey, titleRaw, contentRaw) {
+            const key = buildImagePreviewKey(platformKey, titleRaw, contentRaw);
+            if (!key.trim() || imagePreviewCache.has(key) || imagePreviewPending.has(key)) {
+                return key;
+            }
+
+            imagePreviewPending.add(key);
+            fetchImagePreview(platformKey, titleRaw, contentRaw)
+                .then(url => {
+                    imagePreviewCache.set(key, url);
+                })
+                .catch(() => {
+                    imagePreviewCache.set(key, "");
+                })
+                .finally(() => {
+                    imagePreviewPending.delete(key);
+                    update();
+                });
+
+            return key;
+        }
+
         function applySlackMarkupToHtml(value) {
             let html = escapeHtml(String(value || ""));
 
@@ -1293,9 +1376,20 @@
         }
 
         function formatPlainPostTextToHtml(value, clickableMentions) {
-            let html = escapeHtml((value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
-            html = html.replace(/(https?:\/\/[^\s<]+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-            html = html.replace(/(^|[\s(>])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gim, '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>');
+            const text = (value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+            const links = findPreviewLinks(text);
+            let html = "";
+            let cursor = 0;
+            links.forEach(link => {
+                if (link.start < cursor) {
+                    return;
+                }
+
+                html += escapeHtml(text.slice(cursor, link.start));
+                html += `<a href="${escapeHtml(link.normalized)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.raw)}</a>`;
+                cursor = link.end;
+            });
+            html += escapeHtml(text.slice(cursor));
             (clickableMentions || []).forEach(item => {
                 const handlePattern = escapeRegExp(item.handle);
                 const href = escapeHtml(item.href);
@@ -1826,13 +1920,29 @@
                 </div>`;
         }
 
-        function renderImagePreviewCard(platformKey, postText, contentRaw, clickableMentions, rawCopyText) {
+        function renderImageFallbackHtml(layout, scale, frameHeight) {
+            return `
+                <div class="image-stage-frame" style="height:${frameHeight}px;">
+                    <div class="image-stage" style="transform:scale(${scale});">
+                        <div class="image-card" style="width:${layout.cardWidth}px;height:${layout.cardHeight}px;padding:${layout.padding};">
+                            <div class="image-text formatted" style="font-size:${layout.fontSize};line-height:${layout.lineHeight};">${layout.textHtml}</div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function renderImagePreviewCard(platformKey, postText, titleRaw, contentRaw, clickableMentions, rawCopyText) {
             const meta = PLATFORM_PREVIEW_META[platformKey] || PLATFORM_PREVIEW_META.x;
             const layout = getImagePreviewLayout(contentRaw, platformKey);
             const frameWidth = 560;
             const scale = frameWidth / 1200;
             const frameHeight = 675 * scale;
             const copyKey = registerPreviewCopyText(rawCopyText);
+            const previewKey = buildImagePreviewKey(platformKey, titleRaw, contentRaw);
+            const previewImageUrl = imagePreviewCache.get(previewKey);
+            const imageHtml = previewImageUrl
+                ? `<div class="custom-event-image-frame"><img alt="Generated custom event preview" src="${escapeHtml(previewImageUrl)}"></div>`
+                : renderImageFallbackHtml(layout, scale, frameHeight);
 
             return `
                 <div class="panel preview-block">
@@ -1851,13 +1961,7 @@
                                 </div>
                                 <div class="x-text">${formatPlainPostTextToHtml(postText, clickableMentions)}</div>
                                 <div class="x-media">
-                                    <div class="image-stage-frame" style="height:${frameHeight}px;">
-                                        <div class="image-stage" style="transform:scale(${scale});">
-                                            <div class="image-card" style="width:${layout.cardWidth}px;height:${layout.cardHeight}px;padding:${layout.padding};">
-                                                <div class="image-text formatted" style="font-size:${layout.fontSize};line-height:${layout.lineHeight};">${layout.textHtml}</div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    ${imageHtml}
                                 </div>
                                 <div class="x-actions"><span>Reply</span><span>Repost</span><span>Like</span><span>View</span></div>
                             </div>
@@ -1866,13 +1970,13 @@
                 </div>`;
         }
 
-        function renderPlatformPreviewCard(plan, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions, rawCopyText, ogPreviewUrl) {
+        function renderPlatformPreviewCard(plan, titleRaw, contentRaw, fallbackTextPost, fallbackImagePost, clickableMentions, rawCopyText, ogPreviewUrl) {
             if (plan.mode === "slack") {
                 return renderSlackPreviewCard(plan.titleRaw || "", plan.contentRaw || "", ogPreviewUrl);
             }
 
             if (plan.mode === "image") {
-                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, contentRaw, clickableMentions, rawCopyText);
+                return renderImagePreviewCard(plan.key, plan.postText || fallbackImagePost, titleRaw, contentRaw, clickableMentions, rawCopyText);
             }
 
             return renderTextPreviewCard(plan.key, plan.postText || fallbackTextPost, clickableMentions, rawCopyText, ogPreviewUrl);
@@ -1911,6 +2015,9 @@
                 if (ogPreviewUrl) {
                     ensureOgPreview(ogPreviewUrl);
                 }
+                if (plan.mode === "image") {
+                    ensureImagePreview(plan.key, titleRaw, contentRaw);
+                }
             });
 
             const titleText = collapseWhitespace(plainTextWithLabels(titleRaw, slug => resolveMentionSlug(slug, "x")));
@@ -1923,6 +2030,7 @@
             socialPreviewList.innerHTML = selectedPlans.map(plan =>
                 renderPlatformPreviewCard(
                     plan,
+                    titleRaw,
                     contentRaw,
                     buildTextPost(titleText, bodyText, eventUrl),
                     buildImageCaption(titleText, eventUrl ?? "", plan.limit ?? LIMITS.x),
