@@ -184,17 +184,17 @@
                 box-sizing: border-box;
             }
 
-        @media (max-width: 768px) {
-            .biomarker-card-content .input-group {
-                flex-direction: column;
-            }
-
-                .biomarker-card-content .input-group input,
-                .biomarker-card-content .input-group select {
-                    flex: 1 1 auto;
-                    width: 100%;
-                }
+        .biomarker-card-content .input-group {
+            flex-direction: column;
         }
+
+            .biomarker-card-content .input-group input,
+            .biomarker-card-content .input-group select {
+                flex: 1 1 auto;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0 !important;
+            }
 
         /* Give all selects proper right padding and a consistent arrow */
         .bioageform select,
@@ -614,7 +614,6 @@
             overflow: hidden;
             background: #fff;
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            container-type: inline-size;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -688,18 +687,6 @@
             .biomarker-card-content > .input-group:first-of-type {
                 margin-top: 0;
             }
-
-        @container (max-width: 430px) {
-            .biomarker-card-content .input-group {
-                flex-direction: column;
-            }
-
-                .biomarker-card-content .input-group input,
-                .biomarker-card-content .input-group select {
-                    flex: 1 1 auto;
-                    width: 100%;
-                }
-        }
 
         @media (max-width: 768px) {
             /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
@@ -2346,7 +2333,8 @@
             // Back in .options-container (result section) always navigates away via onclick goBackOrHome();
             // Step-2 Back (lwcToStep1Btn) goes to step 1 like the prev green dot.
 
-            const unitSelects = document.querySelectorAll('.input-group select');
+            const unitSelects = Array.from(document.querySelectorAll('.input-group select'))
+                .filter(select => !select.closest('.biomarker-card-content'));
             let maxWidth = 0;
 
             unitSelects.forEach(select => {
