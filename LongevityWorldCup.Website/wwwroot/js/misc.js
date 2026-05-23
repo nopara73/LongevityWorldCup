@@ -394,6 +394,8 @@ window.optimizeImageClient = async function (dataUri, options) {
         return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
     }
 
+    const optimizedContentType = optimizedBlob.type || targetContentType;
+
     // Convert Blob back to Base64 data URI
     const arrayBuffer = await optimizedBlob.arrayBuffer();
     const u8 = new Uint8Array(arrayBuffer);
@@ -403,12 +405,12 @@ window.optimizeImageClient = async function (dataUri, options) {
         binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
     }
     const optimizedBase64 = btoa(binary);
-    const optimizedDataUrl = 'data:' + targetContentType + ';base64,' + optimizedBase64;
+    const optimizedDataUrl = 'data:' + optimizedContentType + ';base64,' + optimizedBase64;
 
     return {
         dataUrl: optimizedDataUrl,
-        contentType: targetContentType,
-        extension: targetContentType.split('/')[1]
+        contentType: optimizedContentType,
+        extension: optimizedContentType.split('/')[1]
     };
 };
 
