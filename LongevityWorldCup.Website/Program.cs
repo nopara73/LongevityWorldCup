@@ -293,6 +293,7 @@ namespace LongevityWorldCup.Website
                 SmtpServer = "smtp.gmail.com",
                 SmtpPort = 587,
                 SmtpUser = "longevityworldcup@gmail.com",
+                SmtpPassword = "",
                 SlackWebhookUrl = "",
                 SlackErrorWebhookUrl = "",
                 DonationBitcoinAddress = "",

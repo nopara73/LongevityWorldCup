@@ -1284,14 +1284,24 @@ namespace LongevityWorldCup.Website.Controllers
             var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
             var smtpUser = RequireConfiguredValue(config.SmtpUser, nameof(config.SmtpUser));
             var smtpPort = RequireConfiguredPort(config.SmtpPort, nameof(config.SmtpPort));
+            var smtpPassword = GetConfiguredSecret(config.SmtpPassword, "LWC_SMTP_PASSWORD");
 
             using var client = new SmtpClient();
             await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls);
-            var accessTok = await GmailAuth.GetAccessTokenAsync(config);
-            client.AuthenticationMechanisms.Remove("LOGIN");
-            client.AuthenticationMechanisms.Remove("PLAIN");
-            var oauth2 = new SaslMechanismOAuth2(smtpUser, accessTok);
-            await client.AuthenticateAsync(oauth2);
+
+            if (!string.IsNullOrWhiteSpace(smtpPassword))
+            {
+                await client.AuthenticateAsync(smtpUser, smtpPassword);
+            }
+            else
+            {
+                var accessTok = await GmailAuth.GetAccessTokenAsync(config);
+                client.AuthenticationMechanisms.Remove("LOGIN");
+                client.AuthenticationMechanisms.Remove("PLAIN");
+                var oauth2 = new SaslMechanismOAuth2(smtpUser, accessTok);
+                await client.AuthenticateAsync(oauth2);
+            }
+
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
         }
@@ -1312,6 +1322,15 @@ namespace LongevityWorldCup.Website.Controllers
                 throw new InvalidOperationException($"{name} is not configured.");
 
             return value.Trim();
+        }
+
+        private static string? GetConfiguredSecret(string? configValue, string environmentVariableName)
+        {
+            var environmentValue = Environment.GetEnvironmentVariable(environmentVariableName);
+            if (!string.IsNullOrWhiteSpace(environmentValue))
+                return environmentValue.Trim();
+
+            return string.IsNullOrWhiteSpace(configValue) ? null : configValue.Trim();
         }
 
         private static int RequireConfiguredPort(int value, string name)
