@@ -111,13 +111,14 @@
                 box-sizing: border-box;
             }
 
-        @media (max-width: 420px) {
+        @media (max-width: 480px) {
             .biomarker-card-content .input-group {
-                flex-wrap: wrap;
+                flex-direction: column;
             }
 
+                .biomarker-card-content .input-group input,
                 .biomarker-card-content .input-group select {
-                    flex: 1 1 8rem;
+                    flex: 1 1 auto;
                     width: 100%;
                 }
         }
