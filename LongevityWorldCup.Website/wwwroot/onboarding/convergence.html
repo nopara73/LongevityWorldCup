@@ -155,6 +155,39 @@
             box-sizing: border-box;
         }
 
+        #proofUploadSection .camera-capture-action {
+            display: none;
+        }
+
+        #takeProfileSelfieButton {
+            display: none;
+        }
+
+        .upload-choice-divider {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            min-height: 1.25rem;
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 700;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .upload-choice-divider::before,
+        .upload-choice-divider::after {
+            content: "";
+            height: 1px;
+            flex: 1 1 auto;
+            background: rgba(100, 116, 139, 0.22);
+        }
+
+        .convergence-upload-action .option-button i {
+            margin-right: 0.45rem;
+        }
+
         .convergence-crop-preview {
             width: min(100%, 408px);
             max-width: 408px;
@@ -452,6 +485,17 @@
             }
         }
 
+        @media (pointer: coarse) {
+            #takeProfileSelfieButton,
+            #proofUploadSection .camera-capture-action {
+                display: inline-flex;
+            }
+
+            .upload-choice-divider {
+                display: flex;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -535,7 +579,16 @@
                     </ol>
                     <div class="convergence-upload-action">
                         <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                        <button type="button" id="uploadButton" class="option-button grey">Upload profile picture</button>
+                        <input type="file" id="profileCameraInput" accept="image/*" capture="user" style="display: none;">
+                        <button type="button" id="takeProfileSelfieButton" class="option-button grey">
+                            <i class="fa fa-camera"></i>
+                            Take selfie
+                        </button>
+                        <span class="upload-choice-divider" aria-hidden="true">or</span>
+                        <button type="button" id="uploadButton" class="option-button grey">
+                            <i class="fa fa-image"></i>
+                            Upload photo
+                        </button>
                     </div>
                 </div>
                 <div id="croppingPart" style="display:none">
@@ -553,7 +606,16 @@
                 <legend>Proof upload</legend>
                 <div class="convergence-upload-action">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
-                    <button type="button" id="uploadProofButton" class="option-button grey">Upload proofs</button>
+                    <input type="file" id="proofCameraInput" accept="image/*" capture="environment" style="display: none;" multiple>
+                    <button type="button" id="takeProofPhotoButton" class="option-button grey camera-capture-action">
+                        <i class="fa fa-camera"></i>
+                        Take photo
+                    </button>
+                    <span class="upload-choice-divider" aria-hidden="true">or</span>
+                    <button type="button" id="uploadProofButton" class="option-button grey">
+                        <i class="fa fa-file-upload"></i>
+                        Upload proof files
+                    </button>
                 </div>
                 <!-- Proof Image Container -->
                 <div id="proofImageContainer"></div>
@@ -623,12 +685,13 @@
 
         function updateUploadButtons() {
             const uploadProofButton = document.getElementById('uploadProofButton');
+            const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
             const uploadProfileButton = document.getElementById('uploadButton');
             const cropAndSaveButton = document.getElementById('cropButton');
             const nextButton = document.getElementById('nextButton');
 
             updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton);
-            window.updateProofUploadButtons(nextButton, uploadProofButton);
+            window.updateProofUploadButtons(nextButton, uploadProofButton, takeProofPhotoButton);
         }
 
         function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton) {
@@ -966,7 +1029,9 @@
                     nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
 
                     const uploadProofButton = document.getElementById('uploadProofButton');
+                    const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
                     const proofPicInput = document.getElementById('proofPicInput');
+                    const proofCameraInput = document.getElementById('proofCameraInput');
                     const proofImageContainer = document.getElementById('proofImageContainer');
                     const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
@@ -979,7 +1044,11 @@
                         proofImageContainer,
                         proofPics,
                         biomarkerChecklistContainer,
-                        checklistLabels
+                        checklistLabels,
+                        {
+                            cameraButton: takeProofPhotoButton,
+                            cameraInput: proofCameraInput
+                        }
                     );
 
                     break;
@@ -1396,6 +1465,14 @@
                 uploadButton.setAttribute('data-listener', 'true');
             }
 
+            const takeProfileSelfieButton = document.getElementById('takeProfileSelfieButton');
+            if (takeProfileSelfieButton && !takeProfileSelfieButton.hasAttribute('data-listener')) {
+                takeProfileSelfieButton.addEventListener('click', function () {
+                    document.getElementById('profileCameraInput').click();
+                });
+                takeProfileSelfieButton.setAttribute('data-listener', 'true');
+            }
+
             // Add click event to the image to trigger file selection
             const illustrationImage = document.getElementById('illustrationImage');
             if (illustrationImage && !illustrationImage.hasAttribute('data-listener')) {
@@ -1407,45 +1484,47 @@
 
             // Handle the image upload and initialize Cropper.js
             const profilePicInput = document.getElementById('profilePicInput');
+            const profileCameraInput = document.getElementById('profileCameraInput');
             let cropper; // Declare Cropper instance at a higher scope
 
+            function handleProfileUploadChange(event) {
+                if (!event.target.files.length) return; // Reset if no file selected
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        // Disable "Next" button while cropping
+                        const nextButton = document.getElementById('nextButton');
+                        nextButton.disabled = true;
+                        updateUploadButtons();
+
+                        document.getElementById('cropperImage').src = e.target.result;
+
+                        document.getElementById('uploadPart').style.display = 'none';
+                        document.getElementById('croppingPart').style.display = 'block';
+
+                        // Initialize Cropper only once
+                        if (!cropper) {
+                            cropper = new Cropper(document.getElementById('cropperImage'), {
+                                aspectRatio: 1,
+                                viewMode: 1,
+                                autoCropArea: 1,
+                                movable: true,
+                                zoomable: true,
+                                rotatable: false,
+                                scalable: false,
+                                cropBoxResizable: true,
+                                minCropBoxWidth: 200,
+                                minCropBoxHeight: 150,
+                            });
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
             if (profilePicInput && !profilePicInput.hasAttribute('data-listener')) {
-                profilePicInput.addEventListener('change', function (event) {
-                    if (!event.target.files.length) return; // Reset if no file selected
-                    const file = event.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            // Disable "Next" button while cropping
-                            const nextButton = document.getElementById('nextButton');
-                            nextButton.disabled = true;
-                            updateUploadButtons();
-
-                            document.getElementById('cropperImage').src = e.target.result;
-
-                            document.getElementById('uploadPart').style.display = 'none';
-                            document.getElementById('croppingPart').style.display = 'block';
-
-                            // Initialize Cropper only once
-                            if (!cropper) {
-                                cropper = new Cropper(document.getElementById('cropperImage'), {
-                                    aspectRatio: 1,
-                                    viewMode: 1,
-                                    autoCropArea: 1,
-                                    movable: true,
-                                    zoomable: true,
-                                    rotatable: false,
-                                    scalable: false,
-                                    cropBoxResizable: true,
-                                    minCropBoxWidth: 200,
-                                    minCropBoxHeight: 150,
-                                });
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-
+                profilePicInput.addEventListener('change', handleProfileUploadChange);
                 // Add the crop button event listener once
                 document.getElementById('cropButton').addEventListener('click', async function () {
                     if (cropper) {
@@ -1476,6 +1555,11 @@
                 });
 
                 profilePicInput.setAttribute('data-listener', 'true');
+            }
+
+            if (profileCameraInput && !profileCameraInput.hasAttribute('data-listener')) {
+                profileCameraInput.addEventListener('change', handleProfileUploadChange);
+                profileCameraInput.setAttribute('data-listener', 'true');
             }
         }
 

@@ -253,6 +253,49 @@
             flex: 1 1 0;
         }
 
+        #changeProfilePicWrapper {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .upload-choice-divider {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            min-height: 1.25rem;
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 700;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .upload-choice-divider::before,
+        .upload-choice-divider::after {
+            content: "";
+            height: 1px;
+            flex: 1 1 auto;
+            background: rgba(100, 116, 139, 0.22);
+        }
+
+        #changeProfilePicWrapper .option-button {
+            width: 100%;
+            max-width: none;
+        }
+
+        #changeProfilePicWrapper .option-button i {
+            margin-right: 0.45rem;
+        }
+
+        #takeProfileSelfieButton {
+            display: none;
+        }
+
+        #restoreProfilePicButton {
+            align-self: center;
+        }
+
         .icon-only {
             flex: 0 0 44px;
             width: 44px;
@@ -305,6 +348,17 @@
             #changeProfileCropperImage {
                 max-height: min(48vh, 320px);
             }
+
+        }
+
+        @media (pointer: coarse) {
+            .upload-choice-divider {
+                display: flex;
+            }
+
+            #takeProfileSelfieButton {
+                display: inline-flex;
+            }
         }
     </style>
 </head>
@@ -321,10 +375,17 @@
         </div>
         <div id="editOptionsGroup" cdata-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <div id="changeProfilePicWrapper" class="options-container inline-option-group">
-                <button id="changeProfilePicButton" class="option-button grey">
-                    Change profile picture
+                <button type="button" id="takeProfileSelfieButton" class="option-button grey">
+                    <i class="fa fa-camera"></i>
+                    Take selfie
+                </button>
+                <span class="upload-choice-divider" aria-hidden="true">or</span>
+                <button type="button" id="changeProfilePicButton" class="option-button grey">
+                    <i class="fa fa-image"></i>
+                    Change photo
                 </button>
                 <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
+                <input type="file" id="profileCameraInputModal" accept="image/*" capture="user" style="display: none;">
                 <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture">
                     <i class="fa fa-undo"></i>
                 </button>
@@ -866,10 +927,17 @@
 
         const changeProfileBtn = document.getElementById('changeProfilePicButton');
         const changeProfileInput = document.getElementById('profilePicInputModal');
+        const takeProfileSelfieBtn = document.getElementById('takeProfileSelfieButton');
+        const profileCameraInput = document.getElementById('profileCameraInputModal');
         changeProfileBtn.addEventListener('click', () => {
             changeProfileInput.click();
         });
-        changeProfileInput.addEventListener('change', (e) => {
+
+        takeProfileSelfieBtn.addEventListener('click', () => {
+            profileCameraInput.click();
+        });
+
+        function handleProfilePictureSelection(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -889,7 +957,10 @@
                 });
             };
             reader.readAsDataURL(file);
-        });
+        }
+
+        changeProfileInput.addEventListener('change', handleProfilePictureSelection);
+        profileCameraInput.addEventListener('change', handleProfilePictureSelection);
 
         // Crop & Cancel handlers for change-profile
         const cropBtn = document.getElementById('changeProfileCropButton');
@@ -915,6 +986,7 @@
             document.body.classList.remove('no-scroll');
             document.getElementById('changeProfileCropperModal').style.display = 'none';
             changeProfileInput.value = '';
+            profileCameraInput.value = '';
         });
         cancelBtn.addEventListener('click', () => {
             window.changeProfileCropper.destroy();
@@ -922,6 +994,7 @@
             document.body.classList.remove('no-scroll');
             document.getElementById('changeProfileCropperModal').style.display = 'none';
             changeProfileInput.value = '';
+            profileCameraInput.value = '';
         });
 
         function updateSubmitButtonState() {

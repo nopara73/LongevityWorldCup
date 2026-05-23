@@ -99,8 +99,10 @@ window.getProofChecklistLabelsFromSession = function () {
     }
 };
 
-window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers) {
+window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers, options) {
     nextButton.disabled = true;
+    const cameraButton = options && options.cameraButton;
+    const cameraInput = options && options.cameraInput;
     const proofOptimizationOptions = {
         maxSize: 2560,
         quality: 0.88,
@@ -127,85 +129,102 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         uploadProofButton.setAttribute('data-listener', 'true');
     }
 
-    // Handle the image upload (without cropping)
-    if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
-        proofPicInput.addEventListener('change', async function (event) {
-            showLoading();
-            try {
-                const files = event.target.files;
-                if (files.length > 0) {
-                    // Limit the total number of images to 9
-                    if (proofPics.length + files.length > 9) {
-                        customAlert('You can upload a maximum of 9 images.');
-                        return;
+    if (cameraButton && cameraInput && !cameraButton.hasAttribute('data-listener')) {
+        cameraButton.addEventListener('click', function () {
+            cameraInput.click();
+        });
+        cameraButton.setAttribute('data-listener', 'true');
+    }
+
+    const handleProofFiles = async function (files, input) {
+        showLoading();
+        try {
+            if (files.length > 0) {
+                // Limit the total number of images to 9
+                if (proofPics.length + files.length > 9) {
+                    customAlert('You can upload a maximum of 9 images.');
+                    return;
+                }
+
+                // helper to read a File as dataURL
+                const readDataURL = file => new Promise((res, rej) => {
+                    const r = new FileReader();
+                    r.onload = e => res(e.target.result);
+                    r.onerror = rej;
+                    r.readAsDataURL(file);
+                });
+
+                // process one by one to preserve order
+                for (const file of Array.from(files)) {
+                    const raw = await readDataURL(file);
+                    if (file.type === 'application/pdf') {
+                        // read file as arrayBuffer
+                        const arrayBuffer = await file.arrayBuffer();
+                        // load PDF
+                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                        const pdfDoc = await loadingTask.promise;
+                        // render each page
+                        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                            const page = await pdfDoc.getPage(pageNum);
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const canvas = document.createElement('canvas');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            const context = canvas.getContext('2d');
+                            await page.render({ canvasContext: context, viewport }).promise;
+                            const rawPage = canvas.toDataURL();
+                            const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage, proofOptimizationOptions);
+                            if (optimizedPage) {
+                                proofPics.push(optimizedPage);
+                            }
+                        }
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+                        continue;
                     }
 
-                    // helper to read a File as dataURL
-                    const readDataURL = file => new Promise((res, rej) => {
-                        const r = new FileReader();
-                        r.onload = e => res(e.target.result);
-                        r.onerror = rej;
-                        r.readAsDataURL(file);
-                    });
-
-                    // process one by one to preserve order
-                    for (const file of Array.from(files)) {
-                        const raw = await readDataURL(file);
-                        if (file.type === 'application/pdf') {
-                            // read file as arrayBuffer
-                            const arrayBuffer = await file.arrayBuffer();
-                            // load PDF
-                            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                            const pdfDoc = await loadingTask.promise;
-                            // render each page
-                            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                                const page = await pdfDoc.getPage(pageNum);
-                                const viewport = page.getViewport({ scale: 1.5 });
-                                const canvas = document.createElement('canvas');
-                                canvas.width = viewport.width;
-                                canvas.height = viewport.height;
-                                const context = canvas.getContext('2d');
-                                await page.render({ canvasContext: context, viewport }).promise;
-                                const rawPage = canvas.toDataURL();
-                                const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage, proofOptimizationOptions);
-                                if (optimizedPage) {
-                                    proofPics.push(optimizedPage);
-                                }
-                            }
-                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
-                            checkProofImages(nextButton, proofPics, uploadProofButton);
-                            continue;
-                        }
-
-                        const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
-                        if (dataUrl) {
-                            proofPics.push(dataUrl);
-                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
-                            checkProofImages(nextButton, proofPics, uploadProofButton);
-                        }
+                    const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                    if (dataUrl) {
+                        proofPics.push(dataUrl);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
                     }
                 }
-                // Reset the file input's value to allow re-uploading the same file if needed
-                proofPicInput.value = "";
-            } finally {
-                hideLoading();
             }
+            // Reset the file input's value to allow re-uploading the same file if needed
+            input.value = "";
+        } finally {
+            hideLoading();
+        }
+    };
+
+    // Handle proof uploads (without cropping)
+    if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
+        proofPicInput.addEventListener('change', async function (event) {
+            await handleProofFiles(event.target.files, proofPicInput);
         });
         proofPicInput.setAttribute('data-listener', 'true');
+    }
+
+    if (cameraInput && !cameraInput.hasAttribute('data-listener')) {
+        cameraInput.addEventListener('change', async function (event) {
+            await handleProofFiles(event.target.files, cameraInput);
+        });
+        cameraInput.setAttribute('data-listener', 'true');
     }
 
     proofImageContainer.style.display = 'block';
 
     // Display any existing proof images
-    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton);
+    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
 
     generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers);
 
     // Check if proof images already exist
-    checkProofImages(nextButton, proofPics, uploadProofButton);
+    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
 }
 
-function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton) {
+function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton) {
     container.innerHTML = '';
     // Use the global `proofPics` variable directly
     if (proofPics.length > 0) {
@@ -224,9 +243,9 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
             removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
             removeButton.addEventListener('click', function () {
                 proofPics.splice(i, 1);
-                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton);
+                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton);
                 // Check proof images
-                checkProofImages(nextButton, proofPics, uploadProofButton);
+                checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
             });
 
             imgContainer.appendChild(img);
@@ -236,21 +255,21 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
     }
 }
 
-function checkProofImages(nextButton, proofPics, uploadProofButton) {
+function checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton) {
     if (proofPics.length > 0) {
         nextButton.disabled = false;
-        updateProofUploadButtons(nextButton, uploadProofButton);
+        updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
     } else {
         nextButton.disabled = true;
-        updateProofUploadButtons(nextButton, uploadProofButton);
+        updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
     }
 }
 
-window.updateProofUploadButtons = function (nextButton, uploadProofButton) {
-    // Toggle "green" class for "Upload Profile Picture" button
+window.updateProofUploadButtons = function (nextButton, uploadProofButton, cameraButton) {
     if (!nextButton || !uploadProofButton) return;
     // second argument to toggle is a boolean: add if true, remove if false
     uploadProofButton.classList.toggle('green', nextButton.disabled);
+    if (cameraButton) cameraButton.classList.toggle('green', nextButton.disabled);
 }
 
 function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
