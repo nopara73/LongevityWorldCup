@@ -695,13 +695,17 @@
         }
 
         function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton) {
+            if (uploadProfileButton) {
+                uploadProfileButton.innerHTML = `<i class="fa fa-image"></i>${profilePic ? 'Change profile picture' : 'Upload profile picture'}`;
+            }
+
             // Toggle "green" class for "Upload Profile Picture" button
             if (nextButton && nextButton.disabled) {
-                uploadProfileButton.classList.add('green');
-                cropAndSaveButton.classList.add('green');
+                if (uploadProfileButton) uploadProfileButton.classList.add('green');
+                if (cropAndSaveButton) cropAndSaveButton.classList.add('green');
             } else {
-                uploadProfileButton.classList.remove('green');
-                cropAndSaveButton.classList.remove('green');
+                if (uploadProfileButton) uploadProfileButton.classList.remove('green');
+                if (cropAndSaveButton) cropAndSaveButton.classList.remove('green');
             }
         }
 
@@ -1012,6 +1016,7 @@
                         // Enable Next button if profile picture exists
                         nextButton.disabled = false;
                     }
+                    updateUploadButtons();
 
                     // Attach event listeners for upload
                     attachUploadEventListeners();
