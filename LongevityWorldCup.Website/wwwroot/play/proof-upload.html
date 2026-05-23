@@ -113,6 +113,35 @@
             box-shadow: 0 6px 12px rgba(15, 23, 42, 0.14);
         }
 
+        .proof-upload-primary-action .camera-capture-action {
+            display: none;
+        }
+
+        .proof-upload-primary-action .upload-choice-divider {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            min-height: 1.25rem;
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 700;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .proof-upload-primary-action .upload-choice-divider::before,
+        .proof-upload-primary-action .upload-choice-divider::after {
+            content: "";
+            height: 1px;
+            flex: 1 1 auto;
+            background: rgba(100, 116, 139, 0.22);
+        }
+
+        .proof-upload-primary-action .option-button i {
+            margin-right: 0.45rem;
+        }
+
         .proof-upload-primary-action .option-button.green {
             box-shadow: 0 6px 12px rgba(46, 125, 50, 0.18);
         }
@@ -306,6 +335,16 @@
                 padding: 0.8rem 0.95rem;
             }
         }
+
+        @media (pointer: coarse) {
+            .proof-upload-primary-action .camera-capture-action {
+                display: inline-flex;
+            }
+
+            .proof-upload-primary-action .upload-choice-divider {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
@@ -324,8 +363,15 @@
 
         <div class="options-container proof-upload-primary-action" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
+            <input type="file" id="proofCameraInput" accept="image/*" capture="environment" style="display: none;" multiple>
+            <button type="button" id="takeProofPhotoButton" class="option-button grey green camera-capture-action">
+                <i class="fa fa-camera"></i>
+                Take photo
+            </button>
+            <span class="upload-choice-divider" aria-hidden="true">or</span>
             <button type="button" id="uploadProofButton" class="option-button grey green">
-                Upload proofs
+                <i class="fa fa-file-upload"></i>
+                Upload proof files
             </button>
         </div>
 
@@ -393,13 +439,18 @@
 
             var submitButton = document.getElementById('submitButton');
             const uploadProofButton = document.getElementById('uploadProofButton');
+            const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
             const proofPicInput = document.getElementById('proofPicInput');
+            const proofCameraInput = document.getElementById('proofCameraInput');
             const proofImageContainer = document.getElementById('proofImageContainer');
             const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
             // Proof Tracker: biomarkers present in sessionStorage, ordered by bortz-age UI
             const checklistItems = window.getProofChecklistLabelsFromSession && window.getProofChecklistLabelsFromSession() || [];
-            window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems);
+            window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems, {
+                cameraButton: takeProofPhotoButton,
+                cameraInput: proofCameraInput
+            });
 
             submitButton.addEventListener('click', async function () {
                 if (!athlete || !athlete.Name) {
@@ -434,8 +485,10 @@
 
                 const submitButton = document.getElementById('submitButton');
                 const uploadProofButton = document.getElementById('uploadProofButton');
+                const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
                 submitButton.disabled = true;
                 uploadProofButton.disabled = true;
+                if (takeProofPhotoButton) takeProofPhotoButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
                 showLoading();
 
@@ -490,6 +543,7 @@
                                 customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
                                     submitButton.disabled = false;
                                     uploadProofButton.disabled = false;
+                                    if (takeProofPhotoButton) takeProofPhotoButton.disabled = false;
                                     setSubmitButtonLabel();
                                 });
                             });
@@ -506,6 +560,7 @@
                         customAlert(`An error occurred:\n\n${error}`).then(() => {
                             submitButton.disabled = false;
                             uploadProofButton.disabled = false;
+                            if (takeProofPhotoButton) takeProofPhotoButton.disabled = false;
                             setSubmitButtonLabel();
                         });
                     });
