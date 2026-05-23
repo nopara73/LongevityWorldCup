@@ -111,7 +111,7 @@
                 box-sizing: border-box;
             }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
             .biomarker-card-content .input-group {
                 flex-direction: column;
             }
@@ -531,6 +531,7 @@
             overflow: hidden;
             background: #fff;
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            container-type: inline-size;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -604,6 +605,18 @@
             .biomarker-card-content > .input-group:first-of-type {
                 margin-top: 0;
             }
+
+        @container (max-width: 430px) {
+            .biomarker-card-content .input-group {
+                flex-direction: column;
+            }
+
+                .biomarker-card-content .input-group input,
+                .biomarker-card-content .input-group select {
+                    flex: 1 1 auto;
+                    width: 100%;
+                }
+        }
 
         @media (max-width: 768px) {
             /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
