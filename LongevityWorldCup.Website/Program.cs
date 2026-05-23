@@ -288,7 +288,7 @@ namespace LongevityWorldCup.Website
             // Create default configuration
             var defaultConfig = new
             {
-                EmailFrom = "longevityworldcup@gmail.com",
+                EmailFrom = "hi@longevityworldcup.com",
                 EmailTo = "longevityworldcup@gmail.com",
                 SmtpServer = "smtp.gmail.com",
                 SmtpPort = 587,

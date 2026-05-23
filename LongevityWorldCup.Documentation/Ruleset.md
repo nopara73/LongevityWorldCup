@@ -45,7 +45,7 @@ Simply visit our [website](https://www.longevityworldcup.com/) and follow the re
 Want someone to hold your hand while doing your application? Watch [this seven minute video tutorial](https://www.youtube.com/watch?v=0mCIbqgfqq8) or [this one minute video tutorial.](https://www.youtube.com/shorts/yhMFZMPAoKQ)
 
 #### Can I withdraw from the competition?
-Yes, just send us an email to `longevityworldcup@gmail.com`.
+Yes, just send us an email to `hi@longevityworldcup.com`.
 
 ### About aging clocks and testing
 #### What is [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)?
@@ -131,7 +131,7 @@ Your profile picture must be you, facing the camera, but you can edit it freely,
 ![image](https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab)
 
 #### I am an athlete already, how can I make changes?
-Through the [Athlete Dashboard](https://www.longevityworldcup.com/play/character-selection.html) or by sending us an email to `longevityworldcup@gmail.com`.
+Through the [Athlete Dashboard](https://www.longevityworldcup.com/play/character-selection.html) or by sending us an email to `hi@longevityworldcup.com`.
 
 #### What will sponsorships entail?
 Sponsorships are planned for future seasons, allowing companies to sponsor athletes in exchange for visibility on the website.
