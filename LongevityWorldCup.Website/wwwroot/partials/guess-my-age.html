@@ -78,6 +78,11 @@
         display: none;
     }
 
+    #detailsModal .modal-content.guess-mode > #closeAthleteDetailsModal,
+    #detailsModal .modal-content.guess-mode > .modal-sticky-header {
+        display: none !important;
+    }
+
     /* during guess mode, hide everything under athlete-profile except pic, name & slider */
     /* .portrait-wrapper contains #modalProfilePic; keep it visible so the picture shows */
     .modal-content.guess-mode .athlete-profile > *:not(#modalProfilePic):not(#guessAgeContainer):not(.portrait-wrapper) {
@@ -1047,8 +1052,6 @@
     </div>
 
     <div class="gma-actions">
-        <button id="gmaSkipAll" class="gma-btn gma-btn--ghost" style="display: none;" title="The Guess my age game will no longer appear for any athlete">Skip all</button>
-        <button class="gma-btn gma-btn--ghost">Skip</button>
         <button class="gma-btn gma-btn--primary">Submit</button>
     </div>
 </div>
@@ -1316,21 +1319,7 @@
 
     });
 
-    // bind hideCard to _all_ ghost buttons (Skip & Skip All)
-    gmaCard.querySelectorAll('.gma-btn--ghost')
-        .forEach(btn => btn.addEventListener('click', hideCard));
-    const gmaSkipAll = document.getElementById('gmaSkipAll');
-    if (gmaSkipAll) {
-        gmaSkipAll.addEventListener('click', hideCard);
-    }
-
     function hideCard(e) {
-        // if they clicked “Skip All”, set global flag
-        const isSkipAll = e.currentTarget.id === 'gmaSkipAll';
-        if (isSkipAll) {
-            localStorage.setItem('gmaSkipAll', 'true');
-        }
-
         const modalContent = document.querySelector('.modal-content');
         const athleteSlug = modalContent.dataset.athleteSlug;
 
@@ -1340,13 +1329,12 @@
             : gmaRange.value;
 
         let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-        const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
 
         allGuesses[athleteSlug] = {
-            value: isSkip ? null : guessValue,
-            skipped: isSkip,
-            first: !isSkip && Boolean(e.isFirstGuess),
-            exact: !isSkip && Boolean(e.isExactGuess)
+            value: guessValue,
+            skipped: false,
+            first: Boolean(e.isFirstGuess),
+            exact: Boolean(e.isExactGuess)
         };
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
         updateYourGuess();  // ← Add this line
