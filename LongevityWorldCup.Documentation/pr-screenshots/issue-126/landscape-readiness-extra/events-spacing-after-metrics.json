@@ -1,0 +1,163 @@
+[
+  {
+    "viewport": "667x375",
+    "scenario": "events",
+    "path": "/events",
+    "overflowX": 0,
+    "gapAvatarMessage": 12,
+    "avatar": {
+      "x": 32,
+      "y": 160.140625,
+      "w": 24,
+      "h": 24,
+      "right": 56,
+      "bottom": 184.140625
+    },
+    "message": {
+      "x": 68,
+      "y": 152.140625,
+      "w": 489,
+      "h": 40,
+      "right": 557,
+      "bottom": 192.140625
+    }
+  },
+  {
+    "viewport": "736x414",
+    "scenario": "events",
+    "path": "/events",
+    "overflowX": 0,
+    "gapAvatarMessage": 12,
+    "avatar": {
+      "x": 48,
+      "y": 170.515625,
+      "w": 24,
+      "h": 24,
+      "right": 72,
+      "bottom": 194.515625
+    },
+    "message": {
+      "x": 84,
+      "y": 162.515625,
+      "w": 526,
+      "h": 40,
+      "right": 610,
+      "bottom": 202.515625
+    }
+  },
+  {
+    "viewport": "844x390",
+    "scenario": "events",
+    "path": "/events",
+    "overflowX": 0,
+    "gapAvatarMessage": 12,
+    "avatar": {
+      "x": 56,
+      "y": 140.578125,
+      "w": 24,
+      "h": 24,
+      "right": 80,
+      "bottom": 164.578125
+    },
+    "message": {
+      "x": 92,
+      "y": 132.578125,
+      "w": 589.25,
+      "h": 40,
+      "right": 681.25,
+      "bottom": 172.578125
+    }
+  },
+  {
+    "viewport": "390x844",
+    "scenario": "events",
+    "path": "/events",
+    "overflowX": 0,
+    "gapAvatarMessage": 12,
+    "avatar": {
+      "x": 33,
+      "y": 124.203125,
+      "w": 22,
+      "h": 22,
+      "right": 55,
+      "bottom": 146.203125
+    },
+    "message": {
+      "x": 67,
+      "y": 111.203125,
+      "w": 295,
+      "h": 48,
+      "right": 362,
+      "bottom": 159.203125
+    }
+  },
+  {
+    "viewport": "1280x720",
+    "scenario": "events",
+    "path": "/events",
+    "overflowX": 0,
+    "gapAvatarMessage": 12,
+    "avatar": {
+      "x": 124,
+      "y": 141.375,
+      "w": 24,
+      "h": 24,
+      "right": 148,
+      "bottom": 165.375
+    },
+    "message": {
+      "x": 160,
+      "y": 133.375,
+      "w": 836.75,
+      "h": 40,
+      "right": 996.75,
+      "bottom": 173.375
+    }
+  },
+  {
+    "viewport": "896x414",
+    "scenario": "events",
+    "path": "/events",
+    "overflowX": 0,
+    "gapAvatarMessage": 12,
+    "avatar": {
+      "x": 56,
+      "y": 140.578125,
+      "w": 24,
+      "h": 24,
+      "right": 80,
+      "bottom": 164.578125
+    },
+    "message": {
+      "x": 92,
+      "y": 132.578125,
+      "w": 628.4375,
+      "h": 40,
+      "right": 720.4375,
+      "bottom": 172.578125
+    }
+  },
+  {
+    "viewport": "932x430",
+    "scenario": "events",
+    "path": "/events",
+    "overflowX": 0,
+    "gapAvatarMessage": 12,
+    "avatar": {
+      "x": 56,
+      "y": 140.578125,
+      "w": 24,
+      "h": 24,
+      "right": 80,
+      "bottom": 164.578125
+    },
+    "message": {
+      "x": 92,
+      "y": 132.578125,
+      "w": 658.6875,
+      "h": 40,
+      "right": 750.6875,
+      "bottom": 172.578125
+    }
+  }
+]
