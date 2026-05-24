@@ -645,7 +645,27 @@
         }
 
         .scrolled-button {
-            display: none !important;
+            top: max(0.35rem, env(safe-area-inset-top, 0px));
+            right: max(0.5rem, env(safe-area-inset-right, 0px));
+            min-width: 4.25rem;
+            padding: 0.55rem 0.85rem;
+            font-size: 0.95rem;
+            z-index: 1001;
+        }
+
+        .site-sticky-header {
+            justify-content: flex-start;
+            padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+            padding-right: calc(max(0.5rem, env(safe-area-inset-right, 0px)) + 5.25rem);
+        }
+
+        .site-sticky-header-link {
+            max-width: 100%;
+        }
+
+        .site-sticky-header-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     }
 
@@ -714,7 +734,7 @@
             display: none;
         }
 
-        .join-game {
+        .join-game:not(.scrolled-button) {
             display: none;
         }
     }
@@ -788,8 +808,11 @@
     handleScroll(window.scrollY);
 
     function handleScroll(scrollPos) {
-        if (scrolledJoinButton && joinGameBtn && scrollPos > 100 && window.getComputedStyle(joinGameBtn).display !== 'none') {
-            scrolledJoinButton.style.display = 'block';
+        const compactLandscape = window.matchMedia('(max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
+        const mainJoinButtonVisible = joinGameBtn && window.getComputedStyle(joinGameBtn).display !== 'none';
+
+        if (scrolledJoinButton && scrollPos > 100 && (mainJoinButtonVisible || compactLandscape)) {
+            scrolledJoinButton.style.display = 'inline-flex';
         } else if (scrolledJoinButton) {
             scrolledJoinButton.style.display = 'none';
         }
