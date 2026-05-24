@@ -1335,6 +1335,7 @@
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
                 <i class="fas fa-ambulance"></i> <i class="fas fa-hospital"></i> <i class="fas fa-clinic-medical"></i>
             </div>
+            <div id="bortzAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
         </div>
 
         <div class="options-container bioage-result-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
@@ -2009,6 +2010,7 @@
                 resultElement.classList.add('show');
                 ensureCorrectInputSuggestion.style.display = 'block';
                 validAgeInput.style.display = 'none';
+                if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.clear('bortzAgeRankPreview');
                 return;
             }
             else {
@@ -2073,6 +2075,20 @@
             // Determine age category for color coding
             const ageDiff = bortzAge - chronologicalAgeAtTimeOfTest;
             const ageCategory = ageDiff < -2 ? 'age-excellent' : (ageDiff < 0 ? 'age-good' : 'age-average');
+            const bortzRankPreview = {
+                clock: 'bortz',
+                ageReduction: ageDiff,
+                dateOfBirth: new Date(year, month, day)
+            };
+            function renderBortzRankPreview() {
+                if (window.LwcBioAgeRankPreview) {
+                    window.LwcBioAgeRankPreview.render('bortzAgeRankPreview', bortzRankPreview);
+                } else if (window.modulesReady) {
+                    window.modulesReady.then(() => {
+                        if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.render('bortzAgeRankPreview', bortzRankPreview);
+                    });
+                }
+            }
             
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -2141,6 +2157,7 @@
                                     phenoAgeRowEl.style.display = 'none';
                                 }
                             }
+                            renderBortzRankPreview();
 
                             // Show the Next button after a brief delay
                             setTimeout(() => {
@@ -2182,6 +2199,7 @@
                             phenoAgeRowEl.style.display = 'none';
                         }
                     }
+                    renderBortzRankPreview();
 
                     // Show the Next button
                     setTimeout(() => {

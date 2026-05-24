@@ -1076,6 +1076,7 @@
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
                 <i class="fas fa-ambulance"></i> <i class="fas fa-hospital"></i> <i class="fas fa-clinic-medical"></i>
             </div>
+            <div id="phenoAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
         </div>
 
         <div class="options-container phenoage-result-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
@@ -1416,6 +1417,7 @@
                 resultElement.classList.add('show');
                 ensureCorrectInputSuggestion.style.display = 'block';
                 validAgeInput.style.display = 'none';
+                if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.clear('phenoAgeRankPreview');
                 return;
             }
             else {
@@ -1463,6 +1465,20 @@
             // Determine age category for color coding
             const ageDiff = phenoAge - chronologicalAgeAtTimeOfTest;
             const ageCategory = ageDiff < -2 ? 'age-excellent' : (ageDiff < 0 ? 'age-good' : 'age-average');
+            const phenoRankPreview = {
+                clock: 'pheno',
+                ageReduction: ageDiff,
+                dateOfBirth: new Date(year, month, day)
+            };
+            function renderPhenoRankPreview() {
+                if (window.LwcBioAgeRankPreview) {
+                    window.LwcBioAgeRankPreview.render('phenoAgeRankPreview', phenoRankPreview);
+                } else if (window.modulesReady) {
+                    window.modulesReady.then(() => {
+                        if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.render('phenoAgeRankPreview', phenoRankPreview);
+                    });
+                }
+            }
             
             if (isFirstTimeAnimation) {
                 // Set the flag to false after the first run
@@ -1513,6 +1529,7 @@
                             // Update years text with year reduction/increase and celebratory emoji if bio age is better
                             const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
                             yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
+                            renderPhenoRankPreview();
 
                             // Show the Next button after a brief delay
                             setTimeout(() => {
@@ -1536,6 +1553,7 @@
                     
                     const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
                     yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
+                    renderPhenoRankPreview();
 
                     // Show the Next button
                     setTimeout(() => {
