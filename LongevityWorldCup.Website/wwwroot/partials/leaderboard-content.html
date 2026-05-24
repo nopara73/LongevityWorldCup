@@ -1567,7 +1567,7 @@
         .leaderboard table td .badge-section{ display:none; }
     }
 
-    @media (max-width: 768px){
+    @media (max-width: 768px), (max-width: 900px) and (max-height: 480px) and (orientation: landscape){
         .content{
             padding-left:max(1rem, env(safe-area-inset-left));
             padding-right:max(1rem, env(safe-area-inset-right));
@@ -1991,6 +1991,103 @@
         }
         .modal-sticky-header.visible::before{
             top:-30px; height:30px;
+        }
+    }
+
+    @media (max-width: 900px) and (max-height: 480px) and (orientation: landscape){
+        #leaderboardTitle{
+            margin:.35rem 0 .65rem;
+            font-size:1.75rem;
+            line-height:1.05;
+            letter-spacing:.06em;
+        }
+
+        .content{
+            padding-left:max(.75rem, env(safe-area-inset-left));
+            padding-right:max(.75rem, env(safe-area-inset-right));
+        }
+
+        .leaderboard-toolbar{
+            flex-direction:row;
+            align-items:center;
+            justify-content:space-between;
+            gap:.55rem;
+            margin-top:.35rem;
+            margin-bottom:.55rem;
+        }
+
+        .leaderboard-view-switcher{
+            width:auto;
+            min-width:0;
+            flex:1 1 19rem;
+            order:0;
+            gap:.35rem;
+        }
+
+        .leaderboard-view-switcher .view-switcher-label{
+            display:none;
+        }
+
+        .leaderboard-view-switcher .view-switcher-chips{
+            width:auto;
+            max-width:none;
+            flex:1 1 auto;
+        }
+
+        .leaderboard-view-switcher .view-badge{
+            min-height:40px;
+            padding:.35rem .55rem;
+            font-size:.78rem;
+        }
+
+        .search-wrapper{
+            width:auto;
+            flex:1 1 17rem;
+            order:0;
+            justify-content:flex-end;
+        }
+
+        .search-container{
+            min-height:40px;
+        }
+
+        #athleteSearch{
+            min-height:40px;
+            padding-top:.42rem;
+            padding-bottom:.42rem;
+        }
+
+        .sidebar-toggle{
+            width:40px;
+            height:40px;
+            min-height:40px;
+        }
+
+        .leaderboard table th{
+            padding:.55rem .45rem;
+            font-size:.64rem;
+            line-height:1.05;
+        }
+
+        .leaderboard table td{
+            font-size:.78rem;
+        }
+
+        .leaderboard .portrait{
+            width:34px;
+            height:34px;
+            margin:.28rem 0;
+        }
+
+        .leaderboard .athlete-td .portrait-wrapper,
+        .leaderboard .athlete-td .rank-change{
+            flex:0 0 34px;
+            width:34px;
+            min-width:34px;
+        }
+
+        .athlete-name{
+            padding:.35rem .32rem;
         }
     }
 
@@ -4825,7 +4922,7 @@
         const sidebar = document.querySelector('.sidebar');
         const sidebarClose = document.querySelector('.sidebar-close');
         const sidebarToggle = document.querySelector('.sidebar-toggle');
-        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const isMobileDrawer = isMobileDrawerViewport();
         const focusTarget = isMobileDrawer && sidebar?.classList.contains('expanded')
             ? sidebarClose
             : sidebarToggle;
@@ -6230,6 +6327,11 @@
     const sidebar = document.querySelector('.sidebar');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
+    const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 900px) and (max-height: 480px) and (orientation: landscape)');
+
+    function isMobileDrawerViewport() {
+        return mobileDrawerMediaQuery.matches;
+    }
 
     sidebarToggle.addEventListener('click', (event) => {
         toggleSidebar({ focusDrawerClose: event.detail === 0 });
@@ -6249,7 +6351,7 @@
     });
 
     document.addEventListener('click', (event) => {
-        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const isMobileDrawer = isMobileDrawerViewport();
         if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
         if (sidebar.contains(event.target) || sidebarToggle.contains(event.target)) return;
         closeSidebar();
@@ -6259,7 +6361,7 @@
         if (event.key !== 'Tab') return;
         if (modal.style.display === "block") return;
 
-        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const isMobileDrawer = isMobileDrawerViewport();
         if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
 
         const focusableDrawerControls = getSidebarFocusableControls();
@@ -6290,7 +6392,7 @@
         const searchInput = document.getElementById('athleteSearch');
         if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
 
-        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const isMobileDrawer = isMobileDrawerViewport();
         if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
 
         event.preventDefault();
@@ -6298,7 +6400,7 @@
     });
 
     function syncSidebarDrawerBackdrop() {
-        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const isMobileDrawer = isMobileDrawerViewport();
         const isOpenMobileDrawer = isMobileDrawer && sidebar.classList.contains('expanded');
         document.body.classList.toggle('sidebar-drawer-open', isOpenMobileDrawer);
         sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
@@ -6336,7 +6438,7 @@
     }
 
     function openSidebar(options = {}) {
-        const isMobileDrawer = window.matchMedia('(max-width: 768px)').matches;
+        const isMobileDrawer = isMobileDrawerViewport();
         const drawerScrollX = window.scrollX;
         const drawerScrollY = window.scrollY;
 
