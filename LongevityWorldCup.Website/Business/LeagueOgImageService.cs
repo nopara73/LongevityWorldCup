@@ -18,10 +18,12 @@ public sealed class LeagueOgImageService
     private const int CanvasHeight = 630;
     private const float LeagueTitleY = 66f;
     private static readonly Color LeagueTitleColor = Color.White;
-    private static readonly Color NameLabelColor = new(new Rgba32(255, 255, 255, 92));
-    // Figma nominal inner-shadow is 30%, but our rasterized pipeline needs lower effective
-    // alpha to visually match the reference.
-    private static readonly Rgba32 NameLabelInnerShadowColor = new(0, 0, 0, 70);
+    private static readonly Color NameLabelColor = Color.White;
+    private static readonly Color NameLabelPanelColor = new(new Rgba32(0, 0, 0, 164));
+    private static readonly Color NameLabelShadowColor = new(new Rgba32(0, 0, 0, 210));
+    private static readonly Color EmptySlotFillColor = new(new Rgba32(18, 21, 23, 218));
+    private static readonly Color EmptySlotTextColor = new(new Rgba32(255, 255, 255, 190));
+    private static readonly Color EmptyStateTextColor = new(new Rgba32(255, 255, 255, 224));
 
     // Slot centers and diameters matched to the league OG podium template.
     private static readonly Slot[] PodiumSlots =
@@ -30,9 +32,9 @@ public sealed class LeagueOgImageService
         // gold: x=495 y=174 w=210 h=210
         // silver: x=248 y=250 w=171 h=171
         // bronze: x=782 y=251 w=171 h=171
-        new Slot(600, 279, 210), // #1 center
-        new Slot(333, 336, 170), // #2 left
-        new Slot(867, 337, 170)  // #3 right
+        new Slot(600, 279, 230), // #1 center
+        new Slot(333, 336, 192), // #2 left
+        new Slot(867, 337, 192)  // #3 right
     ];
 
     private static readonly IReadOnlyDictionary<string, string> LeagueDisplayNames =
@@ -222,11 +224,22 @@ public sealed class LeagueOgImageService
             image.Mutate(ctx => ctx.Resize(CanvasWidth, CanvasHeight));
         }
 
-        for (var i = 0; i < payload.Top3Slugs.Count && i < PodiumSlots.Length; i++)
+        var fontFamily = GetFontFamily();
+
+        for (var i = 0; i < PodiumSlots.Length; i++)
         {
             var slot = PodiumSlots[i];
-            if (!TryResolveProfilePath(payload.Top3Slugs[i], out var profilePath))
+            if (i >= payload.Top3Slugs.Count)
+            {
+                DrawEmptySlot(image, slot, fontFamily);
                 continue;
+            }
+
+            if (!TryResolveProfilePath(payload.Top3Slugs[i], out var profilePath))
+            {
+                DrawEmptySlot(image, slot, fontFamily);
+                continue;
+            }
 
             try
             {
@@ -237,10 +250,10 @@ public sealed class LeagueOgImageService
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "Failed to render league top3 profile image for {LeagueSlug}: {Path}", payload.InternalSlug, profilePath);
+                DrawEmptySlot(image, slot, fontFamily);
             }
         }
 
-        var fontFamily = GetFontFamily();
         var titleFont = fontFamily.CreateFont(50f, FontStyle.Bold);
         var title = payload.DisplayName;
 
@@ -262,7 +275,14 @@ public sealed class LeagueOgImageService
             }, title, LeagueTitleColor);
         });
 
-        DrawAthleteNameLabels(image, payload.Top3Names, fontFamily);
+        if (payload.Top3Names.Count == 0)
+        {
+            DrawEmptyLeagueMessage(image, fontFamily);
+        }
+        else
+        {
+            DrawAthleteNameLabels(image, payload.Top3Names, fontFamily);
+        }
 
         await image.SaveAsPngAsync(outputPath, ct);
     }
@@ -307,96 +327,87 @@ public sealed class LeagueOgImageService
         const float centerMaxWidth = 240f;
         const float sideMaxWidth = 200f;
 
-        var firstFont = FitFontToWidth(fontFamily, firstName, 25f, 15f, centerMaxWidth);
-        var secondFont = FitFontToWidth(fontFamily, secondName, 20f, 14f, sideMaxWidth);
-        var thirdFont = FitFontToWidth(fontFamily, thirdName, 20f, 14f, sideMaxWidth);
+        var firstFont = FitFontToWidth(fontFamily, firstName, 30f, 20f, centerMaxWidth);
+        var secondFont = FitFontToWidth(fontFamily, secondName, 24f, 18f, sideMaxWidth);
+        var thirdFont = FitFontToWidth(fontFamily, thirdName, 24f, 18f, sideMaxWidth);
 
         // Figma y positions:
         // center label top: 444
         // side labels top: 466
-        DrawCenteredLabel(image, firstName, firstFont, PodiumSlots[0].CenterX, 444f);
-        DrawCenteredLabel(image, secondName, secondFont, PodiumSlots[1].CenterX, 466f);
-        DrawCenteredLabel(image, thirdName, thirdFont, PodiumSlots[2].CenterX, 466f);
+        DrawCenteredLabel(image, firstName, firstFont, PodiumSlots[0].CenterX, 438f, centerMaxWidth + 34f);
+        DrawCenteredLabel(image, secondName, secondFont, PodiumSlots[1].CenterX, 460f, sideMaxWidth + 34f);
+        DrawCenteredLabel(image, thirdName, thirdFont, PodiumSlots[2].CenterX, 460f, sideMaxWidth + 34f);
     }
 
-    private static void DrawCenteredLabel(Image<Rgba32> image, string text, Font font, float centerX, float topY)
+    private static void DrawCenteredLabel(Image<Rgba32> image, string text, Font font, float centerX, float topY, float panelWidth)
     {
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        // Figma inner shadow:
-        // X=0, Y=4, Blur=4, Spread=0, Color=#000000 @30%
         var textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
-        const int pad = 16; // enough room for blur radius
-        var boxW = Math.Max(1, (int)Math.Ceiling(textSize.Width) + (pad * 2));
-        var boxH = Math.Max(1, (int)Math.Ceiling(textSize.Height) + (pad * 2));
-        var localOrigin = new PointF(boxW / 2f, pad);
-
-        using var baseMask = new Image<Rgba32>(boxW, boxH, Color.Transparent);
-        baseMask.Mutate(ctx =>
-        {
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = localOrigin,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, text, Color.White);
-        });
-
-        using var innerShadowMask = new Image<Rgba32>(boxW, boxH, Color.Transparent);
-        innerShadowMask.Mutate(ctx =>
-        {
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = new PointF(localOrigin.X + 0f, localOrigin.Y + 4f),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, text, Color.White);
-            ctx.GaussianBlur(4f);
-            ctx.SetGraphicsOptions(new GraphicsOptions
-            {
-                AlphaCompositionMode = PixelAlphaCompositionMode.DestIn
-            });
-            ctx.DrawImage(baseMask, new Point(0, 0), 1f);
-        });
-
-        TintMask(innerShadowMask, NameLabelInnerShadowColor);
-        var drawX = (int)Math.Round(centerX - (boxW / 2f));
-        var drawY = (int)Math.Round(topY - pad);
+        var panelHeight = Math.Max(34f, textSize.Height + 12f);
+        var panelX = centerX - (panelWidth / 2f);
+        var panelY = topY - 4f;
         image.Mutate(ctx =>
         {
-            // Draw fill first, then inner shadow on top (still clipped to glyph),
-            // which matches the stronger engraved look in Figma.
+            ctx.Fill(NameLabelPanelColor, new RectangularPolygon(panelX, panelY, panelWidth, panelHeight));
+            DrawTextShadow(ctx, text, font, new PointF(centerX, topY), HorizontalAlignment.Center, NameLabelShadowColor, 2f);
             ctx.DrawText(new RichTextOptions(font)
             {
                 Origin = new PointF(centerX, topY),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top
             }, text, NameLabelColor);
-            ctx.DrawImage(innerShadowMask, new Point(drawX, drawY), 1f);
         });
     }
 
-    private static void TintMask(Image<Rgba32> mask, Rgba32 color)
+    private static void DrawEmptyLeagueMessage(Image<Rgba32> image, FontFamily fontFamily)
     {
-        mask.ProcessPixelRows(accessor =>
+        var font = fontFamily.CreateFont(34f, FontStyle.Bold);
+        const string text = "Rankings opening soon";
+        var textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
+        const float panelWidth = 470f;
+        const float panelHeight = 58f;
+        const float panelX = (CanvasWidth - panelWidth) / 2f;
+        const float panelY = 442f;
+        image.Mutate(ctx =>
         {
-            for (var y = 0; y < accessor.Height; y++)
+            ctx.Fill(NameLabelPanelColor, new RectangularPolygon(panelX, panelY, panelWidth, panelHeight));
+            DrawTextShadow(ctx, text, font, new PointF(CanvasWidth / 2f, panelY + ((panelHeight - textSize.Height) / 2f)), HorizontalAlignment.Center, NameLabelShadowColor, 2f);
+            ctx.DrawText(new RichTextOptions(font)
             {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var a = row[x].A;
-                    if (a == 0)
-                    {
-                        row[x] = default;
-                        continue;
-                    }
+                Origin = new PointF(CanvasWidth / 2f, panelY + ((panelHeight - textSize.Height) / 2f)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            }, text, EmptyStateTextColor);
+        });
+    }
 
-                    var scaled = (byte)((a * color.A) / 255);
-                    row[x] = new Rgba32(color.R, color.G, color.B, scaled);
-                }
-            }
+    private static void DrawEmptySlot(Image<Rgba32> target, Slot slot, FontFamily? fontFamily)
+    {
+        var radius = (slot.Diameter / 2f) - 7f;
+        target.Mutate(ctx =>
+        {
+            ctx.SetGraphicsOptions(new GraphicsOptions
+            {
+                Antialias = true,
+                AntialiasSubpixelDepth = 16
+            });
+            ctx.Fill(EmptySlotFillColor, new EllipsePolygon(slot.CenterX, slot.CenterY, radius));
+        });
+
+        if (fontFamily is null)
+            return;
+
+        var font = fontFamily.Value.CreateFont(22f, FontStyle.Bold);
+        target.Mutate(ctx =>
+        {
+            ctx.DrawText(new RichTextOptions(font)
+            {
+                Origin = new PointF(slot.CenterX, slot.CenterY - 13f),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            }, "OPEN", EmptySlotTextColor);
         });
     }
 
@@ -427,7 +438,7 @@ public sealed class LeagueOgImageService
             Size = new Size(renderSize, renderSize),
             Mode = ResizeMode.Crop,
             Position = AnchorPositionMode.Center
-        }));
+        }).Brightness(1.1f).Contrast(1.08f).Saturate(1.08f));
 
         using var mask = new Image<Rgba32>(renderSize, renderSize, Color.Transparent);
         mask.Mutate(ctx =>
@@ -453,7 +464,28 @@ public sealed class LeagueOgImageService
 
         var x = slot.CenterX - (renderSize / 2);
         var y = slot.CenterY - (renderSize / 2);
-        target.Mutate(ctx => ctx.DrawImage(source, new Point(x, y), 1f));
+        target.Mutate(ctx =>
+        {
+            ctx.DrawImage(source, new Point(x, y), 1f);
+            ctx.Draw(Color.White, 5f, new EllipsePolygon(slot.CenterX, slot.CenterY, (slot.Diameter / 2f) - 2f));
+        });
+    }
+
+    private static void DrawTextShadow(
+        IImageProcessingContext ctx,
+        string text,
+        Font font,
+        PointF origin,
+        HorizontalAlignment alignment,
+        Color color,
+        float offset)
+    {
+        ctx.DrawText(new RichTextOptions(font)
+        {
+            Origin = new PointF(origin.X, origin.Y + offset),
+            HorizontalAlignment = alignment,
+            VerticalAlignment = VerticalAlignment.Top
+        }, text, color);
     }
 
     private FontFamily GetFontFamily()
@@ -473,7 +505,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v21",
+            "league-og-v22",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
