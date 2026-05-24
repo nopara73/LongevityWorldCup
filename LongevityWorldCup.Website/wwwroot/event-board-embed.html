@@ -23,7 +23,7 @@
         :root[data-embed-theme="dark"]{
             --card-bg:rgba(255,255,255,.045);
             --dark-text-color:rgba(255,255,255,.94);
-            --body-bg:transparent;
+            --body-bg:#0b0d0d;
             --zebra-even:transparent;
             --zebra-odd:transparent;
             --details-bg:rgba(246,244,237,.06);
@@ -35,6 +35,11 @@
             --event-cream:rgba(246,244,237,.92);
             --event-cream-border:rgba(246,244,237,.5);
             --event-link:rgba(213,224,221,.92);
+        }
+        :root[data-embed-theme="dark"],
+        :root[data-embed-theme="dark"] body{
+            background:var(--body-bg);
+            color:var(--events-text);
         }
     </style>
     <style>
