@@ -2568,6 +2568,51 @@
         ['us', 'United States'],
         ['usa', 'United States']
     ]);
+    const standardFlagCountryCodes = new Map([
+        ['argentina', 'AR'],
+        ['australia', 'AU'],
+        ['austria', 'AT'],
+        ['bolivia', 'BO'],
+        ['brazil', 'BR'],
+        ['bulgaria', 'BG'],
+        ['canada', 'CA'],
+        ['czech republic', 'CZ'],
+        ['ecuador', 'EC'],
+        ['egypt', 'EG'],
+        ['estonia', 'EE'],
+        ['france', 'FR'],
+        ['germany', 'DE'],
+        ['greece', 'GR'],
+        ['honduras', 'HN'],
+        ['hungary', 'HU'],
+        ['iceland', 'IS'],
+        ['india', 'IN'],
+        ['iraq', 'IQ'],
+        ['italy', 'IT'],
+        ['japan', 'JP'],
+        ['latvia', 'LV'],
+        ['malaysia', 'MY'],
+        ['netherlands', 'NL'],
+        ['new zealand', 'NZ'],
+        ['norway', 'NO'],
+        ['poland', 'PL'],
+        ['portugal', 'PT'],
+        ['puerto rico', 'PR'],
+        ['romania', 'RO'],
+        ['russia', 'RU'],
+        ['serbia', 'RS'],
+        ['sierra leone', 'SL'],
+        ['singapore', 'SG'],
+        ['slovakia', 'SK'],
+        ['south africa', 'ZA'],
+        ['sweden', 'SE'],
+        ['switzerland', 'CH'],
+        ['thailand', 'TH'],
+        ['turkey', 'TR'],
+        ['united arab emirates', 'AE'],
+        ['united kingdom', 'GB'],
+        ['united states', 'US']
+    ]);
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
@@ -2591,6 +2636,21 @@
 
     function getFlagFilterKey(flag) {
         return normalizeFlagKey(getCanonicalFlagName(flag));
+    }
+
+    function getFlagEmoji(flag) {
+        const countryCode = standardFlagCountryCodes.get(getFlagFilterKey(flag));
+        if (!countryCode || !/^[A-Z]{2}$/.test(countryCode)) return '';
+
+        return Array.from(countryCode)
+            .map(char => String.fromCodePoint(0x1F1E6 + char.charCodeAt(0) - 65))
+            .join('');
+    }
+
+    function formatFlagLabel(flag) {
+        const canonicalFlag = getCanonicalFlagName(flag);
+        const emoji = getFlagEmoji(canonicalFlag);
+        return emoji ? `${emoji} ${canonicalFlag}` : canonicalFlag;
     }
 
     function getAthletePortraitUrl(athlete) {
@@ -5211,11 +5271,12 @@
             .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
             .forEach(({ name, count }) => {
                 const flagKey = getFlagFilterKey(name);
+                const flagLabel = formatFlagLabel(name);
                 const li = document.createElement('li');
                 li.innerHTML = `
             <label data-flag="${escapeHtml(name)}" data-flag-key="${escapeHtml(flagKey)}">
                 <input type="checkbox" name="flag" value="${escapeHtml(name)}">
-                ${escapeHtml(name)} (<span class="filter-count">${count}</span>)
+                ${escapeHtml(flagLabel)} (<span class="filter-count">${count}</span>)
             </label>
         `;
                 filterSection.appendChild(li);
@@ -5879,7 +5940,7 @@
         document.getElementById('athleteRank').innerHTML = rankText;
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
-        document.getElementById('athleteFlag').textContent = fullAthleteData.Flag;
+        document.getElementById('athleteFlag').textContent = formatFlagLabel(fullAthleteData.Flag);
         document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(0);
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
         updateYourGuess();
