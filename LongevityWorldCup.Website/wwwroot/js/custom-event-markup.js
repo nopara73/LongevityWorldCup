@@ -223,7 +223,9 @@
                 return escapeHtml(resolvedText);
             },
             link: function (label, href) {
-                return '<a href="' + escapeHtml(href.trim()) + '" target="_top" rel="noopener">' + escapeHtml(label) + "</a>";
+                var target = opts.linkTarget || "_top";
+                var rel = opts.linkRel || "noopener";
+                return '<a href="' + escapeHtml(href.trim()) + '" target="' + escapeHtml(target) + '" rel="' + escapeHtml(rel) + '">' + escapeHtml(label) + "</a>";
             }
         });
     }
@@ -238,6 +240,8 @@
         var opts = options || {};
         return renderMarkup(text, {
             mentionResolver: opts.mentionResolver,
+            linkTarget: "_blank",
+            linkRel: "noopener noreferrer",
             mentionRenderer: function (slug, displayText) {
                 var href = typeof opts.mentionHrefResolver === "function"
                     ? opts.mentionHrefResolver(String(slug || "").trim())
