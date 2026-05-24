@@ -422,7 +422,7 @@ window.createApplicationSubmissionId = function () {
     return 'submission-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 };
 
-window.APPLICATION_SUBMISSION_TIMEOUT_MS = 180000;
+window.APPLICATION_SUBMISSION_TIMEOUT_MS = 50000;
 
 window.buildApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
     applicantData = applicantData || {};
