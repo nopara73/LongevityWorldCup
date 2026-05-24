@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongevityWorldCup.XOAuthHel
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LongevityWorldCup.FacebookOAuthHelper", "LongevityWorldCup.FacebookOAuthHelper\LongevityWorldCup.FacebookOAuthHelper.csproj", "{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongevityWorldCup.Tests", "LongevityWorldCup.Tests\LongevityWorldCup.Tests.csproj", "{EE7BAC04-8526-4C1D-9DA7-1B7CA6FF3BF4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,10 @@ Global
 		{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1A2B3C4-D5E6-47F8-9A0B-1C2D3E4F5A6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE7BAC04-8526-4C1D-9DA7-1B7CA6FF3BF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE7BAC04-8526-4C1D-9DA7-1B7CA6FF3BF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE7BAC04-8526-4C1D-9DA7-1B7CA6FF3BF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE7BAC04-8526-4C1D-9DA7-1B7CA6FF3BF4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
