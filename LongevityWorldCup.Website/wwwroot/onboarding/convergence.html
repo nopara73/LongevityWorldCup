@@ -1378,7 +1378,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(applicantData)
-                    }, 21000) // timeout set to 21,000 ms (21 seconds)
+                    }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                         .then(response => {
                             hideLoading();
                             if (response.ok) {
