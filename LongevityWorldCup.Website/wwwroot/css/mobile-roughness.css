@@ -209,7 +209,7 @@ input[type="reset"] {
     }
 }
 
-@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
     main {
         margin-top: 1rem;
     }
