@@ -1620,10 +1620,20 @@
         .sidebar{
             width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
             padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
-            position:fixed; top:0; left:0; height:100%; align-items:stretch; border-radius:0 18px 18px 0;
-            background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-y:auto; transform:translateX(-105%);
+            position:fixed; top:0; left:0; height:100dvh; max-height:100dvh; align-items:stretch; border-radius:0 18px 18px 0;
+            background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-x:hidden; overflow-y:auto; transform:translateX(-105%);
             visibility:hidden; pointer-events:none;
             transition:transform .3s ease-in-out, visibility 0s linear .3s; box-sizing:border-box; overscroll-behavior:contain;
+            -webkit-overflow-scrolling:touch; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
+        }
+        .sidebar::-webkit-scrollbar{ width:8px; }
+        .sidebar::-webkit-scrollbar-track{ background:transparent; }
+        .sidebar::-webkit-scrollbar-thumb{ background:rgba(0,188,212,.45); border-radius:999px; border:2px solid var(--card-bg); }
+        .sidebar::-webkit-scrollbar-thumb:hover{ background:rgba(0,188,212,.68); }
+        .sidebar.expanded::after{
+            content:''; position:fixed; top:5.4rem; left:calc(min(82vw, 320px) - .7rem); bottom:1rem; width:3px; border-radius:999px;
+            background:linear-gradient(to bottom, rgba(0,188,212,.08), rgba(0,188,212,.42), rgba(0,188,212,.08));
+            pointer-events:none;
         }
         .sidebar.expanded{
             display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem);
