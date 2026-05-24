@@ -500,7 +500,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(applicantData)
-                }, 21000)
+                }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(response => {
                         hideLoading();
                         if (response.ok) {
