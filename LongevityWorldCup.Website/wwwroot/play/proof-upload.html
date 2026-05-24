@@ -336,6 +336,58 @@
             }
         }
 
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .proof-upload-main {
+                padding: 0.6rem 1rem 1.25rem;
+            }
+
+            .proof-upload-title {
+                margin-bottom: 0.45rem;
+                font-size: clamp(1.55rem, 8vh, 2rem);
+                line-height: 1.05;
+            }
+
+            .proof-upload-visual {
+                margin-bottom: 0.55rem;
+            }
+
+            .proof-upload-visual .illustration {
+                width: auto;
+                max-width: min(100%, 240px);
+                max-height: 26dvh;
+                object-fit: contain;
+            }
+
+            .proof-upload-copy {
+                padding: 0.55rem 0.75rem 0.2rem;
+                font-size: 0.9rem;
+                line-height: 1.28;
+            }
+
+            .proof-upload-copy.smaller-text {
+                margin-bottom: 0.65rem;
+                padding: 0.2rem 0.75rem 0.55rem;
+                font-size: 0.82rem;
+                line-height: 1.28;
+            }
+
+            .options-container.proof-upload-primary-action,
+            .options-container.proof-upload-final-actions {
+                gap: 0.55rem;
+            }
+
+            .proof-upload-primary-action .option-button,
+            .proof-upload-final-actions .option-button {
+                min-height: 42px;
+                padding-block: 0.55rem;
+            }
+
+            #biomarker-checklist {
+                margin: 0.75rem auto;
+                padding: 0.65rem 0.8rem;
+            }
+        }
+
         @media (pointer: coarse) {
             .proof-upload-primary-action .camera-capture-action {
                 display: inline-flex;
