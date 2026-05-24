@@ -302,7 +302,19 @@
         margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
         overflow:hidden; flex-shrink:0;
     }
-    .sidebar:hover:not(.button-collapsed), .sidebar.expanded{ width:auto; padding:1rem; align-items:flex-start; }
+    .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
+        width:auto; max-height:calc(100vh - 2rem); padding:1rem; align-items:flex-start;
+        overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
+        scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
+    }
+    .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar,
+    .sidebar.expanded::-webkit-scrollbar{ width:8px; }
+    .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar-track,
+    .sidebar.expanded::-webkit-scrollbar-track{ background:transparent; }
+    .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar-thumb,
+    .sidebar.expanded::-webkit-scrollbar-thumb{ background:rgba(0,188,212,.45); border-radius:999px; border:2px solid var(--card-bg); }
+    .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar-thumb:hover,
+    .sidebar.expanded::-webkit-scrollbar-thumb:hover{ background:rgba(0,188,212,.68); }
     .sidebar .filter-section{ display:none; }
     .sidebar:hover .filter-section, .sidebar.expanded .filter-section{ display:block; }
 
