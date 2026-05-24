@@ -1567,7 +1567,7 @@
         .leaderboard table td .badge-section{ display:none; }
     }
 
-    @media (max-width: 768px), (max-width: 900px) and (max-height: 480px) and (orientation: landscape){
+    @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
         .content{
             padding-left:max(1rem, env(safe-area-inset-left));
             padding-right:max(1rem, env(safe-area-inset-right));
@@ -1994,7 +1994,7 @@
         }
     }
 
-    @media (max-width: 900px) and (max-height: 480px) and (orientation: landscape){
+    @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
         #leaderboardTitle{
             margin:.35rem 0 .65rem;
             font-size:1.75rem;
@@ -2088,6 +2088,58 @@
 
         .athlete-name{
             padding:.35rem .32rem;
+        }
+
+        #detailsModal .modal-content:not(.guess-mode){
+            width:calc(100vw - .75rem);
+            height:calc(100dvh - .75rem);
+            max-height:calc(100dvh - .75rem);
+            margin:.375rem auto;
+            padding:12px;
+            border-radius:14px;
+        }
+
+        #detailsModal .modal-content:not(.guess-mode)::before{
+            border-radius:12px;
+        }
+
+        #detailsModal #closeAthleteDetailsModal{
+            top:12px;
+            left:12px;
+        }
+
+        #detailsModal .modal-sticky-header{
+            top:-12px;
+            margin:-12px -12px .8rem -12px;
+            padding:.8rem .8rem .55rem;
+        }
+
+        #detailsModal #athlete-profile .portrait-wrapper{
+            width:clamp(94px, 28vh, 128px);
+        }
+
+        #detailsModal #athleteName{
+            font-size:clamp(1.55rem, 7vh, 2rem);
+            line-height:1.05;
+            margin-top:.3rem;
+            margin-bottom:.1rem;
+        }
+
+        #detailsModal #athleteBio,
+        #detailsModal .athlete-links,
+        #detailsModal .athlete-info,
+        #detailsModal .age-visualization,
+        #detailsModal .events-embed,
+        #detailsModal .biomarkers-section,
+        #detailsModal .proofs-section{
+            width:calc(100% - 1rem) !important;
+            max-width:calc(100% - 1rem) !important;
+        }
+
+        #detailsModal .modal-badge-strip{
+            max-height:40vh;
+            overflow:auto;
+            padding:.6rem;
         }
     }
 
@@ -6327,7 +6379,7 @@
     const sidebar = document.querySelector('.sidebar');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
-    const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 900px) and (max-height: 480px) and (orientation: landscape)');
+    const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
 
     function isMobileDrawerViewport() {
         return mobileDrawerMediaQuery.matches;
