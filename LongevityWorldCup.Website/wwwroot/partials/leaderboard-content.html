@@ -2266,6 +2266,10 @@
                     <h3>Divisions</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
+                <div class="filter-section" id="flag-filter-section">
+                    <h3>Flags</h3>
+                    <ul></ul> <!-- This will be populated dynamically -->
+                </div>
 
                 <div class="filter-section" id="generation-filter-section">
                     <h3>Generations</h3>
@@ -2549,10 +2553,45 @@
     let athletesOrderedByPace;
     let athletesOrderedByBortzPace;
     const defaultProfilePic = '/assets/HdLogo_thumb_sm.png';
+    const flagAliases = new Map([
+        ['america', 'United States'],
+        ['brasil', 'Brazil'],
+        ['nld', 'Netherlands'],
+        ['nz', 'New Zealand'],
+        ['nzd', 'New Zealand'],
+        ['slovak republic', 'Slovakia'],
+        ['svk', 'Slovakia'],
+        ['turkiye', 'Turkey'],
+        ['u s', 'United States'],
+        ['u s a', 'United States'],
+        ['united states of america', 'United States'],
+        ['us', 'United States'],
+        ['usa', 'United States']
+    ]);
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
     markAthleteSkippedIfInURL();
+
+    function normalizeFlagKey(flag) {
+        return window.normalizeString(String(flag || ''))
+            .replace(/[._-]+/g, ' ')
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function getCanonicalFlagName(flag) {
+        const cleaned = String(flag || '').trim().replace(/\s+/g, ' ');
+        if (!cleaned) return '';
+
+        const alias = flagAliases.get(normalizeFlagKey(cleaned));
+        return alias || cleaned;
+    }
+
+    function getFlagFilterKey(flag) {
+        return normalizeFlagKey(getCanonicalFlagName(flag));
+    }
 
     function getAthletePortraitUrl(athlete) {
         return (athlete && (athlete.profilePicThumb || athlete.profilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic)) || defaultProfilePic;
@@ -3130,6 +3169,9 @@
                             ? (/* current rank is set a bit later */ true) // placeholder; we’ll re-evaluate after rank assignment
                             : false;
                                         
+                    const rawFlag = athlete.Flag || '';
+                    const canonicalFlag = getCanonicalFlagName(rawFlag);
+
                     return {
                         name: athlete.Name,
                         displayName: displayName,
@@ -3151,7 +3193,9 @@
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
                         profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
-                        flag: athlete.Flag || '',
+                        flag: rawFlag,
+                        canonicalFlag: canonicalFlag,
+                        flagFilterKey: getFlagFilterKey(canonicalFlag),
                         why: athlete.Why || '',
                         division: athlete.Division,
                         generation: generation,
@@ -3189,6 +3233,7 @@
                 };
 
                 generateDivisionFilters(athleteResults);
+                generateFlagFilters(athleteResults);
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
                 generateLeagueTrackFilters(athleteResults);
@@ -3567,7 +3612,10 @@
                         filtersList.forEach(filterValue => {
                             const normalizedFilter = filterValue.trim().toLowerCase();
                             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                                if (checkbox.value.toLowerCase() === normalizedFilter) {
+                                const checkboxMatchesFilter = checkbox.name === 'flag'
+                                    ? getFlagFilterKey(checkbox.value) === getFlagFilterKey(normalizedFilter)
+                                    : checkbox.value.toLowerCase() === normalizedFilter;
+                                if (checkboxMatchesFilter) {
                                     checkbox.checked = true;
                                 }
                             });
@@ -4244,7 +4292,7 @@
     }
 
     function hasActiveLeaderboardState() {
-        const hasCheckedFilters = document.querySelector('input[name="division"]:checked, input[name="generation"]:checked, input[name="exclusiveLeague"]:checked, input[name="leagueTrack"]:checked');
+        const hasCheckedFilters = document.querySelector('input[name="division"]:checked, input[name="flag"]:checked, input[name="generation"]:checked, input[name="exclusiveLeague"]:checked, input[name="leagueTrack"]:checked');
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         const searchInput = document.getElementById('athleteSearch');
@@ -4253,7 +4301,7 @@
     }
 
     function hasActiveLeaderboardFilterState() {
-        const hasCheckedFilters = document.querySelector('input[name="division"]:checked, input[name="generation"]:checked, input[name="exclusiveLeague"]:checked, input[name="leagueTrack"]:checked');
+        const hasCheckedFilters = document.querySelector('input[name="division"]:checked, input[name="flag"]:checked, input[name="generation"]:checked, input[name="exclusiveLeague"]:checked, input[name="leagueTrack"]:checked');
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         return !!hasCheckedFilters || currentLeaderboardView !== 'ultimate';
@@ -4276,6 +4324,7 @@
             'aging-clock-filter-section': document.querySelectorAll('input[name="agingClockView"]:checked').length > 0,
             'league-track-filter-section': document.querySelectorAll('input[name="leagueTrack"]:checked').length === 1,
             'division-filter-section': document.querySelectorAll('input[name="division"]:checked').length > 0,
+            'flag-filter-section': document.querySelectorAll('input[name="flag"]:checked').length > 0,
             'generation-filter-section': document.querySelectorAll('input[name="generation"]:checked').length > 0,
             'exclusive-filter-section': document.querySelectorAll('input[name="exclusiveLeague"]:checked').length > 0
         };
@@ -4332,7 +4381,7 @@
     }
 
     function clearSidebarFilters() {
-        document.querySelectorAll('input[name="division"], input[name="generation"], input[name="exclusiveLeague"], input[name="leagueTrack"]').forEach(input => {
+        document.querySelectorAll('input[name="division"], input[name="flag"], input[name="generation"], input[name="exclusiveLeague"], input[name="leagueTrack"]').forEach(input => {
             input.checked = false;
         });
 
@@ -4370,6 +4419,8 @@
 
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
+        const selectedFlags = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+            .map(checkbox => checkbox.value);
         const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
         const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
@@ -4379,6 +4430,7 @@
 
         const filters = [
             ...selectedDivisions,
+            ...selectedFlags,
             ...selectedGenerations,
             ...selectedExclusiveLeagues,
             ...(selectedLeagueTracks.length === 1 ? selectedLeagueTracks : [])
@@ -4400,6 +4452,9 @@
         // Get selected divisions
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
+
+        const selectedFlags = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+            .map(checkbox => getFlagFilterKey(checkbox.value));
 
         // Get selected generations
         const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
@@ -4496,7 +4551,7 @@
             if (Number.isFinite(displayAgeReductionPercent)) ageReductionSearchParts.push(displayAgeReductionPercent.toFixed(1));
             const athleteAgeReductionNormalized = window.normalizeString(ageReductionSearchParts.join(' ').toLowerCase());
             const athleteRankNormalized = window.normalizeString(String(athlete.rank != null ? athlete.rank : '').toLowerCase());
-            const athleteFlagNormalized = window.normalizeString((athlete.flag || '').toLowerCase());
+            const athleteFlagNormalized = window.normalizeString(`${athlete.flag || ''} ${athlete.canonicalFlag || ''}`.toLowerCase());
             const athleteWhyNormalized = window.normalizeString((athlete.why || '').toLowerCase());
 
             let matches = true;
@@ -4513,6 +4568,11 @@
             // Check division match
             if (matches && selectedDivisions.length > 0) {
                 matches = selectedDivisions.includes(athlete.division.toLowerCase());
+            }
+
+            // Check flag match
+            if (matches && selectedFlags.length > 0) {
+                matches = selectedFlags.includes(athlete.flagFilterKey);
             }
 
             // Check generation match
@@ -4543,7 +4603,7 @@
         updateViewAllAthletesButton(unslicedFilteredAthletes.length);
 
         // Determine if filters are used (league track counts only when exactly one selected)
-        const filtersUsed = selectedDivisions.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
+        const filtersUsed = selectedDivisions.length > 0 || selectedFlags.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
             leagueTrackFilterActive || currentLeaderboardView !== 'ultimate';
         const searchUsed = uniqueSearchTerms.length > 0;
 
@@ -4605,7 +4665,7 @@
             }
         });
 
-        const hidePodiumRowsInTable = includePodiumGlobal && selectedDivisions.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
+        const hidePodiumRowsInTable = includePodiumGlobal && selectedDivisions.length === 0 && selectedFlags.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
             !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0;
         const tableVisibleAthletes = hidePodiumRowsInTable
             ? filteredAthletes.filter(athlete => athlete.rank > 3)
@@ -4683,7 +4743,7 @@
             }
         });
 
-        updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView);
+        updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView);
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
@@ -4710,10 +4770,12 @@
             url.searchParams.set('search', encodeURIComponent(query));
         }
 
-        const filters = [...selectedDivisions, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
+        const selectedFlagLabels = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+            .map(checkbox => checkbox.value);
+        const filters = [...selectedDivisions, ...selectedFlagLabels, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
         const cleanSearch = ([...url.searchParams].length === 0)
             || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
-        if (filters.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
+        if (filters.length === 1 && selectedFlagLabels.length === 0 && cleanSearch && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
             const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
@@ -4739,7 +4801,8 @@
         history.replaceState({}, "", url.toString());
     }
 
-    function updateCollapsedTitle(selectedDivisions, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
+    function updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
+        selectedFlags = selectedFlags || [];
         selectedLeagueTracks = selectedLeagueTracks || [];
         currentLeaderboardView = currentLeaderboardView || 'ultimate';
 
@@ -4751,88 +4814,93 @@
         } else if (currentLeaderboardView === 'pheno') {
             leagueText = 'PHENO AGE LEAGUE';
         } else {
-        // If an exclusive league is selected, override the league text.
-        if (selectedExclusiveLeagues.length > 0) {
-            // If multiple exclusive leagues are selected, join them with " AND "
-            leagueText = selectedExclusiveLeagues.map(league => league.toUpperCase()).join(' AND ') + ' LEAGUE';
-        } else {
-            // Build generation part of the league text
-            if (selectedGenerations.length === 1) {
-                leagueText += selectedGenerations[0].toUpperCase();
-            } else if (selectedGenerations.length === 2) {
-                const [first, second] = selectedGenerations.map(gen => gen.toLowerCase()).sort();
-
-                // Check for specific two-generation combinations
-                if (first === "baby boomers" && second === "silent generation") {
-                    leagueText += "HERITAGE";
-                } else if (first === "baby boomers" && second === "gen x") {
-                    leagueText += "SENIOR";
-                } else if (first === "gen x" && second === "millennials") {
-                    leagueText += "PRIME";
-                } else if (first === "gen z" && second === "millennials") {
-                    leagueText += "RISING";
-                } else if (first === "gen alpha" && second === "gen z") {
-                    leagueText += "NEXT-GEN";
+            if (selectedFlags.length > 0) {
+                const selectedFlagNames = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+                    .map(input => input.value.toUpperCase());
+                leagueText = selectedFlagNames.join(' AND ') + ' FLAGS';
+            } else {
+                // If an exclusive league is selected, override the league text.
+                if (selectedExclusiveLeagues.length > 0) {
+                    // If multiple exclusive leagues are selected, join them with " AND "
+                    leagueText = selectedExclusiveLeagues.map(league => league.toUpperCase()).join(' AND ') + ' LEAGUE';
                 } else {
-                    leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
-                }
-            } else if (selectedGenerations.length === 3) {
-                leagueText +=
-                    selectedGenerations[0].toUpperCase() + ', ' +
-                    selectedGenerations[1].toUpperCase() + ', AND ' +
-                    selectedGenerations[2].toUpperCase();
-            } else if (selectedGenerations.length === 4) {
-                leagueText +=
-                    selectedGenerations[0].toUpperCase() + ', ' +
-                    selectedGenerations[1].toUpperCase() + ', ' +
-                    selectedGenerations[2].toUpperCase() + ', AND ' +
-                    selectedGenerations[3].toUpperCase();
-            } else if (selectedGenerations.length === 5) {
-                leagueText +=
-                    selectedGenerations[0].toUpperCase() + ', ' +
-                    selectedGenerations[1].toUpperCase() + ', ' +
-                    selectedGenerations[2].toUpperCase() + ', ' +
-                    selectedGenerations[3].toUpperCase() + ', AND ' +
-                    selectedGenerations[4].toUpperCase();
+                    // Build generation part of the league text
+                    if (selectedGenerations.length === 1) {
+                        leagueText += selectedGenerations[0].toUpperCase();
+                    } else if (selectedGenerations.length === 2) {
+                        const [first, second] = selectedGenerations.map(gen => gen.toLowerCase()).sort();
 
-                // Build division part of the league text
+                        // Check for specific two-generation combinations
+                        if (first === "baby boomers" && second === "silent generation") {
+                            leagueText += "HERITAGE";
+                        } else if (first === "baby boomers" && second === "gen x") {
+                            leagueText += "SENIOR";
+                        } else if (first === "gen x" && second === "millennials") {
+                            leagueText += "PRIME";
+                        } else if (first === "gen z" && second === "millennials") {
+                            leagueText += "RISING";
+                        } else if (first === "gen alpha" && second === "gen z") {
+                            leagueText += "NEXT-GEN";
+                        } else {
+                            leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
+                        }
+                    } else if (selectedGenerations.length === 3) {
+                        leagueText +=
+                            selectedGenerations[0].toUpperCase() + ', ' +
+                            selectedGenerations[1].toUpperCase() + ', AND ' +
+                            selectedGenerations[2].toUpperCase();
+                    } else if (selectedGenerations.length === 4) {
+                        leagueText +=
+                            selectedGenerations[0].toUpperCase() + ', ' +
+                            selectedGenerations[1].toUpperCase() + ', ' +
+                            selectedGenerations[2].toUpperCase() + ', AND ' +
+                            selectedGenerations[3].toUpperCase();
+                    } else if (selectedGenerations.length === 5) {
+                        leagueText +=
+                            selectedGenerations[0].toUpperCase() + ', ' +
+                            selectedGenerations[1].toUpperCase() + ', ' +
+                            selectedGenerations[2].toUpperCase() + ', ' +
+                            selectedGenerations[3].toUpperCase() + ', AND ' +
+                            selectedGenerations[4].toUpperCase();
+                    }
+
+                    // Build division part of the league text
+                    if (selectedDivisions.length === 1) {
+                        if (leagueText.length > 0) {
+                            leagueText += ' ';
+                        }
+                        leagueText += selectedDivisions[0].toUpperCase();
+                    } else if (selectedDivisions.length === 2) {
+                        if (leagueText.length > 0) {
+                            leagueText += ' ';
+                        }
+
+                        // Custom sorting order for divisions
+                        const order = { "men's": 1, "women's": 2, "open": 3 };
+                        const [first, second] = selectedDivisions
+                            .map(div => div.toLowerCase())
+                            .sort((a, b) => order[a] - order[b]);
+
+                        if (first === "men's" && second === "women's") {
+                            leagueText += 'MIXED';
+                        } else if (first === "men's" && second === 'open') {
+                            leagueText += "INCLUSIVE MEN'S";
+                        } else if (first === "women's" && second === 'open') {
+                            leagueText += "INCLUSIVE WOMEN'S";
+                        }
+                    }
+
+                    // Default text if no filters are selected (or only league track)
+                    if (leagueText === '') {
+                        const trackLabel = selectedLeagueTracks.length === 1
+                            ? (selectedLeagueTracks[0] === 'Professional' ? 'Pro' : selectedLeagueTracks[0])
+                            : null;
+                        leagueText = trackLabel ? trackLabel.toUpperCase() : 'ULTIMATE';
+                    }
+
+                    leagueText += " LEAGUE";
+                }
             }
-
-            if (selectedDivisions.length === 1) {
-                if (leagueText.length > 0) {
-                    leagueText += ' ';
-                }
-                leagueText += selectedDivisions[0].toUpperCase();
-            } else if (selectedDivisions.length === 2) {
-                if (leagueText.length > 0) {
-                    leagueText += ' ';
-                }
-
-                // Custom sorting order for divisions
-                const order = { "men's": 1, "women's": 2, "open": 3 };
-                const [first, second] = selectedDivisions
-                    .map(div => div.toLowerCase())
-                    .sort((a, b) => order[a] - order[b]);
-
-                if (first === "men's" && second === "women's") {
-                    leagueText += 'MIXED';
-                } else if (first === "men's" && second === 'open') {
-                    leagueText += "INCLUSIVE MEN'S";
-                } else if (first === "women's" && second === 'open') {
-                    leagueText += "INCLUSIVE WOMEN'S";
-                }
-            }
-
-            // Default text if no filters are selected (or only league track)
-            if (leagueText === '') {
-                const trackLabel = selectedLeagueTracks.length === 1
-                    ? (selectedLeagueTracks[0] === 'Professional' ? 'Pro' : selectedLeagueTracks[0])
-                    : null;
-                leagueText = trackLabel ? trackLabel.toUpperCase() : 'ULTIMATE';
-            }
-
-            leagueText += " LEAGUE";
-        }
         }
 
         // Update the text content of the collapsed-title element
@@ -4873,6 +4941,21 @@
         document.querySelectorAll('.filter-section label[data-division]').forEach(label => {
             const division = label.getAttribute('data-division');
             const count = divisionCounts[division] || 0;
+            updateFilterCountLabel(label, count);
+        });
+
+        // Update flag counts
+        const flagCounts = {};
+        filteredAthletes.forEach(athlete => {
+            const flagKey = athlete.flagFilterKey;
+            if (!flagKey) return;
+
+            flagCounts[flagKey] = (flagCounts[flagKey] || 0) + 1;
+        });
+
+        document.querySelectorAll('.filter-section label[data-flag-key]').forEach(label => {
+            const flagKey = label.getAttribute('data-flag-key');
+            const count = flagCounts[flagKey] || 0;
             updateFilterCountLabel(label, count);
         });
 
@@ -5106,6 +5189,43 @@
                 performFilter();
             });
         });
+    }
+
+    function generateFlagFilters(athletes) {
+        const filterSection = document.querySelector('#flag-filter-section ul');
+        filterSection.innerHTML = '';
+
+        const flagCounts = athletes.reduce((acc, athlete) => {
+            const flagName = athlete.canonicalFlag;
+            const flagKey = athlete.flagFilterKey;
+            if (!flagName || !flagKey) return acc;
+
+            if (!acc[flagKey]) {
+                acc[flagKey] = { name: flagName, count: 0 };
+            }
+            acc[flagKey].count += 1;
+            return acc;
+        }, {});
+
+        Object.values(flagCounts)
+            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+            .forEach(({ name, count }) => {
+                const flagKey = getFlagFilterKey(name);
+                const li = document.createElement('li');
+                li.innerHTML = `
+            <label data-flag="${escapeHtml(name)}" data-flag-key="${escapeHtml(flagKey)}">
+                <input type="checkbox" name="flag" value="${escapeHtml(name)}">
+                ${escapeHtml(name)} (<span class="filter-count">${count}</span>)
+            </label>
+        `;
+                filterSection.appendChild(li);
+
+                const input = li.querySelector('input[type="checkbox"]');
+                input.addEventListener('change', function (event) {
+                    event.stopPropagation();
+                    performFilter();
+                });
+            });
     }
 
     function generateGenerationFilters(athletes) {
