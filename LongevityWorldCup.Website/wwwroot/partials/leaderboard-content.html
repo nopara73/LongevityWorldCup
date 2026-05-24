@@ -2597,6 +2597,10 @@
         }
     }
 
+    function hasSubmittedGuessForGuessMyAge(guessData) {
+        return Boolean(guessData && guessData.skipped !== true && guessData.value != null);
+    }
+
     function getLeagueRouteState(pathname) {
         let normalizedPath = (pathname || '').trim().toLowerCase();
         while (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
@@ -5534,8 +5538,6 @@
                 gmaCard.classList.remove('gma-done');
                 // read your guesses from localStorage
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-                // check if the user has hit “Skip All”
-                const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
 
                 const seen = sessionStorage.getItem('gmaSeen');
 
@@ -5543,29 +5545,14 @@
                     markAthleteSkippedForGuessMyAge(athleteSlug);
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
-                } else if (skipAll) {
-                    // user opted out globally
-                    modalContent.classList.remove('guess-mode');
-                    gmaCard.classList.add('gma-done');
-                } else if (allGuesses.hasOwnProperty(athleteSlug)) {
-                    // already guessed or skipped this athlete
+                } else if (hasSubmittedGuessForGuessMyAge(allGuesses[athleteSlug])) {
+                    // already guessed this athlete
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
                 } else {
                     // first time on *this* athlete
                     modalContent.classList.add('guess-mode');
                     sessionStorage.setItem('gmaSeen', 'true');
-                }
-
-                const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
-                if (gmaSkipAllBtn) {
-                    // reveal “Skip All” once they've skipped at least one athlete,
-                    // but hide it if they already chose skip-all
-                    if (!skipAll && Object.values(allGuesses).some(g => g.skipped)) {
-                        gmaSkipAllBtn.style.display = 'inline-block';
-                    } else {
-                        gmaSkipAllBtn.style.display = 'none';
-                    }
                 }
 
                 // stash the slug for your submit/skip handler
