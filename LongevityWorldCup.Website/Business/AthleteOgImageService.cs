@@ -19,23 +19,27 @@ public sealed class AthleteOgImageService
     private const int CanvasHeight = 630;
 
     // Layout values from the approved design.
-    private const int ProfileSize = 381;
-    private const int ProfileX = 410;
-    private const int ProfileY = 92;
+    private const int ProfileSize = 404;
+    private const int ProfileX = 398;
+    private const int ProfileY = 78;
     private const int ProfileBleed = 2;
     private const float NameTop = ProfileY + ProfileSize + 20f;
     private const float RankX = 60f;
-    private const float RankY = 245f;
+    private const float MetricLabelY = 226f;
+    private const float MetricValueY = 265f;
     private const float LeagueX = 60f;
-    private const float LeagueY = 346f;
-    private const float LeagueLetterSpacingEm = 0.02f; // 2%
+    private const float LeagueLetterSpacingEm = 0.01f; // 1%
     private const float ReductionX = 910f;
-    private const float ReductionY = 245f;
+    private const float ReductionLabelX = 914f;
+    private const float ReductionLabelY = MetricLabelY;
 
     private static readonly Color RankColor = ParseHex("FF4081");
     private static readonly Color ReductionColor = ParseHex("78DA3B");
     private static readonly Color NameColor = Color.White;
-    private static readonly Color LeagueColor = ParseHex("FFFFFFCC"); // white @ 80% opacity
+    private static readonly Color LeagueColor = ParseHex("FFFFFFFF");
+    private static readonly Color MetricLabelColor = ParseHex("FFFFFFD9"); // white @ 85% opacity
+    private static readonly Color MetricLabelPanelColor = new(new Rgba32(0, 0, 0, 255));
+    private static readonly Color TextShadowColor = new(new Rgba32(0, 0, 0, 185));
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
@@ -243,12 +247,12 @@ public sealed class AthleteOgImageService
         }
 
         var fontFamily = GetFontFamily();
-        var metricFont = fontFamily.CreateFont(100, FontStyle.Bold);
-        var leagueFont = fontFamily.CreateFont(30, FontStyle.Bold);
-        var nameFont = fontFamily.CreateFont(65, FontStyle.Bold);
+        var metricFont = fontFamily.CreateFont(78, FontStyle.Bold);
+        var labelFont = fontFamily.CreateFont(30, FontStyle.Bold);
+        var nameFont = fontFamily.CreateFont(68, FontStyle.Bold);
 
         var rankText = $"#{payload.Rank}";
-        var leagueText = payload.LeagueName;
+        var leagueText = $"{payload.LeagueName} rank";
         var reductionText = FormatReduction(payload.AgeReduction);
         const float rightMetricEdgeX = 1148f;
         var reductionOptions = new RichTextOptions(metricFont);
@@ -259,10 +263,36 @@ public sealed class AthleteOgImageService
 
         image.Mutate(ctx =>
         {
+            DrawTextShadow(
+                ctx,
+                leagueText,
+                labelFont,
+                new PointF(LeagueX, MetricLabelY),
+                HorizontalAlignment.Left);
+
+            ctx.Fill(MetricLabelPanelColor, new RectangularPolygon(ReductionLabelX - 18f, ReductionLabelY - 8f, 268f, 164f));
+
+            DrawTextShadow(
+                ctx,
+                "Age reduction",
+                labelFont,
+                new PointF(ReductionLabelX, ReductionLabelY),
+                HorizontalAlignment.Left);
+
+            ctx.DrawText(
+                new RichTextOptions(labelFont)
+                {
+                    Origin = new PointF(ReductionLabelX, ReductionLabelY),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                },
+                "Age reduction",
+                MetricLabelColor);
+
             ctx.DrawText(
                 new RichTextOptions(metricFont)
                 {
-                    Origin = new PointF(RankX, RankY),
+                    Origin = new PointF(RankX, MetricValueY),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
                 },
@@ -272,15 +302,15 @@ public sealed class AthleteOgImageService
             DrawTrackedText(
                 ctx,
                 leagueText,
-                leagueFont,
-                new PointF(LeagueX, LeagueY),
+                labelFont,
+                new PointF(LeagueX, MetricLabelY),
                 LeagueColor,
-                leagueFont.Size * LeagueLetterSpacingEm);
+                labelFont.Size * LeagueLetterSpacingEm);
 
             ctx.DrawText(
                 new RichTextOptions(metricFont)
                 {
-                    Origin = new PointF(reductionOriginX, ReductionY),
+                    Origin = new PointF(reductionOriginX, MetricValueY),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Top
                 },
@@ -365,7 +395,7 @@ public sealed class AthleteOgImageService
             : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v12",
+            "athlete-og-v16",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
@@ -572,9 +602,7 @@ public sealed class AthleteOgImageService
 
     private static string FormatReduction(double value)
     {
-        var abs = Math.Abs(value);
-        var sign = value < 0 ? "-" : "+";
-        return $"{sign} {abs:0.0}";
+        return value.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
     }
 
     private static Color ParseHex(string hex)
@@ -616,6 +644,24 @@ public sealed class AthleteOgImageService
             if (i < text.Length - 1)
                 additionalSpacing += letterSpacingPx;
         }
+    }
+
+    private static void DrawTextShadow(
+        IImageProcessingContext ctx,
+        string text,
+        Font font,
+        PointF origin,
+        HorizontalAlignment alignment)
+    {
+        ctx.DrawText(
+            new RichTextOptions(font)
+            {
+                Origin = new PointF(origin.X, origin.Y + 2f),
+                HorizontalAlignment = alignment,
+                VerticalAlignment = VerticalAlignment.Top
+            },
+            text,
+            TextShadowColor);
     }
 
     private static float GetCharacterAdvance(string text, int index, TextOptions options, float spaceAdvance)

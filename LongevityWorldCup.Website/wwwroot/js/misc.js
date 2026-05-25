@@ -474,3 +474,102 @@ window.sendApplicationSubmissionReport = async function (report) {
         // Best-effort diagnostics must never block an application attempt.
     }
 };
+
+window.updateHypotheticalRankResult = async function (options) {
+    const container = document.getElementById(options && options.containerId);
+    if (!container) return;
+
+    const requestId = (window.__hypotheticalRankRequestSequence || 0) + 1;
+    window.__hypotheticalRankRequestSequence = requestId;
+    container.__hypotheticalRankRequestId = requestId;
+    const isCurrentRequest = () => container.__hypotheticalRankRequestId === requestId;
+
+    const payload = {
+        calculator: options.calculator,
+        chronologicalAge: options.chronologicalAge,
+        biologicalAge: options.biologicalAge,
+        birthYear: options.birthYear,
+        birthMonth: options.birthMonth,
+        birthDay: options.birthDay
+    };
+
+    if (!payload.calculator ||
+        !Number.isFinite(payload.chronologicalAge) ||
+        !Number.isFinite(payload.biologicalAge) ||
+        !Number.isInteger(payload.birthYear) ||
+        !Number.isInteger(payload.birthMonth) ||
+        !Number.isInteger(payload.birthDay)) {
+        container.hidden = true;
+        container.removeAttribute('aria-busy');
+        return;
+    }
+
+    container.hidden = false;
+    container.setAttribute('aria-busy', 'true');
+    container.innerHTML = '<div class="bioage-rank-pending">Checking the current leaderboard...</div>';
+
+    try {
+        const response = await fetch('/api/data/hypothetical-rank', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Rank lookup failed.');
+        const result = await response.json();
+        if (!isCurrentRequest()) return;
+
+        window.renderHypotheticalRankResult(container, result);
+    } catch (_) {
+        if (isCurrentRequest()) {
+            container.hidden = true;
+        }
+    } finally {
+        if (isCurrentRequest()) {
+            container.removeAttribute('aria-busy');
+        }
+    }
+};
+
+window.renderHypotheticalRankResult = function (container, result) {
+    if (!container || !result || !Number.isFinite(result.rank) || !Number.isFinite(result.fieldSize)) {
+        if (container) container.hidden = true;
+        return;
+    }
+
+    const rank = Math.round(result.rank);
+    const fieldSize = Math.round(result.fieldSize);
+    const currentFieldSize = Number.isFinite(result.currentFieldSize) ? Math.round(result.currentFieldSize) : Math.max(0, fieldSize - 1);
+    const category = window.escapeHTML(result.category || '');
+    const leagueName = window.escapeHTML(result.leagueName || 'Ultimate League');
+    const nearby = Array.isArray(result.nearby) ? result.nearby : [];
+
+    const nearbyHtml = nearby.map(item => {
+        const place = Number.isFinite(item.rank) ? Math.round(item.rank) : '';
+        const name = window.escapeHTML(item.isHypothetical ? 'You' : (item.name || ''));
+        const itemCategory = item.category ? ` · ${window.escapeHTML(item.category)}` : '';
+        const diff = Number.isFinite(item.ageDifference)
+            ? `${item.ageDifference > 0 ? '+' : ''}${item.ageDifference.toFixed(1)}y`
+            : '';
+        return `<li class="${item.isHypothetical ? 'is-you' : ''}">
+            <span class="rank-place">#${place}</span>
+            <span class="rank-name">${name}${itemCategory}</span>
+            <span class="rank-diff">${diff}</span>
+        </li>`;
+    }).join('');
+
+    container.hidden = false;
+    container.innerHTML = `
+        <div class="bioage-rank-summary">
+            <div class="bioage-rank-number">#${rank}</div>
+            <div>
+                <div class="bioage-rank-label">Hypothetical rank</div>
+                <div class="bioage-rank-context">
+                    <strong>${leagueName}</strong>${category ? ` · ${category}` : ''} · ${rank} of ${fieldSize}
+                </div>
+                <div class="bioage-rank-context">Current field: ${currentFieldSize}</div>
+            </div>
+        </div>
+        ${nearbyHtml ? `<ol class="bioage-rank-nearby">${nearbyHtml}</ol>` : ''}
+    `;
+};

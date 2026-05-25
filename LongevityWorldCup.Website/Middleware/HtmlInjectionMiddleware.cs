@@ -128,6 +128,7 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_SITE_WEBMANIFEST}}", _assetVersionProvider.AppendVersion("/assets/site.webmanifest"))
                 .Replace("{{ASSET_SITE_DARK_WEBMANIFEST}}", _assetVersionProvider.AppendVersion("/assets/site-dark.webmanifest"))
                 .Replace("{{ASSET_BADGES_CSS}}", _assetVersionProvider.AppendVersion("/css/badges.css"))
+                .Replace("{{ASSET_FLAG_ICONS_CSS}}", _assetVersionProvider.AppendVersion("/vendor/flag-icons/css/flag-icons.min.css"))
                 .Replace("{{ASSET_MISC_JS}}", _assetVersionProvider.AppendVersion("/js/misc.js"))
                 .Replace("{{ASSET_LEAGUE_ICONS_JS}}", _assetVersionProvider.AppendVersion("/js/leagueIcons.js"))
                 .Replace("{{ASSET_PHENO_AGE_JS}}", _assetVersionProvider.AppendVersion("/js/pheno-age.js"))

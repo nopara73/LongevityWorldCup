@@ -78,6 +78,11 @@
         display: none;
     }
 
+    #detailsModal .modal-content.guess-mode > #closeAthleteDetailsModal,
+    #detailsModal .modal-content.guess-mode > .modal-sticky-header {
+        display: none !important;
+    }
+
     /* during guess mode, hide everything under athlete-profile except pic, name & slider */
     /* .portrait-wrapper contains #modalProfilePic; keep it visible so the picture shows */
     .modal-content.guess-mode .athlete-profile > *:not(#modalProfilePic):not(#guessAgeContainer):not(.portrait-wrapper) {
