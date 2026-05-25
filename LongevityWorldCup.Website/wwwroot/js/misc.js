@@ -479,6 +479,11 @@ window.updateHypotheticalRankResult = async function (options) {
     const container = document.getElementById(options && options.containerId);
     if (!container) return;
 
+    const requestId = (window.__hypotheticalRankRequestSequence || 0) + 1;
+    window.__hypotheticalRankRequestSequence = requestId;
+    container.__hypotheticalRankRequestId = requestId;
+    const isCurrentRequest = () => container.__hypotheticalRankRequestId === requestId;
+
     const payload = {
         calculator: options.calculator,
         chronologicalAge: options.chronologicalAge,
@@ -495,6 +500,7 @@ window.updateHypotheticalRankResult = async function (options) {
         !Number.isInteger(payload.birthMonth) ||
         !Number.isInteger(payload.birthDay)) {
         container.hidden = true;
+        container.removeAttribute('aria-busy');
         return;
     }
 
@@ -511,11 +517,17 @@ window.updateHypotheticalRankResult = async function (options) {
 
         if (!response.ok) throw new Error('Rank lookup failed.');
         const result = await response.json();
+        if (!isCurrentRequest()) return;
+
         window.renderHypotheticalRankResult(container, result);
     } catch (_) {
-        container.hidden = true;
+        if (isCurrentRequest()) {
+            container.hidden = true;
+        }
     } finally {
-        container.removeAttribute('aria-busy');
+        if (isCurrentRequest()) {
+            container.removeAttribute('aria-busy');
+        }
     }
 };
 
