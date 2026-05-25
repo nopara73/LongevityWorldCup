@@ -21,7 +21,8 @@ namespace LongevityWorldCup.Website.Controllers
                 ["gen-alpha"] = "/?filters=gen%2520alpha",
                 ["prosperan"] = "/?filters=prosperan",
                 ["bortz"] = "/?view=bortz",
-                ["pheno"] = "/?view=pheno"
+                ["pheno"] = "/?view=pheno",
+                ["crowd"] = "/?view=crowd"
             };
 
         [HttpGet("{leagueName}")]

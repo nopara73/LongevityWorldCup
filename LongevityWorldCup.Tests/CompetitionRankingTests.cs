@@ -63,6 +63,31 @@ public class CompetitionRankingTests
         Assert.Equal("Amateur", result.Category);
     }
 
+    [Fact]
+    public void SortByCrowdAgeRules_UsesReductionCountDobAndNameTieBreakers()
+    {
+        var rows = new[]
+        {
+            CrowdCandidate("larger_reduction", "Larger Reduction", crowdAge: 45, crowdAgeReduction: 25, crowdCount: 100, year: 1950),
+            CrowdCandidate("smaller_reduction", "Smaller Reduction", crowdAge: 30, crowdAgeReduction: 10, crowdCount: 200, year: 1950),
+            CrowdCandidate("same_reduction_more_guesses", "Same More", crowdAge: 40, crowdAgeReduction: 20, crowdCount: 200, year: 1960),
+            CrowdCandidate("same_reduction_fewer_guesses", "Same Fewer", crowdAge: 40, crowdAgeReduction: 20, crowdCount: 100, year: 1950),
+            CrowdCandidate("older_tie", "Older Tie", crowdAge: 40, crowdAgeReduction: 15, crowdCount: 100, year: 1940),
+            CrowdCandidate("younger_tie", "Younger Tie", crowdAge: 40, crowdAgeReduction: 15, crowdCount: 100, year: 1980),
+            CrowdCandidate("alphabetical", "Alphabetical", crowdAge: 40, crowdAgeReduction: 15, crowdCount: 100, year: 1980)
+        };
+
+        var sorted = CompetitionRanking.SortByCrowdAgeRules(rows).ToList();
+
+        Assert.Equal("larger_reduction", sorted[0].Slug);
+        Assert.Equal("same_reduction_more_guesses", sorted[1].Slug);
+        Assert.Equal("same_reduction_fewer_guesses", sorted[2].Slug);
+        Assert.Equal("older_tie", sorted[3].Slug);
+        Assert.Equal("alphabetical", sorted[4].Slug);
+        Assert.Equal("younger_tie", sorted[5].Slug);
+        Assert.Equal("smaller_reduction", sorted[6].Slug);
+    }
+
     private static CompetitionRankCandidate Candidate(
         string slug,
         string name,
@@ -75,6 +100,23 @@ public class CompetitionRankingTests
             name,
             hasBortz,
             effectiveReduction,
+            new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    private static CrowdAgeRankCandidate CrowdCandidate(
+        string slug,
+        string name,
+        double crowdAge,
+        double crowdAgeReduction,
+        int crowdCount,
+        int year)
+    {
+        return new CrowdAgeRankCandidate(
+            slug,
+            name,
+            crowdAge,
+            crowdAgeReduction,
+            crowdCount,
             new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc));
     }
 }
