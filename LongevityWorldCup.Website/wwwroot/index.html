@@ -2078,13 +2078,14 @@
             e.preventDefault();
 
             const emailInput = newsletterEmailInput.value.trim();
+            newsletterEmailInput.value = emailInput;
             newsletterEmailInput.blur();
 
             if (newsletterSubmitButton.disabled) {
                 return;
             }
 
-            if (validator.isEmail(emailInput)) {
+            if (newsletterEmailInput.checkValidity()) {
                 const originalButtonHtml = newsletterSubmitButton.innerHTML;
                 newsletterSubmitButton.disabled = true;
                 newsletterSubmitButton.classList.add('is-loading');

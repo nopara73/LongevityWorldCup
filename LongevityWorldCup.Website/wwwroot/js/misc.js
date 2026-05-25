@@ -1,6 +1,7 @@
 window.getIcon = function (link) {
     // Normalize the link to lowercase for case-insensitive matching
     const normalizedLink = link.toLowerCase().trim();
+    const isEmailLike = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedLink);
 
     // Mapping of link identifiers to Font Awesome icon classes
     const iconMap = {
@@ -43,7 +44,7 @@ window.getIcon = function (link) {
     };
 
     // Check for email first
-    if (validator.isEmail(normalizedLink)) {
+    if (isEmailLike) {
         return iconMap.email;
     }
 
