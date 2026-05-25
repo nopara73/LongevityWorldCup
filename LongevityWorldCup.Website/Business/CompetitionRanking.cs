@@ -48,7 +48,7 @@ public static class CompetitionRanking
     public static IOrderedEnumerable<CrowdAgeRankCandidate> SortByCrowdAgeRules(IEnumerable<CrowdAgeRankCandidate> rows)
     {
         return rows
-            .OrderByDescending(t => t.CrowdAgeReduction)
+            .OrderBy(t => t.CrowdAgeReduction)
             .ThenByDescending(t => t.CrowdCount)
             .ThenBy(t => t.DobUtc)
             .ThenBy(t => t.Name, StringComparer.Ordinal);

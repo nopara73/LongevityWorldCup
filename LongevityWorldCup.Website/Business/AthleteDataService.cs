@@ -911,7 +911,7 @@ public class AthleteDataService : IDisposable
             }
 
             var chronologicalAge = CalculateAgeAtDate(dobUtc, asOf);
-            var crowdAgeReduction = chronologicalAge - crowdAge;
+            var crowdAgeReduction = crowdAge - chronologicalAge;
 
             list.Add(new CrowdAgeRankCandidate(slug, name, crowdAge, crowdAgeReduction, crowdCount, dobUtc));
         }

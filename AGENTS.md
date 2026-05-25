@@ -13,7 +13,7 @@ Before making user-facing UI changes, read `DESIGN.md` and preserve its visual, 
 - If you change ranking logic on one side, you must review and update the other side so the logic stays identical.
 - The expected outcome is that the backend and frontend produce the same ordering and the same placements for the same data.
 - Bioage calculator rank previews are clock-specific: Pheno Age shows the Pheno-only field rank, and Bortz Age shows the Bortz-only field rank.
-- The Crowd Age leaderboard view is separate from Ultimate League ranking. Only athletes with at least 100 crowd guesses are eligible. It ranks eligible athletes by highest `chronologicalAge - CrowdAge` difference, then higher `CrowdCount`, then older date of birth, then name.
+- The Crowd Age leaderboard view is separate from Ultimate League ranking. Only athletes with at least 100 crowd guesses are eligible. It follows the same sign convention as other age-reduction columns: `CrowdAge - chronologicalAge`, with more negative values ranking higher, then higher `CrowdCount`, then older date of birth, then name.
 
 ## Ultimate League Ordering
 
