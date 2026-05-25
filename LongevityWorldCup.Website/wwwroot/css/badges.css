@@ -128,9 +128,9 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 
 @media (max-width:768px){
     #detailsModal .modal-badge-strip{
-        display:grid;
-        grid-template-columns:repeat(3,minmax(0,1fr));
-        justify-items:center;
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:center;
         align-items:start;
         width:calc(100% - 1.5rem)!important;
         max-width:calc(100% - 1.5rem)!important;
@@ -140,9 +140,10 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
         margin:.45rem auto .9rem;
     }
     #detailsModal .modal-badge-strip .modal-badge-item{
-        width:100%;
-        max-width:92px;
+        flex:0 1 92px;
+        width:92px;
         margin:0;
+        text-align:center;
     }
     #detailsModal .modal-badge-strip .badge-class{
         width:50px;
