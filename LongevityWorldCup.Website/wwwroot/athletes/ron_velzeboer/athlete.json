@@ -1,0 +1,28 @@
+{
+  "Name": "Ron Velzeboer",
+  "DisplayName": null,
+  "MediaContact": "biohacker-rv@proton.me",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 8,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-05-19",
+      "AlbGL": 50,
+      "CreatUmolL": 85.7,
+      "GluMmolL": 3.78,
+      "CrpMgL": 0.18,
+      "LymPc": 38.8,
+      "McvFL": 94.1,
+      "RdwPc": 11.7,
+      "AlpUL": 71,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Netherlands",
+  "Why": "Adding more years for the nice things in live!",
+  "PersonalLink": "https://ronvelzeboer.com"
+}
