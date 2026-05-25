@@ -138,7 +138,9 @@ Must appear before any other script that initializes or relies on AOS.
             document.head.appendChild(script);
         }
 
-        if ('requestAnimationFrame' in window) {
+        if (document.visibilityState === 'hidden') {
+            loadGoogleTag();
+        } else if ('requestAnimationFrame' in window) {
             requestAnimationFrame(() => requestAnimationFrame(loadGoogleTag));
         }
 
