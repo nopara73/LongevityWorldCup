@@ -69,6 +69,8 @@ a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-cl
 .modal-badge-name .modal-badge-detail{display:none}
 .modal-badge-item:hover .modal-badge-detail,.modal-badge-item.expanded .modal-badge-detail{display:block}
 .modal-badge-item:hover .modal-badge-name,.modal-badge-item.expanded .modal-badge-name{-webkit-line-clamp:unset;max-height:none;overflow:visible}
+.modal-badge-item[role="button"]{cursor:pointer}
+.modal-badge-item[role="button"]:focus-visible{outline:3px solid rgba(0,188,212,.72);outline-offset:4px;border-radius:14px}
 #detailsModal .modal-badge-strip{
     width:min(100%, var(--athlete-modal-section-width, 680px));
     box-sizing:border-box;
@@ -156,13 +158,21 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
         font-size:.66rem;
         line-height:1.12;
     }
-    #detailsModal .modal-badge-item:hover .modal-badge-detail{
+    #detailsModal .modal-badge-item:hover:not(.expanded) .modal-badge-detail{
         display:none;
     }
-    #detailsModal .modal-badge-item:hover .modal-badge-name{
+    #detailsModal .modal-badge-item:hover:not(.expanded) .modal-badge-name{
         -webkit-line-clamp:3;
         max-height:none;
         overflow:hidden;
+    }
+    #detailsModal .modal-badge-item.expanded .modal-badge-detail{
+        display:block;
+    }
+    #detailsModal .modal-badge-item.expanded .modal-badge-name{
+        -webkit-line-clamp:unset;
+        max-height:none;
+        overflow:visible;
     }
     #detailsModal .badge-class{pointer-events:none;cursor:default}
     #detailsModal .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}
