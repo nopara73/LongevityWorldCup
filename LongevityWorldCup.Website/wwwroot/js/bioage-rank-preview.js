@@ -199,9 +199,37 @@
         };
     }
 
-    function formatReduction(value) {
+    function formatReduction(value, precision) {
         if (!Number.isFinite(value)) return '';
-        return (value > 0 ? '+' : '') + value.toFixed(1) + 'y';
+        return (value > 0 ? '+' : '') + value.toFixed(precision) + 'y';
+    }
+
+    function getReduction(row, clock) {
+        return clock === 'bortz' ? row.bortzAgeReduction : row.ageReduction;
+    }
+
+    function chooseReductionPrecision(rows, clock) {
+        var values = rows
+            .map(function (row) { return getReduction(row, clock); })
+            .filter(Number.isFinite);
+        var maxPrecision = 6;
+
+        for (var precision = 1; precision <= maxPrecision; precision++) {
+            var buckets = Object.create(null);
+            var hasHiddenDifference = values.some(function (value) {
+                var key = value.toFixed(precision);
+                var bucket = buckets[key] || (buckets[key] = []);
+                var differs = bucket.some(function (existing) {
+                    return Math.abs(existing - value) > 1e-9;
+                });
+                bucket.push(value);
+                return differs;
+            });
+
+            if (!hasHiddenDifference) return precision;
+        }
+
+        return maxPrecision;
     }
 
     function escapeHtml(text) {
@@ -228,19 +256,18 @@
     function buildNearbyRows(rows, youIndex, clock) {
         var start = Math.max(0, youIndex - 2);
         var end = Math.min(rows.length, youIndex + 3);
+        var visibleRows = rows.slice(start, end);
+        var precision = chooseReductionPrecision(visibleRows, clock);
         var html = '';
         for (var i = start; i < end; i++) {
             var row = rows[i];
             var isYou = row.isYou;
-            var reduction = clock === 'bortz' ? row.bortzAgeReduction : row.ageReduction;
+            var reduction = getReduction(row, clock);
             var nameHtml = escapeHtml(isYou ? 'You' : row.displayName);
-            if (!isYou && row.slug) {
-                nameHtml = '<a href="/athlete/' + encodeURIComponent(String(row.slug).replace(/_/g, '-')) + '">' + nameHtml + '</a>';
-            }
             html += '<div class="bioage-rank-row' + (isYou ? ' current' : '') + '">' +
                 '<span class="bioage-rank-row-place">#' + (i + 1) + '</span>' +
                 '<span class="bioage-rank-row-name">' + nameHtml + '</span>' +
-                '<span class="bioage-rank-row-score">' + escapeHtml(formatReduction(reduction)) + '</span>' +
+                '<span class="bioage-rank-row-score">' + escapeHtml(formatReduction(reduction, precision)) + '</span>' +
                 '</div>';
         }
         return html;
