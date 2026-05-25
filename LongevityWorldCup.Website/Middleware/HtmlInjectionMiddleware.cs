@@ -86,6 +86,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_CUSTOM_EVENT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/custom_event.png"))
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"));
+                    bodyContent = ApplySharedAssetPlaceholders(bodyContent);
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -142,7 +143,17 @@ namespace LongevityWorldCup.Website.Middleware
         private string ApplySharedAssetPlaceholders(string html)
         {
             return html
-                .Replace("{{ASSET_FAVICON_128}}", _assetVersionProvider.AppendVersion("/assets/favicon-128x128.png"));
+                .Replace("{{ASSET_FAVICON_128}}", _assetVersionProvider.AppendVersion("/assets/favicon-128x128.png"))
+                .Replace("{{ASSET_ROBOTO_LIGHT}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Light.woff2"))
+                .Replace("{{ASSET_ROBOTO_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Regular.woff2"))
+                .Replace("{{ASSET_ROBOTO_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Bold.woff2"))
+                .Replace("{{ASSET_ORBITRON_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Orbitron-Bold.woff2"))
+                .Replace("{{ASSET_MERCH_MUG}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/mug.webp"))
+                .Replace("{{ASSET_MERCH_HOODIE}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/hoodie.webp"))
+                .Replace("{{ASSET_MERCH_CAP}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/cap.webp"))
+                .Replace("{{ASSET_DONATION_QR}}", _assetVersionProvider.AppendVersion("/assets/Donation25QR.png"))
+                .Replace("{{ASSET_HD_LOGO_THUMB_SM}}", _assetVersionProvider.AppendVersion("/assets/HdLogo_thumb_sm.png"))
+                .Replace("{{ASSET_TROLLFACE}}", _assetVersionProvider.AppendVersion("/assets/content-images/trollface.png"));
         }
 
         private string ApplySharedCssPlaceholders(string html)
