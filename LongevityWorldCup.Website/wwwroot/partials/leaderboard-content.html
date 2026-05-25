@@ -4483,6 +4483,13 @@
         if (input) {
             input.disabled = count === 0 && !input.checked;
         }
+
+        if (label.hasAttribute('data-flag-key')) {
+            const listItem = label.closest('li');
+            if (listItem) {
+                listItem.hidden = count === 0 && !input?.checked;
+            }
+        }
     }
 
     function updateViewAllAthletesButton(count) {
