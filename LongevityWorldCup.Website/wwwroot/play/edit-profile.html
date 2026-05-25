@@ -621,13 +621,14 @@
 
             // Fetch and prepare flag list
             let availableFlags = [];
-            fetch('/api/data/flags')
-                .then(r => r.json())
-                .then(flags => {
+            Promise.all([
+                fetch('/api/data/flags').then(r => r.json()),
+                window.getSharedAthletes ? window.getSharedAthletes() : fetch('/api/data/athletes').then(r => r.json())
+            ])
+                .then(([flags, athletes]) => {
                     availableFlags = window.LwcFlags
-                        .buildFlagOptions(flags, [])
-                        .map(option => option.name)
-                        .sort((a, b) => a.localeCompare(b));
+                        .buildFlagOptions(flags, athletes)
+                        .map(option => option.name);
                     const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
                     if (currentFlag && !availableFlags.includes(currentFlag)) availableFlags.push(currentFlag);
                     flagInput.value = athlete.Flag;
