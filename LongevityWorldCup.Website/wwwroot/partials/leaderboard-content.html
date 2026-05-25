@@ -2580,89 +2580,21 @@
     let athletesOrderedByPace;
     let athletesOrderedByBortzPace;
     const defaultProfilePic = '/assets/HdLogo_thumb_sm.png';
-    const flagAliases = new Map([
-        ['america', 'United States'],
-        ['brasil', 'Brazil'],
-        ['nld', 'Netherlands'],
-        ['nz', 'New Zealand'],
-        ['nzd', 'New Zealand'],
-        ['slovak republic', 'Slovakia'],
-        ['svk', 'Slovakia'],
-        ['turkiye', 'Turkey'],
-        ['u s', 'United States'],
-        ['u s a', 'United States'],
-        ['united states of america', 'United States'],
-        ['us', 'United States'],
-        ['usa', 'United States']
-    ]);
-    const standardFlagIconCodes = new Map([
-        ['argentina', 'ar'],
-        ['australia', 'au'],
-        ['austria', 'at'],
-        ['bolivia', 'bo'],
-        ['brazil', 'br'],
-        ['bulgaria', 'bg'],
-        ['canada', 'ca'],
-        ['czech republic', 'cz'],
-        ['ecuador', 'ec'],
-        ['egypt', 'eg'],
-        ['estonia', 'ee'],
-        ['france', 'fr'],
-        ['germany', 'de'],
-        ['greece', 'gr'],
-        ['honduras', 'hn'],
-        ['hungary', 'hu'],
-        ['iceland', 'is'],
-        ['india', 'in'],
-        ['iraq', 'iq'],
-        ['italy', 'it'],
-        ['japan', 'jp'],
-        ['latvia', 'lv'],
-        ['malaysia', 'my'],
-        ['netherlands', 'nl'],
-        ['new zealand', 'nz'],
-        ['norway', 'no'],
-        ['poland', 'pl'],
-        ['portugal', 'pt'],
-        ['puerto rico', 'pr'],
-        ['romania', 'ro'],
-        ['russia', 'ru'],
-        ['serbia', 'rs'],
-        ['sierra leone', 'sl'],
-        ['singapore', 'sg'],
-        ['slovakia', 'sk'],
-        ['south africa', 'za'],
-        ['sweden', 'se'],
-        ['switzerland', 'ch'],
-        ['thailand', 'th'],
-        ['turkey', 'tr'],
-        ['united arab emirates', 'ae'],
-        ['united kingdom', 'gb'],
-        ['united states', 'us']
-    ]);
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
     markAthleteSkippedIfInURL();
 
     function normalizeFlagKey(flag) {
-        return window.normalizeString(String(flag || ''))
-            .replace(/[._-]+/g, ' ')
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+        return window.LwcFlags.normalizeFlagKey(flag);
     }
 
     function getCanonicalFlagName(flag) {
-        const cleaned = String(flag || '').trim().replace(/\s+/g, ' ');
-        if (!cleaned) return '';
-
-        const alias = flagAliases.get(normalizeFlagKey(cleaned));
-        return alias || cleaned;
+        return window.LwcFlags.getCanonicalFlagName(flag);
     }
 
     function getFlagFilterKey(flag) {
-        return normalizeFlagKey(getCanonicalFlagName(flag));
+        return window.LwcFlags.getFlagFilterKey(flag);
     }
 
     function decodeFilterUrlToken(token) {
@@ -2692,17 +2624,11 @@
     }
 
     function getFlagIconCode(flag) {
-        return standardFlagIconCodes.get(getFlagFilterKey(flag)) || '';
+        return window.LwcFlags.getFlagIconCode(flag);
     }
 
     function renderFlagLabel(flag) {
-        const canonicalFlag = getCanonicalFlagName(flag);
-        const iconCode = getFlagIconCode(canonicalFlag);
-        const iconMarkup = iconCode
-            ? `<span class="fi fi-${escapeHtml(iconCode)} lwc-flag-icon" aria-hidden="true"></span>`
-            : '';
-
-        return `${iconMarkup}${escapeHtml(canonicalFlag)}`;
+        return window.LwcFlags.renderFlagLabel(flag);
     }
 
     function getAthletePortraitUrl(athlete) {
@@ -5304,20 +5230,7 @@
         const filterSection = document.querySelector('#flag-filter-section ul');
         filterSection.innerHTML = '';
 
-        const flagCounts = athletes.reduce((acc, athlete) => {
-            const flagName = athlete.canonicalFlag;
-            const flagKey = athlete.flagFilterKey;
-            if (!flagName || !flagKey) return acc;
-
-            if (!acc[flagKey]) {
-                acc[flagKey] = { name: flagName, count: 0 };
-            }
-            acc[flagKey].count += 1;
-            return acc;
-        }, {});
-
-        Object.values(flagCounts)
-            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+        window.LwcFlags.countFlagUsage(athletes, athlete => athlete.canonicalFlag)
             .forEach(({ name, count }) => {
                 const flagKey = getFlagFilterKey(name);
                 const li = document.createElement('li');

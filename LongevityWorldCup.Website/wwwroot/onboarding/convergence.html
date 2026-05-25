@@ -107,6 +107,16 @@
                     color: #243446;
                 }
 
+                .autocomplete-items div .lwc-flag-icon {
+                    flex: 0 0 auto;
+                    margin-right: 0.55rem;
+                }
+
+                .autocomplete-items div .lwc-flag-name {
+                    min-width: 0;
+                    overflow-wrap: anywhere;
+                }
+
                 .autocomplete-items div strong {
                     padding: 0 0.12rem;
                     border-radius: 4px;
@@ -1117,48 +1127,45 @@
             goToStage(currentStage);
             applyFakeDataIfNeeded();
 
-            fetch('/api/data/athletes')
+            const athletesPromise = fetch('/api/data/athletes')
                 .then(response => response.json())
+                .catch(error => {
+                    console.error('Error fetching athlete names:', error);
+                    return [];
+                });
+
+            athletesPromise
                 .then(athletes => {
                     // Extract athlete names into a list
                     existingAthleteNames = athletes.map(athlete => athlete.Name);
-                })
-                .catch(error => {
-                    console.error('Error fetching athlete names:', error);
                 });
 
-            fetch('/api/data/flags')
-                .then(response => response.json())
-                .then(flags => {
+            Promise.all([
+                fetch('/api/data/flags').then(response => response.json()),
+                athletesPromise
+            ])
+                .then(([flags, athletes]) => {
                     const flagInput = document.getElementById('flag');
+                    const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);
                     let currentFocus;
-                    flagInput.addEventListener('input', function () {
-                        const inputVal = this.value.toLowerCase();
+
+                    function openFlagList(inputVal) {
                         currentFocus = -1;
                         closeAllLists();
-                        if (!inputVal) return false;
 
                         const listContainer = document.createElement('div');
-                        listContainer.setAttribute('id', this.id + '-autocomplete-list');
+                        listContainer.setAttribute('id', flagInput.id + '-autocomplete-list');
                         listContainer.setAttribute('class', 'autocomplete-items');
-                        const container = this.closest('.autocomplete-container');
+                        const container = flagInput.closest('.autocomplete-container');
                         container.appendChild(listContainer);
 
-                        for (let i = 0; i < flags.length; i++) {
-                            const lowerCaseFlag = flags[i].toLowerCase();
-
-                            const regex = new RegExp(`\\b${inputVal}`);
-                            if (regex.test(lowerCaseFlag)) {
-                                const matchIndex = lowerCaseFlag.search(regex);
+                        flagOptions
+                            .filter(option => window.LwcFlags.matchesFlagOption(option, inputVal))
+                            .forEach(option => {
                                 const listItem = document.createElement('div');
 
-                                listItem.innerHTML =
-                                    flags[i].substr(0, matchIndex) +
-                                    "<strong>" + flags[i].substr(matchIndex, inputVal.length) + "</strong>" +
-                                    flags[i].substr(matchIndex + inputVal.length);
-
-                                // Set the flag name in a data attribute
-                                listItem.setAttribute('data-value', flags[i]);
+                                listItem.innerHTML = window.LwcFlags.renderFlagOptionLabel(option.name, inputVal);
+                                listItem.setAttribute('data-value', option.name);
 
                                 listItem.addEventListener('mousedown', function (e) {
                                     e.preventDefault(); // Prevent focus loss
@@ -1170,8 +1177,15 @@
 
                                 listContainer.appendChild(listItem);
                                 listItem.classList.add('autocomplete-item');
-                            }
-                        }
+                            });
+                    }
+
+                    flagInput.addEventListener('focus', function () {
+                        openFlagList(this.value);
+                    });
+
+                    flagInput.addEventListener('input', function () {
+                        openFlagList(this.value);
                     });
 
                     // Ensure the keydown event listener is added only once
