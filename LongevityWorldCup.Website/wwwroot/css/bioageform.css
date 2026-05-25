@@ -205,7 +205,7 @@
 
 .bioage-rank-row {
     display: grid;
-    grid-template-columns: 3.2rem minmax(0, 1fr) auto;
+    grid-template-columns: 3.2rem 24px minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.65rem;
     min-height: 2.05rem;
@@ -225,6 +225,47 @@
 .bioage-rank-row-score {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+}
+
+.bioage-rank-row-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border: 2px solid var(--secondary-color, #ff4f87);
+    border-radius: 50%;
+    background: #eef3f7;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.bioage-rank-row-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bioage-rank-row-avatar-placeholder img {
+    object-position: center 42%;
+}
+
+.bioage-rank-row-avatar-fallback {
+    color: #5a6b7b;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.bioage-rank-row-avatar-empty {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
 }
 
 .bioage-rank-row-name {
@@ -281,7 +322,7 @@
     }
 
     .bioage-rank-row {
-        grid-template-columns: 2.8rem minmax(0, 1fr) auto;
+        grid-template-columns: 2.8rem 24px minmax(0, 1fr) auto;
         gap: 0.45rem;
         padding-left: 0.35rem;
         padding-right: 0.35rem;
