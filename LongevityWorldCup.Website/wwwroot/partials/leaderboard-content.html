@@ -6061,6 +6061,10 @@
 
             const wrapper = document.createElement('div');
             wrapper.classList.add('modal-badge-item');
+            wrapper.setAttribute('role', 'button');
+            wrapper.setAttribute('tabindex', '0');
+            wrapper.setAttribute('aria-expanded', 'false');
+            wrapper.setAttribute('aria-label', fullTitle ? `Show badge details: ${fullTitle}` : 'Show badge details');
             wrapper.appendChild(badge);
 
             const label = document.createElement('div');
@@ -6074,9 +6078,19 @@
             }
             wrapper.appendChild(label);
 
-            // enable click/tap to expand full text
-            wrapper.addEventListener('click', () => {
-                wrapper.classList.toggle('expanded');
+            const toggleBadgeDetails = (event) => {
+                if (event.target.closest('a.badge-podcast')) return;
+
+                const isExpanded = wrapper.classList.toggle('expanded');
+                wrapper.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+            };
+
+            wrapper.addEventListener('click', toggleBadgeDetails);
+            wrapper.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+
+                event.preventDefault();
+                toggleBadgeDetails(event);
             });
             modalBadgeSection.appendChild(wrapper);
         });
