@@ -82,6 +82,16 @@
                     color: #243446;
                 }
 
+                .autocomplete-items div .lwc-flag-icon {
+                    flex: 0 0 auto;
+                    margin-right: 0.55rem;
+                }
+
+                .autocomplete-items div .lwc-flag-name {
+                    min-width: 0;
+                    overflow-wrap: anywhere;
+                }
+
         .niceInputFieldDisplayWrapper {
             position: relative;
             width: min(100%, 408px);
@@ -614,8 +624,12 @@
             fetch('/api/data/flags')
                 .then(r => r.json())
                 .then(flags => {
-                    if (!flags.includes(athlete.Flag)) flags.push(athlete.Flag);
-                    availableFlags = flags.sort((a, b) => a.localeCompare(b));
+                    availableFlags = window.LwcFlags
+                        .buildFlagOptions(flags, [])
+                        .map(option => option.name)
+                        .sort((a, b) => a.localeCompare(b));
+                    const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
+                    if (currentFlag && !availableFlags.includes(currentFlag)) availableFlags.push(currentFlag);
                     flagInput.value = athlete.Flag;
                     if (athlete.Flag !== originalAthlete.Flag) {
                         restoreFlagBtn.style.display = 'inline-flex';
@@ -641,7 +655,7 @@
                     return;
                 }
 
-                const terms = this.value.trim().toLowerCase().split(/\s+/).filter(t => t);
+                const terms = this.value.trim().split(/\s+/).filter(t => t);
                 closeFlagLists();
                 if (!terms.length) return;
                 const list = document.createElement('div');
@@ -651,15 +665,14 @@
                 let count = 0;
                 availableFlags.forEach(f => {
                     if (count >= 5) return;
-                    const lower = f.toLowerCase();
-                    if (terms.every(t => lower.includes(t))) {
+                    if (terms.every(t => window.LwcFlags.matchesFlagOption({ name: f }, t))) {
                         const item = document.createElement('div');
                         item.className = 'flag-autocomplete-item';
-                        item.textContent = f;
+                        item.innerHTML = window.LwcFlags.renderFlagOptionLabel(f, this.value.trim());
                         item.dataset.value = f;
                         item.addEventListener('mousedown', e => {
                             e.preventDefault();
-                            selectFlag(e.target.dataset.value);
+                            selectFlag(e.currentTarget.dataset.value);
                         });
                         list.appendChild(item);
                         count++;

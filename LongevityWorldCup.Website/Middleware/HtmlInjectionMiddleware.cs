@@ -194,6 +194,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
@@ -210,6 +211,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
@@ -222,6 +224,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
@@ -234,6 +237,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/badges.js"
                     ]),
@@ -243,6 +247,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/badges.js"
                     ]),
@@ -252,6 +257,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js"
                     ]),
                 "/play/proof-upload.html" => new HeadAssetConfig(
@@ -275,6 +281,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/badges.js",
                         "/js/proof-helpers.js",
@@ -303,6 +310,7 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/proof-helpers.js"
                     ]),
