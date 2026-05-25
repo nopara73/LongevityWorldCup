@@ -189,7 +189,7 @@ $@"<script type=""module"">
             if (IsLeagueRoute(path) || IsAthleteRoute(path))
             {
                 return new HeadAssetConfig(
-                    IncludeValidator: true,
+                    IncludeValidator: false,
                     IncludeChartJs: true,
                     ModulePaths:
                     [
@@ -206,7 +206,7 @@ $@"<script type=""module"">
             return path.ToLowerInvariant() switch
             {
                 "/" or "/index.html" => new HeadAssetConfig(
-                    IncludeValidator: true,
+                    IncludeValidator: false,
                     IncludeChartJs: true,
                     ModulePaths:
                     [
@@ -219,7 +219,7 @@ $@"<script type=""module"">
                         "/js/age-visualization.js"
                     ]),
                 "/leaderboard/leaderboard.html" => new HeadAssetConfig(
-                    IncludeValidator: true,
+                    IncludeValidator: false,
                     IncludeChartJs: true,
                     ModulePaths:
                     [
