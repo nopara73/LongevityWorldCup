@@ -155,11 +155,6 @@ namespace LongevityWorldCup.Website.Middleware
         {
             var sb = new StringBuilder();
 
-            if (config.IncludeChartJs)
-            {
-                sb.AppendLine("<script src=\"https://cdn.jsdelivr.net/npm/chart.js\" crossorigin=\"anonymous\" defer></script>");
-            }
-
             if (config.IncludeValidator)
             {
                 sb.AppendLine("<script src=\"https://cdn.jsdelivr.net/npm/validator@13.9.0/validator.min.js\" crossorigin=\"anonymous\" defer></script>");
@@ -190,7 +185,6 @@ $@"<script type=""module"">
             {
                 return new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: true,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -207,7 +201,6 @@ $@"<script type=""module"">
             {
                 "/" or "/index.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: true,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -220,7 +213,6 @@ $@"<script type=""module"">
                     ]),
                 "/leaderboard/leaderboard.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: true,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -233,7 +225,6 @@ $@"<script type=""module"">
                     ]),
                 "/event-board/event-board.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -243,7 +234,6 @@ $@"<script type=""module"">
                     ]),
                 "/event-board-embed.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -253,7 +243,6 @@ $@"<script type=""module"">
                     ]),
                 "/play/edit-profile.html" => new HeadAssetConfig(
                     IncludeValidator: true,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -262,7 +251,6 @@ $@"<script type=""module"">
                     ]),
                 "/play/proof-upload.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -270,14 +258,12 @@ $@"<script type=""module"">
                     ]),
                 "/play/character-selection.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js"
                     ]),
                 "/play/character-customization.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -289,7 +275,6 @@ $@"<script type=""module"">
                     ]),
                 "/onboarding/pheno-age.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -298,7 +283,6 @@ $@"<script type=""module"">
                     ]),
                 "/onboarding/bortz-age.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -308,7 +292,6 @@ $@"<script type=""module"">
                     ]),
                 "/onboarding/convergence.html" => new HeadAssetConfig(
                     IncludeValidator: true,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -318,7 +301,6 @@ $@"<script type=""module"">
                     ]),
                 "/onboarding/join-game.html" => new HeadAssetConfig(
                     IncludeValidator: false,
-                    IncludeChartJs: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
@@ -725,9 +707,9 @@ $@"<script type=""module"">
             string OgImageUrl
         );
 
-        private sealed record HeadAssetConfig(bool IncludeValidator, bool IncludeChartJs, IReadOnlyList<string> ModulePaths)
+        private sealed record HeadAssetConfig(bool IncludeValidator, IReadOnlyList<string> ModulePaths)
         {
-            public static readonly HeadAssetConfig Empty = new(false, false, Array.Empty<string>());
+            public static readonly HeadAssetConfig Empty = new(false, Array.Empty<string>());
         }
     }
 }
