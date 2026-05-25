@@ -486,6 +486,14 @@
     @media (min-width: 769px){
         .leaderboard-toolbar{ flex-wrap:nowrap; }
     }
+    .ranking-explanation{
+        display:none; width:100%; box-sizing:border-box; margin:.25rem 0 1rem; padding:.72rem .9rem;
+        color:#4d5963; background:rgba(255,255,255,.78); border:1px solid rgba(0,188,212,.18);
+        border-left:4px solid var(--primary-color); border-radius:8px; box-shadow:0 6px 14px rgba(0,0,0,.06);
+        font-size:.95rem; line-height:1.42;
+    }
+    .ranking-explanation.is-visible{ display:block; }
+    .ranking-explanation strong{ color:var(--primary-color); }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
@@ -2257,6 +2265,8 @@
             </div>
         </div>
 
+        <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
+
         <div class="leaderboard">
             <div class="sidebar" id="leaderboardFilters">
                 <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-times"></i></button>
@@ -2688,6 +2698,31 @@
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
     }
 
+    function markAthletesSkippedForGuessMyAgeIfUnset(athletes) {
+        if (!Array.isArray(athletes) || athletes.length === 0) {
+            return;
+        }
+
+        const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+        let changed = false;
+        athletes.forEach(athlete => {
+            const athleteSlug = athlete && athlete.name;
+            if (!athleteSlug) return;
+
+            const normalizedAthleteSlug = typeof window.slugifyName === 'function'
+                ? window.slugifyName(athleteSlug, true)
+                : athleteSlug;
+            if (allGuesses[normalizedAthleteSlug]) return;
+
+            allGuesses[normalizedAthleteSlug] = { value: null, skipped: true, first: false, exact: false };
+            changed = true;
+        });
+
+        if (changed) {
+            localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+        }
+    }
+
     function markAthleteSkippedIfInURL() {
         const params = new URLSearchParams(window.location.search);
         let athleteSlug = null;
@@ -2985,7 +3020,7 @@
 
                     const crowdAge = athlete.CrowdAge;
                     const crowdCount = athlete.CrowdCount;
-                    const crowdAgeReduction = Number.isFinite(crowdAge) ? chronologicalAgeNow - crowdAge : null;
+                    const crowdAgeReduction = Number.isFinite(crowdAge) ? crowdAge - chronologicalAgeNow : null;
                     const completeBiomarkerSets = athlete.Biomarkers.filter(isCompleteBiomarkerSet);
 
                     // Get birth year and generation
@@ -4574,6 +4609,7 @@
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         syncAgingClockFilters(currentLeaderboardView);
         updateActiveFilterSections();
+        updateRankingExplanation(currentLeaderboardView);
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
         const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -4795,6 +4831,9 @@
         const tableVisibleAthletes = hidePodiumRowsInTable
             ? filteredAthletes.filter(athlete => athlete.rank > 3)
             : filteredAthletes;
+        if (currentLeaderboardView === 'crowd') {
+            markAthletesSkippedForGuessMyAgeIfUnset(tableVisibleAthletes);
+        }
 
         // Show tier separator when both pro and amateur rows are visible in the table (first amateur after at least one pro); hide for clock views.
         // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
@@ -4923,6 +4962,21 @@
         }
 
         history.replaceState({}, "", url.toString());
+    }
+
+    function updateRankingExplanation(currentLeaderboardView) {
+        const explanation = document.getElementById('rankingExplanation');
+        if (!explanation) return;
+
+        const explanations = {
+            bortz: '<strong>BortzAge</strong> estimates biological age from advanced blood-test markers.',
+            pheno: '<strong>PhenoAge</strong> estimates biological age from common blood-test markers.',
+            crowd: '<strong>CrowdAge</strong> is a visual age estimate from visitors; athletes qualify once they pass 100 guesses.'
+        };
+
+        const html = explanations[currentLeaderboardView] || '';
+        explanation.innerHTML = html;
+        explanation.classList.toggle('is-visible', html.length > 0);
     }
 
     function updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
