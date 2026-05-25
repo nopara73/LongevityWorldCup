@@ -3931,6 +3931,37 @@
     let savedBodyScroll = 0;
     let savedBodyBackground = '';
     let currentAthleteModalRequestId = 0;
+    const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
+
+    window.ensureChartJs = window.ensureChartJs || function () {
+        if (typeof window.Chart === 'function') {
+            return Promise.resolve(true);
+        }
+
+        if (window.__chartJsPromise) {
+            return window.__chartJsPromise;
+        }
+
+        window.__chartJsPromise = new Promise(resolve => {
+            const script = document.createElement('script');
+            script.src = chartJsSrc;
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.onload = () => resolve(typeof window.Chart === 'function');
+            script.onerror = () => {
+                console.error('Failed to load Chart.js');
+                resolve(false);
+            };
+            document.head.appendChild(script);
+        }).then(loaded => {
+            if (!loaded) {
+                window.__chartJsPromise = null;
+            }
+            return loaded;
+        });
+
+        return window.__chartJsPromise;
+    };
 
     function ensureAthleteModalDeferredSections() {
         if (document.getElementById('events-frame') && document.getElementById('athlete-biomarkers') && document.getElementById('athlete-proofs')) {
@@ -5641,21 +5672,30 @@
                 // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
                 requestAnimationFrame(function() {
                     if (requestId !== currentAthleteModalRequestId) return;
-                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
-                    generateBiomarkerChart(fullAthleteData);
-                    // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
-                    requestAnimationFrame(function() {
+
+                    window.ensureChartJs().then(function(chartLoaded) {
                         if (requestId !== currentAthleteModalRequestId) return;
-                        if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
-                    });
-                    var chartContainer = document.getElementById('athlete-biomarkers');
-                    if (chartContainer && window.biomarkerChartInstance) {
-                        if (window.biomarkerChartResizeObserver) window.biomarkerChartResizeObserver.disconnect();
-                        window.biomarkerChartResizeObserver = new ResizeObserver(function() {
+
+                        generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
+                        if (chartLoaded) {
+                            generateBiomarkerChart(fullAthleteData);
+                        }
+
+                        // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
+                        requestAnimationFrame(function() {
+                            if (requestId !== currentAthleteModalRequestId) return;
                             if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
                         });
-                        window.biomarkerChartResizeObserver.observe(chartContainer);
-                    }
+
+                        var chartContainer = document.getElementById('athlete-biomarkers');
+                        if (chartContainer && window.biomarkerChartInstance) {
+                            if (window.biomarkerChartResizeObserver) window.biomarkerChartResizeObserver.disconnect();
+                            window.biomarkerChartResizeObserver = new ResizeObserver(function() {
+                                if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
+                            });
+                            window.biomarkerChartResizeObserver.observe(chartContainer);
+                        }
+                    });
                 });
                 if (!modalContent) {
                     console.error('Modal content element not found');
