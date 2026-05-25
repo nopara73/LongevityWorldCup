@@ -116,13 +116,35 @@ Must appear before any other script that initializes or relies on AOS.
 <script type="application/ld+json">{{SEO_STRUCTURED_DATA}}</script>
 
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-PSSCLBW37H"></script>
 <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
 
     gtag('config', 'G-PSSCLBW37H');
+
+    (function () {
+        let googleTagLoaded = false;
+
+        function loadGoogleTag() {
+            if (googleTagLoaded) {
+                return;
+            }
+
+            googleTagLoaded = true;
+            const script = document.createElement('script');
+            script.async = true;
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-PSSCLBW37H';
+            document.head.appendChild(script);
+        }
+
+        if ('requestAnimationFrame' in window) {
+            requestAnimationFrame(() => requestAnimationFrame(loadGoogleTag));
+        }
+
+        window.addEventListener('load', loadGoogleTag, { once: true });
+        window.setTimeout(loadGoogleTag, 3000);
+    })();
 </script>
 
 <script>
