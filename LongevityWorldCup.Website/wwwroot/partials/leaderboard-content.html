@@ -653,6 +653,17 @@
 
     /* PRO badge overlay – table only (not on podium); white text, black frame */
     .portrait-wrapper{ position:relative; display:inline-block; }
+    .leaderboard .athlete-td .portrait-wrapper{
+        position:relative;
+        display:inline-block;
+        flex:0 0 var(--portrait-size);
+        width:var(--portrait-size);
+        min-width:var(--portrait-size);
+    }
+    .leaderboard .athlete-td .portrait-wrapper .rank-change{
+        width:var(--portrait-size);
+        min-width:var(--portrait-size);
+    }
     .pro-badge{
         display:none;
         position:absolute;
