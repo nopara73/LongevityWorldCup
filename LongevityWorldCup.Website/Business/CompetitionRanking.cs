@@ -7,6 +7,14 @@ public sealed record CompetitionRankCandidate(
     double EffectiveReduction,
     DateTime DobUtc);
 
+public sealed record CrowdAgeRankCandidate(
+    string Slug,
+    string Name,
+    double CrowdAge,
+    double CrowdAgeReduction,
+    int CrowdCount,
+    DateTime DobUtc);
+
 public sealed record HypotheticalRankResult(
     int Rank,
     int FieldSize,
@@ -33,6 +41,15 @@ public static class CompetitionRanking
         return rows
             .OrderByDescending(t => t.HasBortz)
             .ThenBy(t => t.EffectiveReduction)
+            .ThenBy(t => t.DobUtc)
+            .ThenBy(t => t.Name, StringComparer.Ordinal);
+    }
+
+    public static IOrderedEnumerable<CrowdAgeRankCandidate> SortByCrowdAgeRules(IEnumerable<CrowdAgeRankCandidate> rows)
+    {
+        return rows
+            .OrderByDescending(t => t.CrowdAgeReduction)
+            .ThenByDescending(t => t.CrowdCount)
             .ThenBy(t => t.DobUtc)
             .ThenBy(t => t.Name, StringComparer.Ordinal);
     }
