@@ -621,9 +621,12 @@
 
             // Fetch and prepare flag list
             let availableFlags = [];
+            const athletesForFlagOptions = window.getSharedAthletes
+                ? window.getSharedAthletes()
+                : fetch('/api/data/athletes').then(r => r.json());
             Promise.all([
                 fetch('/api/data/flags').then(r => r.json()),
-                window.getSharedAthletes ? window.getSharedAthletes() : fetch('/api/data/athletes').then(r => r.json())
+                Promise.resolve(athletesForFlagOptions).catch(() => [])
             ])
                 .then(([flags, athletes]) => {
                     availableFlags = window.LwcFlags
