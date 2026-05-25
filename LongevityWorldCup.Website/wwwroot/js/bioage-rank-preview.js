@@ -3,6 +3,17 @@
 
     var athletePlaceholderImage = '/assets/content-images/headshot.webp';
     var sharedAthletesPromise = null;
+    var targetRenderTokens = Object.create(null);
+
+    function advanceTargetRenderToken(targetId) {
+        var nextToken = (targetRenderTokens[targetId] || 0) + 1;
+        targetRenderTokens[targetId] = nextToken;
+        return nextToken;
+    }
+
+    function isCurrentTargetRenderToken(targetId, token) {
+        return targetRenderTokens[targetId] === token;
+    }
 
     function getSharedAthletes() {
         if (window.getSharedAthletes) return window.getSharedAthletes();
@@ -323,6 +334,7 @@
     function render(targetId, options) {
         var target = document.getElementById(targetId);
         if (!target || !options) return Promise.resolve();
+        var renderToken = advanceTargetRenderToken(targetId);
 
         var clock = options.clock === 'bortz' ? 'bortz' : 'pheno';
         var ageReduction = Number(options.ageReduction);
@@ -337,6 +349,8 @@
 
         return getSharedAthletes()
             .then(function (athletes) {
+                if (!isCurrentTargetRenderToken(targetId, renderToken)) return;
+
                 var summaries = (athletes || []).map(mapAthlete).filter(Boolean);
                 var field = summaries.filter(function (athlete) {
                     var value = clock === 'bortz' ? athlete.bortzAgeReduction : athlete.ageReduction;
@@ -361,6 +375,8 @@
                 target.innerHTML = buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex);
             })
             .catch(function () {
+                if (!isCurrentTargetRenderToken(targetId, renderToken)) return;
+
                 target.hidden = true;
                 target.innerHTML = '';
             });
@@ -369,6 +385,7 @@
     function clear(targetId) {
         var target = document.getElementById(targetId);
         if (!target) return;
+        advanceTargetRenderToken(targetId);
         target.hidden = true;
         target.innerHTML = '';
     }
