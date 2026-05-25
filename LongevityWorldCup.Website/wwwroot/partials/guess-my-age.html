@@ -1058,10 +1058,43 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
-
 <script>
     /* === Guess-My-Age bindings for the new widget === */
+    const gmaConfettiSrc = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1';
+    let gmaConfettiPromise = null;
+
+    function loadGmaConfetti() {
+        if (typeof window.confetti === 'function') {
+            return Promise.resolve(window.confetti);
+        }
+
+        if (gmaConfettiPromise) {
+            return gmaConfettiPromise;
+        }
+
+        gmaConfettiPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = gmaConfettiSrc;
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.onload = () => {
+                if (typeof window.confetti === 'function') {
+                    resolve(window.confetti);
+                } else {
+                    reject(new Error('canvas-confetti loaded without exposing window.confetti'));
+                }
+            };
+            script.onerror = () => reject(new Error('Failed to load canvas-confetti'));
+            document.head.appendChild(script);
+        }).catch(error => {
+            console.error(error);
+            gmaConfettiPromise = null;
+            return null;
+        });
+
+        return gmaConfettiPromise;
+    }
+
     const gmaRange = document.getElementById('gmaRange');
     const gmaDefaultValue = gmaRange.value;
 
@@ -1469,11 +1502,15 @@
         const randomX = 0.1 + Math.random() * 0.8; // clamp X between 0.1–0.9
         const randomY = 0.1 + Math.random() * 0.8; // clamp Y between 0.1–0.9
 
-        confetti({
-            particleCount: 300,
-            spread: 120,
-            origin: { x: randomX, y: randomY },
-            zIndex: 5
+        loadGmaConfetti().then(confetti => {
+            if (!confetti) return;
+
+            confetti({
+                particleCount: 300,
+                spread: 120,
+                origin: { x: randomX, y: randomY },
+                zIndex: 5
+            });
         });
     }
 
