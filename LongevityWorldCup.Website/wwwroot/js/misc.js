@@ -161,14 +161,14 @@ window.compareAthleteRankPhenoOnly = function (a, b) {
 };
 
 /**
- * Crowd Age comparator: higher chronological age minus median crowd age is better, with more guesses winning ties.
+ * Crowd Age comparator: lower median crowd age minus chronological age is better, with more guesses winning ties.
  * Used only for the Crowd Age view; Ultimate League ordering still follows compareAthleteRank.
  */
 window.compareAthleteRankCrowdAge = function (a, b) {
     const aReduction = Number.isFinite(a.crowdAgeReduction) ? a.crowdAgeReduction : -Infinity;
     const bReduction = Number.isFinite(b.crowdAgeReduction) ? b.crowdAgeReduction : -Infinity;
-    if (aReduction > bReduction) return -1;
-    if (aReduction < bReduction) return 1;
+    if (aReduction < bReduction) return -1;
+    if (aReduction > bReduction) return 1;
 
     const aCount = Number.isFinite(a.crowdCount) ? a.crowdCount : 0;
     const bCount = Number.isFinite(b.crowdCount) ? b.crowdCount : 0;
