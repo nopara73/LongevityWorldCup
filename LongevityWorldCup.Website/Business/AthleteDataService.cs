@@ -21,6 +21,7 @@ public class AthleteDataService : IDisposable
     private const int EventThumbQuality = 70;
     private const int LeaderboardThumbSizePx = 320;
     private const int LeaderboardThumbQuality = 84;
+    private const int CrowdAgeLeaderboardMinimumGuessCount = 100;
 
     private JsonArray _athletes = []; // Initialize to avoid nullability issue
 
@@ -864,29 +865,63 @@ public class AthleteDataService : IDisposable
 
     public IReadOnlyList<(string Slug, double CrowdAge)> GetCrowdLowestAgeTop3()
     {
+        return CompetitionRanking.SortByCrowdAgeRules(GetCrowdAgeRankCandidates())
+            .Take(3)
+            .Select(t => (t.Slug, t.CrowdAge))
+            .ToList();
+    }
+
+    private IReadOnlyList<CrowdAgeRankCandidate> GetCrowdAgeRankCandidates()
+    {
         var snapshot = GetAthletesSnapshot();
-        var list = new List<(string Slug, double CrowdAge, int CrowdCount)>();
+        var asOf = DateTime.UtcNow.Date;
+        var list = new List<CrowdAgeRankCandidate>();
         foreach (var o in snapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(slug)) continue;
-            double crowdAge;
-            if (o["CrowdAge"] is JsonValue cv && cv.TryGetValue<double>(out var ca))
-                crowdAge = ca;
-            else
+
+            if (o["CrowdAge"] is not JsonValue cv || !cv.TryGetValue<double>(out var crowdAge) || !double.IsFinite(crowdAge))
                 continue;
+
             int crowdCount = 0;
             if (o["CrowdCount"] is JsonValue cc && cc.TryGetValue<int>(out var cnt))
                 crowdCount = cnt;
-            if (crowdCount <= 0) continue;
-            list.Add((slug, crowdAge, crowdCount));
+            if (crowdCount < CrowdAgeLeaderboardMinimumGuessCount) continue;
+
+            var name = o["DisplayName"]?.GetValue<string>() ?? o["Name"]?.GetValue<string>() ?? slug;
+            if (o["DateOfBirth"] is not JsonObject dobNode)
+                continue;
+
+            DateTime dobUtc;
+            try
+            {
+                dobUtc = new DateTime(
+                    dobNode["Year"]!.GetValue<int>(),
+                    dobNode["Month"]!.GetValue<int>(),
+                    dobNode["Day"]!.GetValue<int>(),
+                    0,
+                    0,
+                    0,
+                    DateTimeKind.Utc);
+            }
+            catch
+            {
+                continue;
+            }
+
+            var chronologicalAge = CalculateAgeAtDate(dobUtc, asOf);
+            var crowdAgeReduction = chronologicalAge - crowdAge;
+
+            list.Add(new CrowdAgeRankCandidate(slug, name, crowdAge, crowdAgeReduction, crowdCount, dobUtc));
         }
-        return list
-            .OrderBy(t => t.CrowdAge)
-            .ThenByDescending(t => t.CrowdCount)
-            .Take(3)
-            .Select(t => (t.Slug, t.CrowdAge))
-            .ToList();
+
+        return list;
+    }
+
+    private static double CalculateAgeAtDate(DateTime birthDateUtc, DateTime atDateUtc)
+    {
+        return Math.Round((atDateUtc.Date - birthDateUtc.Date).TotalDays / 365.2425, 2);
     }
 
     public IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)> GetCrowdLowestAgeBadgePodiumForX()
@@ -1075,6 +1110,13 @@ public class AthleteDataService : IDisposable
 
     private IReadOnlyList<string> GetLeagueSlugsInRankOrder(string leagueSlug, bool requireBortz = false)
     {
+        if (!requireBortz && string.Equals(leagueSlug, "crowd", StringComparison.OrdinalIgnoreCase))
+        {
+            return CompetitionRanking.SortByCrowdAgeRules(GetCrowdAgeRankCandidates())
+                .Select(t => t.Slug)
+                .ToList();
+        }
+
         var order = GetRankingsOrder();
         if (order.Count == 0) return Array.Empty<string>();
         if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))

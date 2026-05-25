@@ -160,6 +160,28 @@ window.compareAthleteRankPhenoOnly = function (a, b) {
     return 0;
 };
 
+/**
+ * Crowd Age comparator: higher chronological age minus median crowd age is better, with more guesses winning ties.
+ * Used only for the Crowd Age view; Ultimate League ordering still follows compareAthleteRank.
+ */
+window.compareAthleteRankCrowdAge = function (a, b) {
+    const aReduction = Number.isFinite(a.crowdAgeReduction) ? a.crowdAgeReduction : -Infinity;
+    const bReduction = Number.isFinite(b.crowdAgeReduction) ? b.crowdAgeReduction : -Infinity;
+    if (aReduction > bReduction) return -1;
+    if (aReduction < bReduction) return 1;
+
+    const aCount = Number.isFinite(a.crowdCount) ? a.crowdCount : 0;
+    const bCount = Number.isFinite(b.crowdCount) ? b.crowdCount : 0;
+    if (aCount > bCount) return -1;
+    if (aCount < bCount) return 1;
+
+    if (a.dateOfBirth < b.dateOfBirth) return -1;
+    if (a.dateOfBirth > b.dateOfBirth) return 1;
+    if (a.name < b.name) return -1;
+    if (a.name > b.name) return 1;
+    return 0;
+};
+
 window.getGeneration = function (birthYear) {
     if (birthYear >= 1928 && birthYear <= 1945) {
         return "Silent Generation";
