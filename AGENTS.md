@@ -12,6 +12,7 @@ Before making user-facing UI changes, read `DESIGN.md` and preserve its visual, 
 - Do not assume one side is only presenting data from the other. Both sides contain logic that can affect ordering and placements.
 - If you change ranking logic on one side, you must review and update the other side so the logic stays identical.
 - The expected outcome is that the backend and frontend produce the same ordering and the same placements for the same data.
+- Bioage calculator rank previews are clock-specific: Pheno Age shows the Pheno-only field rank, and Bortz Age shows the Bortz-only field rank.
 
 ## Ultimate League Ordering
 
@@ -29,6 +30,7 @@ Before making user-facing UI changes, read `DESIGN.md` and preserve its visual, 
 - Favicon and web manifest links in `wwwroot/partials/head.html` also use middleware placeholders; keep any new light or dark icon variants on that versioned path.
 - Shared header logo images also use middleware asset placeholders. Keep header/partial static assets on the placeholder path instead of hard-coded `/assets/...` URLs.
 - Bioage onboarding pages load `wwwroot/css/bioageform.css` through the `{{ASSET_BIOAGEFORM_CSS}}` middleware placeholder; do not hard-code `/css/bioageform.css` in those injected pages.
+- Bioage onboarding rank previews load `wwwroot/js/bioage-rank-preview.js` through `HtmlInjectionMiddleware` module paths; keep it versioned with the rest of the injected page assets.
 - Athlete profile and proof asset URLs should be versioned when emitted from the data service. Unversioned `/athletes/...` and `/generated/...` requests are intentionally cached briefly only as a fallback.
 - When changing the API of an existing external JS file, review every injected HTML/partial caller in the repo and ensure the versioned URL path still goes through the middleware replacement flow.
 - If a helper is moved from inline script to a separate JS file, verify that the file is loaded in every page, modal, iframe, or embedded context that uses that helper.

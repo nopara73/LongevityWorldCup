@@ -132,6 +132,121 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.bioage-rank-preview {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.85rem 0.8rem;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 188, 212, 0.28);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.62);
+    color: #2d3748;
+    font-size: 0.95rem;
+}
+
+.bioage-rank-preview[hidden] {
+    display: none;
+}
+
+.bioage-rank-summary {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.bioage-rank-number {
+    min-width: 5.4rem;
+    padding: 0.3rem 0.45rem;
+    box-sizing: border-box;
+    border-radius: 6px;
+    background: rgba(0, 188, 212, 0.12);
+    color: #087f91;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.bioage-rank-copy {
+    min-width: 0;
+    text-align: left;
+}
+
+.bioage-rank-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.bioage-rank-meta,
+.bioage-rank-percentile {
+    font-size: 0.92rem;
+    line-height: 1.35;
+}
+
+.bioage-rank-meta {
+    font-weight: 700;
+}
+
+.bioage-rank-percentile {
+    color: #087f91;
+    font-weight: 700;
+}
+
+.bioage-rank-neighbors {
+    margin-top: 0.75rem;
+    display: grid;
+    gap: 0.15rem;
+}
+
+.bioage-rank-row {
+    display: grid;
+    grid-template-columns: 3.2rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 2.05rem;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    line-height: 1.25;
+}
+
+.bioage-rank-row.current {
+    background: rgba(0, 188, 212, 0.12);
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.bioage-rank-row-place,
+.bioage-rank-row-score {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.bioage-rank-row-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.bioage-rank-row-name a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.bioage-rank-row-name a:hover {
+    text-decoration: underline;
+}
+
+.bioage-rank-loading {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
 @media (max-width: 420px) {
     .bioageform {
         max-width: calc(100vw - 1rem);
@@ -150,6 +265,26 @@
 
     .bioageform label {
         line-height: 1.25;
+    }
+
+    .bioage-rank-preview {
+        padding: 0.75rem 0.65rem;
+    }
+
+    .bioage-rank-summary {
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+    }
+
+    .bioage-rank-number {
+        width: 100%;
+    }
+
+    .bioage-rank-row {
+        grid-template-columns: 2.8rem minmax(0, 1fr) auto;
+        gap: 0.45rem;
+        padding-left: 0.35rem;
+        padding-right: 0.35rem;
     }
 }
 

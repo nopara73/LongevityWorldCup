@@ -286,7 +286,8 @@ $@"<script type=""module"">
                     ModulePaths:
                     [
                         "/js/misc.js",
-                        "/js/pheno-age.js"
+                        "/js/pheno-age.js",
+                        "/js/bioage-rank-preview.js"
                     ]),
                 "/onboarding/bortz-age.html" => new HeadAssetConfig(
                     IncludeValidator: false,
@@ -295,7 +296,8 @@ $@"<script type=""module"">
                     [
                         "/js/misc.js",
                         "/js/pheno-age.js",
-                        "/js/bortz-age.js"
+                        "/js/bortz-age.js",
+                        "/js/bioage-rank-preview.js"
                     ]),
                 "/onboarding/convergence.html" => new HeadAssetConfig(
                     IncludeValidator: true,
