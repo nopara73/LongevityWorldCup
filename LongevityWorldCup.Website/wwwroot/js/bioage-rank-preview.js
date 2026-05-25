@@ -1,6 +1,7 @@
 (function () {
     'use strict';
 
+    var athletePlaceholderImage = '/assets/content-images/headshot.webp';
     var sharedAthletesPromise = null;
 
     function getSharedAthletes() {
@@ -95,6 +96,7 @@
             slug: athlete.AthleteSlug || '',
             name: athlete.Name || displayName,
             displayName: displayName,
+            profilePicThumb: athlete.ProfilePicThumb || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePic || '',
             dateOfBirth: dob,
             ageReduction: phenoSummary ? phenoSummary.ageReduction : null,
             bortzAgeReduction: bortzSummary ? bortzSummary.ageReduction : null
@@ -225,6 +227,36 @@
         }
     }
 
+    function initialsFromName(name) {
+        return String(name || '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(function (part) { return part.charAt(0).toUpperCase(); })
+            .join('') || '?';
+    }
+
+    function buildAvatar(row) {
+        if (row.isYou) {
+            return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-placeholder" aria-hidden="true">' +
+                '<img src="' + athletePlaceholderImage + '" alt="" loading="lazy" decoding="async">' +
+                '</span>';
+        }
+
+        var name = row.displayName || row.name || '';
+        var image = row.profilePicThumb || '';
+        if (image) {
+            return '<span class="bioage-rank-row-avatar" aria-hidden="true">' +
+                '<img src="' + escapeHtml(image) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">' +
+                '</span>';
+        }
+
+        return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-fallback" aria-hidden="true">' +
+            escapeHtml(initialsFromName(name)) +
+            '</span>';
+    }
+
     function buildNearbyRows(rows, youIndex, clock) {
         var start = Math.max(0, youIndex - 2);
         var end = Math.min(rows.length, youIndex + 3);
@@ -239,6 +271,7 @@
             }
             html += '<div class="bioage-rank-row' + (isYou ? ' current' : '') + '">' +
                 '<span class="bioage-rank-row-place">#' + (i + 1) + '</span>' +
+                buildAvatar(row) +
                 '<span class="bioage-rank-row-name">' + nameHtml + '</span>' +
                 '<span class="bioage-rank-row-score">' + escapeHtml(formatReduction(reduction)) + '</span>' +
                 '</div>';
