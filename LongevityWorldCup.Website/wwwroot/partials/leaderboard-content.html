@@ -1,4 +1,3 @@
-<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 <style>
     /* =========================
    1) Design tokens
@@ -2634,6 +2633,30 @@
 
     markAthleteSkippedIfInURL();
 
+    function orderByNumberDesc(items, selector) {
+        return [...items].sort((a, b) => {
+            const aValue = selector(a);
+            const bValue = selector(b);
+            const aRank = Number.isFinite(aValue) ? aValue : Number.NEGATIVE_INFINITY;
+            const bRank = Number.isFinite(bValue) ? bValue : Number.NEGATIVE_INFINITY;
+            return bRank - aRank;
+        });
+    }
+
+    function orderByNumberAsc(items, selector) {
+        return [...items].sort((a, b) => {
+            const aValue = selector(a);
+            const bValue = selector(b);
+            const aRank = Number.isFinite(aValue) ? aValue : Number.POSITIVE_INFINITY;
+            const bRank = Number.isFinite(bValue) ? bValue : Number.POSITIVE_INFINITY;
+            return aRank - bRank;
+        });
+    }
+
+    function findAthleteIndexByName(items, name) {
+        return items.findIndex(item => item && item.name === name);
+    }
+
     function normalizeFlagKey(flag) {
         return window.normalizeString(String(flag || ''))
             .replace(/[._-]+/g, ' ')
@@ -3401,11 +3424,10 @@
                     });
                 });
 
-                athletesOrderedByPace = _.orderBy(athleteResults, 'ageReductionPercent', 'desc');
-                athletesOrderedByBortzPace = _.orderBy(
+                athletesOrderedByPace = orderByNumberDesc(athleteResults, a => a.ageReductionPercent);
+                athletesOrderedByBortzPace = orderByNumberAsc(
                     athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
-                    a => a.lowestBortzAge / a.chronoAtLowestBortzAge,
-                    'asc'
+                    a => a.lowestBortzAge / a.chronoAtLowestBortzAge
                 );
 
                 const podiumCount = includePodium ? 3 : 0;
@@ -5806,7 +5828,7 @@
                 if (Number.isFinite(bortzPaceOfAgingValue)) {
                     document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
                     bortzPaceOfAgingContainer.style.display = '';
-                    const bortzPaceOfAgingRank = _.findIndex(athletesOrderedByBortzPace, ['name', athleteData.name]) + 1;
+                    const bortzPaceOfAgingRank = findAthleteIndexByName(athletesOrderedByBortzPace, athleteData.name) + 1;
                     if (Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0) {
                         document.getElementById('bortzPaceOfAgingRank').textContent = '#' + bortzPaceOfAgingRank;
                     }
@@ -5823,7 +5845,7 @@
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
                     paceOfAgingContainer.style.display = '';
 
-                    const paceOfAgingRank = _.findIndex(athletesOrderedByPace, ['name', athleteData.name]) + 1;
+                    const paceOfAgingRank = findAthleteIndexByName(athletesOrderedByPace, athleteData.name) + 1;
                     if (Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0) {
                         document.getElementById('paceOfAgingRank').textContent = '#' + paceOfAgingRank;
                     }
