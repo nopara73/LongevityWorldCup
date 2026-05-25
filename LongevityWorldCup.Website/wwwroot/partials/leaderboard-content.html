@@ -2654,6 +2654,32 @@
         return normalizeFlagKey(getCanonicalFlagName(flag));
     }
 
+    function decodeFilterUrlToken(token) {
+        let decoded = String(token || '');
+        for (let i = 0; i < 2; i++) {
+            try {
+                const next = decodeURIComponent(decoded);
+                if (next === decoded) break;
+                decoded = next;
+            } catch (_) {
+                break;
+            }
+        }
+
+        return decoded.trim();
+    }
+
+    function parseFiltersParam(filtersParam) {
+        return String(filtersParam || '')
+            .split(',')
+            .map(decodeFilterUrlToken)
+            .filter(Boolean);
+    }
+
+    function serializeFiltersParam(filters) {
+        return filters.map(filter => encodeURIComponent(filter)).join(',');
+    }
+
     function getFlagIconCode(flag) {
         return standardFlagIconCodes.get(getFlagFilterKey(flag)) || '';
     }
@@ -3685,9 +3711,7 @@
 
                     const filtersParam = new URLSearchParams(window.location.search).get('filters');
                     if (filtersParam) {
-                        // Double-decode the parameter in case it was double encoded (e.g. baby%2520boomers becomes "baby boomers")
-                        const decodedFilters = decodeURIComponent(decodeURIComponent(filtersParam));
-                        const filtersList = decodedFilters.split(',');
+                        const filtersList = parseFiltersParam(filtersParam);
                         filtersList.forEach(filterValue => {
                             const normalizedFilter = filterValue.trim().toLowerCase();
                             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
@@ -4499,7 +4523,7 @@
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
         const selectedFlags = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-            .map(checkbox => checkbox.value);
+            .map(checkbox => getFlagFilterKey(checkbox.value));
         const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
         const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
@@ -4515,7 +4539,7 @@
             ...(selectedLeagueTracks.length === 1 ? selectedLeagueTracks : [])
         ];
         if (filters.length > 0) {
-            url.searchParams.set('filters', filters.join(','));
+            url.searchParams.set('filters', serializeFiltersParam(filters));
         }
 
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
@@ -4849,12 +4873,12 @@
             url.searchParams.set('search', encodeURIComponent(query));
         }
 
-        const selectedFlagLabels = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-            .map(checkbox => checkbox.value);
-        const filters = [...selectedDivisions, ...selectedFlagLabels, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
+        const selectedFlagKeys = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+            .map(checkbox => getFlagFilterKey(checkbox.value));
+        const filters = [...selectedDivisions, ...selectedFlagKeys, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
         const cleanSearch = ([...url.searchParams].length === 0)
             || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
-        if (filters.length === 1 && selectedFlagLabels.length === 0 && cleanSearch && currentLeaderboardView === 'ultimate') {
+        if (filters.length === 1 && selectedFlagKeys.length === 0 && cleanSearch && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
             const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
@@ -4866,8 +4890,7 @@
             if (filters.length === 0) {
                 url.searchParams.delete('filters');
             } else {
-                const encodedFilters = filters.map(f => encodeURIComponent(f)).join(',');
-                url.searchParams.set('filters', encodedFilters);
+                url.searchParams.set('filters', serializeFiltersParam(filters));
             }
         }
 
