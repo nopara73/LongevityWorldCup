@@ -372,6 +372,9 @@ window.optimizeImageClient = async function (dataUri, options) {
     const targetMaxBytes = Number.isFinite(options.targetMaxBytes) && options.targetMaxBytes > 0
         ? options.targetMaxBytes
         : null;
+    const minQuality = Number.isFinite(options.minQuality) ? options.minQuality : 0.76;
+    const minResizeQuality = Number.isFinite(options.minResizeQuality) ? options.minResizeQuality : 0.72;
+    const minMaxSize = Number.isFinite(options.minMaxSize) ? options.minMaxSize : 2048;
 
     const encode = async (maxSize, quality) => {
         let { width, height } = img;
@@ -394,17 +397,17 @@ window.optimizeImageClient = async function (dataUri, options) {
     let optimizedBlob = null;
     let maxSize = initialMaxSize;
     let quality = initialQuality;
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < 8; attempt++) {
         optimizedBlob = await encode(maxSize, quality);
         if (!optimizedBlob || !targetMaxBytes || optimizedBlob.size <= targetMaxBytes) {
             break;
         }
 
-        if (quality > 0.76) {
-            quality = Math.max(0.76, quality - 0.06);
-        } else if (maxSize > 2048) {
-            maxSize = Math.max(2048, Math.round(maxSize * 0.86));
-            quality = Math.max(0.72, quality - 0.04);
+        if (quality > minQuality) {
+            quality = Math.max(minQuality, quality - 0.06);
+        } else if (maxSize > minMaxSize) {
+            maxSize = Math.max(minMaxSize, Math.round(maxSize * 0.86));
+            quality = Math.max(minResizeQuality, quality - 0.04);
         } else {
             break;
         }
@@ -435,6 +438,15 @@ window.optimizeImageClient = async function (dataUri, options) {
         contentType: optimizedContentType,
         extension: optimizedContentType.split('/')[1]
     };
+};
+
+window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS = {
+    maxSize: 1024,
+    minMaxSize: 640,
+    quality: 0.82,
+    minQuality: 0.68,
+    minResizeQuality: 0.68,
+    targetMaxBytes: 900 * 1024
 };
 
 window.createApplicationSubmissionId = function () {
