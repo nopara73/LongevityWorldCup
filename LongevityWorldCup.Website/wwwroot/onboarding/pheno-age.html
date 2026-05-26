@@ -1118,6 +1118,10 @@
         const bloodDrawDateInput = document.getElementById('blood-draw-date');
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
 
+        if (window.captureFreePassFromUrl) {
+            window.captureFreePassFromUrl();
+        }
+
         if (bloodDrawDateInput) {
             const todayLocal = new Date();
             todayLocal.setHours(0, 0, 0, 0);
@@ -2118,12 +2122,17 @@
                  window.location.href = '/proofs';
              } else {
                  if (!sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
-                     sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify({
+                     const paymentOffer = {
                          source: 'direct-pheno-age',
                          offerType: 'amateur',
                          currency: 'USD',
                          amountUsd: 10
-                     }));
+                     };
+                     sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
+                         window.applyFreePassToPaymentOffer
+                             ? window.applyFreePassToPaymentOffer(paymentOffer)
+                             : paymentOffer
+                     ));
                  }
                  window.location.href = '/apply';
              }
