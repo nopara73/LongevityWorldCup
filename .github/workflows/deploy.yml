@@ -1,6 +1,7 @@
 name: Auto Deploy on Master
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
