@@ -14,6 +14,7 @@ namespace LongevityWorldCup.Website.Business
         public string? ChronoPhenoDifference { get; set; }
         public string? ChronoBortzDifference { get; set; }
         public string? SubmissionId { get; set; }
+        public string? FreePass { get; set; }
         public string? PersonalLink { get; set; }
         public string? ProfilePic { get; set; } // Base64 string
         public List<string>? ProofPics { get; set; } // List of Base64 strings

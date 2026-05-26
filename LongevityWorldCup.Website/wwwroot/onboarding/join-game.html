@@ -831,8 +831,20 @@
       updateMainProgress(1);
       const PENDING_PAYMENT_OFFER_KEY = "pendingPaymentOffer";
 
+      if (window.captureFreePassFromUrl) {
+        window.captureFreePassFromUrl();
+      }
+
       function setPendingPaymentOffer(offer) {
-        sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(offer));
+        const effectiveOffer = window.applyFreePassToPaymentOffer
+          ? window.applyFreePassToPaymentOffer(offer)
+          : offer;
+        sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+      }
+
+      function getFreePassQuerySuffix() {
+        const value = window.getFreePassValue ? window.getFreePassValue() : null;
+        return value === null ? "" : `?freepass=${encodeURIComponent(value)}`;
       }
 
       function startAmateurApplication() {
@@ -842,7 +854,7 @@
           currency: "USD",
           amountUsd: 10
         });
-        window.location.href = "/pheno-age";
+        window.location.href = `/pheno-age${getFreePassQuerySuffix()}`;
       }
 
       function startProApplication() {
@@ -856,7 +868,7 @@
           currency: "USD",
           amountUsd
         });
-        window.location.href = "/bortz-age";
+        window.location.href = `/bortz-age${getFreePassQuerySuffix()}`;
       }
 
       function createPriceHtmlFallback(result) {
@@ -867,7 +879,29 @@
         return `<span class="pro-new-price">${oldText}</span>`;
       }
 
+      function renderFreePassPricing() {
+        if (!window.hasFreePass || !window.hasFreePass()) return false;
+
+        const amateurPrice = document.querySelector(".track-card:not(.pro) .entry-cell .pro-new-price");
+        const note = document.getElementById("proDiscountNote");
+        const breakdown = document.getElementById("proDiscountBreakdown");
+        const proEntryPrice = document.getElementById("proEntryPrice");
+        const proEntryCell = proEntryPrice && proEntryPrice.parentElement;
+        const amateurEntryCell = document.querySelector(".track-card:not(.pro) .entry-cell");
+        const goProJoinButton = document.getElementById("goProJoinButton");
+
+        if (amateurPrice) amateurPrice.textContent = "free";
+        if (proEntryPrice) proEntryPrice.innerHTML = '<span class="pro-new-price">free</span>';
+        if (breakdown) breakdown.textContent = "";
+        if (note) note.style.display = "none";
+        if (proEntryCell) proEntryCell.classList.remove("has-discount");
+        if (amateurEntryCell) amateurEntryCell.classList.remove("has-discount");
+        if (goProJoinButton) goProJoinButton.textContent = "Go pro";
+        return true;
+      }
+
       function renderProDiscountNote() {
+        if (renderFreePassPricing()) return;
         if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== "function") return;
 
         // Join-game is athlete-agnostic; only use browser-global discounts here.

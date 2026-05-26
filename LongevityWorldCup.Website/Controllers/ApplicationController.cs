@@ -220,6 +220,7 @@ namespace LongevityWorldCup.Website.Controllers
             string? accountEmail = applicantData.AccountEmail?.Trim();
             string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
+            var hasFreePass = applicantData.FreePass is not null;
 
             // Prepare the email body (excluding the images)
             // Moved this block after processing images to include paths
@@ -367,13 +368,15 @@ namespace LongevityWorldCup.Website.Controllers
                                     new ContentType("application", "zip"));
 
             // 3a) Prepare email body based on submission type
-            var paymentAmountUsd = applicantData.PaymentOffer?.AmountUsd ?? 0m;
+            var paymentAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
             var paymentCurrency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
                 ? "USD"
                 : applicantData.PaymentOffer!.Currency!.Trim().ToUpperInvariant();
-            var paymentDueText = paymentAmountUsd <= 0m
-                ? $"free ({paymentCurrency})"
-                : $"{paymentCurrency} {paymentAmountUsd:0.##}";
+            var paymentDueText = hasFreePass
+                ? $"free pass ({paymentCurrency})"
+                : paymentAmountUsd <= 0m
+                    ? $"free ({paymentCurrency})"
+                    : $"{paymentCurrency} {paymentAmountUsd:0.##}";
 
             var emailBody = BuildApplicationAuditEmailBody(
                 applicantData,
@@ -438,7 +441,7 @@ namespace LongevityWorldCup.Website.Controllers
                     Directory.Delete(tempRoot, recursive: true);
                 }
                 catch { /* ignore */ }
-                var requestedAmountUsd = applicantData.PaymentOffer?.AmountUsd ?? 0m;
+                var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
                 var paymentRequired = requestedAmountUsd > 0m;
                 if (!paymentRequired)
                 {
@@ -1001,6 +1004,7 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine($"Submitted at: {submittedAtUtc:yyyy-MM-dd HH:mm:ss 'UTC'}")
                 .AppendLine($"Attachment filename: {attachmentFilename}")
                 .AppendLine($"Payment due: {paymentDueText}")
+                .AppendLine($"Free pass: {FormatFreePassAuditValue(applicantData.FreePass)}")
                 .AppendLine()
                 .AppendLine("Changed fields:")
                 .AppendLine(changedFields)
@@ -1012,6 +1016,17 @@ namespace LongevityWorldCup.Website.Controllers
                     chronoBortzDifference));
 
             return sb.ToString();
+        }
+
+        private static string FormatFreePassAuditValue(string? freePass)
+        {
+            if (freePass is null)
+                return "none";
+
+            var trimmed = freePass.Trim();
+            return string.IsNullOrEmpty(trimmed)
+                ? "present (empty value)"
+                : FormatAuditValue(TrimForLog(trimmed, 500));
         }
 
         private static void AppendLegacyApplicationEmailIntro(

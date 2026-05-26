@@ -461,6 +461,10 @@
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
 
+        if (window.captureFreePassFromUrl) {
+            window.captureFreePassFromUrl();
+        }
+
         function getAthleteDisplayName() {
             if (athlete?.DisplayName && athlete.DisplayName.trim()) {
                 return athlete.DisplayName.trim();
@@ -528,11 +532,15 @@
                     proofPics: proofPics,
                     paymentOffer: (() => {
                         try {
-                            return JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
+                            const paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
+                            return window.applyFreePassToPaymentOffer
+                                ? window.applyFreePassToPaymentOffer(paymentOffer)
+                                : paymentOffer;
                         } catch (_) {
                             return null;
                         }
-                    })()
+                    })(),
+                    freePass: window.getFreePassValue ? window.getFreePassValue() : null
                 };
 
                 const submitButton = document.getElementById('submitButton');

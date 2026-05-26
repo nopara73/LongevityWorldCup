@@ -334,6 +334,10 @@
 
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
 
+        if (window.captureFreePassFromUrl) {
+            window.captureFreePassFromUrl();
+        }
+
         function getAthleteDisplayName() {
             if (athlete?.DisplayName && athlete.DisplayName.trim()) {
                 return athlete.DisplayName.trim();
@@ -343,7 +347,10 @@
         }
 
         function setPendingPaymentOffer(offer) {
-            sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(offer));
+            const effectiveOffer = window.applyFreePassToPaymentOffer
+                ? window.applyFreePassToPaymentOffer(offer)
+                : offer;
+            sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
         }
 
         function clearPendingPaymentOffer() {
@@ -439,9 +446,14 @@
                         window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
                             ? window.proDiscounts.buildDiscountBreakdown(athlete, { isOnLeaderboard: true })
                             : null;
+                    const goProPriceHtml = window.hasFreePass && window.hasFreePass()
+                        ? '<span class="pro-new-price">free</span>'
+                        : goProDiscountResult
+                            ? (typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult))
+                            : null;
                     const goProButton = createButton(
-                        goProDiscountResult
-                            ? `<span class="dashboard-action-label">Go pro for&nbsp;${typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult)}</span><i class="fas fa-bolt"></i>`
+                        goProPriceHtml
+                            ? `<span class="dashboard-action-label">Go pro for&nbsp;${goProPriceHtml}</span><i class="fas fa-bolt"></i>`
                             : '<span class="dashboard-action-label">Go pro for</span><i class="fas fa-bolt"></i>',
                         'option-button green',
                         '/bortz-age?update=1',
