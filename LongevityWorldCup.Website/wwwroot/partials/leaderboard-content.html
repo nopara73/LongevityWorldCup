@@ -3009,6 +3009,12 @@
                 if (viewAllAthletesBtn) {
                     updateViewAllAthletesButton(athletes.length);
                 }
+                const nowForCrowdAgeUtc = new Date();
+                const crowdAgeAsOfUtcDate = new Date(
+                    nowForCrowdAgeUtc.getUTCFullYear(),
+                    nowForCrowdAgeUtc.getUTCMonth(),
+                    nowForCrowdAgeUtc.getUTCDate()
+                );
                 athleteResults = athletes.map(athlete => {
                     // Calculate the chronological age from the athlete's DateOfBirth
                     const dob = new Date(
@@ -3017,10 +3023,11 @@
                         athlete.DateOfBirth.Day
                     );
                     const chronologicalAgeNow = window.calculateAgeAtDate(dob, new Date());
+                    const chronologicalAgeForCrowdAge = window.calculateAgeAtDate(dob, crowdAgeAsOfUtcDate);
 
                     const crowdAge = athlete.CrowdAge;
                     const crowdCount = athlete.CrowdCount;
-                    const crowdAgeReduction = Number.isFinite(crowdAge) ? crowdAge - chronologicalAgeNow : null;
+                    const crowdAgeReduction = Number.isFinite(crowdAge) ? crowdAge - chronologicalAgeForCrowdAge : null;
                     const completeBiomarkerSets = athlete.Biomarkers.filter(isCompleteBiomarkerSet);
 
                     // Get birth year and generation
