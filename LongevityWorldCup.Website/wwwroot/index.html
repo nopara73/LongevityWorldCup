@@ -716,6 +716,46 @@
                 height: 100%;
             }
 
+            #events-root-index .events-board td.col-avatar {
+                width: 52px;
+            }
+
+            #events-root-index .events-board td.col-date {
+                width: 76px;
+                padding-left: 8px;
+            }
+
+            #events-root-index .events-board td.event-message {
+                min-width: 0;
+            }
+
+            #events-root-index .events-board td.event-message .event-message-cell {
+                white-space: normal;
+                overflow-x: hidden;
+                flex-wrap: wrap;
+                align-items: baseline;
+                column-gap: 0.22rem;
+                row-gap: 0.16rem;
+                padding-top: 0.3rem;
+                padding-bottom: 0.3rem;
+            }
+
+            #events-root-index .events-board td.event-message .event-message-cell > * {
+                min-width: 0;
+            }
+
+            #events-root-index .events-board td.event-message .event-message-cell * {
+                white-space: normal;
+            }
+
+            #events-root-index .events-board td.event-message .event-message-cell .name-and-rank,
+            #events-root-index .events-board td.event-message .event-message-cell .rank-badge,
+            #events-root-index .events-board td.event-message .event-message-cell .badge-class,
+            #events-root-index .events-board td.event-message .event-message-cell .badge-chip,
+            #events-root-index .events-board td.event-message .event-message-cell .more-link {
+                white-space: nowrap;
+            }
+
         /* modifier so we don't mess with the table board */
         .events-board--timer {
             display: flex;
