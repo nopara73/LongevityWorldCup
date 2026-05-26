@@ -57,6 +57,56 @@
     window.modulesReady = Promise.resolve();
 </script>
 
+<script>
+    window.LWC_FREE_PASS_SESSION_KEY = 'lwcFreePass';
+
+    window.captureFreePassFromUrl = function () {
+        const params = new URLSearchParams(window.location.search || '');
+        if (!params.has('freepass')) {
+            return window.getFreePassValue();
+        }
+
+        const rawValue = params.get('freepass');
+        const value = rawValue === null ? '' : String(rawValue);
+        try {
+            sessionStorage.setItem(window.LWC_FREE_PASS_SESSION_KEY, value);
+        } catch (_) {
+            window.__lwcFreePassValue = value;
+        }
+
+        return value;
+    };
+
+    window.getFreePassValue = function () {
+        try {
+            if (sessionStorage.getItem(window.LWC_FREE_PASS_SESSION_KEY) !== null) {
+                return sessionStorage.getItem(window.LWC_FREE_PASS_SESSION_KEY);
+            }
+        } catch (_) {
+        }
+
+        return Object.prototype.hasOwnProperty.call(window, '__lwcFreePassValue')
+            ? window.__lwcFreePassValue
+            : null;
+    };
+
+    window.hasFreePass = function () {
+        return window.getFreePassValue() !== null;
+    };
+
+    window.applyFreePassToPaymentOffer = function (offer) {
+        if (!window.hasFreePass()) {
+            return offer;
+        }
+
+        return Object.assign({}, offer || {}, {
+            source: offer && offer.source ? offer.source : 'freepass',
+            currency: offer && offer.currency ? offer.currency : 'USD',
+            amountUsd: 0
+        });
+    };
+</script>
+
 <!--
 Monkey-patch DOMContentLoaded to delay all handlers until modulesReady resolves.
 Ensures imported modules (like PhenoAge) are available before any DOM logic runs.

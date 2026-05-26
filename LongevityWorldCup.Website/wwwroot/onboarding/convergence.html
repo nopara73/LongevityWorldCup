@@ -685,6 +685,10 @@
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
+
+        if (window.captureFreePassFromUrl) {
+            window.captureFreePassFromUrl();
+        }
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
 
@@ -827,6 +831,9 @@
             } catch (_) {
                 paymentOffer = null;
             }
+            if (window.applyFreePassToPaymentOffer) {
+                paymentOffer = window.applyFreePassToPaymentOffer(paymentOffer);
+            }
 
             // Create the applicant data object
             const applicantData = {
@@ -843,7 +850,8 @@
                 biomarkers: biomarkerData.Biomarkers,
                 profilePic: profilePic, // Base64 string
                 proofPics: proofPics, // Array of Base64 strings
-                paymentOffer: paymentOffer
+                paymentOffer: paymentOffer,
+                freePass: window.getFreePassValue ? window.getFreePassValue() : null
             };
 
             return applicantData;
