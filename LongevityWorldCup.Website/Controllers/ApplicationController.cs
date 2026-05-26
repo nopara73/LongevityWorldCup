@@ -79,8 +79,9 @@ namespace LongevityWorldCup.Website.Controllers
         private const int MaxBase64Length = 10 * 1024 * 1024; // 10 MB
         private const int ProfileImageMaxDimension = 2048;
         private const int ProofImageMaxDimension = 2560;
-        private const int ExistingWebpProfilePassthroughBytes = 1 * 1024 * 1024;
+        private const int ExistingWebpProfilePassthroughBytes = 4 * 1024 * 1024;
         private const int ExistingWebpProofPassthroughBytes = 2 * 1024 * 1024;
+        private const int OriginalImageFallbackBytes = 10 * 1024 * 1024;
 
         // Helper method to parse Base64 image strings and extract bytes, content type, and extension
         private static (byte[]? bytes, string? contentType, string? extension) ParseBase64Image(string base64String)
@@ -1600,6 +1601,21 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
+                if (CanSaveOriginalImageAfterOptimizationFailure(imageData))
+                {
+                    _logger.LogWarning(
+                        "Image optimization failed with {ExceptionType}: {ExceptionMessage}. Saving original submitted image. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ContentType={ContentType} Extension={Extension} Bytes={Bytes}",
+                        ex.GetType().Name,
+                        TrimForLog(ex.Message, 160),
+                        submissionId,
+                        proofIndex,
+                        imageData.contentType,
+                        imageData.extension,
+                        imageData.bytes.Length);
+
+                    return ImageOptimizationResult.Ok(imageData.bytes, imageData.contentType, imageData.extension);
+                }
+
                 _logger.LogError(
                     ex,
                     "Image optimization failed. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ContentType={ContentType} Extension={Extension} Bytes={Bytes}",
@@ -1610,6 +1626,21 @@ namespace LongevityWorldCup.Website.Controllers
                     imageData.bytes.Length);
                 return ImageOptimizationResult.Failure(userErrorMessage);
             }
+        }
+
+        private static bool CanSaveOriginalImageAfterOptimizationFailure(
+            (byte[]? bytes, string? contentType, string? extension) imageData)
+        {
+            if (imageData.bytes is null || imageData.contentType is null || imageData.extension is null)
+                return false;
+
+            if (imageData.bytes.Length > OriginalImageFallbackBytes)
+                return false;
+
+            return imageData.extension.Equals("png", StringComparison.OrdinalIgnoreCase)
+                || imageData.extension.Equals("jpg", StringComparison.OrdinalIgnoreCase)
+                || imageData.extension.Equals("jpeg", StringComparison.OrdinalIgnoreCase)
+                || imageData.extension.Equals("webp", StringComparison.OrdinalIgnoreCase);
         }
 
         [GeneratedRegex(@"data:(?<type>.+?);base64,(?<data>.+)")]
