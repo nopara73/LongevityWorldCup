@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using LongevityWorldCup.Website.Tools;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -9,11 +7,11 @@ namespace LongevityWorldCup.Website.Business;
 
 public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemoryCache cache)
 {
+    private const string SnapshotCacheKey = "leaderboard-snapshot-v1";
     private const string CacheKey = "leaderboard-facts-markdown-v1";
     private const string AthleteNamesCacheKey = "athlete-names-markdown-v1";
     private const string SiteBaseUrl = "https://longevityworldcup.com";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-    private static readonly Regex EmailLike = new(@"^[^\s@]+@[^\s@]+\.[^\s@]+$", RegexOptions.Compiled);
 
     private static readonly (string Slug, string DisplayName)[] LeagueSections =
     [
@@ -30,6 +28,18 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
         ("gen-alpha", "Gen Alpha League"),
         ("prosperan", "Prosperan League")
     ];
+
+    public LeaderboardSnapshot GetLeaderboardSnapshot()
+    {
+        return cache.GetOrCreate(SnapshotCacheKey, entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            return LeaderboardSnapshotBuilder.Build(
+                athletes.GetRankingsOrder(),
+                athletes.GetAthletesSnapshot(),
+                SiteBaseUrl);
+        })!;
+    }
 
     public LeaderboardFactsDocument GetLeaderboardMarkdown()
     {
@@ -55,7 +65,7 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
 
     private string RenderMarkdown(DateTimeOffset generatedAtUtc)
     {
-        var rows = BuildRows();
+        var rows = GetLeaderboardSnapshot().Rows;
         var rowsBySlug = rows.ToDictionary(row => row.Slug, StringComparer.OrdinalIgnoreCase);
         var sb = new StringBuilder();
 
@@ -106,7 +116,7 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
     {
         var sb = new StringBuilder();
         var number = 1;
-        foreach (var row in BuildRows())
+        foreach (var row in GetLeaderboardSnapshot().Rows)
         {
             sb.AppendLine($"{number.ToString(CultureInfo.InvariantCulture)}. {SanitizeLine(row.DisplayName)}");
             number++;
@@ -115,56 +125,7 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
         return sb.ToString();
     }
 
-    private IReadOnlyList<LeaderboardFactRow> BuildRows()
-    {
-        var ranked = athletes.GetRankingsOrder();
-        var snapshot = athletes.GetAthletesSnapshot();
-        var extraBySlug = snapshot
-            .OfType<JsonObject>()
-            .Select(BuildExtra)
-            .Where(extra => !string.IsNullOrWhiteSpace(extra.Slug))
-            .ToDictionary(extra => extra.Slug, StringComparer.OrdinalIgnoreCase);
-
-        var rows = new List<LeaderboardFactRow>();
-        var rank = 0;
-        foreach (var node in ranked.OfType<JsonObject>())
-        {
-            var slug = GetString(node, "AthleteSlug");
-            if (string.IsNullOrWhiteSpace(slug))
-            {
-                continue;
-            }
-
-            rank++;
-            extraBySlug.TryGetValue(slug, out var extra);
-            extra ??= AthleteExtra.Empty;
-            var name = FirstNonEmpty(extra.DisplayName, GetString(node, "Name"), slug);
-            var hasBortz = TryGetDouble(node, "LowestBortzAge", out var lowestBortzAge);
-            TryGetDouble(node, "LowestPhenoAge", out var lowestPhenoAge);
-            TryGetDouble(node, "ChronologicalAge", out var chronologicalAge);
-            TryGetDouble(node, "AgeDifference", out var ageDifference);
-
-            rows.Add(new LeaderboardFactRow(
-                Rank: rank,
-                Slug: slug,
-                DisplayName: name,
-                AthleteUrl: $"{SiteBaseUrl}/athlete/{slug.Replace('_', '-')}",
-                Track: hasBortz ? "Pro" : "Amateur",
-                EffectiveAgeReductionYears: ageDifference,
-                LowestBortzAge: hasBortz ? lowestBortzAge : null,
-                LowestPhenoAge: lowestPhenoAge,
-                ChronologicalAge: chronologicalAge,
-                Division: extra.Division,
-                Generation: extra.Generation,
-                Flag: extra.Flag,
-                ExclusiveLeague: extra.ExclusiveLeague,
-                MediaContact: FilterMediaContact(extra.MediaContact)));
-        }
-
-        return rows;
-    }
-
-    private void AppendLeagueLeaders(StringBuilder sb, IReadOnlyDictionary<string, LeaderboardFactRow> rowsBySlug)
+    private void AppendLeagueLeaders(StringBuilder sb, IReadOnlyDictionary<string, LeaderboardSnapshotRow> rowsBySlug)
     {
         sb.AppendLine("## League Leaders");
         sb.AppendLine();
@@ -189,7 +150,7 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
         sb.AppendLine();
     }
 
-    private static void AppendRankingTable(StringBuilder sb, string title, IEnumerable<LeaderboardFactRow> rows)
+    private static void AppendRankingTable(StringBuilder sb, string title, IEnumerable<LeaderboardSnapshotRow> rows)
     {
         sb.AppendLine($"## {title}");
         sb.AppendLine();
@@ -203,30 +164,6 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
         }
 
         sb.AppendLine();
-    }
-
-    private static AthleteExtra BuildExtra(JsonObject athlete)
-    {
-        var slug = GetString(athlete, "AthleteSlug");
-        return new AthleteExtra(
-            Slug: slug,
-            DisplayName: FirstNonEmpty(GetString(athlete, "DisplayName"), GetString(athlete, "Name"), slug),
-            Division: GetString(athlete, "Division"),
-            Generation: GenerationResolver.ResolveFromAthleteJson(athlete) ?? "",
-            Flag: GetString(athlete, "Flag"),
-            ExclusiveLeague: GetString(athlete, "ExclusiveLeague"),
-            MediaContact: GetString(athlete, "MediaContact"));
-    }
-
-    private static string FilterMediaContact(string mediaContact)
-    {
-        if (string.IsNullOrWhiteSpace(mediaContact))
-        {
-            return "";
-        }
-
-        var trimmed = mediaContact.Trim();
-        return EmailLike.IsMatch(trimmed) ? "" : trimmed;
     }
 
     private static string MarkdownLink(string text, string url)
@@ -270,55 +207,6 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
     {
         return value.HasValue ? value.Value.ToString("0.##", CultureInfo.InvariantCulture) : "";
     }
-
-    private static string FirstNonEmpty(params string?[] values)
-    {
-        return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? "";
-    }
-
-    private static string GetString(JsonObject obj, string propertyName)
-    {
-        return obj[propertyName] is JsonValue value && value.TryGetValue<string>(out var result)
-            ? result?.Trim() ?? ""
-            : "";
-    }
-
-    private static bool TryGetDouble(JsonObject obj, string propertyName, out double value)
-    {
-        value = 0;
-        return obj[propertyName] is JsonValue jsonValue &&
-               jsonValue.TryGetValue<double>(out value) &&
-               !double.IsNaN(value) &&
-               !double.IsInfinity(value);
-    }
-
-    private sealed record AthleteExtra(
-        string Slug,
-        string DisplayName,
-        string Division,
-        string Generation,
-        string Flag,
-        string ExclusiveLeague,
-        string MediaContact)
-    {
-        public static readonly AthleteExtra Empty = new("", "", "", "", "", "", "");
-    }
-
-    private sealed record LeaderboardFactRow(
-        int Rank,
-        string Slug,
-        string DisplayName,
-        string AthleteUrl,
-        string Track,
-        double? EffectiveAgeReductionYears,
-        double? LowestBortzAge,
-        double? LowestPhenoAge,
-        double? ChronologicalAge,
-        string Division,
-        string Generation,
-        string Flag,
-        string ExclusiveLeague,
-        string MediaContact);
 }
 
 public sealed record LeaderboardFactsDocument(string Markdown, DateTimeOffset LastModifiedUtc);
