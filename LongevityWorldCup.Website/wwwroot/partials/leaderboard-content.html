@@ -2350,6 +2350,7 @@
                 </tr>
                 </thead>
                 <tbody class="loading-skeleton" aria-busy="true">
+<!--LEADERBOARD-TBODY-ROWS-START-->
                 <tr class="leaderboard-skeleton-row" aria-hidden="true">
                     <td data-label="Rank" class="rank-td"><span class="rank skeleton-shimmer"></span></td>
                     <td data-label="Athlete" class="athlete-td">
@@ -2410,6 +2411,7 @@
                     <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 </tr>
+<!--LEADERBOARD-TBODY-ROWS-END-->
                 </tbody>
             </table>
         </div>
@@ -3585,6 +3587,8 @@
                 const tableBody = document.querySelector('.leaderboard table tbody');
                 tableBody.classList.remove('loading-skeleton');
                 tableBody.setAttribute('aria-busy', 'false');
+                tableBody.removeAttribute('data-server-rendered');
+                tableBody.removeAttribute('data-hydrating');
                 const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
@@ -3776,7 +3780,10 @@
                 if (tableBody) {
                     tableBody.classList.remove('loading-skeleton');
                     tableBody.setAttribute('aria-busy', 'false');
-                    tableBody.innerHTML = '<tr><td colspan="5" class="no-results">Failed to load leaderboard.</td></tr>';
+                    tableBody.removeAttribute('data-hydrating');
+                    if (!hasServerRenderedLeaderboardRows(tableBody)) {
+                        tableBody.innerHTML = '<tr><td colspan="5" class="no-results">Failed to load leaderboard.</td></tr>';
+                    }
                 }
                 const podium = document.querySelector('.podium');
                 if (podium) {
@@ -3828,6 +3835,12 @@
         `).join('');
     }
 
+    function hasServerRenderedLeaderboardRows(tableBody) {
+        return !!tableBody &&
+            tableBody.getAttribute('data-server-rendered') === 'true' &&
+            !!tableBody.querySelector('tr.server-rendered-leaderboard-row');
+    }
+
     function setLeaderboardLoadingState(includePodium, maxAthletes) {
         const podium = document.querySelector('.podium');
         if (podium) {
@@ -3844,6 +3857,12 @@
 
         const tableBody = document.querySelector('.leaderboard table tbody');
         if (!tableBody) return;
+        if (hasServerRenderedLeaderboardRows(tableBody)) {
+            tableBody.classList.remove('loading-skeleton');
+            tableBody.setAttribute('aria-busy', 'true');
+            tableBody.setAttribute('data-hydrating', 'true');
+            return;
+        }
 
         const skeletonCount = Number.isFinite(maxAthletes)
             ? Math.min(Math.max(maxAthletes, 4), 10)
