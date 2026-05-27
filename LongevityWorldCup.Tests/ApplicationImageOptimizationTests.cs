@@ -27,6 +27,52 @@ public class ApplicationImageOptimizationTests
         Assert.Equal(bytes, (byte[])result.GetType().GetProperty("Bytes")!.GetValue(result)!);
     }
 
+    [Fact]
+    public void OversizedProfileOptimizationFailureDoesNotFallBackToOriginalBytes()
+    {
+        var bytes = new byte[(4 * 1024 * 1024) + 1];
+        var controller = new ApplicationController(new TestWebHostEnvironment(), NullLogger<HomeController>.Instance);
+        var method = typeof(ApplicationController).GetMethod("OptimizeProfileImage", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.NotNull(method);
+
+        var result = method!.Invoke(controller, [(bytes, "image/png", "png"), "test-submission"]);
+
+        Assert.NotNull(result);
+        Assert.False((bool)result!.GetType().GetProperty("Success")!.GetValue(result)!);
+    }
+
+    [Fact]
+    public void OversizedProofOptimizationFailureDoesNotFallBackToOriginalBytes()
+    {
+        var bytes = new byte[(2 * 1024 * 1024) + 1];
+        var controller = new ApplicationController(new TestWebHostEnvironment(), NullLogger<HomeController>.Instance);
+        var method = typeof(ApplicationController).GetMethod("OptimizeProofImage", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.NotNull(method);
+
+        var result = method!.Invoke(controller, [(bytes, "image/png", "png"), "test-submission", 1]);
+
+        Assert.NotNull(result);
+        Assert.False((bool)result!.GetType().GetProperty("Success")!.GetValue(result)!);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    [InlineData(" summer-pass ", "summer-pass")]
+    public void NormalizeFreePassValueRequiresNonBlankToken(string? input, string? expected)
+    {
+        var method = typeof(ApplicationController).GetMethod("NormalizeFreePassValue", BindingFlags.Static | BindingFlags.NonPublic);
+
+        Assert.NotNull(method);
+
+        var result = method!.Invoke(null, [input]);
+
+        Assert.Equal(expected, result);
+    }
+
     private sealed class TestWebHostEnvironment : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = "LongevityWorldCup.Tests";

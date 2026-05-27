@@ -81,7 +81,6 @@ namespace LongevityWorldCup.Website.Controllers
         private const int ProofImageMaxDimension = 2560;
         private const int ExistingWebpProfilePassthroughBytes = 4 * 1024 * 1024;
         private const int ExistingWebpProofPassthroughBytes = 2 * 1024 * 1024;
-        private const int OriginalImageFallbackBytes = 10 * 1024 * 1024;
 
         // Helper method to parse Base64 image strings and extract bytes, content type, and extension
         private static (byte[]? bytes, string? contentType, string? extension) ParseBase64Image(string base64String)
@@ -221,6 +220,7 @@ namespace LongevityWorldCup.Website.Controllers
             string? accountEmail = applicantData.AccountEmail?.Trim();
             string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
+            applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
             var hasFreePass = applicantData.FreePass is not null;
 
             // Prepare the email body (excluding the images)
@@ -1523,6 +1523,12 @@ namespace LongevityWorldCup.Website.Controllers
             return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
         }
 
+        private static string? NormalizeFreePassValue(string? value)
+        {
+            var trimmed = value?.Trim();
+            return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+        }
+
         private ImageOptimizationResult OptimizeProfileImage((byte[]? bytes, string? contentType, string? extension) imageData, string submissionId)
         {
             return OptimizeImage(
@@ -1601,7 +1607,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
-                if (CanSaveOriginalImageAfterOptimizationFailure(imageData))
+                if (CanSaveOriginalImageAfterOptimizationFailure(imageData, existingWebpPassthroughBytes))
                 {
                     _logger.LogWarning(
                         "Image optimization failed with {ExceptionType}: {ExceptionMessage}. Saving original submitted image. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ContentType={ContentType} Extension={Extension} Bytes={Bytes}",
@@ -1629,12 +1635,13 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         private static bool CanSaveOriginalImageAfterOptimizationFailure(
-            (byte[]? bytes, string? contentType, string? extension) imageData)
+            (byte[]? bytes, string? contentType, string? extension) imageData,
+            int maxOriginalBytes)
         {
             if (imageData.bytes is null || imageData.contentType is null || imageData.extension is null)
                 return false;
 
-            if (imageData.bytes.Length > OriginalImageFallbackBytes)
+            if (imageData.bytes.Length > maxOriginalBytes)
                 return false;
 
             return imageData.extension.Equals("png", StringComparison.OrdinalIgnoreCase)
