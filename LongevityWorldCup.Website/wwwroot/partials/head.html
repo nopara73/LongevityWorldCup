@@ -60,18 +60,31 @@
 <script>
     window.LWC_FREE_PASS_SESSION_KEY = 'lwcFreePass';
 
+    function normalizeFreePassValue(value) {
+        const normalized = value === null || value === undefined ? '' : String(value).trim();
+        return normalized.length > 0 ? normalized : null;
+    }
+
     window.captureFreePassFromUrl = function () {
         const params = new URLSearchParams(window.location.search || '');
         if (!params.has('freepass')) {
             return window.getFreePassValue();
         }
 
-        const rawValue = params.get('freepass');
-        const value = rawValue === null ? '' : String(rawValue);
+        const value = normalizeFreePassValue(params.get('freepass'));
         try {
-            sessionStorage.setItem(window.LWC_FREE_PASS_SESSION_KEY, value);
+            if (value === null) {
+                sessionStorage.removeItem(window.LWC_FREE_PASS_SESSION_KEY);
+                delete window.__lwcFreePassValue;
+            } else {
+                sessionStorage.setItem(window.LWC_FREE_PASS_SESSION_KEY, value);
+            }
         } catch (_) {
-            window.__lwcFreePassValue = value;
+            if (value === null) {
+                delete window.__lwcFreePassValue;
+            } else {
+                window.__lwcFreePassValue = value;
+            }
         }
 
         return value;
@@ -79,15 +92,28 @@
 
     window.getFreePassValue = function () {
         try {
-            if (sessionStorage.getItem(window.LWC_FREE_PASS_SESSION_KEY) !== null) {
-                return sessionStorage.getItem(window.LWC_FREE_PASS_SESSION_KEY);
+            const storedValue = sessionStorage.getItem(window.LWC_FREE_PASS_SESSION_KEY);
+            const normalizedValue = normalizeFreePassValue(storedValue);
+            if (normalizedValue !== null) {
+                return normalizedValue;
+            }
+
+            if (storedValue !== null) {
+                sessionStorage.removeItem(window.LWC_FREE_PASS_SESSION_KEY);
             }
         } catch (_) {
         }
 
-        return Object.prototype.hasOwnProperty.call(window, '__lwcFreePassValue')
-            ? window.__lwcFreePassValue
-            : null;
+        if (!Object.prototype.hasOwnProperty.call(window, '__lwcFreePassValue')) {
+            return null;
+        }
+
+        const fallbackValue = normalizeFreePassValue(window.__lwcFreePassValue);
+        if (fallbackValue === null) {
+            delete window.__lwcFreePassValue;
+        }
+
+        return fallbackValue;
     };
 
     window.hasFreePass = function () {
