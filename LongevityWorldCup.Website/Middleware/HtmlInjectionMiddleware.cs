@@ -7,14 +7,19 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, ILogger<HtmlInjectionMiddleware> logger)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
         private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;
         private readonly AssetVersionProvider _assetVersionProvider = assetVersionProvider;
+        private readonly LeaderboardFactsService _leaderboardFacts = leaderboardFacts;
+        private readonly ILogger<HtmlInjectionMiddleware> _logger = logger;
         private const string SiteBaseUrl = "https://longevityworldcup.com";
         private const string DefaultOgImagePath = "/assets/og-image.png";
+        private const string LeaderboardRowsStartMarker = "<!--LEADERBOARD-TBODY-ROWS-START-->";
+        private const string LeaderboardRowsEndMarker = "<!--LEADERBOARD-TBODY-ROWS-END-->";
+        private const string LeaderboardSkeletonTbodyOpenTag = "<tbody class=\"loading-skeleton\" aria-busy=\"true\">";
         private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
         {
             "/",
@@ -69,6 +74,7 @@ namespace LongevityWorldCup.Website.Middleware
 
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
+                    leaderboardContent = ApplyLeaderboardRows(leaderboardContent, context);
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
@@ -138,6 +144,54 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                 .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
                 .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
+        }
+
+        private string ApplyLeaderboardRows(string html, HttpContext context)
+        {
+            if (!ShouldRenderLeaderboardRows(context))
+            {
+                return html;
+            }
+
+            try
+            {
+                var rowsHtml = LeaderboardHtmlRenderer.RenderRows(_leaderboardFacts.GetLeaderboardSnapshot());
+                return string.IsNullOrWhiteSpace(rowsHtml)
+                    ? html
+                    : ReplaceLeaderboardRows(html, rowsHtml);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Falling back to leaderboard skeleton rows after server row rendering failed.");
+                return html;
+            }
+        }
+
+        private static string ReplaceLeaderboardRows(string html, string rowsHtml)
+        {
+            var start = html.IndexOf(LeaderboardRowsStartMarker, StringComparison.Ordinal);
+            var end = html.IndexOf(LeaderboardRowsEndMarker, StringComparison.Ordinal);
+            if (start < 0 || end < 0 || end <= start)
+            {
+                return html;
+            }
+
+            var rowsStart = start + LeaderboardRowsStartMarker.Length;
+            var replacedRows = html
+                .Remove(rowsStart, end - rowsStart)
+                .Insert(rowsStart, $"{Environment.NewLine}{rowsHtml}                ");
+
+            return replacedRows.Replace(
+                LeaderboardSkeletonTbodyOpenTag,
+                $"<tbody {LeaderboardHtmlRenderer.ServerRenderedTbodyAttributes}>",
+                StringComparison.Ordinal);
+        }
+
+        private static bool ShouldRenderLeaderboardRows(HttpContext context)
+        {
+            var canonicalPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
+            return string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
+                   !context.Request.QueryString.HasValue;
         }
 
         private string ApplySharedAssetPlaceholders(string html)
