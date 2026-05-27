@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using Xunit;
@@ -56,6 +57,34 @@ public class LeaderboardHtmlRendererTests
         Assert.DoesNotContain("/athletes/athlete/athlete.webp?v=1", html);
     }
 
+    [Fact]
+    public void BuildAndRender_PreservesProBeforeAmateurRowsFromSharedSnapshot()
+    {
+        var ranked = new JsonArray
+        {
+            Ranked("first_pro", "First Pro", -1, lowestBortzAge: 40),
+            Ranked("second_pro", "Second Pro", 1, lowestBortzAge: 55),
+            Ranked("first_amateur", "First Amateur", -100),
+            Ranked("second_amateur", "Second Amateur", -99)
+        };
+        var athletes = new JsonArray
+        {
+            Athlete("first_amateur", "First Amateur", mediaContact: "first.amateur@example.com"),
+            Athlete("second_amateur", "Second Amateur"),
+            Athlete("first_pro", "First Pro"),
+            Athlete("second_pro", "Second Pro")
+        };
+
+        var snapshot = LeaderboardSnapshotBuilder.Build(ranked, athletes);
+        var html = LeaderboardHtmlRenderer.RenderRows(snapshot);
+
+        Assert.Equal(["pro", "pro", "amateur", "amateur"], snapshot.Rows.Select(row => row.Tier).ToArray());
+        Assert.True(html.IndexOf("id=\"rank-2\"", StringComparison.Ordinal) < html.IndexOf("id=\"rank-3\"", StringComparison.Ordinal));
+        Assert.DoesNotContain("tier-pro", html[html.IndexOf("tier-amateur", StringComparison.Ordinal)..]);
+        Assert.DoesNotContain("first.amateur@example.com", html);
+        Assert.DoesNotContain("mailto:", html);
+    }
+
     private static LeaderboardSnapshotRow Row(
         int rank,
         string slug,
@@ -86,6 +115,41 @@ public class LeaderboardHtmlRendererTests
             ExclusiveLeague: "",
             MediaContact: mediaContact,
             LeaderboardThumbnailUrl: thumbnail);
+    }
+
+    private static JsonObject Ranked(string slug, string name, double ageDifference, double? lowestBortzAge = null)
+    {
+        var row = new JsonObject
+        {
+            ["AthleteSlug"] = slug,
+            ["Name"] = name,
+            ["ChronologicalAge"] = 50.0,
+            ["LowestPhenoAge"] = 45.0,
+            ["AgeDifference"] = ageDifference
+        };
+        if (lowestBortzAge.HasValue)
+        {
+            row["LowestBortzAge"] = lowestBortzAge.Value;
+        }
+
+        return row;
+    }
+
+    private static JsonObject Athlete(string slug, string displayName, string mediaContact = "")
+    {
+        return new JsonObject
+        {
+            ["AthleteSlug"] = slug,
+            ["DisplayName"] = displayName,
+            ["Division"] = "Open",
+            ["MediaContact"] = mediaContact,
+            ["DateOfBirth"] = new JsonObject
+            {
+                ["Year"] = 1985,
+                ["Month"] = 1,
+                ["Day"] = 1
+            }
+        };
     }
 
     private static int CountOccurrences(string haystack, string needle)
