@@ -38,6 +38,14 @@ namespace LongevityWorldCup.Website.Middleware
                         context.Request.Path = "/misc-pages/media.html";
                         break;
 
+                    case "/history":
+                        context.Request.Path = "/misc-pages/history.html";
+                        break;
+
+                    case "/ruleset":
+                        context.Request.Path = "/misc-pages/ruleset.html";
+                        break;
+
                     case "/pheno-age":
                         context.Request.Path = "/onboarding/pheno-age.html";
                         break;

@@ -25,7 +25,9 @@ namespace LongevityWorldCup.Website.Middleware
             "/",
             "/leaderboard",
             "/events",
-            "/media"
+            "/media",
+            "/history",
+            "/ruleset"
         };
 
         public async Task Invoke(HttpContext context)
@@ -441,6 +443,26 @@ $@"<script type=""module"">
                     "Access the Longevity World Cup media kit with press-ready branding assets and resources.",
                     defaultOgImage
                 ),
+                "/history" => new SeoMeta(
+                    canonicalPath,
+                    "Read the history of longevity as a sport, from early biological age leaderboards to the Longevity World Cup.",
+                    "index, follow",
+                    canonicalUrl,
+                    "History of Longevity as a Sport | Longevity World Cup",
+                    "History of Longevity as a Sport | Longevity World Cup",
+                    "Read the history of longevity as a sport, from early biological age leaderboards to the Longevity World Cup.",
+                    defaultOgImage
+                ),
+                "/ruleset" => new SeoMeta(
+                    canonicalPath,
+                    "Review the Longevity World Cup ruleset for seasons, tracks, rankings, valid submissions, prizes, and payouts.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Ruleset | Longevity World Cup",
+                    "Ruleset | Longevity World Cup",
+                    "Review the Longevity World Cup ruleset for seasons, tracks, rankings, valid submissions, prizes, and payouts.",
+                    defaultOgImage
+                ),
                 _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
                     canonicalPath,
                     "Longevity World Cup member page.",
@@ -757,6 +779,8 @@ $@"<script type=""module"">
                 "/leaderboard" => "Leaderboard",
                 "/events" => "Events",
                 "/media" => "Media",
+                "/history" => "History",
+                "/ruleset" => "Ruleset",
                 _ => "Page"
             };
         }
