@@ -2,7 +2,7 @@
 
 This markdown document is provided to improve machine discovery and retrieval quality.
 For authoritative content, always prefer the canonical website pages.
-Last updated: 2026-05-11
+Last updated: 2026-05-28
 
 ## Canonical Site
 - https://longevityworldcup.com/
@@ -12,6 +12,8 @@ Last updated: 2026-05-11
 - [Leaderboard](https://longevityworldcup.com/leaderboard)
 - [Events](https://longevityworldcup.com/events)
 - [Media](https://longevityworldcup.com/media)
+- [History](https://longevityworldcup.com/history)
+- [Ruleset](https://longevityworldcup.com/ruleset)
 
 ## Machine-Readable Files
 - [llms.txt](https://longevityworldcup.com/llms.txt)
