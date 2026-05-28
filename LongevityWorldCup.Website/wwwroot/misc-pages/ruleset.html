@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Ruleset | Longevity World Cup</title>
+    <!--HEAD-->
+    <link rel="alternate" type="text/markdown" title="Source Markdown" href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md" />
+    <style>
+        .documentation-page {
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: minmax(11.5rem, 14rem) minmax(0, 50rem);
+            gap: clamp(1.4rem, 3vw, 2.6rem);
+            align-items: start;
+            max-width: 74rem;
+            margin: 2.5rem auto 3.5rem;
+            padding: 0 clamp(1rem, 3vw, 1.5rem);
+        }
+
+        .documentation-nav {
+            position: sticky;
+            top: 4.25rem;
+            display: grid;
+            gap: 0.2rem;
+            padding: 0.85rem 0.7rem 0.95rem;
+            border-left: 3px solid var(--primary-color);
+            border-radius: 0 8px 8px 0;
+            background: rgba(255, 255, 255, 0.48);
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+
+        .documentation-nav-title {
+            margin: 0 0 0.35rem;
+            padding: 0 0.45rem;
+            color: #334155;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .documentation-nav a {
+            display: block;
+            padding: 0.38rem 0.45rem;
+            border-radius: 6px;
+            color: #334155;
+            font-size: 0.92rem;
+            line-height: 1.25;
+            text-decoration: none;
+        }
+
+        .documentation-nav .documentation-nav-level-3 {
+            margin-left: 0.55rem;
+            padding-top: 0.28rem;
+            padding-bottom: 0.28rem;
+            color: #506176;
+            font-size: 0.86rem;
+        }
+
+        .documentation-nav a:hover,
+        .documentation-nav a:focus-visible,
+        .documentation-nav a.is-active {
+            background: rgba(0, 188, 212, 0.12);
+            color: #047888;
+            outline: none;
+        }
+
+        .documentation-nav a.is-active {
+            font-weight: 700;
+        }
+
+        .documentation-nav .documentation-source-link {
+            margin-top: 0.65rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(15, 23, 42, 0.1);
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .documentation-document {
+            box-sizing: border-box;
+            padding: clamp(1.35rem, 3vw, 2.2rem);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.56);
+            color: #233142;
+            font-size: 1.04rem;
+            line-height: 1.7;
+            overflow-wrap: break-word;
+        }
+
+        .documentation-document h1,
+        .documentation-document h2,
+        .documentation-document h3,
+        .documentation-document h4 {
+            color: #1f2b3a;
+            line-height: 1.16;
+            overflow-wrap: anywhere;
+        }
+
+        .documentation-document h1 {
+            margin: 0 0 1.25rem;
+            padding: 0 0 1rem;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+            text-align: left;
+            font-size: clamp(2.1rem, 4vw, 2.85rem);
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .documentation-document h2 {
+            margin: 2.45rem 0 0.85rem;
+            padding-top: 1.05rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            text-align: left;
+            font-size: clamp(1.55rem, 3vw, 2rem);
+            text-shadow: none;
+        }
+
+        .documentation-document h3 {
+            margin: 1.8rem 0 0.6rem;
+            font-size: clamp(1.22rem, 2.2vw, 1.45rem);
+            text-shadow: none;
+        }
+
+        .documentation-document h4 {
+            margin: 1.35rem 0 0.35rem;
+            font-size: 1.08rem;
+        }
+
+        .documentation-document p,
+        .documentation-document ul,
+        .documentation-document ol {
+            margin: 0 0 1rem;
+        }
+
+        .documentation-document ul,
+        .documentation-document ol {
+            padding-left: 1.5rem;
+        }
+
+        .documentation-document li {
+            margin: 0.44rem 0;
+            padding-left: 0.1rem;
+        }
+
+        .documentation-document a {
+            color: var(--primary-color);
+            font-weight: 700;
+            text-decoration-thickness: 0.08em;
+            text-underline-offset: 0.14em;
+        }
+
+        .documentation-document a:hover,
+        .documentation-document a:focus-visible {
+            color: #008fa1;
+        }
+
+        .documentation-document img {
+            box-sizing: border-box;
+            display: block;
+            max-width: 100%;
+            max-height: 560px;
+            width: min(100%, 48rem);
+            height: auto;
+            object-fit: contain;
+            margin: 1.45rem auto 1.8rem;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.82);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .documentation-document table {
+            display: block;
+            width: 100%;
+            margin: 1.25rem 0 1.5rem;
+            overflow-x: auto;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.64);
+            border-radius: 8px;
+        }
+
+        .documentation-document th,
+        .documentation-document td {
+            padding: 0.62rem 0.75rem;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+            text-align: left;
+            vertical-align: top;
+            white-space: nowrap;
+        }
+
+        .documentation-document th {
+            color: #111827;
+            background: rgba(0, 188, 212, 0.1);
+            font-weight: 700;
+        }
+
+        .documentation-source {
+            margin: 2.25rem 0 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            color: #506176;
+            font-size: 0.95rem;
+            text-align: left;
+        }
+
+        @media (max-width: 900px) {
+            .documentation-page {
+                display: block;
+                margin: 2rem auto 3rem;
+                padding: 0 1rem;
+            }
+
+            .documentation-nav {
+                position: static;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+                align-items: center;
+                margin: 0 0 1rem;
+                padding: 0.6rem;
+                border-left: 0;
+                border-top: 3px solid var(--primary-color);
+                border-radius: 0 0 8px 8px;
+            }
+
+            .documentation-nav-title {
+                display: none;
+            }
+
+            .documentation-nav a {
+                flex: 0 0 auto;
+                background: rgba(255, 255, 255, 0.58);
+                white-space: nowrap;
+            }
+
+            .documentation-nav .documentation-nav-level-3 {
+                margin-left: 0;
+                font-size: 0.9rem;
+            }
+
+            .documentation-nav .documentation-source-link {
+                margin-top: 0;
+                padding-top: 0.38rem;
+                border-top: 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .documentation-document {
+                padding: 1.1rem;
+                font-size: 0.98rem;
+                line-height: 1.64;
+            }
+
+            .documentation-document h1 {
+                font-size: 1.95rem;
+            }
+
+            .documentation-document h2 {
+                font-size: 1.45rem;
+            }
+
+            .documentation-document img {
+                margin: 1.15rem auto 1.45rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!--HEADER-->
+    <main class="documentation-page">
+        <nav class="documentation-nav" aria-label="Document navigation">
+            <div class="documentation-nav-title">Contents</div>
+            <a class="documentation-nav-level-2" href="#seasons--schedule">Seasons &amp; schedule</a>
+            <a class="documentation-nav-level-2" href="#tracks">Tracks</a>
+            <a class="documentation-nav-level-2" href="#point-system-ranking">Point system (ranking)</a>
+            <a class="documentation-nav-level-2" href="#prizes-and-payouts">Prizes and payouts</a>
+            <a class="documentation-nav-level-2" href="#faq">FAQ</a>
+            <a class="documentation-nav-level-3" href="#general-questions">General questions</a>
+            <a class="documentation-nav-level-3" href="#about-aging-clocks-and-testing">About aging clocks and testing</a>
+            <a class="documentation-nav-level-3" href="#competition-mechanics">Competition mechanics</a>
+            <a class="documentation-nav-level-3" href="#practical-matters">Practical matters</a>
+            <a class="documentation-source-link" href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md" target="_blank" rel="noopener">Source Markdown</a>
+        </nav>
+        <article class="documentation-document">
+<h1 id="ruleset">Ruleset</h1>
+<p>The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.</p>
+<h2 id="seasons--schedule">Seasons &amp; schedule</h2>
+<ul>
+<li>A <strong>Season</strong> is the yearly competition window for <strong>seasonal clocks</strong> (for example the Season 2026 <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz</a> competition).</li>
+<li>Seasonal clocks typically start and end around the middle of January, and <strong>only accept results from the given calendar year</strong> (January 1 to December 31). At <strong>season close</strong>, final rankings lock for that season.</li>
+<li>Some clocks may run as <strong>all-time competitions</strong> instead of seasonal competitions. <strong><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a> is an all-time competition</strong>.</li>
+</ul>
+<p><img src="https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582" alt="image" /></p>
+<h2 id="tracks">Tracks</h2>
+<p>The Longevity World Cup has multiple tracks: <strong>Amateur</strong> and <strong>Professional</strong>. These use different clocks and rules.</p>
+<ul>
+<li><strong>Amateur</strong>: designed for accessibility. In Season 2026 this track is centered around <strong><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a> (all-time)</strong> submissions.</li>
+<li><strong>Pro</strong>: the flagship <strong>seasonal</strong> competition. In Season 2026 this track introduced <strong><a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz</a> (seasonal)</strong>, it's a seasonal competition and includes prize money.</li>
+</ul>
+<h2 id="point-system-ranking">Point system (ranking)</h2>
+<ul>
+<li>What counts is <strong>biological age reduction</strong>: the larger the difference between your biological and chronological age, the higher you rank.</li>
+<li>You can submit as many tests as you want.
+<ul>
+<li>For <strong>all-time clocks</strong> (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a>), the site uses your <strong>best (lowest) biological age</strong> across your full submission history.</li>
+<li>For <strong>seasonal clocks</strong> (<a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz</a>), the site uses your <strong>best (lowest) biological age</strong> achieved during the 2026 season’s valid window.</li>
+<li><strong>Partial or non-same-day submissions are not allowed for a given clock</strong>. If a clock needs a set of biomarkers, those biomarkers must come from the same blood draw / same report date.</li>
+</ul>
+</li>
+<li>The competition also uses <strong>leagues</strong> (for example generation-based or other category-based rankings). You might place modestly globally while winning your generation league.</li>
+</ul>
+<p><img src="https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11" alt="image" /></p>
+<h2 id="prizes-and-payouts">Prizes and payouts</h2>
+<ul>
+<li>Prize money is given to the top 3 athletes in the ultimate league.</li>
+<li>The prize money pool is coming from Bitcoin donations and you are encouraged to contribute.</li>
+<li>10% of the donations go toward covering organizational troubles, while 90% fund the prize money pool.</li>
+<li>Payouts happen in the middle of January in Bitcoin. We'll help you set up a Bitcoin wallet if you don't already have one. We generally recommend <a href="https://blockstream.com/green/" target="_blank" rel="noopener noreferrer">Green Wallet</a> for Mobile or <a href="https://wasabiwallet.io/" target="_blank" rel="noopener noreferrer">Wasabi Wallet</a> for desktop. Funfact: Wasabi Wallet was created by the same developer who created the Longevity World Cup.</li>
+</ul>
+<p><img src="https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2" alt="image" /></p>
+<h2 id="faq">FAQ</h2>
+<h3 id="general-questions">General questions</h3>
+<h4 id="who-can-participate-in-the-longevity-world-cup">Who can participate in the Longevity World Cup?</h4>
+<p>Anyone interested in longevity and capable of submitting valid test results can participate.</p>
+<h4 id="how-do-i-register-for-the-competition">How do I register for the competition?</h4>
+<p>Simply visit our <a href="https://www.longevityworldcup.com/" target="_blank" rel="noopener noreferrer">website</a> and follow the registration instructions.</p>
+<p><img src="https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207" alt="image" /></p>
+<p>Want someone to hold your hand while doing your application? Watch <a href="https://www.youtube.com/watch?v=0mCIbqgfqq8" target="_blank" rel="noopener noreferrer">this seven minute video tutorial</a> or <a href="https://www.youtube.com/shorts/yhMFZMPAoKQ" target="_blank" rel="noopener noreferrer">this one minute video tutorial.</a></p>
+<h4 id="can-i-withdraw-from-the-competition">Can I withdraw from the competition?</h4>
+<p>Yes, just send us an email to <code>hi@longevityworldcup.com</code>.</p>
+<h3 id="about-aging-clocks-and-testing">About aging clocks and testing</h3>
+<h4 id="what-is-phenoage">What is <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a>?</h4>
+<p><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a> is a biological age measure based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.</p>
+<h4 id="what-is-bortz">What is <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz</a>?</h4>
+<p><a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz</a> is a biological age measure based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk.</p>
+<h4 id="from-which-biomarkers-can-i-calculate-my-phenoage">From which biomarkers can I calculate my <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a>?</h4>
+<ul>
+<li>Albumin (Serum Albumin)</li>
+<li>Creatinine (Serum Creatinine)</li>
+<li>Glucose (Blood Sugar)</li>
+<li>C-Reactive Protein (CRP or hs-CRP)</li>
+<li>Lymphocyte Percentage (Lymphocyte % or Absolute Lymphocyte Count)</li>
+<li>Mean Corpuscular Volume (MCV or Average Red Blood Cell Size)</li>
+<li>Red Cell Distribution Width (RDW, RDW-CV)</li>
+<li>Alkaline Phosphatase (ALP, Alk Phos)</li>
+<li>White Blood Cell Count (WBC Count, Leukocyte Count)</li>
+</ul>
+<h4 id="from-which-biomarkers-can-i-calculate-my-bortz">From which biomarkers can I calculate my <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz</a>?</h4>
+<ul>
+<li>Albumin</li>
+<li>Alkaline Phosphatase (ALP)</li>
+<li>Urea</li>
+<li>Total Cholesterol</li>
+<li>Creatinine</li>
+<li>Cystatin C</li>
+<li>Hemoglobin A1c (HbA1c)</li>
+<li>C-Reactive Protein (CRP / hs-CRP)</li>
+<li>Gamma-Glutamyl Transferase (GGT)</li>
+<li>Red Blood Cell Count (RBC)</li>
+<li>Mean Corpuscular Volume (MCV)</li>
+<li>Red Cell Distribution Width (RDW)</li>
+<li>Monocytes</li>
+<li>Neutrophils</li>
+<li>Lymphocyte Percentage</li>
+<li>Alanine Aminotransferase (ALT)</li>
+<li>Sex Hormone-Binding Globulin (SHBG)</li>
+<li>Vitamin D (25-OH)</li>
+<li>Glucose</li>
+<li>Mean Corpuscular Hemoglobin (MCH)</li>
+<li>Apolipoprotein A1 (ApoA1)</li>
+</ul>
+<p><img src="https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3" alt="image" /></p>
+<h4 id="can-i-use-any-laboratory-for-my-tests">Can I use any laboratory for my tests?</h4>
+<p>Yes, as long as the lab provides accurate biomarkers required for the clock you are submitting.</p>
+<h4 id="why-does-my-phenoage-result-differ-from-other-calculators">Why does my <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a> result differ from other calculators?</h4>
+<p>The Longevity World Cup pheno age calculator is the best pheno age calculator on the Internet from a biological reality point of view. Many online PhenoAge calculators are using an <a href="https://github.com/ajsteele/bioage/issues/3" target="_blank" rel="noopener noreferrer">incorrect constant in the formula,</a> which originated from typo in an update by the authors of PhenoAge. Even those calculators that use the correct constant are inferior to the Longevity World Cup's algorithm, because they reward PhenoAge-optimizing hacks that reduce mortality risk in the model but increase actual mortality in reality. For example, pushing alkaline phosphatase or RDW to the extremes can lower your PhenoAge score even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make your “age” look better while your actual risk gets worse. See <a href="https://github.com/nopara73/LongevityWorldCup/issues/136" target="_blank" rel="noopener noreferrer">PhenoAge Calculation Bug Disclosure: Missing U-Shaped Curves for Biomarkers</a>.</p>
+<h4 id="why-does-my-bortz-result-differ-from-other-calculators">Why does my <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz</a> result differ from other calculators?</h4>
+<p>The Longevity World Cup bortz age calculator is the best pheno age calculator on the Internet from a biological reality point of view. Other calculators reward Bortz-optimizing hacks that reduce mortality risk in the model but increase actual mortality in reality. For example, pushing alkaline phosphatase or RDW to the extremes can lower your Bortz age even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make your “age” look better while your actual risk gets worse. See <a href="https://github.com/nopara73/LongevityWorldCup/issues/136" target="_blank" rel="noopener noreferrer">PhenoAge &amp; BortzAge Calculation Bug Disclosure: Missing U-Shaped Curves for Biomarkers</a>.</p>
+<h3 id="competition-mechanics">Competition mechanics</h3>
+<h4 id="what-happens-if-my-results-arrive-late">What happens if my results arrive late?</h4>
+<p>Each season is wrapped up in the middle of January. This should give your laboratory enough time to evaluate your test conducted on December 31.</p>
+<h4 id="what-if-theres-a-tie">What if there's a tie?</h4>
+<p>The older you are, the higher you rank in case of a tie. If necessary, alphabetical ordering of usernames will decide.</p>
+<p><img src="https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e" alt="image" /></p>
+<h4 id="how-is-my-score-calculated-if-i-submit-multiple-results">How is my score calculated if I submit multiple results?</h4>
+<p>If you submit multiple test results, the <strong>best</strong> result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.</p>
+<h4 id="how-are-lab-detection-limits-handled-in-the-competition">How are lab detection limits handled in the competition?</h4>
+<p>When your lab result shows a biomarker value as below the detection limit, the detection limit itself will be used in calculation. This policy is applied to keep it fair towards other participants. This happens most often with CRP; when the detection limit is unknown we default it to 1 mg/L.</p>
+<h4 id="how-can-i-cheat">How can I cheat?</h4>
+<p>You can't.</p>
+<h4 id="how-does-the-longevity-world-cup-compare-to-the-rejuvenation-olympics">How does the Longevity World Cup compare to the Rejuvenation Olympics?</h4>
+<ul>
+<li><strong>Focus</strong>: LWC emphasizes <strong>absolute age reversal</strong>, while RO measures the <strong>pace of aging</strong> regardless of chronological age.</li>
+<li><strong>Structure</strong>: LWC has <strong>annual seasons</strong> and may run <strong>multiple clocks/tracks</strong> over time.</li>
+<li><strong>Prizes</strong>: LWC offers <strong>prize money</strong> through Bitcoin donations.</li>
+<li><strong>Leagues</strong>: LWC includes <strong>leagues</strong> for generational and other category-based rankings.</li>
+<li><strong>Testing</strong>: LWC uses traditional blood-test-based biological age calculations; RO uses the TruDiagnostic home test kit.</li>
+</ul>
+<h3 id="practical-matters">Practical matters</h3>
+<h4 id="how-much-can-i-edit-my-profile-picture">How much can I edit my profile picture?</h4>
+<p>Your profile picture must be you, facing the camera, but you can edit it freely, even as a drawing or AI-generated version. You are however encouraged to share a picture that best represents you, because of a feature of the website, called Guess My Age, where visitors can guess your age.</p>
+<p><img src="https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab" alt="image" /></p>
+<h4 id="i-am-an-athlete-already-how-can-i-make-changes">I am an athlete already, how can I make changes?</h4>
+<p>Through the <a href="https://www.longevityworldcup.com/play/character-selection.html" target="_blank" rel="noopener noreferrer">Athlete Dashboard</a> or by sending us an email to <code>hi@longevityworldcup.com</code>.</p>
+<h4 id="what-will-sponsorships-entail">What will sponsorships entail?</h4>
+<p>Sponsorships are planned for future seasons, allowing companies to sponsor athletes in exchange for visibility on the website.</p>
+<h4 id="what-happens-if-bitcoins-value-fluctuates-significantly">What happens if Bitcoin's value fluctuates significantly?</h4>
+<p><a href="https://old.reddit.com/r/Bitcoin/comments/w1di0k/please_understand_what_1_btc_1_btc_really_means/" target="_blank" rel="noopener noreferrer">1 BTC = 1 BTC</a></p>
+
+        </article>
+    </main>
+    <!--FOOTER-->
+    <script>
+        history.replaceState({}, "", "/ruleset" + (window.location.search || "") + (window.location.hash || ""));
+        document.addEventListener("DOMContentLoaded", () => {
+            const navLinks = Array.from(document.querySelectorAll(".documentation-nav a[href^='#']"));
+            const headings = navLinks
+                .map(link => document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1))))
+                .filter(Boolean);
+
+            const getOffset = () => {
+                const stickyHeader = document.getElementById("site-sticky-header");
+                return ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
+            };
+
+            const setActive = id => {
+                navLinks.forEach(link => {
+                    const active = decodeURIComponent(link.getAttribute("href").slice(1)) === id;
+                    link.classList.toggle("is-active", active);
+                    if (active) {
+                        link.setAttribute("aria-current", "location");
+                    } else {
+                        link.removeAttribute("aria-current");
+                    }
+                });
+            };
+
+            navLinks.forEach(link => {
+                link.addEventListener("click", event => {
+                    const target = document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1)));
+                    if (!target) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
+                    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                    window.scrollTo({ top, behavior: reducedMotion ? "auto" : "smooth" });
+                    history.pushState(null, "", link.getAttribute("href"));
+                    setActive(target.id);
+
+                    target.setAttribute("tabindex", "-1");
+                    target.focus({ preventScroll: true });
+                });
+            });
+
+            const updateActiveFromScroll = () => {
+                const offset = getOffset() + 6;
+                let current = headings[0];
+
+                for (const heading of headings) {
+                    if (heading.getBoundingClientRect().top <= offset) {
+                        current = heading;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (current) {
+                    setActive(current.id);
+                }
+            };
+
+            let ticking = false;
+            window.addEventListener("scroll", () => {
+                if (ticking) {
+                    return;
+                }
+
+                ticking = true;
+                window.requestAnimationFrame(() => {
+                    updateActiveFromScroll();
+                    ticking = false;
+                });
+            }, { passive: true });
+
+            updateActiveFromScroll();
+        });
+    </script>
+</body>
+</html>
