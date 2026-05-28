@@ -4,8 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <DocumentationPageGeneratorProject>$(MSBuildProjectDirectory)\..\LongevityWorldCup.MarkdownPageGenerator\LongevityWorldCup.MarkdownPageGenerator.csproj</DocumentationPageGeneratorProject>
-    <DocumentationPageGeneratorDll>$(MSBuildProjectDirectory)\..\LongevityWorldCup.MarkdownPageGenerator\bin\$(Configuration)\net8.0\LongevityWorldCup.MarkdownPageGenerator.dll</DocumentationPageGeneratorDll>
+    <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))</RepositoryRoot>
+    <DocumentationPageGeneratorProject>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/LongevityWorldCup.MarkdownPageGenerator.csproj</DocumentationPageGeneratorProject>
+    <DocumentationPageGeneratorDll>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/bin/$(Configuration)/net8.0/LongevityWorldCup.MarkdownPageGenerator.dll</DocumentationPageGeneratorDll>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,7 +38,7 @@
 
   <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
     <Exec Command="dotnet build &quot;$(DocumentationPageGeneratorProject)&quot; --configuration &quot;$(Configuration)&quot;" />
-    <Exec Command="dotnet &quot;$(DocumentationPageGeneratorDll)&quot; &quot;$(MSBuildProjectDirectory)\..&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
+    <Exec Command="dotnet &quot;$(DocumentationPageGeneratorDll)&quot; &quot;$(RepositoryRoot)&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
   </Target>
 
 </Project>
