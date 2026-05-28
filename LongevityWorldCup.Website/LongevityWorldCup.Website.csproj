@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DocumentationPageGeneratorProject>$(MSBuildProjectDirectory)\..\LongevityWorldCup.MarkdownPageGenerator\LongevityWorldCup.MarkdownPageGenerator.csproj</DocumentationPageGeneratorProject>
+    <DocumentationPageGeneratorDll>$(MSBuildProjectDirectory)\..\LongevityWorldCup.MarkdownPageGenerator\bin\$(Configuration)\net8.0\LongevityWorldCup.MarkdownPageGenerator.dll</DocumentationPageGeneratorDll>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,5 +34,10 @@
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.1" />
   </ItemGroup>
+
+  <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
+    <Exec Command="dotnet build &quot;$(DocumentationPageGeneratorProject)&quot; --configuration &quot;$(Configuration)&quot;" />
+    <Exec Command="dotnet &quot;$(DocumentationPageGeneratorDll)&quot; &quot;$(MSBuildProjectDirectory)\..&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
 
 </Project>
