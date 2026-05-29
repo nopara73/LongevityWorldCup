@@ -6,6 +6,12 @@ This file documents project-specific rules that agents commonly get wrong. It is
 
 Before making user-facing UI changes, read `DESIGN.md` and preserve its visual, layout, typography, and interaction rules.
 
+## Domain Language
+
+Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, biological age calculators, badges, events, social posting, or user-facing competition copy, read `UBIQUITOUS_LANGUAGE.md`.
+
+Use its canonical terms when naming UI text, code concepts, issues, and docs. If behavior or terminology changes, update `UBIQUITOUS_LANGUAGE.md` in the same change.
+
 ## Ranking Logic Must Stay Aligned
 
 - Ranking is currently calculated in both the backend and the frontend.
