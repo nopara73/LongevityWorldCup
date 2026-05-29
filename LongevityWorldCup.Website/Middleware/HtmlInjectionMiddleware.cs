@@ -26,6 +26,7 @@ namespace LongevityWorldCup.Website.Middleware
             "/leaderboard",
             "/events",
             "/media",
+            "/about",
             "/history",
             "/ruleset"
         };
@@ -443,6 +444,16 @@ $@"<script type=""module"">
                     "Access the Longevity World Cup media kit with press-ready branding assets and resources.",
                     defaultOgImage
                 ),
+                "/about" => new SeoMeta(
+                    canonicalPath,
+                    "Learn why Longevity World Cup is an open competition where longevity athletes rank by biomarker-based biological age reduction.",
+                    "index, follow",
+                    canonicalUrl,
+                    "About Longevity World Cup",
+                    "About Longevity World Cup",
+                    "Learn why Longevity World Cup is an open competition where longevity athletes rank by biomarker-based biological age reduction.",
+                    defaultOgImage
+                ),
                 "/history" => new SeoMeta(
                     canonicalPath,
                     "Read the history of longevity as a sport, from early biological age leaderboards to the Longevity World Cup.",
@@ -779,6 +790,7 @@ $@"<script type=""module"">
                 "/leaderboard" => "Leaderboard",
                 "/events" => "Events",
                 "/media" => "Media",
+                "/about" => "About",
                 "/history" => "History",
                 "/ruleset" => "Ruleset",
                 _ => "Page"

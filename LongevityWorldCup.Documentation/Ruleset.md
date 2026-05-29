@@ -138,3 +138,9 @@ Sponsorships are planned for future seasons, allowing companies to sponsor athle
 
 #### What happens if Bitcoin's value fluctuates significantly?
 [1 BTC = 1 BTC](https://old.reddit.com/r/Bitcoin/comments/w1di0k/please_understand_what_1_btc_1_btc_really_means/)
+
+## Where To Go Next
+
+- [About Longevity World Cup](/about)
+- [History of Longevity as a Sport](/history)
+- [Leaderboard](/leaderboard)

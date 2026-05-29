@@ -90,3 +90,9 @@ Season 2 of the Longevity World Cup was released with major competition-format u
 ## Special Mentions
 
 Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health), the now-offline VO2 Max Leaderboard by JoinZero, Favies (previously Goaly), and various fitness tracker-specific gamified leaderboards.
+
+## Where To Go Next
+
+- [About Longevity World Cup](/about)
+- [Ruleset](/ruleset)
+- [Leaderboard](/leaderboard)
