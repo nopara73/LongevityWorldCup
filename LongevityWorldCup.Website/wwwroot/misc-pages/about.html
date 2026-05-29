@@ -1,130 +1,9 @@
-using System.Net;
-using System.Text.RegularExpressions;
-using Markdig;
-using Markdig.Extensions.AutoIdentifiers;
-
-var repoRoot = args.Length > 0
-    ? Path.GetFullPath(args[0])
-    : Directory.GetCurrentDirectory();
-var websiteRoot = args.Length > 1
-    ? Path.GetFullPath(args[1])
-    : Path.Combine(repoRoot, "LongevityWorldCup.Website");
-
-var pages = new[]
-{
-    new DocumentationPage(
-        Source: Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "About.md"),
-        Output: Path.Combine(websiteRoot, "wwwroot", "misc-pages", "about.html"),
-        CanonicalPath: "/about",
-        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/About.md"),
-    new DocumentationPage(
-        Source: Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "LongevitySportHistory.md"),
-        Output: Path.Combine(websiteRoot, "wwwroot", "misc-pages", "history.html"),
-        CanonicalPath: "/history",
-        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/LongevitySportHistory.md"),
-    new DocumentationPage(
-        Source: Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "Ruleset.md"),
-        Output: Path.Combine(websiteRoot, "wwwroot", "misc-pages", "ruleset.html"),
-        CanonicalPath: "/ruleset",
-        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md")
-};
-
-var pipeline = new MarkdownPipelineBuilder()
-    .UsePipeTables()
-    .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
-    .DisableHtml()
-    .Build();
-
-foreach (var page in pages)
-{
-    var markdown = await File.ReadAllTextAsync(page.Source);
-    var title = ExtractTitle(markdown);
-    var documentHtml = OpenAbsoluteLinksInNewTabs(Markdown.ToHtml(markdown, pipeline));
-    var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
-    var pageHtml = RenderPage(title, documentHtml, contentsHtml, page);
-
-    Directory.CreateDirectory(Path.GetDirectoryName(page.Output)!);
-    await File.WriteAllTextAsync(page.Output, pageHtml);
-    Console.WriteLine($"Generated {Path.GetRelativePath(repoRoot, page.Output)} from {Path.GetRelativePath(repoRoot, page.Source)}");
-}
-
-static string ExtractTitle(string markdown)
-{
-    using var reader = new StringReader(markdown);
-    while (reader.ReadLine() is { } line)
-    {
-        if (line.StartsWith("# ", StringComparison.Ordinal))
-        {
-            return line[2..].Trim();
-        }
-    }
-
-    return "Documentation";
-}
-
-static string BuildContentsNav(string documentHtml, string sourceUrl)
-{
-    var matches = Regex.Matches(
-        documentHtml,
-        "<h(?<level>[23]) id=\"(?<id>[^\"]+)\">(?<text>.*?)</h[23]>",
-        RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-    var links = matches
-        .Select(match =>
-        {
-            var id = WebUtility.HtmlEncode(match.Groups["id"].Value);
-            var level = WebUtility.HtmlEncode(match.Groups["level"].Value);
-            var text = WebUtility.HtmlEncode(StripTags(WebUtility.HtmlDecode(match.Groups["text"].Value)));
-            return $"            <a class=\"documentation-nav-level-{level}\" href=\"#{id}\">{text}</a>";
-        })
-        .ToList();
-
-    var source = WebUtility.HtmlEncode(sourceUrl);
-    if (links.Count == 0)
-    {
-        return $"""
-        <nav class="documentation-nav" aria-label="Document navigation">
-            <a class="documentation-source-link" href="{source}" target="_blank" rel="noopener">Source Markdown</a>
-        </nav>
-""";
-    }
-
-    return $$"""
-        <nav class="documentation-nav" aria-label="Document navigation">
-            <div class="documentation-nav-title">Contents</div>
-{{string.Join(Environment.NewLine, links)}}
-            <a class="documentation-source-link" href="{{source}}" target="_blank" rel="noopener">Source Markdown</a>
-        </nav>
-""";
-}
-
-static string StripTags(string value)
-{
-    return Regex.Replace(value, "<.*?>", string.Empty).Trim();
-}
-
-static string OpenAbsoluteLinksInNewTabs(string html)
-{
-    return Regex.Replace(
-        html,
-        "<a href=\"(?<href>https?://[^\"]+)\">",
-        match => $"<a href=\"{match.Groups["href"].Value}\" target=\"_blank\" rel=\"noopener noreferrer\">",
-        RegexOptions.IgnoreCase);
-}
-
-static string RenderPage(string title, string documentHtml, string contentsHtml, DocumentationPage page)
-{
-    var encodedTitle = WebUtility.HtmlEncode(title);
-    var canonicalPath = WebUtility.HtmlEncode(page.CanonicalPath);
-    var sourceUrl = WebUtility.HtmlEncode(page.SourceUrl);
-
-    return $$"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>{{encodedTitle}} | Longevity World Cup</title>
+    <title>About Longevity World Cup | Longevity World Cup</title>
     <!--HEAD-->
-    <link rel="alternate" type="text/markdown" title="Source Markdown" href="{{sourceUrl}}" />
+    <link rel="alternate" type="text/markdown" title="Source Markdown" href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/About.md" />
     <style>
         .documentation-page {
             box-sizing: border-box;
@@ -390,14 +269,55 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 <body>
     <!--HEADER-->
     <main class="documentation-page">
-{{contentsHtml}}
+        <nav class="documentation-nav" aria-label="Document navigation">
+            <div class="documentation-nav-title">Contents</div>
+            <a class="documentation-nav-level-2" href="#what-it-is">What It Is</a>
+            <a class="documentation-nav-level-2" href="#why-i-started-it">Why I Started It</a>
+            <a class="documentation-nav-level-2" href="#how-it-works">How It Works</a>
+            <a class="documentation-nav-level-2" href="#built-in-public">Built in Public</a>
+            <a class="documentation-nav-level-2" href="#who-builds-it">Who Builds It</a>
+            <a class="documentation-nav-level-2" href="#where-to-go-next">Where To Go Next</a>
+            <a class="documentation-source-link" href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/About.md" target="_blank" rel="noopener">Source Markdown</a>
+        </nav>
         <article class="documentation-document">
-{{documentHtml}}
+<h1 id="about-longevity-world-cup">About Longevity World Cup</h1>
+<p>I grew up wanting to play football at the highest level. Like most sports, football gives you a brutal bargain: if you are lucky, you get a few good years, and then age starts pushing you out.</p>
+<p>Longevity World Cup exists for the opposite reason. It is a sport for time. Instead of asking how fast you can run at twenty, it asks how much biological age you can take back at forty, fifty, sixty, or beyond.</p>
+<p><img src="/assets/content-images/headshot.jpg" alt="The silhouette of Michael Lustgarten, PhD, inaugural Longevity World Cup champion" /></p>
+<p><em>The silhouette of <a href="/athlete/michael-lustgarten">Michael Lustgarten, PhD</a>, the inaugural Longevity World Cup champion.</em></p>
+<h2 id="what-it-is">What It Is</h2>
+<p>Longevity World Cup is an open competition where longevity athletes rank by improving biological age measures.</p>
+<p>The scoreboard is built around biomarker data and biological aging clocks. Athletes submit result data, the competition calculates biological age, and the leaderboard ranks athletes by Age Reduction: how far their biological age is below their chronological age.</p>
+<p>That gives longevity practice a number, a season, rivals, and a public record. It turns private health optimization into longevity sport.</p>
+<h2 id="why-i-started-it">Why I Started It</h2>
+<p>Games are powerful because they turn difficult work into something people voluntarily come back to. If the rules are clear and the scoreboard matters, people train harder, compare notes, and improve together.</p>
+<p>Longevity may be the most useful game we can build, because the scarce resource is time. Chronological age cannot be played. Biological age can be measured, compared, improved, and improved again as better clocks emerge.</p>
+<p>Before starting the competition, I spent more than a year interviewing longevity athletes in long form. The <a href="https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL" target="_blank" rel="noopener noreferrer">Immortal Combat podcast</a> now has 60+ conversations with athletes, researchers, and builders trying to understand what actually moves the field forward.</p>
+<h2 id="how-it-works">How It Works</h2>
+<p>Longevity athletes compete through biological aging clocks such as <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">PhenoAge</a> and <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">Bortz Age</a>. Each clock uses a defined set of biomarkers and converts them into a biological age.</p>
+<p>The competition has tracks, seasons, leagues, and a public leaderboard. Some clocks are all-time competitions; others are seasonal. The exact submission requirements, tracks, ranking rules, and prize mechanics live in the <a href="/ruleset">Ruleset</a>.</p>
+<h2 id="built-in-public">Built in Public</h2>
+<p>The leaderboard is public. The <a href="/ruleset">Ruleset</a> explains tracks, seasons, ranking, submissions, and prize mechanics. The Markdown behind About, History, and Ruleset is linked from each page. The code lives on <a href="https://github.com/nopara73/LongevityWorldCup" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
+<p>The surrounding conversation is public too. The <a href="https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL" target="_blank" rel="noopener noreferrer">Immortal Combat podcast</a> has 60+ long-form conversations with longevity athletes, researchers, and builders.</p>
+<p>Bitcoin donations fund the prize pool. The donation split and payout timing are in the <a href="/ruleset">Ruleset</a>.</p>
+<h2 id="who-builds-it">Who Builds It</h2>
+<p>Longevity World Cup is a free and open-source project built with its community.</p>
+<p>I am Adam Ficsor, and online I publish as nopara73. I started the competition after a year of long-form conversations with longevity athletes and researchers.</p>
+<p>But the project is not just me. Klaus Townsend created the <a href="https://merch.longevityworldcup.com/" target="_blank" rel="noopener noreferrer">Longevity World Cup merch store</a>. Michael Lustgarten, PhD, the 2025 champion, created the US blood panel linked from the Bortz Age flow, covering the biomarkers for both Bortz Age and PhenoAge. Athletes, developers, donors, guests, and contributors keep pushing the sport forward.</p>
+<h2 id="where-to-go-next">Where To Go Next</h2>
+<ul>
+<li><a href="/leaderboard">Leaderboard</a>: See the current competition standings.</li>
+<li><a href="/ruleset">Ruleset</a>: Read the tracks, seasons, ranking rules, and prize mechanics.</li>
+<li><a href="/history">History</a>: Follow how longevity became a sport.</li>
+<li><a href="https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL" target="_blank" rel="noopener noreferrer">Immortal Combat podcast</a>: Watch long-form conversations with longevity athletes.</li>
+<li><a href="https://github.com/nopara73/LongevityWorldCup" target="_blank" rel="noopener noreferrer">GitHub</a>: Contribute to the open-source project.</li>
+</ul>
+
         </article>
     </main>
     <!--FOOTER-->
     <script>
-        history.replaceState({}, "", "{{canonicalPath}}" + (window.location.search || "") + (window.location.hash || ""));
+        history.replaceState({}, "", "/about" + (window.location.search || "") + (window.location.hash || ""));
         document.addEventListener("DOMContentLoaded", () => {
             const navLinks = Array.from(document.querySelectorAll(".documentation-nav a[href^='#']"));
             const headings = navLinks
@@ -475,7 +395,3 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     </script>
 </body>
 </html>
-""";
-}
-
-internal sealed record DocumentationPage(string Source, string Output, string CanonicalPath, string SourceUrl);
