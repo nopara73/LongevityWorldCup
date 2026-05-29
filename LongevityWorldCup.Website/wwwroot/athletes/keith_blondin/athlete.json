@@ -30,11 +30,37 @@
       "RdwPc": 11.6,
       "AlpUL": 63,
       "Wbc1000cellsuL": 3.7
+    },
+    {
+      "Date": "2026-05-26",
+      "AlbGL": 46,
+      "CreatUmolL": 102.65,
+      "GluMmolL": 4.33,
+      "CrpMgL": 0.2,
+      "LymPc": 39.5,
+      "McvFL": 95.9,
+      "RdwPc": 11.9,
+      "AlpUL": 66,
+      "Wbc1000cellsuL": 3.5,
+      "NeutrophilPc": 43.6,
+      "MonocytePc": 14.6,
+      "Rbc10e12L": 5.16,
+      "MchPg": 32,
+      "UreaMmolL": 5.36,
+      "CystatinCMgL": 0.79,
+      "Hba1cMmolMol": 35.52,
+      "CholesterolMmolL": 5.3,
+      "ApoA1GL": 1.82,
+      "AltUL": 29,
+      "GgtUL": 31,
+      "ShbgNmolL": 108,
+      "VitaminDNmolL": 160
     }
   ],
   "Division": "Men's",
   "Flag": "United States",
   "Why": "Living the dream, nightmares are fun too.",
   "PersonalLink": "https://www.youtube.com/@invertage",
-  "PodcastLink": "https://youtu.be/hNpXAXH9bT0"
+  "PodcastLink": "https://youtu.be/hNpXAXH9bT0",
+  "DisplayName": null
 }
