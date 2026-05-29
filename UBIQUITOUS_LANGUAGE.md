@@ -123,8 +123,9 @@
 
 - **Age Reduction** is semantically positive in public copy but implemented as a signed difference where more negative values are better; use **Biological Age Difference** when discussing code or sort direction, and **Age Reduction** for user-facing competition copy.
 - **Track** and **League** are often used interchangeably, but they are distinct: **Track** is Pro or Amateur, while **League** is a ranking view such as Ultimate, division, generation, exclusive, Amateur, or Crowd Age.
-- **PhenoAge**, "Pheno Age", and "Phenotypic Age" refer to the same clock; use **PhenoAge** in domain docs and code-facing language unless quoting UI copy.
-- **Bortz**, "Bortz Age", and "Bortz Blood Age" refer to the same current Pro clock; use **Bortz Age** unless referring to an external product name.
+- **PhenoAge**, "Pheno age", "Pheno Age", and "Phenotypic Age" refer to the same clock; use **PhenoAge** in domain docs and code-facing language unless quoting UI copy. In running public sentences, prefer **Pheno age**.
+- **Bortz**, "Bortz age", "Bortz Age", and "Bortz Blood Age" refer to the same current Pro clock; use **Bortz Age** in domain docs unless referring to an external product name. In running public sentences, prefer **Bortz age**.
+- **Crowd Age** remains the domain term, but in running public sentences prefer **Crowd age**.
 - **Clock**, **calculator**, and **result** should not be collapsed: the **clock** is the formula, the **calculator** is the UI/tool, and the **result** is an athlete's computed biological age.
 - **Proof**, "proof picture", "report", and "screenshot" overlap in conversation; use **Proof** for the evidence asset and name the asset type only when validation rules depend on it.
 - **Event** can mean a stored system update, a public timeline item, or a manually designed **Custom Event**; use **Custom Event** for admin-created announcements and **Event** for the persisted event model.
