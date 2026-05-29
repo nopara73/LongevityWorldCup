@@ -75,7 +75,7 @@
             font-size: 13px;
         }
 
-        input[type="text"], textarea {
+        input[type="text"], input[type="password"], textarea {
             width: 100%;
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 14px;
@@ -218,6 +218,21 @@
             line-height: 1.4;
         }
 
+        .post-status {
+            min-height: 18px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--muted);
+        }
+
+        .post-status.is-success {
+            color: var(--ok);
+        }
+
+        .post-status.is-error {
+            color: #ffb7c9;
+        }
+
         button {
             border: 0;
             border-radius: 10px;
@@ -234,10 +249,33 @@
             background: rgba(255,255,255,0.1);
         }
 
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.48;
+        }
+
         .token {
             width: 100%;
             min-height: 110px;
             resize: vertical;
+        }
+
+        details.payload-box summary {
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .live-checklist {
+            margin: 12px 0 0;
+            padding-left: 20px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .live-checklist code {
+            color: var(--text);
         }
 
         .preview-stack {
@@ -831,14 +869,46 @@
             </div>
 
             <div class="payload-box">
-                <h2>Server Command</h2>
+                <h2>Direct Post</h2>
+                <label>
+                    <span>Secret</span>
+                    <input id="designerSecretInput" type="password" autocomplete="off" />
+                </label>
+                <div class="payload-actions">
+                    <button id="generateSecretHashBtn" class="secondary" type="button">Generate Config Hash</button>
+                    <button id="copySecretHashBtn" class="secondary" type="button" disabled>Copy Hash</button>
+                    <div id="secretHashState" class="post-status" aria-live="polite"></div>
+                </div>
+                <textarea id="secretHashOutput" class="token" readonly hidden></textarea>
+                <div class="payload-actions">
+                    <button id="postEventBtn" type="button">Post Event</button>
+                    <button id="copyCleanupCommandBtn" class="secondary" type="button" disabled hidden>Copy Cleanup SQL</button>
+                    <div id="directPostStatus" class="post-status" aria-live="polite"></div>
+                </div>
+                <textarea id="cleanupCommandOutput" class="token" readonly hidden></textarea>
+                <div id="postValidationHint" class="validation-hint" hidden>Title and at least one destination are required before posting.</div>
+            </div>
+
+            <details class="payload-box">
+                <summary>Live test checklist</summary>
+                <ol class="live-checklist">
+                    <li>Generate a config hash from a temporary secret and set <code>CustomEventDesignerSecretHash</code> in the published Linux config.</li>
+                    <li>Restart <code>longevityworldcup.service</code> so the config is reloaded.</li>
+                    <li>Use a harmless title, select only Webpage, and post once.</li>
+                    <li>Confirm the event appears on the website, then copy the cleanup SQL if the test row should be removed.</li>
+                    <li>Rollback by clearing the config hash or restoring the previous config value, then restart.</li>
+                </ol>
+            </details>
+
+            <details class="payload-box">
+                <summary>Manual server command fallback</summary>
                 <textarea id="commandOutput" class="token" readonly></textarea>
                 <div class="payload-actions">
-                    <button id="copyCommandBtn" type="button">Copy Command</button>
+                    <button id="copyCommandBtn" class="secondary" type="button">Copy Command</button>
                     <div id="copyState" style="font-size:12px;color:var(--muted);"></div>
                 </div>
                 <div id="commandValidationHint" class="validation-hint" hidden>Title is required before the command can be generated or copied.</div>
-            </div>
+            </details>
         </div>
 
         <div class="preview-stack">
@@ -871,6 +941,10 @@
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
         const LIMITS = { x: 280, threads: 500 };
+        const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
+        const SECRET_HASH_ITERATIONS = 210000;
+        const SECRET_HASH_SALT_BYTES = 16;
+        const SECRET_HASH_BYTES = 32;
         const SEND_TO_STORAGE_KEY = "customEventDesigner.sendTo";
         const titleInput = document.getElementById("titleInput");
         const contentInput = document.getElementById("contentInput");
@@ -879,6 +953,16 @@
         const sendX = document.getElementById("sendX");
         const sendThreads = document.getElementById("sendThreads");
         const sendFacebook = document.getElementById("sendFacebook");
+        const designerSecretInput = document.getElementById("designerSecretInput");
+        const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
+        const copySecretHashBtn = document.getElementById("copySecretHashBtn");
+        const secretHashOutput = document.getElementById("secretHashOutput");
+        const secretHashState = document.getElementById("secretHashState");
+        const postEventBtn = document.getElementById("postEventBtn");
+        const copyCleanupCommandBtn = document.getElementById("copyCleanupCommandBtn");
+        const cleanupCommandOutput = document.getElementById("cleanupCommandOutput");
+        const directPostStatus = document.getElementById("directPostStatus");
+        const postValidationHint = document.getElementById("postValidationHint");
         const webpagePreviewBlock = document.getElementById("webpagePreviewBlock");
         const webpagePreviewSurface = document.getElementById("webpagePreviewSurface");
         const commandOutput = document.getElementById("commandOutput");
@@ -1729,8 +1813,145 @@
             return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
         }
 
+        function bytesToBase64(bytes) {
+            let binary = "";
+            const chunkSize = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+            }
+            return btoa(binary);
+        }
+
         function buildServerCommand(payload) {
             return `sudo bash -lc 'cd /var/www/.longevityworldcup && bash /home/user/LongevityWorldCup/LongevityWorldCup.Website/Scripts/custom_event.sh "LongevityWorldCup.db" --payload "${payload}"'`;
+        }
+
+        function buildCleanupCommand(eventId) {
+            return `sudo sqlite3 /var/www/.longevityworldcup/LongevityWorldCup.db "DELETE FROM Events WHERE Id = '${eventId}';"`;
+        }
+
+        async function buildDesignerSecretHash(secret) {
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error("Secure browser crypto is not available.");
+            }
+
+            const salt = window.crypto.getRandomValues(new Uint8Array(SECRET_HASH_SALT_BYTES));
+            const key = await window.crypto.subtle.importKey(
+                "raw",
+                new TextEncoder().encode(secret),
+                "PBKDF2",
+                false,
+                ["deriveBits"]
+            );
+            const derivedBits = await window.crypto.subtle.deriveBits(
+                {
+                    name: "PBKDF2",
+                    hash: "SHA-256",
+                    salt,
+                    iterations: SECRET_HASH_ITERATIONS
+                },
+                key,
+                SECRET_HASH_BYTES * 8
+            );
+            const hash = new Uint8Array(derivedBits);
+            return `${SECRET_HASH_ALGORITHM}:${SECRET_HASH_ITERATIONS}:${bytesToBase64(salt)}:${bytesToBase64(hash)}`;
+        }
+
+        function setSecretHashStatus(message, kind) {
+            secretHashState.textContent = message || "";
+            secretHashState.classList.toggle("is-success", kind === "success");
+            secretHashState.classList.toggle("is-error", kind === "error");
+        }
+
+        function updateSecretHashControls() {
+            generateSecretHashBtn.disabled = !designerSecretInput.value;
+            copySecretHashBtn.disabled = !secretHashOutput.value;
+        }
+
+        function clearGeneratedSecretHash() {
+            secretHashOutput.value = "";
+            secretHashOutput.hidden = true;
+            setSecretHashStatus("", "");
+            updateSecretHashControls();
+        }
+
+        async function generateSecretHash() {
+            if (!designerSecretInput.value) {
+                clearGeneratedSecretHash();
+                setSecretHashStatus("Enter a secret first.", "error");
+                return;
+            }
+
+            generateSecretHashBtn.disabled = true;
+            setSecretHashStatus("Generating...", "");
+
+            try {
+                secretHashOutput.value = await buildDesignerSecretHash(designerSecretInput.value);
+                secretHashOutput.hidden = false;
+                setSecretHashStatus("Hash generated.", "success");
+            } catch (error) {
+                secretHashOutput.value = "";
+                secretHashOutput.hidden = true;
+                setSecretHashStatus(error && error.message ? error.message : "Could not generate hash.", "error");
+            } finally {
+                updateSecretHashControls();
+            }
+        }
+
+        async function copySecretHash() {
+            if (!secretHashOutput.value) {
+                return;
+            }
+
+            await navigator.clipboard.writeText(secretHashOutput.value);
+            setSecretHashStatus("Hash copied.", "success");
+        }
+
+        function buildEventPayload() {
+            return {
+                title: titleInput.value.trim(),
+                content: contentInput.value.trim(),
+                sendToWebpage: sendWebpage.checked,
+                sendToSlack: sendSlack.checked,
+                sendToX: sendX.checked,
+                sendToThreads: sendThreads.checked,
+                sendToFacebook: sendFacebook.checked
+            };
+        }
+
+        function hasSelectedDestination(payload) {
+            return !!(
+                payload.sendToWebpage ||
+                payload.sendToSlack ||
+                payload.sendToX ||
+                payload.sendToThreads ||
+                payload.sendToFacebook
+            );
+        }
+
+        function setDirectPostStatus(message, kind) {
+            directPostStatus.textContent = message || "";
+            directPostStatus.classList.toggle("is-success", kind === "success");
+            directPostStatus.classList.toggle("is-error", kind === "error");
+        }
+
+        function clearCleanupCommand() {
+            cleanupCommandOutput.value = "";
+            cleanupCommandOutput.hidden = true;
+            copyCleanupCommandBtn.disabled = true;
+            copyCleanupCommandBtn.hidden = true;
+        }
+
+        function setCleanupCommand(eventId) {
+            if (!/^[a-f0-9]{32}$/i.test(eventId || "")) {
+                clearCleanupCommand();
+                return;
+            }
+
+            cleanupCommandOutput.value = buildCleanupCommand(eventId);
+            cleanupCommandOutput.hidden = false;
+            copyCleanupCommandBtn.disabled = false;
+            copyCleanupCommandBtn.hidden = false;
         }
 
         function loadSendToSettings() {
@@ -1989,15 +2210,8 @@
             const contentRaw = contentInput.value.trim();
             const combinedRaw = contentRaw ? `${titleRaw}\n\n${contentRaw}` : titleRaw;
             const hasTitle = !!titleRaw;
-            const payload = {
-                title: titleRaw,
-                content: contentRaw,
-                sendToWebpage: sendWebpage.checked,
-                sendToSlack: sendSlack.checked,
-                sendToX: sendX.checked,
-                sendToThreads: sendThreads.checked,
-                sendToFacebook: sendFacebook.checked
-            };
+            const payload = buildEventPayload();
+            const hasDestination = hasSelectedDestination(payload);
             previewCopyPayloads = new Map();
             previewCopyPayloads.set("webpage", buildPlatformRawText("webpage", null, titleRaw, contentRaw, sendWebpage.checked));
 
@@ -2005,6 +2219,8 @@
             webpagePreviewSurface.hidden = !sendWebpage.checked;
             commandValidationHint.hidden = hasTitle;
             copyCommandBtn.disabled = !hasTitle;
+            postEventBtn.disabled = !hasTitle || !hasDestination;
+            postValidationHint.hidden = hasTitle && hasDestination;
 
             document.getElementById("eventTitlePreview").innerHTML = renderWebpageMarkup(normalizeNewlines(titleRaw).replace(/\n+/g, " ").trim());
             document.getElementById("eventContentPreview").innerHTML = contentRaw ? renderWebpageMarkupWithBreaks(contentRaw) : "";
@@ -2046,6 +2262,56 @@
                 commandOutput.value = buildServerCommand(payloadToken);
             } else {
                 commandOutput.value = "";
+            }
+        }
+
+        async function postEvent() {
+            const payload = buildEventPayload();
+            if (!payload.title || !hasSelectedDestination(payload)) {
+                setDirectPostStatus("Title and at least one destination are required before posting.", "error");
+                update();
+                return;
+            }
+
+            postEventBtn.disabled = true;
+            setDirectPostStatus("Posting...", "");
+            clearCleanupCommand();
+
+            try {
+                const response = await fetch("/api/custom-events", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({
+                        secret: designerSecretInput.value,
+                        ...payload
+                    })
+                });
+
+                const contentType = response.headers.get("content-type") || "";
+                const body = contentType.includes("application/json")
+                    ? await response.json()
+                    : await response.text();
+
+                if (!response.ok) {
+                    const message = typeof body === "string"
+                        ? body
+                        : (body && body.message) || `Post failed with HTTP ${response.status}.`;
+                    clearCleanupCommand();
+                    setDirectPostStatus(message || `Post failed with HTTP ${response.status}.`, "error");
+                    return;
+                }
+
+                const targets = Array.isArray(body.selectedTargets) ? body.selectedTargets.join(", ") : "";
+                setCleanupCommand(body.eventId);
+                setDirectPostStatus(`Posted event ${body.eventId}${targets ? ` to ${targets}` : ""}.`, "success");
+            } catch {
+                clearCleanupCommand();
+                setDirectPostStatus("Post failed. Check your connection and try again.", "error");
+            } finally {
+                update();
             }
         }
 
@@ -2146,9 +2412,13 @@
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);
                 }
+                clearCleanupCommand();
                 update();
             });
-            el.addEventListener("change", update);
+            el.addEventListener("change", () => {
+                clearCleanupCommand();
+                update();
+            });
         });
 
         insertBoldBtn.addEventListener("click", insertBold);
@@ -2161,6 +2431,18 @@
             }
             await copyText(commandOutput.value, "Command copied.");
         });
+        copyCleanupCommandBtn.addEventListener("click", async () => {
+            if (!cleanupCommandOutput.value) {
+                return;
+            }
+            await navigator.clipboard.writeText(cleanupCommandOutput.value);
+            setDirectPostStatus("Cleanup SQL copied.", "success");
+        });
+        generateSecretHashBtn.addEventListener("click", generateSecretHash);
+        copySecretHashBtn.addEventListener("click", copySecretHash);
+        designerSecretInput.addEventListener("input", clearGeneratedSecretHash);
+        postEventBtn.addEventListener("click", postEvent);
+        updateSecretHashControls();
         window.addEventListener("resize", update);
 
         fetch("/api/data/athletes", { headers: { accept: "application/json" } })

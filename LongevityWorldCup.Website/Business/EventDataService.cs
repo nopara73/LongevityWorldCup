@@ -30,6 +30,40 @@ public enum EventType
     SeasonFinalResult = 7
 }
 
+public sealed record CustomEventDeliveryTargets(
+    bool SendToWebpage,
+    bool SendToSlack,
+    bool SendToX,
+    bool SendToThreads,
+    bool SendToFacebook)
+{
+    public CustomEventStorageFlags ToStorageFlags() => new(
+        VisibleOnWebsite: SendToWebpage ? 1 : 0,
+        SlackProcessed: SendToSlack ? 0 : 1,
+        XProcessed: SendToX ? 0 : 1,
+        ThreadsProcessed: SendToThreads ? 0 : 1,
+        FacebookProcessed: SendToFacebook ? 0 : 1);
+}
+
+public sealed record CustomEventStorageFlags(
+    int VisibleOnWebsite,
+    int SlackProcessed,
+    int XProcessed,
+    int ThreadsProcessed,
+    int FacebookProcessed)
+{
+    public static CustomEventStorageFlags ForDefaultCustomEvent(
+        bool visibleOnWebsite,
+        bool xConfigured,
+        bool threadsConfigured,
+        bool facebookConfigured) => new(
+            VisibleOnWebsite: visibleOnWebsite ? 1 : 0,
+            SlackProcessed: 0,
+            XProcessed: xConfigured ? 0 : 1,
+            ThreadsProcessed: threadsConfigured ? 0 : 1,
+            FacebookProcessed: facebookConfigured ? 0 : 1);
+}
+
 public sealed class NonRetryableCustomEventDispatchException : Exception
 {
     public NonRetryableCustomEventDispatchException(string message) : base(message)
@@ -1235,7 +1269,13 @@ public sealed class EventDataService : IDisposable
         }
     }
 
-    public void CreateCustomEvent(string titleRaw, string contentRaw, DateTime? occurredAtUtc = null, double relevance = 15d, bool visibleOnWebsite = true)
+    public string CreateCustomEvent(
+        string titleRaw,
+        string contentRaw,
+        DateTime? occurredAtUtc = null,
+        double relevance = 15d,
+        bool visibleOnWebsite = true,
+        CustomEventDeliveryTargets? deliveryTargets = null)
     {
         if (string.IsNullOrWhiteSpace(titleRaw)) throw new ArgumentNullException(nameof(titleRaw));
         contentRaw ??= "";
@@ -1243,6 +1283,12 @@ public sealed class EventDataService : IDisposable
         var combinedRaw = titleRaw + "\n\n" + contentRaw;
         var occurredAt = EnsureUtc(occurredAtUtc ?? DateTime.UtcNow).ToString("o");
         var eventId = Guid.NewGuid().ToString("N");
+        var storageFlags = deliveryTargets?.ToStorageFlags()
+            ?? CustomEventStorageFlags.ForDefaultCustomEvent(
+                visibleOnWebsite,
+                _xEvents.IsConfigured,
+                _threadsEvents.IsConfigured,
+                _facebookEvents.IsConfigured);
 
         int created = 0;
 
@@ -1254,18 +1300,19 @@ public sealed class EventDataService : IDisposable
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
                 """
-                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, XProcessed, ThreadsProcessed, FacebookProcessed)
-                VALUES (@id, @type, @text, @occ, @rel, @visibleOnWebsite, @xProcessed, @threadsProcessed, @facebookProcessed);
+                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed)
+                VALUES (@id, @type, @text, @occ, @rel, @visibleOnWebsite, @slackProcessed, @xProcessed, @threadsProcessed, @facebookProcessed);
                 """;
             insertCmd.Parameters.AddWithValue("@id", eventId);
             insertCmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
             insertCmd.Parameters.AddWithValue("@text", combinedRaw);
             insertCmd.Parameters.AddWithValue("@occ", occurredAt);
             insertCmd.Parameters.AddWithValue("@rel", relevance);
-            insertCmd.Parameters.AddWithValue("@visibleOnWebsite", visibleOnWebsite ? 1 : 0);
-            insertCmd.Parameters.AddWithValue("@xProcessed", _xEvents.IsConfigured ? 0 : 1);
-            insertCmd.Parameters.AddWithValue("@threadsProcessed", _threadsEvents.IsConfigured ? 0 : 1);
-            insertCmd.Parameters.AddWithValue("@facebookProcessed", _facebookEvents.IsConfigured ? 0 : 1);
+            insertCmd.Parameters.AddWithValue("@visibleOnWebsite", storageFlags.VisibleOnWebsite);
+            insertCmd.Parameters.AddWithValue("@slackProcessed", storageFlags.SlackProcessed);
+            insertCmd.Parameters.AddWithValue("@xProcessed", storageFlags.XProcessed);
+            insertCmd.Parameters.AddWithValue("@threadsProcessed", storageFlags.ThreadsProcessed);
+            insertCmd.Parameters.AddWithValue("@facebookProcessed", storageFlags.FacebookProcessed);
 
             insertCmd.ExecuteNonQuery();
             created = 1;
@@ -1276,8 +1323,14 @@ public sealed class EventDataService : IDisposable
         if (created > 0)
         {
             ReloadIntoCache();
-            ProcessPendingImmediateCustomEvents();
+            if (_enableEventDispatch)
+            {
+                ProcessPendingSlackEvents();
+                ProcessPendingImmediateCustomEvents();
+            }
         }
+
+        return eventId;
     }
     
     public IReadOnlyList<EventItem> GetEvents(
