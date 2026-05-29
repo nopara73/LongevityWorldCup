@@ -26,20 +26,24 @@
             overflow: hidden;
             display: block;
             margin: 0 auto;
-            border: 1px solid rgba(15, 23, 42, 0.2);
-            border-radius: 8px;
-            background: #111614;
+            border-radius: 6px;
+            background: transparent;
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
         }
 
             .img-crop .illustration {
                 box-sizing: border-box;
                 width: 100%; /* same width behavior */
+                max-width: none;
                 height: auto;
                 display: block;
+                margin: 0;
                 position: relative;
                 top: 50%;
                 transform: translateY(-50%); /* equal crop top/bottom */
+                border: 0;
+                border-radius: 6px;
+                box-shadow: none;
             }
 
         .play-menu-actions {
