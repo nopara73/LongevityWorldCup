@@ -2470,10 +2470,9 @@
                             <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
                                 <td colspan="2"><span class="athlete-info-divider"></span></td>
                             </tr>
-                            <tr id="crowdAgeContainer">
+                            <tr id="crowdAgeContainer" style="display:none;">
                                 <th scope="row"><strong>Crowd age:</strong></th>
                                 <td>
-                                    <span id="emptyCrowdAgeContainer">Crickets...</span>
                                     <span id="notEmptyCrowdAgeContainer" style="display:none;">
             <span id="crowdAge">0</span> <span class="unit">years</span>,
             <span id="crowdCount">0</span> guesses
@@ -7027,15 +7026,15 @@
 
     function updateCrowdContainer(crowdAge, crowdCount) {
         const crowdContainer = document.getElementById('crowdAgeContainer');
-        const emptyCrowdContainer = document.getElementById('emptyCrowdAgeContainer');
         const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
+        const hasCrowdAge = Number.isFinite(crowdAge) && Number.isFinite(crowdCount) && crowdCount > 0;
 
-        if (crowdCount === 0) {
+        if (!hasCrowdAge) {
+            crowdContainer.style.display = 'none';
             notEmptyCrowdContainer.style.display = 'none';
-            emptyCrowdContainer.style.display = 'block';
         } else {
+            crowdContainer.style.display = '';
             notEmptyCrowdContainer.style.display = 'block';
-            emptyCrowdContainer.style.display = 'none';
             document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
             document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
         }
