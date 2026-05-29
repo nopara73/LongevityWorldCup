@@ -11,7 +11,7 @@
 |2016|Aging.AI|blood (deep learning model)|Polina Mamoshina, Kirill Kochetov, Evgeny Putin, Franco Cortese, Alexander Aliper, Won-Suk Lee, Sung-Min Ahn, Lee Uhn, Neil Skjodt, Olga Kovalchuk, Morten Scheibye-Knudsen, Alex Zhavoronkov|[Aging.AI](https://www.unhooked.co.uk/diversity-ai/aging/index.html)|global (online)|
 |2016|TruMe|methylation (saliva)||[prohealth](https://www.prohealth.com/products/trume-at-home-dna-biological-age-test-tst100), [agelessrx](https://agelessrx.com/trume/), [EasyDNA](https://easydna.co.uk/knowyourbioage-test/)|Canada, US, UK|
 |2017|EpiAge|methylation (saliva)||[Life Extension Europe](https://www.lifeextensioneurope.com/epiage-epigenetic-age-test), [BrainMarket](https://www.brainmarket.hu/hansen-epiage-biological-age-test-kits--test-k-urceni-biologickeho-veku/)|Europe|
-|2018|PhenoAge|blood|Morgan E. Levine|any lab, [Longevity World Cup Pheno Age Calculator](https://www.longevityworldcup.com/onboarding/pheno-age.html)|gobal|
+|2018|PhenoAge|blood|Morgan E. Levine|any lab, [Longevity World Cup Pheno Age Calculator](https://www.longevityworldcup.com/onboarding/pheno-age.html)|global|
 |2018|AgeMeter Functional Age Test|functional biomarkers|Elliott Small|[AgeMeter](https://agemeter.com/)|global|
 |2019|Elysium Index|methylation (saliva)||[Elysium Health](https://www.elysiumhealth.com/products/index)|US|
 |2019|GrimAge|methylation|Lu AT, Quach A, Wilson JG, Reiner AP, Aviv A, Raj K, et al.|[Clock Foundation](https://clockfoundation.org/product/grimage-epigenetic-age-test-promo/)|United States, UK and Europe|
