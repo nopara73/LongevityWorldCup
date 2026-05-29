@@ -307,7 +307,8 @@ namespace LongevityWorldCup.Website
                 FacebookAppSecret = "",
                 FacebookPageId = "",
                 FacebookUserAccessToken = "",
-                FacebookPageAccessToken = ""
+                FacebookPageAccessToken = "",
+                CustomEventDesignerSecretHash = ""
             };
 
             // Serialize to JSON and save to file
