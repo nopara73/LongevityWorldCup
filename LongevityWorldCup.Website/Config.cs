@@ -43,6 +43,7 @@ namespace LongevityWorldCup.Website
         public string? FacebookPageId { get; set; }
         public string? FacebookUserAccessToken { get; set; }
         public string? FacebookPageAccessToken { get; set; }
+        public string? CustomEventDesignerSecretHash { get; set; }
 
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
