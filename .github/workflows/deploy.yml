@@ -61,6 +61,28 @@ jobs:
             sudo dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output /var/www/LongevityWorldCup/publish
             sudo systemctl start longevityworldcup.service
 
+            health_url="https://www.longevityworldcup.com/about"
+            health_body="/tmp/longevityworldcup-health.html"
+            for attempt in $(seq 1 24); do
+              if curl -fsS --max-time 10 "$health_url" -o "$health_body"; then
+                break
+              fi
+
+              if [ "$attempt" -eq 24 ]; then
+                echo "Production health check failed: $health_url"
+                sudo systemctl status longevityworldcup.service --no-pager -l || true
+                exit 1
+              fi
+
+              sleep 5
+            done
+
+            if ! grep -q "About Longevity World Cup" "$health_body"; then
+              echo "Production health check returned unexpected content."
+              exit 1
+            fi
+            rm -f "$health_body"
+
             if [ -n "$(git status --short)" ]; then
               echo "Server checkout was dirtied during deploy."
               git status --short
