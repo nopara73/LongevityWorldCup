@@ -24,10 +24,10 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 
 ![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
 ## Prizes and payouts
-- Prize money goes to the top three athletes in the Ultimate League.
+- Prize money is awarded to the top three athletes in the Ultimate League.
 - Bitcoin donations fund the prize money pool.
 - 10% of donations covers operating costs, and 90% funds the prize money pool.
-- Payouts are made in Bitcoin in mid-January. If you don't already have a Bitcoin wallet, we'll help you set one up. We recommend [Green Wallet](https://blockstream.com/green/) for mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Fun fact: Wasabi Wallet and the Longevity World Cup share the same creator.
+- Payouts are made in Bitcoin in mid-January. If you need a Bitcoin wallet, we'll help you set one up. We recommend [Green Wallet](https://blockstream.com/green/) for mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Fun fact: Wasabi Wallet and the Longevity World Cup share the same creator.
 
 ![image](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
 
@@ -134,7 +134,7 @@ Your profile picture must show you facing the camera, but you can edit it freely
 Through the [Athlete Dashboard](https://www.longevityworldcup.com/play/character-selection.html) or by sending us an email to `hi@longevityworldcup.com`.
 
 #### What will sponsorships include?
-Sponsorships are planned for future seasons. Companies will be able to sponsor athletes for website visibility.
+Sponsorships are planned for future seasons. Future packages will let companies sponsor athletes for website visibility.
 
 #### What if Bitcoin's value changes significantly?
 [1 BTC = 1 BTC](https://old.reddit.com/r/Bitcoin/comments/w1di0k/please_understand_what_1_btc_1_btc_really_means/)
