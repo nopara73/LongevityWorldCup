@@ -1055,9 +1055,9 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
-                sb.AppendLine($"Pheno Age difference: {chronoPhenoDifference.Trim()}");
+                sb.AppendLine($"Pheno age difference: {chronoPhenoDifference.Trim()}");
             if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
-                sb.AppendLine($"Bortz Age difference: {chronoBortzDifference.Trim()}");
+                sb.AppendLine($"Bortz age difference: {chronoBortzDifference.Trim()}");
 
             sb.AppendLine();
         }
@@ -1079,9 +1079,9 @@ namespace LongevityWorldCup.Website.Controllers
                 if (applicantData.ProofPics?.Any() is true)
                     fields.Add($"- Proof attachments: {applicantData.ProofPics.Count} file(s) submitted");
                 if (!string.IsNullOrWhiteSpace(applicantData.ChronoPhenoDifference))
-                    fields.Add("- Pheno Age result");
+                    fields.Add("- Pheno age result");
                 if (!string.IsNullOrWhiteSpace(applicantData.ChronoBortzDifference))
-                    fields.Add("- Bortz Age result");
+                    fields.Add("- Bortz age result");
             }
             else if (isEditSubmissionOnly)
             {
@@ -1144,9 +1144,9 @@ namespace LongevityWorldCup.Website.Controllers
             var lines = new List<string>();
 
             if (!string.IsNullOrWhiteSpace(chronoPhenoDifference))
-                lines.Add($"- Pheno Age difference: {chronoPhenoDifference.Trim()}");
+                lines.Add($"- Pheno age difference: {chronoPhenoDifference.Trim()}");
             if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
-                lines.Add($"- Bortz Age difference: {chronoBortzDifference.Trim()}");
+                lines.Add($"- Bortz age difference: {chronoBortzDifference.Trim()}");
 
             var biomarkers = applicantData.Biomarkers;
             if (biomarkers?.Any() is true)

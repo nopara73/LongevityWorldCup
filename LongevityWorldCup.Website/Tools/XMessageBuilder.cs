@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
@@ -115,7 +115,7 @@ public static class XMessageBuilder
 
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
         var normLabel = EventHelpers.NormalizeBadgeLabel(label);
-        if (string.Equals(normLabel, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normLabel, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractPlace(rawText, out var phenoPlace) || phenoPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var phenoSlug)) return "";
@@ -126,12 +126,12 @@ public static class XMessageBuilder
             var line = BuildLowestAgeLine(
                 eventPhase,
                 athleteName: phenoAthlete,
-                metricName: "PhenoAge",
+                metricName: "pheno age",
                 cohortLabel: "amateur",
                 ageStr: ageStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(phenoAthlete, athleteUrl)}");
         }
-        if (string.Equals(normLabel, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normLabel, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractPlace(rawText, out var phenoImprovementPlace) || phenoImprovementPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var diffSlug)) return "";
@@ -144,13 +144,13 @@ public static class XMessageBuilder
             var line = BuildImprovementLine(
                 eventPhase,
                 athleteName: athlete,
-                metricName: "PhenoAge",
+                metricName: "pheno age",
                 cohortLabel: "amateur",
                 yearsStr: yearsStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(athlete, url)}");
         }
 
-        if (string.Equals(normLabel, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normLabel, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractPlace(rawText, out var bortzPlace) || bortzPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var bortzSlug)) return "";
@@ -161,13 +161,13 @@ public static class XMessageBuilder
             var line = BuildLowestAgeLine(
                 eventPhase,
                 athleteName: bortzAthlete,
-                metricName: "Bortz Age",
+                metricName: "bortz age",
                 cohortLabel: "pro",
                 ageStr: ageStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(bortzAthlete, athleteUrl)}");
         }
 
-        if (string.Equals(normLabel, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normLabel, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractPlace(rawText, out var bortzImprovementPlace) || bortzImprovementPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var diffSlug)) return "";
@@ -180,13 +180,13 @@ public static class XMessageBuilder
             var line = BuildImprovementLine(
                 eventPhase,
                 athleteName: athlete,
-                metricName: "Bortz Age",
+                metricName: "bortz age",
                 cohortLabel: "pro",
                 yearsStr: yearsStr);
             return RejectIfTooLong($"{line}\n\n{BuildAthleteCtaLine(athlete, url)}");
         }
 
-        if (string.Equals(normLabel, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normLabel, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractPlace(rawText, out var chronoOldestPlace) || chronoOldestPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var chronoSlug)) return "";
@@ -198,7 +198,7 @@ public static class XMessageBuilder
             return RejectIfTooLong($"{chronoAthlete} is currently the oldest athlete in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
-        if (string.Equals(normLabel, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normLabel, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase))
         {
             if (!EventHelpers.TryExtractPlace(rawText, out var chronoYoungestPlace) || chronoYoungestPlace != 1) return "";
             if (!EventHelpers.TryExtractSlug(rawText, out var chronoSlug)) return "";
@@ -210,7 +210,7 @@ public static class XMessageBuilder
             return RejectIfTooLong($"{chronoAthlete} is now the youngest in the Longevity World Cup field at {ageStr} years.\n\n{BuildAthleteCtaLine(chronoAthlete, url)}");
         }
 
-        if (string.Equals(normLabel, "Age Reduction", StringComparison.OrdinalIgnoreCase)
+        if (string.Equals(normLabel, "Age reduction", StringComparison.OrdinalIgnoreCase)
             && EventHelpers.TryExtractPlace(rawText, out var place) && place == 1
             && EventHelpers.TryExtractCategory(rawText, out var leagueCat) && !string.Equals(leagueCat, "Global", StringComparison.OrdinalIgnoreCase)
             && EventHelpers.TryExtractSlug(rawText, out var leagueSlug))
@@ -412,15 +412,15 @@ public static class XMessageBuilder
             return null;
 
         var norm = EventHelpers.NormalizeBadgeLabel(label);
-        if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase))
             return XPostSampleBasis.PhenoAge;
 
-        if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase))
             return XPostSampleBasis.Bortz;
 
-        if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase) &&
+        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase) &&
             EventHelpers.TryExtractPlace(rawText, out var place) && place == 1 &&
             EventHelpers.TryExtractCategory(rawText, out var category) &&
             !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase))
@@ -473,7 +473,7 @@ public static class XMessageBuilder
             return null;
 
         var norm = EventHelpers.NormalizeBadgeLabel(label);
-        if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase) &&
+        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase) &&
             EventHelpers.TryExtractPlace(rawText, out var place) && place == 1 &&
             EventHelpers.TryExtractCategory(rawText, out var category))
         {
@@ -571,11 +571,11 @@ public static class XMessageBuilder
         if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
         {
             return !(
                 EventHelpers.TryExtractPlace(rawText, out var place) &&
@@ -585,8 +585,8 @@ public static class XMessageBuilder
         }
 
         if (phase == XPostPhase.Early &&
-            (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase)))
+            (string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase)))
             return false;
 
         return true;

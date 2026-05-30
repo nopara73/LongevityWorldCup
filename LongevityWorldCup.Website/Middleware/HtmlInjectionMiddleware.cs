@@ -30,6 +30,19 @@ namespace LongevityWorldCup.Website.Middleware
             "/history",
             "/ruleset"
         };
+        private static readonly IReadOnlyDictionary<string, LeaderboardViewSeo> LeaderboardViewSeoBySlug =
+            new Dictionary<string, LeaderboardViewSeo>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["bortz"] = new(
+                    "Bortz Age Leaderboard | Longevity World Cup",
+                    "Track Longevity World Cup Bortz Age rankings for athletes with eligible Bortz Age results."),
+                ["pheno"] = new(
+                    "Pheno Age Leaderboard | Longevity World Cup",
+                    "Track Longevity World Cup Pheno Age rankings from verified biological age submissions."),
+                ["crowd"] = new(
+                    "Crowd Age Leaderboard | Longevity World Cup",
+                    "Track the Longevity World Cup Crowd Age leaderboard for athletes with enough accepted age guesses.")
+            };
 
         public async Task Invoke(HttpContext context)
         {
@@ -388,6 +401,11 @@ $@"<script type=""module"">
                 return athleteSeo;
             }
 
+            if (TryGetLeaderboardViewSeoMeta(context, out var leaderboardViewSeo))
+            {
+                return leaderboardViewSeo;
+            }
+
             if (TryGetLeagueSeoMeta(context, out var leagueSeo))
             {
                 return leagueSeo;
@@ -406,7 +424,7 @@ $@"<script type=""module"">
             {
                 "/" => new SeoMeta(
                     canonicalPath,
-                    "Reverse your biological age and climb the Longevity World Cup leaderboard. Compare Pheno Age and Bortz Age results in a global anti-aging competition.",
+                    "Reverse your biological age and climb the Longevity World Cup leaderboard. Compare Pheno age and Bortz age results in a global anti-aging competition.",
                     "index, follow",
                     canonicalUrl,
                     "Longevity World Cup | Reverse Your Biological Age",
@@ -636,6 +654,32 @@ $@"<script type=""module"">
             return true;
         }
 
+        private bool TryGetLeaderboardViewSeoMeta(HttpContext context, out SeoMeta seo)
+        {
+            seo = null!;
+            if (!TryResolveLeaderboardViewSlug(context, out var viewSlug) ||
+                !LeaderboardViewSeoBySlug.TryGetValue(viewSlug, out var viewSeo))
+            {
+                return false;
+            }
+
+            var canonicalPath = $"/league/{viewSlug}";
+            var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
+            var ogImageUrl = BuildDefaultOgImageUrl();
+
+            seo = new SeoMeta(
+                canonicalPath,
+                viewSeo.Description,
+                "index, follow",
+                canonicalUrl,
+                viewSeo.Title,
+                viewSeo.Title,
+                viewSeo.Description,
+                ogImageUrl
+            );
+            return true;
+        }
+
         private static bool IsLeagueRoute(string? path)
         {
             return !string.IsNullOrWhiteSpace(path)
@@ -706,6 +750,39 @@ $@"<script type=""module"">
             }
 
             return false;
+        }
+
+        private static bool TryResolveLeaderboardViewSlug(HttpContext context, out string viewSlug)
+        {
+            viewSlug = "";
+            var requestPath = context.Request.Path.Value ?? "";
+            var canonicalPath = RouteCanonicalization.GetCanonicalPath(requestPath);
+
+            if (IsLeagueRoute(canonicalPath))
+            {
+                var raw = canonicalPath["/league/".Length..].Trim('/');
+                if (LeaderboardViewSeoBySlug.ContainsKey(raw))
+                {
+                    viewSlug = raw.ToLowerInvariant();
+                    return true;
+                }
+            }
+
+            if ((!string.Equals(canonicalPath, "/", StringComparison.Ordinal) &&
+                 !string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase)) ||
+                !context.Request.Query.TryGetValue("view", out var viewQuery))
+            {
+                return false;
+            }
+
+            var candidate = viewQuery.ToString().Trim().ToLowerInvariant();
+            if (!LeaderboardViewSeoBySlug.ContainsKey(candidate))
+            {
+                return false;
+            }
+
+            viewSlug = candidate;
+            return true;
         }
 
         private string BuildStructuredDataJson(SeoMeta seo)
@@ -793,6 +870,7 @@ $@"<script type=""module"">
                 "/about" => "About",
                 "/history" => "History",
                 "/ruleset" => "Ruleset",
+                _ when canonicalPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase) => "Leaderboard",
                 _ => "Page"
             };
         }
@@ -807,6 +885,8 @@ $@"<script type=""module"">
             string OgDescription,
             string OgImageUrl
         );
+
+        private sealed record LeaderboardViewSeo(string Title, string Description);
 
         private sealed record HeadAssetConfig(bool IncludeValidator, IReadOnlyList<string> ModulePaths)
         {

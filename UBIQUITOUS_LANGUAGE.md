@@ -9,10 +9,10 @@
 | **Season** | A yearly competition window for clocks that accept only results from that season's valid dates. | Year, campaign |
 | **Season close** | The point when final rankings for a season are locked. | Wrap-up, end date |
 | **Track** | A competition class defined by clock access and seriousness, currently **Pro** or **Amateur**. | League, tier |
-| **Pro** | The track for athletes with an eligible Bortz Age result, ranked ahead of Amateur in the Ultimate League. | Professional, Bortz-only |
-| **Amateur** | The accessible track for athletes without an eligible Bortz Age result, currently centered on PhenoAge. | Beginner, Pheno-only |
+| **Pro** | The track for athletes with an eligible bortz age result, ranked ahead of Amateur in the Ultimate League. | Professional, Bortz-only |
+| **Amateur** | The accessible track for athletes without an eligible bortz age result, currently centered on pheno age. | Beginner, Pheno-only |
 | **Ultimate League** | The primary overall leaderboard that includes Pro and Amateur athletes while always ordering Pro before Amateur. | Overall ranking, global ranking |
-| **League** | A filtered ranking view over the competition field, such as Ultimate, Amateur, division, generation, exclusive, or Crowd Age. | Track, category |
+| **League** | A filtered ranking view over the competition field, such as Ultimate, Amateur, division, generation, exclusive, or crowd age. | Track, category |
 | **Division** | A self-declared athlete grouping of Men's, Women's, or Open. | Gender category, league |
 | **Generation league** | A league derived from birth year bands such as Baby Boomers, Gen X, Millennials, Gen Z, or Gen Alpha. | Age group, cohort |
 | **Exclusive league** | A special league assigned by an athlete field, currently including Prosperan. | Private league, sponsor league |
@@ -26,7 +26,7 @@
 | **Chronological age** | An athlete's age in years computed from date of birth at the relevant date. | Real age, actual age |
 | **Biological age** | The age-like output of a biological aging clock. | Bio age, calculated age |
 | **Biological aging clock** | A formula or model that converts biomarkers and related inputs into biological age or age acceleration. | Calculator, test |
-| **PhenoAge** | The all-time Amateur biological aging clock based on chronological age and nine blood biomarkers. | Pheno Age, Phenotypic Age, pheno |
+| **Pheno Age** | The all-time Amateur biological aging clock based on chronological age and nine blood biomarkers. | PhenoAge in public copy, Phenotypic Age, pheno |
 | **Bortz Age** | The seasonal Pro biological aging clock based on chronological age and a larger blood-biomarker panel. | Bortz, Bortz Blood Age |
 | **Seasonal clock** | A clock whose eligible results are limited to the active season's valid window. | Yearly clock |
 | **All-time clock** | A clock whose best eligible result is selected across the athlete's full history. | Historical clock |
@@ -34,9 +34,9 @@
 | **Multi-clock competition** | A competition model that keeps distinct clocks active for different tracks or seasons. | Mixed calculator setup |
 | **Biological Age Difference** | The signed value `biological age - chronological age`; lower and more negative values rank higher within the same ordering class. | Reduction, score |
 | **Age Reduction** | The user-facing competition score that represents a favorable negative Biological Age Difference. | Age difference, years reversed |
-| **Effective Age Reduction** | The ranking value used in the Ultimate League: Bortz Age difference for Pro athletes, otherwise PhenoAge difference. | Current score, active score |
-| **Lowest PhenoAge** | An athlete's best, lowest eligible PhenoAge result. | Best Pheno, Pheno score |
-| **Lowest Bortz Age** | An athlete's best, lowest eligible Bortz Age result in the seasonal window. | Best Bortz, Bortz score |
+| **Effective Age Reduction** | The ranking value used in the Ultimate League: bortz age difference for Pro athletes, otherwise pheno age difference. | Current score, active score |
+| **Lowest Pheno Age** | An athlete's best, lowest eligible pheno age result. | Best Pheno, Pheno score |
+| **Lowest Bortz Age** | An athlete's best, lowest eligible bortz age result in the seasonal window. | Best Bortz, Bortz score |
 | **Biological Age Acceleration** | The Bortz model's intermediate signed age offset before it is added to chronological age. | BAA, acceleration |
 | **Pace of Aging** | A badge metric that compares biological age movement over time for a clock. | Rate of aging |
 | **Best Improvement** | A badge metric based on the latest eligible result minus the baseline result for the same clock. | Progress, improvement |
@@ -64,10 +64,10 @@
 | --- | --- | --- |
 | **Leaderboard** | A ranked display of athletes for a league, track, clock, or crowd view. | Ranking list, table |
 | **Crowd Age** | The median realistic age guessed by visitors in Guess My Age. | Guessed age, perceived age |
-| **Crowd Count** | The number of accepted realistic guesses behind an athlete's Crowd Age. | Vote count, guesses |
-| **Crowd Age Difference** | The signed value `Crowd Age - chronological age`; lower and more negative values rank higher in Crowd Age ranking. | Crowd reduction, age gap |
+| **Crowd Count** | The number of accepted realistic guesses behind an athlete's crowd age. | Vote count, guesses |
+| **Crowd Age Difference** | The signed value `crowd age - chronological age`; lower and more negative values rank higher in crowd age ranking. | Crowd reduction, age gap |
 | **Crowd Age leaderboard** | A separate leaderboard for athletes with at least 100 crowd guesses, ranked by Crowd Age Difference, Crowd Count, date of birth, and name. | Crowd league, Guess My Age ranking |
-| **Guess My Age** | The visitor game where people guess athlete ages and create Crowd Age data. | Crowd guessing, age guessing |
+| **Guess My Age** | The visitor game where people guess athlete ages and create crowd age data. | Crowd guessing, age guessing |
 | **Badge** | A computed award attached to athletes for league placement, clock metrics, submissions, crowd metrics, or editorial status. | Award, achievement |
 | **Age Reduction badge** | A top-three badge for ranking by the competition's age-reduction rules in a league scope. | League badge, ranking badge |
 | **Domain badge** | A badge for the best clock subdomain score, such as liver, kidney, metabolic, immune, inflammation, or vitamin D. | Health-area badge |
@@ -97,10 +97,10 @@
 - A **Longevity athlete** belongs to zero or more **Leagues** through track, division, generation, exclusive league, or crowd eligibility.
 - An **Application** can become one **Longevity athlete** after **Application review**.
 - A **Result submission** contains one or more **Biomarker records** and must provide **Proof**.
-- A **Biomarker record** can feed **PhenoAge**, **Bortz Age**, or both, depending on which required biomarkers are present.
-- **PhenoAge** currently defines the **Amateur** all-time path; **Bortz Age** currently defines the **Pro** seasonal path.
+- A **Biomarker record** can feed pheno age, bortz age, or both, depending on which required biomarkers are present.
+- The **Amateur** all-time path is currently defined by pheno age; the **Pro** seasonal path is currently defined by bortz age.
 - The **Ultimate League** ranks **Pro** athletes before **Amateur** athletes, then applies **Effective Age Reduction** and tie breakers.
-- A **Crowd Age leaderboard** is not the **Ultimate League** and only includes athletes with at least 100 accepted guesses.
+- The crowd age leaderboard is not the **Ultimate League** and only includes athletes with at least 100 accepted guesses.
 - **Badges** are derived from leaderboard positions, clock metrics, submission behavior, crowd metrics, and editorial rules.
 - **Events** announce athlete joins, rank changes, donations, milestones, badge awards, custom events, and season final results.
 - **Social posts** can be generated from **Events**, **Badges**, athlete rankings, and league context.
@@ -109,29 +109,27 @@
 
 > **Dev:** "If an athlete enters a Bortz result, do they move into the **Pro** track?"
 >
-> **Domain expert:** "Yes. Their **Effective Age Reduction** becomes their **Bortz Age** difference, and in the **Ultimate League** they rank ahead of **Amateur** athletes."
+> **Domain expert:** "Yes. Their **Effective Age Reduction** becomes their bortz age difference, and in the **Ultimate League** they rank ahead of **Amateur** athletes."
 >
-> **Dev:** "So a huge **PhenoAge** improvement cannot outrank a weak Pro result in the Ultimate League?"
+> **Dev:** "So a huge pheno age improvement cannot outrank a weak Pro result in the Ultimate League?"
 >
 > **Domain expert:** "Correct. **Pro** before **Amateur** is part of the domain rule, not a display choice."
 >
 > **Dev:** "For **Guess My Age**, should I reuse Ultimate League ordering?"
 >
-> **Domain expert:** "No. The **Crowd Age leaderboard** is separate. It needs at least 100 guesses and ranks by **Crowd Age Difference**, then **Crowd Count**, date of birth, and name."
+> **Domain expert:** "No. The crowd age leaderboard is separate. It needs at least 100 guesses and ranks by **Crowd Age Difference**, then **Crowd Count**, date of birth, and name."
 
 ## Flagged ambiguities
 
 - **Age Reduction** is semantically positive in public copy but implemented as a signed difference where more negative values are better; use **Biological Age Difference** when discussing code or sort direction, and **Age Reduction** for user-facing competition copy.
-- **Track** and **League** are often used interchangeably, but they are distinct: **Track** is Pro or Amateur, while **League** is a ranking view such as Ultimate, division, generation, exclusive, Amateur, or Crowd Age.
-- **PhenoAge**, "Pheno age", "Pheno Age", and "Phenotypic Age" refer to the same clock; use **PhenoAge** in domain docs and code-facing language unless quoting UI copy. In running public sentences, prefer **Pheno age**.
-- **Bortz**, "Bortz age", "Bortz Age", and "Bortz Blood Age" refer to the same current Pro clock; use **Bortz Age** in domain docs unless referring to an external product name. In running public sentences, prefer **Bortz age**.
-- **Crowd Age** remains the domain term, but in running public sentences prefer **Crowd age**.
+- **Track** and **League** are often used interchangeably, but they are distinct: **Track** is Pro or Amateur, while **League** is a ranking view such as Ultimate, division, generation, exclusive, Amateur, or crowd age.
+- **Pheno Age**, **Bortz Age**, and **Crowd Age** are standalone public labels for chips, headings, tabs, table labels, badge labels, and other non-sentence UI. In running sentences, use lowercase **pheno age**, **bortz age**, and **crowd age**, except when normal sentence-start capitalization applies. Keep `PhenoAge`, `BortzAge`, and `CrowdAge` only for code identifiers, serialized fields, external names that require them, or quoted legacy data.
 - **Clock**, **calculator**, and **result** should not be collapsed: the **clock** is the formula, the **calculator** is the UI/tool, and the **result** is an athlete's computed biological age.
 - **Proof**, "proof picture", "report", and "screenshot" overlap in conversation; use **Proof** for the evidence asset and name the asset type only when validation rules depend on it.
 - **Event** can mean a stored system update, a public timeline item, or a manually designed **Custom Event**; use **Custom Event** for admin-created announcements and **Event** for the persisted event model.
 - **Ranking**, **rank**, and **placement** overlap; use **rank** for computed current order and **placement** for stored or historical finishing positions.
 - **Crowd Age Difference** follows the same signed convention as biological age differences but is separate from Ultimate League ranking.
-- **Bortz sex input** is unresolved in the issue tracker; avoid treating current Bortz Age output as definitively aligned with the original paper until that decision is settled.
+- **Bortz sex input** is unresolved in the issue tracker; avoid treating current bortz age output as definitively aligned with the original paper until that decision is settled.
 
 ## Source notes
 

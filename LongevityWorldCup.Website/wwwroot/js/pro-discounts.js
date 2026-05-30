@@ -5,8 +5,42 @@ const BADGE_BG_DEFAULT = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
 const BADGE_BG_PERSONAL = "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;";
 const BADGE_BG_BLACK = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;";
 
+function canonicalizeBadgeLabel(label) {
+    const normalized = String(label || "")
+        .replace(/â€“/g, "-")
+        .replace(/[–—]/g, "-")
+        .trim();
+
+    const aliases = {
+        "Age Reduction": "Age reduction",
+        "Chronological Age - Oldest": "Chronological age - oldest",
+        "Chronological Age - Youngest": "Chronological age - youngest",
+        "PhenoAge - Lowest": "Pheno Age - lowest",
+        "PhenoAge Best Improvement": "Pheno Age best improvement",
+        "Bortz Age - Lowest": "Bortz Age - lowest",
+        "Bortz Age Best Improvement": "Bortz Age best improvement",
+        "Pheno Pace of Aging": "Pheno pace of aging",
+        "Bortz Pace of Aging": "Bortz pace of aging",
+        "Most Submissions": "Most submissions",
+        ">=2 Submissions": "≥2 submissions",
+        "≥2 Submissions": "≥2 submissions",
+        "Crowd - Most Guessed": "Crowd – most guessed",
+        "Crowd - Age Gap (Chrono−Crowd)": "Crowd – age gap (chrono−crowd)",
+        "Crowd Age - lowest": "Crowd Age – lowest",
+        "First Applicants": "First applicants",
+        "Perfect Application": "Perfect application"
+    };
+
+    if (aliases[normalized]) return aliases[normalized];
+    if (normalized.startsWith("Best Domain - ")) {
+        const domain = normalized.slice("Best Domain - ".length).trim();
+        return "Best domain – " + (domain === "Vitamin D" ? "vitamin D" : domain.toLowerCase());
+    }
+    return normalized.replace(/ - /g, " – ");
+}
+
 function readBadgeLabel(badge) {
-    return badge?.BadgeLabel || badge?.Label || "";
+    return canonicalizeBadgeLabel(badge?.BadgeLabel || badge?.Label || "");
 }
 
 function readBadgeCategory(badge) {
@@ -135,59 +169,59 @@ function weightForBadge(badge) {
     const place = readBadgePlace(badge);
     const category = normalizeCategory(readBadgeCategory(badge));
 
-    if (label === "Age Reduction") return weightForAgeReduction(category, place);
+    if (label === "Age reduction") return weightForAgeReduction(category, place);
 
-    if (label === "Chronological Age – Oldest") {
+    if (label === "Chronological age – oldest") {
         if (place === 1) return 100;
         if (place === 2) return 50;
         if (place === 3) return 20;
         return 0;
     }
-    if (label === "Chronological Age – Youngest") {
+    if (label === "Chronological age – youngest") {
         if (place === 1 || place === 2 || place === 3) return 10;
         return 0;
     }
-    if (label === "PhenoAge – Lowest") {
+    if (label === "Pheno Age – lowest") {
         if (place === 1) return 100;
         if (place === 2) return 50;
         if (place === 3) return 20;
         return 0;
     }
-    if (label === "Bortz Age – Lowest") {
+    if (label === "Bortz Age – lowest") {
         if (place === 1) return 100;
         if (place === 2) return 50;
         if (place === 3) return 20;
         return 0;
     }
-    if (label === "≥2 Submissions") return 10;
-    if (label === "Most Submissions") return 20;
-    if (label === "PhenoAge Best Improvement") return 100;
-    if (label === "Bortz Age Best Improvement") return 100;
+    if (label === "≥2 submissions") return 10;
+    if (label === "Most submissions") return 20;
+    if (label === "Pheno Age best improvement") return 100;
+    if (label === "Bortz Age best improvement") return 100;
 
     if (
-        label === "Best Domain – Liver" ||
-        label === "Best Domain – Kidney" ||
-        label === "Best Domain – Metabolic" ||
-        label === "Best Domain – Inflammation" ||
-        label === "Best Domain – Immune" ||
-        label === "Best Domain – Vitamin D"
+        label === "Best domain – liver" ||
+        label === "Best domain – kidney" ||
+        label === "Best domain – metabolic" ||
+        label === "Best domain – inflammation" ||
+        label === "Best domain – immune" ||
+        label === "Best domain – vitamin D"
     ) {
         return 20;
     }
 
-    if (label === "Crowd – Most Guessed") {
+    if (label === "Crowd – most guessed") {
         if (place === 1) return 100;
         if (place === 2) return 90;
         if (place === 3) return 80;
         return 0;
     }
-    if (label === "Crowd – Age Gap (Chrono−Crowd)") {
+    if (label === "Crowd – age gap (chrono−crowd)") {
         if (place === 1) return 30;
         if (place === 2) return 20;
         if (place === 3) return 10;
         return 0;
     }
-    if (label === "Crowd – Lowest Crowd Age") {
+    if (label === "Crowd Age – lowest") {
         if (place === 1) return 30;
         if (place === 2) return 20;
         if (place === 3) return 10;
@@ -195,7 +229,7 @@ function weightForBadge(badge) {
     }
 
     if (label === "Podcast") return 100;
-    if (label === "First Applicants") {
+    if (label === "First applicants") {
         if (place === 1) return 100;
         if (place === 2) return 90;
         if (place === 3) return 80;
@@ -204,7 +238,7 @@ function weightForBadge(badge) {
     }
     if (label === "Pregnancy") return 10;
     if (label === "Host") return 100;
-    if (label === "Perfect Application") return 10;
+    if (label === "Perfect application") return 10;
 
     if (isSeasonBadgeLabel(label)) {
         if (place === 1) return 100;
@@ -357,7 +391,7 @@ function describeServerBadgeReason(badge) {
         return `a seasonal finish in ${seasonTag}`;
     }
 
-    if (label === "First Applicants") {
+    if (label === "First applicants") {
         if (place === 1) return "being the first applicant to join";
         if (place === 2) return "being the second applicant to join";
         if (place === 3) return "being the third applicant to join";
@@ -367,19 +401,19 @@ function describeServerBadgeReason(badge) {
 
     if (label === "Podcast") return "appearing on the Longevity World Cup podcast";
     if (label === "Host") return "hosting the Longevity World Cup";
-    if (label === "Perfect Application") return "submitting a perfect application";
-    if (label === "Most Submissions") return "having the most submissions";
-    if (label === "≥2 Submissions") return "submitting at least two results";
-    if (label === "PhenoAge Best Improvement") return "having the best PhenoAge improvement";
-    if (label === "Bortz Age Best Improvement") return "having the best Bortz Age improvement";
+    if (label === "Perfect application") return "submitting a perfect application";
+    if (label === "Most submissions") return "having the most submissions";
+    if (label === "≥2 submissions") return "submitting at least two results";
+    if (label === "Pheno Age best improvement") return "having the best pheno age improvement";
+    if (label === "Bortz Age best improvement") return "having the best bortz age improvement";
     if (label === "Pregnancy") return "holding the Pregnancy badge";
 
-    if (label.startsWith("Best Domain")) {
-        const domain = label.replace("Best Domain – ", "").trim();
+    if (label.startsWith("Best domain")) {
+        const domain = label.replace("Best domain – ", "").trim();
         return `having the best ${domain} domain profile`;
     }
 
-    if (label === "Age Reduction" && place) {
+    if (label === "Age reduction" && place) {
         if (category === "Amateur") return `while #${place} in the Amateur League`;
         if (category === "Global") return `while #${place} in the Ultimate League`;
         if (category === "Division" && leagueValue) return `while #${place} in the ${leagueValue} League`;
@@ -388,23 +422,23 @@ function describeServerBadgeReason(badge) {
         return `while #${place} in the ${category} League`;
     }
 
-    if ((label === "Chronological Age – Youngest" || label === "Chronological Age – Oldest") && place) {
-        const which = label.endsWith("Youngest") ? "youngest" : "oldest";
+    if ((label === "Chronological age – youngest" || label === "Chronological age – oldest") && place) {
+        const which = label.endsWith("youngest") ? "youngest" : "oldest";
         return `while being the #${place} ${which} athlete`;
     }
 
-    if ((label === "PhenoAge – Lowest" || label === "Bortz Age – Lowest") && place) {
-        const which = label.startsWith("PhenoAge") ? "PhenoAge" : "Bortz Age";
+    if ((label === "Pheno Age – lowest" || label === "Bortz Age – lowest") && place) {
+        const which = label.startsWith("Pheno") ? "pheno age" : "bortz age";
         return `while being #${place} lowest by ${which}`;
     }
 
-    if (label === "Crowd – Most Guessed" && place) {
+    if (label === "Crowd – most guessed" && place) {
         return `while being #${place} most-guessed by the crowd`;
     }
-    if (label === "Crowd – Age Gap (Chrono−Crowd)" && place) {
+    if (label === "Crowd – age gap (chrono−crowd)" && place) {
         return `while being #${place} in age-gap vs the crowd`;
     }
-    if (label === "Crowd – Lowest Crowd Age" && place) {
+    if (label === "Crowd Age – lowest" && place) {
         return `while being #${place} youngest-looking to the crowd`;
     }
 
@@ -493,11 +527,11 @@ function createDiscountBadgeChipHtml(component) {
     } else if (component.kind === "perfectGuess") {
         const names = getExactGuessAthleteNames(component.athlete);
         if (names.length === 1) {
-            tooltip = `Bullseye: You guessed ${names[0]}'s age perfectly!`;
+            tooltip = `Bullseye: you guessed ${names[0]}'s age perfectly!`;
         } else if (names.length > 1) {
-            tooltip = `Bullseye: You guessed these athletes' ages perfectly: ${names.join(", ")}`;
+            tooltip = `Bullseye: you guessed these athletes' ages perfectly: ${names.join(", ")}`;
         } else {
-            tooltip = "Bullseye: You guessed an athlete's age perfectly!";
+            tooltip = "Bullseye: you guessed an athlete's age perfectly!";
         }
     } else if (component.kind === "serverBadge" && component.badge) {
         if (typeof window.makeTooltipFromServerBadge === "function") {

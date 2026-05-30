@@ -71,18 +71,59 @@ public static class EventHelpers
 
     public static bool TryExtractDomain(string raw, out string domain) => TryExtractField(raw, "domain", out domain);
 
-    public static string NormalizeBadgeLabel(string? label) =>
-        (label ?? string.Empty)
+    public static string NormalizeBadgeLabel(string? label)
+    {
+        var s = (label ?? string.Empty)
             .Replace("â€“", "-", StringComparison.Ordinal)
             .Replace('–', '-')
             .Replace('—', '-')
             .Trim();
 
+        return s switch
+        {
+            "Age Reduction" => "Age reduction",
+            "Chronological Age - Oldest" => "Chronological age – oldest",
+            "Chronological age - oldest" => "Chronological age – oldest",
+            "Chronological Age - Youngest" => "Chronological age – youngest",
+            "Chronological age - youngest" => "Chronological age – youngest",
+            "PhenoAge - Lowest" => "Pheno Age – lowest",
+            "Pheno Age - lowest" => "Pheno Age – lowest",
+            "PhenoAge Best Improvement" => "Pheno Age best improvement",
+            "Bortz Age - Lowest" => "Bortz Age – lowest",
+            "Bortz Age - lowest" => "Bortz Age – lowest",
+            "Bortz Age Best Improvement" => "Bortz Age best improvement",
+            "Pheno Pace of Aging" => "Pheno pace of aging",
+            "Bortz Pace of Aging" => "Bortz pace of aging",
+            "Most Submissions" => "Most submissions",
+            ">=2 Submissions" => "≥2 submissions",
+            "≥2 Submissions" => "≥2 submissions",
+            "Crowd - Most Guessed" => "Crowd – most guessed",
+            "Crowd - most guessed" => "Crowd – most guessed",
+            "Crowd - Age Gap (Chrono−Crowd)" => "Crowd – age gap (chrono−crowd)",
+            "Crowd - age gap (chrono−crowd)" => "Crowd – age gap (chrono−crowd)",
+            "Crowd - Lowest Crowd Age" => "Crowd Age – lowest",
+            "Crowd - lowest crowd age" => "Crowd Age – lowest",
+            "Crowd Age - lowest" => "Crowd Age – lowest",
+            "First Applicants" => "First applicants",
+            "Perfect Application" => "Perfect application",
+            _ when s.StartsWith("Best Domain - ", StringComparison.Ordinal) =>
+                "Best domain – " + (s["Best Domain - ".Length..].Trim() switch
+                {
+                    "Vitamin D" => "vitamin D",
+                    var domain => domain.ToLowerInvariant()
+                }),
+            _ when s.StartsWith("Best domain - ", StringComparison.Ordinal) =>
+                "Best domain – " + s["Best domain - ".Length..].Trim(),
+            _ => s.Replace(" - ", " – ", StringComparison.Ordinal)
+        };
+    }
+
     public static string ExtractDomainFromLabel(string? label)
     {
         var s = NormalizeBadgeLabel(label);
         if (string.IsNullOrEmpty(s)) return "Domain";
-        var i = s.IndexOf('-', StringComparison.Ordinal);
+        var i = s.IndexOf('–');
+        if (i < 0) i = s.IndexOf('-', StringComparison.Ordinal);
         if (i < 0 || i + 1 >= s.Length) return "Domain";
         var rest = s[(i + 1)..].Trim();
         return string.IsNullOrEmpty(rest) ? "Domain" : rest;

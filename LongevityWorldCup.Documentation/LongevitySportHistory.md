@@ -1,14 +1,14 @@
-# History of Longevity as a Sport
+# History of longevity as a sport
 
 The longevity sport industry is an emerging field where participants compete to reverse biological aging and optimize health, turning longevity into a [measurable and dynamic competition.](https://nopara73.medium.com/longevity-game-9a79a8645bd9)
 
 ## Timeline
 
-### 2018 - Zolman Leaderboards
+### 2018 - Zolman leaderboards
 
 [Dr. Oliver Zolman](https://www.youtube.com/watch?v=iRmZoCt3BWA), a medical doctor, healthcare consultant, and founder of 20one Consulting, created the first longevity leaderboards where both people and animals competed with each other for better biological aging clocks. Participants were required to publicly share biomarker evidence, adhering to a 15-point statistical algorithm known as the Zolman Biological Age Marker (Z-BAM) criteria. These leaderboards were carefully verified by third parties to prevent data manipulation and maintain scientific credibility.
 
-![Zolman Leaderboards](https://github.com/user-attachments/assets/1b22448f-438d-49cb-a409-0869b301c6e9)
+![Zolman leaderboards](https://github.com/user-attachments/assets/1b22448f-438d-49cb-a409-0869b301c6e9)
 
 Today, his [leaderboards](https://www.oliverzolman.com/leaderboards) are "Undergoing update".
 
@@ -37,25 +37,25 @@ TruDiagnostic launched the second version of the Rejuvenation Olympics. Major ch
 
 ### 2025 January - Longevity World Cup
 
-nopara73 launched the [Longevity World Cup](https://www.longevityworldcup.com/) using [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf), a biological aging clock which can be acquired through regular blood tests. In this competition, absolute age reversal relative to chronological age is counted. This competition introduced the concept of prize money and various leagues based on gender and age groups.
+nopara73 launched the [Longevity World Cup](https://www.longevityworldcup.com/) using [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf), a biological aging clock which can be acquired through regular blood tests. In this competition, absolute age reversal relative to chronological age is counted. This competition introduced the concept of prize money and various leagues based on gender and age groups.
 
 ![Longevity World Cup](https://github.com/user-attachments/assets/1c498779-62c2-458a-918c-37fd7aa00515)
 
-### 2025 March - Dr. Oliver Zolman's Departure
+### 2025 March - Dr. Oliver Zolman's departure
 
 In a private exchange, Dr. Zolman revealed his departure from the Rejuvenation Olympics. He attributed his choice to step away to concerns over the leaderboard's scientific integrity, stating, "Bryan and TruDiagnostic made the leaderboards unscientific and clinically meaningless."
 
-### 2026 January 1 – First Place Finishes Across Major Longevity Leaderboards
+### 2026 January 1 – First place finishes across major longevity leaderboards
 
 On January 1, 2026, Bryan Johnson secured first place on the Rejuvenation Olympics leaderboard, while Michael Lustgarten, PhD ranked first on the Longevity World Cup leaderboard. This marked the first time different longevity competitions, using distinct biological aging clocks, simultaneously crowned clear category leaders—highlighting both the fragmentation and maturation of longevity as a competitive sport.
 
 ![610955655_17863402740557255_5447801270218589289_n](https://github.com/user-attachments/assets/407dba3f-777e-4048-b69f-2e524d90aedd)
 
-### 2026 January 15 - Longevity World Cup Season 2025 Ended
+### 2026 January 15 - Longevity World Cup season 2025 ended
 
 The inaugural Longevity World Cup concluded. The top 20 athletes by age reduction are listed below:
 
-| Rank | Athlete | Age Reduction |
+| Rank | Athlete | Age reduction |
 |------|---------|---------------|
 | 1 | [Michael Lustgarten, PhD](https://www.longevityworldcup.com/athlete/michael-lustgarten) | -22.1 years |
 | 2 | [Zdenek Sipek](https://www.longevityworldcup.com/athlete/zdenek-sipek) | -20.6 years |
@@ -78,20 +78,20 @@ The inaugural Longevity World Cup concluded. The top 20 athletes by age reductio
 | 19 | [Dave Pascoe](https://www.longevityworldcup.com/athlete/dave-pascoe) | -16.6 years |
 | 20 | [Keith Blondin](https://www.longevityworldcup.com/athlete/keith-blondin) | -16.4 years |
 
-### 2026 February - Longevity World Cup Season 2026 Started
+### 2026 February - Longevity World Cup season 2026 started
 
 Season 2 of the Longevity World Cup was released with major competition-format upgrades:
 
 - The competition introduced **two tracks**: **Amateur** and **Professional**.
-- A new aging clock was added for the Pro track: [Bortz](https://www.nature.com/articles/s42003-023-05456-z), while [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) continued, shifting the competition into a multi-clock era.
+- A new aging clock was added for the Pro track: [Bortz](https://www.nature.com/articles/s42003-023-05456-z), while [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) continued, shifting the competition into a multi-clock era.
 - Athlete pages and the leaderboard began surfacing new derived performance views like pace of aging / pace rank.
 - Entry evolved from an early “low-friction” model toward explicit pricing.
 
-## Special Mentions
+## Special mentions
 
 Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health), the now-offline VO2 Max Leaderboard by JoinZero, Favies (previously Goaly), and various fitness tracker-specific gamified leaderboards.
 
-## Where To Go Next
+## Where to go next
 
 - [About Longevity World Cup](/about)
 - [Ruleset](/ruleset)

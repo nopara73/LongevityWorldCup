@@ -8,7 +8,7 @@
         --arrow-left: -15px;            /* base arrow position */
         --arrow-hover-shift: calc((var(--portrait-size) * (var(--portrait-hover-scale) - 1)) / 2);
         --arrow-cover-extra: 24px;      /* arrow width (20) + ~4px safety */
-        /* Amateur (Pheno Age) tier styling only */
+        /* Amateur (pheno age) tier styling only */
         --tier-amateur-bg: rgba(59, 130, 246, 0.06);
         --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
         --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
@@ -224,7 +224,7 @@
     .leaderboard table th:nth-child(2){ text-align:left; }
     .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
 
-    /* Amateur (Pheno Age) tier – blueish hue; pro (Bortz) rows use default table styling */
+    /* Amateur (pheno age) tier – blueish hue; pro (Bortz) rows use default table styling */
     .leaderboard table tbody tr.tier-amateur{
         background-color: var(--tier-amateur-bg);
         border-left: var(--tier-amateur-border);
@@ -1224,7 +1224,7 @@
         background: var(--athlete-modal-border);
     }
 
-    /* === FIX: Pace of Aging sor biztosan egy sorban === */
+    /* === FIX: Pace of aging sor biztosan egy sorban === */
     #bortzPaceOfAgingContainer td{ white-space: nowrap; }
     #paceOfAgingContainer td{ white-space: nowrap; }
 
@@ -2243,11 +2243,11 @@
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Overall ranking">
                     <label for="view-ultimate" class="view-badge" title="Show the overall Ultimate League ranking.">Overall</label>
                     <input type="radio" name="leaderboardView" id="view-bortz" value="bortz" aria-label="Bortz Age ranking">
-                    <label for="view-bortz" class="view-badge is-clearable" title="Rank by Bortz Age (biological age). Click again to show default ranking.">Bortz<span class="view-badge-suffix"> Age</span></label>
+                    <label for="view-bortz" class="view-badge is-clearable" title="Rank by bortz age (biological age). Click again to show default ranking.">Bortz Age</label>
                     <input type="radio" name="leaderboardView" id="view-pheno" value="pheno" aria-label="Pheno Age ranking">
-                    <label for="view-pheno" class="view-badge is-clearable" title="Rank by Pheno Age. Click again to show default ranking.">Pheno<span class="view-badge-suffix"> Age</span></label>
+                    <label for="view-pheno" class="view-badge is-clearable" title="Rank by pheno age. Click again to show default ranking.">Pheno Age</label>
                     <input type="radio" name="leaderboardView" id="view-crowd" value="crowd" aria-label="Crowd Age ranking">
-                    <label for="view-crowd" class="view-badge is-clearable" title="Rank by Crowd Age. Click again to show default ranking.">Crowd<span class="view-badge-suffix"> Age</span></label>
+                    <label for="view-crowd" class="view-badge is-clearable" title="Rank by crowd age. Click again to show default ranking.">Crowd Age</label>
                 </div>
             </div>
             <div class="search-wrapper">
@@ -2280,7 +2280,7 @@
                 </span>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="filter-section" id="aging-clock-filter-section">
-                    <h3>Aging Clocks</h3>
+                    <h3>Aging clocks</h3>
                     <ul>
                         <li>
                             <label data-aging-clock-view="bortz">
@@ -2471,7 +2471,7 @@
                                 <td colspan="2"><span class="athlete-info-divider"></span></td>
                             </tr>
                             <tr id="crowdAgeContainer" style="display:none;">
-                                <th scope="row"><strong>Crowd age:</strong></th>
+                                <th scope="row"><strong>Crowd Age:</strong></th>
                                 <td>
                                     <span id="notEmptyCrowdAgeContainer" style="display:none;">
             <span id="crowdAge">0</span> <span class="unit">years</span>,
@@ -2487,12 +2487,12 @@
                             </tr>
 
                             <tr id="lowestBortzAgeContainer" style="display:none;">
-                                <th scope="row"><strong>Lowest Bortz age:</strong></th>
+                                <th scope="row"><strong>Lowest Bortz Age:</strong></th>
                                 <td><span id="lowestBortzAge"></span> <span class="unit">years</span></td>
                             </tr>
 
                             <tr>
-                                <th scope="row"><strong>Lowest Pheno age:</strong></th>
+                                <th scope="row"><strong>Lowest Pheno Age:</strong></th>
                                 <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
                             </tr>
 
@@ -2509,7 +2509,7 @@
 
                             <tr id="bortzAgeReductionContainer" title="Derived from the lowest biological age of the season" style="display:none;">
                                 <th scope="row">
-                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz age reduction:</span></strong>
+                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz Age reduction:</span></strong>
                                 </th>
                                 <td>
                                     <span id="bortzAgeReduction"></span> <span class="unit">years</span>
@@ -2519,7 +2519,7 @@
 
                             <tr title="Derived from the lowest biological age of the season">
                                 <th scope="row">
-                                    <strong><span id="ageReductionAccelerationLabel">Pheno age reduction:</span></strong>
+                                    <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction:</span></strong>
                                 </th>
                                 <td>
                                     <span id="ageReduction"></span> <span class="unit">years</span>
@@ -3215,7 +3215,7 @@
                     const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
                     const ageReductionPercent = (1 - biologicalAgePercent) * 100;
 
-                    // Lowest Bortz Age and Bortz Age reduction (only when submissions have full Bortz biomarkers)
+                    // Lowest bortz age and bortz age reduction (only when submissions have full Bortz biomarkers)
                     let lowestBortzAge = null;
                     let chronoAtLowestBortzAge = null;
                     let bortzAgeReduction = null;
@@ -6113,14 +6113,14 @@
         const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
         const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
         if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
-            bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz age reduction:" : "Bortz age acceleration:";
+            bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction:" : "Bortz Age acceleration:";
             document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
             document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
             bortzAgeReductionContainer.style.display = '';
         } else {
             bortzAgeReductionContainer.style.display = 'none';
         }
-        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno age reduction:" : "Pheno age acceleration:";
+        document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
         document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
 

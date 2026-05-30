@@ -1,12 +1,12 @@
 /**
  * Age Visualization Module
- * Radar chart of domain percentiles (Pheno Age or Bortz) with age reduction in the center.
+ * Radar chart of domain percentiles (pheno age or Bortz) with age reduction in the center.
  */
 
 (function () {
     'use strict';
 
-    // Pheno Age: 5 domains (Immune first for radar; aligned with Best Domain badges)
+    // Pheno Age: 5 domains (Immune first for radar; aligned with Best domain badges)
     var PHENO_DOMAINS = [
         { key: 'immune', label: 'Immune', contributor: 'calculateImmunePhenoAgeContributor' },
         { key: 'liver', label: 'Liver', contributor: 'calculateLiverPhenoAgeContributor' },
@@ -34,7 +34,7 @@
         inflammation: [4]
     };
 
-    // Bortz: 6 domains used for athlete profile radar and Best Domain badges (aligned with BadgeDataService.cs).
+    // Bortz: 6 domains used for athlete profile radar and Best domain badges (aligned with BadgeDataService.cs).
     // Feature indices in window.BortzAge.features: 0=age, 1=albumin, 2=alp, 3=urea, 4=cholesterol, 5=creatinine, 6=cystatin_c, 7=hba1c, 8=crp, 9=ggt, 10=rbc, 11=mcv, 12=rdw, 13=monocyte, 14=neutrophil, 15=lymphocyte, 16=alt, 17=shbg, 18=vitamin_d, 19=glucose, 20=mch, 21=apoa1
     // Excluded from contribution only (controversial direction): urea, cholesterol, creatinine, alt, shbg, mch
     var BORTZ_CONTRIBUTION_EXCLUDED = { 3: 1, 4: 1, 5: 1, 16: 1, 17: 1, 20: 1 };
@@ -479,17 +479,17 @@
         visualizationContainer.innerHTML = '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--light-text-color);font-weight:bold;">' + text + '</span>';
     }
 
-    /** Badge label -> Bortz domain key (same as athlete profile radar). Used so Best Domain badge tooltips show the same biomarkers as the profile. */
+    /** Badge label -> Bortz domain key (same as athlete profile radar). Used so Best domain badge tooltips show the same biomarkers as the profile. */
     var BEST_DOMAIN_LABEL_TO_KEY = {
-        'Best Domain – Liver': 'Liver',
-        'Best Domain – Kidney': 'Kidney',
-        'Best Domain – Metabolic': 'Metabolism',
-        'Best Domain – Immune': 'Immune',
-        'Best Domain – Inflammation': 'Inflammation',
-        'Best Domain – Vitamin D': 'Vitamin D'
+        'Best domain – liver': 'Liver',
+        'Best domain – kidney': 'Kidney',
+        'Best domain – metabolic': 'Metabolism',
+        'Best domain – immune': 'Immune',
+        'Best domain – inflammation': 'Inflammation',
+        'Best domain – vitamin D': 'Vitamin D'
     };
 
-    /** Returns the biomarker part of a Best Domain tooltip, e.g. "(albumin 45 g/L, ALP 82 U/L, GGT 3.2 U/L)". Uses same indices and exclusions as athlete profile radar. */
+    /** Returns the biomarker part of a Best domain tooltip, e.g. "(albumin 45 g/L, ALP 82 U/L, GGT 3.2 U/L)". Uses same indices and exclusions as athlete profile radar. */
     function getBestDomainBiomarkerTooltip(badgeLabel, bestBortzValues) {
         if (!bestBortzValues || bestBortzValues.length < 22) return null;
         var key = BEST_DOMAIN_LABEL_TO_KEY[badgeLabel];
