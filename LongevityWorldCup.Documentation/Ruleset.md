@@ -126,7 +126,7 @@ You can't.
 
 ### Practical matters
 #### How much can I edit my profile picture?
-Your profile picture must be you, facing the camera, but you can edit it freely, even as a drawing or AI-generated version. You are however encouraged to share a picture that best represents you, because of a feature of the website, called Guess My Age, where visitors can guess your age.
+Your profile picture must show you facing the camera, but you can edit it freely, including as a drawing or AI-generated version. Choose a picture that represents you well and works for age estimation from a photo.
 
 ![image](https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab)
 
