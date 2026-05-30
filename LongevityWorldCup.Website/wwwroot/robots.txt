@@ -5,6 +5,7 @@ Allow: /llms-full.txt
 Allow: /ai/index.md
 Allow: /ai/leaderboard.md
 Allow: /ai/athlete-names.md
+Allow: /swagger
 Allow: /athlete/
 Allow: /league/
 Disallow: /onboarding/

@@ -35,6 +35,12 @@ public class SitemapDiscoveryTests
     }
 
     [Fact]
+    public void SitemapRouteCatalog_IncludesPublicApiDocs()
+    {
+        Assert.Contains(SitemapService.StaticRoutes, route => route.Path == "/swagger");
+    }
+
+    [Fact]
     public void BuildXml_IncludesLeagueAndAthleteRoutes()
     {
         var xml = SitemapService.BuildXml(
@@ -62,6 +68,7 @@ public class SitemapDiscoveryTests
 
         Assert.Contains("Allow: /league/", robots);
         Assert.Contains("Allow: /athlete/", robots);
+        Assert.Contains("Allow: /swagger", robots);
         Assert.DoesNotContain("Disallow: /league/", robots);
         Assert.DoesNotContain("Disallow: /athlete/", robots);
     }

@@ -7,6 +7,7 @@ using LongevityWorldCup.Website.Jobs;
 using Quartz;
 using System.IO.Compression;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.OpenApi;
 
 namespace LongevityWorldCup.Website
 {
@@ -33,6 +34,23 @@ namespace LongevityWorldCup.Website
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Longevity World Cup Public Data API",
+                    Version = "v1",
+                    Description = "Public no-auth JSON endpoints for Longevity World Cup athlete, field, and rank-preview data.",
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Longevity World Cup",
+                        Url = new Uri("https://longevityworldcup.com/")
+                    }
+                });
+                options.DocInclusionPredicate((_, apiDescription) =>
+                    string.Equals(apiDescription.GroupName, "public-v1", StringComparison.Ordinal));
+            });
             builder.Services.AddResponseCompression(options =>
             {
                 options.EnableForHttps = true;
@@ -221,6 +239,26 @@ namespace LongevityWorldCup.Website
 
             app.UseHttpsRedirection();
             app.UseResponseCompression();
+            app.UseSwagger(options =>
+            {
+                options.PreSerializeFilters.Add((swaggerDocument, _) =>
+                {
+                    swaggerDocument.Servers =
+                    [
+                        new OpenApiServer
+                        {
+                            Url = "https://longevityworldcup.com",
+                            Description = "Production"
+                        }
+                    ];
+                });
+            });
+            app.UseSwaggerUI(options =>
+            {
+                options.RoutePrefix = "swagger";
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Longevity World Cup Public Data API v1");
+                options.DocumentTitle = "Longevity World Cup Public Data API";
+            });
 
             // Use CORS
             app.UseCors("AllowSpecificOrigin");

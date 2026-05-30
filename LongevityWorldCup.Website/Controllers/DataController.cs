@@ -6,24 +6,29 @@ using System.ComponentModel.DataAnnotations;
 namespace LongevityWorldCup.Website.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/data")]
+    [ApiExplorerSettings(GroupName = "public-v1")]
+    [Produces("application/json")]
     public class DataController(AthleteDataService svc) : Controller
     {
         private readonly AthleteDataService _svc = svc;
 
         [HttpGet("flags")]
+        [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
         public IActionResult GetFlags()
         {
             return Ok(Flags.Flag);
         }
 
         [HttpGet("divisions")]
+        [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
         public IActionResult GetDivisions()
         {
             return Ok(Divisions.Division);
         }
 
         [HttpGet("athletes")]
+        [ProducesResponseType(typeof(IReadOnlyList<PublicAthleteApiDocument>), StatusCodes.Status200OK)]
         public IActionResult GetAthletes()
         {
             Response.Headers[HeaderNames.CacheControl] = "no-cache,max-age=0,must-revalidate";
@@ -31,6 +36,9 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("hypothetical-rank")]
+        [Consumes("application/json")]
+        [ProducesResponseType(typeof(HypotheticalRankResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public IActionResult GetHypotheticalRank([FromBody] HypotheticalRankRequest request)
         {
             if (!ModelState.IsValid)
