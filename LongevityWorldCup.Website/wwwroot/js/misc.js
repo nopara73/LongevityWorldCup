@@ -96,9 +96,9 @@ window.escapeHTML = function (string) {
 /**
  * Comparator function to rank athletes based on competition rules.
  * The ranking is determined by:
- * 1. Bortz age presence (athletes with Bortz age rank ahead of those with only Pheno age)
- * 2. Age Reduction (more negative value indicates greater reversal; uses Bortz when present, else Pheno)
- * 3. Chronological Age (older athletes rank higher)
+ * 1. bortz age presence (athletes with bortz age rank ahead of those with only pheno age)
+ * 2. Age reduction (more negative value indicates greater reversal; uses Bortz when present, else Pheno)
+ * 3. Chronological age (older athletes rank higher)
  * 4. Alphabetical Order (as a last resort)
  */
 window.compareAthleteRank = function (a, b) {
@@ -109,13 +109,13 @@ window.compareAthleteRank = function (a, b) {
         return hasBortz(x) ? x.bortzAgeReduction : x.ageReduction;
     };
 
-    // First Criterion: Athletes with Bortz age rank ahead of those with only Pheno age
+    // First criterion: athletes with bortz age rank ahead of those with only pheno age
     const aHasBortz = hasBortz(a);
     const bHasBortz = hasBortz(b);
     if (aHasBortz && !bHasBortz) return -1; // 'a' ranks higher
     if (!aHasBortz && bHasBortz) return 1;  // 'b' ranks higher
 
-    // Second Criterion: Age Reduction (more negative is better)
+    // Second criterion: age reduction (more negative is better)
     const aRed = getAgeReduction(a);
     const bRed = getAgeReduction(b);
     if (aRed < bRed) return -1; // Athlete 'a' ranks higher
@@ -145,7 +145,7 @@ window.compareAthleteRank = function (a, b) {
 };
 
 /**
- * Pheno-only comparator: rank by Pheno age reduction only (no Bortz-first rule).
+ * Pheno-only comparator: rank by pheno age reduction only (no Bortz-first rule).
  * Used for the Pheno Age view. Order: ageReduction (more negative better), then DoB (older first), then name.
  */
 window.compareAthleteRankPhenoOnly = function (a, b) {
@@ -161,7 +161,7 @@ window.compareAthleteRankPhenoOnly = function (a, b) {
 };
 
 /**
- * Crowd Age comparator: lower median crowd age minus chronological age is better, with more guesses winning ties.
+ * crowd age comparator: lower median crowd age minus chronological age is better, with more guesses winning ties.
  * Used only for the Crowd Age view; Ultimate League ordering still follows compareAthleteRank.
  */
 window.compareAthleteRankCrowdAge = function (a, b) {

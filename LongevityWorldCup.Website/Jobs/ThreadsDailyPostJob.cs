@@ -43,19 +43,19 @@ public class ThreadsDailyPostJob : IJob
                         continue;
 
                     var isSingleWinnerBadge =
-                        string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase);
+                        string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(norm, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(norm, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase);
                     if (isSingleWinnerBadge &&
                         (!EventHelpers.TryExtractPlace(text, out var badgePlace) || badgePlace != 1))
                         continue;
 
                     var isBestImprovement =
-                        string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase);
+                        string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase);
                     if (isBestImprovement && !_athletes.HasSingleGlobalPlaceOneBadgeHolder(label))
                     {
                         _logger.LogInformation("ThreadsDailyPostJob skipped tie Best Improvement badge event {BadgeLabel}", label);

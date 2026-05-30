@@ -1,4 +1,4 @@
-﻿using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Jobs;
@@ -43,13 +43,13 @@ internal static class XDailyPostMediaHelper
             EventHelpers.TryExtractCategory(rawText, out var category) &&
             !string.Equals(category, "Global", StringComparison.OrdinalIgnoreCase);
         var isSupportedBadge =
-            string.Equals(normalized, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase) ||
-            (isNonGlobalLeagueLeader && string.Equals(normalized, "Age Reduction", StringComparison.OrdinalIgnoreCase));
+            string.Equals(normalized, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase) ||
+            (isNonGlobalLeagueLeader && string.Equals(normalized, "Age reduction", StringComparison.OrdinalIgnoreCase));
         if (!isSupportedBadge)
             return null;
         if (!EventHelpers.TryExtractSlug(rawText, out var slug))

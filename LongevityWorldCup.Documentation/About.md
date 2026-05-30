@@ -8,15 +8,15 @@ Longevity World Cup exists for the opposite reason. It is a sport for time. Inst
 
 *The silhouette of [Michael Lustgarten, PhD](/athlete/michael-lustgarten), the inaugural Longevity World Cup champion.*
 
-## What It Is
+## What it is
 
 Longevity World Cup is an open competition where longevity athletes rank by improving biological age measures.
 
-The scoreboard is built around biomarker data and biological aging clocks. Athletes submit result data, the competition calculates biological age, and the leaderboard ranks athletes by Age Reduction: how far their biological age is below their chronological age.
+The scoreboard is built around biomarker data and biological aging clocks. Athletes submit result data, the competition calculates biological age, and the leaderboard ranks athletes by Age reduction: how far their biological age is below their chronological age.
 
 That gives longevity practice a number, a season, rivals, and a public record. It turns private health optimization into longevity sport.
 
-## Why I Started It
+## Why I started it
 
 Games are powerful because they turn difficult work into something people voluntarily come back to. If the rules are clear and the scoreboard matters, people train harder, compare notes, and improve together.
 
@@ -24,13 +24,13 @@ Longevity may be the most useful game we can build, because the scarce resource 
 
 Before starting the competition, I spent more than a year interviewing longevity athletes in long form. The [Immortal Combat podcast](https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL) now has 60+ conversations with athletes, researchers, and builders trying to understand what actually moves the field forward.
 
-## How It Works
+## How it works
 
-Longevity athletes compete through biological aging clocks such as [PhenoAge](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) and [Bortz Age](https://www.nature.com/articles/s42003-023-05456-z). Each clock uses a defined set of biomarkers and converts them into a biological age.
+Longevity athletes compete through biological aging clocks such as [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) and [bortz age](https://www.nature.com/articles/s42003-023-05456-z). Each clock uses a defined set of biomarkers and converts them into a biological age.
 
 The competition has tracks, seasons, leagues, and a public leaderboard. Some clocks are all-time competitions; others are seasonal. The exact submission requirements, tracks, ranking rules, and prize mechanics live in the [Ruleset](/ruleset).
 
-## Built in Public
+## Built in public
 
 The leaderboard is public. The [Ruleset](/ruleset) explains tracks, seasons, ranking, submissions, and prize mechanics. The Markdown behind About, History, and Ruleset is linked from each page. The code lives on [GitHub](https://github.com/nopara73/LongevityWorldCup).
 
@@ -38,15 +38,15 @@ The surrounding conversation is public too. The [Immortal Combat podcast](https:
 
 Bitcoin donations fund the prize pool. The donation split and payout timing are in the [Ruleset](/ruleset).
 
-## Who Builds It
+## Who builds it
 
 Longevity World Cup is a free and open-source project built with its community.
 
 I am Adam Ficsor, and online I publish as nopara73. I started the competition after a year of long-form conversations with longevity athletes and researchers.
 
-But the project is not just me. Klaus Townsend created the [Longevity World Cup merch store](https://merch.longevityworldcup.com/). Michael Lustgarten, PhD, the 2025 champion, created the [US blood panel](https://www.ultalabtests.com/partners/conqueragingordietrying/test/conquer-aging-or-die-trying-bortz-biological-age-panel) linked from the Bortz Age flow, covering the biomarkers for both Bortz Age and PhenoAge. Athletes, developers, donors, guests, and contributors keep pushing the sport forward.
+But the project is not just me. Klaus Townsend created the [Longevity World Cup merch store](https://merch.longevityworldcup.com/). Michael Lustgarten, PhD, the 2025 champion, created the [US blood panel](https://www.ultalabtests.com/partners/conqueragingordietrying/test/conquer-aging-or-die-trying-bortz-biological-age-panel) linked from the bortz age flow, covering the biomarkers for both bortz age and pheno age. Athletes, developers, donors, guests, and contributors keep pushing the sport forward.
 
-## Where To Go Next
+## Where to go next
 
 - [Leaderboard](/leaderboard): See the current competition standings.
 - [Ruleset](/ruleset): Read the tracks, seasons, ranking rules, and prize mechanics.

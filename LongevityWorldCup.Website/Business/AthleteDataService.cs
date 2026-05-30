@@ -926,7 +926,7 @@ public class AthleteDataService : IDisposable
 
     public IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)> GetCrowdLowestAgeBadgePodiumForX()
     {
-        const string crowdLowestAgeLabel = "Crowd – Lowest Crowd Age";
+        var crowdLowestAgeLabels = BadgeLabelQueryVariants("Crowd Age – lowest");
 
         var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
@@ -939,12 +939,12 @@ public class AthleteDataService : IDisposable
         return _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
+            var labelPlaceholders = AddBadgeLabelParameters(cmd, crowdLowestAgeLabels);
             cmd.CommandText =
                 "SELECT DISTINCT Place, AthleteSlug " +
                 "FROM BadgeAwards " +
-                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place IN (1,2,3) " +
+                $"WHERE BadgeLabel IN ({labelPlaceholders}) AND LeagueCategory='Global' AND Place IN (1,2,3) " +
                 "ORDER BY Place ASC, AthleteSlug COLLATE NOCASE ASC";
-            cmd.Parameters.AddWithValue("@label", crowdLowestAgeLabel);
 
             var byPlace = new Dictionary<int, List<string>>();
             using var r = cmd.ExecuteReader();
@@ -1014,24 +1014,17 @@ public class AthleteDataService : IDisposable
 
     public string? GetBestDomainWinnerSlug(string domainKey)
     {
-        var label = domainKey?.ToLowerInvariant() switch
-        {
-            "liver" => "Best Domain – Liver",
-            "kidney" => "Best Domain – Kidney",
-            "metabolic" => "Best Domain – Metabolic",
-            "inflammation" => "Best Domain – Inflammation",
-            "immune" => "Best Domain – Immune",
-            _ => null
-        };
+        var label = BestDomainBadgeLabelForDomainKey(domainKey);
         if (label is null) return null;
+        var labels = BadgeLabelQueryVariants(label);
         return _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
+            var labelPlaceholders = AddBadgeLabelParameters(cmd, labels);
             cmd.CommandText =
                 "SELECT DISTINCT AthleteSlug FROM BadgeAwards " +
-                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 " +
+                $"WHERE BadgeLabel IN ({labelPlaceholders}) AND LeagueCategory='Global' AND Place=1 " +
                 "LIMIT 2";
-            cmd.Parameters.AddWithValue("@label", label);
             using var r = cmd.ExecuteReader();
             string? onlyHolder = null;
             while (r.Read())
@@ -1053,19 +1046,40 @@ public class AthleteDataService : IDisposable
         });
     }
 
+    private static string? BestDomainBadgeLabelForDomainKey(string? domainKey)
+    {
+        var normalizedDomain = (domainKey ?? string.Empty)
+            .Trim()
+            .Replace('-', '_')
+            .Replace(' ', '_')
+            .ToLowerInvariant();
+
+        return normalizedDomain switch
+        {
+            "liver" => "Best domain – liver",
+            "kidney" => "Best domain – kidney",
+            "metabolic" => "Best domain – metabolic",
+            "inflammation" => "Best domain – inflammation",
+            "immune" => "Best domain – immune",
+            "vitamin_d" => "Best domain – vitamin D",
+            _ => null
+        };
+    }
+
     public bool HasSingleGlobalPlaceOneBadgeHolder(string badgeLabel)
     {
         if (string.IsNullOrWhiteSpace(badgeLabel))
             return false;
 
+        var labels = BadgeLabelQueryVariants(badgeLabel);
         return _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
+            var labelPlaceholders = AddBadgeLabelParameters(cmd, labels);
             cmd.CommandText =
                 "SELECT DISTINCT AthleteSlug FROM BadgeAwards " +
-                "WHERE BadgeLabel=@label AND LeagueCategory='Global' AND Place=1 " +
+                $"WHERE BadgeLabel IN ({labelPlaceholders}) AND LeagueCategory='Global' AND Place=1 " +
                 "LIMIT 2";
-            cmd.Parameters.AddWithValue("@label", badgeLabel);
 
             using var r = cmd.ExecuteReader();
             string? onlyHolder = null;
@@ -1089,6 +1103,83 @@ public class AthleteDataService : IDisposable
 
             return !string.IsNullOrWhiteSpace(onlyHolder);
         });
+    }
+
+    private static string AddBadgeLabelParameters(SqliteCommand cmd, IReadOnlyList<string> labels)
+    {
+        var names = new List<string>(labels.Count);
+        for (var i = 0; i < labels.Count; i++)
+        {
+            var name = $"@badgeLabel{i}";
+            cmd.Parameters.AddWithValue(name, labels[i]);
+            names.Add(name);
+        }
+
+        return string.Join(",", names);
+    }
+
+    private static IReadOnlyList<string> BadgeLabelQueryVariants(string badgeLabel)
+    {
+        var canonical = EventHelpers.NormalizeBadgeLabel(badgeLabel);
+        var variants = new HashSet<string>(StringComparer.Ordinal)
+        {
+            canonical,
+            canonical.Replace(" – ", " - ", StringComparison.Ordinal)
+        };
+
+        switch (canonical)
+        {
+            case "Chronological age – oldest":
+                variants.Add("Chronological Age – Oldest");
+                variants.Add("Chronological Age - Oldest");
+                break;
+            case "Chronological age – youngest":
+                variants.Add("Chronological Age – Youngest");
+                variants.Add("Chronological Age - Youngest");
+                break;
+            case "Pheno Age – lowest":
+                variants.Add("PhenoAge – Lowest");
+                variants.Add("PhenoAge - Lowest");
+                break;
+            case "Bortz Age – lowest":
+                variants.Add("Bortz Age – Lowest");
+                variants.Add("Bortz Age - Lowest");
+                break;
+            case "Crowd – most guessed":
+                variants.Add("Crowd – Most Guessed");
+                variants.Add("Crowd - Most Guessed");
+                break;
+            case "Crowd – age gap (chrono−crowd)":
+                variants.Add("Crowd – Age Gap (Chrono−Crowd)");
+                variants.Add("Crowd - Age Gap (Chrono−Crowd)");
+                break;
+            case "Crowd Age – lowest":
+                variants.Add("Crowd Age – lowest");
+                variants.Add("Crowd Age - lowest");
+                variants.Add("Crowd – Lowest Crowd Age");
+                variants.Add("Crowd - Lowest Crowd Age");
+                variants.Add("Crowd – lowest crowd age");
+                variants.Add("Crowd - lowest crowd age");
+                break;
+            case "First applicants":
+                variants.Add("First Applicants");
+                break;
+            case "Perfect application":
+                variants.Add("Perfect Application");
+                break;
+        }
+
+        if (canonical.StartsWith("Best domain – ", StringComparison.Ordinal))
+        {
+            var domain = canonical["Best domain – ".Length..].Trim();
+            var legacyDomain = string.Equals(domain, "vitamin D", StringComparison.Ordinal)
+                ? "Vitamin D"
+                : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(domain);
+            variants.Add("Best Domain – " + legacyDomain);
+            variants.Add("Best Domain - " + legacyDomain);
+        }
+
+        return variants.Where(v => !string.IsNullOrWhiteSpace(v)).ToArray();
     }
 
     public IReadOnlyList<string> GetTop3SlugsForLeague(string leagueSlug)

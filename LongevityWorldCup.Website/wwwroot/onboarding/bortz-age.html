@@ -417,7 +417,7 @@
             background: radial-gradient(circle, rgba(255, 152, 0, 0.15) 0%, rgba(245, 124, 0, 0.1) 50%, transparent 75%);
         }
 
-        /* Years text styling – shared block for Bortz years line and PhenoAge line */
+        /* Years text styling - shared block for Bortz years line and Pheno Age line */
         .result-years-block {
             margin-top: 1rem;
             text-align: center;
@@ -890,10 +890,10 @@
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
                 This is <span style="color:#b22222">blood</span> sport
             </h1>
-            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong> with two clocks at once: <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">Bortz Age</a> and <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></p>
+            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong> with two clocks at once: <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">bortz age</a> and <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">pheno age</a></p>
             <section id="bortzLabAccessPanel" class="lab-access-panel" data-aos="fade" data-aos-duration="700" data-aos-delay="325" aria-labelledby="bortzLabAccessTitle" hidden>
                 <h2 id="bortzLabAccessTitle">Need the blood panel?</h2>
-                <p>This US panel covers the biomarkers for both Bortz Age and Pheno Age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion.</p>
+                <p>This US panel covers the biomarkers for both bortz age and pheno age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion.</p>
                 <a id="bortzLabAccessLink" class="lab-access-link" href="https://www.ultalabtests.com/partners/conqueragingordietrying/test/conquer-aging-or-die-trying-bortz-biological-age-panel" target="_blank" rel="noopener noreferrer">
                     Open Ulta panel&nbsp;<i class="fas fa-external-link-alt" aria-hidden="true"></i>
                 </a>
@@ -960,17 +960,17 @@
                 </section>
 
                 <section id="lwc-step-2" class="lwc-step" aria-labelledby="lwcStep2Title">
-                    <h2 id="lwcStep2Title" class="visually-hidden">Step 2: Enter Biomarkers</h2>
+                    <h2 id="lwcStep2Title" class="visually-hidden">Step 2: Enter biomarkers</h2>
                     <div class="lwc-step-actions" style="justify-content:flex-start">
                         <button type="button" id="lwcToStep1Btn" class="option-button back-button">
                             <i class="fas fa-arrow-left"></i>&nbsp;Back
                         </button>
                     </div>
 
-                    <!-- Biomarkers grouped by domain (aligned with leaderboard Best Domain badges) -->
+                    <!-- Biomarkers grouped by domain (aligned with leaderboard Best domain badges) -->
                     <fieldset>
                         <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
-                        <!-- White Blood Cell Count (from Pheno Age page) -->
+                        <!-- White Blood Cell Count (from pheno age page) -->
                         <div class="biomarker-card">
                             <div class="biomarker-card-header" aria-expanded="false">
                                 White blood cell count (WBC)
@@ -1322,7 +1322,7 @@
         </div>
         <div id="bortzAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <div id="validAgeInput">
-                <div>Bortz age:</div>
+                <div>Bortz Age:</div>
                 <div class="bio-age-number-container">
                     <span id="animatedAge">0</span>
                 </div>
@@ -1641,7 +1641,7 @@
             const parse = (el) => (el ? parseFloat(el.value) : NaN);
             const setUnit = (unitEl, val) => { if (unitEl) unitEl.value = String(val); };
 
-            // Albumin (match Pheno Age)
+            // Albumin (match pheno age)
             const albuminEl = document.getElementById('albumin');
             const albuminUnitEl = document.getElementById('albuminUnit');
             if (albuminEl && albuminUnitEl) {
@@ -1952,10 +1952,10 @@
                 markerValues.push(adjustedValue);
             }
 
-            // Calculate Bortz Age: BAA = 10 * sum(centered * coeff), biological age = chronological age + BAA
+            // Calculate bortz age: BAA = 10 * sum(centered * coeff), biological age = chronological age + BAA
             const bortzAge = window.BortzAge.calculateBortzAge(markerValues);
 
-            // Compute PhenoAge (PhenoAge order: age, albumin, creatinine, glucose, crp, wbc, lymphocyte, mcv, rdw, ap)
+            // Compute Pheno Age (PhenoAge order: age, albumin, creatinine, glucose, crp, wbc, lymphocyte, mcv, rdw, ap)
             let phenoAge = NaN;
             const wbcEl = document.getElementById('wbc');
             const wbcUnitEl = document.getElementById('wbcUnit');
@@ -2144,7 +2144,7 @@
                             const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
                             yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
-                            // Show PhenoAge when computed (WBC provided)
+                            // Show Pheno Age when computed (WBC provided)
                             const phenoAgeRowEl = document.getElementById('phenoAgeRow');
                             const phenoAgeValueEl = document.getElementById('phenoAgeValue');
                             const phenoAgeDeltaEl = document.getElementById('phenoAgeDelta');
@@ -2186,7 +2186,7 @@
                     const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
                     yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
-                    // Show PhenoAge when computed (WBC provided)
+                    // Show Pheno Age when computed (WBC provided)
                     const phenoAgeRowEl = document.getElementById('phenoAgeRow');
                     const phenoAgeValueEl = document.getElementById('phenoAgeValue');
                     const phenoAgeDeltaEl = document.getElementById('phenoAgeDelta');
@@ -2216,7 +2216,7 @@
             isResultCalculated = true;
         }
 
-        // Mapping language or country codes to unit preferences (Bortz form). Matches Pheno Age sophistication.
+        // Mapping language or country codes to unit preferences (Bortz form). Matches pheno age sophistication.
         const unitPreferences = {
             US: {
                 albuminUnit: '0.1', creatinineUnit: '0.0113', glucoseUnit: '18.016', crpUnit: '1',
@@ -2632,7 +2632,7 @@
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
-            // Collect biomarkers the user touched (Bortz model fields). Overlapping with Pheno Age use same canonical units (LymPc, McvFL, RdwPc, AlbGL, CreatUmolL, GluMmolL, CrpMgL, AlpUL, Wbc1000cellsuL) so JSON/athlete data is shared.
+            // Collect biomarkers the user touched (Bortz model fields). Overlapping with pheno age use same canonical units (LymPc, McvFL, RdwPc, AlbGL, CreatUmolL, GluMmolL, CrpMgL, AlpUL, Wbc1000cellsuL) so JSON/athlete data is shared.
             // Build entry with key order matching pheno-age: AlbGL, AlpUL, CreatUmolL, CrpMgL, Date, GluMmolL, LymPc, McvFL, RdwPc, Wbc1000cellsuL, then Bortz-only keys.
             const entry = {};
             const store = (id, prop, fn) => { if (touchedBiomarkers.has(id)) entry[prop] = fn(); };
@@ -2779,7 +2779,7 @@
                  window.location.href = '/apply';
              }
         }
-        // Reference: compare fake-data Bortz Age result with longevity-tools.com calculator (age 60, same biomarker set):
+        // Reference: compare fake-data bortz age result with longevity-tools.com calculator (age 60, same biomarker set):
         // https://www.longevity-tools.com/humanitys-bortz-blood-age#age=60_years&LYM=28.6_%25&NEUabs=4.2_x10e9~L&MONOabs=0.47_x10e9~L&RBC=4.5_x10e12~L&MCV=92_fL&MCH=31.8_pg&RDW=13.4_%25&S-albumin=4.5_g~dL&S-urea=5.4_mmol~L&S-creatinine=72_umol~L&S-cystatin-C=0.9_mg~L&S-glucose=90_mg~dL&B-HbA1c=5.4_%25&S-cholesterol=5.6_mmol~L&S-ApoA1=1.52_g~L&S-ALT=22_IU~L&S-ALP=83_IU~L&S-GGT=29_IU~L&S-hsCRP=1.35_mg~L&S-SHBG=45.6_nmol~L&S-25-OH-D=20_ng~mL
         function fillFakeData() {
             // Blood draw date and DOB set so age at test is exactly 60 (for comparison with longevity-tools.com reference)

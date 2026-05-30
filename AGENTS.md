@@ -6,6 +6,12 @@ This file documents project-specific rules that agents commonly get wrong. It is
 
 Before making user-facing UI changes, read `DESIGN.md` and preserve its visual, layout, typography, and interaction rules.
 
+## Browser Smoke Checks
+
+This repository is a .NET solution, not a Node/npm-managed app. Browser smoke checks should use the `Microsoft.Playwright` package in `LongevityWorldCup.Tests`; do not add a `package.json` or npm install just to perform an agent-side smoke check unless the user explicitly asks for Node tooling.
+
+For repeatable local UI verification, prefer the repo-owned .NET Playwright path or the Codex Browser plugin/in-app browser when available. After building `LongevityWorldCup.Tests`, install browser binaries with `pwsh LongevityWorldCup.Tests\bin\Debug\net8.0\playwright.ps1 install chromium` if needed. If using a separate Playwright runtime for ad hoc checks, first verify that Playwright and its browser binaries actually resolve in that runtime; do not assume the in-app Node REPL has Playwright on its module path.
+
 ## Domain Language
 
 Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, biological age calculators, badges, events, social posting, or user-facing competition copy, read `UBIQUITOUS_LANGUAGE.md`.
@@ -18,15 +24,15 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Do not assume one side is only presenting data from the other. Both sides contain logic that can affect ordering and placements.
 - If you change ranking logic on one side, you must review and update the other side so the logic stays identical.
 - The expected outcome is that the backend and frontend produce the same ordering and the same placements for the same data.
-- Bioage calculator rank previews are clock-specific: Pheno Age shows the Pheno-only field rank, and Bortz Age shows the Bortz-only field rank.
-- The Crowd Age leaderboard view is separate from Ultimate League ranking. Only athletes with at least 100 crowd guesses are eligible. It follows the same sign convention as other age-reduction columns: `CrowdAge - chronologicalAge`, with more negative values ranking higher, then higher `CrowdCount`, then older date of birth, then name.
+- Bioage calculator rank previews are clock-specific: pheno age shows the Pheno-only field rank, and bortz age shows the Bortz-only field rank.
+- The crowd age leaderboard view is separate from Ultimate League ranking. Only athletes with at least 100 crowd guesses are eligible. It follows the same sign convention as other age-reduction columns: `CrowdAge - chronologicalAge`, with more negative values ranking higher, then higher `CrowdCount`, then older date of birth, then name.
 
 ## Ultimate League Ordering
 
 - Inside the Ultimate League, Pro and Amateur are distinct categories.
 - Pro always has priority over Amateur in lists and ordering.
 - This is not an optional presentation detail. It is part of the expected sorting behavior.
-- Current concrete example: Bortz is Pro, PhenoAge is Amateur.
+- Current concrete example: Bortz is Pro, Pheno Age is Amateur.
 - If you touch any sorting, ranking, or listing logic that affects Ultimate League entries, explicitly verify that Pro entries still appear before Amateur entries.
 
 ## Static Asset Loading Must Use Middleware Versioning

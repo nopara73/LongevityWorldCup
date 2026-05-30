@@ -566,15 +566,15 @@ public sealed class EventDataService : IDisposable
             if (EventHelpers.TryExtractPlace(text, out var place) && place == 1
                 && EventHelpers.TryExtractCategory(text, out var cat)
                 && !string.Equals(cat, "Global", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+                && string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
                 return 1;
 
-            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)) return 2;
-            if (string.Equals(norm, "PhenoAge Best Improvement", StringComparison.OrdinalIgnoreCase)) return 3;
-            if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase)) return 4;
-            if (string.Equals(norm, "Bortz Age Best Improvement", StringComparison.OrdinalIgnoreCase)) return 5;
-            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)) return 6;
-            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)) return 7;
+            if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase)) return 2;
+            if (string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase)) return 3;
+            if (string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase)) return 4;
+            if (string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase)) return 5;
+            if (string.Equals(norm, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase)) return 6;
+            if (string.Equals(norm, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase)) return 7;
             return 99;
         }
 
@@ -1463,16 +1463,16 @@ public sealed class EventDataService : IDisposable
 
             if (!EventHelpers.TryExtractPlace(rawText, out var place) || place != 1) return;
 
-            if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
             {
                 _ = _slackEvents.BufferAsync(type, rawText);
                 return;
             }
 
-            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(norm, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(norm, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase))
             {
                 _ = _slackEvents.BufferAsync(type, rawText);
                 return;

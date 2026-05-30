@@ -98,10 +98,10 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
         sb.AppendLine("## Ranking Rules");
         sb.AppendLine();
         sb.AppendLine("- Ultimate League ranking uses the backend competition order.");
-        sb.AppendLine("- Pro athletes, identified by an eligible Bortz Age result, rank ahead of Amateur athletes in the Ultimate League.");
+        sb.AppendLine("- Pro athletes, identified by an eligible bortz age result, rank ahead of Amateur athletes in the Ultimate League.");
         sb.AppendLine("- Within the same track, more negative age reduction ranks higher.");
         sb.AppendLine("- If age reduction ties, older chronological age ranks higher, then athlete name breaks remaining ties alphabetically.");
-        sb.AppendLine("- Bortz Age is the Pro seasonal clock; PhenoAge is the Amateur all-time clock.");
+        sb.AppendLine("- The Pro seasonal clock is bortz age; the Amateur all-time clock is pheno age.");
         sb.AppendLine();
 
         AppendRankingTable(sb, "Ultimate League Rankings", rows);
@@ -154,7 +154,7 @@ public sealed class LeaderboardFactsService(AthleteDataService athletes, IMemory
     {
         sb.AppendLine($"## {title}");
         sb.AppendLine();
-        sb.AppendLine("| Rank | Athlete | Track | Age reduction | Lowest Bortz Age | Lowest PhenoAge | Chronological age | Division | Generation | Flag | Exclusive league | Media contact |");
+        sb.AppendLine("| Rank | Athlete | Track | Age reduction | Lowest Bortz Age | Lowest Pheno Age | Chronological age | Division | Generation | Flag | Exclusive league | Media contact |");
         sb.AppendLine("| ---: | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- |");
 
         foreach (var row in rows)

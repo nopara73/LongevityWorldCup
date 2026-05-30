@@ -292,7 +292,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 {
                     list.Add(new AwardRow
                     {
-                        BadgeLabel = r.GetString(0),
+                        BadgeLabel = CanonicalBadgeLabelForAwardRow(r.GetString(0)),
                         LeagueCategory = r.GetString(1),
                         LeagueValue = r.IsDBNull(2) ? null : r.GetString(2),
                         Place = r.IsDBNull(3) ? (int?)null : r.GetInt32(3),
@@ -308,6 +308,11 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
 
         return list;
+    }
+
+    private static string CanonicalBadgeLabelForAwardRow(string label)
+    {
+        return EventHelpers.NormalizeBadgeLabel(label);
     }
 
     private List<BadgeEventItem> BuildBadgeAwardEvents(
@@ -624,12 +629,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             if (!nameToSlug.TryGetValue(name, out var slug)) continue;
             awards.Add(new AwardRow
             {
-                BadgeLabel = "First Applicants",
+                BadgeLabel = "First applicants",
                 LeagueCategory = "Global",
                 LeagueValue = null,
                 Place = place,
                 AthleteSlug = slug,
-                DefinitionHash = BuildEditorialRuleHash("First Applicants", $"rank={place}")
+                DefinitionHash = BuildEditorialRuleHash("First applicants", $"rank={place}")
             });
         }
 
@@ -665,12 +670,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         {
             awards.Add(new AwardRow
             {
-                BadgeLabel = "Perfect Application",
+                BadgeLabel = "Perfect application",
                 LeagueCategory = "Global",
                 LeagueValue = null,
                 Place = null,
                 AthleteSlug = paSlug,
-                DefinitionHash = BuildEditorialRuleHash("Perfect Application", "legacy_flag")
+                DefinitionHash = BuildEditorialRuleHash("Perfect application", "legacy_flag")
             });
         }
     }
@@ -922,7 +927,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         return new[]
         {
             new BadgeDefinition(
-                Label: "Chronological Age – Oldest",
+                Label: "Chronological age – oldest",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.ChronoAge.HasValue,
@@ -932,7 +937,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 MetricKey: "ChronoAge"),
 
             new BadgeDefinition(
-                Label: "Chronological Age – Youngest",
+                Label: "Chronological age – youngest",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.ChronoAge.HasValue,
@@ -942,7 +947,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 MetricKey: "ChronoAge"),
 
             new BadgeDefinition(
-                Label: "PhenoAge – Lowest",
+                Label: "Pheno Age – lowest",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.LowestPhenoAge.HasValue,
@@ -952,7 +957,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 MetricKey: "PhenoAge"),
 
             new BadgeDefinition(
-                Label: "Bortz Age – Lowest",
+                Label: "Bortz Age – lowest",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.LowestBortzAge.HasValue,
@@ -962,7 +967,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 MetricKey: "BortzAge"),
 
             new BadgeDefinition(
-                Label: "Pheno Pace of Aging",
+                Label: "Pheno pace of aging",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.PhenoPaceOfAging.HasValue,
@@ -972,7 +977,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 MetricKey: "PhenoPaceOfAging"),
 
             new BadgeDefinition(
-                Label: "Bortz Pace of Aging",
+                Label: "Bortz pace of aging",
                 Scope: BadgeScope.Global,
                 TopN: 3,
                 Eligibility: a => a.BortzPaceOfAging.HasValue,
@@ -1123,7 +1128,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         if (ranked.Count == 0) return;
 
         var hash = BuildRankedRuleHash(
-            label: "Age Reduction",
+            label: "Age reduction",
             leagueCategory: category,
             metricKey: includeAmateursOnly ? "LeaderboardRank_PhenoOnly" : "LeaderboardRank",
             topN: 3,
@@ -1135,7 +1140,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         {
             awards.Add(new AwardRow
             {
-                BadgeLabel = "Age Reduction",
+                BadgeLabel = "Age reduction",
                 LeagueCategory = category,
                 LeagueValue = value,
                 Place = i + 1,
@@ -1151,12 +1156,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
     {
         var bortzDomains = new[]
         {
-            (Label: "Best Domain – Liver", Key: "liver", Indices: new[] { 1, 16, 2, 9 }),
-            (Label: "Best Domain – Kidney", Key: "kidney", Indices: new[] { 3, 5, 6 }),
-            (Label: "Best Domain – Metabolic", Key: "metabolic", Indices: new[] { 19, 7, 4, 21 }),
-            (Label: "Best Domain – Immune", Key: "immune", Indices: new[] { 15, 14, 13, 10, 11, 20, 12 }),
-            (Label: "Best Domain – Inflammation", Key: "inflammation", Indices: new[] { 8 }),
-            (Label: "Best Domain – Vitamin D", Key: "vitamin_d", Indices: new[] { 17, 18 }),
+            (Label: "Best domain – liver", Key: "liver", Indices: new[] { 1, 16, 2, 9 }),
+            (Label: "Best domain – kidney", Key: "kidney", Indices: new[] { 3, 5, 6 }),
+            (Label: "Best domain – metabolic", Key: "metabolic", Indices: new[] { 19, 7, 4, 21 }),
+            (Label: "Best domain – immune", Key: "immune", Indices: new[] { 15, 14, 13, 10, 11, 20, 12 }),
+            (Label: "Best domain – inflammation", Key: "inflammation", Indices: new[] { 8 }),
+            (Label: "Best domain – vitamin D", Key: "vitamin_d", Indices: new[] { 17, 18 }),
         };
 
         foreach (var (label, key, indices) in bortzDomains)
@@ -1164,7 +1169,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             List<(string Slug, double Score)> candidates;
 
             // Inflammation Whisperer: lowest CRP overall (include PhenoAge-only athletes who have CRP but no full Bortz panel).
-            if (label == "Best Domain – Inflammation" && key == "inflammation")
+            if (label == "Best domain – inflammation" && key == "inflammation")
             {
                 candidates = stats.Values
                     .Select(s =>
@@ -1267,13 +1272,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         List<AwardRow> awards)
     {
         var threshold = 2;
-        var thresholdHash = BuildSubmissionsRuleHash("≥2 Submissions", isThreshold: true, threshold: threshold);
+        var thresholdHash = BuildSubmissionsRuleHash("≥2 submissions", isThreshold: true, threshold: threshold);
 
         foreach (var s in stats.Values.Where(s => s.SubmissionCount >= threshold))
         {
             awards.Add(new AwardRow
             {
-                BadgeLabel = "≥2 Submissions",
+                BadgeLabel = "≥2 submissions",
                 LeagueCategory = "Global",
                 LeagueValue = null,
                 Place = null,
@@ -1285,12 +1290,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         var maxCount = stats.Values.Max(s => s.SubmissionCount);
         if (maxCount > 0)
         {
-            var mostHash = BuildSubmissionsRuleHash("Most Submissions", isThreshold: false);
+            var mostHash = BuildSubmissionsRuleHash("Most submissions", isThreshold: false);
             foreach (var s in stats.Values.Where(s => s.SubmissionCount == maxCount))
             {
                 awards.Add(new AwardRow
                 {
-                    BadgeLabel = "Most Submissions",
+                    BadgeLabel = "Most submissions",
                     LeagueCategory = "Global",
                     LeagueValue = null,
                     Place = 1,
@@ -1313,12 +1318,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         if (phenoCandidates.Count > 0)
         {
             var best = phenoCandidates.Min(x => x.Diff);
-            var ruleHash = BuildImprovementRuleHash("PhenoAge Best Improvement", "pheno_last_minus_baseline");
+            var ruleHash = BuildImprovementRuleHash("Pheno Age best improvement", "pheno_last_minus_baseline");
             foreach (var x in phenoCandidates.Where(x => x.Diff == best))
             {
                 awards.Add(new AwardRow
                 {
-                    BadgeLabel = "PhenoAge Best Improvement",
+                    BadgeLabel = "Pheno Age best improvement",
                     LeagueCategory = "Global",
                     LeagueValue = null,
                     Place = 1,
@@ -1335,12 +1340,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         if (bortzCandidates.Count == 0) return;
 
         var bortzBest = bortzCandidates.Min(x => x.Diff);
-        var bortzRuleHash = BuildImprovementRuleHash("Bortz Age Best Improvement", "bortz_last_minus_baseline");
+        var bortzRuleHash = BuildImprovementRuleHash("Bortz Age best improvement", "bortz_last_minus_baseline");
         foreach (var x in bortzCandidates.Where(x => x.Diff == bortzBest))
         {
             awards.Add(new AwardRow
             {
-                BadgeLabel = "Bortz Age Best Improvement",
+                BadgeLabel = "Bortz Age best improvement",
                 LeagueCategory = "Global",
                 LeagueValue = null,
                 Place = 1,
@@ -1366,8 +1371,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             .OrderByDescending(c => c)
             .Take(3)
             .ToList();
-        var mostGuessedHash = BuildCrowdRuleHash("Crowd – Most Guessed", "CrowdCount", "desc", true, 0);
-        AddTier(withGuesses, topCounts, s => s.CrowdCount, "Crowd – Most Guessed", mostGuessedHash, awards);
+        var mostGuessedHash = BuildCrowdRuleHash("Crowd – most guessed", "CrowdCount", "desc", true, 0);
+        AddTier(withGuesses, topCounts, s => s.CrowdCount, "Crowd – most guessed", mostGuessedHash, awards);
 
         var positiveGaps = withGuesses
             .Where(s => s.ChronoAge.HasValue && s.CrowdAge.HasValue)
@@ -1377,8 +1382,8 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             .OrderByDescending(g => g)
             .Take(3)
             .ToList();
-        var ageGapHash = BuildCrowdRuleHash("Crowd – Age Gap (Chrono−Crowd)", "ChronoMinusCrowdAge", "desc", true, 2);
-        AddTier(withGuesses, positiveGaps, s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero), "Crowd – Age Gap (Chrono−Crowd)", ageGapHash, awards);
+        var ageGapHash = BuildCrowdRuleHash("Crowd – age gap (chrono−crowd)", "ChronoMinusCrowdAge", "desc", true, 2);
+        AddTier(withGuesses, positiveGaps, s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero), "Crowd – age gap (chrono−crowd)", ageGapHash, awards);
 
         var lowestAgeSlots = withGuesses
             .Select(s => (
@@ -1389,7 +1394,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             .ThenByDescending(x => x.CrowdCount)
             .Take(3)
             .ToList();
-        var lowestAgeHash = BuildCrowdRuleHash("Crowd – Lowest Crowd Age", "CrowdAge", "asc", false, 2, tieBreakKey: "crowd_count_desc_then_ties_allowed");
+        var lowestAgeHash = BuildCrowdRuleHash("Crowd Age – lowest", "CrowdAge", "asc", false, 2, tieBreakKey: "crowd_count_desc_then_ties_allowed");
         for (int i = 0; i < lowestAgeSlots.Count; i++)
         {
             var place = i + 1;
@@ -1400,7 +1405,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             {
                 awards.Add(new AwardRow
                 {
-                    BadgeLabel = "Crowd – Lowest Crowd Age",
+                    BadgeLabel = "Crowd Age – lowest",
                     LeagueCategory = "Global",
                     LeagueValue = null,
                     Place = place,

@@ -92,7 +92,7 @@ public static class SlackMessageBuilder
                 continue;
             }
 
-            if (string.Equals(norm, "Age Reduction", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
             {
                 if (place != 1) continue;
 
@@ -123,25 +123,25 @@ public static class SlackMessageBuilder
                 continue;
             }
 
-            if (string.Equals(norm, "PhenoAge - Lowest", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase))
             {
                 if (place == 1) hasPhenoLowest = true;
                 continue;
             }
 
-            if (string.Equals(norm, "Bortz Age - Lowest", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase))
             {
                 if (place == 1) hasBortzLowest = true;
                 continue;
             }
 
-            if (string.Equals(norm, "Chronological Age - Youngest", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(norm, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase))
             {
                 if (place == 1) hasChronoYoungest = true;
                 continue;
             }
 
-            if (string.Equals(norm, "Chronological Age - Oldest", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(norm, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase))
             {
                 if (place == 1) hasChronoOldest = true;
                 continue;
@@ -190,16 +190,16 @@ public static class SlackMessageBuilder
                 var ph = getLowestPhenoAgeForSlug?.Invoke(slug);
                 awardUsesHasVerb = true;
                 awardText = ph.HasValue
-                    ? $"the lowest PhenoAge in the field, at {F2(ph.Value)} years"
-                    : "the lowest PhenoAge in the field";
+                    ? $"the lowest pheno age in the field, at {F2(ph.Value)} years"
+                    : "the lowest pheno age in the field";
             }
             else if (hasBortzLowest)
             {
                 var ba = getLowestBortzAgeForSlug?.Invoke(slug);
                 awardUsesHasVerb = true;
                 awardText = ba.HasValue
-                    ? $"the lowest Bortz age in the field, at {F2(ba.Value)} years"
-                    : "the lowest Bortz age in the field";
+                    ? $"the lowest bortz age in the field, at {F2(ba.Value)} years"
+                    : "the lowest bortz age in the field";
             }
             else if (hasChronoYoungest || hasChronoOldest)
             {
