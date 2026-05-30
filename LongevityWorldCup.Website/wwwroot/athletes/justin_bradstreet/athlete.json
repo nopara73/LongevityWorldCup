@@ -1,0 +1,41 @@
+{
+  "Name": "Justin Bradstreet",
+  "DisplayName": null,
+  "MediaContact": "justinbradstreet@proton.me",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 10,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-05-08",
+      "AlbGL": 45,
+      "CreatUmolL": 120,
+      "GluMmolL": 4.6,
+      "CrpMgL": 1.6,
+      "LymPc": 29.6875,
+      "McvFL": 88,
+      "RdwPc": 13.4,
+      "AlpUL": 79,
+      "Wbc1000cellsuL": 6.4,
+      "NeutrophilPc": 56.25,
+      "MonocytePc": 7.8125,
+      "Rbc10e12L": 5.82,
+      "MchPg": 29.4,
+      "UreaMmolL": 5.6,
+      "CystatinCMgL": 0.71,
+      "Hba1cMmolMol": 29,
+      "CholesterolMmolL": 5.5,
+      "ApoA1GL": 1.29,
+      "AltUL": 31,
+      "GgtUL": 29,
+      "ShbgNmolL": 43,
+      "VitaminDNmolL": 132
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Australia",
+  "Why": "Making my 18yr old daughter proud",
+  "PersonalLink": "https://www.facebook.com/justin.bradstreet"
+}
