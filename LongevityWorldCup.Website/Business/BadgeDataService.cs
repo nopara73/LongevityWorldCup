@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         HydrateComputedStatsIntoAthletes(stats);
         var defs = BuildBadgeDefinitions();
 
-        var awards = new List<AwardRow>(capacity: 4096);
+        List<AwardRow> awards = new(capacity: 4096);
 
         foreach (var def in defs)
         {
@@ -161,11 +161,13 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
 
         AddSeasonFinalResultsAwards(awards);
 
+        awards = CanonicalizeAwardRows(awards);
+
         var previous = ReadCurrentAwardsSnapshot();
         if (IsSuspiciousSnapshotDrop(previous, awards, stats.Count))
             return;
 
-        var badgeEvents = BuildBadgeAwardEvents(previous, awards, DateTime.UtcNow);
+        var badgeEvents = BuildBadgeAwardEventsForSnapshotChange(previous, awards, DateTime.UtcNow);
         var suppressBadgeEvents = badgeEvents.Count > MaxBadgeEventsPerRecompute;
         if (suppressBadgeEvents)
         {
@@ -315,7 +317,38 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         return EventHelpers.NormalizeBadgeLabel(label);
     }
 
-    private List<BadgeEventItem> BuildBadgeAwardEvents(
+    private static List<AwardRow> CanonicalizeAwardRows(IReadOnlyList<AwardRow> rows)
+    {
+        var list = new List<AwardRow>(rows.Count);
+        foreach (var r in rows)
+        {
+            list.Add(new AwardRow
+            {
+                BadgeLabel = CanonicalBadgeLabelForAwardRow(r.BadgeLabel),
+                LeagueCategory = r.LeagueCategory,
+                LeagueValue = r.LeagueValue,
+                Place = r.Place,
+                AthleteSlug = r.AthleteSlug,
+                DefinitionHash = r.DefinitionHash,
+                OccurredAtUtc = r.OccurredAtUtc
+            });
+        }
+
+        return list;
+    }
+
+    private static List<BadgeEventItem> BuildBadgeAwardEventsForSnapshotChange(
+        IReadOnlyList<AwardRow> before,
+        IReadOnlyList<AwardRow> after,
+        DateTime occurredAtUtc)
+    {
+        if (before.Count == 0)
+            return new List<BadgeEventItem>();
+
+        return BuildBadgeAwardEvents(before, after, occurredAtUtc);
+    }
+
+    private static List<BadgeEventItem> BuildBadgeAwardEvents(
         IReadOnlyList<AwardRow> before,
         IReadOnlyList<AwardRow> after,
         DateTime occurredAtUtc)
