@@ -1,0 +1,40 @@
+{
+  "Name": "Benjamin Garden",
+  "DisplayName": null,
+  "MediaContact": "thelongevityathlete@proton.me",
+  "DateOfBirth": {
+    "Year": 1976,
+    "Month": 9,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-05-18",
+      "AlbGL": 44,
+      "CreatUmolL": 97,
+      "GluMmolL": 4.8,
+      "CrpMgL": 0.19,
+      "LymPc": 47.37,
+      "McvFL": 95,
+      "RdwPc": 12,
+      "AlpUL": 73,
+      "Wbc1000cellsuL": 3.8,
+      "NeutrophilPc": 39.47,
+      "MonocytePc": 10.53,
+      "Rbc10e12L": 5.1,
+      "MchPg": 33,
+      "UreaMmolL": 6.3,
+      "Hba1cMmolMol": 30.05,
+      "CholesterolMmolL": 4,
+      "ApoA1GL": 1.4,
+      "AltUL": 30,
+      "GgtUL": 14,
+      "ShbgNmolL": 40,
+      "VitaminDNmolL": 119
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Australia",
+  "Why": "I want to see whats possible in feeling the most energetic and excited about life for my age. Following the status quo is not an option",
+  "PersonalLink": null
+}
