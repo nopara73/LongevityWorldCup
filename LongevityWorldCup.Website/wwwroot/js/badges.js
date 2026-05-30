@@ -467,15 +467,15 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
     }
 
     if (label === 'Pheno pace of aging' && place) {
-        if (place === 1) return 'Time Bender: best Pheno pace of aging';
-        if (place === 2) return 'Slow Clock: 2nd best Pheno pace of aging';
-        if (place === 3) return 'Time Hacker: 3rd best Pheno pace of aging';
+        if (place === 1) return 'Time Bender: best pheno pace of aging';
+        if (place === 2) return 'Slow Clock: 2nd best pheno pace of aging';
+        if (place === 3) return 'Time Hacker: 3rd best pheno pace of aging';
     }
 
     if (label === 'Bortz pace of aging' && place) {
-        if (place === 1) return 'Time Bender: best Bortz pace of aging';
-        if (place === 2) return 'Slow Clock: 2nd best Bortz pace of aging';
-        if (place === 3) return 'Time Hacker: 3rd best Bortz pace of aging';
+        if (place === 1) return 'Time Bender: best bortz pace of aging';
+        if (place === 2) return 'Slow Clock: 2nd best bortz pace of aging';
+        if (place === 3) return 'Time Hacker: 3rd best bortz pace of aging';
     }
 
     if (label === 'Most submissions') {

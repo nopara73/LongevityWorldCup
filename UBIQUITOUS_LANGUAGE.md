@@ -9,7 +9,7 @@
 | **Season** | A yearly competition window for clocks that accept only results from that season's valid dates. | Year, campaign |
 | **Season close** | The point when final rankings for a season are locked. | Wrap-up, end date |
 | **Track** | A competition class defined by clock access and seriousness, currently **Pro** or **Amateur**. | League, tier |
-| **Pro** | The track for athletes with an eligible bortz age result, ranked ahead of Amateur in the Ultimate League. **Professional** is acceptable in prose when it reads better than the compact label. | Bortz-only |
+| **Pro** | The track for athletes with an eligible bortz age result, ranked ahead of Amateur in the Ultimate League. **Professional** refers to the same track and is also acceptable public wording. | Bortz-only |
 | **Amateur** | The accessible track for athletes without an eligible bortz age result, currently centered on pheno age. | Beginner, Pheno-only |
 | **Ultimate League** | The primary overall leaderboard that includes Pro and Amateur athletes while always ordering Pro before Amateur. | Overall ranking, global ranking |
 | **League** | A filtered ranking view over the competition field, such as Ultimate, Amateur, division, generation, exclusive, or crowd age. | Track, category |
@@ -123,7 +123,7 @@
 
 - **Age Reduction** is semantically positive in public copy but implemented as a signed difference where more negative values are better; use **Biological Age Difference** when discussing code or sort direction, and **Age Reduction** for user-facing competition copy.
 - **Track** and **League** are often used interchangeably, but they are distinct: **Track** is Pro or Amateur, while **League** is a ranking view such as Ultimate, division, generation, exclusive, Amateur, or crowd age.
-- **Pro** and **Professional** are both acceptable public names for the same track. Prefer **Pro** for compact UI labels, badges, filters, and table text; use **Professional** in prose when the expanded word makes the sentence read better.
+- **Pro** and **Professional** are both acceptable public names for the same track. Use whichever fits the immediate context best; do not treat either as a copy issue by itself.
 - **Pheno Age**, **Bortz Age**, and **Crowd Age** are standalone public labels for chips, headings, tabs, table labels, badge labels, and other non-sentence UI. In running sentences, use lowercase **pheno age**, **bortz age**, and **crowd age**, except when normal sentence-start capitalization applies. If the clock name naturally starts a sentence, write **Pheno age**, **Bortz age**, or **Crowd age**; do not rewrite the sentence into "This pheno age..." or "The bortz age..." just to keep the term lowercase. Keep `PhenoAge`, `BortzAge`, and `CrowdAge` only for code identifiers, serialized fields, external names that require them, or quoted legacy data.
 - **Clock**, **calculator**, and **result** should not be collapsed: the **clock** is the formula, the **calculator** is the UI/tool, and the **result** is an athlete's computed biological age.
 - **Proof**, "proof picture", "report", and "screenshot" overlap in conversation; use **Proof** for the evidence asset and name the asset type only when validation rules depend on it.
