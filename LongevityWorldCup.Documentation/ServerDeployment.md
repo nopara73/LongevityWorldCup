@@ -3,9 +3,7 @@
 ## SSH
 
 ### In a Hurry
-```sh
-sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && deploy_source="$(mktemp -d)" && cd ~/LongevityWorldCup && git fetch origin master && git reset --hard origin/master && git clean -fd && git archive origin/master | tar -x -C "$deploy_source" && sudo systemctl stop longevityworldcup.service && sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/ && sudo dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service && sudo rm -rf "$deploy_source" && git status --short
-```
+Use the **Auto Deploy on Master** GitHub Actions workflow. For SSH deploys, use the step-by-step flow below instead of a hand-rolled one-liner; it intentionally publishes from a temporary source tree, verifies public HTTP, and checks that the server checkout stays clean.
 
 ### Step By Step
 ```sh
@@ -25,6 +23,25 @@ sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/
 
 sudo dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output /var/www/LongevityWorldCup/publish
 sudo systemctl start longevityworldcup.service
+
+health_url="https://www.longevityworldcup.com/about"
+health_body="/tmp/longevityworldcup-health.html"
+for attempt in $(seq 1 24); do
+  if curl -fsS --max-time 10 "$health_url" -o "$health_body"; then
+    break
+  fi
+
+  if [ "$attempt" -eq 24 ]; then
+    echo "Production health check failed: $health_url"
+    sudo systemctl status longevityworldcup.service --no-pager -l || true
+    exit 1
+  fi
+
+  sleep 5
+done
+
+grep -q "About Longevity World Cup" "$health_body"
+rm -f "$health_body"
 
 sudo rm -rf "$deploy_source"
 git status --short
