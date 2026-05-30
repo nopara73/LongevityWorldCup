@@ -4,21 +4,35 @@
 
 ### In a Hurry
 ```sh
-sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service && sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/ && sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service && cd ..
+sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && deploy_source="$(mktemp -d)" && cd ~/LongevityWorldCup && git fetch origin master && git reset --hard origin/master && git clean -fd && git archive origin/master | tar -x -C "$deploy_source" && sudo systemctl stop longevityworldcup.service && sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/ && sudo dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service && sudo rm -rf "$deploy_source" && git status --short
 ```
 
 ### Step By Step
 ```sh
 sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
 
-cd LongevityWorldCup/ && git pull && sudo systemctl stop longevityworldcup.service
+deploy_source="$(mktemp -d)"
+
+cd ~/LongevityWorldCup
+git fetch origin master
+git reset --hard origin/master
+git clean -fd
+git archive origin/master | tar -x -C "$deploy_source"
+
+sudo systemctl stop longevityworldcup.service
 
 sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/
 
-sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish && sudo systemctl start longevityworldcup.service
+sudo dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output /var/www/LongevityWorldCup/publish
+sudo systemctl start longevityworldcup.service
+
+sudo rm -rf "$deploy_source"
+git status --short
 
 sudo systemctl status longevityworldcup.service
 ```
+
+Publish from the temporary `git archive` source, not from `~/LongevityWorldCup`. The website build regenerates documentation HTML during publish, and publishing from the checkout can dirty tracked files and break the next pull or deploy.
 
 ## Check Website
 https://www.longevityworldcup.com/
