@@ -15,6 +15,16 @@ public sealed record CrowdAgeRankCandidate(
     int CrowdCount,
     DateTime DobUtc);
 
+/// <summary>
+/// Result returned by a hypothetical Ultimate League rank preview.
+/// </summary>
+/// <param name="Rank">One-based rank the hypothetical result would receive in the selected field.</param>
+/// <param name="FieldSize">Field size including the hypothetical result.</param>
+/// <param name="CurrentFieldSize">Current field size excluding the hypothetical result.</param>
+/// <param name="LeagueName">League used for the preview. Currently Ultimate League.</param>
+/// <param name="Category">Track used for the preview, either Pro or Amateur.</param>
+/// <param name="AgeDifference">Signed biological age difference, calculated as biological age minus chronological age. Lower and more negative values rank higher within the same track.</param>
+/// <param name="Nearby">Nearby athletes around the hypothetical result after sorting.</param>
 public sealed record HypotheticalRankResult(
     int Rank,
     int FieldSize,
@@ -24,6 +34,14 @@ public sealed record HypotheticalRankResult(
     double AgeDifference,
     IReadOnlyList<HypotheticalRankNeighbor> Nearby);
 
+/// <summary>
+/// One neighboring row in a hypothetical rank preview.
+/// </summary>
+/// <param name="Rank">One-based rank in the preview field.</param>
+/// <param name="Name">Athlete display name, or the hypothetical row label.</param>
+/// <param name="Category">Track for the row, either Pro or Amateur.</param>
+/// <param name="AgeDifference">Signed age difference used for sorting.</param>
+/// <param name="IsHypothetical">True for the submitted hypothetical result row.</param>
 public sealed record HypotheticalRankNeighbor(
     int Rank,
     string Name,
