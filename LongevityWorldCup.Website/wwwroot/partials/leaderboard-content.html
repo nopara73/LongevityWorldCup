@@ -1191,14 +1191,37 @@
     #detailsModal .athlete-info-table tr{
         border-color: var(--athlete-modal-border);
     }
-    #detailsModal .athlete-info-table tr th,
-    #detailsModal .athlete-info-table tr td{
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) th,
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) td{
         padding-top: .48rem;
         padding-bottom: .48rem;
     }
-    #detailsModal .athlete-info-table tr:not(:first-child) th,
-    #detailsModal .athlete-info-table tr:not(:first-child) td{
+    #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) th,
+    #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) td{
         border-top: 1px solid rgba(246,244,237,.085);
+    }
+    #detailsModal .athlete-info-table tr.athlete-info-group-first th,
+    #detailsModal .athlete-info-table tr.athlete-info-group-first td{
+        border-top: 0;
+    }
+
+    /* Visual break between profile basics and age/performance details. */
+    .athlete-info-divider-row td {
+        padding: 0.35rem 0 0.35rem 0.5rem !important;
+        vertical-align: middle;
+        border: 0;
+        line-height: 0;
+    }
+    .athlete-info-divider {
+        display: block;
+        height: 1px;
+        min-width: 12rem;
+        max-width: 100%;
+        background: var(--border-color, rgba(0,0,0,.14));
+        border: 0;
+    }
+    #detailsModal .athlete-info-divider{
+        background: var(--athlete-modal-border);
     }
 
     /* === FIX: Pace of aging sor biztosan egy sorban === */
@@ -1749,10 +1772,20 @@
             display: block;
             padding: 0.18rem 0;
         }
-        #detailsModal .athlete-info-table tr:not(:first-child) {
+        #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) {
             border-top: 1px solid rgba(246,244,237,.085);
             margin-top: 0.08rem;
             padding-top: 0.45rem;
+        }
+        #detailsModal .athlete-info-table tr.athlete-info-group-first {
+            border-top: 0;
+            margin-top: 0;
+        }
+        .athlete-info-table tr.athlete-info-divider-row {
+            padding: 0.25rem 0;
+        }
+        .athlete-info-table tr.athlete-info-divider-row td {
+            padding: 0 !important;
         }
         .athlete-info-table th,
         .athlete-info-table td {
@@ -2434,6 +2467,9 @@
                                 <th scope="row"><strong>Chronological age:</strong></th>
                                 <td><span id="chronologicalAge"></span> <span class="unit">years old</span></td>
                             </tr>
+                            <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
+                                <td colspan="2"><span class="athlete-info-divider"></span></td>
+                            </tr>
                             <tr id="crowdAgeContainer" style="display:none;">
                                 <th scope="row"><strong>Crowd Age:</strong></th>
                                 <td>
@@ -2455,7 +2491,7 @@
                                 <td><span id="lowestBortzAge"></span> <span class="unit">years</span></td>
                             </tr>
 
-                            <tr>
+                            <tr id="lowestPhenoAgeContainer">
                                 <th scope="row"><strong>Lowest Pheno Age:</strong></th>
                                 <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
                             </tr>
@@ -2481,7 +2517,7 @@
                                 </td>
                             </tr>
 
-                            <tr title="Derived from the lowest biological age of the season">
+                            <tr id="ageReductionContainer" title="Derived from the lowest biological age of the season">
                                 <th scope="row">
                                     <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction:</span></strong>
                                 </th>
@@ -6087,6 +6123,7 @@
         document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:";
         document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
         document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
+        updateAthleteInfoGrouping();
 
         // Personal Link
         const personalLinkElement = document.getElementById('personalLink');
@@ -6988,6 +7025,28 @@
         });
     }
 
+    function updateAthleteInfoGrouping() {
+        const groupedRowIds = [
+            'crowdAgeContainer',
+            'yourGuessContainer',
+            'lowestBortzAgeContainer',
+            'lowestPhenoAgeContainer',
+            'bortzPaceOfAgingContainer',
+            'paceOfAgingContainer',
+            'bortzAgeReductionContainer',
+            'ageReductionContainer'
+        ];
+        const groupedRows = groupedRowIds
+            .map(id => document.getElementById(id))
+            .filter(Boolean);
+
+        groupedRows.forEach(row => row.classList.remove('athlete-info-group-first'));
+        const firstVisibleRow = groupedRows.find(row => window.getComputedStyle(row).display !== 'none');
+        if (firstVisibleRow) {
+            firstVisibleRow.classList.add('athlete-info-group-first');
+        }
+    }
+
     function updateCrowdContainer(crowdAge, crowdCount) {
         const crowdContainer = document.getElementById('crowdAgeContainer');
         const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
@@ -7050,6 +7109,7 @@
             // hide if no guess
             yourGuessContainer.style.display = 'none';
         }
+        updateAthleteInfoGrouping();
     }
 </script>
 
