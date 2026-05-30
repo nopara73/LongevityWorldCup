@@ -424,7 +424,7 @@ $@"<script type=""module"">
             {
                 "/" => new SeoMeta(
                     canonicalPath,
-                    "Reverse your biological age and climb the Longevity World Cup leaderboard. Compare Pheno age and Bortz age results in a global anti-aging competition.",
+                    "Reverse your biological age and climb the Longevity World Cup leaderboard. Compare pheno age and bortz age results in a global anti-aging competition.",
                     "index, follow",
                     canonicalUrl,
                     "Longevity World Cup | Reverse Your Biological Age",

@@ -49,10 +49,10 @@ Yes, just send us an email to `hi@longevityworldcup.com`.
 
 ### About aging clocks and testing
 #### What is [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)?
-This [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) measure is based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
+[Pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) is based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
 
 #### What is [bortz age](https://www.nature.com/articles/s42003-023-05456-z)?
-The [bortz age](https://www.nature.com/articles/s42003-023-05456-z) measure is based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
+[Bortz age](https://www.nature.com/articles/s42003-023-05456-z) is based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
 
 #### From which biomarkers can I calculate my [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)?
 - Albumin (Serum Albumin)
