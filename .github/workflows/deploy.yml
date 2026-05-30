@@ -45,8 +45,13 @@ jobs:
           script: |
             set -eu
             deploy_source="$(mktemp -d)"
+            publish_output="$(mktemp -d)"
+            service_stopped=0
             cleanup() {
-              sudo rm -rf "$deploy_source"
+              if [ "$service_stopped" -eq 1 ]; then
+                sudo systemctl start longevityworldcup.service || true
+              fi
+              rm -rf "$deploy_source" "$publish_output"
             }
             trap cleanup EXIT
 
@@ -54,12 +59,23 @@ jobs:
             git fetch origin master
             git reset --hard origin/master
             git clean -fd
-            git archive origin/master | tar -x -C "$deploy_source"
+
+            git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
+            dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output"
 
             sudo systemctl stop longevityworldcup.service
-            sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/
-            sudo dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output /var/www/LongevityWorldCup/publish
+            service_stopped=1
+            sudo rsync -a --checksum --no-owner --no-group \
+              --exclude='/config.json' \
+              --exclude='/config.json.bak*' \
+              --exclude='/AppData/***' \
+              --exclude='/wwwroot/athletes/***' \
+              --exclude='/wwwroot/generated/***' \
+              "$publish_output"/ /var/www/LongevityWorldCup/publish/
+            sudo rsync -a --checksum --delete --no-owner --no-group \
+              "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
             sudo systemctl start longevityworldcup.service
+            service_stopped=0
 
             health_url="https://www.longevityworldcup.com/about"
             health_body="/tmp/longevityworldcup-health.html"
