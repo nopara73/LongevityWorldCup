@@ -2,7 +2,7 @@
 
 This markdown document is provided to improve machine discovery and retrieval quality.
 For authoritative content, always prefer the canonical website pages.
-Last updated: 2026-05-29
+Last updated: 2026-05-30
 
 ## Canonical Site
 - https://longevityworldcup.com/
@@ -21,6 +21,8 @@ Last updated: 2026-05-29
 - [llms-full.txt](https://longevityworldcup.com/llms-full.txt)
 - [leaderboard.md](https://longevityworldcup.com/ai/leaderboard.md): Current public leaderboard facts, rankings, league leaders, and ranking rules.
 - [athlete-names.md](https://longevityworldcup.com/ai/athlete-names.md): Current public athlete names as a numbered plain-text markdown list. Use `leaderboard.md` for ranking facts.
+- [Swagger API docs](https://longevityworldcup.com/swagger): Human-readable public API documentation.
+- [OpenAPI JSON](https://longevityworldcup.com/swagger/v1/swagger.json): Machine-readable public API document.
 - [sitemap.xml](https://longevityworldcup.com/sitemap.xml)
 
 ## Retrieval Guidance
