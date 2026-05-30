@@ -41,9 +41,11 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 22
           command_timeout: 30m
+          script_stop: true
           script: |
             cd ~/LongevityWorldCup
-            git pull
+            git fetch origin master
+            git reset --hard origin/master
             sudo systemctl stop longevityworldcup.service
             sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/
             sudo dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj --configuration Release --output /var/www/LongevityWorldCup/publish
