@@ -9,7 +9,7 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 ![image](https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582)
 
 ## Tracks
-The Longevity World Cup has multiple tracks: **Amateur** and **Pro**. These use different clocks and rules.
+The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. These use different clocks and rules.
 
 - **Amateur**: designed for accessibility. In Season 2026 this track is centered around **[pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) (all-time)** submissions.
 - **Pro**: the flagship **seasonal** competition. In Season 2026 this track introduced **[bortz age](https://www.nature.com/articles/s42003-023-05456-z) (seasonal)**, it's a seasonal competition and includes prize money.
