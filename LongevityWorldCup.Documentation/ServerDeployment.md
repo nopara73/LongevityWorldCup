@@ -10,19 +10,37 @@ Use the **Auto Deploy on Master** GitHub Actions workflow. For SSH deploys, use 
 sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
 
 deploy_source="$(mktemp -d)"
+publish_output="$(mktemp -d)"
+service_stopped=0
+cleanup() {
+  if [ "$service_stopped" -eq 1 ]; then
+    sudo systemctl start longevityworldcup.service || true
+  fi
+  rm -rf "$deploy_source" "$publish_output"
+}
+trap cleanup EXIT
 
 cd ~/LongevityWorldCup
 git fetch origin master
 git reset --hard origin/master
 git clean -fd
-git archive origin/master | tar -x -C "$deploy_source"
+git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
+
+dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output"
 
 sudo systemctl stop longevityworldcup.service
-
-sudo rm -rf /var/www/LongevityWorldCup/publish/wwwroot/athletes/
-
-sudo dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output /var/www/LongevityWorldCup/publish
+service_stopped=1
+sudo rsync -a --checksum --no-owner --no-group \
+  --exclude='/config.json' \
+  --exclude='/config.json.bak*' \
+  --exclude='/AppData/***' \
+  --exclude='/wwwroot/athletes/***' \
+  --exclude='/wwwroot/generated/***' \
+  "$publish_output"/ /var/www/LongevityWorldCup/publish/
+sudo rsync -a --checksum --delete --no-owner --no-group \
+  "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
 sudo systemctl start longevityworldcup.service
+service_stopped=0
 
 health_url="https://www.longevityworldcup.com/about"
 health_body="/tmp/longevityworldcup-health.html"
@@ -43,13 +61,22 @@ done
 grep -q "About Longevity World Cup" "$health_body"
 rm -f "$health_body"
 
-sudo rm -rf "$deploy_source"
 git status --short
 
 sudo systemctl status longevityworldcup.service
 ```
 
-Publish from the temporary `git archive` source, not from `~/LongevityWorldCup`. The website build regenerates documentation HTML during publish, and publishing from the checkout can dirty tracked files and break the next pull or deploy.
+Publish from the temporary source, not from `~/LongevityWorldCup`. The website build regenerates documentation HTML during publish, and publishing from the checkout can dirty tracked files and break the next pull or deploy.
+
+The temporary source is copied with `rsync -a` from tracked Git files instead of `git archive` so unchanged athlete media keeps its original modification time. Startup uses those timestamps to decide whether profile thumbnails are stale; resetting every athlete image timestamp can force hundreds of thumbnail regenerations before Kestrel starts listening.
+
+The final sync preserves production-owned runtime paths:
+- `config.json`
+- `config.json.bak*`
+- `AppData/`
+- `wwwroot/generated/`
+
+Deletion is scoped to `wwwroot/athletes/` so removed athlete proofs disappear from production without turning this deploy into a broad cleanup of old unrelated server files.
 
 ## Check Website
 https://www.longevityworldcup.com/
