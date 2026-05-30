@@ -1191,37 +1191,14 @@
     #detailsModal .athlete-info-table tr{
         border-color: var(--athlete-modal-border);
     }
-    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) th,
-    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) td{
+    #detailsModal .athlete-info-table tr th,
+    #detailsModal .athlete-info-table tr td{
         padding-top: .48rem;
         padding-bottom: .48rem;
     }
-    #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) th,
-    #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) td{
+    #detailsModal .athlete-info-table tr:not(:first-child) th,
+    #detailsModal .athlete-info-table tr:not(:first-child) td{
         border-top: 1px solid rgba(246,244,237,.085);
-    }
-    #detailsModal .athlete-info-table tr.athlete-info-divider-row + tr th,
-    #detailsModal .athlete-info-table tr.athlete-info-divider-row + tr td{
-        border-top: 0;
-    }
-
-    /* Visual break (horizontal line) — same row spacing as other rows */
-    .athlete-info-divider-row td {
-        padding: 0.35rem 0 0.35rem 0.5rem !important;
-        vertical-align: middle;
-        border: 0;
-        line-height: 0;
-    }
-    .athlete-info-divider {
-        display: block;
-        height: 1px;
-        min-width: 12rem;
-        max-width: 100%;
-        background: var(--border-color, rgba(0,0,0,.14));
-        border: 0;
-    }
-    #detailsModal .athlete-info-divider{
-        background: var(--athlete-modal-border);
     }
 
     /* === FIX: Pace of aging sor biztosan egy sorban === */
@@ -1772,20 +1749,10 @@
             display: block;
             padding: 0.18rem 0;
         }
-        #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) {
+        #detailsModal .athlete-info-table tr:not(:first-child) {
             border-top: 1px solid rgba(246,244,237,.085);
             margin-top: 0.08rem;
             padding-top: 0.45rem;
-        }
-        #detailsModal .athlete-info-table tr.athlete-info-divider-row + tr {
-            border-top: 0;
-            margin-top: 0;
-        }
-        .athlete-info-table tr.athlete-info-divider-row {
-            padding: 0.25rem 0;
-        }
-        .athlete-info-table tr.athlete-info-divider-row td {
-            padding: 0 !important;
         }
         .athlete-info-table th,
         .athlete-info-table td {
@@ -2466,9 +2433,6 @@
                             <tr>
                                 <th scope="row"><strong>Chronological age:</strong></th>
                                 <td><span id="chronologicalAge"></span> <span class="unit">years old</span></td>
-                            </tr>
-                            <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
-                                <td colspan="2"><span class="athlete-info-divider"></span></td>
                             </tr>
                             <tr id="crowdAgeContainer" style="display:none;">
                                 <th scope="row"><strong>Crowd Age:</strong></th>
