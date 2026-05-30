@@ -3,7 +3,7 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 
 ## Seasons & schedule
 - A **Season** is the yearly competition window for **seasonal clocks** (for example the Season 2026 [bortz age](https://www.nature.com/articles/s42003-023-05456-z) competition).
-- Seasonal clocks typically start and end around the middle of January, and **only accept results from the given calendar year** (January 1 to December 31). At **season close**, final rankings lock for that season.
+- Seasonal clocks typically start and end around mid-January, and **only accept results from the given calendar year** (January 1 to December 31). At **season close**, final rankings lock for that season.
 - Some clocks may run as **all-time competitions** instead of seasonal competitions. **The all-time competition currently uses [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)**.
 
 ![image](https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582)
@@ -26,7 +26,7 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 ## Prizes and payouts
 - Prize money goes to the top 3 athletes in the Ultimate League.
 - Bitcoin donations fund the prize money pool, and contributions are welcome.
-- 10% of the donations go toward covering operating costs, while 90% fund the prize money pool.
+- 10% of donations covers operating costs, and 90% funds the prize money pool.
 - Payouts happen in mid-January in Bitcoin. If you don't already have a Bitcoin wallet, we'll help you set one up. We recommend [Green Wallet](https://blockstream.com/green/) for mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Fun fact: Wasabi Wallet was created by the same developer who created the Longevity World Cup.
 
 ![image](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
@@ -112,7 +112,7 @@ The older you are, the higher you rank in case of a tie. If necessary, alphabeti
 If you submit multiple test results, the **best** result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.
 
 #### How are lab detection limits handled in the competition?
-When your lab reports a biomarker value below the detection limit, the detection limit itself is used in the calculation. This keeps comparisons fair for other participants. This happens most often with CRP; when the detection limit is unknown we default it to 1 mg/L.
+When your lab reports a biomarker value below the detection limit, the detection limit itself is used in the calculation. This keeps comparisons fair for other participants. This most often affects CRP; when the detection limit is unknown, we default to 1 mg/L.
 
 #### How can I cheat?
 You can't.
