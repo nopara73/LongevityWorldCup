@@ -38,7 +38,7 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 Anyone interested in longevity and capable of submitting valid test results can participate.
 
 #### How do I register for the competition?
-Simply visit our [website](https://www.longevityworldcup.com/) and follow the registration instructions.
+Apply through the [Longevity World Cup website](https://www.longevityworldcup.com/).
 
 ![image](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
 
