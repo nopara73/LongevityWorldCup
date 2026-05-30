@@ -642,7 +642,7 @@ public class AthleteDataService : IDisposable
     }
 
     /// <summary>
-    /// Re‐reads all medians & counts from SQLite and updates the in‐memory JSON.
+    /// Re-reads all medians and counts from SQLite and updates the in-memory JSON.
     /// </summary>
     public void ReloadCrowdStats()
     {

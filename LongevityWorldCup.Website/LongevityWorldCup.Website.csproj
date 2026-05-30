@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))</RepositoryRoot>
     <DocumentationPageGeneratorProject>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/LongevityWorldCup.MarkdownPageGenerator.csproj</DocumentationPageGeneratorProject>
     <DocumentationPageGeneratorDll>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/bin/$(Configuration)/net8.0/LongevityWorldCup.MarkdownPageGenerator.dll</DocumentationPageGeneratorDll>

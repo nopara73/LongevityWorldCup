@@ -8,6 +8,8 @@ using Quartz;
 using System.IO.Compression;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.SwaggerUI;
+using LongevityWorldCup.Website.Controllers;
 
 namespace LongevityWorldCup.Website
 {
@@ -41,15 +43,31 @@ namespace LongevityWorldCup.Website
                 {
                     Title = "Longevity World Cup Public Data API",
                     Version = "v1",
-                    Description = "Public no-auth JSON endpoints for Longevity World Cup athlete, field, and rank-preview data.",
+                    Description = """
+                        Public no-auth JSON endpoints for Longevity World Cup athlete, field, and rank-preview data.
+
+                        The documented endpoints are read-oriented public data surfaces used by the website and external clients. They do not require API keys, OAuth, cookies, or other authentication.
+                        """,
                     Contact = new OpenApiContact
                     {
                         Name = "Longevity World Cup",
                         Url = new Uri("https://longevityworldcup.com/")
                     }
                 });
+                options.CustomOperationIds(apiDescription =>
+                    apiDescription.ActionDescriptor.RouteValues["action"] switch
+                    {
+                        "GetFlags" => "listFlags",
+                        "GetDivisions" => "listDivisions",
+                        "GetAthletes" => "listAthletes",
+                        "GetHypotheticalRank" => "previewHypotheticalRank",
+                        var action => action
+                    });
                 options.DocInclusionPredicate((_, apiDescription) =>
                     string.Equals(apiDescription.GroupName, "public-v1", StringComparison.Ordinal));
+                options.IncludeXmlComments(typeof(Program).Assembly);
+                options.OperationFilter<PublicDataSwaggerExamples>();
+                options.SchemaFilter<PublicDataSchemaDescriptions>();
             });
             builder.Services.AddResponseCompression(options =>
             {
@@ -258,6 +276,21 @@ namespace LongevityWorldCup.Website
                 options.RoutePrefix = "swagger";
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "Longevity World Cup Public Data API v1");
                 options.DocumentTitle = "Longevity World Cup Public Data API";
+                options.DocExpansion(DocExpansion.List);
+                options.DefaultModelExpandDepth(2);
+                options.DefaultModelsExpandDepth(1);
+                options.DefaultModelRendering(ModelRendering.Model);
+                options.DisplayOperationId();
+                options.DisplayRequestDuration();
+                options.EnableDeepLinking();
+                options.EnableFilter();
+                options.EnableTryItOutByDefault();
+                options.ShowCommonExtensions();
+                options.ShowExtensions();
+                options.SupportedSubmitMethods([SubmitMethod.Get, SubmitMethod.Post]);
+                options.ConfigObject.MaxDisplayedTags = 1;
+                options.ConfigObject.PersistAuthorization = false;
+                options.ConfigObject.ValidatorUrl = null;
             });
 
             // Use CORS
