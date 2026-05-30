@@ -41,7 +41,7 @@ foreach (var page in pages)
     var title = ExtractTitle(markdown);
     var documentHtml = OpenAbsoluteLinksInNewTabs(Markdown.ToHtml(markdown, pipeline));
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
-    var pageHtml = RenderPage(title, documentHtml, contentsHtml, page);
+    var pageHtml = NormalizeGeneratedHtml(RenderPage(title, documentHtml, contentsHtml, page));
 
     Directory.CreateDirectory(Path.GetDirectoryName(page.Output)!);
     await File.WriteAllTextAsync(page.Output, pageHtml);
@@ -110,6 +110,12 @@ static string OpenAbsoluteLinksInNewTabs(string html)
         "<a href=\"(?<href>https?://[^\"]+)\">",
         match => $"<a href=\"{match.Groups["href"].Value}\" target=\"_blank\" rel=\"noopener noreferrer\">",
         RegexOptions.IgnoreCase);
+}
+
+static string NormalizeGeneratedHtml(string html)
+{
+    var normalized = html.ReplaceLineEndings("\n");
+    return normalized.EndsWith('\n') ? normalized : normalized + "\n";
 }
 
 static string RenderPage(string title, string documentHtml, string contentsHtml, DocumentationPage page)
