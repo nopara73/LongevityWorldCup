@@ -2,7 +2,7 @@
 The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.
 
 ## Seasons & schedule
-- A **Season** is the yearly competition window for **seasonal clocks** (for example the Season 2026 [Bortz](https://www.nature.com/articles/s42003-023-05456-z) competition).
+- A **Season** is the yearly competition window for **seasonal clocks** (for example the Season 2026 [bortz age](https://www.nature.com/articles/s42003-023-05456-z) competition).
 - Seasonal clocks typically start and end around the middle of January, and **only accept results from the given calendar year** (January 1 to December 31). At **season close**, final rankings lock for that season.
 - Some clocks may run as **all-time competitions** instead of seasonal competitions. **The all-time competition currently uses [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)**.
 
@@ -12,13 +12,13 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. These use different clocks and rules.
 
 - **Amateur**: designed for accessibility. In Season 2026 this track is centered around **[pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) (all-time)** submissions.
-- **Pro**: the flagship **seasonal** competition. In Season 2026 this track introduced **[Bortz](https://www.nature.com/articles/s42003-023-05456-z) (seasonal)**, it's a seasonal competition and includes prize money.
+- **Pro**: the flagship **seasonal** competition. In Season 2026 this track introduced **[bortz age](https://www.nature.com/articles/s42003-023-05456-z) (seasonal)**, it's a seasonal competition and includes prize money.
 
 ## Point system (ranking)
 - What counts is **biological age reduction**: the larger the difference between your biological and chronological age, the higher you rank.
 - You can submit as many tests as you want.
   - For **all-time clocks** ([pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)), the site uses your **best (lowest) biological age** across your full submission history.
-  - For **seasonal clocks** ([Bortz](https://www.nature.com/articles/s42003-023-05456-z)), the site uses your **best (lowest) biological age** achieved during the 2026 season’s valid window.
+  - For **seasonal clocks** ([bortz age](https://www.nature.com/articles/s42003-023-05456-z)), the site uses your **best (lowest) biological age** achieved during the 2026 season’s valid window.
   - **Partial or non-same-day submissions are not allowed for a given clock**. If a clock needs a set of biomarkers, those biomarkers must come from the same blood draw / same report date.
 - The competition also uses **leagues** (for example generation-based or other category-based rankings). You might place modestly globally while winning your generation league.
 
@@ -48,11 +48,11 @@ Want someone to hold your hand while doing your application? Watch [this seven m
 Yes, just send us an email to `hi@longevityworldcup.com`.
 
 ### About aging clocks and testing
-#### What is [Pheno Age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)?
+#### What is [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)?
 This [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) measure is based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
 
-#### What is [Bortz](https://www.nature.com/articles/s42003-023-05456-z)?
-[Bortz](https://www.nature.com/articles/s42003-023-05456-z) is a biological age measure based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
+#### What is [bortz age](https://www.nature.com/articles/s42003-023-05456-z)?
+The [bortz age](https://www.nature.com/articles/s42003-023-05456-z) measure is based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk.
 
 #### From which biomarkers can I calculate my [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)?
 - Albumin (Serum Albumin)
@@ -65,7 +65,7 @@ This [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-1
 - Alkaline Phosphatase (ALP, Alk Phos)
 - White Blood Cell Count (WBC Count, Leukocyte Count)
 
-#### From which biomarkers can I calculate my [Bortz](https://www.nature.com/articles/s42003-023-05456-z)?
+#### From which biomarkers can I calculate my [bortz age](https://www.nature.com/articles/s42003-023-05456-z)?
 - Albumin
 - Alkaline Phosphatase (ALP)
 - Urea
@@ -96,8 +96,8 @@ Yes, as long as the lab provides accurate biomarkers required for the clock you 
 #### Why does my [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) result differ from other calculators?
 The Longevity World Cup pheno age calculator is the best pheno age calculator on the Internet from a biological reality point of view. Many online pheno age calculators are using an [incorrect constant in the formula,](https://github.com/ajsteele/bioage/issues/3) which originated from a typo in an update by the authors of pheno age. Even those calculators that use the correct constant are inferior to the Longevity World Cup's algorithm, because they reward pheno age-optimizing hacks that reduce mortality risk in the model but increase actual mortality in reality. For example, pushing alkaline phosphatase or RDW to the extremes can lower your pheno age score even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make your “age” look better while your actual risk gets worse. See [pheno age calculation bug disclosure: Missing U-shaped curves for biomarkers](https://github.com/nopara73/LongevityWorldCup/issues/136).
 
-#### Why does my [Bortz](https://www.nature.com/articles/s42003-023-05456-z) result differ from other calculators?
-The Longevity World Cup bortz age calculator is the best bortz age calculator on the Internet from a biological reality point of view. Other calculators reward Bortz-optimizing hacks that reduce mortality risk in the model but increase actual mortality in reality. For example, pushing alkaline phosphatase or RDW to the extremes can lower your bortz age even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make your “age” look better while your actual risk gets worse. See [pheno age and bortz age calculation bug disclosure: Missing U-shaped curves for biomarkers](https://github.com/nopara73/LongevityWorldCup/issues/136).
+#### Why does my [bortz age](https://www.nature.com/articles/s42003-023-05456-z) result differ from other calculators?
+The Longevity World Cup bortz age calculator is the best bortz age calculator on the Internet from a biological reality point of view. Other calculators reward bortz age-optimizing hacks that reduce mortality risk in the model but increase actual mortality in reality. For example, pushing alkaline phosphatase or RDW to the extremes can lower your bortz age even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make your “age” look better while your actual risk gets worse. See [pheno age and bortz age calculation bug disclosure: Missing U-shaped curves for biomarkers](https://github.com/nopara73/LongevityWorldCup/issues/136).
 
 ### Competition mechanics
 #### What happens if my results arrive late?
