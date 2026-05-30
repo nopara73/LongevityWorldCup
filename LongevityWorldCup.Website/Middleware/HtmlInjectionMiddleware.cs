@@ -35,13 +35,13 @@ namespace LongevityWorldCup.Website.Middleware
             {
                 ["bortz"] = new(
                     "Bortz Age Leaderboard | Longevity World Cup",
-                    "Track Longevity World Cup Bortz Age rankings for athletes with eligible Bortz Age results."),
+                    "Track Longevity World Cup bortz age rankings for athletes with eligible bortz age results."),
                 ["pheno"] = new(
                     "Pheno Age Leaderboard | Longevity World Cup",
-                    "Track Longevity World Cup Pheno Age rankings from verified biological age submissions."),
+                    "Track Longevity World Cup pheno age rankings from verified biological age submissions."),
                 ["crowd"] = new(
                     "Crowd Age Leaderboard | Longevity World Cup",
-                    "Track the Longevity World Cup Crowd Age leaderboard for athletes with enough accepted age guesses.")
+                    "Track the Longevity World Cup crowd age leaderboard for athletes with enough accepted age guesses.")
             };
 
         public async Task Invoke(HttpContext context)
