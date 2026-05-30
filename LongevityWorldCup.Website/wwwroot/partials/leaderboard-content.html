@@ -6490,6 +6490,7 @@
         const phenoColor = getAthleteModalCssVar('--athlete-modal-chart-pheno', 'rgba(135,229,229,.96)');
         const biomarkerOverlayColor = getAthleteModalCssVar('--athlete-modal-chart-biomarker', 'rgba(255,125,125,.96)');
         const pointBorderColor = 'rgba(8,10,10,.94)';
+        const pointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
         const datasets = [];
         if (hasBortzAge) {
             datasets.push({
@@ -6502,6 +6503,7 @@
                 pointBorderWidth: 2,
                 pointRadius: 5,
                 pointHoverRadius: 7,
+                pointHitRadius: pointHitRadius,
                 fill: false,
                 tension: 0.1,
                 borderWidth: 3,
@@ -6519,6 +6521,7 @@
             pointBorderWidth: 2,
             pointRadius: 5,
             pointHoverRadius: 7,
+            pointHitRadius: pointHitRadius,
             fill: false,
             tension: 0.1,
             borderWidth: 3,
@@ -6558,6 +6561,7 @@
                 pointBorderWidth: 2,
                 pointRadius: 5,
                 pointHoverRadius: 7,
+                pointHitRadius: pointHitRadius,
                 fill: false,
                 tension: 0.1,
                 borderWidth: 3,
