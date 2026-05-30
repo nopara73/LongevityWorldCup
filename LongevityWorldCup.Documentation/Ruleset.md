@@ -24,8 +24,8 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 
 ![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
 ## Prizes and payouts
-- Prize money is given to the top 3 athletes in the ultimate league.
-- The prize money pool is coming from Bitcoin donations and you are encouraged to contribute.
+- Prize money goes to the top 3 athletes in the Ultimate League.
+- Bitcoin donations fund the prize money pool, and contributions are welcome.
 - 10% of the donations go toward covering operating costs, while 90% fund the prize money pool.
 - Payouts happen in the middle of January in Bitcoin. We'll help you set up a Bitcoin wallet if you don't already have one. We generally recommend [Green Wallet](https://blockstream.com/green/) for mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Fun fact: Wasabi Wallet was created by the same developer who created the Longevity World Cup.
 
