@@ -25,9 +25,9 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 ![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
 ## Prizes and payouts
 - Prize money goes to the top three athletes in the Ultimate League.
-- Bitcoin donations fund the prize money pool, and contributions are welcome.
+- Bitcoin donations fund the prize money pool.
 - 10% of donations covers operating costs, and 90% funds the prize money pool.
-- Payouts happen in mid-January in Bitcoin. If you don't already have a Bitcoin wallet, we'll help you set one up. We recommend [Green Wallet](https://blockstream.com/green/) for mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Fun fact: Wasabi Wallet was created by the same developer who created the Longevity World Cup.
+- Payouts happen in mid-January in Bitcoin. If you don't already have a Bitcoin wallet, we'll help you set one up. We recommend [Green Wallet](https://blockstream.com/green/) for mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Fun fact: Wasabi Wallet and the Longevity World Cup share the same creator.
 
 ![image](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
 
@@ -91,7 +91,7 @@ Yes, just send us an email to `hi@longevityworldcup.com`.
 ![image](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
 
 #### Can I use any laboratory for my tests?
-Yes, as long as the lab provides accurate biomarkers required for the clock you are submitting.
+Yes, as long as the lab provides the biomarkers required for that clock.
 
 #### Why does my [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf) result differ from other calculators?
 The Longevity World Cup pheno age calculator is the best pheno age calculator on the Internet from a biological reality point of view. Many online pheno age calculators are using an [incorrect constant in the formula,](https://github.com/ajsteele/bioage/issues/3) which originated from a typo in an update by the authors of pheno age. Even those calculators that use the correct constant are inferior to the Longevity World Cup's algorithm, because they reward pheno age-optimizing hacks that reduce mortality risk in the model but increase actual mortality in reality. For example, pushing alkaline phosphatase or RDW to the extremes can lower your pheno age score even though real-world data shows U- or J-shaped mortality curves for those biomarkers. The Longevity World Cup calculator corrects this by enforcing biologically justified cutoffs, avoiding strategies that make your “age” look better while your actual risk gets worse. See [pheno age calculation bug disclosure: Missing U-shaped curves for biomarkers](https://github.com/nopara73/LongevityWorldCup/issues/136).
