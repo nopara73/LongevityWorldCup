@@ -101,7 +101,7 @@ The Longevity World Cup bortz age calculator is the best bortz age calculator on
 
 ### Competition mechanics
 #### What happens if my results arrive late?
-Each season is wrapped up in the middle of January. This should give your laboratory enough time to evaluate your test conducted on December 31.
+Each season closes in mid-January, giving your lab enough time to process a test from December 31.
 
 #### What if there's a tie?
 The older you are, the higher you rank in case of a tie. If necessary, alphabetical ordering of usernames will decide.
