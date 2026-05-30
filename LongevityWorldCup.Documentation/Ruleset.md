@@ -15,12 +15,12 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 - **Pro**: the flagship **seasonal** competition. In Season 2026 this track uses **[bortz age](https://www.nature.com/articles/s42003-023-05456-z)** as its seasonal clock and includes prize money.
 
 ## Point system (ranking)
-- What counts is **biological age reduction**: the larger the difference between your biological and chronological age, the higher you rank.
+- What counts is **biological age reduction**: the more your biological age is below your chronological age, the higher you rank.
 - You can submit as many tests as you want.
   - For **all-time clocks** ([pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)), the site uses your **best (lowest) biological age** across your full submission history.
   - For **seasonal clocks** ([bortz age](https://www.nature.com/articles/s42003-023-05456-z)), the site uses your **best (lowest) biological age** achieved during the 2026 season’s valid window.
-  - **Partial or non-same-day submissions are not allowed for a given clock**. If a clock needs a set of biomarkers, those biomarkers must come from the same blood draw or report date.
-- The competition also uses **leagues** (for example generation-based or other category-based rankings). You might place modestly globally while winning your generation league.
+  - **Partial or non-same-day submissions are not allowed for a given clock**. Required biomarkers must come from the same blood draw or report date.
+- The competition also uses **leagues** (for example generation-based or other category-based rankings). You can rank globally and still compete within your generation league.
 
 ![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
 ## Prizes and payouts
@@ -45,7 +45,7 @@ Apply through the [Longevity World Cup website](https://www.longevityworldcup.co
 Need help with your application? Watch [this seven-minute video tutorial](https://www.youtube.com/watch?v=0mCIbqgfqq8) or [this one-minute video tutorial](https://www.youtube.com/shorts/yhMFZMPAoKQ).
 
 #### Can I withdraw from the competition?
-Yes, just send us an email to `hi@longevityworldcup.com`.
+Yes. Email `hi@longevityworldcup.com`.
 
 ### About aging clocks and testing
 #### What is [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)?
@@ -104,7 +104,7 @@ The Longevity World Cup bortz age calculator is built for biological realism. Ot
 Each season closes in mid-January, giving your lab enough time to process a test from December 31.
 
 #### What if there's a tie?
-The older you are, the higher you rank in case of a tie. If necessary, alphabetical ordering of usernames will decide.
+Ties break by older chronological age, then username alphabetically.
 
 ![image](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
 
@@ -112,7 +112,7 @@ The older you are, the higher you rank in case of a tie. If necessary, alphabeti
 If you submit multiple test results, the **best** result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.
 
 #### How are lab detection limits handled in the competition?
-When your lab reports a biomarker value below the detection limit, the detection limit itself is used in the calculation. This keeps comparisons fair for other participants. This most often affects CRP; when the detection limit is unknown, we default to 1 mg/L.
+When your lab reports a biomarker value below the detection limit, that limit is used in the calculation. This keeps comparisons fair for other participants. This most often affects CRP; when the limit is unknown, we default to 1 mg/L.
 
 #### How can I cheat?
 You can't.
@@ -120,7 +120,7 @@ You can't.
 #### How does the Longevity World Cup compare to the Rejuvenation Olympics?
 - **Focus**: Longevity World Cup emphasizes **absolute age reversal**, while Rejuvenation Olympics measures the **pace of aging** regardless of chronological age.
 - **Structure**: Longevity World Cup has **annual seasons** and may run **multiple clocks/tracks** over time.
-- **Prizes**: Longevity World Cup offers **prize money** through Bitcoin donations.
+- **Prizes**: Longevity World Cup offers **prize money** funded by Bitcoin donations.
 - **Leagues**: Longevity World Cup includes **leagues** for generational and other category-based rankings.
 - **Testing**: Longevity World Cup uses traditional blood-test-based biological age calculations; Rejuvenation Olympics uses the TruDiagnostic home test kit.
 
