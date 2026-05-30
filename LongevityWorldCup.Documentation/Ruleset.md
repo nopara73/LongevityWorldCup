@@ -112,7 +112,7 @@ The older you are, the higher you rank in case of a tie. If necessary, alphabeti
 If you submit multiple test results, the **best** result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.
 
 #### How are lab detection limits handled in the competition?
-When your lab result shows a biomarker value as below the detection limit, the detection limit itself will be used in calculation. This policy is applied to keep it fair towards other participants. This happens most often with CRP; when the detection limit is unknown we default it to 1 mg/L.
+When your lab reports a biomarker value below the detection limit, the detection limit itself is used in the calculation. This keeps comparisons fair for other participants. This happens most often with CRP; when the detection limit is unknown we default it to 1 mg/L.
 
 #### How can I cheat?
 You can't.
