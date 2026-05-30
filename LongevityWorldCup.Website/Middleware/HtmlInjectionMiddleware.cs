@@ -429,7 +429,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Longevity World Cup | Reverse Your Biological Age",
-                    "Too old for your sport? Not this one. Join the Longevity World Cup and rise on the leaderboard by improving your biological age.",
+                    "Too old for your sport? Not this one. Reverse your age and rise on the leaderboard.",
                     defaultOgImage
                 ),
                 "/leaderboard" => new SeoMeta(
