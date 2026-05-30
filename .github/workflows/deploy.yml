@@ -46,7 +46,7 @@ jobs:
             set -eu
             deploy_source="$(mktemp -d)"
             cleanup() {
-              rm -rf "$deploy_source"
+              sudo rm -rf "$deploy_source"
             }
             trap cleanup EXIT
 
