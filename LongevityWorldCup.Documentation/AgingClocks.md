@@ -11,7 +11,7 @@
 |2016|Aging.AI|blood (deep learning model)|Polina Mamoshina, Kirill Kochetov, Evgeny Putin, Franco Cortese, Alexander Aliper, Won-Suk Lee, Sung-Min Ahn, Lee Uhn, Neil Skjodt, Olga Kovalchuk, Morten Scheibye-Knudsen, Alex Zhavoronkov|[Aging.AI](https://www.unhooked.co.uk/diversity-ai/aging/index.html)|global (online)|
 |2016|TruMe|methylation (saliva)||[prohealth](https://www.prohealth.com/products/trume-at-home-dna-biological-age-test-tst100), [agelessrx](https://agelessrx.com/trume/), [EasyDNA](https://easydna.co.uk/knowyourbioage-test/)|Canada, US, UK|
 |2017|EpiAge|methylation (saliva)||[Life Extension Europe](https://www.lifeextensioneurope.com/epiage-epigenetic-age-test), [BrainMarket](https://www.brainmarket.hu/hansen-epiage-biological-age-test-kits--test-k-urceni-biologickeho-veku/)|Europe|
-|2018|Pheno Age|blood|Morgan E. Levine|any lab, [Longevity World Cup Pheno Age calculator](https://www.longevityworldcup.com/onboarding/pheno-age.html)|global|
+|2018|Pheno Age|blood|Morgan E. Levine|any lab, [Longevity World Cup pheno age calculator](https://www.longevityworldcup.com/onboarding/pheno-age.html)|global|
 |2018|AgeMeter Functional Age Test|functional biomarkers|Elliott Small|[AgeMeter](https://agemeter.com/)|global|
 |2019|Elysium Index|methylation (saliva)||[Elysium Health](https://www.elysiumhealth.com/products/index)|US|
 |2019|GrimAge|methylation|Lu AT, Quach A, Wilson JG, Reiner AP, Aviv A, Raj K, et al.|[Clock Foundation](https://clockfoundation.org/product/grimage-epigenetic-age-test-promo/)|United States, UK and Europe|
@@ -28,7 +28,7 @@
 |2023|SystemAge (Generation Lab)|multi-omic||[Generation Lab](https://www.generationlab.com/the-systemage-test)|global|
 |2023|OMICmAge|methylation + proteomics||[TruDiagnostic](https://shop.trudiagnostic.com/products/truage-complete-epigenetic-collection)|all US territories and most countries|
 |2023|Physiological Age (PhysiAge)|blood glucose + blood pressure + step count||[Aging is Beautiful Calculator](https://agingisbeautiful.com/2023/08/18/a-simple-way-to-calculate-your-physiological-age/)|global (online)|
-|2023|Bortz Age|blood|Jordan Bortz, Andrea Guariglia, Lucija Klaric, David Tang, Peter Ward, Michael Geer, Marc Chadeau-Hyam, Dragana Vuckovic & Peter K. Joshi |many labs, [longevity-tools Bortz calculator](https://www.longevity-tools.com/humanitys-bortz-blood-age)|global|
+|2023|Bortz Age|blood|Jordan Bortz, Andrea Guariglia, Lucija Klaric, David Tang, Peter Ward, Michael Geer, Marc Chadeau-Hyam, Dragana Vuckovic & Peter K. Joshi |many labs, [longevity-tools bortz age calculator](https://www.longevity-tools.com/humanitys-bortz-blood-age)|global|
 |2024|NOVOS Age|methylation (saliva)||[NOVOS](https://novoslabs.com/product/novos-age/)|USA, Canada|
 |2024|LinAge|blood, BP, pulse rate, BMI, smoking status, medical history|[Sheng Fong et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC11333290/)|any lab|global|
 |2024|BioAge DNA Test (DNA Labs India)|methylation (saliva)||[DNA Labs India](https://dnalabsindia.com/test/longevity-biological-age-bioage-dna-test)|India, international shipping|
