@@ -134,7 +134,7 @@ Your profile picture must show you facing the camera, but you can edit it freely
 Through the [Athlete Dashboard](https://www.longevityworldcup.com/play/character-selection.html) or by sending us an email to `hi@longevityworldcup.com`.
 
 #### What will sponsorships entail?
-Sponsorships are planned for future seasons, allowing companies to sponsor athletes in exchange for visibility on the website.
+Sponsorships are planned for future seasons. Companies will be able to sponsor athletes in exchange for visibility on the website.
 
 #### What happens if Bitcoin's value fluctuates significantly?
 [1 BTC = 1 BTC](https://old.reddit.com/r/Bitcoin/comments/w1di0k/please_understand_what_1_btc_1_btc_really_means/)
