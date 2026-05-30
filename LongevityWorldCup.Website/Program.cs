@@ -70,6 +70,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();
             builder.Services.AddSingleton<LeaderboardFactsService>();
+            builder.Services.AddSingleton<SitemapService>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
@@ -234,6 +235,8 @@ namespace LongevityWorldCup.Website
 
             // Register the custom HTML injection middleware
             app.UseMiddleware<HtmlInjectionMiddleware>();
+
+            app.UseMiddleware<SitemapMiddleware>();
 
             // Register the tracking parameter stripper middleware
             app.UseMiddleware<TrackingParamStripperMiddleware>();
