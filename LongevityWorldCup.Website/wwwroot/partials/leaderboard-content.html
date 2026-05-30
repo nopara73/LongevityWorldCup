@@ -110,8 +110,8 @@
     }
 
     .podium-skeleton-item .podium-skeleton-portrait{
-        width:96px;
-        height:96px;
+        width:var(--podium-portrait-size);
+        height:var(--podium-portrait-size);
         margin:1.5rem auto .75rem;
     }
 
@@ -598,14 +598,14 @@
 
     /* PODIUM portrait (bounded even if not wrapped) */
     .podium-item .podium-portrait{
-        width:auto; height:40%; aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
+        width:var(--podium-portrait-size); height:var(--podium-portrait-size); aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
         border:3px solid var(--secondary-color); margin:1rem 0; cursor:pointer; transition:transform .3s ease; will-change:transform;
-        box-sizing:border-box; /* include border in the height */
+        flex:0 0 auto; box-sizing:border-box; /* include border in the height */
     }
     .podium-item .podium-portrait:hover{ transform: scale(1.1); }
 
     /* When wrapped on podium: wrapper defines circle, img fills it */
-    .podium-item .rank-change{ display:block; height:40%; aspect-ratio:1 / 1; margin:1rem 0; }
+    .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:1rem 0; flex:0 0 auto; }
     .podium-item .rank-change img.podium-portrait{
         width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform .3s ease; box-sizing:border-box;
     }
@@ -729,6 +729,7 @@
     .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:2rem; }
     .podium-item{
         --podium-prize-panel-height: 92px;
+        --podium-portrait-size: 112px;
         position:relative; text-align:center; padding:1rem 1rem calc(var(--podium-prize-panel-height) + .85rem); background:var(--card-bg); border-radius:15px;
         box-shadow:0 10px 30px rgba(0,0,0,.1); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
         justify-content:flex-start; width:200px; min-height:230px; box-sizing:border-box; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
@@ -738,9 +739,9 @@
         transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2);
     }
     .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
-    .podium-item.first{ order:2; height:340px; }
-    .podium-item.second{ order:1; height:320px; }
-    .podium-item.third{ order:3; height:300px; }
+    .podium-item.first{ --podium-portrait-size: 146px; order:2; height:340px; }
+    .podium-item.second{ --podium-portrait-size: 126px; order:1; height:320px; }
+    .podium-item.third{ --podium-portrait-size: 112px; order:3; height:300px; }
 
     .podium-item-lower{
         position:absolute; bottom:0; width:100%; min-height:var(--podium-prize-panel-height); padding:10px 0; border-radius:0 0 15px 15px;
@@ -1697,11 +1698,11 @@
         }
         .podium .athlete-name{ font-size:1.32rem; }
         .podium-item{ width:100%; max-width:320px; padding:.85rem .85rem calc(var(--podium-prize-panel-height) + .7rem); }
-        .podium-item.first{ order:1; height:300px; }
-        .podium-item.second{ order:2; height:286px; }
-        .podium-item.third{ order:3; height:274px; }
+        .podium-item.first{ --podium-portrait-size: 142px; order:1; height:300px; }
+        .podium-item.second{ --podium-portrait-size: 124px; order:2; height:286px; }
+        .podium-item.third{ --podium-portrait-size: 110px; order:3; height:274px; }
         .podium-item .podium-portrait,
-        .podium-item .rank-change{ height:36%; margin:.65rem 0 .55rem; }
+        .podium-item .rank-change{ margin:.65rem 0 .55rem; }
         .podium-item .name-row{ justify-content:center; }
         .podium-item-lower{ padding:8px 0; }
         .podium-rank{ left:2rem; width:54px; height:54px; font-size:1.75rem; }
