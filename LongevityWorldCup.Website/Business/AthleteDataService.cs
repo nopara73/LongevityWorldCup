@@ -56,7 +56,7 @@ public class AthleteDataService : IDisposable
 
     // NEW: notify listeners (e.g., BadgeDataService) after reloads
     public event Action? AthletesChanged;
-    
+
     private readonly object _athletesJsonLock = new();
 
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService, DatabaseManager db)
@@ -275,7 +275,7 @@ public class AthleteDataService : IDisposable
         {
             // retry read in case the file is mid-write
             string text = "";
-            for (int i = 0;; i++)
+            for (int i = 0; ; i++)
             {
                 try
                 {
@@ -412,7 +412,7 @@ public class AthleteDataService : IDisposable
             }
         }, CancellationToken.None);
     }
-    
+
     private static void CanonicalizeIsoDatesInPlace(JsonNode node)
     {
         if (node is JsonObject obj)
@@ -447,7 +447,7 @@ public class AthleteDataService : IDisposable
             }
         }
     }
-    
+
     // Detect and emit athlete-count milestones (retroactive + ongoing).
     // Uses the N-th athlete's JoinedAt timestamp as the event time.
     private void DetectAndEmitAthleteCountMilestones()
@@ -1464,7 +1464,7 @@ public class AthleteDataService : IDisposable
             _reloadLock.Release();
         }
     }
-    
+
     // badges from BadgeAwards -> injected into athlete JSON objects
     private void HydrateBadgesIntoAthletesJson()
     {
@@ -1527,7 +1527,7 @@ public class AthleteDataService : IDisposable
             }
         }
     }
-    
+
     public void UpdateAthletesJsonInPlace(Action<JsonObject> mutator)
     {
         if (mutator is null) throw new ArgumentNullException(nameof(mutator));
@@ -1538,7 +1538,7 @@ public class AthleteDataService : IDisposable
                 mutator(o);
         }
     }
-    
+
     public JsonArray GetAthletesSnapshot()
     {
         lock (_athletesJsonLock)

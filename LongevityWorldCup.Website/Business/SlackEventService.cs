@@ -30,7 +30,7 @@ public sealed class SlackEventService : IDisposable
         foreach (var i in items) map[i.Slug] = (i.Name, i.CurrentRank);
         lock (_lockObj) _athDir = map;
     }
-    
+
     public void SetAthleteBio(IReadOnlyList<(string Slug, double? ChronologicalAge, double? LowestPhenoAge, double? LowestBortzAge)> items)
     {
         var map = new Dictionary<string, (double? ChronoAge, double? LowestPhenoAge, double? LowestBortzAge)>(StringComparer.OrdinalIgnoreCase);
@@ -162,7 +162,7 @@ public sealed class SlackEventService : IDisposable
     {
         return SlackMessageBuilder.ForEventText(type, rawText, SlugToNameResolve, getPodcastLinkForSlug: GetPodcastLinkForSlug);
     }
-    
+
     private string? GetPodcastLinkForSlug(string slug)
     {
         lock (_lockObj)
