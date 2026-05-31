@@ -76,6 +76,42 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         return BuildXml(entries);
     }
 
+    public DateTime GetLastModifiedUtcForPath(string path)
+    {
+        var webRoot = env.WebRootPath;
+        var normalizedPath = NormalizePath(path);
+        var athletesLastModifiedBySlug = GetAthleteJsonLastModifiedBySlug(webRoot);
+        var leaderboardLastModified = MaxUtc(athletesLastModifiedBySlug.Values) ?? DateTime.UtcNow.Date;
+
+        var staticRoute = StaticRoutes.FirstOrDefault(route =>
+            string.Equals(NormalizePath(route.Path), normalizedPath, StringComparison.OrdinalIgnoreCase));
+        if (staticRoute is not null)
+        {
+            return staticRoute.RelativeFilePath is null
+                ? leaderboardLastModified
+                : GetFileLastModifiedUtc(webRoot, staticRoute.RelativeFilePath) ?? leaderboardLastModified;
+        }
+
+        if (PublicLeaguePaths.Contains(normalizedPath, StringComparer.OrdinalIgnoreCase) ||
+            normalizedPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase))
+        {
+            return leaderboardLastModified;
+        }
+
+        if (normalizedPath.StartsWith("/athlete/", StringComparison.OrdinalIgnoreCase))
+        {
+            var slug = normalizedPath["/athlete/".Length..].Replace('-', '_');
+            if (athletesLastModifiedBySlug.TryGetValue(slug, out var athleteLastModified))
+            {
+                return athleteLastModified;
+            }
+
+            return leaderboardLastModified;
+        }
+
+        return leaderboardLastModified;
+    }
+
     public static string BuildXml(IEnumerable<SitemapUrlEntry> entries)
     {
         var distinctEntries = entries
