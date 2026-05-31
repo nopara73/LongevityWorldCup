@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Longevity World Cup",
+  "description": "Longevity World Cup is an open longevity sport competition where longevity athletes rank by improving biological age measures.",
+  "url": "https://longevityworldcup.com/",
+  "canonicalUrl": "https://longevityworldcup.com/",
+  "contact": {
+    "email": "hi@longevityworldcup.com"
+  },
+  "provider": {
+    "name": "Longevity World Cup",
+    "url": "https://longevityworldcup.com/"
+  },
+  "resources": {
+    "sitemap": "https://longevityworldcup.com/sitemap.xml",
+    "llms": "https://longevityworldcup.com/llms.txt",
+    "llmsFull": "https://longevityworldcup.com/llms-full.txt",
+    "aiIndex": "https://longevityworldcup.com/ai/index.md",
+    "leaderboardFacts": "https://longevityworldcup.com/ai/leaderboard.md",
+    "athleteNames": "https://longevityworldcup.com/ai/athlete-names.md",
+    "apiDocs": "https://longevityworldcup.com/swagger",
+    "openApi": "https://longevityworldcup.com/swagger/v1/swagger.json"
+  },
+  "publicPages": [
+    {
+      "name": "Home",
+      "url": "https://longevityworldcup.com/",
+      "description": "Primary entrypoint and high-level competition overview."
+    },
+    {
+      "name": "Leaderboard",
+      "url": "https://longevityworldcup.com/leaderboard",
+      "description": "Public rankings and competition standings."
+    },
+    {
+      "name": "Ruleset",
+      "url": "https://longevityworldcup.com/ruleset",
+      "description": "Competition rules, tracks, ranking, and prize details."
+    },
+    {
+      "name": "About",
+      "url": "https://longevityworldcup.com/about",
+      "description": "Founder note and overview of Longevity World Cup as an open longevity sport competition."
+    },
+    {
+      "name": "Events",
+      "url": "https://longevityworldcup.com/events",
+      "description": "Public events and updates."
+    }
+  ],
+  "capabilities": [
+    "public-leaderboard-discovery",
+    "biological-age-calculation-api",
+    "athlete-profile-discovery",
+    "competition-rules-discovery"
+  ],
+  "guidance": {
+    "preferredCitationUrls": [
+      "https://longevityworldcup.com/",
+      "https://longevityworldcup.com/leaderboard",
+      "https://longevityworldcup.com/ruleset",
+      "https://longevityworldcup.com/about"
+    ],
+    "retrievalNotes": [
+      "Use leaderboard facts for current rankings, athlete count, league leaders, tracks, and ranking rules.",
+      "Use the OpenAPI document for public no-auth JSON data and biological aging clock calculation endpoints.",
+      "Respect robots.txt route restrictions for private, onboarding, dashboard, proof, and raw athlete asset paths."
+    ]
+  }
+}
