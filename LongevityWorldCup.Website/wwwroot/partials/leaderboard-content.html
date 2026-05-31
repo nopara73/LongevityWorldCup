@@ -544,6 +544,9 @@
         border:none; background:transparent; color:#555;
         font-size:.85rem; font-weight:600; line-height:1.1; white-space:nowrap; box-sizing:border-box; cursor:pointer; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
     }
+    .leaderboard-view-switcher .view-badge-suffix{
+        margin-left:.25em;
+    }
     .leaderboard-view-switcher .view-badge:hover{
         background:rgba(0,188,212,.06); color:var(--primary-color);
     }
@@ -2241,14 +2244,14 @@
             <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
                 <span class="view-switcher-label" id="leaderboardViewLabel">Ranking</span>
                 <div class="view-switcher-chips">
-                    <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Overall ranking">
-                    <label for="view-ultimate" class="view-badge" title="Show the overall Ultimate League ranking.">Overall</label>
+                    <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Ultimate ranking">
+                    <label for="view-ultimate" class="view-badge" title="Show the Ultimate League ranking.">Ultimate</label>
                     <input type="radio" name="leaderboardView" id="view-bortz" value="bortz" aria-label="Bortz Age ranking">
-                    <label for="view-bortz" class="view-badge is-clearable" title="Rank by bortz age (biological age). Click again to show default ranking.">Bortz<span class="view-badge-suffix"> Age</span></label>
+                    <label for="view-bortz" class="view-badge is-clearable" title="Rank by bortz age (biological age). Click again to show default ranking.">Bortz<span class="view-badge-suffix">Age</span></label>
                     <input type="radio" name="leaderboardView" id="view-pheno" value="pheno" aria-label="Pheno Age ranking">
-                    <label for="view-pheno" class="view-badge is-clearable" title="Rank by pheno age. Click again to show default ranking.">Pheno<span class="view-badge-suffix"> Age</span></label>
+                    <label for="view-pheno" class="view-badge is-clearable" title="Rank by pheno age. Click again to show default ranking.">Pheno<span class="view-badge-suffix">Age</span></label>
                     <input type="radio" name="leaderboardView" id="view-crowd" value="crowd" aria-label="Crowd Age ranking">
-                    <label for="view-crowd" class="view-badge is-clearable" title="Rank by crowd age. Click again to show default ranking.">Crowd<span class="view-badge-suffix"> Age</span></label>
+                    <label for="view-crowd" class="view-badge is-clearable" title="Rank by crowd age. Click again to show default ranking.">Crowd<span class="view-badge-suffix">Age</span></label>
                 </div>
             </div>
             <div class="search-wrapper">
@@ -3755,6 +3758,8 @@
                             searchOrFilterApplied = true;
                         }
                     }
+                    const selectedViewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+                    updateRankingExplanation(selectedViewRadio ? selectedViewRadio.value : 'ultimate');
 
                     if (searchOrFilterApplied) {
                         debounceFilterAthletes();
@@ -5002,6 +5007,7 @@
         if (!explanation) return;
 
         const explanations = {
+            ultimate: '<strong>Ultimate</strong> leaderboard ranks athletes first by bortz, then by pheno age reductions.',
             bortz: '<strong>Bortz age</strong> estimates biological age from advanced blood-test markers.',
             pheno: '<strong>Pheno age</strong> estimates biological age from common blood-test markers.',
             crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they pass 100 guesses.'
