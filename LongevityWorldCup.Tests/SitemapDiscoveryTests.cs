@@ -88,6 +88,7 @@ public class SitemapDiscoveryTests
         Assert.Contains("User-agent: GPTBot", robots);
         Assert.Contains("Allow: /llms.txt", robots);
         Assert.Contains("Allow: /llms-full.txt", robots);
+        Assert.Contains("Allow: /.well-known/agent-card.json", robots);
         Assert.Contains("Allow: /ai/index.md", robots);
         Assert.Contains("Allow: /swagger", robots);
     }

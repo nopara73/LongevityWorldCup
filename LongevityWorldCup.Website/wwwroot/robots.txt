@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Allow: /llms.txt
 Allow: /llms-full.txt
+Allow: /.well-known/agent-card.json
 Allow: /ai/index.md
 Allow: /ai/leaderboard.md
 Allow: /ai/athlete-names.md
@@ -50,6 +51,7 @@ User-agent: Diffbot
 Allow: /
 Allow: /llms.txt
 Allow: /llms-full.txt
+Allow: /.well-known/agent-card.json
 Allow: /ai/index.md
 Allow: /ai/leaderboard.md
 Allow: /ai/athlete-names.md
