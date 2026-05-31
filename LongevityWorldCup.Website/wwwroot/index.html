@@ -255,15 +255,19 @@
             }
 
             .homepage-faq-more {
-                margin: 1.35rem 0 0;
+                margin: 1.5rem 0 0;
+                color: var(--dark-text-color);
+                font-size: 1rem;
                 text-align: center;
             }
 
             .homepage-faq-more a {
                 color: var(--primary-color);
-                font-weight: 600;
                 text-decoration: underline;
-                text-underline-offset: 0.15em;
+            }
+
+            .homepage-faq-more .homepage-faq-icon-link {
+                text-decoration: none;
             }
 
             /* Input field style */
@@ -1862,10 +1866,13 @@
                 </div>
                 <div class="homepage-faq-item">
                     <h3>How do I join?</h3>
-                    <p><a href="/play">Submit an application</a> with eligible biomarker results and proof. The <a href="/ruleset">ruleset</a> explains requirements before you apply.</p>
+                    <p><a href="/play">Submit an application</a> with eligible biomarker results and proof. For full eligibility details, see the <a href="/ruleset">ruleset</a>.</p>
                 </div>
             </div>
-            <p class="homepage-faq-more"><a href="/ruleset#faq">Extended FAQ</a></p>
+            <p class="homepage-faq-more">
+                <a href="/ruleset#faq" class="homepage-faq-icon-link" aria-hidden="true" tabindex="-1"><i class="fas fa-circle-question"></i> </a>
+                <a href="/ruleset#faq">Extended FAQ</a>
+            </p>
         </section>
 
         <!-- Bitcoin Donation Section -->
