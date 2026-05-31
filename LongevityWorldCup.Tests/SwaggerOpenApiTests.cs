@@ -14,6 +14,8 @@ public sealed class SwaggerOpenApiTests
         "/api/data/athletes",
         "/api/data/flags",
         "/api/data/divisions",
+        "/api/data/pheno-age",
+        "/api/data/bortz-age",
         "/api/data/hypothetical-rank"
     ];
 
@@ -159,7 +161,31 @@ public sealed class SwaggerOpenApiTests
         AssertOperationDocumented(paths.GetProperty("/api/data/flags").GetProperty("get"), "listFlags", "List selectable flags");
         AssertOperationDocumented(paths.GetProperty("/api/data/divisions").GetProperty("get"), "listDivisions", "List competition divisions");
         AssertOperationDocumented(paths.GetProperty("/api/data/athletes").GetProperty("get"), "listAthletes", "List public longevity athlete data");
+        AssertOperationDocumented(paths.GetProperty("/api/data/pheno-age").GetProperty("post"), "calculatePhenoAge", "Calculate Pheno Age");
+        AssertOperationDocumented(paths.GetProperty("/api/data/bortz-age").GetProperty("post"), "calculateBortzAge", "Calculate Bortz Age");
         AssertOperationDocumented(paths.GetProperty("/api/data/hypothetical-rank").GetProperty("post"), "previewHypotheticalRank", "Preview a hypothetical Ultimate League rank");
+    }
+
+    [Fact]
+    public async Task SwaggerJson_DocumentsBiologicalAgingClockCalculationRequestsAndResponses()
+    {
+        using var document = await LoadSwaggerDocumentAsync();
+        var paths = document.RootElement.GetProperty("paths");
+
+        AssertCalculationOperation(
+            paths.GetProperty("/api/data/pheno-age").GetProperty("post"),
+            "PhenoAgeCalculationRequest",
+            "PhenoAgeCalculationResult",
+            "biologicalAgeDifference");
+        AssertCalculationOperation(
+            paths.GetProperty("/api/data/bortz-age").GetProperty("post"),
+            "BortzAgeCalculationRequest",
+            "BortzAgeCalculationResult",
+            "biologicalAgeAcceleration");
+
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        Assert.Contains("Pheno Age result", schemas.GetProperty("PhenoAgeCalculationResult").GetProperty("description").GetString());
+        Assert.Contains("Bortz Age result", schemas.GetProperty("BortzAgeCalculationResult").GetProperty("description").GetString());
     }
 
     [Fact]
@@ -269,5 +295,31 @@ public sealed class SwaggerOpenApiTests
             .GetProperty("content")
             .GetProperty("application/json")
             .TryGetProperty("example", out _));
+    }
+
+    private static void AssertCalculationOperation(JsonElement operation, string requestSchemaName, string responseSchemaName, string expectedResponseExampleProperty)
+    {
+        var requestMediaType = operation
+            .GetProperty("requestBody")
+            .GetProperty("content")
+            .GetProperty("application/json");
+        AssertSchemaReferences(requestMediaType.GetProperty("schema"), requestSchemaName);
+        Assert.True(requestMediaType.TryGetProperty("example", out _));
+
+        var responseMediaType = operation
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json");
+        AssertSchemaReferences(responseMediaType.GetProperty("schema"), responseSchemaName);
+        Assert.True(responseMediaType.GetProperty("example").TryGetProperty(expectedResponseExampleProperty, out _));
+
+        var badRequestMediaType = operation
+            .GetProperty("responses")
+            .GetProperty("400")
+            .GetProperty("content")
+            .GetProperty("application/json");
+        Assert.Equal(2, badRequestMediaType.GetProperty("schema").GetProperty("oneOf").GetArrayLength());
+        Assert.True(badRequestMediaType.TryGetProperty("example", out _));
     }
 }
