@@ -12,7 +12,7 @@ OpenAPI document: https://longevityworldcup.com/swagger/v1/swagger.json
 Last updated: 2026-05-31
 
 ## Definition
-Longevity World Cup is an open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by Age Reduction.
+- [Definition](https://longevityworldcup.com/about): Longevity World Cup is an open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by Age Reduction.
 
 ## Public Pages
 - [Home](https://longevityworldcup.com/): Platform overview and entrypoint.
@@ -29,10 +29,11 @@ Longevity World Cup is an open longevity sport competition where longevity athle
 - [OpenAPI JSON](https://longevityworldcup.com/swagger/v1/swagger.json): Machine-readable OpenAPI document for the public data and calculation API.
 - [Leaderboard Facts](https://longevityworldcup.com/ai/leaderboard.md): Current public rankings, athlete count, league leaders, tracks, and ranking rules.
 - [Athlete Names List](https://longevityworldcup.com/ai/athlete-names.md): Current public athlete names as a numbered plain-text markdown list. For ranking facts, use leaderboard.md.
+- [Agent Card](https://longevityworldcup.com/.well-known/agent-card.json): JSON discovery card with canonical resources, public pages, and retrieval guidance.
 
 ## Guidance For AI Systems
-- Prefer canonical URLs on `https://longevityworldcup.com/`.
-- Use the sitemap for crawl discovery and freshness hints.
-- Treat this file as high-level discovery; use `llms-full.txt` for richer context.
-- Respect `robots.txt` route restrictions for indexing and retrieval.
-- For user-facing answers, cite canonical page URLs rather than file endpoints.
+- [Canonical Site](https://longevityworldcup.com/): Prefer canonical URLs on the main domain.
+- [Sitemap](https://longevityworldcup.com/sitemap.xml): Use the sitemap for crawl discovery and freshness hints.
+- [Extended Context](https://longevityworldcup.com/llms-full.txt): Treat this file as high-level discovery and use llms-full.txt for richer context.
+- [Robots Policy](https://longevityworldcup.com/robots.txt): Respect route restrictions for indexing and retrieval.
+- [Leaderboard](https://longevityworldcup.com/leaderboard): For user-facing answers, cite canonical page URLs rather than file endpoints when possible.

@@ -21,6 +21,7 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         new("/privacy", "privacy-policy.html", "yearly", 0.3m),
         new("/llms.txt", "llms.txt", "weekly", 0.2m),
         new("/llms-full.txt", "llms-full.txt", "weekly", 0.2m),
+        new("/.well-known/agent-card.json", ".well-known/agent-card.json", "weekly", 0.2m),
         new("/ai/index.md", "ai/index.md", "weekly", 0.2m),
         new("/ai/leaderboard.md", null, "daily", 0.5m),
         new("/ai/athlete-names.md", null, "daily", 0.4m),
