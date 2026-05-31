@@ -18,6 +18,7 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         new("/about", "misc-pages/about.html", "monthly", 0.6m),
         new("/history", "misc-pages/history.html", "monthly", 0.6m),
         new("/ruleset", "misc-pages/ruleset.html", "weekly", 0.7m),
+        new("/privacy", "privacy-policy.html", "yearly", 0.3m),
         new("/llms.txt", "llms.txt", "weekly", 0.2m),
         new("/llms-full.txt", "llms-full.txt", "weekly", 0.2m),
         new("/ai/index.md", "ai/index.md", "weekly", 0.2m),

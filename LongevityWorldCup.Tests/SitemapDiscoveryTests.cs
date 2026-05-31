@@ -41,6 +41,12 @@ public class SitemapDiscoveryTests
     }
 
     [Fact]
+    public void SitemapRouteCatalog_IncludesPrivacyPolicy()
+    {
+        Assert.Contains(SitemapService.StaticRoutes, route => route.Path == "/privacy");
+    }
+
+    [Fact]
     public void BuildXml_IncludesLeagueAndAthleteRoutes()
     {
         var xml = SitemapService.BuildXml(
@@ -71,6 +77,46 @@ public class SitemapDiscoveryTests
         Assert.Contains("Allow: /swagger", robots);
         Assert.DoesNotContain("Disallow: /league/", robots);
         Assert.DoesNotContain("Disallow: /athlete/", robots);
+    }
+
+    [Fact]
+    public void Robots_AllowsGptBotAndMachineDiscoveryResources()
+    {
+        var robotsPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "robots.txt"));
+        var robots = File.ReadAllText(robotsPath);
+
+        Assert.Contains("User-agent: GPTBot", robots);
+        Assert.Contains("Allow: /llms.txt", robots);
+        Assert.Contains("Allow: /llms-full.txt", robots);
+        Assert.Contains("Allow: /ai/index.md", robots);
+        Assert.Contains("Allow: /swagger", robots);
+    }
+
+    [Fact]
+    public void HeadPartial_ExposesMachineDiscoveryLinks()
+    {
+        var headPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "partials", "head.html"));
+        var head = File.ReadAllText(headPath);
+
+        Assert.Contains("rel=\"llms-full\"", head);
+        Assert.Contains("rel=\"agent-manifest\"", head);
+        Assert.Contains("rel=\"api\"", head);
+        Assert.Contains("rel=\"service-desc\"", head);
+    }
+
+    [Fact]
+    public void LlmsFiles_DescribeDefinitionAndPrivacy()
+    {
+        var llmsPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "llms.txt"));
+        var llmsFullPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "llms-full.txt"));
+        var llms = File.ReadAllText(llmsPath);
+        var llmsFull = File.ReadAllText(llmsFullPath);
+
+        Assert.Contains("## Definition", llms);
+        Assert.Contains("https://longevityworldcup.com/privacy", llms);
+        Assert.Contains("## Definition", llmsFull);
+        Assert.Contains("## Positioning Notes", llmsFull);
+        Assert.Contains("https://longevityworldcup.com/privacy", llmsFull);
     }
 
     private static string FindRepoFile(string relativePath, [CallerFilePath] string sourceFilePath = "")
