@@ -3,6 +3,8 @@ using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -15,6 +17,9 @@ namespace LongevityWorldCup.Website.Controllers
     [Produces("application/json")]
     public class DataController(AthleteDataService svc) : Controller
     {
+        private const int AthletesCacheMaxAgeSeconds = 60;
+        private const string AthletesCacheControl = "public,max-age=60,must-revalidate";
+
         private readonly AthleteDataService _svc = svc;
 
         /// <summary>
@@ -54,10 +59,20 @@ namespace LongevityWorldCup.Website.Controllers
         /// <response code="200">The current public athlete snapshot.</response>
         [HttpGet("athletes")]
         [ProducesResponseType(typeof(IReadOnlyList<PublicAthleteApiDocument>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult GetAthletes()
         {
-            Response.Headers[HeaderNames.CacheControl] = "no-cache,max-age=0,must-revalidate";
-            return Ok(_svc.GetAthletesSnapshot());
+            var snapshot = _svc.GetAthletesSnapshot();
+            var eTag = BuildWeakContentETag(snapshot.ToJsonString());
+
+            Response.Headers[HeaderNames.CacheControl] = AthletesCacheControl;
+            Response.Headers[HeaderNames.ETag] = eTag;
+            Response.Headers[HeaderNames.Expires] = DateTimeOffset.UtcNow.AddSeconds(AthletesCacheMaxAgeSeconds).ToString("R");
+
+            if (RequestHasMatchingETag(Request.Headers, eTag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
+            return Ok(snapshot);
         }
 
         /// <summary>
@@ -183,6 +198,38 @@ namespace LongevityWorldCup.Website.Controllers
             var result = _svc.CalculateHypotheticalRank(request.ChronologicalAge, request.BiologicalAge, dobUtc, hasBortz.Value);
             return Ok(result);
         }
+
+        private static string BuildWeakContentETag(string content)
+        {
+            var bytes = Encoding.UTF8.GetBytes(content);
+            var hash = SHA256.HashData(bytes);
+            return $"W/\"sha256-{Convert.ToHexString(hash).ToLowerInvariant()}\"";
+        }
+
+        private static bool RequestHasMatchingETag(IHeaderDictionary headers, string eTag)
+        {
+            if (!headers.TryGetValue(HeaderNames.IfNoneMatch, out var ifNoneMatchValues))
+                return false;
+
+            var strongTag = StripWeakPrefix(eTag);
+            foreach (var headerValue in ifNoneMatchValues)
+            {
+                foreach (var candidate in headerValue?.Split(',') ?? [])
+                {
+                    var trimmed = candidate.Trim();
+                    if (trimmed == "*")
+                        return true;
+
+                    if (string.Equals(StripWeakPrefix(trimmed), strongTag, StringComparison.Ordinal))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string StripWeakPrefix(string tag)
+            => tag.StartsWith("W/", StringComparison.Ordinal) ? tag[2..] : tag;
     }
 
     /// <summary>
