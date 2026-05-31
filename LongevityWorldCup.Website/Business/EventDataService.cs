@@ -92,7 +92,7 @@ public sealed class EventDataService : IDisposable
     private readonly ILogger<EventDataService> _log;
     private readonly bool _enableEventDispatch;
     private int _processingImmediateCustomEvents;
-    
+
     // Track failed attempts for custom events per platform: "eventId:platform" -> attempt count
     private readonly Dictionary<string, int> _customEventRetryCount = new();
     private readonly object _retryCountLock = new();
@@ -1332,7 +1332,7 @@ public sealed class EventDataService : IDisposable
 
         return eventId;
     }
-    
+
     public IReadOnlyList<EventItem> GetEvents(
         EventType? type = null,
         DateTime? fromUtc = null,

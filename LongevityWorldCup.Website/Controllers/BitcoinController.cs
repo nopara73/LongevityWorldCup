@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Controllers

@@ -1,4 +1,4 @@
-﻿namespace LongevityWorldCup.Website.Business
+namespace LongevityWorldCup.Website.Business
 {
     public static class Flags
     {

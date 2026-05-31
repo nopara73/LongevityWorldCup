@@ -1,4 +1,4 @@
-﻿namespace LongevityWorldCup.Website.Middleware
+namespace LongevityWorldCup.Website.Middleware
 {
     /// <summary>
     /// By default, /event-board-embed.html?athlete={slug} redirects permanently

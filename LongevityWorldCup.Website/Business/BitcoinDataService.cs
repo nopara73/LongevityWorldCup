@@ -69,7 +69,7 @@ namespace LongevityWorldCup.Website.Business
 
         public async Task<long> GetTotalReceivedSatoshisAsync()
         {
-           var cacheExpiration = TimeSpan.FromMinutes(3);
+            var cacheExpiration = TimeSpan.FromMinutes(3);
             var cacheKey = $"balance_{MinConfirmations}conf_{DonationAddress}";
             if (_cache.TryGetValue(cacheKey, out long cachedTotal))
                 return cachedTotal;
