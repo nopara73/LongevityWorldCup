@@ -64,7 +64,7 @@
 | --- | --- | --- |
 | **Leaderboard** | A ranked display of athletes for a league, track, clock, or crowd view. | Ranking list, table |
 | **Crowd Age** | The median realistic age guessed by visitors in Guess My Age. | Guessed age, perceived age |
-| **Crowd Count** | The number of accepted realistic guesses behind an athlete's crowd age. | Vote count, guesses |
+| **Crowd Count** | The number of accepted realistic guesses behind an athlete's crowd age; repeated realistic guesses from the same client IP for the same athlete are accepted only once per short server-side window. | Vote count, guesses |
 | **Crowd Age Difference** | The signed value `crowd age - chronological age`; lower and more negative values rank higher in crowd age ranking. | Crowd reduction, age gap |
 | **Crowd Age leaderboard** | A separate leaderboard for athletes with at least 100 crowd guesses, ranked by Crowd Age Difference, Crowd Count, date of birth, and name. | Crowd league, Guess My Age ranking |
 | **Guess My Age** | The visitor game where people guess athlete ages and create crowd age data. | Crowd guessing, age guessing |
@@ -101,6 +101,7 @@
 - The **Amateur** all-time path is currently defined by pheno age; the **Pro** seasonal path is currently defined by bortz age.
 - The **Ultimate League** ranks **Pro** athletes before **Amateur** athletes, then applies **Effective Age Reduction** and tie breakers.
 - The crowd age leaderboard is not the **Ultimate League** and only includes athletes with at least 100 accepted guesses.
+- **Guess My Age** applies server-side abuse protection before increasing **Crowd Count**: realistic guesses are accepted at most once per client IP and athlete during the configured short window.
 - **Badges** are derived from leaderboard positions, clock metrics, submission behavior, crowd metrics, and editorial rules.
 - **Events** announce athlete joins, rank changes, donations, milestones, badge awards, custom events, and season final results.
 - **Social posts** can be generated from **Events**, **Badges**, athlete rankings, and league context.
