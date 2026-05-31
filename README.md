@@ -1,9 +1,9 @@
 # Longevity World Cup
 [![Watch the video](https://img.youtube.com/vi/Kq0VkLF3Z4Q/0.jpg)](https://www.youtube.com/shorts/Kq0VkLF3Z4Q)
 
-Longevity World Cup is an open competition where longevity athletes rank by improving biological age measures. Athletes submit biomarker data, biological aging clocks turn those results into biological age, and leaderboards rank athletes by Age Reduction.
+Longevity World Cup is an open competition where longevity athletes rank by improving biological age measures. Athletes submit biomarker data, biological aging clocks turn those results into biological age, and the leaderboard ranks athletes by Age Reduction.
 
-For the project story, see [About](LongevityWorldCup.Documentation/About.md). For competition mechanics, see the [Ruleset](LongevityWorldCup.Documentation/Ruleset.md). For the broader background, see [History of longevity as a sport](LongevityWorldCup.Documentation/LongevitySportHistory.md).
+For more context, read the [project story](LongevityWorldCup.Documentation/About.md), the [competition rules](LongevityWorldCup.Documentation/Ruleset.md), and the [history of longevity as a sport](LongevityWorldCup.Documentation/LongevitySportHistory.md).
 
 ## Website
 
