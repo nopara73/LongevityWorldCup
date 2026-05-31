@@ -8,12 +8,36 @@ on:
   push:
     branches:
       - master
-    paths:
-      - LongevityWorldCup.Website/**
-      - LongevityWorldCup.MarkdownPageGenerator/**
-      - LongevityWorldCup.Documentation/About.md
-      - LongevityWorldCup.Documentation/LongevitySportHistory.md
-      - LongevityWorldCup.Documentation/Ruleset.md
+    paths-ignore:
+      - README.md
+      - LICENSE
+      - AGENTS.md
+      - DESIGN.md
+      - UBIQUITOUS_LANGUAGE.md
+      - .cursorrules
+      - .editorconfig
+      - .gitattributes
+      - .gitignore
+      - .aiassistant/**
+      - .codex/**
+      - .cursor/**
+      - .vscode/**
+      - .github/workflows/**
+      - LongevityWorldCup.sln
+      - LongevityWorldCup.Tests/**
+      - LongevityWorldCup.ApplicationReviewer/**
+      - LongevityWorldCup.FacebookOAuthHelper/**
+      - LongevityWorldCup.XOAuthHelper/**
+      - LongevityWorldCup.Documentation/AgingClocks.md
+      - LongevityWorldCup.Documentation/AthleteAdditionWorkflow.md
+      - LongevityWorldCup.Documentation/CustomEvent.md
+      - LongevityWorldCup.Documentation/FacebookApiSetup.md
+      - LongevityWorldCup.Documentation/GameNights.md
+      - LongevityWorldCup.Documentation/ServerDeployment.md
+      - LongevityWorldCup.Documentation/ThreadsApiSetup.md
+      - LongevityWorldCup.Documentation/XApiSetup.md
+      - LongevityWorldCup.Documentation/MediaKit.zip
+      - LongevityWorldCup.Documentation/pheno-age.pdf
 
 concurrency:
   group: production-deploy
