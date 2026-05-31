@@ -43,7 +43,14 @@ AppData
 !.codex/environments/
 !.codex/environments/environment.toml
 .codex-temp-build/
+
+# Local review artifacts
+/.artifacts/
+/.codex-remote-attachments/
+/docs/
+/.github/pr-screenshots/
 LongevityWorldCup.Documentation/pr-screenshots/
+LongevityWorldCup.Documentation/screenshots/
 
 # Generated proof quality checks
 /proof-upload-simulation-output/
