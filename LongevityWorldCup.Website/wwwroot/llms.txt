@@ -12,7 +12,7 @@ OpenAPI document: https://longevityworldcup.com/swagger/v1/swagger.json
 Last updated: 2026-05-31
 
 ## Definition
-- [Definition](https://longevityworldcup.com/about): Longevity World Cup is an open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by Age Reduction.
+- [Competition Definition](https://longevityworldcup.com/ai/index.md): Longevity World Cup is an open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by Age Reduction.
 
 ## Public Pages
 - [Home](https://longevityworldcup.com/): Platform overview and entrypoint.
@@ -32,8 +32,6 @@ Last updated: 2026-05-31
 - [Agent Card](https://longevityworldcup.com/.well-known/agent-card.json): JSON discovery card with canonical resources, public pages, and retrieval guidance.
 
 ## Guidance For AI Systems
-- [Canonical Site](https://longevityworldcup.com/): Prefer canonical URLs on the main domain.
-- [Sitemap](https://longevityworldcup.com/sitemap.xml): Use the sitemap for crawl discovery and freshness hints.
+- [Sitemap](https://longevityworldcup.com/sitemap.xml): Use the sitemap for crawl discovery, freshness hints, and canonical public URLs.
 - [Extended Context](https://longevityworldcup.com/llms-full.txt): Treat this file as high-level discovery and use llms-full.txt for richer context.
 - [Robots Policy](https://longevityworldcup.com/robots.txt): Respect route restrictions for indexing and retrieval.
-- [Leaderboard](https://longevityworldcup.com/leaderboard): For user-facing answers, cite canonical page URLs rather than file endpoints when possible.
