@@ -809,51 +809,150 @@ $@"<script type=""module"">
                 });
             }
 
+            var organization = new Dictionary<string, object>
+            {
+                ["@type"] = "Organization",
+                ["@id"] = $"{SiteBaseUrl}/#organization",
+                ["name"] = "Longevity World Cup",
+                ["url"] = SiteBaseUrl,
+                ["logo"] = BuildDefaultOgImageUrl(),
+                ["description"] = "An open longevity sport competition where longevity athletes rank by improving biological age measures.",
+                ["email"] = "hi@longevityworldcup.com",
+                ["founder"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "Person",
+                    ["name"] = "Adam Ficsor",
+                    ["alternateName"] = "nopara73"
+                },
+                ["contactPoint"] = new object[]
+                {
+                    new Dictionary<string, object>
+                    {
+                        ["@type"] = "ContactPoint",
+                        ["contactType"] = "public inquiries",
+                        ["email"] = "hi@longevityworldcup.com",
+                        ["availableLanguage"] = new[] { "en" }
+                    }
+                },
+                ["areaServed"] = "Worldwide",
+                ["sameAs"] = new[]
+                {
+                    "https://github.com/nopara73/LongevityWorldCup/",
+                    "https://x.com/LongevityWorldC",
+                    "https://www.reddit.com/r/LongevityWorldCup/",
+                    "https://www.youtube.com/@longevityworldcup",
+                    "https://www.instagram.com/LongevityWorldCup/",
+                    "https://www.threads.com/@longevityworldcup",
+                    "https://www.tiktok.com/@nopara73"
+                },
+                ["knowsAbout"] = new[]
+                {
+                    "Longevity sport",
+                    "Biological age research",
+                    "Biological aging clocks",
+                    "Pheno Age",
+                    "Bortz Age",
+                    "Biomarkers",
+                    "Age Reduction",
+                    "Longevity athletes",
+                    "Leaderboards"
+                }
+            };
+
+            var website = new Dictionary<string, object>
+            {
+                ["@type"] = "WebSite",
+                ["@id"] = $"{SiteBaseUrl}/#website",
+                ["url"] = SiteBaseUrl,
+                ["name"] = "Longevity World Cup",
+                ["description"] = "Competitive longevity platform with public leaderboards, biological aging clock tools, events, and media updates.",
+                ["inLanguage"] = "en",
+                ["publisher"] = new Dictionary<string, object>
+                {
+                    ["@id"] = $"{SiteBaseUrl}/#organization"
+                }
+            };
+
+            var webApplication = new Dictionary<string, object>
+            {
+                ["@type"] = "WebApplication",
+                ["@id"] = $"{SiteBaseUrl}/#webapp",
+                ["name"] = "Longevity World Cup",
+                ["url"] = SiteBaseUrl,
+                ["description"] = "A web competition where longevity athletes submit biological age results, compare Age Reduction, and compete on public leaderboards.",
+                ["applicationCategory"] = "HealthApplication",
+                ["operatingSystem"] = "Web",
+                ["isAccessibleForFree"] = true,
+                ["inLanguage"] = "en",
+                ["publisher"] = new Dictionary<string, object>
+                {
+                    ["@id"] = $"{SiteBaseUrl}/#organization"
+                },
+                ["provider"] = new Dictionary<string, object>
+                {
+                    ["@id"] = $"{SiteBaseUrl}/#organization"
+                },
+                ["audience"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "Audience",
+                    ["audienceType"] = "Longevity athletes and people interested in biological age competition"
+                },
+                ["featureList"] = new[]
+                {
+                    "Ultimate League leaderboard",
+                    "Pro and Amateur tracks",
+                    "Pheno Age biological aging clock tools",
+                    "Bortz Age biological aging clock tools",
+                    "Biomarker-based result submissions",
+                    "Age Reduction comparison",
+                    "Crowd Age leaderboard",
+                    "Public athlete profiles",
+                    "Machine-readable public API"
+                },
+                ["offers"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "Offer",
+                    ["price"] = "0",
+                    ["priceCurrency"] = "USD",
+                    ["description"] = "Public leaderboard, biological aging clock tools, and no-auth public API access are free."
+                }
+            };
+
+            var webpage = new Dictionary<string, object>
+            {
+                ["@type"] = "WebPage",
+                ["@id"] = $"{seo.CanonicalUrl}#webpage",
+                ["url"] = seo.CanonicalUrl,
+                ["name"] = seo.PageTitle,
+                ["description"] = seo.Description,
+                ["inLanguage"] = "en",
+                ["isPartOf"] = new Dictionary<string, object>
+                {
+                    ["@id"] = $"{SiteBaseUrl}/#website"
+                },
+                ["about"] = new Dictionary<string, object>
+                {
+                    ["@id"] = $"{SiteBaseUrl}/#organization"
+                },
+                ["primaryImageOfPage"] = seo.OgImageUrl
+            };
+
+            var breadcrumbList = new Dictionary<string, object>
+            {
+                ["@type"] = "BreadcrumbList",
+                ["itemListElement"] = breadcrumbItems
+            };
+
             var payload = new Dictionary<string, object>
             {
                 ["@context"] = "https://schema.org",
                 ["@graph"] = new object[]
                 {
-                    new Dictionary<string, object>
-                    {
-                        ["@type"] = "Organization",
-                        ["@id"] = $"{SiteBaseUrl}/#organization",
-                        ["name"] = "Longevity World Cup",
-                        ["url"] = SiteBaseUrl,
-                        ["logo"] = BuildDefaultOgImageUrl()
-                    },
-                    new Dictionary<string, object>
-                    {
-                        ["@type"] = "WebSite",
-                        ["@id"] = $"{SiteBaseUrl}/#website",
-                        ["url"] = SiteBaseUrl,
-                        ["name"] = "Longevity World Cup",
-                        ["publisher"] = new Dictionary<string, object>
-                        {
-                            ["@id"] = $"{SiteBaseUrl}/#organization"
-                        }
-                    },
-                    new Dictionary<string, object>
-                    {
-                        ["@type"] = "WebPage",
-                        ["@id"] = $"{seo.CanonicalUrl}#webpage",
-                        ["url"] = seo.CanonicalUrl,
-                        ["name"] = seo.PageTitle,
-                        ["description"] = seo.Description,
-                        ["isPartOf"] = new Dictionary<string, object>
-                        {
-                            ["@id"] = $"{SiteBaseUrl}/#website"
-                        },
-                        ["about"] = new Dictionary<string, object>
-                        {
-                            ["@id"] = $"{SiteBaseUrl}/#organization"
-                        }
-                    },
-                    new Dictionary<string, object>
-                    {
-                        ["@type"] = "BreadcrumbList",
-                        ["itemListElement"] = breadcrumbItems
-                    }
+                    organization,
+                    website,
+                    webApplication,
+                    webpage,
+                    breadcrumbList
                 }
             };
 
