@@ -919,6 +919,64 @@ $@"<script type=""module"">
                 }
             };
 
+            var competitionService = new Dictionary<string, object>
+            {
+                ["@type"] = "Service",
+                ["@id"] = $"{SiteBaseUrl}/#competition-service",
+                ["name"] = "Longevity World Cup biological age competition",
+                ["url"] = SiteBaseUrl,
+                ["serviceType"] = "Longevity sport competition",
+                ["description"] = "An open competition where longevity athletes submit biological age results and rank by Age Reduction across public leaderboards.",
+                ["provider"] = new Dictionary<string, object>
+                {
+                    ["@id"] = $"{SiteBaseUrl}/#organization"
+                },
+                ["areaServed"] = "Worldwide",
+                ["audience"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "Audience",
+                    ["audienceType"] = "Longevity athletes, biological age researchers, and people comparing biological aging clock results"
+                },
+                ["hasOfferCatalog"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "OfferCatalog",
+                    ["name"] = "Longevity World Cup public services",
+                    ["itemListElement"] = new object[]
+                    {
+                        new Dictionary<string, object>
+                        {
+                            ["@type"] = "Offer",
+                            ["itemOffered"] = new Dictionary<string, object>
+                            {
+                                ["@type"] = "Service",
+                                ["name"] = "Public biological age leaderboard",
+                                ["url"] = $"{SiteBaseUrl}/leaderboard"
+                            }
+                        },
+                        new Dictionary<string, object>
+                        {
+                            ["@type"] = "Offer",
+                            ["itemOffered"] = new Dictionary<string, object>
+                            {
+                                ["@type"] = "Service",
+                                ["name"] = "Pheno Age and Bortz Age calculation API",
+                                ["url"] = $"{SiteBaseUrl}/swagger"
+                            }
+                        },
+                        new Dictionary<string, object>
+                        {
+                            ["@type"] = "Offer",
+                            ["itemOffered"] = new Dictionary<string, object>
+                            {
+                                ["@type"] = "Service",
+                                ["name"] = "Public athlete profiles and machine-readable leaderboard facts",
+                                ["url"] = $"{SiteBaseUrl}/ai/leaderboard.md"
+                            }
+                        }
+                    }
+                }
+            };
+
             var dateModified = _sitemap.GetLastModifiedUtcForPath(seo.CanonicalPath)
                 .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
@@ -953,9 +1011,15 @@ $@"<script type=""module"">
                 organization,
                 website,
                 webApplication,
+                competitionService,
                 webpage,
                 breadcrumbList
             };
+
+            if (string.Equals(seo.CanonicalPath, "/", StringComparison.Ordinal))
+            {
+                graph.Add(BuildHomeFaqPage());
+            }
 
             if (string.Equals(seo.CanonicalPath, "/ruleset", StringComparison.OrdinalIgnoreCase))
             {
@@ -969,6 +1033,44 @@ $@"<script type=""module"">
             };
 
             return JsonSerializer.Serialize(payload);
+        }
+
+        private static Dictionary<string, object> BuildHomeFaqPage()
+        {
+            static Dictionary<string, object> Question(string name, string answer)
+            {
+                return new Dictionary<string, object>
+                {
+                    ["@type"] = "Question",
+                    ["name"] = name,
+                    ["acceptedAnswer"] = new Dictionary<string, object>
+                    {
+                        ["@type"] = "Answer",
+                        ["text"] = answer
+                    }
+                };
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["@type"] = "FAQPage",
+                ["@id"] = $"{SiteBaseUrl}/#faq",
+                ["mainEntity"] = new object[]
+                {
+                    Question(
+                        "What is Longevity World Cup?",
+                        "Longevity World Cup is an open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by Age Reduction."),
+                    Question(
+                        "How do rankings work?",
+                        "The Ultimate League ranks Pro athletes before Amateur athletes, then orders each track by Effective Age Reduction and tie breakers."),
+                    Question(
+                        "Which biological aging clocks are used?",
+                        "The current public competition uses Pheno Age for the Amateur path and Bortz Age for the Pro seasonal path."),
+                    Question(
+                        "How do I join?",
+                        "Submit an application with eligible biomarker results and proof. The ruleset explains requirements before you apply.")
+                }
+            };
         }
 
         private static Dictionary<string, object> BuildRulesetFaqPage()
@@ -1009,8 +1111,20 @@ $@"<script type=""module"">
                         "What is bortz age?",
                         "Bortz age is based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk."),
                     Question(
+                        "From which biomarkers can I calculate my pheno age?",
+                        "Pheno age uses albumin, creatinine, glucose, C-reactive protein, lymphocyte percentage, mean corpuscular volume, red cell distribution width, alkaline phosphatase, and white blood cell count."),
+                    Question(
+                        "From which biomarkers can I calculate my bortz age?",
+                        "Bortz age uses albumin, alkaline phosphatase, urea, total cholesterol, creatinine, Cystatin C, HbA1c, C-reactive protein, GGT, red blood cell count, MCV, RDW, monocytes, neutrophils, lymphocyte percentage, ALT, SHBG, vitamin D, glucose, MCH, and ApoA1."),
+                    Question(
                         "Can I use any laboratory for my tests?",
                         "Yes, as long as the lab provides the biomarkers required for that clock."),
+                    Question(
+                        "Why does my pheno age result differ from other calculators?",
+                        "The Longevity World Cup pheno age calculator is built for biological realism. It uses the corrected formula constant and applies biologically justified cutoffs so extreme biomarker values cannot make the calculated age look better while real-world risk gets worse."),
+                    Question(
+                        "Why does my bortz age result differ from other calculators?",
+                        "The Longevity World Cup bortz age calculator is built for biological realism. It applies biologically justified cutoffs so extreme biomarker values cannot make the calculated age look better while real-world risk gets worse."),
                     Question(
                         "What happens if my results arrive late?",
                         "Each season closes in mid-January, giving your lab enough time to process a test from December 31."),
@@ -1021,8 +1135,26 @@ $@"<script type=""module"">
                         "How is my score calculated if I submit multiple results?",
                         "If you submit multiple test results, the best result is used for your season standing for the relevant clock."),
                     Question(
+                        "How are lab detection limits handled in the competition?",
+                        "When a lab reports a biomarker value below the detection limit, that limit is used in the calculation. This most often affects CRP; when the limit is unknown, Longevity World Cup defaults to 1 mg/L."),
+                    Question(
                         "How can I cheat?",
-                        "You can't.")
+                        "You can't."),
+                    Question(
+                        "How does the Longevity World Cup compare to the Rejuvenation Olympics?",
+                        "Longevity World Cup emphasizes absolute age reversal, annual seasons, multiple clocks or tracks over time, prize money funded by Bitcoin donations, leagues for category-based rankings, and traditional blood-test-based biological age calculations."),
+                    Question(
+                        "How much can I edit my profile picture?",
+                        "Your profile picture must show you facing the camera, but you can edit it freely, including as a drawing or AI-generated version."),
+                    Question(
+                        "I'm already an athlete. How can I make changes?",
+                        "Use the Athlete Dashboard or email hi@longevityworldcup.com."),
+                    Question(
+                        "What will sponsorships include?",
+                        "Sponsorships are planned for future seasons. Future packages will let companies sponsor athletes for website visibility."),
+                    Question(
+                        "What if Bitcoin's value changes significantly?",
+                        "Prize payouts are denominated in Bitcoin.")
                 }
             };
         }

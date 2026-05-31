@@ -206,6 +206,54 @@
                 color: #2d3748;
             }
 
+        .homepage-faq-section {
+            max-width: 980px;
+            text-align: left;
+        }
+
+            .homepage-faq-section h2 {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.55rem;
+                margin: 0 0 1.35rem;
+                color: #2d3748;
+                font-size: clamp(1.45rem, 2.4vw, 2rem);
+                line-height: 1.2;
+                text-align: center;
+            }
+
+            .homepage-faq-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 1rem 1.5rem;
+            }
+
+            .homepage-faq-item {
+                border-top: 1px solid rgba(15, 23, 42, 0.12);
+                padding-top: 0.9rem;
+            }
+
+            .homepage-faq-item h3 {
+                margin: 0 0 0.45rem;
+                color: #2d3748;
+                font-size: 1rem;
+                line-height: 1.3;
+            }
+
+            .homepage-faq-item p {
+                margin: 0;
+                color: #4a5568;
+                font-size: 0.95rem;
+                line-height: 1.6;
+            }
+
+            .homepage-faq-item a {
+                color: var(--primary-color);
+                text-decoration: underline;
+                text-underline-offset: 0.15em;
+            }
+
             /* Input field style */
             .section-container input[type="email"] {
                 padding: 0.6rem 1rem;
@@ -667,6 +715,10 @@
             .section-container {
                 padding: 1.5rem;
             }
+
+                .homepage-faq-grid {
+                    grid-template-columns: 1fr;
+                }
 
                 .section-container input[type="email"] {
                     width: 100%;
@@ -1780,6 +1832,28 @@
                 <a href="/history" style="color: var(--primary-color); text-decoration: underline;">History of longevity as a sport</a>
             </p>
         </div>
+
+        <section class="section-container homepage-faq-section" aria-labelledby="homepage-faq-title" data-aos="fade" data-aos-duration="700" data-aos-delay="340">
+            <h2 id="homepage-faq-title"><i class="fas fa-circle-question"></i> Common questions</h2>
+            <div class="homepage-faq-grid">
+                <div class="homepage-faq-item">
+                    <h3>What is Longevity World Cup?</h3>
+                    <p>An open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by Age Reduction.</p>
+                </div>
+                <div class="homepage-faq-item">
+                    <h3>How do rankings work?</h3>
+                    <p>The Ultimate League ranks Pro athletes before Amateur athletes, then orders each track by Effective Age Reduction and tie breakers.</p>
+                </div>
+                <div class="homepage-faq-item">
+                    <h3>Which biological aging clocks are used?</h3>
+                    <p>The current public competition uses Pheno Age for the Amateur path and Bortz Age for the Pro seasonal path.</p>
+                </div>
+                <div class="homepage-faq-item">
+                    <h3>How do I join?</h3>
+                    <p>Submit an application with eligible biomarker results and proof. The <a href="/ruleset">ruleset</a> explains requirements before you apply.</p>
+                </div>
+            </div>
+        </section>
 
         <!-- Bitcoin Donation Section -->
         <div id="donation-section" class="section-container contribute-section" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
