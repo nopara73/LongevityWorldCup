@@ -23,6 +23,22 @@ public sealed class PublicDataSchemaDescriptions : ISchemaFilter
             openApiSchema.Description = "One dated biomarker record. Athletes may have Pheno Age-only records, Bortz Age records, or records that contain fields for both clocks.";
             openApiSchema.AdditionalPropertiesAllowed = true;
         }
+        else if (context.Type == typeof(PhenoAgeCalculationRequest))
+        {
+            openApiSchema.Description = "Inputs for calculating the Longevity World Cup Pheno Age result. Units match the public athlete biomarker JSON.";
+        }
+        else if (context.Type == typeof(BortzAgeCalculationRequest))
+        {
+            openApiSchema.Description = "Inputs for calculating the Longevity World Cup Bortz Age result. Units match the public athlete biomarker JSON; monocyte and neutrophil counts are derived from WBC and percentage values.";
+        }
+        else if (context.Type == typeof(PhenoAgeCalculationResult))
+        {
+            openApiSchema.Description = "Calculated Pheno Age result and derived values useful for rank previews.";
+        }
+        else if (context.Type == typeof(BortzAgeCalculationResult))
+        {
+            openApiSchema.Description = "Calculated Bortz Age result, biological age acceleration, and derived count inputs.";
+        }
         else if (context.Type == typeof(HypotheticalRankRequest))
         {
             openApiSchema.Description = "Inputs for previewing where a hypothetical biological age result would rank in the current Ultimate League field.";

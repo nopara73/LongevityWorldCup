@@ -89,6 +89,99 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                     """);
                 break;
 
+            case "/api/data/pheno-age":
+                operation.OperationId = "calculatePhenoAge";
+                operation.Summary = "Calculate Pheno Age";
+                operation.Description = "Calculates a Pheno Age result from chronological age and the nine required blood biomarkers. The result includes Biological Age Difference, which can be passed to the hypothetical rank endpoint as the submitted biological age.";
+                SetRequestExample(operation, """
+                    {
+                      "chronologicalAge": 45.5,
+                      "albGL": 46,
+                      "creatUmolL": 88.4,
+                      "gluMmolL": 5.05,
+                      "crpMgL": 0.8,
+                      "wbc1000cellsuL": 6.3,
+                      "lymPc": 25.5,
+                      "mcvFL": 96.7,
+                      "rdwPc": 12.5,
+                      "alpUL": 51
+                    }
+                    """);
+                SetResponseDescription(operation, "200", "Calculated Pheno Age result, Biological Age Difference, pace of aging, and domain contribution values.");
+                SetResponseDescription(operation, "400", "Invalid request body or out-of-range Pheno Age input.");
+                SetBadRequestSchema(operation, context);
+                SetResponseExample(operation, "400", """
+                    {
+                      "message": "CRP must be greater than 0."
+                    }
+                    """);
+                SetResponseExample(operation, "200", """
+                    {
+                      "biologicalAge": 38.82,
+                      "biologicalAgeDifference": -6.68,
+                      "paceOfAging": 0.85,
+                      "domainContributions": {
+                        "liver": -16.07,
+                        "kidney": 9.31,
+                        "metabolic": 10.94,
+                        "inflammation": -2.67,
+                        "immune": 75.05
+                      }
+                    }
+                    """);
+                break;
+
+            case "/api/data/bortz-age":
+                operation.OperationId = "calculateBortzAge";
+                operation.Summary = "Calculate Bortz Age";
+                operation.Description = "Calculates a Bortz Age result from chronological age and the public biomarker panel used by the Pro clock. Monocyte and neutrophil counts are derived from WBC and percentage inputs, matching the website calculation.";
+                SetRequestExample(operation, """
+                    {
+                      "chronologicalAge": 45.5,
+                      "albGL": 46,
+                      "alpUL": 51,
+                      "ureaMmolL": 5.4,
+                      "cholesterolMmolL": 4.8,
+                      "creatUmolL": 88.4,
+                      "cystatinCMgL": 0.85,
+                      "hba1cMmolMol": 34,
+                      "crpMgL": 0.8,
+                      "ggtUL": 22,
+                      "rbc10e12L": 4.7,
+                      "mcvFL": 96.7,
+                      "rdwPc": 12.5,
+                      "wbc1000cellsuL": 6.3,
+                      "monocytePc": 7.2,
+                      "neutrophilPc": 58.1,
+                      "lymPc": 25.5,
+                      "altUL": 24,
+                      "shbgNmolL": 45,
+                      "vitaminDNmolL": 85,
+                      "gluMmolL": 5.05,
+                      "mchPg": 31.5,
+                      "apoA1GL": 1.55
+                    }
+                    """);
+                SetResponseDescription(operation, "200", "Calculated Bortz Age result, Biological Age Difference, biological age acceleration, and derived count inputs.");
+                SetResponseDescription(operation, "400", "Invalid request body or out-of-range Bortz Age input.");
+                SetBadRequestSchema(operation, context);
+                SetResponseExample(operation, "400", """
+                    {
+                      "message": "CRP, GGT, ALT, SHBG, and Vitamin D must be greater than 0."
+                    }
+                    """);
+                SetResponseExample(operation, "200", """
+                    {
+                      "biologicalAge": 39.73,
+                      "biologicalAgeDifference": -5.77,
+                      "paceOfAging": 0.87,
+                      "biologicalAgeAcceleration": -5.77,
+                      "derivedMonocyteCount10e9L": 0.45,
+                      "derivedNeutrophilCount10e9L": 3.66
+                    }
+                    """);
+                break;
+
             case "/api/data/hypothetical-rank":
                 operation.OperationId = "previewHypotheticalRank";
                 operation.Summary = "Preview a hypothetical Ultimate League rank";

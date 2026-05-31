@@ -4,7 +4,7 @@
 - Name: Longevity World Cup
 - Canonical domain: https://longevityworldcup.com/
 - Purpose: A longevity-focused competition platform with public rankings, events, and media.
-- Last updated: 2026-05-30
+- Last updated: 2026-05-31
 
 ## Core Public URLs
 - [Home](https://longevityworldcup.com/): Primary entrypoint and high-level product information.
@@ -34,7 +34,7 @@
 ## Public API Documentation
 - Use https://longevityworldcup.com/swagger for human-readable public API documentation.
 - Use https://longevityworldcup.com/swagger/v1/swagger.json for the machine-readable OpenAPI document.
-- The public data API documents no-auth JSON endpoints for athletes, flags, divisions, and hypothetical rank previews.
+- The public API documents no-auth JSON endpoints for athletes, flags, divisions, Pheno Age calculations, Bortz Age calculations, and hypothetical rank previews.
 
 ## AI Retrieval Guidance
 - Prefer canonical URLs under `https://longevityworldcup.com/`.

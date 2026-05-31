@@ -41,12 +41,12 @@ namespace LongevityWorldCup.Website
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "Longevity World Cup Public Data API",
+                    Title = "Longevity World Cup Public API",
                     Version = "v1",
                     Description = """
-                        Public no-auth JSON endpoints for Longevity World Cup athlete, field, and rank-preview data.
+                        Public no-auth JSON endpoints for Longevity World Cup athlete, field, biological aging clock calculation, and rank-preview data.
 
-                        The documented endpoints are read-oriented public data surfaces used by the website and external clients. They do not require API keys, OAuth, cookies, or other authentication.
+                        The documented endpoints are public data and biological aging clock calculation surfaces used by the website and external clients. They do not require API keys, OAuth, cookies, or other authentication.
                         """,
                     Contact = new OpenApiContact
                     {
@@ -60,6 +60,8 @@ namespace LongevityWorldCup.Website
                         "GetFlags" => "listFlags",
                         "GetDivisions" => "listDivisions",
                         "GetAthletes" => "listAthletes",
+                        "CalculatePhenoAge" => "calculatePhenoAge",
+                        "CalculateBortzAge" => "calculateBortzAge",
                         "GetHypotheticalRank" => "previewHypotheticalRank",
                         var action => action
                     });
@@ -274,8 +276,8 @@ namespace LongevityWorldCup.Website
             app.UseSwaggerUI(options =>
             {
                 options.RoutePrefix = "swagger";
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Longevity World Cup Public Data API v1");
-                options.DocumentTitle = "Longevity World Cup Public Data API";
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Longevity World Cup Public API v1");
+                options.DocumentTitle = "Longevity World Cup Public API";
                 options.DocExpansion(DocExpansion.List);
                 options.DefaultModelExpandDepth(2);
                 options.DefaultModelsExpandDepth(1);
