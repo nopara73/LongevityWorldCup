@@ -7,13 +7,14 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, ILogger<HtmlInjectionMiddleware> logger)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
         private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;
         private readonly AssetVersionProvider _assetVersionProvider = assetVersionProvider;
         private readonly LeaderboardFactsService _leaderboardFacts = leaderboardFacts;
+        private readonly SitemapService _sitemap = sitemap;
         private readonly ILogger<HtmlInjectionMiddleware> _logger = logger;
         private const string SiteBaseUrl = "https://longevityworldcup.com";
         private const string DefaultOgImagePath = "/assets/og-image.png";
@@ -918,6 +919,9 @@ $@"<script type=""module"">
                 }
             };
 
+            var dateModified = _sitemap.GetLastModifiedUtcForPath(seo.CanonicalPath)
+                .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
             var webpage = new Dictionary<string, object>
             {
                 ["@type"] = "WebPage",
@@ -925,6 +929,7 @@ $@"<script type=""module"">
                 ["url"] = seo.CanonicalUrl,
                 ["name"] = seo.PageTitle,
                 ["description"] = seo.Description,
+                ["dateModified"] = dateModified,
                 ["inLanguage"] = "en",
                 ["isPartOf"] = new Dictionary<string, object>
                 {
