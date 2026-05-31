@@ -5,7 +5,7 @@
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
 | **Longevity World Cup** | An open competition where longevity athletes rank by improving biological age measures. | the site, the game |
-| **Longevity athlete** | A participant who submits evidence-backed biological age data to compete. | User, player, applicant after approval |
+| **Longevity athlete** | A participant who submits biological age data to compete. | User, player, applicant after approval |
 | **Season** | A yearly competition window for clocks that accept only results from that season's valid dates. | Year, campaign |
 | **Season close** | The point when final rankings for a season are locked. | Wrap-up, end date |
 | **Track** | A competition class defined by clock access and seriousness, currently **Pro** or **Amateur**. | League, tier |
