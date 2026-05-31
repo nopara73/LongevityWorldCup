@@ -207,7 +207,7 @@
             }
 
         .homepage-faq-section {
-            max-width: 980px;
+            max-width: 1250px;
             text-align: left;
         }
 
@@ -250,6 +250,18 @@
 
             .homepage-faq-item a {
                 color: var(--primary-color);
+                text-decoration: underline;
+                text-underline-offset: 0.15em;
+            }
+
+            .homepage-faq-more {
+                margin: 1.35rem 0 0;
+                text-align: center;
+            }
+
+            .homepage-faq-more a {
+                color: var(--primary-color);
+                font-weight: 600;
                 text-decoration: underline;
                 text-underline-offset: 0.15em;
             }
@@ -399,7 +411,7 @@
             border-radius: 15px;
             padding: 1.85rem 2rem 1.95rem;
             margin: 2rem auto;
-            max-width: 980px;
+            max-width: 1250px;
             text-align: center;
         }
 
@@ -1834,7 +1846,7 @@
         </div>
 
         <section class="section-container homepage-faq-section" aria-labelledby="homepage-faq-title" data-aos="fade" data-aos-duration="700" data-aos-delay="340">
-            <h2 id="homepage-faq-title"><i class="fas fa-circle-question"></i> Common questions</h2>
+            <h2 id="homepage-faq-title"><i class="fas fa-circle-question"></i> FAQ</h2>
             <div class="homepage-faq-grid">
                 <div class="homepage-faq-item">
                     <h3>What is Longevity World Cup?</h3>
@@ -1850,9 +1862,10 @@
                 </div>
                 <div class="homepage-faq-item">
                     <h3>How do I join?</h3>
-                    <p>Submit an application with eligible biomarker results and proof. The <a href="/ruleset">ruleset</a> explains requirements before you apply.</p>
+                    <p><a href="/play">Submit an application</a> with eligible biomarker results and proof. The <a href="/ruleset">ruleset</a> explains requirements before you apply.</p>
                 </div>
             </div>
+            <p class="homepage-faq-more"><a href="/ruleset#faq">Extended FAQ</a></p>
         </section>
 
         <!-- Bitcoin Donation Section -->
