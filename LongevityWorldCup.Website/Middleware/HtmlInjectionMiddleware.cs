@@ -948,20 +948,83 @@ $@"<script type=""module"">
                 ["itemListElement"] = breadcrumbItems
             };
 
+            var graph = new List<object>
+            {
+                organization,
+                website,
+                webApplication,
+                webpage,
+                breadcrumbList
+            };
+
+            if (string.Equals(seo.CanonicalPath, "/ruleset", StringComparison.OrdinalIgnoreCase))
+            {
+                graph.Add(BuildRulesetFaqPage());
+            }
+
             var payload = new Dictionary<string, object>
             {
                 ["@context"] = "https://schema.org",
-                ["@graph"] = new object[]
-                {
-                    organization,
-                    website,
-                    webApplication,
-                    webpage,
-                    breadcrumbList
-                }
+                ["@graph"] = graph
             };
 
             return JsonSerializer.Serialize(payload);
+        }
+
+        private static Dictionary<string, object> BuildRulesetFaqPage()
+        {
+            static Dictionary<string, object> Question(string name, string answer)
+            {
+                return new Dictionary<string, object>
+                {
+                    ["@type"] = "Question",
+                    ["name"] = name,
+                    ["acceptedAnswer"] = new Dictionary<string, object>
+                    {
+                        ["@type"] = "Answer",
+                        ["text"] = answer
+                    }
+                };
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["@type"] = "FAQPage",
+                ["@id"] = $"{SiteBaseUrl}/ruleset#faq",
+                ["mainEntity"] = new object[]
+                {
+                    Question(
+                        "Who can participate in the Longevity World Cup?",
+                        "Anyone interested in longevity and capable of submitting valid test results can participate."),
+                    Question(
+                        "How do I register for the competition?",
+                        "Apply through the Longevity World Cup website."),
+                    Question(
+                        "Can I withdraw from the competition?",
+                        "Yes. Email hi@longevityworldcup.com."),
+                    Question(
+                        "What is pheno age?",
+                        "Pheno age is based on clinical biomarkers like glucose and CRP. It reflects physiological aging, not just years lived, and helps assess health and disease risk."),
+                    Question(
+                        "What is bortz age?",
+                        "Bortz age is based on blood biomarkers such as Cystatin C, HbA1c, and ApoA1. It reflects physiological aging, not just years lived, and helps assess health and disease risk."),
+                    Question(
+                        "Can I use any laboratory for my tests?",
+                        "Yes, as long as the lab provides the biomarkers required for that clock."),
+                    Question(
+                        "What happens if my results arrive late?",
+                        "Each season closes in mid-January, giving your lab enough time to process a test from December 31."),
+                    Question(
+                        "What if there's a tie?",
+                        "Ties break by older chronological age, then username alphabetically."),
+                    Question(
+                        "How is my score calculated if I submit multiple results?",
+                        "If you submit multiple test results, the best result is used for your season standing for the relevant clock."),
+                    Question(
+                        "How can I cheat?",
+                        "You can't.")
+                }
+            };
         }
 
         private static string GetBreadcrumbLabel(string canonicalPath)
