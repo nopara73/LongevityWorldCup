@@ -8,6 +8,12 @@ on:
   push:
     branches:
       - master
+    paths:
+      - LongevityWorldCup.Website/**
+      - LongevityWorldCup.MarkdownPageGenerator/**
+      - LongevityWorldCup.Documentation/About.md
+      - LongevityWorldCup.Documentation/LongevitySportHistory.md
+      - LongevityWorldCup.Documentation/Ruleset.md
 
 concurrency:
   group: production-deploy
