@@ -4,7 +4,7 @@ I grew up wanting to play football at the highest level. Like most sports, footb
 
 Longevity World Cup exists for the opposite reason. It is a sport for time. Instead of asking how fast you can run at twenty, it asks how much biological age you can take back at forty, fifty, sixty, or beyond.
 
-![The silhouette of Michael Lustgarten, PhD, inaugural Longevity World Cup champion](/assets/content-images/headshot.jpg)
+![The silhouette of Michael Lustgarten, PhD, inaugural Longevity World Cup champion](../LongevityWorldCup.Website/wwwroot/assets/content-images/headshot.jpg)
 
 *The silhouette of [Michael Lustgarten, PhD](/athlete/michael-lustgarten), the inaugural Longevity World Cup champion.*
 

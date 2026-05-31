@@ -39,7 +39,7 @@ foreach (var page in pages)
 {
     var markdown = await File.ReadAllTextAsync(page.Source);
     var title = ExtractTitle(markdown);
-    var documentHtml = OpenAbsoluteLinksInNewTabs(Markdown.ToHtml(markdown, pipeline));
+    var documentHtml = OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline)));
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
     var pageHtml = NormalizeGeneratedHtml(RenderPage(title, documentHtml, contentsHtml, page));
 
@@ -110,6 +110,14 @@ static string OpenAbsoluteLinksInNewTabs(string html)
         "<a href=\"(?<href>https?://[^\"]+)\">",
         match => $"<a href=\"{match.Groups["href"].Value}\" target=\"_blank\" rel=\"noopener noreferrer\">",
         RegexOptions.IgnoreCase);
+}
+
+static string RewriteWebsiteAssetImageSources(string html)
+{
+    return html.Replace(
+        "src=\"../LongevityWorldCup.Website/wwwroot/",
+        "src=\"/",
+        StringComparison.Ordinal);
 }
 
 static string NormalizeGeneratedHtml(string html)
