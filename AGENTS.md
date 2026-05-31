@@ -12,6 +12,12 @@ This repository is a .NET solution, not a Node/npm-managed app. Browser smoke ch
 
 For repeatable local UI verification, prefer the repo-owned .NET Playwright path or the Codex Browser plugin/in-app browser when available. After building `LongevityWorldCup.Tests`, install browser binaries with `pwsh LongevityWorldCup.Tests\bin\Debug\net8.0\playwright.ps1 install chromium` if needed. If using a separate Playwright runtime for ad hoc checks, first verify that Playwright and its browser binaries actually resolve in that runtime; do not assume the in-app Node REPL has Playwright on its module path.
 
+## Local Agent Artifacts
+
+When producing temporary files that are only for agent-side inspection or delivery drafts, write them under the repo-local ignored `.artifacts/` directory. This includes screenshots, rendered HTML previews, generated images, ad hoc reports, logs, exports, or smoke-test captures that are not intended to become source-controlled project assets.
+
+Do not place disposable outputs in tracked project folders such as `output/`, `wwwroot/`, `docs/`, or test fixture directories unless the user explicitly asks for a committed artifact there.
+
 ## Domain Language
 
 Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, biological age calculators, badges, events, social posting, or user-facing competition copy, read `UBIQUITOUS_LANGUAGE.md`.
