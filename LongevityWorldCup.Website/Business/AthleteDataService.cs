@@ -81,42 +81,33 @@ public class AthleteDataService : IDisposable
         )";
                 cmd.ExecuteNonQuery();
 
-                // Try to add column (ignore if exists)
-                cmd.CommandText = "ALTER TABLE Athletes ADD COLUMN JoinedAt TEXT;";
-                try
-                {
-                    cmd.ExecuteNonQuery();
-                }
-                catch
-                {
-                    /* column already exists */
-                }
+                TryAddAthletesColumn(sqlite, "JoinedAt TEXT");
 
                 // Ensure Placements, CurrentPlacement, LastAgeDiff columns exist
                 cmd.CommandText = "PRAGMA table_info(Athletes);";
-                using var r = cmd.ExecuteReader();
                 var hasPlacements = false;
                 var hasCurrentPlacement = false;
                 var hasLastAgeDiff = false;
                 var hasTestSig = false; // track if our signature column exists
-                while (r.Read())
+                using (var r = cmd.ExecuteReader())
                 {
-                    var colName = r.GetString(1);
-                    if (string.Equals(colName, "Placements", StringComparison.OrdinalIgnoreCase))
-                        hasPlacements = true;
-                    if (string.Equals(colName, "CurrentPlacement", StringComparison.OrdinalIgnoreCase))
-                        hasCurrentPlacement = true;
-                    if (string.Equals(colName, "LastAgeDiff", StringComparison.OrdinalIgnoreCase))
-                        hasLastAgeDiff = true;
-                    if (string.Equals(colName, TestSigColumn, StringComparison.OrdinalIgnoreCase))
-                        hasTestSig = true;
+                    while (r.Read())
+                    {
+                        var colName = r.GetString(1);
+                        if (string.Equals(colName, "Placements", StringComparison.OrdinalIgnoreCase))
+                            hasPlacements = true;
+                        if (string.Equals(colName, "CurrentPlacement", StringComparison.OrdinalIgnoreCase))
+                            hasCurrentPlacement = true;
+                        if (string.Equals(colName, "LastAgeDiff", StringComparison.OrdinalIgnoreCase))
+                            hasLastAgeDiff = true;
+                        if (string.Equals(colName, TestSigColumn, StringComparison.OrdinalIgnoreCase))
+                            hasTestSig = true;
+                    }
                 }
 
                 if (!hasPlacements)
                 {
-                    using var alter = sqlite.CreateCommand();
-                    alter.CommandText = "ALTER TABLE Athletes ADD COLUMN Placements TEXT NOT NULL DEFAULT '[]';";
-                    alter.ExecuteNonQuery();
+                    TryAddAthletesColumn(sqlite, "Placements TEXT NOT NULL DEFAULT '[]'");
 
                     using var backfill = sqlite.CreateCommand();
                     backfill.CommandText = "UPDATE Athletes SET Placements='[]' WHERE Placements IS NULL OR Placements='';";
@@ -125,24 +116,18 @@ public class AthleteDataService : IDisposable
 
                 if (!hasCurrentPlacement)
                 {
-                    using var alter2 = sqlite.CreateCommand();
-                    alter2.CommandText = "ALTER TABLE Athletes ADD COLUMN CurrentPlacement INTEGER NULL;";
-                    alter2.ExecuteNonQuery();
+                    TryAddAthletesColumn(sqlite, "CurrentPlacement INTEGER NULL");
                 }
 
                 if (!hasLastAgeDiff)
                 {
-                    using var alter3 = sqlite.CreateCommand();
-                    alter3.CommandText = "ALTER TABLE Athletes ADD COLUMN LastAgeDiff REAL NULL;";
-                    alter3.ExecuteNonQuery();
+                    TryAddAthletesColumn(sqlite, "LastAgeDiff REAL NULL");
                 }
 
                 // add single signature column (one-time)
                 if (!hasTestSig)
                 {
-                    using var alter4 = sqlite.CreateCommand();
-                    alter4.CommandText = $"ALTER TABLE Athletes ADD COLUMN {TestSigColumn} TEXT NULL;";
-                    alter4.ExecuteNonQuery();
+                    TryAddAthletesColumn(sqlite, $"{TestSigColumn} TEXT NULL");
                 }
             }
         });
@@ -210,6 +195,26 @@ public class AthleteDataService : IDisposable
         _db.DatabaseChanged += OnDatabaseChanged;
 
         PushAthleteDirectoryToEvents();
+    }
+
+    private static void TryAddAthletesColumn(SqliteConnection sqlite, string columnDefinition)
+    {
+        using var alter = sqlite.CreateCommand();
+        alter.CommandText = $"ALTER TABLE Athletes ADD COLUMN {columnDefinition};";
+        try
+        {
+            alter.ExecuteNonQuery();
+        }
+        catch (SqliteException ex) when (IsDuplicateColumnException(ex))
+        {
+            // Parallel test hosts can race between PRAGMA table_info and ALTER TABLE.
+        }
+    }
+
+    private static bool IsDuplicateColumnException(SqliteException ex)
+    {
+        return ex.SqliteErrorCode == 1 &&
+               ex.Message.Contains("duplicate column name", StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnDatabaseChanged()
