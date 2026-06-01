@@ -10,7 +10,9 @@ public sealed class AssetVersionProvider
 
     public AssetVersionProvider(IWebHostEnvironment environment)
     {
-        _webRootPath = environment.WebRootPath;
+        _webRootPath = !string.IsNullOrWhiteSpace(environment.WebRootPath) && Directory.Exists(environment.WebRootPath)
+            ? environment.WebRootPath
+            : Path.Combine(environment.ContentRootPath, "wwwroot");
     }
 
     public string AppendVersion(string assetPath)
