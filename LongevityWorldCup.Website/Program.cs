@@ -127,6 +127,8 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<XFillerPostLogService>();
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
+            builder.Services.AddSingleton<ILongevitymaxxingEmailSender, SmtpLongevitymaxxingEmailSender>();
+            builder.Services.AddSingleton<LongevitymaxxingChallengeService>();
 
             if (enableScheduledJobs)
             {
@@ -144,6 +146,7 @@ namespace LongevityWorldCup.Website
                     var xDailyPostKey = new JobKey("XDailyPostJob");
                     var threadsDailyPostKey = new JobKey("ThreadsDailyPostJob");
                     var facebookDailyPostKey = new JobKey("FacebookDailyPostJob");
+                    var longevitymaxxingReminderKey = new JobKey("LongevitymaxxingReminderJob");
 
                     // Every day 00:00
                     q.AddJob<DailyJob>(o => o.WithIdentity(dailyKey));
@@ -222,6 +225,15 @@ namespace LongevityWorldCup.Website
                     q.AddTrigger(t => t.ForJob(facebookDailyPostKey)
                         .WithIdentity("FacebookDailyPostTrigger")
                         .WithSchedule(CronScheduleBuilder.CronSchedule("0 2 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+
+                    q.AddJob<LongevitymaxxingReminderJob>(o => o.WithIdentity(longevitymaxxingReminderKey));
+                    q.AddTrigger(t => t.ForJob(longevitymaxxingReminderKey)
+                        .WithIdentity("LongevitymaxxingReminderTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 * * * ?").InTimeZone(TimeZoneInfo.Utc)));
+                    q.AddTrigger(t => t.ForJob(longevitymaxxingReminderKey)
+                        .WithIdentity("LongevitymaxxingReminderTrigger_Immediate")
+                        .StartNow()
+                        .WithSimpleSchedule(x => x.WithRepeatCount(0)));
                 });
                 builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
             }
@@ -385,7 +397,8 @@ namespace LongevityWorldCup.Website
                 FacebookPageId = "",
                 FacebookUserAccessToken = "",
                 FacebookPageAccessToken = "",
-                CustomEventDesignerSecretHash = ""
+                CustomEventDesignerSecretHash = "",
+                LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig()
             };
 
             // Serialize to JSON and save to file

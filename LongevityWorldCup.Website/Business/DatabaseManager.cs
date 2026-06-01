@@ -25,13 +25,22 @@ public sealed class DatabaseManager : IDisposable
         int maxRetries = 50,
         int initialBackoffMs = 50,
         int maxBackoffMs = 500,
-        int watchPollIntervalMs = 1000)
+        int watchPollIntervalMs = 1000,
+        string? dbPath = null)
     {
-        DbPath = Path.Combine(EnvironmentHelpers.GetDataDir(), "LongevityWorldCup.db");
+        DbPath = string.IsNullOrWhiteSpace(dbPath)
+            ? Path.Combine(EnvironmentHelpers.GetDataDir(), "LongevityWorldCup.db")
+            : Path.GetFullPath(dbPath);
 
         _maxRetries = maxRetries;
         _initialBackoffMs = initialBackoffMs;
         _maxBackoffMs = maxBackoffMs;
+
+        var dbDirectory = Path.GetDirectoryName(DbPath);
+        if (!string.IsNullOrWhiteSpace(dbDirectory))
+        {
+            Directory.CreateDirectory(dbDirectory);
+        }
 
         var csb = new SqliteConnectionStringBuilder
         {

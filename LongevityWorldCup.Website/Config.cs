@@ -44,6 +44,7 @@ namespace LongevityWorldCup.Website
         public string? FacebookUserAccessToken { get; set; }
         public string? FacebookPageAccessToken { get; set; }
         public string? CustomEventDesignerSecretHash { get; set; }
+        public LongevitymaxxingChallengeConfig? LongevitymaxxingChallenge { get; set; }
 
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
@@ -64,5 +65,66 @@ namespace LongevityWorldCup.Website
             string json = JsonSerializer.Serialize(this, JsonOptions); // Use cached options
             await File.WriteAllTextAsync(ConfigFilePath, json);
         }
+    }
+
+    public sealed class LongevitymaxxingChallengeConfig
+    {
+        public string PublicBaseUrl { get; set; } = "https://longevityworldcup.com";
+        public string StartDate { get; set; } = "2026-06-08";
+        public int DurationDays { get; set; } = 14;
+        public string SignupClosesAtUtc { get; set; } = "2026-06-08T00:00:00Z";
+        public int DailyReminderHourLocal { get; set; } = 8;
+        public string SlackInviteUrl { get; set; } = "https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ";
+        public string VideoCallUrl { get; set; } = "https://meet.google.com/kem-kfpt-bhs";
+        public List<LongevitymaxxingCallConfig> Calls { get; set; } =
+        [
+            new()
+            {
+                Key = "kickoff",
+                Label = "Kickoff",
+                CandidateSlots =
+                [
+                    new() { Id = "kickoff-a", StartsAtUtc = "2026-06-08T06:30:00Z" },
+                    new() { Id = "kickoff-b", StartsAtUtc = "2026-06-08T13:00:00Z" },
+                    new() { Id = "kickoff-c", StartsAtUtc = "2026-06-08T16:00:00Z" }
+                ]
+            },
+            new()
+            {
+                Key = "midpoint",
+                Label = "Midpoint",
+                CandidateSlots =
+                [
+                    new() { Id = "midpoint-a", StartsAtUtc = "2026-06-15T06:30:00Z" },
+                    new() { Id = "midpoint-b", StartsAtUtc = "2026-06-15T13:00:00Z" },
+                    new() { Id = "midpoint-c", StartsAtUtc = "2026-06-15T16:00:00Z" }
+                ]
+            },
+            new()
+            {
+                Key = "finale",
+                Label = "Finale",
+                CandidateSlots =
+                [
+                    new() { Id = "finale-a", StartsAtUtc = "2026-06-22T06:30:00Z" },
+                    new() { Id = "finale-b", StartsAtUtc = "2026-06-22T13:00:00Z" },
+                    new() { Id = "finale-c", StartsAtUtc = "2026-06-22T16:00:00Z" }
+                ]
+            }
+        ];
+    }
+
+    public sealed class LongevitymaxxingCallConfig
+    {
+        public string Key { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string? SelectedSlotId { get; set; }
+        public List<LongevitymaxxingCallSlotConfig> CandidateSlots { get; set; } = [];
+    }
+
+    public sealed class LongevitymaxxingCallSlotConfig
+    {
+        public string Id { get; set; } = "";
+        public string StartsAtUtc { get; set; } = "";
     }
 }
