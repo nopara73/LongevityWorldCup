@@ -107,9 +107,9 @@
                                         <label for="lmxSignupTimeZone">Timezone</label>
                                         <select id="lmxSignupTimeZone" name="timeZoneId" required></select>
                                     </div>
-                                    <div class="lmx-field">
+                                    <div class="lmx-field lmx-athlete-selector">
                                         <label for="lmxSignupAthlete">LWC athlete profile <span>optional</span></label>
-                                        <input id="lmxSignupAthlete" name="athleteLink" placeholder="Only if you are already listed as an athlete">
+                                        <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" placeholder="Only if you are already listed as an athlete">
                                     </div>
                                     <div class="lmx-field">
                                         <span class="lmx-label">Call availability <span>optional</span></span>
@@ -144,8 +144,12 @@
                         <h2 id="lmxParticipantTitle">Check in</h2>
                     </div>
                     <div id="lmxParticipantTools" class="lmx-button-row">
-                        <a id="lmxSlackLink" class="lmx-button slack" href="#" target="_blank" rel="noopener">
+                        <a id="lmxSlackInviteLink" class="lmx-button slack" href="#" target="_blank" rel="noopener">
                             <i class="fab fa-slack" aria-hidden="true"></i>
+                            Join Slack
+                        </a>
+                        <a id="lmxSlackRoomLink" class="lmx-button secondary lmx-hidden" href="#" target="_blank" rel="noopener">
+                            <i class="fas fa-hashtag" aria-hidden="true"></i>
                             Slack room
                         </a>
                         <button id="lmxEditToggle" class="lmx-button secondary" type="button">
@@ -164,9 +168,9 @@
                             <label for="lmxEditTimeZone">Timezone</label>
                             <select id="lmxEditTimeZone" required></select>
                         </div>
-                        <div class="lmx-field">
+                        <div class="lmx-field lmx-athlete-selector">
                             <label for="lmxEditAthlete">LWC athlete profile <span>optional</span></label>
-                            <input id="lmxEditAthlete" placeholder="Only if you are already listed as an athlete">
+                            <input id="lmxEditAthlete" autocomplete="off" placeholder="Only if you are already listed as an athlete">
                         </div>
                         <div id="lmxEditCallField" class="lmx-field">
                             <span class="lmx-label">Call availability <span>optional</span></span>

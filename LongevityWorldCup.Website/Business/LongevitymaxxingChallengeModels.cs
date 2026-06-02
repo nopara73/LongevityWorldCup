@@ -37,7 +37,8 @@ public sealed record LongevitymaxxingPublicState(
     IReadOnlyList<LongevitymaxxingLeaderboardRow> Leaderboard,
     IReadOnlyList<LongevitymaxxingPodiumRow> Podium,
     IReadOnlyList<LongevitymaxxingPublicCall> Calls,
-    string SlackInviteUrl);
+    string SlackInviteUrl,
+    string? SlackRoomUrl);
 
 public sealed record LongevitymaxxingParticipantState(
     LongevitymaxxingPublicState Public,

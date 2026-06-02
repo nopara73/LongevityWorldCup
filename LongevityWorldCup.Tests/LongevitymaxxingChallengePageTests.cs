@@ -41,7 +41,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("Get your link", html);
         Assert.DoesNotContain("daily max", html);
         Assert.Contains("points/day", html);
+        Assert.Contains("id=\"lmxSlackInviteLink\"", html);
+        Assert.Contains("Join Slack", html);
+        Assert.Contains("id=\"lmxSlackRoomLink\"", html);
+        Assert.Contains("Slack room", html);
         Assert.Contains("LWC athlete profile <span>optional</span>", html);
+        Assert.Contains("lmx-athlete-selector", html);
         Assert.Contains("Only if you are already listed as an athlete", html);
         Assert.Contains("Timezone, profile, and calls", html);
         Assert.Contains("Call availability <span>optional</span>", html);
@@ -105,6 +110,14 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("fillTimeZones(document.getElementById(\"lmxSignupTimeZone\"));", javascript);
         Assert.Contains("fillTimeZones(document.getElementById(\"lmxEditTimeZone\"));", javascript);
         Assert.Contains("setDefaultTimezone(document.getElementById(\"lmxSignupTimeZone\"));", javascript);
+        Assert.Contains("initAthleteSelectors();", javascript);
+        Assert.Contains("fetch(\"/api/data/athletes\")", javascript);
+        Assert.Contains("function getAthleteSelectorPayload", javascript);
+        Assert.Contains("lmx-athlete-options", css);
+        Assert.Contains(".lmx-athlete-option.autocomplete-active", css);
+        Assert.Contains("lmxSlackInviteLink", javascript);
+        Assert.Contains("lmxSlackRoomLink", javascript);
+        Assert.Contains("state.slackRoomUrl", javascript);
         Assert.Contains("weekday: \"long\"", javascript);
         Assert.Contains("weekday: \"short\"", javascript);
         Assert.DoesNotContain("setText(\"lmxBoardTitle\", \"Starting grid\");", javascript);
