@@ -456,7 +456,7 @@
         setAthleteSelectorValue("lmxEditAthlete", participant.athleteSlug || participant.athleteUrl || "");
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
         renderCallVoteControls("lmxEditCalls", state.public.calls || [], state.callAvailability || []);
-        renderParticipantCalls(state.calls || []);
+        renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);
         renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || []);
     }
@@ -482,7 +482,7 @@
         }).join("");
     }
 
-    function renderParticipantCalls(calls) {
+    function renderParticipantCalls(calls, signupClosesAtUtc) {
         const container = document.getElementById("lmxParticipantCalls");
         if (!calls.length) {
             container.innerHTML = "";
@@ -490,11 +490,11 @@
         }
 
         container.innerHTML = (calls || []).map(call => {
-            const when = call.selectedSlot ? formatDateTime(call.selectedSlot.startsAtUtc) : "picking after signup closes";
-            const link = call.videoCallUrl && call.selectedSlot
-                ? `<a href="${escAttr(call.videoCallUrl)}" target="_blank" rel="noopener">Google Meet</a>`
+            const when = call.selectedSlot ? formatDateTime(call.selectedSlot.startsAtUtc) : pendingCallTimeLabel(signupClosesAtUtc);
+            const link = call.videoCallUrl
+                ? `<a class="lmx-call-link" href="${escAttr(call.videoCallUrl)}" target="_blank" rel="noopener">Google Meet</a>`
                 : "";
-            return `<div class="lmx-call-group"><strong>${esc(call.label)}</strong><span>${esc(when)}</span> ${link}</div>`;
+            return `<div class="lmx-call-group"><strong>${esc(call.label)}</strong><div class="lmx-call-meta"><span>${esc(when)}</span>${link}</div></div>`;
         }).join("");
     }
 
@@ -1136,6 +1136,17 @@
             minute: "2-digit",
             timeZoneName: "short"
         }).format(date);
+    }
+
+    function pendingCallTimeLabel(signupClosesAtUtc) {
+        const date = new Date(signupClosesAtUtc);
+        if (Number.isNaN(date.getTime())) return "Meeting time pending until signup closes.";
+        const closes = new Intl.DateTimeFormat("en-US", {
+            weekday: "long",
+            month: "short",
+            day: "numeric"
+        }).format(date);
+        return `Meeting time pending until signup closes on ${closes}.`;
     }
 
     function setStatus(id, message, isError) {

@@ -67,6 +67,7 @@ public sealed class LongevitymaxxingChallengePageTests
 
         Assert.Contains("\"challengeName\":\"Longevitymaxxing Challenge\"", json);
         Assert.Contains("\"startDate\":\"2026-06-08\"", json);
+        Assert.Contains("\"signupClosesAtUtc\":\"2026-06-08T00:00:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T06:30:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T13:00:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T16:00:00.0000000+00:00\"", json);
@@ -131,6 +132,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function renderRosterBoard", javascript);
         Assert.Contains("people signed up", javascript);
         Assert.DoesNotContain("email confirmed", javascript);
+        Assert.Contains("renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);", javascript);
+        Assert.Contains("function pendingCallTimeLabel", javascript);
+        Assert.Contains("Meeting time pending until signup closes on", javascript);
+        Assert.Contains("class=\"lmx-call-link\"", javascript);
+        Assert.Contains(".lmx-call-link", css);
     }
 
     private static WebApplicationFactory<Program> CreateFactory()

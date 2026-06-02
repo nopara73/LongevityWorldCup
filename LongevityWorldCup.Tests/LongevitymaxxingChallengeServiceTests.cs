@@ -144,6 +144,12 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         var beforeClose = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-07T23:59:00Z"));
         Assert.Null(beforeClose.Calls.Single(c => c.Key == "kickoff").SelectedSlot);
+        Assert.Equal("2026-06-08T00:00:00.0000000+00:00", beforeClose.SignupClosesAtUtc);
+
+        var participantBeforeClose = fixture.Service.GetParticipantState(one, DateTimeOffset.Parse("2026-06-07T23:59:30Z"));
+        var pendingKickoff = participantBeforeClose.Calls.Single(c => c.Key == "kickoff");
+        Assert.Null(pendingKickoff.SelectedSlot);
+        Assert.Equal("https://meet.example.test", pendingKickoff.VideoCallUrl);
 
         fixture.Service.TrySelectCallSlots(DateTimeOffset.Parse("2026-06-08T00:01:00Z"));
 

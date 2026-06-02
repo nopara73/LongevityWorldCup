@@ -30,6 +30,7 @@ public sealed record LongevitymaxxingPublicState(
     string Phase,
     bool SignupOpen,
     string StartDate,
+    string SignupClosesAtUtc,
     string EndDate,
     int DurationDays,
     int DailyMaxScore,
