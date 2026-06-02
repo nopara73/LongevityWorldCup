@@ -19,6 +19,7 @@ namespace LongevityWorldCup.Website.Middleware
         private readonly string _webRootPath = ResolveWebRootPath(environment);
         private const string SiteBaseUrl = "https://longevityworldcup.com";
         private const string DefaultOgImagePath = "/assets/og-image.png";
+        private const string LongevitymaxxingOgImagePath = "/assets/longevitymaxxing-og.png";
         private const string LeaderboardRowsStartMarker = "<!--LEADERBOARD-TBODY-ROWS-START-->";
         private const string LeaderboardRowsEndMarker = "<!--LEADERBOARD-TBODY-ROWS-END-->";
         private const string LeaderboardSkeletonTbodyOpenTag = "<tbody class=\"loading-skeleton\" aria-busy=\"true\">";
@@ -432,6 +433,7 @@ $@"<script type=""module"">
             var canonicalPath = RouteCanonicalization.GetCanonicalPath(requestPath);
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var defaultOgImage = BuildDefaultOgImageUrl();
+            var longevitymaxxingOgImage = BuildOgImageUrl(LongevitymaxxingOgImagePath);
 
             return canonicalPath switch
             {
@@ -463,7 +465,7 @@ $@"<script type=""module"">
                     "Longevitymaxxing Challenge | Longevity World Cup",
                     "Longevitymaxxing Challenge | Longevity World Cup",
                     "A 14-day Lifestyle challenge for getting momentum back with a public visual leaderboard.",
-                    defaultOgImage
+                    longevitymaxxingOgImage
                 ),
                 "/events" => new SeoMeta(
                     canonicalPath,
@@ -540,7 +542,12 @@ $@"<script type=""module"">
 
         private string BuildDefaultOgImageUrl()
         {
-            return $"{SiteBaseUrl}{_assetVersionProvider.AppendVersion(DefaultOgImagePath)}";
+            return BuildOgImageUrl(DefaultOgImagePath);
+        }
+
+        private string BuildOgImageUrl(string assetPath)
+        {
+            return $"{SiteBaseUrl}{_assetVersionProvider.AppendVersion(assetPath)}";
         }
 
         private static string ReplacePageTitle(string html, string title)
