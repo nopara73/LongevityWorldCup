@@ -44,11 +44,19 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
     public Task SendDailyReminderAsync(LongevitymaxxingReminderCandidate reminder, string checkInUrl, string stopUrl, CancellationToken ct = default)
     {
+        var isPractice = reminder.ChallengeDay == 1;
+        var lead = isPractice
+            ? $"Day {reminder.ChallengeDay} practice check-in is ready. Check in for {reminder.TargetDate}:"
+            : $"Day {reminder.ChallengeDay} is ready. Check in for {reminder.TargetDate}:";
+        var guidance = isPractice
+            ? "This first check-in counts for checked-in days and streak, not points. Use it to learn the sleep, exercise, nutrition, and vices flow."
+            : "Sleep. Exercise. Nutrition. Vices. Keep the board moving.";
+
         var body =
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-            $"Day {reminder.ChallengeDay} is ready. Check in for {reminder.TargetDate}:\n" +
+            $"{lead}\n" +
             $"{checkInUrl}\n\n" +
-            "Sleep. Exercise. Nutrition. Vices. Keep the board moving.\n\n" +
+            $"{guidance}\n\n" +
             $"Stop challenge emails: {stopUrl}\n\n" +
             "Longevity World Cup";
 
@@ -84,6 +92,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"Hi {SafeName(start.DisplayName)},\n\n" +
             "The Longevitymaxxing Challenge is starting.\n\n" +
             "For 14 days, check in once per day about the previous day: Sleep, Exercise, Nutrition, and Vices. No photos, no long report, no perfect schedule required.\n" +
+            "The Day 1 check-in is practice: it counts for checked-in days and streak, not points.\n" +
             $"{calls}\n\n" +
             $"Open your participant page for check-ins, leaderboard, Slack, and meeting links:\n{challengeUrl}\n\n" +
             $"Stop challenge emails: {stopUrl}\n\n" +

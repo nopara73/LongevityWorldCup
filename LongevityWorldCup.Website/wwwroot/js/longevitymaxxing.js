@@ -223,7 +223,7 @@
             setText("lmxBoardMeta", `${(state.leaderboard || []).length} people signed up · starts ${formatDateLabel(state.startDate)}`);
         } else {
             setText("lmxBoardTitle", state.phase === "completed" ? "Final leaderboard" : "Live leaderboard");
-            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · checked-in days rank first`);
+            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · Day 1 practice · checked-in days rank first`);
         }
         setText("lmxSignupKicker", state.signupOpen ? "free signup" : "signup closed");
         setText("lmxSignupTitle", state.signupOpen ? `Join free before ${formatDateLabel(state.startDate)}` : "Signup is closed");
@@ -343,7 +343,7 @@
                     { icon: "fa-flag-checkered", text: `Starts ${formatDateLabel(state.startDate)}` },
                     { icon: "fa-calendar-days", text: selectedCalls.length ? "Calls set" : "Call times pending" }
                 ],
-                note: "First check-in opens the morning after Day 1."
+                note: "Your first check-in email arrives the morning after Day 1. Nothing is due before then."
             };
         }
 
@@ -516,8 +516,12 @@
             const badges = publicViewer ? "" : (row.badges || []).map(b => `<span class="lmx-badge">${esc(b)}</span>`).join("");
             const cells = (row.cells || []).map(cell => {
                 if (!cell.checkedIn) return `<div class="lmx-cell empty" title="Day ${cell.challengeDay}"></div>`;
-                const scoreClass = cell.score >= 6 ? "score-high" : cell.score >= 3 ? "score-mid" : "score-low";
-                return `<div class="lmx-cell ${scoreClass}" title="Day ${cell.challengeDay}: ${cell.score}">${cell.score}</div>`;
+                if (cell.countsForScore === false) {
+                    return `<div class="lmx-cell practice" title="Day ${cell.challengeDay}: practice check-in" aria-label="Day ${cell.challengeDay}: practice check-in">P</div>`;
+                }
+                const score = typeof cell.score === "number" ? cell.score : 0;
+                const scoreClass = score >= 6 ? "score-high" : score >= 3 ? "score-mid" : "score-low";
+                return `<div class="lmx-cell ${scoreClass}" title="Day ${cell.challengeDay}: ${score}">${score}</div>`;
             }).join("");
             return `<div class="lmx-board-row" role="row">
                 <div class="lmx-name" role="cell">${participant}<div class="lmx-badges">${badges}</div></div>
@@ -657,6 +661,7 @@
     function checkInCardHtml(day) {
         const existing = day.existing || {};
         const saved = savedDays.has(day.challengeDay);
+        const practice = day.countsForScore === false;
         const questions = QUESTIONS.map(q => {
             const current = typeof existing[q.key] === "number" ? existing[q.key] : 1;
             const buttons = ANSWERS.map(answer => `<button type="button" data-value="${answer.value}" aria-pressed="${answer.value === current ? "true" : "false"}">${answer.label}</button>`).join("");
@@ -667,7 +672,8 @@
         }).join("");
 
         return `<form class="lmx-checkin-card" data-day="${day.challengeDay}">
-            <h3>Day ${day.challengeDay} <span class="lmx-phase">${esc(formatCheckInDate(day.date))}</span></h3>
+            <h3>Day ${day.challengeDay} <span class="lmx-phase">${practice ? `Practice check-in - ${esc(formatCheckInDate(day.date))}` : esc(formatCheckInDate(day.date))}</span></h3>
+            ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             ${questions}
             <div class="lmx-field">
                 <label for="lmx-note-${day.challengeDay}">Participant note <span>optional</span></label>
@@ -698,7 +704,7 @@
             return `<div class="lmx-empty-state">
                 <i class="fas fa-circle-check" aria-hidden="true"></i>
                 <strong>You're in.</strong>
-                <span>First check-in opens ${esc(formatDateLabel(firstOpen))}.</span>
+                <span>Your first check-in email arrives ${esc(formatDateLabel(firstOpen))}. Nothing is due before then.</span>
             </div>`;
         }
 

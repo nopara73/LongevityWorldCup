@@ -84,6 +84,49 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task FirstCheckInCountsForConsistencyButNotHabitPoints()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var alice = await fixture.ConfirmParticipantAsync("alice@example.com", "Alice");
+        var bob = await fixture.ConfirmParticipantAsync("bob@example.com", "Bob");
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            alice,
+            1,
+            2,
+            2,
+            2,
+            2,
+            "practice"), DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+
+        var practiceState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:00Z"));
+        var alicePractice = practiceState.Leaderboard.Single(row => row.DisplayName == "Alice");
+        var aliceDay1 = alicePractice.Cells.Single(cell => cell.ChallengeDay == 1);
+        Assert.Equal(1, alicePractice.CheckedInDays);
+        Assert.Equal(1, alicePractice.CurrentStreak);
+        Assert.Equal(0, alicePractice.TotalPoints);
+        Assert.True(aliceDay1.CheckedIn);
+        Assert.False(aliceDay1.CountsForScore);
+        Assert.Null(aliceDay1.Score);
+        Assert.DoesNotContain("Sleep", alicePractice.Badges);
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            bob,
+            2,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
+
+        var scoredState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
+        Assert.Equal("Bob", scoredState.Leaderboard[0].DisplayName);
+        Assert.Equal(8, scoredState.Leaderboard[0].TotalPoints);
+        Assert.Equal("Alice", scoredState.Leaderboard[1].DisplayName);
+        Assert.Equal(0, scoredState.Leaderboard[1].TotalPoints);
+    }
+
+    [Fact]
     public async Task DailyReminderCandidatesSkipCompletedTargetDayAndStoppedEmails()
     {
         using var fixture = TestChallengeFixture.Create();

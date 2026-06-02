@@ -9,6 +9,7 @@ public sealed class LongevitymaxxingChallengeService
 {
     private const string ChallengeName = "Longevitymaxxing Challenge";
     private const int DailyMaxScore = 8;
+    private const int PracticeCheckInDay = 1;
     private static readonly EmailAddressAttribute EmailValidator = new();
     private static readonly string[] CategoryNames = ["Sleep", "Exercise", "Nutrition", "Vices"];
 
@@ -666,7 +667,7 @@ public sealed class LongevitymaxxingChallengeService
             checkIns.TryGetValue(p.Id, out var byDay);
             byDay ??= [];
             var checkedInDays = byDay.Count;
-            var totalPoints = byDay.Values.Sum(c => c.Score);
+            var totalPoints = byDay.Values.Sum(GetScoredPoints);
             var currentStreak = CalculateCurrentStreak(settings, p, byDay, now);
             var latest = byDay.Values
                 .Select(c => c.CheckedInAtUtc)
@@ -676,8 +677,8 @@ public sealed class LongevitymaxxingChallengeService
             var badges = BuildBadges(settings, p.Id, byDay, currentStreak, categoryLeaders);
             var cells = Enumerable.Range(1, settings.DurationDays)
                 .Select(day => byDay.TryGetValue(day, out var checkIn)
-                    ? new LongevitymaxxingDayCell(day, true, checkIn.Score)
-                    : new LongevitymaxxingDayCell(day, false, null))
+                    ? new LongevitymaxxingDayCell(day, true, CountsForScore(day) ? checkIn.Score : null, CountsForScore(day))
+                    : new LongevitymaxxingDayCell(day, false, null, CountsForScore(day)))
                 .ToList();
 
             return new LongevitymaxxingLeaderboardRow(
@@ -748,10 +749,11 @@ public sealed class LongevitymaxxingChallengeService
 
         foreach (var (participantId, byDay) in checkIns)
         {
-            totals["Sleep"][participantId] = byDay.Values.Sum(c => c.Sleep);
-            totals["Exercise"][participantId] = byDay.Values.Sum(c => c.Exercise);
-            totals["Nutrition"][participantId] = byDay.Values.Sum(c => c.Nutrition);
-            totals["Vices"][participantId] = byDay.Values.Sum(c => c.Vices);
+            var scored = byDay.Values.Where(c => CountsForScore(c.ChallengeDay)).ToList();
+            totals["Sleep"][participantId] = scored.Sum(c => c.Sleep);
+            totals["Exercise"][participantId] = scored.Sum(c => c.Exercise);
+            totals["Nutrition"][participantId] = scored.Sum(c => c.Nutrition);
+            totals["Vices"][participantId] = scored.Sum(c => c.Vices);
         }
 
         return totals.ToDictionary(
@@ -811,12 +813,19 @@ public sealed class LongevitymaxxingChallengeService
                 return new LongevitymaxxingEligibleDay(
                     x.day.Value,
                     x.date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    CountsForScore(x.day.Value),
                     existing is null
                         ? null
                         : new LongevitymaxxingCheckInDraft(existing.Sleep, existing.Exercise, existing.Nutrition, existing.Vices, existing.Note));
             })
             .ToList();
     }
+
+    private static bool CountsForScore(int challengeDay)
+        => challengeDay != PracticeCheckInDay;
+
+    private static int GetScoredPoints(CheckInRecord checkIn)
+        => CountsForScore(checkIn.ChallengeDay) ? checkIn.Score : 0;
 
     private IReadOnlyList<LongevitymaxxingPrivateNote> GetParticipantVisibleNotes(string participantId)
     {

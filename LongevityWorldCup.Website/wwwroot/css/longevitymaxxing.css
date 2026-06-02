@@ -971,6 +971,11 @@
     background: repeating-linear-gradient(135deg, #f8fafc, #f8fafc 4px, #eef2f7 4px, #eef2f7 8px);
 }
 
+.lmx-cell.practice {
+    background: #e0f2fe;
+    color: #075985;
+}
+
 .lmx-cell.score-low {
     background: #fee2e2;
     color: #991b1b;
@@ -1090,6 +1095,25 @@
 
 .lmx-checkin-card > .lmx-button {
     justify-self: start;
+}
+
+.lmx-practice-note {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0.55rem 0 0.25rem;
+    padding: 0.65rem 0.7rem;
+    border: 1px solid rgba(14, 165, 233, 0.24);
+    border-radius: 8px;
+    background: #f0f9ff;
+    color: #334155;
+}
+
+.lmx-practice-note strong {
+    color: #075985;
+}
+
+.lmx-practice-note span {
+    line-height: 1.42;
 }
 
 .lmx-empty-state {
