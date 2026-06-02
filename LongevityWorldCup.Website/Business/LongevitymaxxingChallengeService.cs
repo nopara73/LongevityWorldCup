@@ -54,7 +54,8 @@ public sealed class LongevitymaxxingChallengeService
             leaderboard,
             BuildPodium(settings, leaderboard, now),
             BuildPublicCalls(settings),
-            settings.SlackInviteUrl);
+            settings.SlackInviteUrl,
+            settings.SlackRoomUrl);
     }
 
     public async Task<LongevitymaxxingSignupResult> SignupAsync(LongevitymaxxingSignupRequest request, DateTimeOffset? nowUtc = null, CancellationToken ct = default)
@@ -647,6 +648,7 @@ public sealed class LongevitymaxxingChallengeService
             signupCloses.ToUniversalTime(),
             reminderHour,
             string.IsNullOrWhiteSpace(cfg.SlackInviteUrl) ? "" : cfg.SlackInviteUrl.Trim(),
+            string.IsNullOrWhiteSpace(cfg.SlackRoomUrl) ? null : cfg.SlackRoomUrl.Trim(),
             string.IsNullOrWhiteSpace(cfg.VideoCallUrl) ? null : cfg.VideoCallUrl.Trim(),
             calls);
     }
@@ -1434,6 +1436,7 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset SignupClosesAtUtc,
         int DailyReminderHourLocal,
         string SlackInviteUrl,
+        string? SlackRoomUrl,
         string? VideoCallUrl,
         IReadOnlyList<CallSettings> Calls);
 

@@ -20,6 +20,7 @@
     let signupDetailsPrompted = false;
     let selectedCheckInDay = null;
     const savedDays = new Set();
+    const athleteSelectors = new Map();
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -27,6 +28,7 @@
         fillTimeZones(document.getElementById("lmxSignupTimeZone"));
         fillTimeZones(document.getElementById("lmxEditTimeZone"));
         wireForms();
+        initAthleteSelectors();
 
         try {
             await consumeUrlTokens();
@@ -53,12 +55,13 @@
                     email: document.getElementById("lmxSignupEmail").value.trim(),
                     displayName: document.getElementById("lmxSignupName").value.trim(),
                     timeZoneId: document.getElementById("lmxSignupTimeZone").value,
-                    athleteLink: document.getElementById("lmxSignupAthlete").value.trim() || null,
+                    athleteLink: getAthleteSelectorPayload("lmxSignupAthlete"),
                     callAvailability: collectAvailability("lmxSignupCalls")
                 };
                 const result = await postJson(`${API}/signup`, payload);
                 setStatus("lmxSignupStatus", result.message || "Check your email.", false);
                 signupForm.reset();
+                clearAthleteSelector("lmxSignupAthlete");
                 setDefaultTimezone(document.getElementById("lmxSignupTimeZone"));
                 signupSubmitted = true;
                 signupDetailsPrompted = false;
@@ -96,7 +99,7 @@
                     accessToken,
                     displayName: document.getElementById("lmxEditName").value.trim(),
                     timeZoneId: document.getElementById("lmxEditTimeZone").value,
-                    athleteLink: document.getElementById("lmxEditAthlete").value.trim() || null,
+                    athleteLink: getAthleteSelectorPayload("lmxEditAthlete"),
                     callAvailability: collectAvailability("lmxEditCalls")
                 });
                 participantState = result;
@@ -413,8 +416,17 @@
             details.open = false;
         }
         if (!dashboardMode || checkInOnly) toggle("lmxPodium", false);
-        const slack = document.getElementById("lmxSlackLink");
-        if (slack) slack.href = state.slackInviteUrl || "#";
+        const slackInvite = document.getElementById("lmxSlackInviteLink");
+        if (slackInvite) {
+            slackInvite.href = state.slackInviteUrl || "#";
+            slackInvite.classList.toggle("lmx-hidden", !state.slackInviteUrl);
+        }
+
+        const slackRoom = document.getElementById("lmxSlackRoomLink");
+        if (slackRoom) {
+            slackRoom.href = state.slackRoomUrl || "#";
+            slackRoom.classList.toggle("lmx-hidden", !state.slackRoomUrl);
+        }
     }
 
     function renderParticipant(state) {
@@ -438,7 +450,7 @@
         setText("lmxParticipantTitle", title);
 
         document.getElementById("lmxEditName").value = participant.displayName || "";
-        document.getElementById("lmxEditAthlete").value = participant.athleteUrl || "";
+        setAthleteSelectorValue("lmxEditAthlete", participant.athleteSlug || participant.athleteUrl || "");
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
         renderCallVoteControls("lmxEditCalls", state.public.calls || [], state.callAvailability || []);
         renderParticipantCalls(state.calls || []);
@@ -734,6 +746,220 @@
                 callKey: input.dataset.callKey,
                 slotId: input.dataset.slotId
             }));
+    }
+
+    function initAthleteSelectors() {
+        const inputs = ["lmxSignupAthlete", "lmxEditAthlete"]
+            .map(id => document.getElementById(id))
+            .filter(Boolean);
+        if (!inputs.length) return;
+
+        inputs.forEach(input => {
+            input.setAttribute("role", "combobox");
+            input.setAttribute("aria-autocomplete", "list");
+            input.setAttribute("aria-expanded", "false");
+        });
+
+        fetch("/api/data/athletes")
+            .then(response => response.ok ? response.json() : [])
+            .then(data => {
+                const athletes = (Array.isArray(data) ? data : [])
+                    .map(a => ({
+                        name: String(a.Name || "").trim(),
+                        slug: String(a.AthleteSlug || "").trim(),
+                        profilePic: String(a.ProfilePicThumb || a.ProfilePic || "").trim()
+                    }))
+                    .filter(a => a.name && a.slug)
+                    .sort((a, b) => a.name.localeCompare(b.name));
+
+                inputs.forEach(input => wireAthleteSelector(input, athletes));
+            })
+            .catch(() => {});
+    }
+
+    function wireAthleteSelector(input, athletes) {
+        if (athleteSelectors.has(input.id)) return;
+
+        let currentFocus = -1;
+        const selector = {
+            input,
+            athletes,
+            setValue(value) {
+                const raw = String(value || "").trim();
+                const normalized = normalizeAthleteSlug(raw);
+                const match = athletes.find(a => normalizeAthleteSlug(a.slug) === normalized);
+                if (match) {
+                    select(match);
+                    return;
+                }
+
+                input.value = raw;
+                clearSelection();
+            }
+        };
+
+        athleteSelectors.set(input.id, selector);
+        selector.setValue(input.value);
+
+        input.addEventListener("input", () => {
+            clearSelection();
+            renderSuggestions();
+        });
+
+        input.addEventListener("keydown", event => {
+            let list = document.getElementById(`${input.id}-autocomplete-list`);
+            const items = list ? Array.from(list.getElementsByClassName("lmx-athlete-option")) : [];
+
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                currentFocus++;
+                setActive(items);
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                currentFocus--;
+                setActive(items);
+            } else if (event.key === "Enter" && currentFocus > -1 && items[currentFocus]) {
+                event.preventDefault();
+                items[currentFocus].dispatchEvent(new MouseEvent("mousedown"));
+            } else if (event.key === "Escape") {
+                closeList();
+            }
+        });
+
+        document.addEventListener("click", event => {
+            if (!input.closest(".lmx-athlete-selector")?.contains(event.target)) closeList();
+        });
+
+        function renderSuggestions() {
+            const query = input.value.trim().toLowerCase();
+            const terms = query.split(/\s+/).filter(Boolean);
+            closeList();
+            if (!terms.length) return;
+
+            const matches = athletes
+                .filter(a => {
+                    const name = a.name.toLowerCase();
+                    const slug = normalizeAthleteSlug(a.slug);
+                    return terms.every(term => name.includes(term) || slug.includes(term));
+                })
+                .slice(0, 6);
+
+            if (!matches.length) return;
+
+            const list = document.createElement("div");
+            list.id = `${input.id}-autocomplete-list`;
+            list.className = "lmx-athlete-options";
+            list.setAttribute("role", "listbox");
+            input.parentNode.appendChild(list);
+            input.setAttribute("aria-expanded", "true");
+
+            matches.forEach(athlete => {
+                const item = document.createElement("div");
+                item.className = "lmx-athlete-option";
+                item.setAttribute("role", "option");
+                item.innerHTML = `
+                    ${athlete.profilePic ? `<img src="${escAttr(athlete.profilePic)}" alt="" loading="lazy">` : "<span class=\"lmx-athlete-fallback\"></span>"}
+                    <span>${highlightMatch(athlete.name, terms[0])}</span>`;
+                item.addEventListener("mousedown", event => {
+                    event.preventDefault();
+                    select(athlete);
+                    closeList();
+                });
+                list.appendChild(item);
+            });
+        }
+
+        function select(athlete) {
+            input.value = athlete.name;
+            input.dataset.athleteSlug = athlete.slug;
+            input.dataset.athleteName = athlete.name;
+        }
+
+        function clearSelection() {
+            delete input.dataset.athleteSlug;
+            delete input.dataset.athleteName;
+        }
+
+        function closeList() {
+            document.getElementById(`${input.id}-autocomplete-list`)?.remove();
+            input.setAttribute("aria-expanded", "false");
+            currentFocus = -1;
+        }
+
+        function setActive(items) {
+            if (!items.length) return;
+            items.forEach(item => item.classList.remove("autocomplete-active"));
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = items.length - 1;
+            items[currentFocus].classList.add("autocomplete-active");
+            items[currentFocus].scrollIntoView({ block: "nearest" });
+        }
+    }
+
+    function getAthleteSelectorPayload(id) {
+        const input = document.getElementById(id);
+        if (!input) return null;
+
+        const raw = input.value.trim();
+        if (!raw) return null;
+
+        const selectedName = input.dataset.athleteName || "";
+        if (input.dataset.athleteSlug && raw.toLowerCase() === selectedName.toLowerCase()) {
+            return input.dataset.athleteSlug;
+        }
+
+        const normalized = normalizeAthleteSlug(raw);
+        const match = athleteSelectors.get(id)?.athletes.find(a =>
+            a.name.toLowerCase() === raw.toLowerCase() || normalizeAthleteSlug(a.slug) === normalized);
+        return match ? match.slug : raw;
+    }
+
+    function setAthleteSelectorValue(id, value) {
+        const selector = athleteSelectors.get(id);
+        if (selector) {
+            selector.setValue(value);
+            return;
+        }
+
+        const input = document.getElementById(id);
+        if (input) input.value = value || "";
+    }
+
+    function clearAthleteSelector(id) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.value = "";
+        delete input.dataset.athleteSlug;
+        delete input.dataset.athleteName;
+    }
+
+    function normalizeAthleteSlug(value) {
+        let raw = String(value || "").trim();
+        if (!raw) return "";
+
+        try {
+            raw = new URL(raw, window.location.origin).pathname;
+        } catch (_) {}
+
+        raw = raw.replace(/^\/+|\/+$/g, "");
+        if (raw.toLowerCase().startsWith("athlete/")) raw = raw.slice("athlete/".length);
+        return raw
+            .trim()
+            .replace(/_/g, "-")
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "");
+    }
+
+    function highlightMatch(value, term) {
+        const text = String(value || "");
+        const lower = text.toLowerCase();
+        const needle = String(term || "").toLowerCase();
+        const index = needle ? lower.indexOf(needle) : -1;
+        if (index < 0) return esc(text);
+
+        return `${esc(text.slice(0, index))}<strong>${esc(text.slice(index, index + needle.length))}</strong>${esc(text.slice(index + needle.length))}`;
     }
 
     function getPendingCheckInDays(state) {
