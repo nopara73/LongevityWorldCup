@@ -1,5 +1,8 @@
 using LongevityWorldCup.Website;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -82,6 +85,48 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
+    public async Task Homepage_AdvertisesLongevitymaxxingChallengeWhileSignupIsOpen()
+    {
+        using var factory = CreateFactory(new Config
+        {
+            LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig
+            {
+                StartDate = "2099-06-08",
+                SignupClosesAtUtc = "2099-06-08T00:00:00Z"
+            }
+        });
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("id=\"longevitymaxxingPromo\"", html);
+        Assert.Contains("Separate Lifestyle challenge", html);
+        Assert.Contains("does not affect Ultimate League rankings", html);
+        Assert.Contains("href=\"/longevitymaxxing\"", html);
+        Assert.Contains("/api/longevitymaxxing/state", html);
+    }
+
+    [Fact]
+    public async Task Homepage_HidesLongevitymaxxingPromoAfterSignupCloses()
+    {
+        using var factory = CreateFactory(new Config
+        {
+            LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig
+            {
+                StartDate = "2000-06-08",
+                SignupClosesAtUtc = "2000-06-08T00:00:00Z"
+            }
+        });
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.DoesNotContain("id=\"longevitymaxxingPromo\"", html);
+        Assert.DoesNotContain("Separate Lifestyle challenge", html);
+        Assert.DoesNotContain("does not affect Ultimate League rankings", html);
+    }
+
+    [Fact]
     public async Task LongevitymaxxingScript_KeepsSignupLeaderboardVisibleAndFocusesDueCheckIn()
     {
         using var factory = CreateFactory();
@@ -150,13 +195,21 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-practice-note", css);
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
+    private static WebApplicationFactory<Program> CreateFactory(Config? config = null)
     {
         return new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("EnableScheduledJobs", "false");
                 builder.UseSetting("EnableStartupBadgeRefresh", "false");
+                if (config is not null)
+                {
+                    builder.ConfigureTestServices(services =>
+                    {
+                        services.RemoveAll<Config>();
+                        services.AddSingleton(config);
+                    });
+                }
             });
     }
 }
