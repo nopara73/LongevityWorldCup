@@ -494,6 +494,48 @@
     }
     .ranking-explanation.is-visible{ display:block; }
     .ranking-explanation strong{ color:var(--primary-color); }
+    .longevitymaxxing-promo{
+        display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:1rem; margin:0 0 1.25rem;
+        padding:1rem 1.1rem; border:1px solid rgba(0,188,212,.2); border-left:4px solid var(--secondary-color);
+        border-radius:8px; background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(0,188,212,.07) 48%, rgba(255,64,129,.08));
+        box-shadow:0 10px 24px rgba(0,0,0,.08); box-sizing:border-box;
+    }
+    .longevitymaxxing-promo[hidden]{ display:none; }
+    .longevitymaxxing-promo-text{
+        display:grid; gap:.45rem; min-width:0;
+    }
+    .longevitymaxxing-promo-kicker{
+        display:inline-flex; align-items:center; gap:.45rem; color:var(--secondary-color);
+        font-size:.78rem; font-weight:700; line-height:1.2; text-transform:uppercase; letter-spacing:.06em;
+    }
+    .longevitymaxxing-promo-kicker i{
+        color:var(--primary-color); font-size:.95rem;
+    }
+    .longevitymaxxing-promo h2{
+        margin:0; padding:0; text-align:left; color:#1f2933; font-size:clamp(1.35rem, 2.8vw, 1.95rem);
+        line-height:1.08; letter-spacing:0; text-shadow:none;
+    }
+    .longevitymaxxing-promo p{
+        max-width:48rem; margin:0; color:#3d4b55; font-size:1rem; line-height:1.45;
+    }
+    .longevitymaxxing-promo-points{
+        display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.05rem;
+    }
+    .longevitymaxxing-promo-points span{
+        display:inline-flex; align-items:center; min-height:30px; padding:.25rem .6rem; border:1px solid rgba(0,0,0,.08);
+        border-radius:999px; background:rgba(255,255,255,.72); color:#52606d; font-size:.82rem; font-weight:700; box-sizing:border-box;
+    }
+    .longevitymaxxing-promo-action{
+        display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; white-space:nowrap;
+        padding:.72rem 1rem; border-radius:999px; background:var(--main-action-color); color:var(--light-text-color);
+        font-weight:700; text-decoration:none; box-shadow:0 7px 16px rgba(76,175,80,.26);
+        transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .longevitymaxxing-promo-action:hover,
+    .longevitymaxxing-promo-action:focus-visible{
+        background:var(--main-action-selected-color); transform:translateY(-1px);
+        box-shadow:0 10px 20px rgba(56,142,60,.28); outline:none;
+    }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
@@ -1620,6 +1662,18 @@
             margin-left:auto;
             margin-right:auto;
         }
+        .longevitymaxxing-promo{
+            grid-template-columns:1fr; gap:.9rem; margin-bottom:1rem; padding:.95rem; box-shadow:0 8px 18px rgba(0,0,0,.07);
+        }
+        .longevitymaxxing-promo h2{
+            font-size:1.42rem;
+        }
+        .longevitymaxxing-promo p{
+            font-size:.96rem;
+        }
+        .longevitymaxxing-promo-action{
+            width:100%; box-sizing:border-box;
+        }
         body.sidebar-drawer-open{
             overflow:hidden;
         }
@@ -2079,6 +2133,19 @@
             margin-bottom:.55rem;
         }
 
+        .longevitymaxxing-promo{
+            grid-template-columns:minmax(0, 1fr) auto; gap:.7rem; margin-bottom:.6rem; padding:.75rem .85rem;
+        }
+
+        .longevitymaxxing-promo h2{
+            font-size:1.18rem;
+        }
+
+        .longevitymaxxing-promo p,
+        .longevitymaxxing-promo-points{
+            display:none;
+        }
+
         .leaderboard-view-switcher{
             width:auto;
             min-width:0;
@@ -2216,6 +2283,50 @@
 <div class="main-container">
 
     <div class="content">
+        <!--LONGEVITYMAXXING-PROMO-START-->
+        <section class="longevitymaxxing-promo" id="longevitymaxxingPromo" aria-labelledby="longevitymaxxingPromoTitle">
+            <div class="longevitymaxxing-promo-text">
+                <div class="longevitymaxxing-promo-kicker"><i class="fa fa-calendar-check-o" aria-hidden="true"></i> Separate Lifestyle challenge</div>
+                <h2 id="longevitymaxxingPromoTitle">Longevitymaxxing Challenge</h2>
+                <p>Join the 14-day check-in sprint for sleep, exercise, nutrition, and vices. It has its own public visual leaderboard and does not affect Ultimate League rankings.</p>
+                <div class="longevitymaxxing-promo-points" aria-label="Challenge details">
+                    <span>14 days</span>
+                    <span>Daily check-ins</span>
+                    <span>Free signup</span>
+                </div>
+            </div>
+            <a class="longevitymaxxing-promo-action" href="/longevitymaxxing">
+                Join the challenge <i class="fa fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </section>
+        <script>
+            (function () {
+                var promo = document.getElementById('longevitymaxxingPromo');
+                if (!promo || !window.fetch) return;
+
+                fetch('/api/longevitymaxxing/state', { cache: 'no-store' })
+                    .then(function (response) { return response.ok ? response.json() : null; })
+                    .then(function (state) {
+                        if (!state) return;
+                        if (!state.signupOpen) {
+                            promo.hidden = true;
+                            return;
+                        }
+
+                        var closesAt = Date.parse(state.signupClosesAtUtc);
+                        if (Number.isFinite(closesAt)) {
+                            var delay = closesAt - Date.now();
+                            if (delay <= 0) {
+                                promo.hidden = true;
+                            } else if (delay < 2147483647) {
+                                window.setTimeout(function () { promo.hidden = true; }, delay);
+                            }
+                        }
+                    })
+                    .catch(function () { });
+            }());
+        </script>
+        <!--LONGEVITYMAXXING-PROMO-END-->
         <div class="podium" aria-busy="true" style="display:none;">
             <div class="podium-item podium-skeleton-item second" aria-hidden="true">
                 <div class="podium-skeleton-portrait skeleton-shimmer"></div>
