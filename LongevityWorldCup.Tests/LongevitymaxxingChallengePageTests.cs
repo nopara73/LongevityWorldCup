@@ -52,6 +52,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Call availability <span>optional</span>", html);
         Assert.Contains("/css/longevitymaxxing.css?v=", html);
         Assert.Contains("/js/longevitymaxxing.js?v=", html);
+        Assert.Contains("property=\"og:image\" content=\"https://longevityworldcup.com/assets/longevitymaxxing-og.png?v=", html);
+        Assert.Contains("name=\"twitter:image\" content=\"https://longevityworldcup.com/assets/longevitymaxxing-og.png?v=", html);
         Assert.DoesNotContain("{{ASSET_LONGEVITYMAXXING", html);
     }
 
