@@ -12,6 +12,7 @@
         { key: "nutrition", icon: "fa-bowl-food", title: "Nutrition", text: "By your own standards, did you eat healthy yesterday?" },
         { key: "vices", icon: "fa-shield-halved", title: "Vices", text: "Were your vices under control yesterday?" }
     ];
+    const ATHLETE_PLACEHOLDER_IMAGE = "/assets/content-images/headshot.webp";
 
     let publicState = null;
     let participantState = null;
@@ -21,6 +22,8 @@
     let selectedCheckInDay = null;
     const savedDays = new Set();
     const athleteSelectors = new Map();
+    let athleteDirectory = [];
+    let athleteDirectoryPromise = null;
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -509,6 +512,7 @@
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
+            const participant = participantNameHtml(row, name);
             const badges = publicViewer ? "" : (row.badges || []).map(b => `<span class="lmx-badge">${esc(b)}</span>`).join("");
             const cells = (row.cells || []).map(cell => {
                 if (!cell.checkedIn) return `<div class="lmx-cell empty" title="Day ${cell.challengeDay}"></div>`;
@@ -516,7 +520,7 @@
                 return `<div class="lmx-cell ${scoreClass}" title="Day ${cell.challengeDay}: ${cell.score}">${cell.score}</div>`;
             }).join("");
             return `<div class="lmx-board-row" role="row">
-                <div class="lmx-name" role="cell">${name}<div class="lmx-badges">${badges}</div></div>
+                <div class="lmx-name" role="cell">${participant}<div class="lmx-badges">${badges}</div></div>
                 <div class="lmx-number" role="cell" data-label="Days">${row.checkedInDays}</div>
                 <div class="lmx-number" role="cell" data-label="Score">${row.totalPoints}</div>
                 ${publicViewer ? "" : `<div class="lmx-number" role="cell" data-label="Streak">${row.currentStreak}</div>`}
@@ -540,9 +544,10 @@
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
+            const participant = participantNameHtml(row, name);
             const cells = (row.cells || state.days || []).map(cell => `<div class="lmx-cell empty" title="Day ${cell.challengeDay}"></div>`).join("");
             return `<div class="lmx-board-row lmx-roster-row" role="row">
-                <div class="lmx-name" role="cell">${name}</div>
+                <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${cells}</div>
             </div>`;
         }).join("");
@@ -748,6 +753,52 @@
             }));
     }
 
+    function participantNameHtml(row, nameHtml) {
+        const athlete = findAthleteForParticipant(row);
+        const image = athlete?.profilePic || ATHLETE_PLACEHOLDER_IMAGE;
+        const avatarClass = athlete ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
+        const alt = athlete ? `${row.displayName || "Participant"} profile picture` : "";
+        return `<div class="lmx-participant-name">
+            <span class="${avatarClass}" aria-hidden="${athlete ? "false" : "true"}">
+                <img src="${escAttr(image)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
+            </span>
+            <span class="lmx-participant-label">${nameHtml}</span>
+        </div>`;
+    }
+
+    function findAthleteForParticipant(row) {
+        if (!row || !row.athleteUrl || !athleteDirectory.length) return null;
+        const slug = normalizeAthleteSlug(row.athleteUrl);
+        if (!slug) return null;
+        return athleteDirectory.find(athlete => normalizeAthleteSlug(athlete.slug) === slug) || null;
+    }
+
+    function loadAthleteDirectory() {
+        if (athleteDirectoryPromise) return athleteDirectoryPromise;
+
+        athleteDirectoryPromise = fetch("/api/data/athletes")
+            .then(response => response.ok ? response.json() : [])
+            .then(data => {
+                athleteDirectory = (Array.isArray(data) ? data : [])
+                    .map(a => ({
+                        name: String(a.Name || "").trim(),
+                        slug: String(a.AthleteSlug || "").trim(),
+                        profilePic: String(a.ProfilePicLeaderboardThumb || a.ProfilePicThumb || a.ProfilePic || "").trim()
+                    }))
+                    .filter(a => a.name && a.slug)
+                    .sort((a, b) => a.name.localeCompare(b.name));
+
+                if (publicState) renderAll();
+                return athleteDirectory;
+            })
+            .catch(() => {
+                athleteDirectoryPromise = null;
+                return [];
+            });
+
+        return athleteDirectoryPromise;
+    }
+
     function initAthleteSelectors() {
         const inputs = ["lmxSignupAthlete", "lmxEditAthlete"]
             .map(id => document.getElementById(id))
@@ -760,21 +811,8 @@
             input.setAttribute("aria-expanded", "false");
         });
 
-        fetch("/api/data/athletes")
-            .then(response => response.ok ? response.json() : [])
-            .then(data => {
-                const athletes = (Array.isArray(data) ? data : [])
-                    .map(a => ({
-                        name: String(a.Name || "").trim(),
-                        slug: String(a.AthleteSlug || "").trim(),
-                        profilePic: String(a.ProfilePicThumb || a.ProfilePic || "").trim()
-                    }))
-                    .filter(a => a.name && a.slug)
-                    .sort((a, b) => a.name.localeCompare(b.name));
-
-                inputs.forEach(input => wireAthleteSelector(input, athletes));
-            })
-            .catch(() => {});
+        loadAthleteDirectory()
+            .then(athletes => inputs.forEach(input => wireAthleteSelector(input, athletes)));
     }
 
     function wireAthleteSelector(input, athletes) {

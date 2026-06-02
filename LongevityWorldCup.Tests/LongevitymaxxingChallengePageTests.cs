@@ -113,8 +113,13 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("initAthleteSelectors();", javascript);
         Assert.Contains("fetch(\"/api/data/athletes\")", javascript);
         Assert.Contains("function getAthleteSelectorPayload", javascript);
+        Assert.Contains("ATHLETE_PLACEHOLDER_IMAGE = \"/assets/content-images/headshot.webp\"", javascript);
+        Assert.Contains("function participantNameHtml", javascript);
+        Assert.Contains("findAthleteForParticipant(row)", javascript);
         Assert.Contains("lmx-athlete-options", css);
         Assert.Contains(".lmx-athlete-option.autocomplete-active", css);
+        Assert.Contains(".lmx-participant-avatar", css);
+        Assert.Contains(".lmx-participant-avatar.placeholder img", css);
         Assert.Contains("lmxSlackInviteLink", javascript);
         Assert.Contains("lmxSlackRoomLink", javascript);
         Assert.Contains("state.slackRoomUrl", javascript);
