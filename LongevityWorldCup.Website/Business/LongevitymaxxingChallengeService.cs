@@ -47,6 +47,7 @@ public sealed class LongevitymaxxingChallengeService
             GetPhase(settings, now),
             IsSignupOpen(settings, now),
             settings.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            settings.SignupClosesAtUtc.ToString("o", CultureInfo.InvariantCulture),
             settings.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             settings.DurationDays,
             DailyMaxScore,
@@ -880,7 +881,7 @@ public sealed class LongevitymaxxingChallengeService
                 call.Key,
                 call.Label,
                 call.SelectedSlot,
-                call.SelectedSlot is null ? null : settings.VideoCallUrl))
+                settings.VideoCallUrl))
             .ToList();
     }
 
