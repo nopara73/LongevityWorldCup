@@ -3224,41 +3224,59 @@
                     let chronoAtLowestBortzAge = null;
                     let bortzAgeReduction = null;
                     let bortzAgeReductionPercent = null;
+                    let bortzAgeDifference = null;
                     let bestBortzValues = null;
                     if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                         let bortzMin = Infinity;
                         let chronoAtBortzMin = null;
-                        athlete.Biomarkers.forEach(entry => {
-                            if (!isCompleteBortzBiomarkerSet(entry)) return;
+                        const completeBortzBiomarkerSets = athlete.Biomarkers.filter(isCompleteBortzBiomarkerSet);
+                        const buildBortzValues = (entry) => {
                             const entryDate = new Date(entry.Date);
                             const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
                             const wbc = entry.Wbc1000cellsuL;
                             const monoCount = wbc * entry.MonocytePc / 100;
                             const neutCount = wbc * entry.NeutrophilPc / 100;
-                            const bortzValues = [
+                            return {
                                 ageAtEntry,
-                                entry.AlbGL,
-                                entry.AlpUL,
-                                entry.UreaMmolL,
-                                entry.CholesterolMmolL,
-                                entry.CreatUmolL,
-                                entry.CystatinCMgL,
-                                entry.Hba1cMmolMol,
-                                entry.CrpMgL,
-                                entry.GgtUL,
-                                entry.Rbc10e12L,
-                                entry.McvFL,
-                                entry.RdwPc,
-                                monoCount,
-                                neutCount,
-                                entry.LymPc,
-                                entry.AltUL,
-                                entry.ShbgNmolL,
-                                entry.VitaminDNmolL,
-                                entry.GluMmolL,
-                                entry.MchPg,
-                                entry.ApoA1GL
-                            ];
+                                values: [
+                                    ageAtEntry,
+                                    entry.AlbGL,
+                                    entry.AlpUL,
+                                    entry.UreaMmolL,
+                                    entry.CholesterolMmolL,
+                                    entry.CreatUmolL,
+                                    entry.CystatinCMgL,
+                                    entry.Hba1cMmolMol,
+                                    entry.CrpMgL,
+                                    entry.GgtUL,
+                                    entry.Rbc10e12L,
+                                    entry.McvFL,
+                                    entry.RdwPc,
+                                    monoCount,
+                                    neutCount,
+                                    entry.LymPc,
+                                    entry.AltUL,
+                                    entry.ShbgNmolL,
+                                    entry.VitaminDNmolL,
+                                    entry.GluMmolL,
+                                    entry.MchPg,
+                                    entry.ApoA1GL
+                                ]
+                            };
+                        };
+
+                        if (completeBortzBiomarkerSets.length > 0) {
+                            const firstBortzSubmission = buildBortzValues(completeBortzBiomarkerSets[0]);
+                            const lastBortzSubmission = buildBortzValues(completeBortzBiomarkerSets[completeBortzBiomarkerSets.length - 1]);
+                            const firstBortzAge = window.BortzAge.calculateBortzAge(firstBortzSubmission.ageAtEntry, firstBortzSubmission.values);
+                            const lastBortzAge = window.BortzAge.calculateBortzAge(lastBortzSubmission.ageAtEntry, lastBortzSubmission.values);
+                            if (Number.isFinite(firstBortzAge) && Number.isFinite(lastBortzAge)) {
+                                bortzAgeDifference = lastBortzAge - firstBortzAge;
+                            }
+                        }
+
+                        completeBortzBiomarkerSets.forEach(entry => {
+                            const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
                             const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
                             if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                                 bortzMin = bortzAge;
@@ -3321,6 +3339,10 @@
                         exclusiveLeague: athlete.ExclusiveLeague,
                         submissionCount: submissionCount,
                         phenoAgeDifference: phenoAgeDifference,
+                        PhenoAgeDiffFromBaseline: athlete.PhenoAgeDiffFromBaseline,
+                        BortzAgeDiffFromBaseline: Number.isFinite(athlete.BortzAgeDiffFromBaseline)
+                            ? athlete.BortzAgeDiffFromBaseline
+                            : bortzAgeDifference,
                         podcastLink: athlete.PodcastLink,
                         lastMonthRank: lastMonthRank,
                         rankImproved: rankImproved,
