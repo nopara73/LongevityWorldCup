@@ -18,6 +18,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Starts soon", html);
         Assert.Contains("Free", html);
         Assert.Contains("Join free", html);
+        Assert.Contains("<label for=\"lmxSignupName\">Username</label>", html);
+        Assert.Contains("<label for=\"lmxEditName\">Username</label>", html);
+        Assert.Contains("autocomplete=\"username\"", html);
+        Assert.DoesNotContain("<label for=\"lmxSignupName\">Name</label>", html);
         Assert.Contains("Fell off your habits?", html);
         Assert.Contains("Too busy for a full reset?", html);
         Assert.Contains("Travel, stress, or deadlines?", html);
