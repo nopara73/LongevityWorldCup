@@ -75,7 +75,7 @@ public sealed record LongevitymaxxingLeaderboardRow(
     IReadOnlyList<string> Badges,
     string? LatestCheckInAtUtc);
 
-public sealed record LongevitymaxxingDayCell(int ChallengeDay, bool CheckedIn, int? Score);
+public sealed record LongevitymaxxingDayCell(int ChallengeDay, bool CheckedIn, int? Score, bool CountsForScore);
 
 public sealed record LongevitymaxxingPodiumRow(int Placement, string DisplayName, string? AthleteUrl, int CheckedInDays, int TotalPoints);
 
@@ -96,6 +96,7 @@ public sealed record LongevitymaxxingCallSlot(string Id, string StartsAtUtc);
 public sealed record LongevitymaxxingEligibleDay(
     int ChallengeDay,
     string Date,
+    bool CountsForScore,
     LongevitymaxxingCheckInDraft? Existing);
 
 public sealed record LongevitymaxxingCheckInDraft(

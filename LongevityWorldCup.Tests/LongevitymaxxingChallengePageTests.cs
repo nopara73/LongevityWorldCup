@@ -38,6 +38,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Need your check-in link?", html);
         Assert.Contains("private check-in link", html);
         Assert.Contains("Send check-in link", html);
+        Assert.Contains("The first check-in email arrives the morning after Day 1", html);
         Assert.DoesNotContain("Get your link", html);
         Assert.DoesNotContain("daily max", html);
         Assert.Contains("points/day", html);
@@ -137,6 +138,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Meeting time pending until signup closes on", javascript);
         Assert.Contains("class=\"lmx-call-link\"", javascript);
         Assert.Contains(".lmx-call-link", css);
+        Assert.Contains("Your first check-in email arrives the morning after Day 1. Nothing is due before then.", javascript);
+        Assert.Contains("Practice check-in", javascript);
+        Assert.Contains("Counts for checked-in days and streak, not points.", javascript);
+        Assert.Contains("cell.countsForScore === false", javascript);
+        Assert.Contains(".lmx-cell.practice", css);
+        Assert.Contains(".lmx-practice-note", css);
     }
 
     private static WebApplicationFactory<Program> CreateFactory()
