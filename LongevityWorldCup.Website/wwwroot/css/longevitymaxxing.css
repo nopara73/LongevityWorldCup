@@ -856,6 +856,41 @@
     gap: 0.2rem;
 }
 
+.lmx-participant-name {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.lmx-participant-avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 2px solid var(--secondary-color, #ff4f87);
+    border-radius: 999px;
+    background: #eef3f7;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.lmx-participant-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lmx-participant-avatar.placeholder img {
+    object-position: center 42%;
+}
+
+.lmx-participant-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .lmx-empty-name {
     color: #64748b;
 }
