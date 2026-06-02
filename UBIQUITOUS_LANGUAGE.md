@@ -77,6 +77,7 @@
 | **Share preview** | The Open Graph or social-card representation of a page, athlete, or league link. | Thumbnail, card |
 | **Athlete 1v1 challenge** | A proposed community-game format where athletes challenge each other and rankings emerge from matchups. | Matchup league, challenge league |
 | **Lifestyle challenge** | A proposed side competition using lifestyle tracker or journal inputs such as sleep, nutrition, exercise, and vice tracking. | Habit challenge, side quest |
+| **Longevitymaxxing Challenge** | A 14-day Lifestyle challenge where participants check in daily on sleep, exercise, nutrition, and vices to build momentum on a public visual leaderboard. | Habit tracker, wellness app |
 
 ## Money and public positioning
 
@@ -105,6 +106,7 @@
 - **Badges** are derived from leaderboard positions, clock metrics, submission behavior, crowd metrics, and editorial rules.
 - **Events** announce athlete joins, rank changes, donations, milestones, badge awards, custom events, and season final results.
 - **Social posts** can be generated from **Events**, **Badges**, athlete rankings, and league context.
+- The **Longevitymaxxing Challenge** is separate from the **Ultimate League** and does not affect biological age rankings, placements, or badges.
 
 ## Example dialogue
 

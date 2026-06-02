@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
@@ -16,6 +16,7 @@ namespace LongevityWorldCup.Website.Middleware
         private readonly LeaderboardFactsService _leaderboardFacts = leaderboardFacts;
         private readonly SitemapService _sitemap = sitemap;
         private readonly ILogger<HtmlInjectionMiddleware> _logger = logger;
+        private readonly string _webRootPath = ResolveWebRootPath(environment);
         private const string SiteBaseUrl = "https://longevityworldcup.com";
         private const string DefaultOgImagePath = "/assets/og-image.png";
         private const string LeaderboardRowsStartMarker = "<!--LEADERBOARD-TBODY-ROWS-START-->";
@@ -25,6 +26,7 @@ namespace LongevityWorldCup.Website.Middleware
         {
             "/",
             "/leaderboard",
+            "/longevitymaxxing",
             "/events",
             "/media",
             "/about",
@@ -54,11 +56,11 @@ namespace LongevityWorldCup.Website.Middleware
 
                 if (path == "/" || IsLeagueRoute(path) || IsAthleteRoute(path))
                 {
-                    filePath = Path.Combine("wwwroot", "index.html");
+                    filePath = Path.Combine(_webRootPath, "index.html");
                 }
                 else
                 {
-                    filePath = Path.Combine("wwwroot", (path ?? "").TrimStart('/'));
+                    filePath = Path.Combine(_webRootPath, (path ?? "").TrimStart('/'));
                 }
 
                 if (File.Exists(filePath))
@@ -67,15 +69,15 @@ namespace LongevityWorldCup.Website.Middleware
                     var bodyContent = await File.ReadAllTextAsync(filePath);
 
                     // Read the header and footer files
-                    var head = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "head.html"));
-                    var header = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "header.html"));
-                    var footer = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "footer.html"));
-                    var progressBar = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "main-progress-bar.html"));
-                    var subProgressBar = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "sub-progress-bar.html"));
-                    var leaderboardContent = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "leaderboard-content.html"));
-                    var guessMyAge = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "guess-my-age.html"));
-                    var eventBoardContent = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "event-board-content.html"));
-                    var ageVisualization = await File.ReadAllTextAsync(Path.Combine("wwwroot", "partials", "age-visualization.html"));
+                    var head = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "head.html"));
+                    var header = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "header.html"));
+                    var footer = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "footer.html"));
+                    var progressBar = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "main-progress-bar.html"));
+                    var subProgressBar = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "sub-progress-bar.html"));
+                    var leaderboardContent = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "leaderboard-content.html"));
+                    var guessMyAge = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "guess-my-age.html"));
+                    var eventBoardContent = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "event-board-content.html"));
+                    var ageVisualization = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "age-visualization.html"));
                     var seo = GetSeoMeta(context);
 
                     head = head
@@ -106,6 +108,8 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--AGE-VISUALIZATION-->", ageVisualization)
                         .Replace("{{ASSET_BIOAGEFORM_CSS}}", _assetVersionProvider.AppendVersion("/css/bioageform.css"))
                         .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"))
+                        .Replace("{{ASSET_LONGEVITYMAXXING_CSS}}", _assetVersionProvider.AppendVersion("/css/longevitymaxxing.css"))
+                        .Replace("{{ASSET_LONGEVITYMAXXING_JS}}", _assetVersionProvider.AppendVersion("/js/longevitymaxxing.js"))
                         .Replace("{{ASSET_CUSTOM_EVENT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/custom_event.png"))
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"));
@@ -209,6 +213,14 @@ namespace LongevityWorldCup.Website.Middleware
             var canonicalPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
             return string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
                    !context.Request.QueryString.HasValue;
+        }
+
+        private static string ResolveWebRootPath(IWebHostEnvironment environment)
+        {
+            if (!string.IsNullOrWhiteSpace(environment.WebRootPath) && Directory.Exists(environment.WebRootPath))
+                return environment.WebRootPath;
+
+            return Path.Combine(environment.ContentRootPath, "wwwroot");
         }
 
         private string ApplySharedAssetPlaceholders(string html)
@@ -441,6 +453,16 @@ $@"<script type=""module"">
                     "Leaderboard | Longevity World Cup",
                     "Leaderboard | Longevity World Cup",
                     "View the Longevity World Cup leaderboard for verified biological age reduction rankings across athletes, leagues, and categories.",
+                    defaultOgImage
+                ),
+                "/longevitymaxxing" => new SeoMeta(
+                    canonicalPath,
+                    "Join the Longevitymaxxing Challenge, a 14-day Lifestyle challenge for daily momentum across sleep, exercise, nutrition, and vices.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Longevitymaxxing Challenge | Longevity World Cup",
+                    "Longevitymaxxing Challenge | Longevity World Cup",
+                    "A 14-day Lifestyle challenge for getting momentum back with a public visual leaderboard.",
                     defaultOgImage
                 ),
                 "/events" => new SeoMeta(
@@ -1164,6 +1186,7 @@ $@"<script type=""module"">
             return canonicalPath switch
             {
                 "/leaderboard" => "Leaderboard",
+                "/longevitymaxxing" => "Longevitymaxxing Challenge",
                 "/events" => "Events",
                 "/media" => "Media",
                 "/about" => "About",
