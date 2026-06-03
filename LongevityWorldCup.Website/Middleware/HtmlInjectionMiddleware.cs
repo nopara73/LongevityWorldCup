@@ -457,6 +457,7 @@ $@"<script type=""module"">
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var defaultOgImage = BuildDefaultOgImageUrl();
             var longevitymaxxingOgImage = BuildOgImageUrl(LongevitymaxxingOgImagePath);
+            const string noCardDescription = "";
 
             return canonicalPath switch
             {
@@ -467,7 +468,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Longevity World Cup | Reverse Your Biological Age",
-                    "Reverse age. Climb the leaderboard.",
+                    noCardDescription,
                     BuildPageOgImageUrl("home", defaultOgImage)
                 ),
                 "/leaderboard" => new SeoMeta(
@@ -477,7 +478,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Leaderboard | Longevity World Cup",
                     "Leaderboard | Longevity World Cup",
-                    "Verified age reduction rankings.",
+                    noCardDescription,
                     defaultOgImage
                 ),
                 "/longevitymaxxing" => new SeoMeta(
@@ -487,7 +488,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevitymaxxing Challenge | Longevity World Cup",
                     "Longevitymaxxing Challenge | Longevity World Cup",
-                    "A 14-day Lifestyle challenge.",
+                    noCardDescription,
                     longevitymaxxingOgImage
                 ),
                 "/events" => new SeoMeta(
@@ -497,7 +498,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Highlights | Longevity World Cup",
                     "Highlights | Longevity World Cup",
-                    "Season updates and competition highlights.",
+                    noCardDescription,
                     BuildPageOgImageUrl("events", defaultOgImage)
                 ),
                 "/media" => new SeoMeta(
@@ -507,7 +508,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Media Kit | Longevity World Cup",
                     "Media Kit | Longevity World Cup",
-                    "Press-ready logos and assets.",
+                    noCardDescription,
                     BuildPageOgImageUrl("media", defaultOgImage)
                 ),
                 "/about" => new SeoMeta(
@@ -517,7 +518,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "About Longevity World Cup",
                     "About Longevity World Cup",
-                    "A biomarker-based longevity sport.",
+                    noCardDescription,
                     BuildPageOgImageUrl("about", defaultOgImage)
                 ),
                 "/history" => new SeoMeta(
@@ -527,7 +528,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "History of Longevity as a Sport | Longevity World Cup",
                     "History of Longevity as a Sport | Longevity World Cup",
-                    "How longevity became a sport.",
+                    noCardDescription,
                     BuildPageOgImageUrl("history", defaultOgImage)
                 ),
                 "/ruleset" => new SeoMeta(
@@ -537,7 +538,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Ruleset | Longevity World Cup",
                     "Ruleset | Longevity World Cup",
-                    "Seasons, tracks, rankings, prizes.",
+                    noCardDescription,
                     BuildPageOgImageUrl("ruleset", defaultOgImage)
                 ),
                 _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
@@ -547,7 +548,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevity World Cup",
                     "Longevity World Cup",
-                    "Longevity World Cup.",
+                    noCardDescription,
                     defaultOgImage
                 ),
                 _ => new SeoMeta(
@@ -557,7 +558,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevity World Cup",
                     "Longevity World Cup",
-                    "Reverse biological age and compete.",
+                    noCardDescription,
                     defaultOgImage
                 )
             };
@@ -666,7 +667,7 @@ $@"<script type=""module"">
                 canonicalUrl,
                 title,
                 title,
-                description,
+                "",
                 ogImageUrl
             );
 
@@ -705,7 +706,7 @@ $@"<script type=""module"">
                 canonicalUrl,
                 title,
                 title,
-                description,
+                "",
                 ogImageUrl
             );
             return true;
@@ -732,7 +733,7 @@ $@"<script type=""module"">
                 canonicalUrl,
                 viewSeo.Title,
                 viewSeo.Title,
-                viewSeo.Description,
+                "",
                 ogImageUrl
             );
             return true;
