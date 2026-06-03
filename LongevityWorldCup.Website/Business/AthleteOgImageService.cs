@@ -212,7 +212,7 @@ public sealed class AthleteOgImageService
                 await using var profileStream = File.OpenRead(profilePath);
                 using var profile = await Image.LoadAsync<Rgba32>(profileStream, ct);
                 var renderSize = ProfileSize + (ProfileBleed * 2);
-                profile.Mutate(ctx => ctx.Resize(new ResizeOptions
+                profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
                 {
                     Size = new Size(renderSize, renderSize),
                     Mode = ResizeMode.Crop,
@@ -403,7 +403,7 @@ public sealed class AthleteOgImageService
             : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v19",
+            "athlete-og-v20",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
