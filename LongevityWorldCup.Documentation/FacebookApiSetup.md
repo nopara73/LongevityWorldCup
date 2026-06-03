@@ -119,7 +119,15 @@ Use exactly the values printed by the helper.
 
 ---
 
-## 8. Publish the Meta App
+## 8. Token Refresh Persistence
+
+The Website refreshes Facebook user and page tokens automatically after an auth failure. It first saves the rotated values to `config.json`. If production `config.json` is readable but not writable by the service account, it saves the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json`.
+
+On startup, `runtime-config.json` is applied only when it is newer than `config.json`. If you manually regenerate Facebook tokens, edit `config.json` and remove or update the runtime sidecar if you need the manual values to take effect immediately.
+
+---
+
+## 9. Publish the Meta App
 
 Before going live:
 
