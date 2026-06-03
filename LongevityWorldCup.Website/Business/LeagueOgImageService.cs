@@ -22,7 +22,6 @@ public sealed class LeagueOgImageService
     private static readonly Color LeagueSubtitleColor = new(new Rgba32(255, 255, 255, 205));
     private static readonly Color AccentColor = ParseHex("78DA3B");
     private static readonly Color NameLabelColor = Color.White;
-    private static readonly Color NameLabelPanelColor = new(new Rgba32(0, 0, 0, 208));
     private static readonly Color NameLabelShadowColor = new(new Rgba32(0, 0, 0, 210));
     private static readonly Color EmptySlotFillColor = new(new Rgba32(18, 21, 23, 218));
     private static readonly Color EmptySlotTextColor = new(new Rgba32(255, 255, 255, 190));
@@ -87,6 +86,7 @@ public sealed class LeagueOgImageService
         string Signature);
 
     private readonly record struct Slot(int CenterX, int CenterY, int Diameter);
+    private sealed record NameLayout(Font Font, IReadOnlyList<string> Lines);
 
     public bool IsConfigured => File.Exists(_templatePath) && File.Exists(_fontPath);
 
@@ -336,42 +336,43 @@ public sealed class LeagueOgImageService
         var secondName = top3Names.Count > 1 ? top3Names[1] : "";
         var thirdName = top3Names.Count > 2 ? top3Names[2] : "";
 
-        // Approx podium front-face widths for labels.
-        const float centerMaxWidth = 240f;
-        const float sideMaxWidth = 200f;
-
-        var firstFont = FitFontToWidth(fontFamily, firstName, 34f, 22f, centerMaxWidth);
-        var secondFont = FitFontToWidth(fontFamily, secondName, 28f, 19f, sideMaxWidth);
-        var thirdFont = FitFontToWidth(fontFamily, thirdName, 28f, 19f, sideMaxWidth);
-
-        // Figma y positions:
-        // center label top: 444
-        // side labels top: 466
-        DrawCenteredLabel(image, firstName, firstFont, PodiumSlots[0].CenterX, 438f, centerMaxWidth + 34f);
-        DrawCenteredLabel(image, secondName, secondFont, PodiumSlots[1].CenterX, 460f, sideMaxWidth + 34f);
-        DrawCenteredLabel(image, thirdName, thirdFont, PodiumSlots[2].CenterX, 460f, sideMaxWidth + 34f);
+        DrawPodiumNameLabel(image, firstName, fontFamily, PodiumSlots[0].CenterX, 438f, 248f, 30f, 20f);
+        DrawPodiumNameLabel(image, secondName, fontFamily, PodiumSlots[1].CenterX, 464f, 198f, 25f, 17f);
+        DrawPodiumNameLabel(image, thirdName, fontFamily, PodiumSlots[2].CenterX, 464f, 198f, 25f, 17f);
     }
 
-    private static void DrawCenteredLabel(Image<Rgba32> image, string text, Font font, float centerX, float topY, float panelWidth)
+    private static void DrawPodiumNameLabel(
+        Image<Rgba32> image,
+        string text,
+        FontFamily fontFamily,
+        float centerX,
+        float topY,
+        float maxWidth,
+        float startSize,
+        float minSize)
     {
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
-        var panelHeight = Math.Max(34f, textSize.Height + 12f);
-        var panelX = centerX - (panelWidth / 2f);
-        var panelY = topY - 4f;
+        var layout = BuildNameLayout(text, fontFamily, maxWidth, startSize, minSize);
+        var lineHeight = layout.Font.Size * 1.02f;
+        var totalHeight = lineHeight * layout.Lines.Count;
+        var y = topY - Math.Max(0f, (totalHeight - lineHeight) / 2f);
+
         image.Mutate(ctx =>
         {
-            ctx.Fill(NameLabelPanelColor, new RectangularPolygon(panelX, panelY, panelWidth, panelHeight));
-            ctx.Fill(AccentColor, new RectangularPolygon(panelX, panelY, panelWidth, 3f));
-            DrawTextShadow(ctx, text, font, new PointF(centerX, topY), HorizontalAlignment.Center, NameLabelShadowColor, 2f);
-            ctx.DrawText(new RichTextOptions(font)
+            foreach (var line in layout.Lines)
             {
-                Origin = new PointF(centerX, topY),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, text, NameLabelColor);
+                DrawNameTextShadow(ctx, line, layout.Font, new PointF(centerX, y));
+                ctx.DrawText(new RichTextOptions(layout.Font)
+                {
+                    Origin = new PointF(centerX, y),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Top
+                }, line, NameLabelColor);
+
+                y += lineHeight;
+            }
         });
     }
 
@@ -386,7 +387,7 @@ public sealed class LeagueOgImageService
         const float panelY = 442f;
         image.Mutate(ctx =>
         {
-            ctx.Fill(NameLabelPanelColor, new RectangularPolygon(panelX, panelY, panelWidth, panelHeight));
+            ctx.Fill(new Rgba32(0, 0, 0, 208), new RectangularPolygon(panelX, panelY, panelWidth, panelHeight));
             DrawTextShadow(ctx, text, font, new PointF(CanvasWidth / 2f, panelY + ((panelHeight - textSize.Height) / 2f)), HorizontalAlignment.Center, NameLabelShadowColor, 2f);
             ctx.DrawText(new RichTextOptions(font)
             {
@@ -442,6 +443,113 @@ public sealed class LeagueOgImageService
         }
 
         return family.CreateFont(minSize, FontStyle.Bold);
+    }
+
+    private static NameLayout BuildNameLayout(string text, FontFamily family, float maxWidth, float startSize, float minSize)
+    {
+        var normalized = string.Join(" ", text.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        var forcedLines = TrySplitCommaName(normalized);
+        if (forcedLines is not null)
+            return BuildMultilineNameLayout(forcedLines, family, maxWidth, startSize, minSize);
+
+        for (var size = startSize; size >= minSize; size -= 1f)
+        {
+            var font = family.CreateFont(size, FontStyle.Bold);
+            if (TextMeasurer.MeasureSize(normalized, new RichTextOptions(font)).Width <= maxWidth)
+                return new NameLayout(font, [normalized]);
+        }
+
+        var lines = SplitNameIntoLines(normalized);
+        return BuildMultilineNameLayout(lines, family, maxWidth, startSize, minSize);
+    }
+
+    private static NameLayout BuildMultilineNameLayout(IReadOnlyList<string> lines, FontFamily family, float maxWidth, float startSize, float minSize)
+    {
+        for (var size = startSize - 2f; size >= minSize; size -= 1f)
+        {
+            var font = family.CreateFont(size, FontStyle.Bold);
+            if (lines.All(line => TextMeasurer.MeasureSize(line, new RichTextOptions(font)).Width <= maxWidth))
+                return new NameLayout(font, lines);
+        }
+
+        var fallbackFont = family.CreateFont(minSize, FontStyle.Bold);
+        return new NameLayout(fallbackFont, lines.Select(line => TruncateToWidth(line, fallbackFont, maxWidth)).ToArray());
+    }
+
+    private static IReadOnlyList<string>? TrySplitCommaName(string text)
+    {
+        var comma = text.IndexOf(',');
+        if (comma > 0 && comma < text.Length - 1)
+        {
+            return
+            [
+                text[..comma].Trim(),
+                text[(comma + 1)..].Trim()
+            ];
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<string> SplitNameIntoLines(string text)
+    {
+        var commaLines = TrySplitCommaName(text);
+        if (commaLines is not null)
+            return commaLines;
+
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length <= 1)
+            return [text];
+
+        var midpoint = text.Length / 2f;
+        var bestIndex = 1;
+        var bestDistance = float.MaxValue;
+        var lengthSoFar = 0;
+        for (var i = 1; i < words.Length; i++)
+        {
+            lengthSoFar += words[i - 1].Length + (i == 1 ? 0 : 1);
+            var distance = Math.Abs(lengthSoFar - midpoint);
+            if (distance >= bestDistance)
+                continue;
+
+            bestDistance = distance;
+            bestIndex = i;
+        }
+
+        return
+        [
+            string.Join(" ", words.Take(bestIndex)),
+            string.Join(" ", words.Skip(bestIndex))
+        ];
+    }
+
+    private static string TruncateToWidth(string text, Font font, float maxWidth)
+    {
+        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
+            return text;
+
+        var trimmed = text;
+        while (trimmed.Length > 0 && TextMeasurer.MeasureSize(trimmed + "...", new RichTextOptions(font)).Width > maxWidth)
+            trimmed = trimmed[..^1].TrimEnd();
+
+        return string.IsNullOrWhiteSpace(trimmed) ? "..." : trimmed + "...";
+    }
+
+    private static void DrawNameTextShadow(IImageProcessingContext ctx, string text, Font font, PointF origin)
+    {
+        var options = new RichTextOptions(font)
+        {
+            Origin = new PointF(origin.X, origin.Y + 3f),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        ctx.DrawText(options, text, new Rgba32(0, 0, 0, 235));
+
+        options.Origin = new PointF(origin.X + 1.5f, origin.Y + 1.5f);
+        ctx.DrawText(options, text, new Rgba32(0, 0, 0, 170));
+
+        options.Origin = new PointF(origin.X - 1.5f, origin.Y + 1.5f);
+        ctx.DrawText(options, text, new Rgba32(0, 0, 0, 150));
     }
 
     private static void DrawCircularProfile(Image<Rgba32> target, Image<Rgba32> source, Slot slot)
@@ -519,7 +627,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v24",
+            "league-og-v26",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
