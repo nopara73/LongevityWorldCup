@@ -22,7 +22,6 @@ public sealed class PageOgImageService
     private static readonly Color BackgroundTop = ParseHex("05080B");
     private static readonly Color BackgroundBottom = ParseHex("15181B");
     private static readonly Color TitleColor = Color.White;
-    private static readonly Color MutedColor = new(new Rgba32(148, 163, 184, 255));
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 180));
 
     private static readonly IReadOnlyDictionary<string, PageOgDefinition> Definitions =
@@ -290,31 +289,15 @@ public sealed class PageOgImageService
 
     private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, Color accent)
     {
-        var kickerFont = boldFamily.CreateFont(26, FontStyle.Bold);
         var titleFont = FitFontToWidth(boldFamily, payload.Title, 84f, 54f, ContentWidth);
-        var footerFont = boldFamily.CreateFont(22f, FontStyle.Bold);
 
         image.Mutate(ctx =>
         {
-            ctx.DrawText(new RichTextOptions(kickerFont)
-            {
-                Origin = new PointF(ContentX, ContentTop + 54f),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, payload.Kicker.ToUpperInvariant(), accent);
-
             ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
                 new RectangularPolygon(ContentX, ContentTop + 114f, 176f, 5f));
 
             DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, ContentTop + 174f), HorizontalAlignment.Left, 3f);
             DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, ContentTop + 174f), ContentWidth, 2, 88f);
-
-            ctx.DrawText(new RichTextOptions(footerFont)
-            {
-                Origin = new PointF(ContentX, 548f),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, "longevityworldcup.com", MutedColor);
         });
     }
 
@@ -374,7 +357,7 @@ public sealed class PageOgImageService
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v5",
+            "page-og-v7",
             definition.Slug,
             definition.Kicker,
             definition.Title,
