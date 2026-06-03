@@ -43,13 +43,13 @@ namespace LongevityWorldCup.Website.Middleware
             {
                 ["bortz"] = new(
                     "Bortz Age Leaderboard | Longevity World Cup",
-                    "Track Longevity World Cup bortz age rankings for athletes with eligible bortz age results."),
+                    "Eligible Bortz Age results."),
                 ["pheno"] = new(
                     "Pheno Age Leaderboard | Longevity World Cup",
-                    "Track Longevity World Cup pheno age rankings from verified biological age submissions."),
+                    "Verified Pheno Age submissions."),
                 ["crowd"] = new(
                     "Crowd Age Leaderboard | Longevity World Cup",
-                    "Track the Longevity World Cup crowd age leaderboard for athletes with enough accepted age guesses.")
+                    "Crowd Age rankings from accepted guesses.")
             };
 
         public async Task Invoke(HttpContext context)
@@ -467,7 +467,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Longevity World Cup | Reverse Your Biological Age",
-                    "Too old for your sport? Not this one. Reverse your age and rise on the leaderboard.",
+                    "Reverse age. Climb the leaderboard.",
                     BuildPageOgImageUrl("home", defaultOgImage)
                 ),
                 "/leaderboard" => new SeoMeta(
@@ -477,7 +477,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Leaderboard | Longevity World Cup",
                     "Leaderboard | Longevity World Cup",
-                    "View the Longevity World Cup leaderboard for verified biological age reduction rankings across athletes, leagues, and categories.",
+                    "Verified age reduction rankings.",
                     defaultOgImage
                 ),
                 "/longevitymaxxing" => new SeoMeta(
@@ -487,7 +487,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevitymaxxing Challenge | Longevity World Cup",
                     "Longevitymaxxing Challenge | Longevity World Cup",
-                    "A 14-day Lifestyle challenge for getting momentum back with a public visual leaderboard.",
+                    "A 14-day Lifestyle challenge.",
                     longevitymaxxingOgImage
                 ),
                 "/events" => new SeoMeta(
@@ -497,7 +497,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Highlights | Longevity World Cup",
                     "Highlights | Longevity World Cup",
-                    "Follow key Longevity World Cup events, season updates, and competition highlights.",
+                    "Season updates and competition highlights.",
                     BuildPageOgImageUrl("events", defaultOgImage)
                 ),
                 "/media" => new SeoMeta(
@@ -507,7 +507,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Media Kit | Longevity World Cup",
                     "Media Kit | Longevity World Cup",
-                    "Access the Longevity World Cup media kit with press-ready branding assets and resources.",
+                    "Press-ready logos and assets.",
                     BuildPageOgImageUrl("media", defaultOgImage)
                 ),
                 "/about" => new SeoMeta(
@@ -517,7 +517,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "About Longevity World Cup",
                     "About Longevity World Cup",
-                    "Learn why Longevity World Cup is an open competition where longevity athletes rank by biomarker-based biological age reduction.",
+                    "A biomarker-based longevity sport.",
                     BuildPageOgImageUrl("about", defaultOgImage)
                 ),
                 "/history" => new SeoMeta(
@@ -527,7 +527,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "History of Longevity as a Sport | Longevity World Cup",
                     "History of Longevity as a Sport | Longevity World Cup",
-                    "Read the history of longevity as a sport, from early biological age leaderboards to the Longevity World Cup.",
+                    "How longevity became a sport.",
                     BuildPageOgImageUrl("history", defaultOgImage)
                 ),
                 "/ruleset" => new SeoMeta(
@@ -537,7 +537,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Ruleset | Longevity World Cup",
                     "Ruleset | Longevity World Cup",
-                    "Review the Longevity World Cup ruleset for seasons, tracks, rankings, valid submissions, prizes, and payouts.",
+                    "Seasons, tracks, rankings, prizes.",
                     BuildPageOgImageUrl("ruleset", defaultOgImage)
                 ),
                 _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
@@ -547,7 +547,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevity World Cup",
                     "Longevity World Cup",
-                    "Longevity World Cup member page.",
+                    "Longevity World Cup.",
                     defaultOgImage
                 ),
                 _ => new SeoMeta(
@@ -557,7 +557,7 @@ $@"<script type=""module"">
                     canonicalUrl,
                     "Longevity World Cup",
                     "Longevity World Cup",
-                    "Longevity World Cup - reverse biological age and compete globally.",
+                    "Reverse biological age and compete.",
                     defaultOgImage
                 )
             };
@@ -656,7 +656,7 @@ $@"<script type=""module"">
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var signedReduction = payload.AgeReduction.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
             var title = $"{payload.Name} | #{payload.Rank} {payload.LeagueName}";
-            var description = $"{payload.Name} is ranked #{payload.Rank} in the {payload.LeagueName} with {signedReduction} years age reduction.";
+            var description = $"{payload.LeagueName} rank #{payload.Rank}. {signedReduction} years.";
             var ogImageUrl = _athleteOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload);
 
             seo = new SeoMeta(
@@ -693,10 +693,7 @@ $@"<script type=""module"">
                 : $"/league/{payload.RouteSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
             var title = $"{payload.DisplayName} | Longevity World Cup";
-            var top3Text = payload.Top3Names.Count > 0
-                ? $" Current top athletes: {string.Join(", ", payload.Top3Names.Take(3))}."
-                : "";
-            var description = $"Track rankings in the {payload.DisplayName}.{top3Text}";
+            var description = "Current league rankings.";
             var ogImageUrl = _leagueOgImages.IsConfigured
                 ? _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload)
                 : BuildDefaultOgImageUrl();
