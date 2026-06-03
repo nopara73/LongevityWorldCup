@@ -27,7 +27,8 @@ public enum EventType
     AthleteCountMilestone = 4,
     BadgeAward = 5,
     CustomEvent = 6,
-    SeasonFinalResult = 7
+    SeasonFinalResult = 7,
+    LongevitymaxxingChallengeResult = 8
 }
 
 public sealed record CustomEventDeliveryTargets(
@@ -82,6 +83,7 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceDonation = 9d;
     private const double DefaultRelevanceAthleteMilestone = 8d;
     private const double DefaultRelevanceBadgeAward = 8d;
+    private const double DefaultRelevanceLongevitymaxxingChallengeResult = 9d;
     private const int MaxCustomEventRetries = 3;
 
     private readonly DatabaseManager _db;
@@ -1193,6 +1195,76 @@ public sealed class EventDataService : IDisposable
         });
     }
 
+    public void UpsertLongevitymaxxingChallengeResults(
+        IEnumerable<LongevitymaxxingChallengeResultEventRow> rows,
+        double defaultRelevance = DefaultRelevanceLongevitymaxxingChallengeResult)
+    {
+        if (rows is null) throw new ArgumentNullException(nameof(rows));
+
+        var rowList = rows.ToList();
+        if (rowList.Count == 0) return;
+
+        var changed = 0;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var upsertCmd = sqlite.CreateCommand();
+            upsertCmd.Transaction = tx;
+            upsertCmd.CommandText =
+                """
+                INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed)
+                VALUES (@id, @type, @text, @occ, @rel, 1, 1, 1, 1, 1)
+                ON CONFLICT(Id) DO UPDATE SET
+                    Text = excluded.Text,
+                    OccurredAt = excluded.OccurredAt,
+                    Relevance = excluded.Relevance,
+                    VisibleOnWebsite = 1,
+                    SlackProcessed = 1,
+                    XProcessed = 1,
+                    ThreadsProcessed = 1,
+                    FacebookProcessed = 1
+                WHERE Events.Text <> excluded.Text
+                   OR Events.OccurredAt <> excluded.OccurredAt
+                   OR Events.Relevance <> excluded.Relevance
+                   OR Events.VisibleOnWebsite <> 1
+                   OR Events.SlackProcessed <> 1
+                   OR Events.XProcessed <> 1
+                   OR Events.ThreadsProcessed <> 1
+                   OR Events.FacebookProcessed <> 1;
+                """;
+            var pId = upsertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = upsertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = upsertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = upsertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = upsertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var row in rowList)
+            {
+                if (string.IsNullOrWhiteSpace(row.ParticipantId)) continue;
+                if (row.Placement < 1) continue;
+                if (row.DurationDays < 1) continue;
+
+                var text = BuildLongevitymaxxingChallengeResultText(row);
+                if (string.IsNullOrWhiteSpace(text)) continue;
+
+                pId.Value = $"longevitymaxxing-result-{NormalizeEventToken(row.ParticipantId)}";
+                pType.Value = (int)EventType.LongevitymaxxingChallengeResult;
+                pText.Value = text;
+                pOcc.Value = EnsureUtc(row.OccurredAtUtc).ToString("o");
+                pRel.Value = defaultRelevance;
+                changed += upsertCmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        });
+
+        if (changed > 0)
+        {
+            ReloadIntoCache();
+        }
+    }
+
     public bool HasCustomEventWithTitle(string titleRaw)
     {
         if (string.IsNullOrWhiteSpace(titleRaw)) return false;
@@ -1376,8 +1448,9 @@ public sealed class EventDataService : IDisposable
             $"WHEN Type = {(int)EventType.Joined} THEN 0 " +
             $"WHEN Type = {(int)EventType.NewRank} THEN 1 " +
             $"WHEN Type = {(int)EventType.SeasonFinalResult} THEN 2 " +
-            $"WHEN Type = {(int)EventType.BadgeAward} THEN 3 " +
-            $"ELSE 4 END ASC" +
+            $"WHEN Type = {(int)EventType.LongevitymaxxingChallengeResult} THEN 3 " +
+            $"WHEN Type = {(int)EventType.BadgeAward} THEN 4 " +
+            $"ELSE 5 END ASC" +
             (limit.HasValue ? " LIMIT @limit OFFSET @offset" : "");
 
         return _db.Run(sqlite =>
@@ -1417,6 +1490,43 @@ public sealed class EventDataService : IDisposable
 
         var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
         return new EventItem(id, type, text, occurred, relevance, visibleOnWebsite);
+    }
+
+    private static string BuildLongevitymaxxingChallengeResultText(LongevitymaxxingChallengeResultEventRow row)
+    {
+        var displayName = NormalizeEventToken(row.DisplayName);
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = "Participant";
+
+        var parts = new List<string>
+        {
+            "challenge[longevitymaxxing]",
+            $"pid[{NormalizeEventToken(row.ParticipantId)}]",
+            $"name[{displayName}]",
+            $"place[{row.Placement}]",
+            $"checkedIn[{Math.Max(0, row.CheckedInDays)}]",
+            $"points[{Math.Max(0, row.TotalPoints)}]",
+            $"days[{row.DurationDays}]"
+        };
+
+        if (!string.IsNullOrWhiteSpace(row.AthleteSlug))
+            parts.Add($"slug[{NormalizeEventToken(row.AthleteSlug)}]");
+
+        if (row.Completed)
+            parts.Add("completed[1]");
+
+        return string.Join(" ", parts);
+    }
+
+    private static string NormalizeEventToken(string? value)
+    {
+        var normalized = (value ?? "")
+            .Replace('[', '(')
+            .Replace(']', ')')
+            .ReplaceLineEndings(" ")
+            .Trim();
+
+        return string.Join(" ", normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
     }
 
     private static DateTime EnsureUtc(DateTime dt) =>

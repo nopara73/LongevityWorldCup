@@ -5,10 +5,12 @@ namespace LongevityWorldCup.Website.Jobs;
 
 public sealed class LongevitymaxxingReminderJob(
     LongevitymaxxingChallengeService challenge,
+    EventDataService events,
     ILongevitymaxxingEmailSender email,
     ILogger<LongevitymaxxingReminderJob> logger) : IJob
 {
     private readonly LongevitymaxxingChallengeService _challenge = challenge;
+    private readonly EventDataService _events = events;
     private readonly ILongevitymaxxingEmailSender _email = email;
     private readonly ILogger<LongevitymaxxingReminderJob> _logger = logger;
 
@@ -66,6 +68,15 @@ public sealed class LongevitymaxxingReminderJob(
             {
                 _logger.LogWarning(ex, "Longevitymaxxing call reminder failed for participant {ParticipantId} call {CallKey} {ReminderKind}", reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind);
             }
+        }
+
+        try
+        {
+            _events.UpsertLongevitymaxxingChallengeResults(_challenge.GetFinalResultEventRows(now));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Longevitymaxxing challenge result highlights failed.");
         }
     }
 }
