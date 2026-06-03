@@ -7,11 +7,12 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, Config config, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, Config config, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
         private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;
+        private readonly PageOgImageService _pageOgImages = pageOgImages;
         private readonly AssetVersionProvider _assetVersionProvider = assetVersionProvider;
         private readonly LeaderboardFactsService _leaderboardFacts = leaderboardFacts;
         private readonly SitemapService _sitemap = sitemap;
@@ -467,7 +468,7 @@ $@"<script type=""module"">
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Longevity World Cup | Reverse Your Biological Age",
                     "Too old for your sport? Not this one. Reverse your age and rise on the leaderboard.",
-                    defaultOgImage
+                    BuildPageOgImageUrl("home", defaultOgImage)
                 ),
                 "/leaderboard" => new SeoMeta(
                     canonicalPath,
@@ -497,7 +498,7 @@ $@"<script type=""module"">
                     "Highlights | Longevity World Cup",
                     "Highlights | Longevity World Cup",
                     "Follow key Longevity World Cup events, season updates, and competition highlights.",
-                    defaultOgImage
+                    BuildPageOgImageUrl("events", defaultOgImage)
                 ),
                 "/media" => new SeoMeta(
                     canonicalPath,
@@ -507,7 +508,7 @@ $@"<script type=""module"">
                     "Media Kit | Longevity World Cup",
                     "Media Kit | Longevity World Cup",
                     "Access the Longevity World Cup media kit with press-ready branding assets and resources.",
-                    defaultOgImage
+                    BuildPageOgImageUrl("media", defaultOgImage)
                 ),
                 "/about" => new SeoMeta(
                     canonicalPath,
@@ -517,7 +518,7 @@ $@"<script type=""module"">
                     "About Longevity World Cup",
                     "About Longevity World Cup",
                     "Learn why Longevity World Cup is an open competition where longevity athletes rank by biomarker-based biological age reduction.",
-                    defaultOgImage
+                    BuildPageOgImageUrl("about", defaultOgImage)
                 ),
                 "/history" => new SeoMeta(
                     canonicalPath,
@@ -527,7 +528,7 @@ $@"<script type=""module"">
                     "History of Longevity as a Sport | Longevity World Cup",
                     "History of Longevity as a Sport | Longevity World Cup",
                     "Read the history of longevity as a sport, from early biological age leaderboards to the Longevity World Cup.",
-                    defaultOgImage
+                    BuildPageOgImageUrl("history", defaultOgImage)
                 ),
                 "/ruleset" => new SeoMeta(
                     canonicalPath,
@@ -537,7 +538,7 @@ $@"<script type=""module"">
                     "Ruleset | Longevity World Cup",
                     "Ruleset | Longevity World Cup",
                     "Review the Longevity World Cup ruleset for seasons, tracks, rankings, valid submissions, prizes, and payouts.",
-                    defaultOgImage
+                    BuildPageOgImageUrl("ruleset", defaultOgImage)
                 ),
                 _ when !IndexableRoutes.Contains(canonicalPath) => new SeoMeta(
                     canonicalPath,
@@ -565,6 +566,13 @@ $@"<script type=""module"">
         private string BuildDefaultOgImageUrl()
         {
             return BuildOgImageUrl(DefaultOgImagePath);
+        }
+
+        private string BuildPageOgImageUrl(string pageSlug, string fallbackUrl)
+        {
+            return _pageOgImages.IsConfigured && _pageOgImages.TryGetCurrentPayload(pageSlug, out var payload)
+                ? _pageOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload)
+                : fallbackUrl;
         }
 
         private string BuildOgImageUrl(string assetPath)
@@ -717,7 +725,8 @@ $@"<script type=""module"">
 
             var canonicalPath = $"/league/{viewSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
-            var ogImageUrl = BuildDefaultOgImageUrl();
+            var defaultOgImage = BuildDefaultOgImageUrl();
+            var ogImageUrl = BuildPageOgImageUrl($"view-{viewSlug}", defaultOgImage);
 
             seo = new SeoMeta(
                 canonicalPath,
