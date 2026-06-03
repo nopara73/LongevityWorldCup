@@ -120,12 +120,6 @@ public class XImageService
         DrawCenteredLabel(image, winner.Name, fonts.Bold, 241f, 548f, 320f, 34f);
         DrawCenteredLabel(image, previous.Name, fonts.Bold, 955f, 512f, 286f, 28f, MutedTextColor);
 
-        image.Mutate(ctx =>
-        {
-            ctx.Fill(ToRgba(GreenAccent, 230), new RectangularPolygon(452f, 326f, 296f, 5f));
-            ctx.Fill(ToRgba(FaintTextColor, 170), new RectangularPolygon(842f, 238f, 226f, 4f));
-        });
-
         return await SaveToStreamAsync(image);
     }
 
