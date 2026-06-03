@@ -1,11 +1,14 @@
 <style>
     /* Footer Styles */
     .footer {
-        background: var(--background-color);
+        background: var(--lwc-dark-strip-background, var(--background-color));
+        background-color: #000;
+        background-repeat: no-repeat;
         color: var(--light-text-color);
         padding: 1.75rem 0 1.6rem;
         margin-top: 4rem;
         position: relative;
+        overflow: hidden;
         width: 100%;
         clear: both;
         box-shadow: 0px -3px 10px rgba(0, 0, 0, 0.3); /* Adds depth to footer */

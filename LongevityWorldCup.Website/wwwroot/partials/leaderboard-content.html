@@ -898,7 +898,7 @@
         position:relative;
     }
     #detailsModal{
-        --athlete-modal-surface: var(--background-color, linear-gradient(120deg, #000000, #555555));
+        --athlete-modal-surface: var(--lwc-dark-surface-background, linear-gradient(118deg, #020303 0%, #141616 42%, #070808 70%, #000000 100%));
         --athlete-modal-card: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
         --athlete-modal-card-strong: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
         --athlete-modal-card-hover: rgba(255,255,255,.16);
@@ -927,6 +927,8 @@
     }
     #detailsModal .modal-content{
         background: var(--athlete-modal-surface);
+        background-color: #000;
+        background-repeat: no-repeat;
         background-clip: padding-box;
         color: var(--athlete-modal-text);
         border: 1px solid var(--athlete-modal-border);
@@ -941,10 +943,9 @@
         border-radius:14px;
         z-index:0;
         background:
-            radial-gradient(circle at 50% 0%, rgba(246,244,237,.11), transparent 32%),
-            radial-gradient(circle at 72% 8%, rgba(181,226,226,.06), transparent 26%),
-            linear-gradient(180deg, rgba(255,255,255,.065), transparent 18%);
-        opacity:.64;
+            radial-gradient(ellipse at 16% 0%, rgba(255,255,255,.08), transparent 38%),
+            linear-gradient(180deg, rgba(255,255,255,.03), transparent 22%);
+        opacity:.52;
     }
     #detailsModal .modal-content > *{
         position:relative;
@@ -1032,7 +1033,9 @@
         padding: 1.25rem 1.25rem .85rem;
         z-index: 30;
         isolation: isolate;
-        background: linear-gradient(180deg, rgba(17,19,19,.96), rgba(9,10,10,.92));
+        background: var(--lwc-dark-strip-background, var(--athlete-modal-surface));
+        background-color: #000;
+        background-repeat: no-repeat;
         color: var(--athlete-modal-text);
         border-bottom: 1px solid var(--athlete-modal-border);
         box-shadow: 0 12px 28px rgba(0,0,0,.22), inset 0 -1px 0 rgba(246,244,237,.06);
@@ -1042,7 +1045,7 @@
     #detailsModal .modal-sticky-header.visible::before{
         top: -80px;
         height: 80px;
-        background: linear-gradient(180deg, rgba(4,5,5,.98), rgba(17,19,19,.96));
+        background: linear-gradient(180deg, rgba(2,2,2,.98), rgba(9,10,10,.94));
     }
     #detailsModal .modal-sticky-header .sticky-athlete-name{
         color: var(--athlete-modal-text);
