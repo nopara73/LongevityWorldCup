@@ -16,7 +16,7 @@ public sealed class PageOgImageService
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 630;
     private const float ContentX = 86f;
-    private const float ContentTop = 76f;
+    private const float ContentTop = 78f;
     private const float ContentWidth = 980f;
 
     private static readonly Color BackgroundTop = ParseHex("05080B");
@@ -24,8 +24,6 @@ public sealed class PageOgImageService
     private static readonly Color TitleColor = Color.White;
     private static readonly Color BodyColor = new(new Rgba32(226, 232, 240, 232));
     private static readonly Color MutedColor = new(new Rgba32(148, 163, 184, 255));
-    private static readonly Color ChipFillColor = new(new Rgba32(255, 255, 255, 18));
-    private static readonly Color ChipStrokeColor = new(new Rgba32(255, 255, 255, 48));
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 180));
 
     private static readonly IReadOnlyDictionary<string, PageOgDefinition> Definitions =
@@ -218,7 +216,6 @@ public sealed class PageOgImageService
         await DrawLogoMarksAsync(image, ct);
         DrawHeaderText(image, boldFamily);
         DrawTextContent(image, payload, boldFamily, regularFamily, accent);
-        DrawFooterChips(image, payload, boldFamily, accent);
 
         await image.SaveAsPngAsync(outputPath, ct);
     }
@@ -241,8 +238,8 @@ public sealed class PageOgImageService
 
             image.Mutate(ctx =>
             {
-                ctx.DrawImage(backgroundLogo, new Point(765, 70), 0.075f);
-                ctx.DrawImage(smallLogo, new Point((int)ContentX, 42), 0.98f);
+                ctx.DrawImage(backgroundLogo, new Point(780, 82), 0.055f);
+                ctx.DrawImage(smallLogo, new Point((int)ContentX, 46), 0.98f);
             });
         }
         catch (Exception ex)
@@ -285,7 +282,7 @@ public sealed class PageOgImageService
         {
             ctx.DrawText(new RichTextOptions(brandFont)
             {
-                Origin = new PointF(ContentX + 76f, 51f),
+                Origin = new PointF(ContentX + 74f, 55f),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
             }, "LONGEVITY\nWORLD CUP", Color.White);
@@ -295,26 +292,26 @@ public sealed class PageOgImageService
     private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, FontFamily regularFamily, Color accent)
     {
         var kickerFont = boldFamily.CreateFont(26, FontStyle.Bold);
-        var titleFont = FitFontToWidth(boldFamily, payload.Title, 82f, 56f, ContentWidth);
-        var bodyFont = regularFamily.CreateFont(33f, FontStyle.Regular);
+        var titleFont = FitFontToWidth(boldFamily, payload.Title, 78f, 52f, ContentWidth);
+        var bodyFont = regularFamily.CreateFont(31f, FontStyle.Regular);
         var footerFont = boldFamily.CreateFont(22f, FontStyle.Bold);
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 210),
-                new RectangularPolygon(ContentX, ContentTop + 90f, 170f, 5f));
-
             ctx.DrawText(new RichTextOptions(kickerFont)
             {
-                Origin = new PointF(ContentX, ContentTop + 26f),
+                Origin = new PointF(ContentX, ContentTop + 54f),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
             }, payload.Kicker.ToUpperInvariant(), accent);
 
-            DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, ContentTop + 124f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, ContentTop + 124f), ContentWidth, 2, 86f);
+            ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
+                new RectangularPolygon(ContentX, ContentTop + 114f, 176f, 5f));
 
-            DrawWrappedText(ctx, payload.Description, bodyFont, BodyColor, new PointF(ContentX, ContentTop + 322f), 860f, 2, 43f);
+            DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, ContentTop + 156f), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, ContentTop + 156f), ContentWidth, 2, 82f);
+
+            DrawWrappedText(ctx, payload.Description, bodyFont, BodyColor, new PointF(ContentX, ContentTop + 386f), 870f, 2, 42f);
 
             ctx.DrawText(new RichTextOptions(footerFont)
             {
@@ -322,35 +319,6 @@ public sealed class PageOgImageService
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
             }, "longevityworldcup.com", MutedColor);
-        });
-    }
-
-    private static void DrawFooterChips(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, Color accent)
-    {
-        const float chipY = 474f;
-        const float chipH = 58f;
-        const float gap = 18f;
-        var chipW = (ContentWidth - (gap * 2)) / 3f;
-
-        image.Mutate(ctx =>
-        {
-            for (var i = 0; i < payload.Stats.Count; i++)
-            {
-                var x = ContentX + (i * (chipW + gap));
-                ctx.Fill(ChipFillColor, new RectangularPolygon(x, chipY, chipW, chipH));
-                ctx.Draw(ChipStrokeColor, 1f, new RectangularPolygon(x, chipY, chipW, chipH));
-                ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 230),
-                    new RectangularPolygon(x, chipY, 5f, chipH));
-
-                var text = payload.Stats[i];
-                var font = FitFontToWidth(boldFamily, text, 24f, 18f, chipW - 34f);
-                ctx.DrawText(new RichTextOptions(font)
-                {
-                    Origin = new PointF(x + 22f, chipY + 16f),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, text, Color.White);
-            }
         });
     }
 
@@ -388,8 +356,7 @@ public sealed class PageOgImageService
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(0, 0, 0, 88), new RectangularPolygon(0, 0, CanvasWidth, 58f));
-            ctx.Fill(new Rgba32(255, 255, 255, 16), new RectangularPolygon(0, CanvasHeight - 58f, CanvasWidth, 1f));
+            ctx.Fill(new Rgba32(0, 0, 0, 74), new RectangularPolygon(0, 0, CanvasWidth, 72f));
         });
     }
 
@@ -411,7 +378,7 @@ public sealed class PageOgImageService
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v3",
+            "page-og-v4",
             definition.Slug,
             definition.Kicker,
             definition.Title,

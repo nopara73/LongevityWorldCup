@@ -24,8 +24,6 @@ public class XImageService
     private static readonly Color TextColor = Color.White;
     private static readonly Color MutedTextColor = new(new Rgba32(214, 222, 232, 220));
     private static readonly Color FaintTextColor = new(new Rgba32(148, 163, 184, 255));
-    private static readonly Color PanelFillColor = new(new Rgba32(255, 255, 255, 18));
-    private static readonly Color PanelStrokeColor = new(new Rgba32(255, 255, 255, 46));
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 185));
     private static readonly Color GreenAccent = ParseHex("78DA3B");
     private static readonly Color CyanAccent = ParseHex("00BCD4");
@@ -95,7 +93,7 @@ public class XImageService
             DrawCenteredLabel(image, athlete.Name, fonts.Bold, x + (size / 2f), y + size + 20f, 240f, 30f);
         }
 
-        DrawFooterChips(image, fonts.Bold, GreenAccent, ["Joined the field", "Verified profiles", "Public leaderboard"]);
+        DrawDomain(image, fonts.Bold);
         return await SaveToStreamAsync(image);
     }
 
@@ -113,37 +111,43 @@ public class XImageService
             image,
             fonts,
             "Leaderboard",
-            "New rank",
+            winner.Rank > 0 ? $"New #{winner.Rank}" : "New rank",
             "",
             GreenAccent);
 
-        await DrawPortraitAsync(image, winner.ProfilePath, 88, 230, 318, GreenAccent, 7f);
-        await DrawPortraitAsync(image, previous.ProfilePath, 840, 260, 246, FaintTextColor, 4f);
+        await DrawPortraitAsync(image, winner.ProfilePath, 98, 250, 286, GreenAccent, 7f);
+        await DrawPortraitAsync(image, previous.ProfilePath, 842, 272, 226, FaintTextColor, 4f);
 
-        DrawCenteredLabel(image, winner.Name, fonts.Bold, 247f, 554f, 330f, 34f);
-        DrawCenteredLabel(image, previous.Name, fonts.Bold, 963f, 536f, 286f, 28f, MutedTextColor);
+        DrawCenteredLabel(image, winner.Name, fonts.Bold, 241f, 548f, 320f, 34f);
+        DrawCenteredLabel(image, previous.Name, fonts.Bold, 955f, 512f, 286f, 28f, MutedTextColor);
 
         image.Mutate(ctx =>
         {
             var badgeFont = fonts.Bold.CreateFont(24f, FontStyle.Bold);
-            var centerFont = fonts.Bold.CreateFont(38f, FontStyle.Bold);
+            var centerFont = fonts.Bold.CreateFont(34f, FontStyle.Bold);
             var smallFont = fonts.Regular.CreateFont(25f, FontStyle.Regular);
 
-            DrawMetricPill(ctx, "Moves ahead", centerFont, GreenAccent, 455f, 290f, 290f, 70f);
-            DrawMetricPill(ctx, BuildRankText(winner), badgeFont, GreenAccent, 104f, 498f, 248f, 50f);
-            DrawMetricPill(ctx, "Previous holder", badgeFont, FaintTextColor, 842f, 224f, 246f, 50f);
+            DrawMetricPill(ctx, "Previous holder", badgeFont, FaintTextColor, 830f, 212f, 250f, 48f);
 
-            ctx.Fill(new Rgba32(120, 218, 59, 225), new RectangularPolygon(420f, 397f, 360f, 4f));
-            DrawTextShadow(ctx, "Age Reduction ranking", smallFont, new PointF(CanvasWidth / 2f, 418f), HorizontalAlignment.Center, 2f);
+            ctx.Fill(ToRgba(GreenAccent, 225), new RectangularPolygon(452f, 348f, 296f, 4f));
+            DrawTextShadow(ctx, "Moves ahead", centerFont, new PointF(CanvasWidth / 2f, 286f), HorizontalAlignment.Center, 2f);
+            ctx.DrawText(new RichTextOptions(centerFont)
+            {
+                Origin = new PointF(CanvasWidth / 2f, 286f),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            }, "Moves ahead", TextColor);
+
+            DrawTextShadow(ctx, "Age Reduction ranking", smallFont, new PointF(CanvasWidth / 2f, 370f), HorizontalAlignment.Center, 2f);
             ctx.DrawText(new RichTextOptions(smallFont)
             {
-                Origin = new PointF(CanvasWidth / 2f, 418f),
+                Origin = new PointF(CanvasWidth / 2f, 370f),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top
             }, "Age Reduction ranking", MutedTextColor);
         });
 
-        DrawFooterChips(image, fonts.Bold, GreenAccent, ["Ultimate League", "Verified result", "Events highlight"]);
+        DrawDomain(image, fonts.Bold);
         return await SaveToStreamAsync(image);
     }
 
@@ -157,14 +161,14 @@ public class XImageService
         var fonts = GetFontFamilies();
         await DrawBrandAsync(image, fonts.Bold);
 
-        await DrawPortraitAsync(image, athlete.ProfilePath, 88, 164, 374, PinkAccent, 7f);
+        await DrawPortraitAsync(image, athlete.ProfilePath, 104, 166, 360, PinkAccent, 7f);
 
         image.Mutate(ctx =>
         {
             var kickerFont = fonts.Bold.CreateFont(25f, FontStyle.Bold);
-            var titleFont = FitFontToWidth(fonts.Bold, athlete.Name, 68f, 42f, 540f);
-            var bodyFont = fonts.Regular.CreateFont(30f, FontStyle.Regular);
-            var pillFont = fonts.Bold.CreateFont(24f, FontStyle.Bold);
+            var titleFont = FitFontToWidth(fonts.Bold, athlete.Name, 70f, 44f, 560f);
+            var metricFont = fonts.Bold.CreateFont(54f, FontStyle.Bold);
+            var metricLabelFont = fonts.Regular.CreateFont(23f, FontStyle.Regular);
 
             ctx.Fill(new Rgba32(255, 64, 129, 220), new RectangularPolygon(528f, 176f, 160f, 5f));
             ctx.DrawText(new RichTextOptions(kickerFont)
@@ -176,12 +180,11 @@ public class XImageService
 
             DrawTextShadow(ctx, athlete.Name, titleFont, new PointF(528f, 190f), HorizontalAlignment.Left, 3f);
             DrawWrappedText(ctx, athlete.Name, titleFont, TextColor, new PointF(528f, 190f), 560f, 2, 76f);
-            DrawWrappedText(ctx, "Verified longevity athlete result highlighted by the autoposter.", bodyFont, MutedTextColor, new PointF(528f, 354f), 520f, 2, 42f);
-            DrawMetricPill(ctx, BuildRankText(athlete), pillFont, PinkAccent, 528f, 454f, 260f, 54f);
-            DrawMetricPill(ctx, BuildReductionText(athlete), pillFont, GreenAccent, 808f, 454f, 260f, 54f);
+            DrawMetricColumn(ctx, BuildRankValue(athlete), "Rank", metricFont, metricLabelFont, PinkAccent, 638f, 392f, 220f);
+            DrawMetricColumn(ctx, BuildReductionValue(athlete), "Age Reduction", metricFont, metricLabelFont, GreenAccent, 916f, 392f, 260f);
         });
 
-        DrawFooterChips(image, fonts.Bold, PinkAccent, ["Badge Event", "Public profile", "Longevity World Cup"]);
+        DrawDomain(image, fonts.Bold);
         return await SaveToStreamAsync(image);
     }
 
@@ -232,15 +235,19 @@ public class XImageService
             image.Mutate(ctx =>
             {
                 var rankFont = fonts.Bold.CreateFont(i == 0 ? 30f : 25f, FontStyle.Bold);
-                DrawMetricPill(
+                DrawTextShadow(
                     ctx,
                     $"#{slot.Rank}",
                     rankFont,
-                    i == 0 ? GreenAccent : CyanAccent,
-                    slot.CenterX - 55f,
-                    slot.CenterY - (slot.Size / 2f) - 22f,
-                    110f,
-                    48f);
+                    new PointF(slot.CenterX, slot.CenterY - (slot.Size / 2f) - 26f),
+                    HorizontalAlignment.Center,
+                    2f);
+                ctx.DrawText(new RichTextOptions(rankFont)
+                {
+                    Origin = new PointF(slot.CenterX, slot.CenterY - (slot.Size / 2f) - 26f),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Top
+                }, $"#{slot.Rank}", i == 0 ? GreenAccent : CyanAccent);
             });
 
             DrawCenteredLabel(
@@ -253,7 +260,7 @@ public class XImageService
                 i == 0 ? 34f : 28f);
         }
 
-        DrawFooterChips(image, fonts.Bold, CyanAccent, ["Top 3", "Ultimate League", "Age Reduction"]);
+        DrawDomain(image, fonts.Bold);
         return await SaveToStreamAsync(image);
     }
 
@@ -300,7 +307,7 @@ public class XImageService
             DrawWrappedText(ctx, "The field keeps growing.", bodyFont, MutedTextColor, new PointF(390f, 496f), 420f, 1, 40f);
         });
 
-        DrawFooterChips(image, fonts.Bold, AmberAccent, ["Public field", "Verified results", "Age Reduction"]);
+        DrawDomain(image, fonts.Bold);
         return await SaveToStreamAsync(image);
     }
 
@@ -436,35 +443,6 @@ public class XImageService
         }
     }
 
-    private static void DrawFooterChips(Image<Rgba32> image, FontFamily boldFamily, Color accent, IReadOnlyList<string> labels)
-    {
-        const float chipY = 608f;
-        const float chipH = 42f;
-        const float gap = 16f;
-        const float x = HeaderX;
-        const float width = CanvasWidth - (HeaderX * 2f);
-        var chipW = (width - (gap * 2f)) / 3f;
-
-        image.Mutate(ctx =>
-        {
-            for (var i = 0; i < labels.Count && i < 3; i++)
-            {
-                var chipX = x + (i * (chipW + gap));
-                ctx.Fill(PanelFillColor, new RectangularPolygon(chipX, chipY, chipW, chipH));
-                ctx.Draw(PanelStrokeColor, 1f, new RectangularPolygon(chipX, chipY, chipW, chipH));
-                ctx.Fill(ToRgba(accent, 225), new RectangularPolygon(chipX, chipY, 5f, chipH));
-
-                var font = FitFontToWidth(boldFamily, labels[i], 20f, 16f, chipW - 34f);
-                ctx.DrawText(new RichTextOptions(font)
-                {
-                    Origin = new PointF(chipX + 20f, chipY + 11f),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, labels[i], TextColor);
-            }
-        });
-    }
-
     private static void DrawMetricPill(
         IImageProcessingContext ctx,
         string text,
@@ -475,15 +453,42 @@ public class XImageService
         float width,
         float height)
     {
-        ctx.Fill(new Rgba32(0, 0, 0, 170), new RectangularPolygon(x, y, width, height));
-        ctx.Draw(PanelStrokeColor, 1.2f, new RectangularPolygon(x, y, width, height));
-        ctx.Fill(ToRgba(accent, 230), new RectangularPolygon(x, y, 5f, height));
+        ctx.Fill(ToRgba(accent, 230), new RectangularPolygon(x, y, width, 4f));
+        DrawTextShadow(ctx, text, font, new PointF(x + (width / 2f), y + 16f), HorizontalAlignment.Center, 2f);
         ctx.DrawText(new RichTextOptions(font)
         {
-            Origin = new PointF(x + (width / 2f), y + ((height - font.Size) / 2f) - 1f),
+            Origin = new PointF(x + (width / 2f), y + 16f),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top
         }, text, TextColor);
+    }
+
+    private static void DrawMetricColumn(
+        IImageProcessingContext ctx,
+        string value,
+        string label,
+        Font valueFont,
+        Font labelFont,
+        Color accent,
+        float centerX,
+        float topY,
+        float width)
+    {
+        ctx.Fill(ToRgba(accent, 230), new RectangularPolygon(centerX - (width / 2f), topY, width, 4f));
+        DrawTextShadow(ctx, value, valueFont, new PointF(centerX, topY + 16f), HorizontalAlignment.Center, 3f);
+        ctx.DrawText(new RichTextOptions(valueFont)
+        {
+            Origin = new PointF(centerX, topY + 16f),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top
+        }, value, accent);
+
+        ctx.DrawText(new RichTextOptions(labelFont)
+        {
+            Origin = new PointF(centerX, topY + 82f),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top
+        }, label, MutedTextColor);
     }
 
     private static void DrawCenteredLabel(
@@ -500,17 +505,8 @@ public class XImageService
             return;
 
         var font = FitFontToWidth(boldFamily, text, startSize, 18f, maxWidth);
-        var size = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
-        const float panelPaddingX = 16f;
-        const float panelPaddingY = 8f;
-        var panelWidth = Math.Min(maxWidth + 30f, size.Width + (panelPaddingX * 2f));
-        var panelHeight = Math.Max(42f, size.Height + (panelPaddingY * 2f));
-        var panelX = centerX - (panelWidth / 2f);
-
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(0, 0, 0, 176), new RectangularPolygon(panelX, topY - 4f, panelWidth, panelHeight));
-            ctx.Draw(new Rgba32(255, 255, 255, 42), 1f, new RectangularPolygon(panelX, topY - 4f, panelWidth, panelHeight));
             DrawTextShadow(ctx, text, font, new PointF(centerX, topY + 4f), HorizontalAlignment.Center, 2f);
             ctx.DrawText(new RichTextOptions(font)
             {
@@ -584,8 +580,21 @@ public class XImageService
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(0, 0, 0, 88), new RectangularPolygon(0, 0, CanvasWidth, 58f));
-            ctx.Fill(new Rgba32(255, 255, 255, 16), new RectangularPolygon(0, CanvasHeight - 58f, CanvasWidth, 1f));
+            ctx.Fill(new Rgba32(0, 0, 0, 74), new RectangularPolygon(0, 0, CanvasWidth, 72f));
+        });
+    }
+
+    private static void DrawDomain(Image<Rgba32> image, FontFamily boldFamily)
+    {
+        var font = boldFamily.CreateFont(22f, FontStyle.Bold);
+        image.Mutate(ctx =>
+        {
+            ctx.DrawText(new RichTextOptions(font)
+            {
+                Origin = new PointF(HeaderX, 618f),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
+            }, "longevityworldcup.com", FaintTextColor);
         });
     }
 
@@ -718,18 +727,18 @@ public class XImageService
         return output;
     }
 
-    private static string BuildRankText(AthleteRenderInfo athlete)
+    private static string BuildRankValue(AthleteRenderInfo athlete)
     {
         return athlete.Rank > 0
-            ? $"Rank #{athlete.Rank}"
-            : "Ranked athlete";
+            ? $"#{athlete.Rank}"
+            : "Ranked";
     }
 
-    private static string BuildReductionText(AthleteRenderInfo athlete)
+    private static string BuildReductionValue(AthleteRenderInfo athlete)
     {
         return athlete.AgeReduction.HasValue
-            ? $"{FormatReduction(athlete.AgeReduction.Value)} Age Reduction"
-            : "Age Reduction";
+            ? FormatReduction(athlete.AgeReduction.Value)
+            : "-";
     }
 
     private static string NormalizeSlug(string? slug)

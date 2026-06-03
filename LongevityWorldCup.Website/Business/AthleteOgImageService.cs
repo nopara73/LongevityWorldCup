@@ -265,32 +265,15 @@ public sealed class AthleteOgImageService
 
         image.Mutate(ctx =>
         {
+            ctx.Fill(ToRgba(RankColor, 230), new RectangularPolygon(LeagueX, MetricLabelY - 18f, 224f, 5f));
+            ctx.Fill(ToRgba(ReductionColor, 230), new RectangularPolygon(ReductionLabelX, ReductionLabelY - 18f, 232f, 5f));
+
             DrawTextShadow(
                 ctx,
                 leagueText,
                 labelFont,
                 new PointF(LeagueX, MetricLabelY),
                 HorizontalAlignment.Left);
-
-            DrawMetricPanel(ctx, RankLabelX - 24f, MetricLabelY - 12f, 272f, 170f, RankColor);
-            DrawMetricPanel(ctx, ReductionLabelX - 24f, ReductionLabelY - 12f, 268f, 170f, ReductionColor);
-
-            DrawTextShadow(
-                ctx,
-                "Age Reduction",
-                labelFont,
-                new PointF(ReductionLabelX, ReductionLabelY),
-                HorizontalAlignment.Left);
-
-            ctx.DrawText(
-                new RichTextOptions(labelFont)
-                {
-                    Origin = new PointF(ReductionLabelX, ReductionLabelY),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                },
-                "Age Reduction",
-                MetricLabelColor);
 
             ctx.DrawText(
                 new RichTextOptions(metricFont)
@@ -403,7 +386,7 @@ public sealed class AthleteOgImageService
             : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v20",
+            "athlete-og-v22",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
@@ -616,6 +599,12 @@ public sealed class AthleteOgImageService
     private static Color ParseHex(string hex)
     {
         return Color.ParseHex("#" + hex);
+    }
+
+    private static Rgba32 ToRgba(Color color, byte alpha)
+    {
+        var pixel = color.ToPixel<Rgba32>();
+        return new Rgba32(pixel.R, pixel.G, pixel.B, alpha);
     }
 
     private static void DrawTrackedText(
