@@ -23,6 +23,11 @@ public class ThreadsEventService
 
     public bool IsConfigured => _threads.IsConfigured;
 
+    public Task EnsureAccessTokenFreshAsync(CancellationToken ct = default)
+    {
+        return _threads.EnsureAccessTokenFreshAsync(ct);
+    }
+
     public void SetAthletesForThreads(IReadOnlyList<AthleteForX> items)
     {
         var map = new Dictionary<string, AthleteForX>(StringComparer.OrdinalIgnoreCase);

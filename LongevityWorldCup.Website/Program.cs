@@ -392,6 +392,8 @@ namespace LongevityWorldCup.Website
                 ThreadsAppId = "",
                 ThreadsAppSecret = "",
                 ThreadsAccessToken = "",
+                ThreadsAccessTokenExpiresAtUtc = "",
+                ThreadsAccessTokenLastRefreshAttemptAtUtc = "",
                 FacebookAppId = "",
                 FacebookAppSecret = "",
                 FacebookPageId = "",

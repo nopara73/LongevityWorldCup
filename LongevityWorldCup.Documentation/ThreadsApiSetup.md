@@ -131,7 +131,9 @@ Add this to `config.json` (Website project):
 ```json
 "ThreadsAppId": "<Threads app ID>",
 "ThreadsAppSecret": "<Threads app secret>",
-"ThreadsAccessToken": "<Threads access token>"
+"ThreadsAccessToken": "<Threads access token>",
+"ThreadsAccessTokenExpiresAtUtc": "",
+"ThreadsAccessTokenLastRefreshAttemptAtUtc": ""
 ```
 
 Where to find these values in Meta:
@@ -150,8 +152,19 @@ The LWC Threads client supports token refresh.
 
 Behavior:
 - it uses the configured `ThreadsAccessToken`
-- if the Threads API returns an auth error, it attempts to refresh the token automatically
-- the refreshed token is saved back into `config.json`
+- if the Threads API returns an auth error during posting, it attempts to refresh the token automatically
+- the daily Threads job also runs token maintenance even when there is no postable Threads content
+- when Meta returns `expires_in`, the client stores `ThreadsAccessTokenExpiresAtUtc` in `config.json`
+- if the saved expiry is within 14 days, the daily Threads job refreshes the token before it expires
+- if expiry metadata is missing, the daily Threads job attempts refresh at most once every 20 hours until it can save expiry metadata
+- the refreshed token and refresh metadata are saved back into `config.json`
+
+Meta constraints:
+- short-lived tokens must be exchanged for long-lived tokens before production use
+- long-lived tokens are valid for about 60 days
+- long-lived tokens can be refreshed only while they are unexpired
+- expired tokens cannot be recovered by the app; generate a new token in Meta and update `ThreadsAccessToken`
 
 Operational note:
 - do not manually remove `ThreadsAppSecret` or `ThreadsAppId` from config if later maintenance depends on them
+- after manually replacing `ThreadsAccessToken`, either also clear the two metadata fields or set `ThreadsAccessTokenExpiresAtUtc` to the token's known UTC expiry
