@@ -79,6 +79,12 @@ Meaning:
 - `XConsumerKey` / `XConsumerSecret`: OAuth 1.0a app/API keys used for signing media upload requests
 - `XUserAccessToken` / `XUserAccessTokenSecret`: OAuth 1.0a user-context tokens used for media upload
 
-## 6. Billing / Credits
+## 6. Token Refresh Persistence
+
+The Website refreshes `XAccessToken` and `XRefreshToken` automatically after an auth failure. It first saves the rotated values to `config.json`. If production `config.json` is readable but not writable by the service account, it saves the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json`.
+
+On startup, `runtime-config.json` is applied only when it is newer than `config.json`. If you manually regenerate X tokens, edit `config.json` and remove or update the runtime sidecar if you need the manual values to take effect immediately.
+
+## 7. Billing / Credits
 
 Posting on X consumes credits. If you receive `402 Payment Required`, check billing and credits in the X developer portal.

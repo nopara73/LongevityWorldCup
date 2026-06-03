@@ -157,7 +157,8 @@ Behavior:
 - when Meta returns `expires_in`, the client stores `ThreadsAccessTokenExpiresAtUtc` in `config.json`
 - if the saved expiry is within 14 days, the daily Threads job refreshes the token before it expires
 - if expiry metadata is missing, the daily Threads job attempts refresh at most once every 20 hours until it can save expiry metadata
-- the refreshed token and refresh metadata are saved back into `config.json`
+- the refreshed token and refresh metadata are saved back into `config.json`; if production `config.json` is not writable by the service account, the runtime token fields are saved in `/var/www/.longevityworldcup/runtime-config.json`
+- on startup, `runtime-config.json` is applied only when it is newer than `config.json`
 
 Meta constraints:
 - short-lived tokens must be exchanged for long-lived tokens before production use
@@ -168,3 +169,4 @@ Meta constraints:
 Operational note:
 - do not manually remove `ThreadsAppSecret` or `ThreadsAppId` from config if later maintenance depends on them
 - after manually replacing `ThreadsAccessToken`, either also clear the two metadata fields or set `ThreadsAccessTokenExpiresAtUtc` to the token's known UTC expiry
+- when manually resetting Threads token state, remove or update `/var/www/.longevityworldcup/runtime-config.json` if the sidecar is newer than `config.json`
