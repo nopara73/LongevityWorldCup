@@ -2,7 +2,16 @@
     :root {
         --primary-color: #00bcd4;
         --secondary-color: #ff4081;
-        --background-color: linear-gradient(120deg, #000000, #555555);
+        --lwc-dark-surface-background:
+            radial-gradient(ellipse 38rem 28rem at -14rem 42%, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.055) 42%, transparent 74%),
+            radial-gradient(ellipse 64rem 32rem at 12% -16rem, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.055) 42%, transparent 72%),
+            radial-gradient(ellipse 46rem 22rem at 92% 118%, rgba(255, 255, 255, 0.06) 0%, transparent 68%),
+            linear-gradient(118deg, #020303 0%, #141616 42%, #070808 70%, #000000 100%);
+        --lwc-dark-strip-background:
+            radial-gradient(ellipse 26rem 16rem at -9rem 50%, rgba(255, 255, 255, 0.105) 0%, rgba(255, 255, 255, 0.035) 48%, transparent 78%),
+            linear-gradient(105deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.035) 38%, transparent 68%),
+            linear-gradient(118deg, #020303 0%, #111313 46%, #050505 100%);
+        --background-color: var(--lwc-dark-surface-background);
         --header-to-body-bg: linear-gradient(120deg, #eaeaea, #cccccc);
         --dark-text-color: #333;
         --light-text-color: white;
@@ -76,6 +85,8 @@
     /* Header Styles */
     header {
         background: var(--background-color);
+        background-color: #000;
+        background-repeat: no-repeat;
         color: var(--light-text-color);
         text-align: center;
         padding: clamp(0.95rem, 2vw, 1.2rem) 0 clamp(1.05rem, 2.2vw, 1.35rem);
@@ -562,7 +573,9 @@
         left: 0;
         right: 0;
         z-index: 999;
-        background: var(--background-color);
+        background: var(--lwc-dark-strip-background, var(--background-color));
+        background-color: #000;
+        background-repeat: no-repeat;
         color: var(--light-text-color);
         padding: 0.25rem 1rem;
         display: none;
@@ -581,7 +594,7 @@
         left: 0;
         right: 0;
         height: 40px;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
+        background: linear-gradient(to bottom, rgba(2, 2, 2, 0.38), rgba(0, 0, 0, 0.62));
         backdrop-filter: blur(3px);
         -webkit-backdrop-filter: blur(3px);
         pointer-events: none;
