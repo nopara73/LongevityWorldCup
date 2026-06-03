@@ -22,7 +22,6 @@ public sealed class PageOgImageService
     private static readonly Color BackgroundTop = ParseHex("05080B");
     private static readonly Color BackgroundBottom = ParseHex("15181B");
     private static readonly Color TitleColor = Color.White;
-    private static readonly Color BodyColor = new(new Rgba32(226, 232, 240, 232));
     private static readonly Color MutedColor = new(new Rgba32(148, 163, 184, 255));
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 180));
 
@@ -210,12 +209,12 @@ public sealed class PageOgImageService
         using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
         DrawBackground(image, ParseHex(payload.AccentHex));
 
-        var (boldFamily, regularFamily) = GetFontFamilies();
+        var (boldFamily, _) = GetFontFamilies();
         var accent = ParseHex(payload.AccentHex);
 
         await DrawLogoMarksAsync(image, ct);
         DrawHeaderText(image, boldFamily);
-        DrawTextContent(image, payload, boldFamily, regularFamily, accent);
+        DrawTextContent(image, payload, boldFamily, accent);
 
         await image.SaveAsPngAsync(outputPath, ct);
     }
@@ -289,11 +288,10 @@ public sealed class PageOgImageService
         });
     }
 
-    private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, FontFamily regularFamily, Color accent)
+    private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, Color accent)
     {
         var kickerFont = boldFamily.CreateFont(26, FontStyle.Bold);
-        var titleFont = FitFontToWidth(boldFamily, payload.Title, 78f, 52f, ContentWidth);
-        var bodyFont = regularFamily.CreateFont(31f, FontStyle.Regular);
+        var titleFont = FitFontToWidth(boldFamily, payload.Title, 84f, 54f, ContentWidth);
         var footerFont = boldFamily.CreateFont(22f, FontStyle.Bold);
 
         image.Mutate(ctx =>
@@ -308,10 +306,8 @@ public sealed class PageOgImageService
             ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
                 new RectangularPolygon(ContentX, ContentTop + 114f, 176f, 5f));
 
-            DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, ContentTop + 156f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, ContentTop + 156f), ContentWidth, 2, 82f);
-
-            DrawWrappedText(ctx, payload.Description, bodyFont, BodyColor, new PointF(ContentX, ContentTop + 386f), 870f, 2, 42f);
+            DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, ContentTop + 174f), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, ContentTop + 174f), ContentWidth, 2, 88f);
 
             ctx.DrawText(new RichTextOptions(footerFont)
             {
@@ -378,7 +374,7 @@ public sealed class PageOgImageService
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v4",
+            "page-og-v5",
             definition.Slug,
             definition.Kicker,
             definition.Title,
