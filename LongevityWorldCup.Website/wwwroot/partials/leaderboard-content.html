@@ -662,9 +662,6 @@
         gap: .25rem;
         max-width: 100%
     }
-    .podium .podium-link-row{
-        display:none;
-    }
     .podium .name-row .athlete-name {
         flex: 1;
         min-width: 0;
@@ -774,22 +771,22 @@
     /* =========================
        7) Podium cards
        ========================= */
-    .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:1.15rem; }
+    .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:1.2rem; }
     .podium-item{
-        --podium-prize-panel-height: 72px;
+        --podium-prize-panel-height: 82px;
         --podium-portrait-size: 112px;
-        position:relative; text-align:center; padding:.82rem 1rem calc(var(--podium-prize-panel-height) + .95rem); background:var(--card-bg); border-radius:15px;
+        position:relative; text-align:center; padding:.9rem 1rem calc(var(--podium-prize-panel-height) + 1rem); background:var(--card-bg); border-radius:15px;
         box-shadow:0 10px 30px rgba(0,0,0,.1); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
-        justify-content:flex-start; width:180px; min-height:220px; box-sizing:border-box; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
+        justify-content:flex-start; width:190px; min-height:230px; box-sizing:border-box; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
     }
     .podium .podium-item:hover{
         transform: scale(1.05) !important; will-change: transform;
         transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2);
     }
     .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
-    .podium-item.first{ --podium-portrait-size: 112px; order:2; height:292px; }
-    .podium-item.second{ --podium-portrait-size: 98px; order:1; height:278px; }
-    .podium-item.third{ --podium-portrait-size: 90px; order:3; height:266px; }
+    .podium-item.first{ --podium-portrait-size: 116px; order:2; height:340px; }
+    .podium-item.second{ --podium-portrait-size: 102px; order:1; height:322px; }
+    .podium-item.third{ --podium-portrait-size: 92px; order:3; height:306px; }
 
     .podium-item-lower{
         position:absolute; bottom:0; width:100%; min-height:var(--podium-prize-panel-height); padding:10px 0; border-radius:0 0 15px 15px;
