@@ -71,7 +71,7 @@
 | **Badge** | A computed award attached to athletes for league placement, clock metrics, submissions, crowd metrics, or editorial status. | Award, achievement |
 | **Age Reduction badge** | A top-three badge for ranking by the competition's age-reduction rules in a league scope. | League badge, ranking badge |
 | **Domain badge** | A badge for the best clock subdomain score, such as liver, kidney, metabolic, immune, inflammation, or vitamin D. | Health-area badge |
-| **Event** | A persisted public or social update such as joined, new rank, donation, milestone, badge award, custom event, or season final result. | Update, notification |
+| **Event** | A persisted public or social update such as joined, new rank, donation, milestone, badge award, custom event, season final result, or Longevitymaxxing Challenge result. | Update, notification |
 | **Custom Event** | A manually designed event intended for the event board and social dispatch. | Announcement, post |
 | **Social post** | A generated message for platforms such as X, Threads, Facebook, Slack, or future integrations. | Tweet, announcement |
 | **Share preview** | The Open Graph or social-card representation of a page, athlete, or league link. | Thumbnail, card |
@@ -105,6 +105,7 @@
 - **Guess My Age** applies server-side abuse protection before increasing **Crowd Count**: realistic guesses are accepted at most once per client IP and athlete during the configured short window.
 - **Badges** are derived from leaderboard positions, clock metrics, submission behavior, crowd metrics, and editorial rules.
 - **Events** announce athlete joins, rank changes, donations, milestones, badge awards, custom events, and season final results.
+- **Longevitymaxxing Challenge** final results and linked-athlete completions can appear as **Events**, but they do not affect **Ultimate League** ranking, biological age placements, or athlete **Badges**.
 - **Social posts** can be generated from **Events**, **Badges**, athlete rankings, and league context.
 - The **Longevitymaxxing Challenge** is separate from the **Ultimate League** and does not affect biological age rankings, placements, or badges.
 

@@ -254,6 +254,41 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task FinalResultEventsIncludePodiumAndLinkedCompletionsAfterGraceWindow()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var bob = await fixture.ConfirmParticipantAsync("bob@example.com", "Bob");
+        var cara = await fixture.ConfirmParticipantAsync("cara@example.com", "Cara");
+        var dan = await fixture.ConfirmParticipantAsync("dan@example.com", "Dan");
+        var alice = await fixture.ConfirmParticipantAsync("alice@example.com", "Alice", athleteLink: "/athlete/alice-athlete");
+        var eve = await fixture.ConfirmParticipantAsync("eve@example.com", "Eve", athleteLink: "/athlete/eve-athlete");
+
+        SubmitChallengeDays(fixture, bob, days: 14, sleep: 2, exercise: 2, nutrition: 2, vices: 2);
+        SubmitChallengeDays(fixture, cara, days: 14, sleep: 2, exercise: 2, nutrition: 2, vices: 0);
+        SubmitChallengeDays(fixture, dan, days: 14, sleep: 1, exercise: 1, nutrition: 1, vices: 1);
+        SubmitChallengeDays(fixture, alice, days: 14, sleep: 0, exercise: 0, nutrition: 0, vices: 0);
+        SubmitChallengeDays(fixture, eve, days: 13, sleep: 2, exercise: 2, nutrition: 2, vices: 2);
+
+        Assert.Empty(fixture.Service.GetFinalResultEventRows(DateTimeOffset.Parse("2026-06-23T12:00:00Z")));
+
+        var rows = fixture.Service.GetFinalResultEventRows(DateTimeOffset.Parse("2026-06-24T00:01:00Z"));
+
+        Assert.Equal(4, rows.Count);
+        Assert.Equal(1, rows.Single(row => row.DisplayName == "Bob").Placement);
+        Assert.Equal(2, rows.Single(row => row.DisplayName == "Cara").Placement);
+        Assert.Equal(3, rows.Single(row => row.DisplayName == "Dan").Placement);
+
+        var aliceRow = rows.Single(row => row.DisplayName == "Alice");
+        Assert.Equal(4, aliceRow.Placement);
+        Assert.True(aliceRow.Completed);
+        Assert.Equal("alice-athlete", aliceRow.AthleteSlug);
+        Assert.Equal(14, aliceRow.CheckedInDays);
+
+        Assert.DoesNotContain(rows, row => row.DisplayName == "Eve");
+        Assert.All(rows, row => Assert.Equal(DateTimeKind.Utc, row.OccurredAtUtc.Kind));
+    }
+
+    [Fact]
     public async Task FinalPodiumWaitsUntilFinalCheckInGraceWindowCloses()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -273,6 +308,28 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var uri = new Uri(url);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
         return query[key].ToString();
+    }
+
+    private static void SubmitChallengeDays(
+        TestChallengeFixture fixture,
+        string accessToken,
+        int days,
+        int sleep,
+        int exercise,
+        int nutrition,
+        int vices)
+    {
+        for (var day = 1; day <= days; day++)
+        {
+            fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+                accessToken,
+                day,
+                sleep,
+                exercise,
+                nutrition,
+                vices,
+                null), DateTimeOffset.Parse("2026-06-09T08:00:00Z").AddDays(day - 1));
+        }
     }
 
     private sealed class TestChallengeFixture : IDisposable
@@ -357,10 +414,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
         public async Task<string> ConfirmParticipantAsync(
             string email,
             string name,
-            IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? callAvailability = null)
+            IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? callAvailability = null,
+            string? athleteLink = null)
         {
             var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
-            await Service.SignupAsync(new LongevitymaxxingSignupRequest(email, name, "UTC", null, callAvailability ?? []), now);
+            await Service.SignupAsync(new LongevitymaxxingSignupRequest(email, name, "UTC", athleteLink, callAvailability ?? []), now);
             var token = ReadQueryToken(Email.Confirmations.Last().Url, "confirm");
             var access = await Service.ConfirmAsync(token, now.AddMinutes(1));
             return access.AccessToken;

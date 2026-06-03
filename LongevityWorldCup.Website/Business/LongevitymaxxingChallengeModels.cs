@@ -142,3 +142,14 @@ public sealed record LongevitymaxxingChallengeStartCandidate(
     string AccessToken,
     string StopToken,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
+
+public sealed record LongevitymaxxingChallengeResultEventRow(
+    string ParticipantId,
+    string DisplayName,
+    string? AthleteSlug,
+    int Placement,
+    int CheckedInDays,
+    int TotalPoints,
+    bool Completed,
+    int DurationDays,
+    DateTime OccurredAtUtc);

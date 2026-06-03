@@ -60,6 +60,42 @@ public sealed class LongevitymaxxingChallengeService
             settings.SlackRoomUrl);
     }
 
+    public IReadOnlyList<LongevitymaxxingChallengeResultEventRow> GetFinalResultEventRows(DateTimeOffset? nowUtc = null)
+    {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        var settings = BuildSettings();
+        var finalResultsAvailableAtUtc = GetFinalResultsAvailableAtUtc(settings);
+        if (now < finalResultsAvailableAtUtc)
+            return [];
+
+        var participants = GetConfirmedParticipants();
+        if (participants.Count == 0)
+            return [];
+
+        var participantById = participants.ToDictionary(p => p.Id, StringComparer.Ordinal);
+        var checkIns = GetCheckInsFor(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
+        var leaderboard = BuildLeaderboard(settings, participants, checkIns, now);
+        var occurredAtUtc = finalResultsAvailableAtUtc.UtcDateTime;
+
+        return leaderboard
+            .Select((row, index) =>
+            {
+                participantById.TryGetValue(row.ParticipantId, out var participant);
+                return new LongevitymaxxingChallengeResultEventRow(
+                    row.ParticipantId,
+                    row.DisplayName,
+                    participant?.AthleteSlug,
+                    index + 1,
+                    row.CheckedInDays,
+                    row.TotalPoints,
+                    row.CheckedInDays >= settings.DurationDays,
+                    settings.DurationDays,
+                    occurredAtUtc);
+            })
+            .Where(row => row.Placement <= 3 || (row.Completed && !string.IsNullOrWhiteSpace(row.AthleteSlug)))
+            .ToList();
+    }
+
     public async Task<LongevitymaxxingSignupResult> SignupAsync(LongevitymaxxingSignupRequest request, DateTimeOffset? nowUtc = null, CancellationToken ct = default)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
@@ -934,13 +970,18 @@ public sealed class LongevitymaxxingChallengeService
 
     private static IReadOnlyList<LongevitymaxxingPodiumRow> BuildPodium(ChallengeSettings settings, IReadOnlyList<LongevitymaxxingLeaderboardRow> leaderboard, DateTimeOffset now)
     {
-        var utcDate = DateOnly.FromDateTime(now.UtcDateTime);
-        if (utcDate <= settings.EndDate.AddDays(2))
+        if (now < GetFinalResultsAvailableAtUtc(settings))
             return [];
 
         return leaderboard.Take(3)
             .Select((row, index) => new LongevitymaxxingPodiumRow(index + 1, row.DisplayName, row.AthleteUrl, row.CheckedInDays, row.TotalPoints))
             .ToList();
+    }
+
+    private static DateTimeOffset GetFinalResultsAvailableAtUtc(ChallengeSettings settings)
+    {
+        var finalDate = settings.EndDate.AddDays(3).ToDateTime(TimeOnly.MinValue);
+        return new DateTimeOffset(DateTime.SpecifyKind(finalDate, DateTimeKind.Utc));
     }
 
     private IReadOnlyList<ParticipantRecord> GetConfirmedParticipants()

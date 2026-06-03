@@ -25,6 +25,7 @@ Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, 
 Use its canonical terms when naming UI text, code concepts, issues, and docs. If behavior or terminology changes, update `UBIQUITOUS_LANGUAGE.md` in the same change.
 
 The Longevitymaxxing Challenge is a standalone Lifestyle challenge and must not be mixed into Ultimate League ranking, biological age placements, or athlete badges.
+Longevitymaxxing Challenge final results and linked-athlete completions may appear as Events/highlights; keep those highlights separate from Ultimate League ranking, biological age placements, and athlete badges.
 
 ## Ranking Logic Must Stay Aligned
 

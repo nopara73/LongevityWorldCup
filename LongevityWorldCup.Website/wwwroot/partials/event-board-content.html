@@ -838,7 +838,7 @@
             return window.__sharedAthletesRequest;
         };
 
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8 };
 
         function buildEventSkeletonRows(count=5){
             return Array.from({ length: count }, () => `
@@ -1083,6 +1083,20 @@
             return Number.isFinite(n)?n:null;
         }
 
+        function extractToken(text, key){
+            const escapedKey = String(key||"").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const rx = new RegExp(`${escapedKey}\\[(.*?)\\]`);
+            const m = rx.exec(String(text));
+            return m ? m[1] : null;
+        }
+
+        function extractIntToken(text, key){
+            const raw = extractToken(text, key);
+            if(raw===null) return null;
+            const n = parseInt(raw, 10);
+            return Number.isFinite(n) ? n : null;
+        }
+
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
             const s=String(text);
             const rx=/slug\[(.+?)\]/g;
@@ -1304,8 +1318,14 @@
                 const seasonId = extractSeason(text);
                 const clockId = extractClock(text);
                 const ageDiff = extractAgeDiff(text);
+                const challengeKey = extractToken(text, "challenge");
+                const challengeDisplayName = extractToken(text, "name");
+                const checkedInDays = extractIntToken(text, "checkedIn");
+                const totalPoints = extractIntToken(text, "points");
+                const challengeDays = extractIntToken(text, "days");
+                const challengeCompleted = /completed\[1\]/.test(text);
 
-                return { id, type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff };
+                return { id, type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff, challengeKey, challengeDisplayName, checkedInDays, totalPoints, challengeDays, challengeCompleted };
             });
         }
 
@@ -1448,7 +1468,7 @@
         }
 
         function groupAthleteBursts(rows, windowMs=60000){
-            const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward]);
+            const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult]);
 
             const timeOf=r=>{
                 const t=+new Date(r && r.occurredAt ? r.occurredAt : 0);
@@ -1548,7 +1568,10 @@
                 const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
 
                 const isCustomEvent = r.type === EVENT_TYPE.CustomEvent;
-                const name = isCustomEvent ? "Longevity World Cup" : (a ? (athleteName(a) || r.primarySlug) : (r.primarySlug || ""));
+                const isLongevitymaxxingResult = r.type === EVENT_TYPE.LongevitymaxxingChallengeResult;
+                const name = isCustomEvent
+                    ? "Longevity World Cup"
+                    : (a ? (athleteName(a) || r.primarySlug) : (isLongevitymaxxingResult ? (r.challengeDisplayName || "Longevitymaxxing Challenge") : (r.primarySlug || "")));
                 const url = r.primarySlug ? makeAthleteUrlFromSlug(r.primarySlug) : "";
                 const img = a ? athletePic(a) : "";
 
@@ -1556,7 +1579,7 @@
                 const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
 
                 let avatarHtml = "";
-                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult)
+                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult)
                     && r.primarySlug
                     && url
                     && !isSelfRow
@@ -1570,7 +1593,7 @@
                     ? ` data-athlete-slug="${esc(primaryKey)}"`
                     : ``;
 
-                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult) {
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
                     if (img) {
                         avatarHtml = canLinkAvatar
                             ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></a>`
@@ -1588,6 +1611,8 @@
                 } else if (r.type === EVENT_TYPE.CustomEvent) {
                     const logo = "{{ASSET_HD_LOGO_THUMB_SM}}";
                     avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
+                } else if (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult) {
+                    avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`;
                 } else {
                     avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
                 }
@@ -1756,6 +1781,35 @@
                     msgHtml = seasonText
                         ? `${nameWithRank} finished ${placeHtml} in ${esc(seasonText)} with a biological age ${yearsHtml} ${esc(dir)} (${esc(clockText)})`
                         : `${nameWithRank} finished ${placeHtml} with a biological age ${yearsHtml} ${esc(dir)} (${esc(clockText)})`;
+                } else if (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult) {
+                    const participantHtml = r.primarySlug
+                        ? renderTextWithSlugLinks(`slug[${r.primarySlug}]`, linkNames, athletesIndex, null)
+                        : `<span class="athlete-name-text">${esc(r.challengeDisplayName || "A participant")}</span>`;
+
+                    const placeN = Number.isFinite(r.place) ? r.place : null;
+                    const placeText = placeN ? ordinal(placeN) : "";
+                    const placeIconHtml = placeN ? podiumIcon(placeN) : "";
+                    const placeHtml = placeN
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                        : "";
+
+                    const checkedIn = Number.isFinite(r.checkedInDays) ? r.checkedInDays : null;
+                    const challengeDays = Number.isFinite(r.challengeDays) ? r.challengeDays : null;
+                    const points = Number.isFinite(r.totalPoints) ? r.totalPoints : null;
+                    const checkedInText = checkedIn !== null && challengeDays !== null
+                        ? `${checkedIn}/${challengeDays} checked-in days`
+                        : (checkedIn !== null ? `${checkedIn} checked-in days` : "");
+                    const pointsText = points !== null ? `${points} points` : "";
+                    const summary = [checkedInText, pointsText].filter(Boolean).join(" and ");
+                    const summaryText = summary ? ` with <strong class="count-accent">${esc(summary)}</strong>` : "";
+
+                    if (placeN !== null && placeN <= 3) {
+                        msgHtml = `<span class="event-inline-text">${participantHtml} finished ${placeHtml} in the Longevitymaxxing Challenge${summaryText}</span>`;
+                    } else if (r.challengeCompleted) {
+                        msgHtml = `<span class="event-inline-text">${participantHtml} completed the Longevitymaxxing Challenge${summaryText}${placeHtml ? `, finishing ${placeHtml}` : ""}</span>`;
+                    } else {
+                        msgHtml = `<span class="event-inline-text">${participantHtml} finished ${placeHtml} in the Longevitymaxxing Challenge${summaryText}</span>`;
+                    }
                 } else if (r.type === EVENT_TYPE.DonationReceived) {
                     const amount = Number.isFinite(r.sats) ? r.sats : 0;
                     const btc = amount / 100000000;
@@ -1942,6 +1996,11 @@
             if(key.startsWith("best domain -")) return isTop3Place(place);
 
             return false;
+        }
+
+        function isAllowedLongevitymaxxingChallengeResult(row, mode){
+            if(mode === "viewAll") return true;
+            return isTop3Place(row && row.place);
         }
 
         function filterBadgeRowsForMainFeed(rows, mode){
@@ -2139,7 +2198,10 @@
                         }
                     });
                 }else{
-                    rows=rows.filter(r=> r.type!==7 && (r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex)));
+                    rows=rows.filter(r=>
+                        r.type!==EVENT_TYPE.SeasonFinalResult &&
+                        (r.type!==EVENT_TYPE.LongevitymaxxingChallengeResult || isAllowedLongevitymaxxingChallengeResult(r, mode)) &&
+                        (r.type!==EVENT_TYPE.NewRank || isTop10Rank(r, athletesIndex)));
                 }
 
                 rows = applyArrivalOrderEpsilon(rows, 1);
