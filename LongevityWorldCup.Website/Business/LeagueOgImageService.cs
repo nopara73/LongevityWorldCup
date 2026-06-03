@@ -16,10 +16,13 @@ public sealed class LeagueOgImageService
 {
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 630;
-    private const float LeagueTitleY = 66f;
+    private const float LeagueTitleY = 52f;
+    private const float LeagueSubtitleY = 118f;
     private static readonly Color LeagueTitleColor = Color.White;
+    private static readonly Color LeagueSubtitleColor = new(new Rgba32(255, 255, 255, 205));
+    private static readonly Color AccentColor = ParseHex("78DA3B");
     private static readonly Color NameLabelColor = Color.White;
-    private static readonly Color NameLabelPanelColor = new(new Rgba32(0, 0, 0, 164));
+    private static readonly Color NameLabelPanelColor = new(new Rgba32(0, 0, 0, 208));
     private static readonly Color NameLabelShadowColor = new(new Rgba32(0, 0, 0, 210));
     private static readonly Color EmptySlotFillColor = new(new Rgba32(18, 21, 23, 218));
     private static readonly Color EmptySlotTextColor = new(new Rgba32(255, 255, 255, 190));
@@ -254,25 +257,34 @@ public sealed class LeagueOgImageService
             }
         }
 
-        var titleFont = fontFamily.CreateFont(50f, FontStyle.Bold);
+        var titleFont = fontFamily.CreateFont(58f, FontStyle.Bold);
+        var subtitleFont = fontFamily.CreateFont(24f, FontStyle.Bold);
         var title = payload.DisplayName;
 
         while (true)
         {
             var measurement = TextMeasurer.MeasureSize(title, new RichTextOptions(titleFont));
-            if (measurement.Width <= 1080f || titleFont.Size <= 34f)
+            if (measurement.Width <= 1080f || titleFont.Size <= 38f)
                 break;
             titleFont = fontFamily.CreateFont(titleFont.Size - 1f, FontStyle.Bold);
         }
 
         image.Mutate(ctx =>
         {
+            ctx.Fill(new Rgba32(120, 218, 59, 220), new RectangularPolygon(493f, LeagueSubtitleY + 36f, 214f, 5f));
             ctx.DrawText(new RichTextOptions(titleFont)
             {
                 Origin = new PointF(CanvasWidth / 2f, LeagueTitleY),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top
             }, title, LeagueTitleColor);
+
+            ctx.DrawText(new RichTextOptions(subtitleFont)
+            {
+                Origin = new PointF(CanvasWidth / 2f, LeagueSubtitleY),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            }, payload.Top3Names.Count == 0 ? "Rankings opening soon" : "Current top longevity athletes", LeagueSubtitleColor);
         });
 
         if (payload.Top3Names.Count == 0)
@@ -327,9 +339,9 @@ public sealed class LeagueOgImageService
         const float centerMaxWidth = 240f;
         const float sideMaxWidth = 200f;
 
-        var firstFont = FitFontToWidth(fontFamily, firstName, 30f, 20f, centerMaxWidth);
-        var secondFont = FitFontToWidth(fontFamily, secondName, 24f, 18f, sideMaxWidth);
-        var thirdFont = FitFontToWidth(fontFamily, thirdName, 24f, 18f, sideMaxWidth);
+        var firstFont = FitFontToWidth(fontFamily, firstName, 34f, 22f, centerMaxWidth);
+        var secondFont = FitFontToWidth(fontFamily, secondName, 28f, 19f, sideMaxWidth);
+        var thirdFont = FitFontToWidth(fontFamily, thirdName, 28f, 19f, sideMaxWidth);
 
         // Figma y positions:
         // center label top: 444
@@ -351,6 +363,7 @@ public sealed class LeagueOgImageService
         image.Mutate(ctx =>
         {
             ctx.Fill(NameLabelPanelColor, new RectangularPolygon(panelX, panelY, panelWidth, panelHeight));
+            ctx.Fill(AccentColor, new RectangularPolygon(panelX, panelY, panelWidth, 3f));
             DrawTextShadow(ctx, text, font, new PointF(centerX, topY), HorizontalAlignment.Center, NameLabelShadowColor, 2f);
             ctx.DrawText(new RichTextOptions(font)
             {
@@ -505,7 +518,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v22",
+            "league-og-v23",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
@@ -662,5 +675,10 @@ public sealed class LeagueOgImageService
             .Replace("-", "-", StringComparison.Ordinal);
         normalized = string.Join(" ", normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
         return normalized;
+    }
+
+    private static Color ParseHex(string hex)
+    {
+        return Color.ParseHex("#" + hex);
     }
 }

@@ -25,6 +25,7 @@ public sealed class AthleteOgImageService
     private const int ProfileBleed = 2;
     private const float NameTop = ProfileY + ProfileSize + 20f;
     private const float RankX = 60f;
+    private const float RankLabelX = 60f;
     private const float MetricLabelY = 226f;
     private const float MetricValueY = 265f;
     private const float LeagueX = 60f;
@@ -39,6 +40,7 @@ public sealed class AthleteOgImageService
     private static readonly Color LeagueColor = ParseHex("FFFFFFFF");
     private static readonly Color MetricLabelColor = ParseHex("FFFFFFD9"); // white @ 85% opacity
     private static readonly Color MetricLabelPanelColor = new(new Rgba32(0, 0, 0, 255));
+    private static readonly Color MetricPanelStrokeColor = new(new Rgba32(255, 255, 255, 48));
     private static readonly Color TextShadowColor = new(new Rgba32(0, 0, 0, 185));
 
     private readonly IWebHostEnvironment _env;
@@ -252,7 +254,7 @@ public sealed class AthleteOgImageService
         var nameFont = fontFamily.CreateFont(68, FontStyle.Bold);
 
         var rankText = $"#{payload.Rank}";
-        var leagueText = $"{payload.LeagueName} rank";
+        var leagueText = payload.LeagueName;
         var reductionText = FormatReduction(payload.AgeReduction);
         const float rightMetricEdgeX = 1148f;
         var reductionOptions = new RichTextOptions(metricFont);
@@ -270,11 +272,12 @@ public sealed class AthleteOgImageService
                 new PointF(LeagueX, MetricLabelY),
                 HorizontalAlignment.Left);
 
-            ctx.Fill(MetricLabelPanelColor, new RectangularPolygon(ReductionLabelX - 18f, ReductionLabelY - 8f, 268f, 164f));
+            DrawMetricPanel(ctx, RankLabelX - 24f, MetricLabelY - 12f, 272f, 170f, RankColor);
+            DrawMetricPanel(ctx, ReductionLabelX - 24f, ReductionLabelY - 12f, 268f, 170f, ReductionColor);
 
             DrawTextShadow(
                 ctx,
-                "Age reduction",
+                "Age Reduction",
                 labelFont,
                 new PointF(ReductionLabelX, ReductionLabelY),
                 HorizontalAlignment.Left);
@@ -286,7 +289,7 @@ public sealed class AthleteOgImageService
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
                 },
-                "Age reduction",
+                "Age Reduction",
                 MetricLabelColor);
 
             ctx.DrawText(
@@ -327,15 +330,20 @@ public sealed class AthleteOgImageService
             nameFont = fontFamily.CreateFont(nameFont.Size - 2f, FontStyle.Bold);
         }
 
-        var nameSize = TextMeasurer.MeasureSize(nameToDraw, new RichTextOptions(nameFont));
-        var nameX = (CanvasWidth - nameSize.Width) / 2f;
         image.Mutate(ctx =>
         {
+            DrawTextShadow(
+                ctx,
+                nameToDraw,
+                nameFont,
+                new PointF(CanvasWidth / 2f, NameTop),
+                HorizontalAlignment.Center);
+
             ctx.DrawText(
                 new RichTextOptions(nameFont)
                 {
-                    Origin = new PointF(nameX, NameTop),
-                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Origin = new PointF(CanvasWidth / 2f, NameTop),
+                    HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Top
                 },
                 nameToDraw,
@@ -395,7 +403,7 @@ public sealed class AthleteOgImageService
             : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v16",
+            "athlete-og-v19",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
@@ -662,6 +670,14 @@ public sealed class AthleteOgImageService
             },
             text,
             TextShadowColor);
+    }
+
+    private static void DrawMetricPanel(IImageProcessingContext ctx, float x, float y, float width, float height, Color accent)
+    {
+        ctx.Fill(MetricLabelPanelColor, new RectangularPolygon(x, y, width, height));
+        ctx.Draw(MetricPanelStrokeColor, 1f, new RectangularPolygon(x, y, width, height));
+        var pixel = accent.ToPixel<Rgba32>();
+        ctx.Fill(new Rgba32(pixel.R, pixel.G, pixel.B, 230), new RectangularPolygon(x, y, width, 4f));
     }
 
     private static float GetCharacterAdvance(string text, int index, TextOptions options, float spaceAdvance)
