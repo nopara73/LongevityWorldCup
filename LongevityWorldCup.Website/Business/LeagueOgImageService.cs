@@ -23,6 +23,8 @@ public sealed class LeagueOgImageService
     private static readonly Color AccentColor = ParseHex("78DA3B");
     private static readonly Color NameLabelColor = Color.White;
     private static readonly Color NameLabelShadowColor = new(new Rgba32(0, 0, 0, 210));
+    private static readonly Color NamePlateFillColor = new(new Rgba32(8, 10, 12, 205));
+    private static readonly Color NamePlateStrokeColor = new(new Rgba32(255, 255, 255, 42));
     private static readonly Color EmptySlotFillColor = new(new Rgba32(18, 21, 23, 218));
     private static readonly Color EmptySlotTextColor = new(new Rgba32(255, 255, 255, 190));
     private static readonly Color EmptyStateTextColor = new(new Rgba32(255, 255, 255, 224));
@@ -336,9 +338,9 @@ public sealed class LeagueOgImageService
         var secondName = top3Names.Count > 1 ? top3Names[1] : "";
         var thirdName = top3Names.Count > 2 ? top3Names[2] : "";
 
-        DrawPodiumNameLabel(image, firstName, fontFamily, PodiumSlots[0].CenterX, 438f, 248f, 30f, 20f);
-        DrawPodiumNameLabel(image, secondName, fontFamily, PodiumSlots[1].CenterX, 464f, 198f, 25f, 17f);
-        DrawPodiumNameLabel(image, thirdName, fontFamily, PodiumSlots[2].CenterX, 464f, 198f, 25f, 17f);
+        DrawPodiumNameLabel(image, firstName, fontFamily, PodiumSlots[0].CenterX, 568f, 330f, 24f, 17f);
+        DrawPodiumNameLabel(image, secondName, fontFamily, PodiumSlots[1].CenterX, 568f, 258f, 22f, 16f);
+        DrawPodiumNameLabel(image, thirdName, fontFamily, PodiumSlots[2].CenterX, 568f, 258f, 22f, 16f);
     }
 
     private static void DrawPodiumNameLabel(
@@ -357,10 +359,19 @@ public sealed class LeagueOgImageService
         var layout = BuildNameLayout(text, fontFamily, maxWidth, startSize, minSize);
         var lineHeight = layout.Font.Size * 1.02f;
         var totalHeight = lineHeight * layout.Lines.Count;
-        var y = topY - Math.Max(0f, (totalHeight - lineHeight) / 2f);
+        var maxLineWidth = layout.Lines.Max(line => TextMeasurer.MeasureSize(line, new RichTextOptions(layout.Font)).Width);
+        var plateWidth = MathF.Min(maxWidth + 22f, MathF.Max(maxLineWidth + 34f, 112f));
+        var plateHeight = MathF.Max(totalHeight + 18f, 38f);
+        var plateX = centerX - (plateWidth / 2f);
+        var plateY = topY - ((plateHeight - totalHeight) / 2f);
+        var y = plateY + ((plateHeight - totalHeight) / 2f);
 
         image.Mutate(ctx =>
         {
+            ctx.Fill(NamePlateFillColor, new RectangularPolygon(plateX, plateY, plateWidth, plateHeight));
+            ctx.Draw(NamePlateStrokeColor, 1f, new RectangularPolygon(plateX, plateY, plateWidth, plateHeight));
+            ctx.Fill(new Rgba32(255, 255, 255, 32), new RectangularPolygon(plateX, plateY, plateWidth, 1.5f));
+
             foreach (var line in layout.Lines)
             {
                 DrawNameTextShadow(ctx, line, layout.Font, new PointF(centerX, y));
@@ -627,7 +638,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v26",
+            "league-og-v29",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
