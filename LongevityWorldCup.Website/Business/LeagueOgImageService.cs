@@ -23,6 +23,12 @@ public sealed class LeagueOgImageService
     private static readonly Color AccentColor = ParseHex("78DA3B");
     private static readonly Color EmptySlotFillColor = new(new Rgba32(18, 21, 23, 218));
     private static readonly Color EmptySlotTextColor = new(new Rgba32(255, 255, 255, 190));
+    private static readonly Color GoldRimColor = new(new Rgba32(247, 203, 74, 255));
+    private static readonly Color GoldDepthColor = new(new Rgba32(86, 62, 15, 245));
+    private static readonly Color SilverRimColor = new(new Rgba32(214, 219, 222, 255));
+    private static readonly Color SilverDepthColor = new(new Rgba32(75, 80, 82, 245));
+    private static readonly Color BronzeRimColor = new(new Rgba32(211, 122, 48, 255));
+    private static readonly Color BronzeDepthColor = new(new Rgba32(86, 43, 18, 245));
 
     // Slot centers and diameters matched to the league OG podium template.
     private static readonly Slot[] PodiumSlots =
@@ -31,9 +37,9 @@ public sealed class LeagueOgImageService
         // gold: x=495 y=174 w=210 h=210
         // silver: x=248 y=250 w=171 h=171
         // bronze: x=782 y=251 w=171 h=171
-        new Slot(600, 279, 230), // #1 center
-        new Slot(333, 336, 192), // #2 left
-        new Slot(867, 337, 192)  // #3 right
+        new Slot(600, 279, 230, GoldRimColor, GoldDepthColor), // #1 center
+        new Slot(333, 336, 192, SilverRimColor, SilverDepthColor), // #2 left
+        new Slot(867, 337, 192, BronzeRimColor, BronzeDepthColor)  // #3 right
     ];
 
     private static readonly IReadOnlyDictionary<string, string> LeagueDisplayNames =
@@ -82,7 +88,7 @@ public sealed class LeagueOgImageService
         IReadOnlyList<string> Top3Names,
         string Signature);
 
-    private readonly record struct Slot(int CenterX, int CenterY, int Diameter);
+    private readonly record struct Slot(int CenterX, int CenterY, int Diameter, Color RimColor, Color DepthColor);
     public bool IsConfigured => File.Exists(_templatePath) && File.Exists(_fontPath);
 
     public static bool TryNormalizeLeagueSlug(string? raw, out string slug)
@@ -318,7 +324,9 @@ public sealed class LeagueOgImageService
 
     private static void DrawEmptySlot(Image<Rgba32> target, Slot slot, FontFamily? fontFamily)
     {
-        var radius = (slot.Diameter / 2f) - 7f;
+        var radius = slot.Diameter / 2f;
+        var rimWidth = GetMedallionRimWidth(slot);
+        DrawMedallionBase(target, slot);
         target.Mutate(ctx =>
         {
             ctx.SetGraphicsOptions(new GraphicsOptions
@@ -326,7 +334,8 @@ public sealed class LeagueOgImageService
                 Antialias = true,
                 AntialiasSubpixelDepth = 16
             });
-            ctx.Fill(EmptySlotFillColor, new EllipsePolygon(slot.CenterX, slot.CenterY, radius));
+            ctx.Fill(EmptySlotFillColor, new EllipsePolygon(slot.CenterX, slot.CenterY, radius - rimWidth - 1f));
+            DrawMedallionRim(ctx, slot, radius);
         });
 
         if (fontFamily is null)
@@ -347,6 +356,8 @@ public sealed class LeagueOgImageService
     private static void DrawCircularProfile(Image<Rgba32> target, Image<Rgba32> source, Slot slot)
     {
         var renderSize = Math.Max(1, slot.Diameter);
+        var radius = renderSize / 2f;
+        DrawMedallionBase(target, slot);
         source.Mutate(ctx => ctx.Resize(new ResizeOptions
         {
             Size = new Size(renderSize, renderSize),
@@ -381,9 +392,56 @@ public sealed class LeagueOgImageService
         target.Mutate(ctx =>
         {
             ctx.DrawImage(source, new Point(x, y), 1f);
-            ctx.Draw(Color.White, 5f, new EllipsePolygon(slot.CenterX, slot.CenterY, (slot.Diameter / 2f) - 2f));
+            DrawMedallionRim(ctx, slot, radius);
         });
     }
+
+    private static void DrawMedallionBase(Image<Rgba32> target, Slot slot)
+    {
+        var radius = slot.Diameter / 2f;
+        var depth = GetMedallionDepth(slot);
+        using var shadow = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
+        shadow.Mutate(ctx =>
+        {
+            ctx.SetGraphicsOptions(new GraphicsOptions
+            {
+                Antialias = true,
+                AntialiasSubpixelDepth = 16
+            });
+            ctx.Fill(new Rgba32(0, 0, 0, 138), new EllipsePolygon(
+                slot.CenterX,
+                slot.CenterY + (radius * 0.86f),
+                radius * 0.74f,
+                radius * 0.15f));
+            ctx.GaussianBlur(MathF.Max(7f, slot.Diameter * 0.035f));
+        });
+
+        target.Mutate(ctx =>
+        {
+            ctx.DrawImage(shadow, new Point(0, 0), 1f);
+            ctx.SetGraphicsOptions(new GraphicsOptions
+            {
+                Antialias = true,
+                AntialiasSubpixelDepth = 16
+            });
+            ctx.Fill(slot.DepthColor, new EllipsePolygon(slot.CenterX, slot.CenterY + depth, radius + 4f));
+            ctx.Draw(new Rgba32(255, 255, 255, 34), 2f, new EllipsePolygon(slot.CenterX, slot.CenterY + depth - 2f, radius + 2f));
+            ctx.Draw(new Rgba32(0, 0, 0, 96), 3f, new EllipsePolygon(slot.CenterX, slot.CenterY + depth + 1f, radius + 3f));
+        });
+    }
+
+    private static void DrawMedallionRim(IImageProcessingContext ctx, Slot slot, float radius)
+    {
+        var rimWidth = GetMedallionRimWidth(slot);
+        ctx.Draw(slot.DepthColor, rimWidth + 5f, new EllipsePolygon(slot.CenterX, slot.CenterY, radius - ((rimWidth + 5f) / 2f)));
+        ctx.Draw(slot.RimColor, rimWidth, new EllipsePolygon(slot.CenterX, slot.CenterY, radius - (rimWidth / 2f) - 1f));
+        ctx.Draw(new Rgba32(255, 255, 255, 230), 2f, new EllipsePolygon(slot.CenterX, slot.CenterY, radius - rimWidth - 2f));
+        ctx.Draw(new Rgba32(0, 0, 0, 95), 1.5f, new EllipsePolygon(slot.CenterX, slot.CenterY, radius - 1.5f));
+    }
+
+    private static float GetMedallionDepth(Slot slot) => MathF.Max(8f, slot.Diameter * 0.047f);
+
+    private static float GetMedallionRimWidth(Slot slot) => MathF.Max(8f, slot.Diameter * 0.045f);
 
     private FontFamily GetFontFamily()
     {
@@ -402,7 +460,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v31",
+            "league-og-v32",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
