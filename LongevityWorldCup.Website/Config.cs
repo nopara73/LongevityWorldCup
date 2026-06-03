@@ -38,6 +38,8 @@ namespace LongevityWorldCup.Website
         public string? ThreadsAppId { get; set; }
         public string? ThreadsAppSecret { get; set; }
         public string? ThreadsAccessToken { get; set; }
+        public string? ThreadsAccessTokenExpiresAtUtc { get; set; }
+        public string? ThreadsAccessTokenLastRefreshAttemptAtUtc { get; set; }
         public string? FacebookAppId { get; set; }
         public string? FacebookAppSecret { get; set; }
         public string? FacebookPageId { get; set; }
