@@ -27,7 +27,6 @@ public sealed class LeagueOgImageService
     private static readonly Color NamePlateStrokeColor = new(new Rgba32(255, 255, 255, 42));
     private static readonly Color EmptySlotFillColor = new(new Rgba32(18, 21, 23, 218));
     private static readonly Color EmptySlotTextColor = new(new Rgba32(255, 255, 255, 190));
-    private static readonly Color EmptyStateTextColor = new(new Rgba32(255, 255, 255, 224));
 
     // Slot centers and diameters matched to the league OG podium template.
     private static readonly Slot[] PodiumSlots =
@@ -290,11 +289,7 @@ public sealed class LeagueOgImageService
             }, payload.Top3Names.Count == 0 ? "Rankings opening soon" : "Current top longevity athletes", LeagueSubtitleColor);
         });
 
-        if (payload.Top3Names.Count == 0)
-        {
-            DrawEmptyLeagueMessage(image, fontFamily);
-        }
-        else
+        if (payload.Top3Names.Count > 0)
         {
             DrawAthleteNameLabels(image, payload.Top3Names, fontFamily);
         }
@@ -384,28 +379,6 @@ public sealed class LeagueOgImageService
 
                 y += lineHeight;
             }
-        });
-    }
-
-    private static void DrawEmptyLeagueMessage(Image<Rgba32> image, FontFamily fontFamily)
-    {
-        var font = fontFamily.CreateFont(34f, FontStyle.Bold);
-        const string text = "Rankings opening soon";
-        var textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
-        const float panelWidth = 470f;
-        const float panelHeight = 58f;
-        const float panelX = (CanvasWidth - panelWidth) / 2f;
-        const float panelY = 442f;
-        image.Mutate(ctx =>
-        {
-            ctx.Fill(new Rgba32(0, 0, 0, 208), new RectangularPolygon(panelX, panelY, panelWidth, panelHeight));
-            DrawTextShadow(ctx, text, font, new PointF(CanvasWidth / 2f, panelY + ((panelHeight - textSize.Height) / 2f)), HorizontalAlignment.Center, NameLabelShadowColor, 2f);
-            ctx.DrawText(new RichTextOptions(font)
-            {
-                Origin = new PointF(CanvasWidth / 2f, panelY + ((panelHeight - textSize.Height) / 2f)),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, text, EmptyStateTextColor);
         });
     }
 
@@ -638,7 +611,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v29",
+            "league-og-v30",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
