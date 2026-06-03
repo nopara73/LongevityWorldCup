@@ -215,7 +215,7 @@ public sealed class PageOgImageService
         var (boldFamily, regularFamily) = GetFontFamilies();
         var accent = ParseHex(payload.AccentHex);
 
-        await DrawLogoAsync(image, ct);
+        await DrawLogoMarksAsync(image, ct);
         DrawHeaderText(image, boldFamily);
         DrawTextContent(image, payload, boldFamily, regularFamily, accent);
         DrawFooterChips(image, payload, boldFamily, accent);
@@ -223,24 +223,59 @@ public sealed class PageOgImageService
         await image.SaveAsPngAsync(outputPath, ct);
     }
 
-    private async Task DrawLogoAsync(Image<Rgba32> image, CancellationToken ct)
+    private async Task DrawLogoMarksAsync(Image<Rgba32> image, CancellationToken ct)
     {
         try
         {
-            await using var logoStream = File.OpenRead(_logoPath);
-            using var logo = await Image.LoadAsync<Rgba32>(logoStream, ct);
-            logo.Mutate(ctx => ctx.Resize(new ResizeOptions
+            using var logo = await LoadLogoMarkAsync(ct);
+            using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
             {
                 Size = new Size(62, 62),
                 Mode = ResizeMode.Max
             }));
+            using var backgroundLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
+            {
+                Size = new Size(470, 470),
+                Mode = ResizeMode.Max
+            }));
 
-            image.Mutate(ctx => ctx.DrawImage(logo, new Point((int)ContentX, 42), 0.96f));
+            image.Mutate(ctx =>
+            {
+                ctx.DrawImage(backgroundLogo, new Point(765, 70), 0.075f);
+                ctx.DrawImage(smallLogo, new Point((int)ContentX, 42), 0.98f);
+            });
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Failed to draw page OG logo.");
         }
+    }
+
+    private async Task<Image<Rgba32>> LoadLogoMarkAsync(CancellationToken ct)
+    {
+        await using var logoStream = File.OpenRead(_logoPath);
+        var logo = await Image.LoadAsync<Rgba32>(logoStream, ct);
+        logo.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    var pixel = row[x];
+                    var brightness = (pixel.R + pixel.G + pixel.B) / 3f;
+                    if (brightness < 110f)
+                    {
+                        row[x] = Color.Transparent;
+                        continue;
+                    }
+
+                    var alpha = (byte)Math.Clamp((brightness - 110f) * 2.4f, 0f, pixel.A);
+                    row[x] = new Rgba32(255, 255, 255, alpha);
+                }
+            }
+        });
+        return logo;
     }
 
     private static void DrawHeaderText(Image<Rgba32> image, FontFamily boldFamily)
@@ -292,7 +327,6 @@ public sealed class PageOgImageService
 
     private static void DrawFooterChips(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, Color accent)
     {
-        var chipFont = boldFamily.CreateFont(24f, FontStyle.Bold);
         const float chipY = 474f;
         const float chipH = 58f;
         const float gap = 18f;
@@ -377,7 +411,7 @@ public sealed class PageOgImageService
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v2",
+            "page-og-v3",
             definition.Slug,
             definition.Kicker,
             definition.Title,
