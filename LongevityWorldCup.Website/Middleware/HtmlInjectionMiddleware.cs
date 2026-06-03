@@ -467,7 +467,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "Longevity World Cup | Reverse Your Biological Age",
-                    "Longevity World Cup | Reverse Your Biological Age",
+                    "Longevity World Cup",
                     noCardDescription,
                     BuildPageOgImageUrl("home", defaultOgImage)
                 ),
@@ -477,7 +477,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "Leaderboard | Longevity World Cup",
-                    "Leaderboard | Longevity World Cup",
+                    "Leaderboard",
                     noCardDescription,
                     defaultOgImage
                 ),
@@ -487,7 +487,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "Longevitymaxxing Challenge | Longevity World Cup",
-                    "Longevitymaxxing Challenge | Longevity World Cup",
+                    "Longevitymaxxing Challenge",
                     noCardDescription,
                     longevitymaxxingOgImage
                 ),
@@ -497,7 +497,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "Highlights | Longevity World Cup",
-                    "Highlights | Longevity World Cup",
+                    "Highlights",
                     noCardDescription,
                     BuildPageOgImageUrl("events", defaultOgImage)
                 ),
@@ -507,7 +507,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "Media Kit | Longevity World Cup",
-                    "Media Kit | Longevity World Cup",
+                    "Media Kit",
                     noCardDescription,
                     BuildPageOgImageUrl("media", defaultOgImage)
                 ),
@@ -517,7 +517,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "About Longevity World Cup",
-                    "About Longevity World Cup",
+                    "About",
                     noCardDescription,
                     BuildPageOgImageUrl("about", defaultOgImage)
                 ),
@@ -527,7 +527,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "History of Longevity as a Sport | Longevity World Cup",
-                    "History of Longevity as a Sport | Longevity World Cup",
+                    "History",
                     noCardDescription,
                     BuildPageOgImageUrl("history", defaultOgImage)
                 ),
@@ -537,7 +537,7 @@ $@"<script type=""module"">
                     "index, follow",
                     canonicalUrl,
                     "Ruleset | Longevity World Cup",
-                    "Ruleset | Longevity World Cup",
+                    "Ruleset",
                     noCardDescription,
                     BuildPageOgImageUrl("ruleset", defaultOgImage)
                 ),
@@ -666,7 +666,7 @@ $@"<script type=""module"">
                 "index, follow",
                 canonicalUrl,
                 title,
-                title,
+                payload.Name,
                 "",
                 ogImageUrl
             );
@@ -705,7 +705,7 @@ $@"<script type=""module"">
                 "index, follow",
                 canonicalUrl,
                 title,
-                title,
+                payload.DisplayName,
                 "",
                 ogImageUrl
             );
@@ -732,7 +732,7 @@ $@"<script type=""module"">
                 "index, follow",
                 canonicalUrl,
                 viewSeo.Title,
-                viewSeo.Title,
+                viewSeo.Title.Replace(" | Longevity World Cup", "", StringComparison.Ordinal),
                 "",
                 ogImageUrl
             );
