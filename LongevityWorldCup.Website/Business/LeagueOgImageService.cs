@@ -248,6 +248,7 @@ public sealed class LeagueOgImageService
             {
                 await using var profileStream = File.OpenRead(profilePath);
                 using var profile = await Image.LoadAsync<Rgba32>(profileStream, ct);
+                profile.Mutate(ctx => ctx.AutoOrient());
                 DrawCircularProfile(image, profile, slot);
             }
             catch (Exception ex)
@@ -518,7 +519,7 @@ public sealed class LeagueOgImageService
         var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
 
         var raw = string.Join("|",
-            "league-og-v23",
+            "league-og-v24",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),

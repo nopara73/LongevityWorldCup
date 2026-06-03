@@ -36,6 +36,20 @@ public sealed class SocialImageRenderingTests
         await AssertPngCanvasAsync(await images.RenderToStreamAsync("Season update\nLongevity World Cup athletes keep pushing biological age sport forward."));
     }
 
+    [Fact]
+    public async Task AthleteAndLeagueSharePreviewImages_RenderAsPngCanvases()
+    {
+        using var factory = CreateFactory();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+        var leagueImages = factory.Services.GetRequiredService<LeagueOgImageService>();
+
+        Assert.True(athleteImages.TryGetCurrentPayload("ron-lugbill", out var athletePayload));
+        Assert.True(leagueImages.TryGetCurrentPayload("ultimate", out var leaguePayload));
+
+        await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(athletePayload), 1200, 630);
+        await AssertPngFileCanvasAsync(await leagueImages.EnsureRenderedImageAsync(leaguePayload), 1200, 630);
+    }
+
     private static async Task AssertPngCanvasAsync(Stream? stream)
     {
         Assert.NotNull(stream);
@@ -45,6 +59,17 @@ public sealed class SocialImageRenderingTests
 
         Assert.Equal(1200, image.Width);
         Assert.Equal(675, image.Height);
+    }
+
+    private static async Task AssertPngFileCanvasAsync(string? path, int width, int height)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(path));
+        Assert.True(File.Exists(path));
+
+        using var image = await Image.LoadAsync(path);
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
     }
 
     private static WebApplicationFactory<Program> CreateFactory()
