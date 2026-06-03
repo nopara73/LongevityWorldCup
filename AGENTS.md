@@ -57,6 +57,12 @@ The Longevitymaxxing Challenge is a standalone Lifestyle challenge and must not 
 - When changing the API of an existing external JS file, review every injected HTML/partial caller in the repo and ensure the versioned URL path still goes through the middleware replacement flow.
 - If a helper is moved from inline script to a separate JS file, verify that the file is loaded in every page, modal, iframe, or embedded context that uses that helper.
 
+## Social API Token Maintenance
+
+- Threads access token maintenance is part of the daily Threads social post job, even on days with no postable content.
+- `ThreadsAccessTokenExpiresAtUtc` and `ThreadsAccessTokenLastRefreshAttemptAtUtc` are runtime config metadata used to avoid silent token expiry; keep them in sync when manually replacing `ThreadsAccessToken`.
+- Expired Threads tokens cannot be recovered in code. Generate a fresh token in Meta, then let the app refresh it proactively before future expiry.
+
 ## Keep This File Updated
 
 - If you modify behavior in any of the areas described above, update this file as part of the same change.

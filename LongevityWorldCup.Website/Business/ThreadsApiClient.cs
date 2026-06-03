@@ -10,6 +10,8 @@ public class ThreadsApiClient
     private const string RefreshAccessTokenEndpoint = "https://graph.threads.net/refresh_access_token";
     private const string ContainerFields = "id,status,error_message";
     private const int MaxTextLength = 500;
+    private static readonly TimeSpan ProactiveRefreshWindow = TimeSpan.FromDays(14);
+    private static readonly TimeSpan UnknownExpiryRefreshRetryInterval = TimeSpan.FromHours(20);
     private static readonly int[] ContainerReadyPollDelaysMs = [1000, 2000, 3000, 5000, 5000, 10000, 10000, 15000];
 
     private readonly HttpClient _http;
@@ -28,6 +30,20 @@ public class ThreadsApiClient
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(GetAccessToken());
+
+    public async Task EnsureAccessTokenFreshAsync(CancellationToken ct = default)
+    {
+        var token = GetAccessToken();
+        if (string.IsNullOrWhiteSpace(token))
+            return;
+
+        if (!ShouldRefreshProactively(DateTimeOffset.UtcNow))
+            return;
+
+        var refreshed = await TryRefreshAccessTokenAsync(ct);
+        if (!refreshed)
+            _log.LogWarning("Threads proactive token refresh did not succeed. Existing token will remain configured.");
+    }
 
     public async Task SendAsync(string text)
     {
@@ -391,9 +407,9 @@ public class ThreadsApiClient
         }
     }
 
-    private async Task<bool> TryRefreshAccessTokenAsync()
+    private async Task<bool> TryRefreshAccessTokenAsync(CancellationToken ct = default)
     {
-        await _refreshLock.WaitAsync();
+        await _refreshLock.WaitAsync(ct);
         try
         {
             var currentToken = GetAccessToken();
@@ -403,34 +419,43 @@ public class ThreadsApiClient
                 return false;
             }
 
+            var attemptUtc = DateTimeOffset.UtcNow;
+            _config.ThreadsAccessTokenLastRefreshAttemptAtUtc = FormatUtc(attemptUtc);
+
             var url = $"{RefreshAccessTokenEndpoint}?grant_type=th_refresh_token&access_token={Uri.EscapeDataString(currentToken)}";
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
 
-            var res = await _http.SendAsync(req);
-            var json = await res.Content.ReadAsStringAsync();
+            var res = await _http.SendAsync(req, ct);
+            var json = await res.Content.ReadAsStringAsync(ct);
 
             if (!res.IsSuccessStatusCode)
             {
                 _log.LogError("Threads token refresh failed: {StatusCode} {Body}", res.StatusCode, json);
+                await SaveConfigAsync();
                 return false;
             }
 
             string? newAccessToken = null;
+            long? expiresInSeconds = null;
             try
             {
                 using var doc = JsonDocument.Parse(json);
                 if (doc.RootElement.TryGetProperty("access_token", out var tokenEl))
                     newAccessToken = tokenEl.GetString();
+                if (doc.RootElement.TryGetProperty("expires_in", out var expiresEl) && expiresEl.TryGetInt64(out var expiresInValue))
+                    expiresInSeconds = expiresInValue;
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "Threads token refresh response parse failed: {Json}", json);
+                await SaveConfigAsync();
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(newAccessToken))
             {
                 _log.LogError("Threads token refresh did not return access_token.");
+                await SaveConfigAsync();
                 return false;
             }
 
@@ -438,16 +463,11 @@ public class ThreadsApiClient
             {
                 _accessToken = newAccessToken;
                 _config.ThreadsAccessToken = newAccessToken;
+                if (expiresInSeconds is > 0)
+                    _config.ThreadsAccessTokenExpiresAtUtc = FormatUtc(attemptUtc.AddSeconds(expiresInSeconds.Value));
             }
 
-            try
-            {
-                await _config.SaveAsync();
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Failed to save Threads access token to config.");
-            }
+            await SaveConfigAsync();
 
             _log.LogInformation("Threads access token refreshed successfully.");
             return true;
@@ -469,6 +489,52 @@ public class ThreadsApiClient
         return responseBody.Contains("Invalid OAuth access token", StringComparison.OrdinalIgnoreCase) ||
                responseBody.Contains("Error validating access token", StringComparison.OrdinalIgnoreCase) ||
                responseBody.Contains("Session has expired", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool ShouldRefreshProactively(DateTimeOffset nowUtc)
+    {
+        return ShouldRefreshProactively(
+            nowUtc,
+            _config.ThreadsAccessTokenExpiresAtUtc,
+            _config.ThreadsAccessTokenLastRefreshAttemptAtUtc);
+    }
+
+    internal static bool ShouldRefreshProactively(DateTimeOffset nowUtc, string? expiresAtUtc, string? lastRefreshAttemptAtUtc)
+    {
+        var expiresAt = ParseConfigUtc(expiresAtUtc);
+        if (expiresAt.HasValue)
+            return expiresAt.Value - nowUtc <= ProactiveRefreshWindow;
+
+        var lastAttempt = ParseConfigUtc(lastRefreshAttemptAtUtc);
+        return !lastAttempt.HasValue || nowUtc - lastAttempt.Value >= UnknownExpiryRefreshRetryInterval;
+    }
+
+    private async Task SaveConfigAsync()
+    {
+        try
+        {
+            await _config.SaveAsync();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to save Threads access token config.");
+        }
+    }
+
+    private static DateTimeOffset? ParseConfigUtc(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (!DateTimeOffset.TryParse(value, out var parsed))
+            return null;
+
+        return parsed.ToUniversalTime();
+    }
+
+    private static string FormatUtc(DateTimeOffset value)
+    {
+        return value.UtcDateTime.ToString("O");
     }
 
 }
