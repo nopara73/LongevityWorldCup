@@ -1,12 +1,17 @@
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website
 {
     public class Config
     {
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+        private const string DefaultConfigFilePath = "config.json";
+        private const string RuntimeConfigFileName = "runtime-config.json";
+        private string? _configFilePath;
+        private string? _runtimeConfigFilePath;
 
         public string? EmailFrom { get; set; }
         public string? EmailTo { get; set; }
@@ -15,7 +20,8 @@ namespace LongevityWorldCup.Website
         public string? SmtpUser { get; set; }
         public string? SmtpPassword { get; set; }
 
-        private static readonly string ConfigFilePath = "config.json";
+        private string ConfigFilePath => _configFilePath ?? DefaultConfigFilePath;
+        private string RuntimeConfigFilePath => _runtimeConfigFilePath ?? GetDefaultRuntimeConfigFilePath();
 
         public string? GmailClientId { get; set; }
         public string? GmailClientSecret { get; set; }
@@ -51,21 +57,117 @@ namespace LongevityWorldCup.Website
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
         {
-            if (!File.Exists(ConfigFilePath))
+            return await LoadAsync(DefaultConfigFilePath, GetDefaultRuntimeConfigFilePath());
+        }
+
+        internal static async Task<Config> LoadAsync(string configFilePath, string runtimeConfigFilePath)
+        {
+            if (!File.Exists(configFilePath))
                 throw new FileNotFoundException("Configuration file not found.");
 
-            string json = await File.ReadAllTextAsync(ConfigFilePath);
+            string json = await File.ReadAllTextAsync(configFilePath);
 
             // Ensure deserialization doesn't return null
             var config = JsonSerializer.Deserialize<Config>(json);
-            return config ?? throw new InvalidDataException("Configuration file content is invalid.");
+            if (config is null)
+                throw new InvalidDataException("Configuration file content is invalid.");
+
+            config._configFilePath = configFilePath;
+            config._runtimeConfigFilePath = runtimeConfigFilePath;
+            await config.ApplyRuntimeConfigIfCurrentAsync();
+            return config;
         }
 
         // Save configuration to the file
         public async Task SaveAsync()
         {
             string json = JsonSerializer.Serialize(this, JsonOptions); // Use cached options
-            await File.WriteAllTextAsync(ConfigFilePath, json);
+            try
+            {
+                await File.WriteAllTextAsync(ConfigFilePath, json);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                await SaveRuntimeConfigAsync();
+            }
+        }
+
+        internal Config UseFilePathsForTesting(string configFilePath, string runtimeConfigFilePath)
+        {
+            _configFilePath = configFilePath;
+            _runtimeConfigFilePath = runtimeConfigFilePath;
+            return this;
+        }
+
+        private async Task ApplyRuntimeConfigIfCurrentAsync()
+        {
+            if (!File.Exists(RuntimeConfigFilePath))
+                return;
+
+            var configLastWriteUtc = File.GetLastWriteTimeUtc(ConfigFilePath);
+            var runtimeLastWriteUtc = File.GetLastWriteTimeUtc(RuntimeConfigFilePath);
+            if (runtimeLastWriteUtc < configLastWriteUtc)
+                return;
+
+            var json = await File.ReadAllTextAsync(RuntimeConfigFilePath);
+            var runtimeConfig = JsonSerializer.Deserialize<RuntimeConfig>(json);
+            if (runtimeConfig is null)
+                return;
+
+            ApplyRuntimeConfig(runtimeConfig);
+        }
+
+        private async Task SaveRuntimeConfigAsync()
+        {
+            var runtimePath = RuntimeConfigFilePath;
+            var runtimeDirectory = Path.GetDirectoryName(Path.GetFullPath(runtimePath));
+            if (!string.IsNullOrWhiteSpace(runtimeDirectory))
+                Directory.CreateDirectory(runtimeDirectory);
+
+            var runtimeConfig = RuntimeConfig.From(this);
+            var json = JsonSerializer.Serialize(runtimeConfig, JsonOptions);
+            await File.WriteAllTextAsync(runtimePath, json);
+        }
+
+        private void ApplyRuntimeConfig(RuntimeConfig runtimeConfig)
+        {
+            XAccessToken = runtimeConfig.XAccessToken ?? XAccessToken;
+            XRefreshToken = runtimeConfig.XRefreshToken ?? XRefreshToken;
+            ThreadsAccessToken = runtimeConfig.ThreadsAccessToken ?? ThreadsAccessToken;
+            ThreadsAccessTokenExpiresAtUtc = runtimeConfig.ThreadsAccessTokenExpiresAtUtc ?? ThreadsAccessTokenExpiresAtUtc;
+            ThreadsAccessTokenLastRefreshAttemptAtUtc = runtimeConfig.ThreadsAccessTokenLastRefreshAttemptAtUtc ?? ThreadsAccessTokenLastRefreshAttemptAtUtc;
+            FacebookUserAccessToken = runtimeConfig.FacebookUserAccessToken ?? FacebookUserAccessToken;
+            FacebookPageAccessToken = runtimeConfig.FacebookPageAccessToken ?? FacebookPageAccessToken;
+        }
+
+        private static string GetDefaultRuntimeConfigFilePath()
+        {
+            return Path.Combine(EnvironmentHelpers.GetDataDir(), RuntimeConfigFileName);
+        }
+
+        private sealed class RuntimeConfig
+        {
+            public string? XAccessToken { get; set; }
+            public string? XRefreshToken { get; set; }
+            public string? ThreadsAccessToken { get; set; }
+            public string? ThreadsAccessTokenExpiresAtUtc { get; set; }
+            public string? ThreadsAccessTokenLastRefreshAttemptAtUtc { get; set; }
+            public string? FacebookUserAccessToken { get; set; }
+            public string? FacebookPageAccessToken { get; set; }
+
+            public static RuntimeConfig From(Config config)
+            {
+                return new RuntimeConfig
+                {
+                    XAccessToken = config.XAccessToken,
+                    XRefreshToken = config.XRefreshToken,
+                    ThreadsAccessToken = config.ThreadsAccessToken,
+                    ThreadsAccessTokenExpiresAtUtc = config.ThreadsAccessTokenExpiresAtUtc,
+                    ThreadsAccessTokenLastRefreshAttemptAtUtc = config.ThreadsAccessTokenLastRefreshAttemptAtUtc,
+                    FacebookUserAccessToken = config.FacebookUserAccessToken,
+                    FacebookPageAccessToken = config.FacebookPageAccessToken
+                };
+            }
         }
     }
 
