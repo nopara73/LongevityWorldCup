@@ -27,6 +27,7 @@ public class ThreadsDailyPostJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogInformation("ThreadsDailyPostJob {ts}", DateTime.UtcNow);
+        await _threadsEvents.EnsureAccessTokenFreshAsync(context.CancellationToken);
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
         var pending = _events.GetPendingThreadsEvents();
