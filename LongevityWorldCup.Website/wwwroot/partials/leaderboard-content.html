@@ -495,10 +495,10 @@
     .ranking-explanation.is-visible{ display:block; }
     .ranking-explanation strong{ color:var(--primary-color); }
     .longevitymaxxing-promo{
-        display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:1rem; margin:0 0 1.25rem;
-        padding:1rem 1.1rem; border:1px solid rgba(0,188,212,.2); border-left:4px solid var(--secondary-color);
-        border-radius:8px; background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(0,188,212,.07) 48%, rgba(255,64,129,.08));
-        box-shadow:0 10px 24px rgba(0,0,0,.08); box-sizing:border-box;
+        display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:.85rem; margin:0 0 1rem;
+        padding:.85rem 1rem; border:1px solid rgba(0,188,212,.18); border-left:4px solid var(--secondary-color);
+        border-radius:8px; background:linear-gradient(135deg, rgba(255,255,255,.9), rgba(0,188,212,.055) 58%, rgba(255,64,129,.055));
+        box-shadow:0 8px 18px rgba(0,0,0,.06); box-sizing:border-box;
     }
     .longevitymaxxing-promo[hidden]{ display:none; }
     .longevitymaxxing-promo-text{
@@ -512,11 +512,11 @@
         color:var(--primary-color); font-size:.95rem;
     }
     .longevitymaxxing-promo h2{
-        margin:0; padding:0; text-align:left; color:#1f2933; font-size:clamp(1.35rem, 2.8vw, 1.95rem);
+        margin:0; padding:0; text-align:left; color:#1f2933; font-size:clamp(1.18rem, 2.2vw, 1.55rem);
         line-height:1.08; letter-spacing:0; text-shadow:none;
     }
     .longevitymaxxing-promo p{
-        max-width:48rem; margin:0; color:#3d4b55; font-size:1rem; line-height:1.45;
+        max-width:48rem; margin:0; color:#3d4b55; font-size:.94rem; line-height:1.42;
     }
     .longevitymaxxing-promo-points{
         display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.05rem;
@@ -527,14 +527,14 @@
     }
     .longevitymaxxing-promo-action{
         display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; white-space:nowrap;
-        padding:.72rem 1rem; border-radius:999px; background:var(--main-action-color); color:var(--light-text-color);
-        font-weight:700; text-decoration:none; box-shadow:0 7px 16px rgba(76,175,80,.26);
-        transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+        padding:.62rem .95rem; border:1px solid rgba(0,188,212,.36); border-radius:999px; background:rgba(255,255,255,.78); color:#167986;
+        font-weight:700; text-decoration:none; box-shadow:0 5px 12px rgba(0,0,0,.08);
+        transition:transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
     }
     .longevitymaxxing-promo-action:hover,
     .longevitymaxxing-promo-action:focus-visible{
-        background:var(--main-action-selected-color); transform:translateY(-1px);
-        box-shadow:0 10px 20px rgba(56,142,60,.28); outline:none;
+        background:rgba(0,188,212,.1); color:var(--primary-color); border-color:var(--primary-color); transform:translateY(-1px);
+        box-shadow:0 8px 16px rgba(0,188,212,.14); outline:none;
     }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
@@ -644,13 +644,13 @@
     /* PODIUM portrait (bounded even if not wrapped) */
     .podium-item .podium-portrait{
         width:var(--podium-portrait-size); height:var(--podium-portrait-size); aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
-        border:3px solid var(--secondary-color); margin:1rem 0; cursor:pointer; transition:transform .3s ease; will-change:transform;
+        border:3px solid var(--secondary-color); margin:.68rem 0 .55rem; cursor:pointer; transition:transform .3s ease; will-change:transform;
         flex:0 0 auto; box-sizing:border-box; /* include border in the height */
     }
     .podium-item .podium-portrait:hover{ transform: scale(1.1); }
 
     /* When wrapped on podium: wrapper defines circle, img fills it */
-    .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:1rem 0; flex:0 0 auto; }
+    .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:.68rem 0 .55rem; flex:0 0 auto; }
     .podium-item .rank-change img.podium-portrait{
         width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform .3s ease; box-sizing:border-box;
     }
@@ -771,26 +771,26 @@
     /* =========================
        7) Podium cards
        ========================= */
-    .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:2rem; }
+    .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:1.2rem; }
     .podium-item{
-        --podium-prize-panel-height: 92px;
+        --podium-prize-panel-height: 82px;
         --podium-portrait-size: 112px;
-        position:relative; text-align:center; padding:1rem 1rem calc(var(--podium-prize-panel-height) + .85rem); background:var(--card-bg); border-radius:15px;
+        position:relative; text-align:center; padding:.9rem 1rem calc(var(--podium-prize-panel-height) + 1rem); background:var(--card-bg); border-radius:15px;
         box-shadow:0 10px 30px rgba(0,0,0,.1); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
-        justify-content:flex-start; width:200px; min-height:230px; box-sizing:border-box; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
+        justify-content:flex-start; width:190px; min-height:230px; box-sizing:border-box; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
     }
     .podium .podium-item:hover{
         transform: scale(1.05) !important; will-change: transform;
         transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2);
     }
     .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
-    .podium-item.first{ --podium-portrait-size: 146px; order:2; height:340px; }
-    .podium-item.second{ --podium-portrait-size: 126px; order:1; height:320px; }
-    .podium-item.third{ --podium-portrait-size: 112px; order:3; height:300px; }
+    .podium-item.first{ --podium-portrait-size: 116px; order:2; height:340px; }
+    .podium-item.second{ --podium-portrait-size: 102px; order:1; height:322px; }
+    .podium-item.third{ --podium-portrait-size: 92px; order:3; height:306px; }
 
     .podium-item-lower{
         position:absolute; bottom:0; width:100%; min-height:var(--podium-prize-panel-height); padding:10px 0; border-radius:0 0 15px 15px;
-        display:flex; flex-direction:column; align-items:center; clip-path:polygon(0 30%, 100% 0, 100% 100%, 0% 100%);
+        display:flex; flex-direction:column; align-items:center; clip-path:polygon(0 0, 100% 0, 100% 100%, 0% 100%);
         transition:clip-path .3s ease-in-out; pointer-events:auto; cursor:pointer;
         box-sizing:border-box;
     }
@@ -798,8 +798,8 @@
     .podium-item.first .podium-item-lower{ background:#FFF9C4; }
     .podium-item.second .podium-item-lower{ background:#E0E0E0; }
     .podium-item.third .podium-item-lower{ background:#D9C3A3; }
-    .prize-money{ font-weight:bold; font-size:2rem; color:#4caf50; margin-top:2px; }
-    .btc-amount{ margin-top:1rem; font-weight:normal; font-size:.8rem; color:var(--dark-text-color); line-height:1.2; }
+    .prize-money{ font-weight:bold; font-size:1.55rem; color:#4caf50; margin-top:1px; }
+    .btc-amount{ margin-top:.62rem; font-weight:normal; font-size:.72rem; color:var(--dark-text-color); line-height:1.2; }
 
     .podium-rank{
         position:absolute; top:-6px; left:10%; transform:translateX(-50%); background:#fff;
@@ -2283,6 +2283,30 @@
 <div class="main-container">
 
     <div class="content">
+        <div class="podium" aria-busy="true" style="display:none;">
+            <div class="podium-item podium-skeleton-item second" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+            <div class="podium-item podium-skeleton-item first" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+            <div class="podium-item podium-skeleton-item third" aria-hidden="true">
+                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
+                <div class="name-row">
+                    <span class="athlete-name skeleton-shimmer"></span>
+                </div>
+                <div class="podium-skeleton-line skeleton-shimmer"></div>
+            </div>
+        </div>
+
         <!--LONGEVITYMAXXING-PROMO-START-->
         <section class="longevitymaxxing-promo" id="longevitymaxxingPromo" aria-labelledby="longevitymaxxingPromoTitle">
             <div class="longevitymaxxing-promo-text">
@@ -2327,29 +2351,6 @@
             }());
         </script>
         <!--LONGEVITYMAXXING-PROMO-END-->
-        <div class="podium" aria-busy="true" style="display:none;">
-            <div class="podium-item podium-skeleton-item second" aria-hidden="true">
-                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
-                <div class="name-row">
-                    <span class="athlete-name skeleton-shimmer"></span>
-                </div>
-                <div class="podium-skeleton-line skeleton-shimmer"></div>
-            </div>
-            <div class="podium-item podium-skeleton-item first" aria-hidden="true">
-                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
-                <div class="name-row">
-                    <span class="athlete-name skeleton-shimmer"></span>
-                </div>
-                <div class="podium-skeleton-line skeleton-shimmer"></div>
-            </div>
-            <div class="podium-item podium-skeleton-item third" aria-hidden="true">
-                <div class="podium-skeleton-portrait skeleton-shimmer"></div>
-                <div class="name-row">
-                    <span class="athlete-name skeleton-shimmer"></span>
-                </div>
-                <div class="podium-skeleton-line skeleton-shimmer"></div>
-            </div>
-        </div>
 
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
