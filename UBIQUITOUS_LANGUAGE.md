@@ -108,6 +108,7 @@
 - **Longevitymaxxing Challenge** final results and linked-athlete completions can appear as **Events**, but they do not affect **Ultimate League** ranking, biological age placements, or athlete **Badges**.
 - **Social posts** can be generated from **Events**, **Badges**, athlete rankings, and league context.
 - The **Longevitymaxxing Challenge** is separate from the **Ultimate League** and does not affect biological age rankings, placements, or badges.
+- A **Longevitymaxxing Challenge** participant without a linked **Longevity athlete** profile can have a challenge-only **Profile picture** for challenge surfaces; it does not create or update an athlete profile picture.
 
 ## Example dialogue
 

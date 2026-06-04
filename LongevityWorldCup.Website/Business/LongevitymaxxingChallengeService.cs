@@ -2,6 +2,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
+using Microsoft.AspNetCore.Http;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -10,6 +14,8 @@ public sealed class LongevitymaxxingChallengeService
     private const string ChallengeName = "Longevitymaxxing Challenge";
     private const int DailyMaxScore = 8;
     private const int PracticeCheckInDay = 1;
+    public const int MaxProfilePictureUploadBytes = 8 * 1024 * 1024;
+    private const int ProfilePictureSize = 512;
     private static readonly EmailAddressAttribute EmailValidator = new();
     private static readonly string[] CategoryNames = ["Sleep", "Exercise", "Nutrition", "Vices"];
 
@@ -293,6 +299,54 @@ public sealed class LongevitymaxxingChallengeService
         });
 
         return GetParticipantState(request.AccessToken, now);
+    }
+
+    public async Task<LongevitymaxxingParticipantState> UploadParticipantProfilePictureAsync(string accessToken, IFormFile? profilePicture, CancellationToken ct = default)
+    {
+        var participant = RequireParticipantByAccessToken(accessToken);
+        if (!string.IsNullOrWhiteSpace(participant.AthleteSlug))
+            throw new InvalidOperationException("Profile picture upload is only for participants without a LWC athlete profile.");
+
+        if (profilePicture is null || profilePicture.Length <= 0)
+            throw new InvalidOperationException("Profile picture is required.");
+
+        if (profilePicture.Length > MaxProfilePictureUploadBytes)
+            throw new InvalidOperationException("Profile picture must be 8 MB or smaller.");
+
+        var outputPath = GetProfilePicturePath(participant.Id);
+        var tempPath = $"{outputPath}.{Guid.NewGuid():N}.tmp";
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+        try
+        {
+            await using var input = profilePicture.OpenReadStream();
+            using var image = await Image.LoadAsync(input, ct).ConfigureAwait(false);
+            image.Mutate(ctx => ctx
+                .AutoOrient()
+                .Resize(new ResizeOptions
+                {
+                    Size = new Size(ProfilePictureSize, ProfilePictureSize),
+                    Mode = ResizeMode.Crop,
+                    Position = AnchorPositionMode.Center
+                }));
+            image.Metadata.ExifProfile = null;
+
+            await image.SaveAsync(tempPath, new WebpEncoder
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                Quality = 86
+            }, ct).ConfigureAwait(false);
+
+            File.Move(tempPath, outputPath, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            TryDeleteFile(tempPath);
+            _logger.LogWarning(ex, "Longevitymaxxing profile picture upload failed for participant {ParticipantId}", participant.Id);
+            throw new InvalidOperationException("The profile picture could not be processed. Please upload a smaller image and try again.", ex);
+        }
+
+        return GetParticipantState(accessToken);
     }
 
     public LongevitymaxxingParticipantState SubmitCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc = null)
@@ -721,6 +775,7 @@ public sealed class LongevitymaxxingChallengeService
                 p.Id,
                 p.DisplayName,
                 BuildAthleteUrl(p.AthleteSlug),
+                BuildProfilePictureUrl(p),
                 checkedInDays,
                 totalPoints,
                 currentStreak,
@@ -974,7 +1029,7 @@ public sealed class LongevitymaxxingChallengeService
             return [];
 
         return leaderboard.Take(3)
-            .Select((row, index) => new LongevitymaxxingPodiumRow(index + 1, row.DisplayName, row.AthleteUrl, row.CheckedInDays, row.TotalPoints))
+            .Select((row, index) => new LongevitymaxxingPodiumRow(index + 1, row.DisplayName, row.AthleteUrl, row.ProfileImageUrl, row.CheckedInDays, row.TotalPoints))
             .ToList();
     }
 
@@ -1383,7 +1438,35 @@ public sealed class LongevitymaxxingChallengeService
     private static string? BuildAthleteUrl(string? athleteSlug)
         => string.IsNullOrWhiteSpace(athleteSlug) ? null : $"/athlete/{Uri.EscapeDataString(athleteSlug)}";
 
-    private static LongevitymaxxingParticipantSummary ToParticipantSummary(ParticipantRecord participant)
+    private string? BuildProfilePictureUrl(ParticipantRecord participant)
+    {
+        if (!string.IsNullOrWhiteSpace(participant.AthleteSlug))
+            return null;
+
+        var path = GetProfilePicturePath(participant.Id);
+        if (!File.Exists(path))
+            return null;
+
+        var info = new FileInfo(path);
+        return $"/generated/longevitymaxxing/profile-pictures/{Uri.EscapeDataString(Path.GetFileName(path))}?v={info.LastWriteTimeUtc.Ticks}";
+    }
+
+    private string GetProfilePicturePath(string participantId)
+        => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "profile-pictures", $"{participantId}.webp");
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+        }
+    }
+
+    private LongevitymaxxingParticipantSummary ToParticipantSummary(ParticipantRecord participant)
     {
         return new LongevitymaxxingParticipantSummary(
             participant.Id,
@@ -1392,6 +1475,7 @@ public sealed class LongevitymaxxingChallengeService
             participant.TimeZoneId,
             participant.AthleteSlug,
             BuildAthleteUrl(participant.AthleteSlug),
+            BuildProfilePictureUrl(participant),
             participant.StoppedEmailsAtUtc is not null);
     }
 

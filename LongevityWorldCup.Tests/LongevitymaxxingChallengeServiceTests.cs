@@ -1,8 +1,11 @@
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -37,6 +40,41 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         var subscriptions = File.ReadAllText(Path.Combine(fixture.ContentRoot, "AppData", "subscriptions.txt"));
         Assert.Contains("athlete@example.com", subscriptions);
+    }
+
+    [Fact]
+    public async Task ParticipantWithoutAthleteProfileCanUploadChallengeProfilePicture()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("pic@example.com", "Picture Pat");
+        using var stream = CreatePngStream();
+        var file = CreatePngFormFile(stream);
+
+        var state = await fixture.Service.UploadParticipantProfilePictureAsync(access, file);
+
+        Assert.NotNull(state.Participant.ProfileImageUrl);
+        Assert.Contains("/generated/longevitymaxxing/profile-pictures/", state.Participant.ProfileImageUrl);
+        Assert.Contains("?v=", state.Participant.ProfileImageUrl);
+        var row = Assert.Single(state.Public.Leaderboard);
+        Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
+        Assert.Null(row.AthleteUrl);
+
+        var storedPath = Path.Combine(fixture.ContentRoot, "generated", "longevitymaxxing", "profile-pictures", $"{state.Participant.Id}.webp");
+        Assert.True(File.Exists(storedPath));
+    }
+
+    [Fact]
+    public async Task LinkedAthleteProfileKeepsChallengeProfilePictureUploadUnavailable()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("linked@example.com", "Linked Lou", athleteLink: "/athlete/linked-lou");
+        using var stream = CreatePngStream();
+        var file = CreatePngFormFile(stream);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service.UploadParticipantProfilePictureAsync(access, file));
+
+        Assert.Contains("without a LWC athlete profile", ex.Message);
     }
 
     [Fact]
@@ -330,6 +368,24 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 vices,
                 null), DateTimeOffset.Parse("2026-06-09T08:00:00Z").AddDays(day - 1));
         }
+    }
+
+    private static MemoryStream CreatePngStream()
+    {
+        var stream = new MemoryStream();
+        using var image = new Image<Rgba32>(4, 4, new Rgba32(21, 184, 166));
+        image.SaveAsPng(stream);
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static IFormFile CreatePngFormFile(MemoryStream stream)
+    {
+        return new FormFile(stream, 0, stream.Length, "profilePicture", "profile.png")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/png"
+        };
     }
 
     private sealed class TestChallengeFixture : IDisposable
