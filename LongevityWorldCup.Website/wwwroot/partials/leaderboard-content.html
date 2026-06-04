@@ -2714,7 +2714,7 @@
     let athleteResults = [];
     let athletesOrderedByPace;
     let athletesOrderedByBortzPace;
-    let athletesOrderedByLowestPhenoAge;
+    let athletesOrderedByPhenoAgeReduction;
     const defaultProfilePic = '{{ASSET_HD_LOGO_THUMB_SM}}';
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
@@ -3560,10 +3560,8 @@
                     athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
                     a => a.lowestBortzAge / a.chronoAtLowestBortzAge
                 );
-                athletesOrderedByLowestPhenoAge = orderByNumberAsc(
-                    athleteResults.filter(a => a.lowestPhenoAge != null && Number.isFinite(a.lowestPhenoAge)),
-                    a => a.lowestPhenoAge
-                );
+                athletesOrderedByPhenoAgeReduction = athleteResults.slice();
+                athletesOrderedByPhenoAgeReduction.sort(window.compareAthleteRankPhenoOnly);
 
                 const podiumCount = includePodium ? 3 : 0;
 
@@ -6257,7 +6255,7 @@
             lowestBortzAgeContainer.style.display = 'none';
         }
         document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
-        const lowestPhenoAgeRank = findAthleteIndexByName(athletesOrderedByLowestPhenoAge || [], athleteData.name) + 1;
+        const lowestPhenoAgeRank = findAthleteIndexByName(athletesOrderedByPhenoAgeReduction || [], athleteData.name) + 1;
         const lowestPhenoAgeRankEl = document.getElementById('lowestPhenoAgeRank');
         lowestPhenoAgeRankEl.textContent = Number.isFinite(lowestPhenoAgeRank) && lowestPhenoAgeRank > 0
             ? '#' + lowestPhenoAgeRank
