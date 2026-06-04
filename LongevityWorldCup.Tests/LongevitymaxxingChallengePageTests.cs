@@ -56,6 +56,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("LWC athlete profile <span>optional</span>", html);
         Assert.Contains("lmx-athlete-selector", html);
         Assert.Contains("Only if you are already listed as an athlete", html);
+        Assert.Contains("id=\"lmxProfilePictureField\"", html);
+        Assert.Contains("Upload profile picture", html);
+        Assert.Contains("id=\"lmxProfilePictureInput\" type=\"file\" accept=\"image/*\"", html);
         Assert.Contains("Timezone, profile, and calls", html);
         Assert.Contains("Call availability <span>optional</span>", html);
         Assert.Contains("/css/longevitymaxxing.css?v=", html);
@@ -169,10 +172,17 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("ATHLETE_PLACEHOLDER_IMAGE = \"/assets/content-images/headshot.webp\"", javascript);
         Assert.Contains("function participantNameHtml", javascript);
         Assert.Contains("findAthleteForParticipant(row)", javascript);
+        Assert.Contains("function renderProfilePictureControls", javascript);
+        Assert.Contains("participant.profileImageUrl", javascript);
+        Assert.Contains("row.profileImageUrl", javascript);
+        Assert.Contains("postForm(`${API}/profile-picture`, formData)", javascript);
+        Assert.Contains("formData.append(\"profilePicture\", file);", javascript);
         Assert.Contains("lmx-athlete-options", css);
         Assert.Contains(".lmx-athlete-option.autocomplete-active", css);
         Assert.Contains(".lmx-participant-avatar", css);
         Assert.Contains(".lmx-participant-avatar.placeholder img", css);
+        Assert.Contains(".lmx-profile-upload", css);
+        Assert.Contains(".lmx-profile-preview.placeholder img", css);
         Assert.Contains("lmxSlackInviteLink", javascript);
         Assert.Contains("lmxSlackRoomLink", javascript);
         Assert.Contains("state.slackRoomUrl", javascript);

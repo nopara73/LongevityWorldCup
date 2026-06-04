@@ -26,6 +26,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 
 The Longevitymaxxing Challenge is a standalone Lifestyle challenge and must not be mixed into Ultimate League ranking, biological age placements, or athlete badges.
 Longevitymaxxing Challenge final results and linked-athlete completions may appear as Events/highlights; keep those highlights separate from Ultimate League ranking, biological age placements, and athlete badges.
+Longevitymaxxing Challenge profile pictures for participants without linked athlete profiles are challenge-only generated assets; do not create or modify athlete profile pictures from those uploads.
 
 ## Ranking Logic Must Stay Aligned
 

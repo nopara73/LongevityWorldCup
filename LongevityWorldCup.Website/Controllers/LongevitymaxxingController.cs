@@ -1,4 +1,5 @@
 using LongevityWorldCup.Website.Business;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LongevityWorldCup.Website.Controllers;
@@ -72,6 +73,27 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         try
         {
             return Ok(_challenge.EditParticipant(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("profile-picture")]
+    [RequestSizeLimit(LongevitymaxxingChallengeService.MaxProfilePictureUploadBytes + 64 * 1024)]
+    public async Task<IActionResult> UploadProfilePicture(
+        [FromForm] string accessToken,
+        [FromForm(Name = "profilePicture")] IFormFile? profilePicture,
+        CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _challenge.UploadParticipantProfilePictureAsync(accessToken, profilePicture, ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
         {
