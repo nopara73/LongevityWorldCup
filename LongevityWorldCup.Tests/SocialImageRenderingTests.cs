@@ -36,17 +36,35 @@ public sealed class SocialImageRenderingTests
     }
 
     [Fact]
-    public async Task AthleteAndLeagueSharePreviewImages_RenderAsPngCanvases()
+    public async Task AthleteLeagueAndPageSharePreviewImages_RenderAsPngCanvases()
     {
         using var factory = CreateFactory();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         var leagueImages = factory.Services.GetRequiredService<LeagueOgImageService>();
+        var pageImages = factory.Services.GetRequiredService<PageOgImageService>();
 
         Assert.True(athleteImages.TryGetCurrentPayload("ron-lugbill", out var athletePayload));
         Assert.True(leagueImages.TryGetCurrentPayload("ultimate", out var leaguePayload));
 
         await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(athletePayload), 1200, 630);
         await AssertPngFileCanvasAsync(await leagueImages.EnsureRenderedImageAsync(leaguePayload), 1200, 630);
+
+        foreach (var pageSlug in new[]
+                 {
+                     "home",
+                     "events",
+                     "media",
+                     "about",
+                     "history",
+                     "ruleset",
+                     "view-bortz",
+                     "view-pheno",
+                     "view-crowd"
+                 })
+        {
+            Assert.True(pageImages.TryGetCurrentPayload(pageSlug, out var pagePayload));
+            await AssertPngFileCanvasAsync(await pageImages.EnsureRenderedImageAsync(pagePayload), 1200, 630);
+        }
     }
 
     private static async Task AssertPngCanvasAsync(Stream? stream)
