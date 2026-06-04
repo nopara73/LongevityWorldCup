@@ -1,7 +1,6 @@
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
 using Xunit;
@@ -74,11 +73,6 @@ public sealed class SocialImageRenderingTests
 
     private static WebApplicationFactory<Program> CreateFactory()
     {
-        return new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseSetting("EnableScheduledJobs", "false");
-                builder.UseSetting("EnableStartupBadgeRefresh", "false");
-            });
+        return new TestWebApplicationFactory();
     }
 }

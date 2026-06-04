@@ -1,6 +1,5 @@
 using System.Net;
 using LongevityWorldCup.Website;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -40,11 +39,6 @@ public sealed class AthletesDataCacheTests
 
     private static WebApplicationFactory<Program> CreateFactory()
     {
-        return new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseSetting("EnableScheduledJobs", "false");
-                builder.UseSetting("EnableStartupBadgeRefresh", "false");
-            });
+        return new TestWebApplicationFactory();
     }
 }

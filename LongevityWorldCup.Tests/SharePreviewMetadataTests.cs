@@ -1,6 +1,5 @@
 using LongevityWorldCup.Website;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -66,11 +65,6 @@ public sealed class SharePreviewMetadataTests
 
     private static WebApplicationFactory<Program> CreateFactory()
     {
-        return new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseSetting("EnableScheduledJobs", "false");
-                builder.UseSetting("EnableStartupBadgeRefresh", "false");
-            });
+        return new TestWebApplicationFactory();
     }
 }
