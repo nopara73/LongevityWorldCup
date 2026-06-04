@@ -15,12 +15,13 @@ public sealed class PageOgImageService
 {
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 630;
-    private const float ContentX = 86f;
-    private const float ContentTop = 78f;
-    private const float ContentWidth = 980f;
+    private const float ContentX = 78f;
+    private const float AccentY = 192f;
+    private const float TitleY = 258f;
+    private const float TitleWidth = 760f;
 
-    private static readonly Color BackgroundTop = ParseHex("05080B");
-    private static readonly Color BackgroundBottom = ParseHex("15181B");
+    private static readonly Color BackgroundTop = ParseHex("030708");
+    private static readonly Color BackgroundBottom = ParseHex("111515");
     private static readonly Color TitleColor = Color.White;
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 180));
 
@@ -225,19 +226,19 @@ public sealed class PageOgImageService
             using var logo = await LoadLogoMarkAsync(ct);
             using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
             {
-                Size = new Size(62, 62),
+                Size = new Size(50, 50),
                 Mode = ResizeMode.Max
             }));
             using var backgroundLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
             {
-                Size = new Size(470, 470),
+                Size = new Size(820, 820),
                 Mode = ResizeMode.Max
             }));
 
             image.Mutate(ctx =>
             {
-                ctx.DrawImage(backgroundLogo, new Point(780, 82), 0.055f);
-                ctx.DrawImage(smallLogo, new Point((int)ContentX, 46), 0.98f);
+                ctx.DrawImage(backgroundLogo, new Point(610, -24), 0.20f);
+                ctx.DrawImage(smallLogo, new Point((int)ContentX, 52), 0.98f);
             });
         }
         catch (Exception ex)
@@ -270,17 +271,52 @@ public sealed class PageOgImageService
                 }
             }
         });
+
+        var bounds = FindVisibleBounds(logo);
+        if (bounds.Width > 0 && bounds.Height > 0)
+            logo.Mutate(ctx => ctx.Crop(bounds));
+
         return logo;
+    }
+
+    private static Rectangle FindVisibleBounds(Image<Rgba32> image)
+    {
+        var minX = image.Width;
+        var minY = image.Height;
+        var maxX = -1;
+        var maxY = -1;
+
+        image.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    if (row[x].A == 0)
+                        continue;
+
+                    minX = Math.Min(minX, x);
+                    minY = Math.Min(minY, y);
+                    maxX = Math.Max(maxX, x);
+                    maxY = Math.Max(maxY, y);
+                }
+            }
+        });
+
+        return maxX < minX || maxY < minY
+            ? new Rectangle()
+            : new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
     }
 
     private static void DrawHeaderText(Image<Rgba32> image, FontFamily boldFamily)
     {
-        var brandFont = boldFamily.CreateFont(24, FontStyle.Bold);
+        var brandFont = boldFamily.CreateFont(20, FontStyle.Bold);
         image.Mutate(ctx =>
         {
             ctx.DrawText(new RichTextOptions(brandFont)
             {
-                Origin = new PointF(ContentX + 74f, 55f),
+                Origin = new PointF(ContentX + 62f, 54f),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
             }, "LONGEVITY\nWORLD CUP", Color.White);
@@ -289,15 +325,15 @@ public sealed class PageOgImageService
 
     private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, Color accent)
     {
-        var titleFont = FitFontToWidth(boldFamily, payload.Title, 84f, 54f, ContentWidth);
+        var titleFont = FitFontToWidth(boldFamily, payload.Title, 74f, 50f, TitleWidth);
 
         image.Mutate(ctx =>
         {
             ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
-                new RectangularPolygon(ContentX, ContentTop + 114f, 176f, 5f));
+                new RectangularPolygon(ContentX, AccentY, 126f, 5f));
 
-            DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, ContentTop + 174f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, ContentTop + 174f), ContentWidth, 2, 88f);
+            DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, TitleY), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, TitleY), TitleWidth, 2, 78f);
         });
     }
 
@@ -321,8 +357,8 @@ public sealed class PageOgImageService
                     var baseB = Lerp(top.B, bottom.B, vertical);
 
                     var edgeLight = MathF.Max(0f, 1f - MathF.Sqrt(MathF.Pow((horizontal - 0.78f) / 0.52f, 2f) + MathF.Pow((vertical - 0.24f) / 0.64f, 2f)));
-                    var laneLight = MathF.Max(0f, 1f - MathF.Abs((horizontal + vertical * 0.36f) - 0.35f) / 0.08f) * 0.16f;
-                    var accentLight = MathF.Min(0.20f, edgeLight * 0.18f + laneLight);
+                    var laneLight = MathF.Max(0f, 1f - MathF.Abs((horizontal + vertical * 0.36f) - 0.26f) / 0.08f) * 0.10f;
+                    var accentLight = MathF.Min(0.16f, edgeLight * 0.12f + laneLight);
 
                     row[x] = new Rgba32(
                         (byte)Math.Clamp(baseR + (accent.R * accentLight), 0, 255),
@@ -335,7 +371,8 @@ public sealed class PageOgImageService
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(0, 0, 0, 74), new RectangularPolygon(0, 0, CanvasWidth, 72f));
+            ctx.Fill(new Rgba32(0, 0, 0, 92), new RectangularPolygon(0, 0, 455f, CanvasHeight));
+            ctx.Fill(new Rgba32(255, 255, 255, 12), new RectangularPolygon(455f, 0, 1f, CanvasHeight));
         });
     }
 
@@ -357,7 +394,7 @@ public sealed class PageOgImageService
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v7",
+            "page-og-v8",
             definition.Slug,
             definition.Kicker,
             definition.Title,
