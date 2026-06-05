@@ -28,7 +28,6 @@ public class XImageService
     private static readonly Color GreenAccent = ParseHex("78DA3B");
     private static readonly Color CyanAccent = ParseHex("00BCD4");
     private static readonly Color PinkAccent = ParseHex("FF4081");
-    private static readonly Color AmberAccent = ParseHex("FFB020");
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
@@ -238,31 +237,25 @@ public class XImageService
         if (athleteCount <= 0)
             return null;
 
-        using var image = CreateCanvas(AmberAccent);
-        var fonts = GetFontFamilies();
-        await DrawBrandAsync(image, fonts.Bold);
+        using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight, new Rgba32(5, 5, 15));
 
-        image.Mutate(ctx =>
-        {
-            var numberFont = FitFontToWidth(fonts.Bold, athleteCount.ToString(CultureInfo.InvariantCulture), 220f, 118f, 760f);
-            var labelFont = fonts.Bold.CreateFont(48f, FontStyle.Bold);
+        var text = athleteCount.ToString(CultureInfo.InvariantCulture);
+        var glyphs = BuildGlyphMap();
+        var pixelSize = 22;
+        const int glyphSpacing = 6;
+        var maxWidth = CanvasWidth - 140;
 
-            var countText = athleteCount.ToString(CultureInfo.InvariantCulture);
-            DrawTextShadow(ctx, countText, numberFont, new PointF(CanvasWidth / 2f, 200f), HorizontalAlignment.Center, 5f);
-            ctx.DrawText(new RichTextOptions(numberFont)
-            {
-                Origin = new PointF(CanvasWidth / 2f, 200f),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, countText, TextColor);
+        while (pixelSize > 8 && MeasurePixelTextWidth(text, pixelSize, glyphSpacing, glyphs) > maxWidth)
+            pixelSize--;
 
-            ctx.DrawText(new RichTextOptions(labelFont)
-            {
-                Origin = new PointF(CanvasWidth / 2f, 430f),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, "longevity athletes", AmberAccent);
-        });
+        DrawPixelText(
+            image,
+            text,
+            CanvasWidth / 2,
+            CanvasHeight / 2,
+            pixelSize,
+            glyphSpacing,
+            new Rgba32(245, 245, 245));
 
         return await SaveToStreamAsync(image);
     }
@@ -695,6 +688,109 @@ public class XImageService
     private static string FormatReduction(double value)
     {
         return value.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
+    }
+
+    private static void DrawPixelText(
+        Image<Rgba32> canvas,
+        string text,
+        int centerX,
+        int centerY,
+        int pixelSize,
+        int glyphSpacing,
+        Rgba32 color)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        var glyphs = BuildGlyphMap();
+        var widthInUnits = 0;
+        foreach (var c in text)
+        {
+            if (!glyphs.TryGetValue(c, out var g))
+                g = glyphs['?'];
+            widthInUnits += g[0].Length + glyphSpacing;
+        }
+
+        if (widthInUnits > 0)
+            widthInUnits -= glyphSpacing;
+
+        var totalWidth = widthInUnits * pixelSize;
+        var totalHeight = 7 * pixelSize;
+        var x = centerX - totalWidth / 2;
+        var y = centerY - totalHeight / 2;
+
+        foreach (var c in text)
+        {
+            if (!glyphs.TryGetValue(c, out var glyph))
+                glyph = glyphs['?'];
+
+            for (var row = 0; row < glyph.Length; row++)
+            {
+                var line = glyph[row];
+                for (var col = 0; col < line.Length; col++)
+                {
+                    if (line[col] != '1')
+                        continue;
+
+                    var px = x + col * pixelSize;
+                    var py = y + row * pixelSize;
+                    for (var dy = 0; dy < pixelSize; dy++)
+                    {
+                        var yy = py + dy;
+                        if (yy < 0 || yy >= canvas.Height)
+                            continue;
+                        for (var dx = 0; dx < pixelSize; dx++)
+                        {
+                            var xx = px + dx;
+                            if (xx < 0 || xx >= canvas.Width)
+                                continue;
+                            canvas[xx, yy] = color;
+                        }
+                    }
+                }
+            }
+
+            x += (glyph[0].Length + glyphSpacing) * pixelSize;
+        }
+    }
+
+    private static Dictionary<char, string[]> BuildGlyphMap()
+    {
+        return new Dictionary<char, string[]>
+        {
+            ['0'] = ["11111", "10001", "10001", "10001", "10001", "10001", "11111"],
+            ['1'] = ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+            ['2'] = ["11111", "00001", "00001", "11111", "10000", "10000", "11111"],
+            ['3'] = ["11111", "00001", "00001", "01111", "00001", "00001", "11111"],
+            ['4'] = ["10001", "10001", "10001", "11111", "00001", "00001", "00001"],
+            ['5'] = ["11111", "10000", "10000", "11111", "00001", "00001", "11111"],
+            ['6'] = ["11111", "10000", "10000", "11111", "10001", "10001", "11111"],
+            ['7'] = ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+            ['8'] = ["11111", "10001", "10001", "11111", "10001", "10001", "11111"],
+            ['9'] = ["11111", "10001", "10001", "11111", "00001", "00001", "11111"],
+            ['-'] = ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
+            ['V'] = ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+            ['S'] = ["11111", "10000", "10000", "11111", "00001", "00001", "11111"],
+            ['?'] = ["11111", "00001", "00010", "00100", "00100", "00000", "00100"]
+        };
+    }
+
+    private static int MeasurePixelTextWidth(string text, int pixelSize, int glyphSpacing, IReadOnlyDictionary<char, string[]> glyphs)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return 0;
+
+        var units = 0;
+        foreach (var c in text)
+        {
+            if (!glyphs.TryGetValue(c, out var glyph))
+                glyph = glyphs['?'];
+            units += glyph[0].Length + glyphSpacing;
+        }
+
+        if (units > 0)
+            units -= glyphSpacing;
+        return units * pixelSize;
     }
 
     private static double? GetDouble(JsonObject obj, string key)
