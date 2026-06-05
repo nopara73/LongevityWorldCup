@@ -20,7 +20,7 @@ public sealed class LongevitymaxxingChallengeService
     private const int PracticeCheckInDay = 1;
     public const int MaxProfilePictureUploadBytes = 8 * 1024 * 1024;
     private const int ProfilePictureSize = 512;
-    private const string GravatarMissingCacheVersion = "v3";
+    private const string GravatarMissingCacheVersion = "v4";
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly EmailAddressAttribute EmailValidator = new();
@@ -1457,12 +1457,14 @@ public sealed class LongevitymaxxingChallengeService
     private string? BuildProfilePictureUrl(ParticipantRecord participant)
     {
         var path = GetProfilePicturePath(participant.Id);
-        if (!File.Exists(path))
-            path = TryEnsureGravatarProfilePicture(participant);
+        if (File.Exists(path))
+            return BuildGeneratedProfilePictureUrl(path);
 
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            return null;
+        return TryBuildGravatarProfilePictureUrl(participant);
+    }
 
+    private static string BuildGeneratedProfilePictureUrl(string path)
+    {
         var info = new FileInfo(path);
         return $"/generated/longevitymaxxing/profile-pictures/{Uri.EscapeDataString(Path.GetFileName(path))}?v={info.LastWriteTimeUtc.Ticks}";
     }
@@ -1476,30 +1478,40 @@ public sealed class LongevitymaxxingChallengeService
     private string GetGravatarMissingMarkerPath(string participantId)
         => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "profile-pictures", $"{participantId}.gravatar.{GravatarMissingCacheVersion}.missing");
 
-    private string? TryEnsureGravatarProfilePicture(ParticipantRecord participant)
+    private string? TryBuildGravatarProfilePictureUrl(ParticipantRecord participant)
     {
         var gravatarPath = GetGravatarProfilePicturePath(participant.Id);
         if (File.Exists(gravatarPath))
-            return gravatarPath;
+            return BuildGeneratedProfilePictureUrl(gravatarPath);
 
         var missingPath = GetGravatarMissingMarkerPath(participant.Id);
         if (File.Exists(missingPath) && DateTime.UtcNow - File.GetLastWriteTimeUtc(missingPath) < GravatarMissingCacheDuration)
             return null;
 
+        GravatarAvatar? avatar;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(gravatarPath)!);
-            var avatar = FetchGravatarProfilePicture(participant);
+            avatar = FetchGravatarProfilePicture(participant);
             if (avatar is null)
             {
                 File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
                 return null;
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Longevitymaxxing Gravatar profile picture lookup failed for participant {ParticipantId}", participant.Id);
+            try { File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)); } catch { }
+            return null;
+        }
 
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(gravatarPath)!);
             var tempPath = $"{gravatarPath}.{Guid.NewGuid():N}.tmp";
             try
             {
-                using var input = new MemoryStream(avatar);
+                using var input = new MemoryStream(avatar.Bytes);
                 using var image = Image.Load(input);
                 image.Mutate(ctx => ctx
                     .AutoOrient()
@@ -1518,7 +1530,7 @@ public sealed class LongevitymaxxingChallengeService
 
                 File.Move(tempPath, gravatarPath, overwrite: true);
                 TryDeleteFile(missingPath);
-                return gravatarPath;
+                return BuildGeneratedProfilePictureUrl(gravatarPath);
             }
             catch
             {
@@ -1528,18 +1540,18 @@ public sealed class LongevitymaxxingChallengeService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Longevitymaxxing Gravatar profile picture lookup failed for participant {ParticipantId}", participant.Id);
-            try { File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)); } catch { }
-            return null;
+            _logger.LogWarning(ex, "Longevitymaxxing Gravatar profile picture cache failed for participant {ParticipantId}", participant.Id);
+            return avatar.Url;
         }
     }
 
-    private byte[]? FetchGravatarProfilePicture(ParticipantRecord participant)
+    private GravatarAvatar? FetchGravatarProfilePicture(ParticipantRecord participant)
     {
         var hash = HashGravatarEmail(participant.Email);
-        var hashAvatar = FetchGravatarImageUrl($"https://www.gravatar.com/avatar/{hash}?s={ProfilePictureSize}&r=pg&d=404");
+        var hashAvatarUrl = $"https://www.gravatar.com/avatar/{hash}?s={ProfilePictureSize}&r=pg&d=404";
+        var hashAvatar = FetchGravatarImageUrl(hashAvatarUrl);
         if (hashAvatar is not null)
-            return hashAvatar;
+            return new GravatarAvatar(hashAvatarUrl, hashAvatar);
 
         var profileSlug = NormalizeGravatarProfileSlug(participant.DisplayName);
         if (profileSlug is null)
@@ -1556,7 +1568,12 @@ public sealed class LongevitymaxxingChallengeService
         using var profileStream = profileResponse.Content.ReadAsStreamAsync(cts.Token).GetAwaiter().GetResult();
         using var profile = JsonDocument.Parse(profileStream);
         var avatarUrl = GetGravatarProfileAvatarUrl(profile.RootElement);
-        return string.IsNullOrWhiteSpace(avatarUrl) ? null : FetchGravatarImageUrl(avatarUrl);
+        if (string.IsNullOrWhiteSpace(avatarUrl))
+            return null;
+
+        avatarUrl = BuildSizedGravatarAvatarUrl(avatarUrl);
+        var profileAvatar = FetchGravatarImageUrl(avatarUrl);
+        return profileAvatar is null ? null : new GravatarAvatar(avatarUrl, profileAvatar);
     }
 
     private byte[]? FetchGravatarImageUrl(string url)
@@ -1573,6 +1590,14 @@ public sealed class LongevitymaxxingChallengeService
             return null;
 
         return response.Content.ReadAsByteArrayAsync(cts.Token).GetAwaiter().GetResult();
+    }
+
+    private static string BuildSizedGravatarAvatarUrl(string url)
+    {
+        if (url.Contains("?", StringComparison.Ordinal))
+            return url;
+
+        return $"{url}?s={ProfilePictureSize}&r=pg";
     }
 
     private static HttpRequestMessage CreateGravatarRequest(string url, string accept)
@@ -1756,6 +1781,8 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset? StoppedEmailsAtUtc,
         DateTimeOffset CreatedAtUtc,
         DateTimeOffset UpdatedAtUtc);
+
+    private sealed record GravatarAvatar(string Url, byte[] Bytes);
 
     private sealed record CheckInRecord(
         string ParticipantId,
