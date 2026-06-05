@@ -106,19 +106,27 @@ public class XImageService
         using var image = CreateCanvas(GreenAccent);
         var fonts = GetFontFamilies();
         await DrawBrandAsync(image, fonts.Bold);
-        DrawTitleBlock(
-            image,
-            fonts,
-            "",
-            winner.Rank > 0 ? $"New #{winner.Rank}" : "New rank",
-            "",
-            GreenAccent);
 
-        await DrawPortraitAsync(image, winner.ProfilePath, 98, 250, 286, GreenAccent, 7f);
-        await DrawPortraitAsync(image, previous.ProfilePath, 842, 272, 226, FaintTextColor, 4f);
+        await DrawPortraitAsync(image, winner.ProfilePath, 112, 184, 404, GreenAccent, 8f);
+        await DrawPortraitAsync(image, previous.ProfilePath, 824, 422, 132, FaintTextColor, 4f);
 
-        DrawCenteredLabel(image, winner.Name, fonts.Bold, 241f, 548f, 320f, 34f);
-        DrawCenteredLabel(image, previous.Name, fonts.Bold, 955f, 512f, 286f, 28f, MutedTextColor);
+        image.Mutate(ctx =>
+        {
+            var title = winner.Rank > 0 ? $"New #{winner.Rank}" : "New rank";
+            var titleFont = FitFontToWidth(fonts.Bold, title, 78f, 56f, 420f);
+            var winnerFont = FitFontToWidth(fonts.Bold, winner.Name, 44f, 32f, 420f);
+            var previousFont = FitFontToWidth(fonts.Bold, previous.Name, 30f, 22f, 180f);
+
+            ctx.Fill(ToRgba(GreenAccent, 225), new RectangularPolygon(622f, 178f, 152f, 5f));
+            DrawTextShadow(ctx, title, titleFont, new PointF(622f, 248f), HorizontalAlignment.Left, 4f);
+            DrawWrappedText(ctx, title, titleFont, TextColor, new PointF(622f, 248f), 420f, 1, 80f);
+
+            DrawTextShadow(ctx, winner.Name, winnerFont, new PointF(622f, 356f), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, winner.Name, winnerFont, TextColor, new PointF(622f, 356f), 420f, 1, 52f);
+
+            DrawTextShadow(ctx, previous.Name, previousFont, new PointF(984f, 470f), HorizontalAlignment.Left, 2f);
+            DrawWrappedText(ctx, previous.Name, previousFont, MutedTextColor, new PointF(984f, 470f), 180f, 1, 34f);
+        });
 
         return await SaveToStreamAsync(image);
     }
