@@ -1,6 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using System.Net;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
@@ -17,11 +20,14 @@ public sealed class LongevitymaxxingChallengeService
     private const int PracticeCheckInDay = 1;
     public const int MaxProfilePictureUploadBytes = 8 * 1024 * 1024;
     private const int ProfilePictureSize = 512;
+    private const string GravatarMissingCacheVersion = "v2";
+    private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly EmailAddressAttribute EmailValidator = new();
     private static readonly string[] CategoryNames = ["Sleep", "Exercise", "Nutrition", "Vices"];
 
     private readonly DatabaseManager _db;
     private readonly Config _config;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IWebHostEnvironment _environment;
     private readonly ILongevitymaxxingEmailSender _email;
     private readonly ILogger<LongevitymaxxingChallengeService> _logger;
@@ -29,12 +35,14 @@ public sealed class LongevitymaxxingChallengeService
     public LongevitymaxxingChallengeService(
         DatabaseManager db,
         Config config,
+        IHttpClientFactory httpClientFactory,
         IWebHostEnvironment environment,
         ILongevitymaxxingEmailSender email,
         ILogger<LongevitymaxxingChallengeService> logger)
     {
         _db = db;
         _config = config;
+        _httpClientFactory = httpClientFactory;
         _environment = environment;
         _email = email;
         _logger = logger;
@@ -1447,11 +1455,11 @@ public sealed class LongevitymaxxingChallengeService
 
     private string? BuildProfilePictureUrl(ParticipantRecord participant)
     {
-        if (!string.IsNullOrWhiteSpace(participant.AthleteSlug))
-            return null;
-
         var path = GetProfilePicturePath(participant.Id);
         if (!File.Exists(path))
+            path = TryEnsureGravatarProfilePicture(participant);
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             return null;
 
         var info = new FileInfo(path);
@@ -1460,6 +1468,143 @@ public sealed class LongevitymaxxingChallengeService
 
     private string GetProfilePicturePath(string participantId)
         => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "profile-pictures", $"{participantId}.webp");
+
+    private string GetGravatarProfilePicturePath(string participantId)
+        => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "profile-pictures", $"{participantId}.gravatar.webp");
+
+    private string GetGravatarMissingMarkerPath(string participantId)
+        => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "profile-pictures", $"{participantId}.gravatar.{GravatarMissingCacheVersion}.missing");
+
+    private string? TryEnsureGravatarProfilePicture(ParticipantRecord participant)
+    {
+        var gravatarPath = GetGravatarProfilePicturePath(participant.Id);
+        if (File.Exists(gravatarPath))
+            return gravatarPath;
+
+        var missingPath = GetGravatarMissingMarkerPath(participant.Id);
+        if (File.Exists(missingPath) && DateTime.UtcNow - File.GetLastWriteTimeUtc(missingPath) < GravatarMissingCacheDuration)
+            return null;
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(gravatarPath)!);
+            var avatar = FetchGravatarProfilePicture(participant);
+            if (avatar is null)
+            {
+                File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
+                return null;
+            }
+
+            var tempPath = $"{gravatarPath}.{Guid.NewGuid():N}.tmp";
+            try
+            {
+                using var input = new MemoryStream(avatar);
+                using var image = Image.Load(input);
+                image.Mutate(ctx => ctx
+                    .AutoOrient()
+                    .Resize(new ResizeOptions
+                    {
+                        Size = new Size(ProfilePictureSize, ProfilePictureSize),
+                        Mode = ResizeMode.Crop,
+                        Position = AnchorPositionMode.Center
+                    }));
+                image.Metadata.ExifProfile = null;
+                image.Save(tempPath, new WebpEncoder
+                {
+                    FileFormat = WebpFileFormatType.Lossy,
+                    Quality = 86
+                });
+
+                File.Move(tempPath, gravatarPath, overwrite: true);
+                TryDeleteFile(missingPath);
+                return gravatarPath;
+            }
+            catch
+            {
+                TryDeleteFile(tempPath);
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Longevitymaxxing Gravatar profile picture lookup failed for participant {ParticipantId}", participant.Id);
+            try { File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)); } catch { }
+            return null;
+        }
+    }
+
+    private byte[]? FetchGravatarProfilePicture(ParticipantRecord participant)
+    {
+        var hash = HashGravatarEmail(participant.Email);
+        var hashAvatar = FetchGravatarImageUrl($"https://www.gravatar.com/avatar/{hash}?s={ProfilePictureSize}&r=pg&d=404");
+        if (hashAvatar is not null)
+            return hashAvatar;
+
+        var profileSlug = NormalizeGravatarProfileSlug(participant.DisplayName);
+        if (profileSlug is null)
+            return null;
+
+        var profileUrl = $"https://gravatar.com/{Uri.EscapeDataString(profileSlug)}.json";
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var profileResponse = _httpClientFactory.CreateClient().GetAsync(profileUrl, cts.Token).GetAwaiter().GetResult();
+        if (profileResponse.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        profileResponse.EnsureSuccessStatusCode();
+        using var profileStream = profileResponse.Content.ReadAsStreamAsync(cts.Token).GetAwaiter().GetResult();
+        using var profile = JsonDocument.Parse(profileStream);
+        var avatarUrl = GetGravatarProfileAvatarUrl(profile.RootElement);
+        return string.IsNullOrWhiteSpace(avatarUrl) ? null : FetchGravatarImageUrl(avatarUrl);
+    }
+
+    private byte[]? FetchGravatarImageUrl(string url)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var response = _httpClientFactory.CreateClient().Send(request, cts.Token);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        var mediaType = response.Content.Headers.ContentType?.MediaType ?? "";
+        if (!mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return response.Content.ReadAsByteArrayAsync(cts.Token).GetAwaiter().GetResult();
+    }
+
+    private static string HashGravatarEmail(string email)
+    {
+        var normalized = (email ?? "").Trim().ToLowerInvariant();
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static string? NormalizeGravatarProfileSlug(string displayName)
+    {
+        var slug = (displayName ?? "").Trim();
+        if (slug.Length is < 2 or > 80)
+            return null;
+
+        return slug.Any(ch => !(char.IsLetterOrDigit(ch) || ch is '-' or '_' or '.'))
+            ? null
+            : slug;
+    }
+
+    private static string? GetGravatarProfileAvatarUrl(JsonElement root)
+    {
+        if (!root.TryGetProperty("entry", out var entries) ||
+            entries.ValueKind != JsonValueKind.Array ||
+            entries.GetArrayLength() == 0)
+        {
+            return null;
+        }
+
+        var entry = entries[0];
+        return entry.TryGetProperty("thumbnailUrl", out var thumbnail) && thumbnail.ValueKind == JsonValueKind.String
+            ? thumbnail.GetString()
+            : null;
+    }
 
     private static void TryDeleteFile(string path)
     {

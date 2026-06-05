@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -80,6 +81,80 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Contains("format is not supported", ex.Message);
         Assert.Contains("JPG, PNG, or WebP", ex.Message);
+    }
+
+    [Fact]
+    public async Task ParticipantWithoutUploadedPictureFallsBackToCachedGravatar()
+    {
+        using var gravatar = CreatePngStream();
+        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+        var access = await fixture.ConfirmParticipantAsync("gravatar@example.com", "Gravatar Gail");
+
+        var state = fixture.Service.GetParticipantState(access);
+
+        Assert.NotNull(state.Participant.ProfileImageUrl);
+        Assert.Contains(".gravatar.webp?v=", state.Participant.ProfileImageUrl);
+        var row = Assert.Single(state.Public.Leaderboard);
+        Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
+        Assert.DoesNotContain("gravatar.com", state.Participant.ProfileImageUrl);
+        Assert.Single(fixture.Http.Requests);
+
+        var cached = fixture.Service.GetParticipantState(access);
+
+        Assert.Equal(state.Participant.ProfileImageUrl, cached.Participant.ProfileImageUrl);
+        Assert.Single(fixture.Http.Requests);
+    }
+
+    [Fact]
+    public async Task ParticipantWithoutEmailGravatarFallsBackToDisplayNameProfileSlug()
+    {
+        using var profileImage = CreatePngStream();
+        using var fixture = TestChallengeFixture.Create(
+            profileJson: "{\"entry\":[{\"thumbnailUrl\":\"https://0.gravatar.com/avatar/profile-hash\"}]}",
+            profileImageResponse: profileImage.ToArray());
+        var access = await fixture.ConfirmParticipantAsync("plain@example.com", "molnard");
+
+        var state = fixture.Service.GetParticipantState(access);
+
+        Assert.NotNull(state.Participant.ProfileImageUrl);
+        Assert.Contains(".gravatar.webp?v=", state.Participant.ProfileImageUrl);
+        Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri.Contains("/avatar/") && uri.AbsoluteUri.Contains("d=404"));
+        Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri == "https://gravatar.com/molnard.json");
+        Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri == "https://0.gravatar.com/avatar/profile-hash");
+    }
+
+    [Fact]
+    public async Task LinkedAthleteParticipantCanUseChallengeGravatarFallback()
+    {
+        using var gravatar = CreatePngStream();
+        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+        var access = await fixture.ConfirmParticipantAsync("linked-gravatar@example.com", "Linked Gail", athleteLink: "/athlete/linked-gail");
+
+        var state = fixture.Service.GetParticipantState(access);
+
+        Assert.Equal("/athlete/linked-gail", state.Participant.AthleteUrl);
+        Assert.NotNull(state.Participant.ProfileImageUrl);
+        Assert.Contains(".gravatar.webp?v=", state.Participant.ProfileImageUrl);
+        var row = Assert.Single(state.Public.Leaderboard);
+        Assert.Equal("/athlete/linked-gail", row.AthleteUrl);
+        Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
+    }
+
+    [Fact]
+    public async Task UploadedChallengeProfilePictureTakesPriorityOverGravatar()
+    {
+        using var gravatar = CreatePngStream();
+        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+        var access = await fixture.ConfirmParticipantAsync("priority@example.com", "Priority Pat");
+        fixture.Http.Requests.Clear();
+        using var upload = CreatePngStream();
+        var file = CreatePngFormFile(upload);
+
+        var state = await fixture.Service.UploadParticipantProfilePictureAsync(access, file);
+
+        Assert.NotNull(state.Participant.ProfileImageUrl);
+        Assert.DoesNotContain(".gravatar.webp", state.Participant.ProfileImageUrl);
+        Assert.Empty(fixture.Http.Requests);
     }
 
     [Fact]
@@ -409,25 +484,36 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
     private sealed class TestChallengeFixture : IDisposable
     {
-        private TestChallengeFixture(string root, DatabaseManager db, FakeEmailSender email, LongevitymaxxingChallengeService service)
+        private TestChallengeFixture(
+            string root,
+            DatabaseManager db,
+            FakeEmailSender email,
+            FakeHttpClientFactory http,
+            LongevitymaxxingChallengeService service)
         {
             ContentRoot = root;
             Db = db;
             Email = email;
+            Http = http;
             Service = service;
         }
 
         public string ContentRoot { get; }
         public DatabaseManager Db { get; }
         public FakeEmailSender Email { get; }
+        public FakeHttpClientFactory Http { get; }
         public LongevitymaxxingChallengeService Service { get; }
 
-        public static TestChallengeFixture Create()
+        public static TestChallengeFixture Create(
+            byte[]? gravatarResponse = null,
+            string? profileJson = null,
+            byte[]? profileImageResponse = null)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-lmx-tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             var db = new DatabaseManager(dbPath: Path.Combine(root, "challenge.db"));
             var email = new FakeEmailSender();
+            var http = new FakeHttpClientFactory(gravatarResponse, profileJson, profileImageResponse);
             var env = new FakeEnvironment(root);
             var config = new Config
             {
@@ -480,10 +566,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
             var service = new LongevitymaxxingChallengeService(
                 db,
                 config,
+                http,
                 env,
                 email,
                 NullLogger<LongevitymaxxingChallengeService>.Instance);
-            return new TestChallengeFixture(root, db, email, service);
+            return new TestChallengeFixture(root, db, email, http, service);
         }
 
         public async Task<string> ConfirmParticipantAsync(
@@ -531,6 +618,66 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         public Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default)
             => Task.CompletedTask;
+    }
+
+    private sealed class FakeHttpClientFactory(
+        byte[]? gravatarResponse,
+        string? profileJson,
+        byte[]? profileImageResponse) : IHttpClientFactory
+    {
+        public List<Uri> Requests { get; } = [];
+
+        public HttpClient CreateClient(string name)
+            => new(new FakeHttpMessageHandler(Requests, gravatarResponse, profileJson, profileImageResponse));
+    }
+
+    private sealed class FakeHttpMessageHandler(
+        List<Uri> requests,
+        byte[]? gravatarResponse,
+        string? profileJson,
+        byte[]? profileImageResponse) : HttpMessageHandler
+    {
+        protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
+            => BuildResponse(request);
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(BuildResponse(request));
+
+        private HttpResponseMessage BuildResponse(HttpRequestMessage request)
+        {
+            requests.Add(request.RequestUri!);
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                if (profileJson is null)
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(profileJson, System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+
+            if (request.RequestUri.AbsoluteUri.Contains("profile-hash", StringComparison.Ordinal) && profileImageResponse is not null)
+            {
+                var profileImage = new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(profileImageResponse)
+                };
+                profileImage.Content.Headers.ContentType = new("image/png");
+                return profileImage;
+            }
+
+            if (gravatarResponse is null)
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(gravatarResponse)
+            };
+            response.Content.Headers.ContentType = new("image/png");
+            return response;
+        }
     }
 
     private sealed class FakeEnvironment(string root) : IWebHostEnvironment
