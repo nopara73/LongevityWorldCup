@@ -141,19 +141,18 @@ public class XImageService
         var fonts = GetFontFamilies();
         await DrawBrandAsync(image, fonts.Bold);
 
-        await DrawPortraitAsync(image, athlete.ProfilePath, 104, 166, 360, PinkAccent, 7f);
+        await DrawPortraitAsync(image, athlete.ProfilePath, 104, 202, 260, PinkAccent, 6f);
 
         image.Mutate(ctx =>
         {
-            var titleFont = FitFontToWidth(fonts.Bold, athlete.Name, 70f, 44f, 560f);
-            var metricFont = fonts.Bold.CreateFont(54f, FontStyle.Bold);
-            var metricLabelFont = fonts.Regular.CreateFont(23f, FontStyle.Regular);
+            var titleFont = FitFontToWidth(fonts.Bold, athlete.Name, 66f, 42f, 620f);
+            var valueFont = fonts.Bold.CreateFont(42f, FontStyle.Bold);
+            var labelFont = fonts.Regular.CreateFont(28f, FontStyle.Regular);
 
-            ctx.Fill(new Rgba32(255, 64, 129, 220), new RectangularPolygon(528f, 160f, 160f, 5f));
-            DrawTextShadow(ctx, athlete.Name, titleFont, new PointF(528f, 182f), HorizontalAlignment.Left, 3f);
-            DrawWrappedText(ctx, athlete.Name, titleFont, TextColor, new PointF(528f, 182f), 560f, 2, 76f);
-            DrawMetricColumn(ctx, BuildRankValue(athlete), "", metricFont, metricLabelFont, PinkAccent, 638f, 392f, 220f);
-            DrawMetricColumn(ctx, BuildReductionValue(athlete), "Age Reduction", metricFont, metricLabelFont, GreenAccent, 916f, 392f, 260f);
+            DrawTextShadow(ctx, athlete.Name, titleFont, new PointF(454f, 188f), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, athlete.Name, titleFont, TextColor, new PointF(454f, 188f), 620f, 1, 72f);
+            DrawScoreboardMetricRow(ctx, BuildRankValue(athlete), "Current rank", valueFont, labelFont, PinkAccent, 454f, 318f, 574f, 82f);
+            DrawScoreboardMetricRow(ctx, BuildReductionValue(athlete), "Age Reduction", valueFont, labelFont, GreenAccent, 454f, 422f, 574f, 82f);
         });
 
         return await SaveToStreamAsync(image);
@@ -408,35 +407,40 @@ public class XImageService
         }
     }
 
-    private static void DrawMetricColumn(
+    private static void DrawScoreboardMetricRow(
         IImageProcessingContext ctx,
         string value,
         string label,
         Font valueFont,
         Font labelFont,
         Color accent,
-        float centerX,
-        float topY,
-        float width)
+        float x,
+        float y,
+        float width,
+        float height)
     {
-        ctx.Fill(ToRgba(accent, 230), new RectangularPolygon(centerX - (width / 2f), topY, width, 4f));
-        DrawTextShadow(ctx, value, valueFont, new PointF(centerX, topY + 16f), HorizontalAlignment.Center, 3f);
-        ctx.DrawText(new RichTextOptions(valueFont)
+        ctx.Fill(new Rgba32(18, 29, 28, 218), new RectangularPolygon(x, y, width, height));
+        ctx.Draw(new Rgba32(255, 255, 255, 90), 1f, new RectangularPolygon(x, y, width, height));
+        ctx.Fill(ToRgba(accent, 235), new RectangularPolygon(x, y, 10f, height));
+
+        var valueFontToUse = value.Length > 4
+            ? FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 140f)
+            : valueFont;
+
+        DrawTextShadow(ctx, value, valueFontToUse, new PointF(x + 48f, y + 16f), HorizontalAlignment.Left, 2f);
+        ctx.DrawText(new RichTextOptions(valueFontToUse)
         {
-            Origin = new PointF(centerX, topY + 16f),
-            HorizontalAlignment = HorizontalAlignment.Center,
+            Origin = new PointF(x + 48f, y + 16f),
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
         }, value, accent);
 
-        if (!string.IsNullOrWhiteSpace(label))
+        ctx.DrawText(new RichTextOptions(labelFont)
         {
-            ctx.DrawText(new RichTextOptions(labelFont)
-            {
-                Origin = new PointF(centerX, topY + 82f),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, label, MutedTextColor);
-        }
+            Origin = new PointF(x + 196f, y + 24f),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        }, label, MutedTextColor);
     }
 
     private static void DrawCenteredLabel(
