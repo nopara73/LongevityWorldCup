@@ -85,11 +85,12 @@ namespace LongevityWorldCup.Website.Middleware
                     var ageVisualization = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "age-visualization.html"));
                     var seo = GetSeoMeta(context);
 
+                    var previewTitle = BuildPreviewTitle(seo.OgTitle);
                     head = head
                         .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
                         .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
                         .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("{{SEO_OG_TITLE}}", EncodeMeta(seo.OgTitle))
+                        .Replace("{{SEO_OG_TITLE}}", EncodeMeta(previewTitle))
                         .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
                         .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
                         .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
@@ -635,6 +636,19 @@ $@"<script type=""module"">
         private static string EncodeMeta(string value)
         {
             return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+        }
+
+        private static string BuildPreviewTitle(string value)
+        {
+            var title = (value ?? string.Empty).Trim();
+            if (title.Contains("Longevity World Cup", StringComparison.OrdinalIgnoreCase))
+            {
+                return title;
+            }
+
+            return string.IsNullOrWhiteSpace(title)
+                ? "Longevity World Cup"
+                : $"{title} | Longevity World Cup";
         }
 
         private bool TryGetAthleteSeoMeta(HttpContext context, SeoMeta baseSeo, out SeoMeta seo)
