@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 
@@ -339,11 +340,17 @@ public sealed class LongevitymaxxingChallengeService
 
             File.Move(tempPath, outputPath, overwrite: true);
         }
+        catch (UnknownImageFormatException ex)
+        {
+            TryDeleteFile(tempPath);
+            _logger.LogWarning(ex, "Longevitymaxxing profile picture upload used an unsupported image format for participant {ParticipantId}", participant.Id);
+            throw new InvalidOperationException("The profile picture format is not supported. Please upload a JPG, PNG, or WebP image.", ex);
+        }
         catch (Exception ex)
         {
             TryDeleteFile(tempPath);
             _logger.LogWarning(ex, "Longevitymaxxing profile picture upload failed for participant {ParticipantId}", participant.Id);
-            throw new InvalidOperationException("The profile picture could not be processed. Please upload a smaller image and try again.", ex);
+            throw new InvalidOperationException("The profile picture could not be processed. Please try a JPG, PNG, or WebP image under 8 MB.", ex);
         }
 
         return GetParticipantState(accessToken);

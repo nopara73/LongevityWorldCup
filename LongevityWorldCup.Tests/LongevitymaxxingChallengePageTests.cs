@@ -145,12 +145,13 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxBoardSection\", !checkInOnly);", javascript);
         Assert.Contains("toggle(\"lmxParticipantTools\", !checkInOnly);", javascript);
         Assert.Contains("toggle(\"lmxTitlePanel\", !checkInOnly && !publicClosed);", javascript);
-        Assert.Contains("toggle(\"lmxResendPanel\", publicClosed);", javascript);
+        Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode && !checkInOnly);", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
         Assert.Contains("data-label=\"Days\"", javascript);
         Assert.Contains("Need participant access?", javascript);
+        Assert.Contains("Already joined or opened this page in a new browser?", javascript);
         Assert.Contains("Send participant link", javascript);
         Assert.Contains(".lmx-checkin-card > .lmx-button", css);
         Assert.Contains(".lmx-checkin-switcher", css);
@@ -176,7 +177,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("participant.profileImageUrl", javascript);
         Assert.Contains("row.profileImageUrl", javascript);
         Assert.Contains("postForm(`${API}/profile-picture`, formData)", javascript);
-        Assert.Contains("formData.append(\"profilePicture\", file);", javascript);
+        Assert.Contains("function prepareProfilePictureFile", javascript);
+        Assert.Contains("canvas.toBlob(resolve, \"image/jpeg\", 0.88)", javascript);
+        Assert.Contains("formData.append(\"profilePicture\", uploadFile, uploadFile.name || \"profile-picture.jpg\");", javascript);
         Assert.Contains("lmx-athlete-options", css);
         Assert.Contains(".lmx-athlete-option.autocomplete-active", css);
         Assert.Contains(".lmx-participant-avatar", css);

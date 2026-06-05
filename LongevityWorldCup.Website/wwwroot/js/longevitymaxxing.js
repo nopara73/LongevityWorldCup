@@ -404,7 +404,7 @@
         toggle("lmxSignupPanel", state.signupOpen && !hasParticipant);
         toggle("lmxParticipantPanel", hasParticipant);
         toggle("lmxClosedPanel", false);
-        toggle("lmxResendPanel", publicClosed);
+        toggle("lmxResendPanel", !hasParticipant);
         toggle("lmxNotesPanel", hasParticipant && !checkInOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
@@ -415,14 +415,17 @@
         toggle("lmxParticipantCalls", hasParticipant && !checkInOnly);
         toggle("lmxEditCallField", hasParticipant && state.signupOpen && !checkInOnly);
         if (checkInOnly) toggle("lmxEditForm", false);
-        if (publicClosed) {
+        if (!hasParticipant) {
             const completed = state.phase === "completed";
+            const signupOpen = state.signupOpen;
             setText("lmxResendTitle", completed ? "Need participant access?" : "Need your check-in link?");
             setText(
                 "lmxResendCopy",
                 completed
                     ? "If you joined the challenge, enter your email and we will send your private participant link."
-                    : "If you joined before signup closed, enter your email and we will send your private check-in link.");
+                    : signupOpen
+                        ? "Already joined or opened this page in a new browser? Enter your email and we will send your private link."
+                        : "If you joined before signup closed, enter your email and we will send your private check-in link.");
             setText("lmxResendButtonText", completed ? "Send participant link" : "Send check-in link");
         }
         const details = document.getElementById("lmxSignupDetails");
@@ -775,9 +778,10 @@
             return;
         }
 
+        const uploadFile = await prepareProfilePictureFile(file);
         const formData = new FormData();
         formData.append("accessToken", accessToken);
-        formData.append("profilePicture", file);
+        formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
 
         const button = document.getElementById("lmxProfilePictureButton");
         input.disabled = true;
@@ -796,6 +800,65 @@
             if (button) button.disabled = false;
             input.value = "";
         }
+    }
+
+    async function prepareProfilePictureFile(file) {
+        const type = String(file.type || "");
+        const isServerPreferred = /^image\/(jpeg|png|webp)$/i.test(type);
+        const shouldNormalize = file.size > 1024 * 1024 || !isServerPreferred;
+        if (!shouldNormalize) return file;
+
+        try {
+            const bitmap = await loadProfileBitmap(file);
+            const maxDimension = 1600;
+            const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+            const width = Math.max(1, Math.round(bitmap.width * scale));
+            const height = Math.max(1, Math.round(bitmap.height * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return file;
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            if (typeof bitmap.close === "function") bitmap.close();
+
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
+            if (!blob) return file;
+            return new File([blob], replaceImageExtension(file.name || "profile-picture", "jpg"), { type: "image/jpeg" });
+        } catch (_) {
+            return file;
+        }
+    }
+
+    async function loadProfileBitmap(file) {
+        if (window.createImageBitmap) {
+            try {
+                return await createImageBitmap(file, { imageOrientation: "from-image" });
+            } catch (_) {
+            }
+        }
+
+        return await new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const image = new Image();
+            image.onload = () => {
+                URL.revokeObjectURL(url);
+                resolve(image);
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error("Image preview failed"));
+            };
+            image.src = url;
+        });
+    }
+
+    function replaceImageExtension(name, extension) {
+        const clean = String(name || "profile-picture").replace(/\.[^.]+$/, "");
+        return `${clean || "profile-picture"}.${extension}`;
     }
 
     function renderNotes(notes) {
