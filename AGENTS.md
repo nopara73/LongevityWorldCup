@@ -37,6 +37,7 @@ For Longevitymaxxing Challenge participants, linked Longevity athlete profile pi
 - The expected outcome is that the backend and frontend produce the same ordering and the same placements for the same data.
 - Bioage calculator rank previews are clock-specific: pheno age shows the Pheno-only field rank, and bortz age shows the Bortz-only field rank.
 - The crowd age leaderboard view is separate from Ultimate League ranking. Only athletes with at least 100 crowd guesses are eligible. It follows the same sign convention as other age-reduction columns: `CrowdAge - chronologicalAge`, with more negative values ranking higher, then higher `CrowdCount`, then older date of birth, then name.
+- Improvement leaderboard views are separate from Ultimate League ranking. Pheno Improvement is exposed through filters/routes as `Improvement` and ranks `latest eligible pheno age - worst eligible pheno age`; Bortz Improvement is also available through filters/routes and ranks `latest eligible bortz age - worst eligible bortz age`. Lower and more negative values rank higher, then the same clock's age reduction, then older date of birth, then name.
 - Guess My Age submissions are server-rate-limited before increasing `CrowdCount`: one accepted realistic guess per client IP and athlete during the configured short window.
 
 ## Ultimate League Ordering

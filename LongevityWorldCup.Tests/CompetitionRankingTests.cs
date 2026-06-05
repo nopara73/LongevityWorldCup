@@ -88,6 +88,56 @@ public class CompetitionRankingTests
         Assert.Equal("smaller_reduction", sorted[6].Slug);
     }
 
+    [Fact]
+    public void SortByPhenoAgeImprovementRules_UsesImprovementReductionDobAndNameTieBreakers()
+    {
+        var rows = new[]
+        {
+            PhenoImprovementCandidate("largest_improvement", "Largest Improvement", phenoAgeImprovement: -8, phenoAgeReduction: -3, year: 1980),
+            PhenoImprovementCandidate("smaller_improvement", "Smaller Improvement", phenoAgeImprovement: -2, phenoAgeReduction: -30, year: 1950),
+            PhenoImprovementCandidate("same_improvement_better_reduction", "Same Better", phenoAgeImprovement: -5, phenoAgeReduction: -20, year: 1990),
+            PhenoImprovementCandidate("same_improvement_worse_reduction", "Same Worse", phenoAgeImprovement: -5, phenoAgeReduction: -10, year: 1940),
+            PhenoImprovementCandidate("older_tie", "Older Tie", phenoAgeImprovement: -4, phenoAgeReduction: -7, year: 1940),
+            PhenoImprovementCandidate("younger_tie", "Younger Tie", phenoAgeImprovement: -4, phenoAgeReduction: -7, year: 1980),
+            PhenoImprovementCandidate("alphabetical", "Alphabetical", phenoAgeImprovement: -4, phenoAgeReduction: -7, year: 1980)
+        };
+
+        var sorted = CompetitionRanking.SortByPhenoAgeImprovementRules(rows).ToList();
+
+        Assert.Equal("largest_improvement", sorted[0].Slug);
+        Assert.Equal("same_improvement_better_reduction", sorted[1].Slug);
+        Assert.Equal("same_improvement_worse_reduction", sorted[2].Slug);
+        Assert.Equal("older_tie", sorted[3].Slug);
+        Assert.Equal("alphabetical", sorted[4].Slug);
+        Assert.Equal("younger_tie", sorted[5].Slug);
+        Assert.Equal("smaller_improvement", sorted[6].Slug);
+    }
+
+    [Fact]
+    public void SortByBortzAgeImprovementRules_UsesImprovementReductionDobAndNameTieBreakers()
+    {
+        var rows = new[]
+        {
+            BortzImprovementCandidate("largest_improvement", "Largest Improvement", bortzAgeImprovement: -8, bortzAgeReduction: -3, year: 1980),
+            BortzImprovementCandidate("smaller_improvement", "Smaller Improvement", bortzAgeImprovement: -2, bortzAgeReduction: -30, year: 1950),
+            BortzImprovementCandidate("same_improvement_better_reduction", "Same Better", bortzAgeImprovement: -5, bortzAgeReduction: -20, year: 1990),
+            BortzImprovementCandidate("same_improvement_worse_reduction", "Same Worse", bortzAgeImprovement: -5, bortzAgeReduction: -10, year: 1940),
+            BortzImprovementCandidate("older_tie", "Older Tie", bortzAgeImprovement: -4, bortzAgeReduction: -7, year: 1940),
+            BortzImprovementCandidate("younger_tie", "Younger Tie", bortzAgeImprovement: -4, bortzAgeReduction: -7, year: 1980),
+            BortzImprovementCandidate("alphabetical", "Alphabetical", bortzAgeImprovement: -4, bortzAgeReduction: -7, year: 1980)
+        };
+
+        var sorted = CompetitionRanking.SortByBortzAgeImprovementRules(rows).ToList();
+
+        Assert.Equal("largest_improvement", sorted[0].Slug);
+        Assert.Equal("same_improvement_better_reduction", sorted[1].Slug);
+        Assert.Equal("same_improvement_worse_reduction", sorted[2].Slug);
+        Assert.Equal("older_tie", sorted[3].Slug);
+        Assert.Equal("alphabetical", sorted[4].Slug);
+        Assert.Equal("younger_tie", sorted[5].Slug);
+        Assert.Equal("smaller_improvement", sorted[6].Slug);
+    }
+
     private static CompetitionRankCandidate Candidate(
         string slug,
         string name,
@@ -117,6 +167,36 @@ public class CompetitionRankingTests
             crowdAge,
             crowdAgeReduction,
             crowdCount,
+            new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    private static PhenoAgeImprovementRankCandidate PhenoImprovementCandidate(
+        string slug,
+        string name,
+        double phenoAgeImprovement,
+        double phenoAgeReduction,
+        int year)
+    {
+        return new PhenoAgeImprovementRankCandidate(
+            slug,
+            name,
+            phenoAgeImprovement,
+            phenoAgeReduction,
+            new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    private static BortzAgeImprovementRankCandidate BortzImprovementCandidate(
+        string slug,
+        string name,
+        double bortzAgeImprovement,
+        double bortzAgeReduction,
+        int year)
+    {
+        return new BortzAgeImprovementRankCandidate(
+            slug,
+            name,
+            bortzAgeImprovement,
+            bortzAgeReduction,
             new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc));
     }
 }

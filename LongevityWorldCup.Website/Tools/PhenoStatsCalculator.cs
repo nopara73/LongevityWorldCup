@@ -24,7 +24,9 @@ public static class PhenoStatsCalculator
         public string? Exclusive { get; init; }
         public double[]? BestMarkerValues { get; init; }
         public double? PhenoAgeDiffFromBaseline { get; init; }
+        public double? PhenoAgeImprovementFromWorst { get; init; }
         public double? BortzAgeDiffFromBaseline { get; init; }
+        public double? BortzAgeImprovementFromWorst { get; init; }
         public double? CrowdAge { get; init; }
         public int CrowdCount { get; init; }
         public double[]? BestBortzValues { get; init; }
@@ -74,14 +76,18 @@ public static class PhenoStatsCalculator
         double? lastPheno = null;
         double? firstBortz = null;
         double? lastBortz = null;
+        var phenoSubmissions = new List<(DateTime DateUtc, int Index, double PhenoAge)>();
+        var bortzSubmissions = new List<(DateTime DateUtc, int Index, double BortzAge)>();
 
         double? bestAlb = null, bestCreat = null, bestGlu = null, bestCrp = null, bestWbc = null, bestLym = null, bestMcv = null, bestRdw = null, bestAlp = null;
         double[]? bestBortzValues = null;
 
         if (o["Biomarkers"] is JsonArray biomArr)
         {
+            var biomarkerIndex = 0;
             foreach (var entry in biomArr.OfType<JsonObject>())
             {
+                var currentIndex = biomarkerIndex++;
                 var entryDate = asOf;
                 var ds = entry["Date"]?.GetValue<string>();
                 if (!string.IsNullOrWhiteSpace(ds) && DateTime.TryParse(ds, null, DateTimeStyles.RoundtripKind, out var parsed))
@@ -99,6 +105,7 @@ public static class PhenoStatsCalculator
                         bortzSubmissionCount++;
                         if (!firstBortz.HasValue) firstBortz = bortzAge;
                         lastBortz = bortzAge;
+                        bortzSubmissions.Add((entryDate, currentIndex, bortzAge));
                         if (bortzAge < lowestBortz)
                         {
                             lowestBortz = bortzAge;
@@ -128,6 +135,7 @@ public static class PhenoStatsCalculator
                     {
                         if (!firstPheno.HasValue) firstPheno = ph;
                         lastPheno = ph;
+                        phenoSubmissions.Add((entryDate, currentIndex, ph));
                         if (ph < lowestPheno)
                         {
                             lowestPheno = ph;
@@ -198,9 +206,31 @@ public static class PhenoStatsCalculator
         double? phenoDiffFromBaseline = null;
         if (firstPheno.HasValue && lastPheno.HasValue)
             phenoDiffFromBaseline = lastPheno.Value - firstPheno.Value;
+        double? phenoImprovementFromWorst = null;
+        if (phenoSubmissions.Count >= 2)
+        {
+            var latestPheno = phenoSubmissions
+                .OrderBy(s => s.DateUtc)
+                .ThenBy(s => s.Index)
+                .Last()
+                .PhenoAge;
+            var worstPheno = phenoSubmissions.Max(s => s.PhenoAge);
+            phenoImprovementFromWorst = latestPheno - worstPheno;
+        }
         double? bortzDiffFromBaseline = null;
         if (firstBortz.HasValue && lastBortz.HasValue)
             bortzDiffFromBaseline = lastBortz.Value - firstBortz.Value;
+        double? bortzImprovementFromWorst = null;
+        if (bortzSubmissions.Count >= 2)
+        {
+            var latestBortz = bortzSubmissions
+                .OrderBy(s => s.DateUtc)
+                .ThenBy(s => s.Index)
+                .Last()
+                .BortzAge;
+            var worstBortz = bortzSubmissions.Max(s => s.BortzAge);
+            bortzImprovementFromWorst = latestBortz - worstBortz;
+        }
 
         double? crowdAge = null;
         int crowdCount = 0;
@@ -235,7 +265,9 @@ public static class PhenoStatsCalculator
             Exclusive = exclusive,
             BestMarkerValues = bestMarkerValues,
             PhenoAgeDiffFromBaseline = phenoDiffFromBaseline,
+            PhenoAgeImprovementFromWorst = phenoImprovementFromWorst,
             BortzAgeDiffFromBaseline = bortzDiffFromBaseline,
+            BortzAgeImprovementFromWorst = bortzImprovementFromWorst,
             CrowdAge = crowdAge,
             CrowdCount = crowdCount,
             BestBortzValues = bestBortzValues
