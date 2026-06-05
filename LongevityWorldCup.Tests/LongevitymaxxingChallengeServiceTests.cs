@@ -64,6 +64,25 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task UnsupportedChallengeProfilePictureFormatGivesSpecificGuidance()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("format@example.com", "Format Fran");
+        using var stream = new MemoryStream("not an image"u8.ToArray());
+        var file = new FormFile(stream, 0, stream.Length, "profilePicture", "profile.txt")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "text/plain"
+        };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service.UploadParticipantProfilePictureAsync(access, file));
+
+        Assert.Contains("format is not supported", ex.Message);
+        Assert.Contains("JPG, PNG, or WebP", ex.Message);
+    }
+
+    [Fact]
     public async Task LinkedAthleteProfileKeepsChallengeProfilePictureUploadUnavailable()
     {
         using var fixture = TestChallengeFixture.Create();
