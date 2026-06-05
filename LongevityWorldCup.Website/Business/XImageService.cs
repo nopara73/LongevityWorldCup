@@ -175,60 +175,60 @@ public class XImageService
         using var image = CreateCanvas(CyanAccent);
         var fonts = GetFontFamilies();
         await DrawBrandAsync(image, fonts.Bold);
-        DrawTitleBlock(
-            image,
-            fonts,
-            "",
-            "Top 3",
-            "",
-            CyanAccent);
 
-        var slots = new[]
+        image.Mutate(ctx =>
         {
-            new PodiumSlot(1, 600, 340, 252, 558f),
-            new PodiumSlot(2, 328, 368, 214, 558f),
-            new PodiumSlot(3, 872, 368, 214, 558f)
+            var titleFont = fonts.Bold.CreateFont(58f, FontStyle.Bold);
+            ctx.Fill(ToRgba(CyanAccent, 225), new RectangularPolygon(HeaderX, 136f, 150f, 5f));
+            DrawTextShadow(ctx, "Top 3", titleFont, new PointF(HeaderX, 164f), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, "Top 3", titleFont, TextColor, new PointF(HeaderX, 164f), 240f, 1, 64f);
+        });
+
+        var rows = new[]
+        {
+            new LeaderboardRow(1, 260, 214, 850, 88, 116),
+            new LeaderboardRow(2, 260, 342, 730, 88, 94),
+            new LeaderboardRow(3, 260, 452, 640, 88, 94)
         };
 
-        for (var i = 0; i < athletes.Count && i < slots.Length; i++)
+        for (var i = 0; i < athletes.Count && i < rows.Length; i++)
         {
-            var slot = slots[i];
+            var row = rows[i];
             var athlete = athletes[i];
-            await DrawPortraitAsync(
-                image,
-                athlete.ProfilePath!,
-                slot.CenterX - (slot.Size / 2),
-                slot.CenterY - (slot.Size / 2),
-                slot.Size,
-                i == 0 ? GreenAccent : CyanAccent,
-                i == 0 ? 7f : 5f);
+            var accent = i == 0 ? GreenAccent : CyanAccent;
 
             image.Mutate(ctx =>
             {
-                var rankFont = fonts.Bold.CreateFont(i == 0 ? 30f : 25f, FontStyle.Bold);
-                DrawTextShadow(
-                    ctx,
-                    $"#{slot.Rank}",
-                    rankFont,
-                    new PointF(slot.CenterX, slot.CenterY - (slot.Size / 2f) - 26f),
-                    HorizontalAlignment.Center,
-                    2f);
-                ctx.DrawText(new RichTextOptions(rankFont)
-                {
-                    Origin = new PointF(slot.CenterX, slot.CenterY - (slot.Size / 2f) - 26f),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, $"#{slot.Rank}", i == 0 ? GreenAccent : CyanAccent);
+                ctx.Fill(new Rgba32(31, 42, 36, 220), new RectangularPolygon(row.X, row.Y, row.Width, row.Height));
+                ctx.Draw(new Rgba32(255, 255, 255, 32), 1f, new RectangularPolygon(row.X, row.Y, row.Width, row.Height));
+                ctx.Fill(ToRgba(accent, 235), new RectangularPolygon(row.X, row.Y, 10f, row.Height));
+                ctx.Fill(new Rgba32(0, 0, 0, 74), new RectangularPolygon(row.X + 8f, row.Y + row.Height, row.Width - 22f, 4f));
             });
 
-            DrawCenteredLabel(
+            await DrawPortraitAsync(
                 image,
-                athlete.Name,
-                fonts.Bold,
-                slot.CenterX,
-                slot.LabelY,
-                i == 0 ? 330f : 270f,
-                i == 0 ? 34f : 28f);
+                athlete.ProfilePath!,
+                row.X + 34,
+                row.Y + ((row.Height - row.PortraitSize) / 2),
+                row.PortraitSize,
+                accent,
+                i == 0 ? 5f : 4f);
+
+            image.Mutate(ctx =>
+            {
+                var rankFont = fonts.Bold.CreateFont(i == 0 ? 34f : 30f, FontStyle.Bold);
+                var nameFont = FitFontToWidth(fonts.Bold, athlete.Name, i == 0 ? 36f : 30f, 22f, row.Width - 350f);
+
+                ctx.DrawText(new RichTextOptions(rankFont)
+                {
+                    Origin = new PointF(row.X + 168f, row.Y + 22f),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                }, $"#{row.Rank}", accent);
+
+                DrawTextShadow(ctx, athlete.Name, nameFont, new PointF(row.X + 246f, row.Y + 22f), HorizontalAlignment.Left, 2f);
+                DrawWrappedText(ctx, athlete.Name, nameFont, i == 0 ? TextColor : MutedTextColor, new PointF(row.X + 246f, row.Y + 22f), row.Width - 350f, 1, 36f);
+            });
         }
 
         return await SaveToStreamAsync(image);
@@ -811,5 +811,5 @@ public class XImageService
     }
 
     private sealed record AthleteRenderInfo(string Slug, string Name, string? ProfilePath, int Rank, double? AgeReduction);
-    private readonly record struct PodiumSlot(int Rank, int CenterX, int CenterY, int Size, float LabelY);
+    private readonly record struct LeaderboardRow(int Rank, int X, int Y, int Width, int Height, int PortraitSize);
 }
