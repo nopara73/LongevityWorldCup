@@ -40,6 +40,8 @@
 | **Biological Age Acceleration** | The Bortz model's intermediate signed age offset before it is added to chronological age. | BAA, acceleration |
 | **Pace of Aging** | A badge metric that compares biological age movement over time for a clock. | Rate of aging |
 | **Best Improvement** | A badge metric based on the latest eligible result minus the baseline result for the same clock. | Progress, improvement |
+| **Pheno Age Improvement** | The signed value `latest eligible pheno age - worst eligible pheno age`; lower and more negative values rank higher in the Improvement leaderboard. | Progress, Best Improvement |
+| **Bortz Age Improvement** | The signed value `latest eligible bortz age - worst eligible bortz age`; lower and more negative values rank higher in the Bortz Improvement leaderboard. | Progress, Best Improvement |
 | **Hypothetical rank** | A preview showing where a calculated result would rank if entered into the current field. | Rank preview, projected rank |
 
 ## Submissions and evidence
@@ -67,6 +69,8 @@
 | **Crowd Count** | The number of accepted realistic guesses behind an athlete's crowd age; repeated realistic guesses from the same client IP for the same athlete are accepted only once per short server-side window. | Vote count, guesses |
 | **Crowd Age Difference** | The signed value `crowd age - chronological age`; lower and more negative values rank higher in crowd age ranking. | Crowd reduction, age gap |
 | **Crowd Age leaderboard** | A separate leaderboard for athletes with at least 100 crowd guesses, ranked by Crowd Age Difference, Crowd Count, date of birth, and name. | Crowd league, Guess My Age ranking |
+| **Improvement leaderboard** | A separate public leaderboard for athletes with at least two eligible pheno age submissions, ranked by Pheno Age Improvement, then pheno age reduction, date of birth, and name. It is available through filters and routes; supporting copy may call it pheno improvement. | Progress leaderboard, Best Improvement leaderboard |
+| **Bortz Improvement leaderboard** | A separate public leaderboard for athletes with at least two eligible bortz age submissions, ranked by Bortz Age Improvement, then bortz age reduction, date of birth, and name. It is available through filters and routes, not the top-row leaderboard switcher. | Progress leaderboard, Best Improvement leaderboard |
 | **Guess My Age** | The visitor game where people guess athlete ages and create crowd age data. | Crowd guessing, age guessing |
 | **Badge** | A computed award attached to athletes for league placement, clock metrics, submissions, crowd metrics, or editorial status. | Award, achievement |
 | **Age Reduction badge** | A top-three badge for ranking by the competition's age-reduction rules in a league scope. | League badge, ranking badge |
@@ -102,6 +106,8 @@
 - The **Amateur** all-time path is currently defined by pheno age; the **Pro** seasonal path is currently defined by bortz age.
 - The **Ultimate League** ranks **Pro** athletes before **Amateur** athletes, then applies **Effective Age Reduction** and tie breakers.
 - The crowd age leaderboard is not the **Ultimate League** and only includes athletes with at least 100 accepted guesses.
+- The **Improvement leaderboard** is not the **Ultimate League**. It compares each athlete's latest eligible pheno age with their worst eligible pheno age and only includes athletes with at least two eligible pheno age submissions.
+- The **Bortz Improvement leaderboard** is not the **Ultimate League**. It compares each athlete's latest eligible bortz age with their worst eligible bortz age and only includes athletes with at least two eligible bortz age submissions.
 - **Guess My Age** applies server-side abuse protection before increasing **Crowd Count**: realistic guesses are accepted at most once per client IP and athlete during the configured short window.
 - **Badges** are derived from leaderboard positions, clock metrics, submission behavior, crowd metrics, and editorial rules.
 - **Events** announce athlete joins, rank changes, donations, milestones, badge awards, custom events, and season final results.
@@ -137,6 +143,7 @@
 - **Event** can mean a stored system update, a public timeline item, or a manually designed **Custom Event**; use **Custom Event** for admin-created announcements and **Event** for the persisted event model.
 - **Ranking**, **rank**, and **placement** overlap; use **rank** for computed current order and **placement** for stored or historical finishing positions.
 - **Crowd Age Difference** follows the same signed convention as biological age differences but is separate from Ultimate League ranking.
+- **Pheno Age Improvement** and **Bortz Age Improvement** are distinct from the **Best Improvement** badge metric: improvement leaderboards use worst-to-latest biological age, while the badge metric uses baseline-to-latest for the same clock.
 - **Bortz sex input** is unresolved in the issue tracker; avoid treating current bortz age output as definitively aligned with the original paper until that decision is settled.
 
 ## Source notes

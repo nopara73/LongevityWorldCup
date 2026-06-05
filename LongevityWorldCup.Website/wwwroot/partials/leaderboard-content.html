@@ -1691,6 +1691,7 @@
         }
         .leaderboard-view-switcher .view-switcher-chips{
             display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); width:100%; max-width:26rem; min-width:0; flex:0 0 100%;
+            gap:1px; padding:1px;
         }
         .leaderboard-view-switcher .view-badge{
             min-width:0; padding:.45rem .55rem;
@@ -2164,6 +2165,7 @@
             width:auto;
             max-width:none;
             flex:1 1 auto;
+            grid-template-columns:repeat(4, minmax(0, 1fr));
         }
 
         .leaderboard-view-switcher .view-badge{
@@ -2359,13 +2361,15 @@
                 <span class="view-switcher-label" id="leaderboardViewLabel">Ranking</span>
                 <div class="view-switcher-chips">
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Ultimate ranking">
-                    <label for="view-ultimate" class="view-badge" title="Show the Ultimate League ranking.">Ultimate</label>
+                    <label for="view-ultimate" class="view-badge view-badge-ultimate" title="Show the Ultimate League ranking.">Ultimate</label>
                     <input type="radio" name="leaderboardView" id="view-bortz" value="bortz" aria-label="Bortz Age ranking">
-                    <label for="view-bortz" class="view-badge is-clearable" title="Rank by bortz age (biological age). Click again to show default ranking.">Bortz<span class="view-badge-suffix">Age</span></label>
+                    <label for="view-bortz" class="view-badge view-badge-bortz is-clearable" title="Rank by bortz age (biological age). Click again to show default ranking.">Bortz<span class="view-badge-suffix">Age</span></label>
                     <input type="radio" name="leaderboardView" id="view-pheno" value="pheno" aria-label="Pheno Age ranking">
-                    <label for="view-pheno" class="view-badge is-clearable" title="Rank by pheno age. Click again to show default ranking.">Pheno<span class="view-badge-suffix">Age</span></label>
+                    <label for="view-pheno" class="view-badge view-badge-pheno is-clearable" title="Rank by pheno age. Click again to show default ranking.">Pheno<span class="view-badge-suffix">Age</span></label>
+                    <input type="radio" name="leaderboardView" id="view-improvement" value="improvement" aria-label="Pheno Improvement ranking" tabindex="-1" aria-hidden="true">
                     <input type="radio" name="leaderboardView" id="view-crowd" value="crowd" aria-label="Crowd Age ranking">
-                    <label for="view-crowd" class="view-badge is-clearable" title="Rank by crowd age. Click again to show default ranking.">Crowd<span class="view-badge-suffix">Age</span></label>
+                    <label for="view-crowd" class="view-badge view-badge-crowd is-clearable" title="Rank by crowd age. Click again to show default ranking.">Crowd<span class="view-badge-suffix">Age</span></label>
+                    <input type="radio" name="leaderboardView" id="view-bortz-improvement" value="bortz-improvement" aria-label="Bortz Improvement ranking" tabindex="-1" aria-hidden="true">
                 </div>
             </div>
             <div class="search-wrapper">
@@ -2410,6 +2414,18 @@
                             <label data-aging-clock-view="pheno">
                                 <input type="checkbox" name="agingClockView" value="pheno">
                                 🩸 Pheno Age (<span class="filter-count">0</span>)
+                            </label>
+                        </li>
+                        <li>
+                            <label data-aging-clock-view="improvement">
+                                <input type="checkbox" name="agingClockView" value="improvement">
+                                📉 Pheno Improvement (<span class="filter-count">0</span>)
+                            </label>
+                        </li>
+                        <li>
+                            <label data-aging-clock-view="bortz-improvement">
+                                <input type="checkbox" name="agingClockView" value="bortz-improvement">
+                                📉 Bortz Improvement (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
@@ -2886,7 +2902,11 @@
             prosperan: 'Prosperan'
         };
 
-        if (slug === 'bortz' || slug === 'pheno' || slug === 'crowd') {
+        if (slug === 'pheno-improvement') {
+            return { slug, filterLabel: null, view: 'improvement' };
+        }
+
+        if (slug === 'bortz' || slug === 'pheno' || slug === 'improvement' || slug === 'bortz-improvement' || slug === 'crowd') {
             return { slug, filterLabel: null, view: slug };
         }
 
@@ -3209,6 +3229,7 @@
                     });
 
                     let phenoAgeDifference = 0;
+                    let phenoAgeImprovement = null;
                     // Only proceed if there are submissions.
                     if (completeBiomarkerSets.length > 0) {
                         const firstSubmission = completeBiomarkerSets[0];
@@ -3247,6 +3268,42 @@
                         const lastPhenoAge = window.PhenoAge.calculatePhenoAge(lastSubmissionValues);
 
                         phenoAgeDifference = lastPhenoAge - firstPhenoAge;
+                    }
+
+                    if (completeBiomarkerSets.length >= 2) {
+                        const phenoSubmissionAges = completeBiomarkerSets.map((submission, index) => {
+                            const submittedAt = new Date(submission.Date);
+                            const ageAtSubmission = window.calculateAgeAtDate(dob, submittedAt);
+                            const values = [
+                                ageAtSubmission,
+                                submission.AlbGL,
+                                submission.CreatUmolL,
+                                submission.GluMmolL,
+                                Math.log(submission.CrpMgL / 10),
+                                submission.Wbc1000cellsuL,
+                                submission.LymPc,
+                                submission.McvFL,
+                                submission.RdwPc,
+                                submission.AlpUL
+                            ];
+                            const phenoAge = values.every(Number.isFinite)
+                                ? window.PhenoAge.calculatePhenoAge(values)
+                                : null;
+                            return {
+                                submittedAt,
+                                index,
+                                phenoAge
+                            };
+                        }).filter(result => Number.isFinite(result.phenoAge));
+
+                        if (phenoSubmissionAges.length >= 2) {
+                            const latestSubmission = phenoSubmissionAges.slice().sort((a, b) => {
+                                const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
+                                return timeDiff !== 0 ? timeDiff : a.index - b.index;
+                            }).at(-1);
+                            const worstPhenoAge = Math.max(...phenoSubmissionAges.map(result => result.phenoAge));
+                            phenoAgeImprovement = latestSubmission.phenoAge - worstPhenoAge;
+                        }
                     }
 
                     const submissionCount = completeBiomarkerSets.length;
@@ -3340,6 +3397,7 @@
                     let bortzAgeReduction = null;
                     let bortzAgeReductionPercent = null;
                     let bortzAgeDifference = null;
+                    let bortzAgeImprovement = null;
                     let bestBortzValues = null;
                     if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                         let bortzMin = Infinity;
@@ -3387,6 +3445,28 @@
                             const lastBortzAge = window.BortzAge.calculateBortzAge(lastBortzSubmission.ageAtEntry, lastBortzSubmission.values);
                             if (Number.isFinite(firstBortzAge) && Number.isFinite(lastBortzAge)) {
                                 bortzAgeDifference = lastBortzAge - firstBortzAge;
+                            }
+                        }
+
+                        if (completeBortzBiomarkerSets.length >= 2) {
+                            const bortzSubmissionAges = completeBortzBiomarkerSets.map((entry, index) => {
+                                const submittedAt = new Date(entry.Date);
+                                const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
+                                const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
+                                return {
+                                    submittedAt,
+                                    index,
+                                    bortzAge
+                                };
+                            }).filter(result => Number.isFinite(result.bortzAge));
+
+                            if (bortzSubmissionAges.length >= 2) {
+                                const latestSubmission = bortzSubmissionAges.slice().sort((a, b) => {
+                                    const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
+                                    return timeDiff !== 0 ? timeDiff : a.index - b.index;
+                                }).at(-1);
+                                const worstBortzAge = Math.max(...bortzSubmissionAges.map(result => result.bortzAge));
+                                bortzAgeImprovement = latestSubmission.bortzAge - worstBortzAge;
                             }
                         }
 
@@ -3454,6 +3534,12 @@
                         exclusiveLeague: athlete.ExclusiveLeague,
                         submissionCount: submissionCount,
                         phenoAgeDifference: phenoAgeDifference,
+                        phenoAgeImprovement: Number.isFinite(athlete.PhenoAgeImprovementFromWorst)
+                            ? athlete.PhenoAgeImprovementFromWorst
+                            : phenoAgeImprovement,
+                        bortzAgeImprovement: Number.isFinite(athlete.BortzAgeImprovementFromWorst)
+                            ? athlete.BortzAgeImprovementFromWorst
+                            : bortzAgeImprovement,
                         PhenoAgeDiffFromBaseline: athlete.PhenoAgeDiffFromBaseline,
                         BortzAgeDiffFromBaseline: Number.isFinite(athlete.BortzAgeDiffFromBaseline)
                             ? athlete.BortzAgeDiffFromBaseline
@@ -3888,8 +3974,11 @@
                         searchOrFilterApplied = true;
                     }
 
-                    const viewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
-                    if (viewParam && (viewParam.toLowerCase() === 'bortz' || viewParam.toLowerCase() === 'pheno' || viewParam.toLowerCase() === 'crowd')) {
+                    const rawViewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
+                    const viewParam = rawViewParam && rawViewParam.toLowerCase() === 'pheno-improvement'
+                        ? 'improvement'
+                        : rawViewParam;
+                    if (viewParam && (viewParam.toLowerCase() === 'bortz' || viewParam.toLowerCase() === 'pheno' || viewParam.toLowerCase() === 'improvement' || viewParam.toLowerCase() === 'bortz-improvement' || viewParam.toLowerCase() === 'crowd')) {
                         const viewId = 'view-' + viewParam.toLowerCase();
                         const viewRadio = document.getElementById(viewId);
                         if (viewRadio) {
@@ -4753,7 +4842,7 @@
 
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value.toLowerCase() : 'ultimate';
-        if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'crowd') {
+        if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement' || currentLeaderboardView === 'crowd') {
             url.searchParams.set('view', currentLeaderboardView);
         }
 
@@ -4781,7 +4870,7 @@
             .map(checkbox => checkbox.value);
         const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
 
-        // Get leaderboard view (ultimate | bortz | pheno | crowd)
+        // Get leaderboard view (ultimate | bortz | pheno | improvement | bortz-improvement | crowd)
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         syncAgingClockFilters(currentLeaderboardView);
@@ -4790,10 +4879,20 @@
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
         const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
+        const hasPhenoImprovement = (a) => Number.isFinite(a.phenoAgeImprovement);
+        const hasBortzImprovement = (a) => Number.isFinite(a.bortzAgeImprovement);
 
         const getMetricValueForView = (athlete) => {
             if (currentLeaderboardView === 'crowd') {
                 return athlete.crowdAgeReduction;
+            }
+
+            if (currentLeaderboardView === 'improvement') {
+                return athlete.phenoAgeImprovement;
+            }
+
+            if (currentLeaderboardView === 'bortz-improvement') {
+                return athlete.bortzAgeImprovement;
             }
 
             if (currentLeaderboardView === 'pheno') {
@@ -4828,11 +4927,16 @@
         };
 
         const metricHeader = document.getElementById('leaderboardMetricHeader');
+        const metricLabel = currentLeaderboardView === 'improvement'
+            ? 'Improvement'
+            : currentLeaderboardView === 'bortz-improvement'
+                ? 'Bortz improvement'
+                : 'Age reduction';
         if (metricHeader) {
-            metricHeader.textContent = 'Age reduction';
+            metricHeader.textContent = metricLabel;
         }
         document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
-            cell.setAttribute('data-label', 'Age reduction');
+            cell.setAttribute('data-label', metricLabel);
         });
 
         // Step 1: Apply view inclusion and order
@@ -4843,6 +4947,12 @@
         } else if (currentLeaderboardView === 'pheno') {
             baseList = athleteResults.slice();
             baseList.sort(window.compareAthleteRankPhenoOnly);
+        } else if (currentLeaderboardView === 'improvement') {
+            baseList = athleteResults.filter(hasPhenoImprovement);
+            baseList.sort(window.compareAthleteRankPhenoImprovement);
+        } else if (currentLeaderboardView === 'bortz-improvement') {
+            baseList = athleteResults.filter(hasBortzImprovement);
+            baseList.sort(window.compareAthleteRankBortzImprovement);
         } else if (currentLeaderboardView === 'crowd') {
             baseList = athleteResults.filter(hasCrowdAge);
             baseList.sort(window.compareAthleteRankCrowdAge);
@@ -4883,6 +4993,8 @@
             const displayMetricValue = getMetricValueForView(athlete);
             const displayAgeReductionPercent = currentLeaderboardView === 'pheno'
                 ? athlete.ageReductionPercent
+                : (currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement')
+                    ? null
                 : ((athlete.bortzAgeReductionPercent != null && Number.isFinite(athlete.bortzAgeReductionPercent)) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
             const metricSearchParts = [];
             if (Number.isFinite(displayMetricValue)) metricSearchParts.push(displayMetricValue.toFixed(1));
@@ -5120,7 +5232,7 @@
             url.searchParams.delete('filters');
             const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
-        } else if (filters.length === 0 && cleanSearch && (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'crowd')) {
+        } else if (filters.length === 0 && cleanSearch && (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement' || currentLeaderboardView === 'crowd')) {
             url.pathname = `/league/${currentLeaderboardView}`;
             url.searchParams.delete('view');
         } else {
@@ -5149,6 +5261,8 @@
             ultimate: '<strong>Ultimate leaderboard</strong> ranks athletes first by bortz, then by pheno age reductions.',
             bortz: '<strong>Bortz age</strong> estimates biological age from advanced blood-test markers.',
             pheno: '<strong>Pheno age</strong> estimates biological age from common blood-test markers.',
+            improvement: '<strong>Pheno improvement</strong> ranks latest eligible pheno age against each athlete’s worst eligible pheno age.',
+            'bortz-improvement': '<strong>Bortz improvement</strong> ranks latest eligible bortz age against each athlete’s worst eligible bortz age.',
             crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they pass 100 guesses.'
         };
 
@@ -5169,6 +5283,10 @@
             leagueText = 'BORTZ AGE LEAGUE';
         } else if (currentLeaderboardView === 'pheno') {
             leagueText = 'PHENO AGE LEAGUE';
+        } else if (currentLeaderboardView === 'improvement') {
+            leagueText = 'IMPROVEMENT LEAGUE';
+        } else if (currentLeaderboardView === 'bortz-improvement') {
+            leagueText = 'BORTZ IMPROVEMENT LEAGUE';
         } else if (currentLeaderboardView === 'crowd') {
             leagueText = 'CROWD AGE LEAGUE';
         } else {
@@ -5278,10 +5396,14 @@
         // Update aging clock counts
         const hasBortzForClockCount = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
         const hasPhenoForClockCount = (a) => a.ageReduction != null && Number.isFinite(a.ageReduction);
+        const hasPhenoImprovementForClockCount = (a) => Number.isFinite(a.phenoAgeImprovement);
+        const hasBortzImprovementForClockCount = (a) => Number.isFinite(a.bortzAgeImprovement);
         const hasCrowdForClockCount = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
         const agingClockCounts = {
             bortz: filteredAthletes.filter(hasBortzForClockCount).length,
             pheno: filteredAthletes.filter(hasPhenoForClockCount).length,
+            improvement: filteredAthletes.filter(hasPhenoImprovementForClockCount).length,
+            'bortz-improvement': filteredAthletes.filter(hasBortzImprovementForClockCount).length,
             crowd: filteredAthletes.filter(hasCrowdForClockCount).length
         };
 
@@ -5516,7 +5638,7 @@
             performFilter();
         });
     });
-    // Clicking the active Bortz or Pheno badge again deselects it (none = Ultimate view)
+    // Clicking the active ranking badge again deselects it (none = Ultimate view)
     document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(label => {
         label.addEventListener('click', function (e) {
             const radio = document.getElementById(label.getAttribute('for'));

@@ -46,6 +46,12 @@ namespace LongevityWorldCup.Website.Middleware
                 ["pheno"] = new(
                     "Pheno Age Leaderboard | Longevity World Cup",
                     "Track Longevity World Cup pheno age rankings from verified biological age submissions."),
+                ["improvement"] = new(
+                    "Improvement Leaderboard | Longevity World Cup",
+                    "Track Longevity World Cup pheno improvement rankings from each athlete's worst eligible pheno age result to latest eligible result."),
+                ["bortz-improvement"] = new(
+                    "Bortz Improvement Leaderboard | Longevity World Cup",
+                    "Track Longevity World Cup bortz improvement rankings from each athlete's worst eligible bortz age result to latest eligible result."),
                 ["crowd"] = new(
                     "Crowd Age Leaderboard | Longevity World Cup",
                     "Track the Longevity World Cup crowd age leaderboard for athletes with enough accepted age guesses.")
@@ -812,7 +818,7 @@ $@"<script type=""module"">
 
             if (IsLeagueRoute(canonicalPath))
             {
-                var raw = canonicalPath["/league/".Length..].Trim('/');
+                var raw = NormalizeLeaderboardViewSlug(canonicalPath["/league/".Length..].Trim('/'));
                 if (LeaderboardViewSeoBySlug.ContainsKey(raw))
                 {
                     viewSlug = raw.ToLowerInvariant();
@@ -827,7 +833,7 @@ $@"<script type=""module"">
                 return false;
             }
 
-            var candidate = viewQuery.ToString().Trim().ToLowerInvariant();
+            var candidate = NormalizeLeaderboardViewSlug(viewQuery.ToString().Trim());
             if (!LeaderboardViewSeoBySlug.ContainsKey(candidate))
             {
                 return false;
@@ -835,6 +841,13 @@ $@"<script type=""module"">
 
             viewSlug = candidate;
             return true;
+        }
+
+        private static string NormalizeLeaderboardViewSlug(string value)
+        {
+            return string.Equals(value, "pheno-improvement", StringComparison.OrdinalIgnoreCase)
+                ? "improvement"
+                : value.ToLowerInvariant();
         }
 
         private string BuildStructuredDataJson(SeoMeta seo)

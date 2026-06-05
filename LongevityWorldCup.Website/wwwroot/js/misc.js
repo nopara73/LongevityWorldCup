@@ -161,6 +161,30 @@ window.compareAthleteRankPhenoOnly = function (a, b) {
 };
 
 /**
+ * Pheno improvement comparator: rank by latest eligible pheno age minus worst eligible pheno age.
+ * More negative values are better. Ties follow the Pheno Age view ordering.
+ */
+window.compareAthleteRankPhenoImprovement = function (a, b) {
+    const aImprovement = Number.isFinite(a.phenoAgeImprovement) ? a.phenoAgeImprovement : Infinity;
+    const bImprovement = Number.isFinite(b.phenoAgeImprovement) ? b.phenoAgeImprovement : Infinity;
+    if (aImprovement < bImprovement) return -1;
+    if (aImprovement > bImprovement) return 1;
+    return window.compareAthleteRankPhenoOnly(a, b);
+};
+
+/**
+ * Bortz improvement comparator: rank by latest eligible bortz age minus worst eligible bortz age.
+ * More negative values are better. Ties follow the Bortz Age view ordering.
+ */
+window.compareAthleteRankBortzImprovement = function (a, b) {
+    const aImprovement = Number.isFinite(a.bortzAgeImprovement) ? a.bortzAgeImprovement : Infinity;
+    const bImprovement = Number.isFinite(b.bortzAgeImprovement) ? b.bortzAgeImprovement : Infinity;
+    if (aImprovement < bImprovement) return -1;
+    if (aImprovement > bImprovement) return 1;
+    return window.compareAthleteRank(a, b);
+};
+
+/**
  * crowd age comparator: lower median crowd age minus chronological age is better, with more guesses winning ties.
  * Used only for the Crowd Age view; Ultimate League ordering still follows compareAthleteRank.
  */

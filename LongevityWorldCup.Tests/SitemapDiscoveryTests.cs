@@ -22,6 +22,8 @@ public class SitemapDiscoveryTests
         "/league/prosperan",
         "/league/bortz",
         "/league/pheno",
+        "/league/improvement",
+        "/league/bortz-improvement",
         "/league/crowd"
     ];
 
