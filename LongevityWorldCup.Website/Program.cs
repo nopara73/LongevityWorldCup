@@ -403,9 +403,15 @@ namespace LongevityWorldCup.Website
                 LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig()
             };
 
-            // Serialize to JSON and save to file
-            string json = JsonSerializer.Serialize(defaultConfig, JsonOptions); // Use cached options
-            File.WriteAllText(configFilePath, json);
+            try
+            {
+                using var stream = new FileStream(configFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+                JsonSerializer.Serialize(stream, defaultConfig, JsonOptions);
+            }
+            catch (IOException) when (File.Exists(configFilePath))
+            {
+                // Another parallel startup created the default config first.
+            }
         }
     }
 }
