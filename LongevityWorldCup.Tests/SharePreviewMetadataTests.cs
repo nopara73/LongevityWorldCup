@@ -63,6 +63,34 @@ public sealed class SharePreviewMetadataTests
         Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
     }
 
+    [Theory]
+    [InlineData("/athlete/ron-lugbill", "Ron Lugbill | Longevity World Cup")]
+    [InlineData("/league/gen-alpha", "Gen Alpha League | Longevity World Cup")]
+    [InlineData("/league/prosperan", "Prosperan League | Longevity World Cup")]
+    [InlineData("/about", "About | Longevity World Cup")]
+    public async Task SharePreviewTitles_AddBrandSuffixWhenMissing(string path, string expectedTitle)
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains($"property=\"og:title\" content=\"{expectedTitle}\"", html);
+        Assert.Contains($"name=\"twitter:title\" content=\"{expectedTitle}\"", html);
+    }
+
+    [Fact]
+    public async Task SharePreviewTitles_DoNotDuplicateBrandSuffix()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("property=\"og:title\" content=\"Longevity World Cup\"", html);
+        Assert.DoesNotContain("Longevity World Cup | Longevity World Cup", html);
+    }
+
     private static WebApplicationFactory<Program> CreateFactory()
     {
         return new TestWebApplicationFactory();
