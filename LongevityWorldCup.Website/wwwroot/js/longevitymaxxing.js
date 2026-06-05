@@ -885,8 +885,9 @@
     function participantNameHtml(row, nameHtml) {
         const athlete = findAthleteForParticipant(row);
         const profileImage = String(row.profileImageUrl || "").trim();
-        const image = athlete?.profilePic || profileImage || ATHLETE_PLACEHOLDER_IMAGE;
-        const hasProfileImage = !!(athlete?.profilePic || profileImage);
+        const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
+        const image = athleteProfileImage || profileImage || ATHLETE_PLACEHOLDER_IMAGE;
+        const hasProfileImage = !!(athleteProfileImage || profileImage);
         const avatarClass = hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
         const alt = hasProfileImage ? `${row.displayName || "Participant"} profile picture` : "";
         return `<div class="lmx-participant-name">
@@ -895,6 +896,11 @@
             </span>
             <span class="lmx-participant-label">${nameHtml}</span>
         </div>`;
+    }
+
+    function isPlaceholderProfileImage(url) {
+        const value = String(url || "").trim();
+        return !value || value.includes(ATHLETE_PLACEHOLDER_IMAGE);
     }
 
     function findAthleteForParticipant(row) {

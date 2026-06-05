@@ -173,6 +173,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("ATHLETE_PLACEHOLDER_IMAGE = \"/assets/content-images/headshot.webp\"", javascript);
         Assert.Contains("function participantNameHtml", javascript);
         Assert.Contains("findAthleteForParticipant(row)", javascript);
+        Assert.Contains("function isPlaceholderProfileImage", javascript);
+        Assert.Contains("const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? \"\" : (athlete?.profilePic || \"\");", javascript);
+        Assert.Contains("const image = athleteProfileImage || profileImage || ATHLETE_PLACEHOLDER_IMAGE;", javascript);
         Assert.Contains("function renderProfilePictureControls", javascript);
         Assert.Contains("participant.profileImageUrl", javascript);
         Assert.Contains("row.profileImageUrl", javascript);
