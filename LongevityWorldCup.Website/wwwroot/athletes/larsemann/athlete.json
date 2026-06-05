@@ -18,10 +18,23 @@
       "RdwPc": 12.3,
       "AlpUL": 55,
       "Wbc1000cellsuL": 4.54
+    },
+    {
+      "Date": "2026-06-03",
+      "AlbGL": 45,
+      "CreatUmolL": 78.76,
+      "GluMmolL": 4.38,
+      "CrpMgL": 0.6,
+      "LymPc": 46.9,
+      "McvFL": 88.6,
+      "RdwPc": 12.1,
+      "AlpUL": 62,
+      "Wbc1000cellsuL": 4.95
     }
   ],
   "Division": "Men's",
   "Flag": "Germany",
   "Why": "Freedom, Independence, Adventures",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "DisplayName": null
 }
