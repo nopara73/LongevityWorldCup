@@ -121,6 +121,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri.Contains("/avatar/") && uri.AbsoluteUri.Contains("d=404"));
         Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri == "https://gravatar.com/molnard.json");
         Assert.Contains(fixture.Http.Requests, uri => uri.AbsoluteUri == "https://0.gravatar.com/avatar/profile-hash");
+        Assert.All(fixture.Http.UserAgents, userAgent => Assert.Contains("LongevityWorldCup/1.0", userAgent));
     }
 
     [Fact]
@@ -626,13 +627,15 @@ public sealed class LongevitymaxxingChallengeServiceTests
         byte[]? profileImageResponse) : IHttpClientFactory
     {
         public List<Uri> Requests { get; } = [];
+        public List<string> UserAgents { get; } = [];
 
         public HttpClient CreateClient(string name)
-            => new(new FakeHttpMessageHandler(Requests, gravatarResponse, profileJson, profileImageResponse));
+            => new(new FakeHttpMessageHandler(Requests, UserAgents, gravatarResponse, profileJson, profileImageResponse));
     }
 
     private sealed class FakeHttpMessageHandler(
         List<Uri> requests,
+        List<string> userAgents,
         byte[]? gravatarResponse,
         string? profileJson,
         byte[]? profileImageResponse) : HttpMessageHandler
@@ -646,6 +649,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
         private HttpResponseMessage BuildResponse(HttpRequestMessage request)
         {
             requests.Add(request.RequestUri!);
+            userAgents.Add(request.Headers.UserAgent.ToString());
+            if (string.IsNullOrWhiteSpace(request.Headers.UserAgent.ToString()))
+                return new HttpResponseMessage(HttpStatusCode.Forbidden);
 
             if (request.RequestUri!.AbsolutePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {

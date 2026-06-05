@@ -20,7 +20,8 @@ public sealed class LongevitymaxxingChallengeService
     private const int PracticeCheckInDay = 1;
     public const int MaxProfilePictureUploadBytes = 8 * 1024 * 1024;
     private const int ProfilePictureSize = 512;
-    private const string GravatarMissingCacheVersion = "v2";
+    private const string GravatarMissingCacheVersion = "v3";
+    private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly EmailAddressAttribute EmailValidator = new();
     private static readonly string[] CategoryNames = ["Sleep", "Exercise", "Nutrition", "Vices"];
@@ -1545,8 +1546,9 @@ public sealed class LongevitymaxxingChallengeService
             return null;
 
         var profileUrl = $"https://gravatar.com/{Uri.EscapeDataString(profileSlug)}.json";
+        using var request = CreateGravatarRequest(profileUrl, "application/json");
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-        using var profileResponse = _httpClientFactory.CreateClient().GetAsync(profileUrl, cts.Token).GetAwaiter().GetResult();
+        using var profileResponse = _httpClientFactory.CreateClient().Send(request, cts.Token);
         if (profileResponse.StatusCode == HttpStatusCode.NotFound)
             return null;
 
@@ -1559,7 +1561,7 @@ public sealed class LongevitymaxxingChallengeService
 
     private byte[]? FetchGravatarImageUrl(string url)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = CreateGravatarRequest(url, "image/*");
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
         using var response = _httpClientFactory.CreateClient().Send(request, cts.Token);
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -1571,6 +1573,14 @@ public sealed class LongevitymaxxingChallengeService
             return null;
 
         return response.Content.ReadAsByteArrayAsync(cts.Token).GetAwaiter().GetResult();
+    }
+
+    private static HttpRequestMessage CreateGravatarRequest(string url, string accept)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.UserAgent.ParseAdd(GravatarUserAgent);
+        request.Headers.Accept.ParseAdd(accept);
+        return request;
     }
 
     private static string HashGravatarEmail(string email)
