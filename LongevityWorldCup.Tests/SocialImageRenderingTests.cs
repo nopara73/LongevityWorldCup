@@ -50,7 +50,7 @@ public sealed class SocialImageRenderingTests
             Assert.True(image.Height > 0);
         }
 
-        foreach (var count in new[] { 42, 69, 100, 123, 256, 300, 500, 1000, 1618, 3141, 6969, 10000 })
+        foreach (var count in new[] { 42, 69, 100, 123, 200, 222, 256, 300, 500, 1000, 2048, 8008, 8888, 9999, 10000 })
             Assert.False(memes.TryGetMeme(count, out _));
     }
 

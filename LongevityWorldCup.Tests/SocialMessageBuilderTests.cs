@@ -67,6 +67,43 @@ public sealed class SocialMessageBuilderTests
         Assert.Equal(expectedSlack, SlackMessageBuilder.ForEventText(EventType.AthleteCountMilestone, raw, SlugToName));
     }
 
+    [Theory]
+    [InlineData(200, "200 athletes are now on the leaderboard, another clean round-number checkpoint.", "200 athletes are now on the leaderboard. Clean round-number checkpoint.", "clean round-number checkpoint")]
+    [InlineData(222, "222 athletes are now on the leaderboard, perfectly doubled.", "222 athletes are now on the leaderboard. Perfectly doubled.", "perfectly doubled")]
+    [InlineData(2048, "2,048 athletes are now on the leaderboard, power-of-two checkpoint unlocked.", "2,048 athletes are now on the leaderboard. Power-of-two checkpoint unlocked.", "Power-of-two checkpoint unlocked")]
+    [InlineData(8008, "8,008 athletes are now on the leaderboard, calculator humor survived.", "8,008 athletes are now on the leaderboard. Calculator humor survived.", "calculator humor survived")]
+    [InlineData(9999, "9,999 athletes are now on the leaderboard, one short of five digits.", "9,999 athletes are now on the leaderboard. One short of five digits.", "one short of five digits")]
+    public void MilestoneEventBuilders_ReturnNewMilestoneMessages(
+        int count,
+        string expectedXLine,
+        string expectedThreadsLine,
+        string expectedSlackFragment)
+    {
+        var raw = $"athletes[{count}]";
+
+        Assert.StartsWith(expectedXLine, XMessageBuilder.ForEventText(EventType.AthleteCountMilestone, raw, SlugToName));
+        Assert.StartsWith(expectedThreadsLine, ThreadsMessageBuilder.ForEventText(EventType.AthleteCountMilestone, raw, SlugToName));
+        Assert.Contains(expectedSlackFragment, SlackMessageBuilder.ForEventText(EventType.AthleteCountMilestone, raw, SlugToName), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AthleteCountMilestoneThresholds_IncludeRoundAndStrongerNumberPosts()
+    {
+        var expectedIncluded = new[]
+        {
+            200, 222, 250, 888, 999, 1024, 1234, 1500, 2048, 2222,
+            2500, 3000, 3333, 4000, 4444, 5555, 7500, 8008, 8888,
+            9999, 11111, 12345, 22222, 54321
+        };
+        var expectedSkippedAsWeak = new[] { 333, 555, 1492, 1776, 2024, 4321 };
+
+        foreach (var count in expectedIncluded)
+            Assert.Contains(count, AthleteDataService.AthleteCountMilestoneThresholds);
+
+        foreach (var count in expectedSkippedAsWeak)
+            Assert.DoesNotContain(count, AthleteDataService.AthleteCountMilestoneThresholds);
+    }
+
     [Fact]
     public void DomainTopFiller_UsesClockSpecificBortzProfileLanguage()
     {

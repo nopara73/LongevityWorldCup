@@ -366,21 +366,45 @@ public static class SlackMessageBuilder
             case 69: return $"{C} athletes - nice 😏";
             case 100: return $"Hit {C} on the leaderboard, triple digits 🏁";
             case 123: return $"Counted up to {C} contenders in the tournament 🔢";
+            case 200: return $"Reached {C} athletes, clean round-number checkpoint 🎯";
+            case 222: return $"{C} athletes - perfectly doubled ✌️";
+            case 250: return $"Quarter-K field: {C} athletes on the leaderboard 🧱";
             case 256: return $"Power of two - {C} competitors in the bracket 💻";
             case 300: return $"{C} in the tournament - This is Sparta! 🛡️";
             case 404: return $"Logged {C} in the competition - athlete not found? found 🔎";
             case 500: return $"Crossed {C}, half-K competing 🚀";
             case 666: return $"Hit {C} athletes - beast mode 😈";
             case 777: return $"Lucky sevens, {C} athletes on the leaderboard 🍀";
+            case 888: return $"Triple eights, {C} athletes and still rolling 🎰";
+            case 999: return $"{C} athletes - one away from the comma club 👀";
             case 1000: return $"Reached {C}, the big 1K competing 🏆";
+            case 1024: return $"Proper power-of-two territory: {C} athletes 💻";
+            case 1234: return $"Counting up nicely - {C} athletes on the board 🔢";
             case 1337: return $"Leet level - {C} contenders in play 🕹️";
             case 1500: return $"Passed {C}, a solid field in the tournament 🧱";
             case 1618: return $"Golden-ratio vibes at {C} in the competition 🌀";
             case 2000: return $"Cleared {C} - 2K participants in contention 🎯";
+            case 2048: return $"Power-of-two checkpoint unlocked at {C} athletes 💻";
+            case 2222: return $"{C} athletes - twos all the way down ✌️";
+            case 2500: return $"Reached {C}, halfway from 2K to 3K 📈";
+            case 3000: return $"Cleared {C}, another thousand-athlete checkpoint 🏁";
             case 3141: return $"Slice of π, {C} now on the board 🥧";
+            case 3333: return $"Repeating digits, serious field: {C} athletes 🔢";
+            case 4000: return $"Cleared the 4K checkpoint: {C} athletes 🏁";
+            case 4444: return $"{C} athletes - four-four-four-four and still found 🔎";
             case 5000: return $"Press-worthy surge - {C} athletes in the tournament 📰";
+            case 5555: return $"Repeating fives, {C} athletes on the leaderboard 🔢";
             case 6969: return $"Meme tier unlocked, {C} competitors 🔓";
+            case 7500: return $"{C} athletes - three quarters of the way to 10K 📈";
+            case 8008: return $"{C} athletes - calculator humor survived 🧮";
+            case 8888: return $"{C} athletes - jackpot-adjacent 🎰";
+            case 9001: return $"Over nine thousand, {C} in the tournament 🔥";
+            case 9999: return $"{C} athletes - one short of five digits 👀";
             case 10000: return $"Five digits strong - {C} in the competition 💪";
+            case 11111: return $"{C} athletes - the one key is doing overtime ☝️";
+            case 12345: return $"{C} athletes - counting is officially a feature 🔢";
+            case 22222: return $"{C} athletes - twos all the way down again ✌️";
+            case 54321: return $"{C} athletes - countdown complete, somehow upward 🚀";
         }
 
         if (n > 9000 && n < 10000)
