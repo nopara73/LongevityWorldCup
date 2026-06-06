@@ -40,6 +40,7 @@ public class ThreadsDailyPostJob : IJob
         _events.SetAthletesForX(_athletes.GetAthletesForX());
         var pending = _events.GetPendingThreadsEvents();
         var freshCutoff = DateTime.UtcNow.AddDays(-7);
+        var skippedEvents = new List<(string Id, SocialEventSkipReason Reason)>();
 
         foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, xPriority) in pending)
         {
@@ -52,8 +53,7 @@ public class ThreadsDailyPostJob : IJob
                     _athletes.HasSingleGlobalPlaceOneBadgeHolder,
                     out var skipReason))
             {
-                _events.MarkEventsThreadsSkipped(new[] { (id, skipReason) });
-                _logger.LogInformation("ThreadsDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, skipReason);
+                skippedEvents.Add((id, skipReason));
                 continue;
             }
 
@@ -68,10 +68,11 @@ public class ThreadsDailyPostJob : IJob
             var msg = _threadsEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
             {
-                _events.MarkEventsThreadsSkipped(new[] { (id, SocialEventSkipReason.EmptyMessage) });
-                _logger.LogInformation("ThreadsDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, SocialEventSkipReason.EmptyMessage);
+                skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
                 continue;
             }
+
+            FlushSkippedEvents(skippedEvents);
 
             _logger.LogInformation(
                 "ThreadsDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
@@ -94,6 +95,8 @@ public class ThreadsDailyPostJob : IJob
             _logger.LogInformation("ThreadsDailyPostJob posted event {Id}", id);
             return;
         }
+
+        FlushSkippedEvents(skippedEvents);
 
         if (await TryPostHistoryReminderAsync())
             return;
@@ -163,6 +166,27 @@ public class ThreadsDailyPostJob : IJob
         }
 
         _logger.LogInformation("ThreadsDailyPostJob no postable event found");
+    }
+
+    private void FlushSkippedEvents(List<(string Id, SocialEventSkipReason Reason)> skippedEvents)
+    {
+        if (skippedEvents.Count == 0)
+            return;
+
+        _events.MarkEventsThreadsSkipped(skippedEvents);
+        _logger.LogInformation(
+            "ThreadsDailyPostJob marked {Count} event(s) processed with skip reasons: {SkipReasonSummary}",
+            skippedEvents.Count,
+            FormatSkipReasonSummary(skippedEvents));
+        skippedEvents.Clear();
+    }
+
+    private static string FormatSkipReasonSummary(IEnumerable<(string Id, SocialEventSkipReason Reason)> skippedEvents)
+    {
+        return string.Join(", ", skippedEvents
+            .GroupBy(x => x.Reason)
+            .OrderBy(x => x.Key.ToString(), StringComparer.Ordinal)
+            .Select(x => $"{x.Key}={x.Count()}"));
     }
 
     private bool TryGetMilestoneMemeImageUrl(EventType type, string rawText, out string imageUrl)
