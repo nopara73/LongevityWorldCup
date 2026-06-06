@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using LongevityWorldCup.Website;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -259,12 +258,7 @@ public sealed class SwaggerOpenApiTests
 
     private static WebApplicationFactory<Program> CreateFactory()
     {
-        return new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseSetting("EnableScheduledJobs", "false");
-                builder.UseSetting("EnableStartupBadgeRefresh", "false");
-            });
+        return new TestWebApplicationFactory();
     }
 
     private static IEnumerable<JsonElement> EnumerateOperations(JsonElement paths)
