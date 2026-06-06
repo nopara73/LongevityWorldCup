@@ -86,10 +86,24 @@ public class XDailyPostJob : IJob
                 continue;
             }
 
+            var claimedCustomEvent = false;
+            if (type == EventType.CustomEvent)
+            {
+                claimedCustomEvent = _events.TryClaimPendingCustomEventForDispatch(id, SocialPlatform.X);
+                if (!claimedCustomEvent)
+                {
+                    _logger.LogInformation("XDailyPostJob skipped custom event {Id} because another dispatcher claimed it", id);
+                    continue;
+                }
+            }
+
             var msg = _xEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
             {
-                skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
+                if (claimedCustomEvent)
+                    _events.MarkClaimedCustomEventSkippedForDispatch(id, SocialPlatform.X, SocialEventSkipReason.EmptyMessage);
+                else
+                    skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
                 continue;
             }
 
@@ -118,10 +132,15 @@ public class XDailyPostJob : IJob
                 : await _xEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
+                if (claimedCustomEvent)
+                    _events.FinalizeClaimedCustomEventForDispatch(id, SocialPlatform.X, succeeded: false);
                 _logger.LogWarning("XDailyPostJob send failed for event {Id}; leaving unprocessed", id);
                 return;
             }
-            _events.MarkEventsXProcessed(new[] { id });
+            if (claimedCustomEvent)
+                _events.FinalizeClaimedCustomEventForDispatch(id, SocialPlatform.X, succeeded: true);
+            else
+                _events.MarkEventsXProcessed(new[] { id });
             _fillerLog.LogSubjectPost(nowUtc, $"event[{id}] type[{type}]", subjectSlug);
             _logger.LogInformation("XDailyPostJob posted event {Id}", id);
             return;

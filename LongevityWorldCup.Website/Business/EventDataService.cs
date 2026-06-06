@@ -494,6 +494,47 @@ public sealed class EventDataService : IDisposable
         });
     }
 
+    public bool TryClaimPendingCustomEventForDispatch(string id, SocialPlatform platform)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+
+        var processedColumn = GetProcessedColumn(platform);
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = 2 WHERE Id = @id AND Type = @type AND {processedColumn} = 0;";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
+            return cmd.ExecuteNonQuery() == 1;
+        });
+    }
+
+    public void FinalizeClaimedCustomEventForDispatch(string id, SocialPlatform platform, bool succeeded)
+    {
+        FinalizeClaimedCustomEvent(GetProcessedColumn(platform), id, succeeded);
+    }
+
+    public void MarkClaimedCustomEventSkippedForDispatch(string id, SocialPlatform platform, SocialEventSkipReason reason)
+    {
+        if (reason == SocialEventSkipReason.None)
+            throw new ArgumentException("A skip reason is required.", nameof(reason));
+
+        var processedColumn = GetProcessedColumn(platform);
+        var skipReasonColumn = GetSkipReasonColumn(processedColumn);
+        if (skipReasonColumn is null)
+            return;
+
+        _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = 1, {skipReasonColumn} = @reason WHERE Id = @id AND {processedColumn} = 2;";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@reason", reason.ToString());
+            cmd.ExecuteNonQuery();
+        });
+    }
+
     private void FinalizeClaimedCustomEvent(string processedColumn, string id, bool succeeded)
     {
         _db.Run(sqlite =>
@@ -522,6 +563,17 @@ public sealed class EventDataService : IDisposable
                 cmd.Parameters.AddWithValue("@skipReason", SocialEventSkipReason.PlatformNotConfigured.ToString());
             cmd.ExecuteNonQuery();
         });
+    }
+
+    private static string GetProcessedColumn(SocialPlatform platform)
+    {
+        return platform switch
+        {
+            SocialPlatform.X => "XProcessed",
+            SocialPlatform.Threads => "ThreadsProcessed",
+            SocialPlatform.Facebook => "FacebookProcessed",
+            _ => throw new ArgumentOutOfRangeException(nameof(platform), platform, null)
+        };
     }
 
     private static string? GetSkipReasonColumn(string processedColumn)
