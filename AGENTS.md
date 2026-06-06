@@ -24,11 +24,12 @@ Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, 
 
 Use its canonical terms when naming UI text, code concepts, issues, and docs. If behavior or terminology changes, update `UBIQUITOUS_LANGUAGE.md` in the same change.
 
-The Longevitymaxxing Challenge is a standalone Lifestyle challenge and must not be mixed into Ultimate League ranking, biological age placements, or athlete badges.
-Longevitymaxxing Challenge final results and linked-athlete completions may appear as Events/highlights; keep those highlights separate from Ultimate League ranking, biological age placements, and athlete badges.
-Longevitymaxxing Challenge call times may be selected before signup closes when needed to send 24-hour call reminders; do not tie call selection strictly to signup close.
-Longevitymaxxing Challenge profile pictures for participants without linked athlete profiles are challenge-only generated assets; do not create or modify athlete profile pictures from those uploads.
-For Longevitymaxxing Challenge participants, linked Longevity athlete profile pictures remain the display priority when present, uploaded challenge profile pictures have priority over cached Gravatar fallbacks, and neither challenge uploads nor Gravatar fallbacks create or modify Longevity athlete profile pictures.
+### Longevitymaxxing Challenge
+
+- The Longevitymaxxing Challenge is a standalone Lifestyle challenge. Keep it separate from Ultimate League ranking, biological age placements, and athlete badges.
+- Final results and linked-athlete completions may appear as Events/highlights, but those highlights must not affect rankings, placements, or badges.
+- Call times may be selected before signup closes when needed for 24-hour call reminders.
+- Challenge profile pictures are challenge-only unless a participant has a linked Longevity athlete profile picture, which remains the display priority. Do not create or modify athlete profile pictures from challenge uploads or Gravatar fallbacks.
 
 ## Ranking Logic Must Stay Aligned
 

@@ -66,11 +66,11 @@
 | --- | --- | --- |
 | **Leaderboard** | A ranked display of athletes for a league, track, clock, or crowd view. | Ranking list, table |
 | **Crowd Age** | The median realistic age guessed by visitors in Guess My Age. | Guessed age, perceived age |
-| **Crowd Count** | The number of accepted realistic guesses behind an athlete's crowd age; repeated realistic guesses from the same client IP for the same athlete are accepted only once per short server-side window. | Vote count, guesses |
+| **Crowd Count** | The number of accepted realistic guesses behind an athlete's crowd age. | Vote count, guesses |
 | **Crowd Age Difference** | The signed value `crowd age - chronological age`; lower and more negative values rank higher in crowd age ranking. | Crowd reduction, age gap |
-| **Crowd Age leaderboard** | A separate leaderboard for athletes with at least 100 crowd guesses, ranked by Crowd Age Difference, Crowd Count, date of birth, and name. | Crowd league, Guess My Age ranking |
-| **Improvement leaderboard** | A separate public leaderboard for athletes with at least two eligible pheno age submissions, ranked by Pheno Age Improvement, then pheno age reduction, date of birth, and name. It is available through filters and routes; supporting copy may call it pheno improvement. | Progress leaderboard, Best Improvement leaderboard |
-| **Bortz Improvement leaderboard** | A separate public leaderboard for athletes with at least two eligible bortz age submissions, ranked by Bortz Age Improvement, then bortz age reduction, date of birth, and name. It is available through filters and routes, not the top-row leaderboard switcher. | Progress leaderboard, Best Improvement leaderboard |
+| **Crowd Age leaderboard** | A separate leaderboard for athletes with enough accepted crowd guesses. | Crowd league, Guess My Age ranking |
+| **Improvement leaderboard** | A separate public leaderboard for athletes with enough eligible pheno age submissions. Supporting copy may call it pheno improvement. | Progress leaderboard, Best Improvement leaderboard |
+| **Bortz Improvement leaderboard** | A separate public leaderboard for athletes with enough eligible bortz age submissions. | Progress leaderboard, Best Improvement leaderboard |
 | **Guess My Age** | The visitor game where people guess athlete ages and create crowd age data. | Crowd guessing, age guessing |
 | **Badge** | A computed award attached to athletes for league placement, clock metrics, submissions, crowd metrics, or editorial status. | Award, achievement |
 | **Age Reduction badge** | A top-three badge for ranking by the competition's age-reduction rules in a league scope. | League badge, ranking badge |
@@ -81,7 +81,7 @@
 | **Share preview** | The Open Graph or social-card representation of a page, athlete, or league link. | Thumbnail, card |
 | **Athlete 1v1 challenge** | A proposed community-game format where athletes challenge each other and rankings emerge from matchups. | Matchup league, challenge league |
 | **Lifestyle challenge** | A proposed side competition using lifestyle tracker or journal inputs such as sleep, nutrition, exercise, and vice tracking. | Habit challenge, side quest |
-| **Longevitymaxxing Challenge** | A 14-day Lifestyle challenge where participants check in daily on sleep, exercise, nutrition, and vices to build momentum on a public visual leaderboard. The Day 1 check-in is practice: it counts for checked-in days, streak, completion, and other consistency signals, but not habit points, category leader badges, or point tie-breaks. Call times may be selected before signup closes when needed to send 24-hour call reminders. | Habit tracker, wellness app |
+| **Longevitymaxxing Challenge** | A 14-day Lifestyle challenge where participants check in daily on sleep, exercise, nutrition, and vices on a public visual leaderboard. | Habit tracker, wellness app |
 
 ## Money and public positioning
 
@@ -105,31 +105,21 @@
 - A **Biomarker record** can feed pheno age, bortz age, or both, depending on which required biomarkers are present.
 - The **Amateur** all-time path is currently defined by pheno age; the **Pro** seasonal path is currently defined by bortz age.
 - The **Ultimate League** ranks **Pro** athletes before **Amateur** athletes, then applies **Effective Age Reduction** and tie breakers.
-- The crowd age leaderboard is not the **Ultimate League** and only includes athletes with at least 100 accepted guesses.
-- The **Improvement leaderboard** is not the **Ultimate League**. It compares each athlete's latest eligible pheno age with their worst eligible pheno age and only includes athletes with at least two eligible pheno age submissions.
-- The **Bortz Improvement leaderboard** is not the **Ultimate League**. It compares each athlete's latest eligible bortz age with their worst eligible bortz age and only includes athletes with at least two eligible bortz age submissions.
-- **Guess My Age** applies server-side abuse protection before increasing **Crowd Count**: realistic guesses are accepted at most once per client IP and athlete during the configured short window.
 - **Badges** are derived from leaderboard positions, clock metrics, submission behavior, crowd metrics, and editorial rules.
 - **Events** announce athlete joins, rank changes, donations, milestones, badge awards, custom events, and season final results.
-- **Longevitymaxxing Challenge** final results and linked-athlete completions can appear as **Events**, but they do not affect **Ultimate League** ranking, biological age placements, or athlete **Badges**.
 - **Social posts** can be generated from **Events**, **Badges**, athlete rankings, and league context.
-- The **Longevitymaxxing Challenge** is separate from the **Ultimate League** and does not affect biological age rankings, placements, or badges.
-- A **Longevitymaxxing Challenge** participant can have a challenge-only **Profile picture** for challenge surfaces; it does not create or update an athlete profile picture.
-- A challenge-only **Profile picture** can come from an uploaded challenge image or, if none exists, a cached Gravatar fallback found by email or public display-name profile slug; linked **Longevity athlete** profile pictures remain the display priority when present, and uploaded challenge images take priority over Gravatar.
 
-## Example dialogue
+## Domain rule notes
 
-> **Dev:** "If an athlete enters a Bortz result, do they move into the **Pro** track?"
->
-> **Domain expert:** "Yes. Their **Effective Age Reduction** becomes their bortz age difference, and in the **Ultimate League** they rank ahead of **Amateur** athletes."
->
-> **Dev:** "So a huge pheno age improvement cannot outrank a weak Pro result in the Ultimate League?"
->
-> **Domain expert:** "Correct. **Pro** before **Amateur** is part of the domain rule, not a display choice."
->
-> **Dev:** "For **Guess My Age**, should I reuse Ultimate League ordering?"
->
-> **Domain expert:** "No. The crowd age leaderboard is separate. It needs at least 100 guesses and ranks by **Crowd Age Difference**, then **Crowd Count**, date of birth, and name."
+- **Crowd Age leaderboard** eligibility starts at 100 accepted guesses. Ordering is **Crowd Age Difference**, then **Crowd Count**, date of birth, and name.
+- **Guess My Age** applies server-side abuse protection before increasing **Crowd Count**: realistic guesses are accepted at most once per client IP and athlete during the configured short window.
+- **Improvement leaderboard** ordering is **Pheno Age Improvement**, then pheno age reduction, date of birth, and name.
+- **Bortz Improvement leaderboard** ordering is **Bortz Age Improvement**, then bortz age reduction, date of birth, and name. It is available through filters and routes, not the top-row leaderboard switcher.
+- Both improvement leaderboards require at least two eligible submissions for their clock and are separate from the **Ultimate League**.
+- **Longevitymaxxing Challenge** Day 1 is practice: it counts for checked-in days, streak, completion, and consistency signals, but not habit points, category leader badges, or point tie-breaks.
+- **Longevitymaxxing Challenge** call times may be selected before signup closes when needed for 24-hour call reminders.
+- **Longevitymaxxing Challenge** final results and linked-athlete completions can appear as **Events**, but do not affect **Ultimate League** ranking, biological age placements, or athlete **Badges**.
+- **Longevitymaxxing Challenge** profile pictures are challenge-only unless a participant has a linked **Longevity athlete** profile picture, which remains the display priority. Uploaded challenge images take priority over cached Gravatar fallbacks.
 
 ## Flagged ambiguities
 
@@ -145,8 +135,3 @@
 - **Crowd Age Difference** follows the same signed convention as biological age differences but is separate from Ultimate League ranking.
 - **Pheno Age Improvement** and **Bortz Age Improvement** are distinct from the **Best Improvement** badge metric: improvement leaderboards use worst-to-latest biological age, while the badge metric uses baseline-to-latest for the same clock.
 - **Bortz sex input** is unresolved in the issue tracker; avoid treating current bortz age output as definitively aligned with the original paper until that decision is settled.
-
-## Source notes
-
-- Local sources scanned: `README.md`, `AGENTS.md`, `LongevityWorldCup.Documentation/Ruleset.md`, `LongevityWorldCup.Documentation/AgingClocks.md`, athlete JSON, ranking, badge, event, application, clock-helper, league, and test code.
-- Public sources checked: nopara73 Medium articles on launch, Season 2, point system updates, and biological aging clock research; search-indexed YouTube/podcast entries for Longevity World Cup interviews; search-indexed X/Twitter profile content; recent GitHub issues for core product, growth, athlete experience, community game, monetization, and admin workflow language.
