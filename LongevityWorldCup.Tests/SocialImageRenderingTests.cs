@@ -24,6 +24,12 @@ public sealed class SocialImageRenderingTests
         await AssertPngCanvasAsync(await images.BuildAthleteCountMilestoneImageAsync(100));
         await AssertPngCanvasAsync(await images.BuildTop3LeaderboardPodiumImageAsync(top3Slugs));
         await AssertPngCanvasAsync(await images.BuildNewcomersImageAsync(top3Slugs));
+        await AssertPngCanvasAsync(await images.BuildNewcomersImageAsync(new[]
+        {
+            "andressa-lohana-de-almeida",
+            "vishwamithra-shashishekara",
+            "teodor-katrandjiev-okoto"
+        }));
     }
 
     [Fact]
