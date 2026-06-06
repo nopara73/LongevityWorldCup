@@ -276,6 +276,7 @@ public sealed class EventDataService : IDisposable
     private void ProcessPendingSlackEvents()
     {
         var notify = new List<(EventType Type, string RawText)>();
+        var freshCutoffUtc = DateTime.UtcNow.AddDays(-7);
 
         _db.Run(sqlite =>
         {
@@ -284,14 +285,17 @@ public sealed class EventDataService : IDisposable
             using var selectCmd = sqlite.CreateCommand();
             selectCmd.Transaction = tx;
             selectCmd.CommandText =
-                "SELECT Id, Type, Text FROM Events " +
+                "SELECT Id, Type, Text, OccurredAt FROM Events " +
                 "WHERE SlackProcessed = 0 " +
                 "ORDER BY OccurredAt ASC;";
 
             using var r = selectCmd.ExecuteReader();
-            var pending = new List<(string Id, int TypeInt, string Text)>();
+            var pending = new List<(string Id, int TypeInt, string Text, DateTime OccurredAtUtc)>();
             while (r.Read())
-                pending.Add((r.GetString(0), r.GetInt32(1), r.GetString(2)));
+            {
+                var occurredAtUtc = DateTime.Parse(r.GetString(3), null, DateTimeStyles.RoundtripKind);
+                pending.Add((r.GetString(0), r.GetInt32(1), r.GetString(2), occurredAtUtc));
+            }
 
             if (pending.Count > 0)
             {
@@ -300,13 +304,16 @@ public sealed class EventDataService : IDisposable
                 claimCmd.CommandText = "UPDATE Events SET SlackProcessed = 1 WHERE Id = @id AND SlackProcessed = 0;";
                 var pId = claimCmd.Parameters.Add("@id", SqliteType.Text);
 
-                foreach (var (id, typeInt, text) in pending)
+                foreach (var (id, typeInt, text, occurredAtUtc) in pending)
                 {
                     pId.Value = id;
                     var affected = claimCmd.ExecuteNonQuery();
                     if (affected != 1) continue;
 
                     var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
+                    if (ShouldSkipSlackNotification(type, occurredAtUtc, freshCutoffUtc))
+                        continue;
+
                     notify.Add((type, text));
                 }
             }
@@ -315,6 +322,11 @@ public sealed class EventDataService : IDisposable
         });
 
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
+    }
+
+    internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc)
+    {
+        return type == EventType.AthleteCountMilestone && EnsureUtc(occurredAtUtc) < freshCutoffUtc;
     }
 
     private void ProcessPendingImmediateCustomEvents()
