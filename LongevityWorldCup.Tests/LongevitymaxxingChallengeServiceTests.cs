@@ -318,23 +318,44 @@ public sealed class LongevitymaxxingChallengeServiceTests
             "Three",
             [new("kickoff", "kickoff-a")]);
 
-        var beforeClose = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-07T23:59:00Z"));
+        var beforeClose = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-06T17:59:00Z"));
         Assert.Null(beforeClose.Calls.Single(c => c.Key == "kickoff").SelectedSlot);
         Assert.Equal("2026-06-08T00:00:00.0000000+00:00", beforeClose.SignupClosesAtUtc);
 
-        var participantBeforeClose = fixture.Service.GetParticipantState(one, DateTimeOffset.Parse("2026-06-07T23:59:30Z"));
+        var participantBeforeClose = fixture.Service.GetParticipantState(one, DateTimeOffset.Parse("2026-06-06T17:59:30Z"));
         var pendingKickoff = participantBeforeClose.Calls.Single(c => c.Key == "kickoff");
         Assert.Null(pendingKickoff.SelectedSlot);
         Assert.Equal("https://meet.example.test", pendingKickoff.VideoCallUrl);
 
-        fixture.Service.TrySelectCallSlots(DateTimeOffset.Parse("2026-06-08T00:01:00Z"));
+        fixture.Service.TrySelectCallSlots(DateTimeOffset.Parse("2026-06-06T18:01:00Z"));
 
-        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-08T00:02:00Z"));
+        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-06T18:02:00Z"));
         Assert.Equal("kickoff-b", publicState.Calls.Single(c => c.Key == "kickoff").SelectedSlot?.Id);
 
-        var participantState = fixture.Service.GetParticipantState(one, DateTimeOffset.Parse("2026-06-08T00:03:00Z"));
+        var participantState = fixture.Service.GetParticipantState(one, DateTimeOffset.Parse("2026-06-06T18:03:00Z"));
         Assert.Equal("https://meet.example.test", participantState.Calls.Single(c => c.Key == "kickoff").VideoCallUrl);
         Assert.Contains(participantState.CallAvailability, selection => selection is { CallKey: "kickoff", SlotId: "kickoff-b" });
+    }
+
+    [Fact]
+    public async Task CallReminderCandidatesCanSendKickoff24HourReminderBeforeSignupCloses()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync(
+            "call@example.com",
+            "Call Casey",
+            [new("kickoff", "kickoff-b")]);
+
+        var candidates = fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T02:05:00Z"));
+        var reminder = Assert.Single(candidates);
+        Assert.Equal("kickoff", reminder.CallKey);
+        Assert.Equal("24h", reminder.ReminderKind);
+        Assert.Equal("2026-06-08T02:00:00.0000000+00:00", reminder.StartsAtUtc);
+
+        Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-07T02:05:00Z")));
+
+        fixture.Service.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, DateTimeOffset.Parse("2026-06-07T02:06:00Z"));
+        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T02:07:00Z")));
     }
 
     [Fact]
@@ -580,7 +601,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? callAvailability = null,
             string? athleteLink = null)
         {
-            var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
+            var now = DateTimeOffset.Parse("2026-06-06T12:00:00Z");
             await Service.SignupAsync(new LongevitymaxxingSignupRequest(email, name, "UTC", athleteLink, callAvailability ?? []), now);
             var token = ReadQueryToken(Email.Confirmations.Last().Url, "confirm");
             var access = await Service.ConfirmAsync(token, now.AddMinutes(1));

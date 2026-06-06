@@ -200,7 +200,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("email confirmed", javascript);
         Assert.Contains("renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);", javascript);
         Assert.Contains("function pendingCallTimeLabel", javascript);
-        Assert.Contains("Meeting time pending until signup closes on", javascript);
+        Assert.Contains("Meeting time pending. Signup closes on", javascript);
         Assert.Contains("class=\"lmx-call-link\"", javascript);
         Assert.Contains(".lmx-call-link", css);
         Assert.Contains("Your first check-in email arrives the morning after Day 1. Nothing is due before then.", javascript);
