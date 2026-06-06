@@ -7,7 +7,11 @@ public enum FillerType
     Top3Leaderboard,
     CrowdGuesses,
     Newcomers,
-    DomainTop
+    DomainTop,
+    HistoryDocument,
+    Ruleset,
+    GitHubRepository,
+    Donation
 }
 
 public class XFillerPostLogService
@@ -133,6 +137,10 @@ public class XFillerPostLogService
         options.Add((FillerType.CrowdGuesses, ""));
         foreach (var dk in DomainKeys)
             options.Add((FillerType.DomainTop, $"domain[{dk}]"));
+        options.Add((FillerType.HistoryDocument, ""));
+        options.Add((FillerType.Ruleset, ""));
+        options.Add((FillerType.GitHubRepository, ""));
+        options.Add((FillerType.Donation, ""));
 
         var lastByOption = _db.Run(sqlite =>
         {
@@ -278,6 +286,11 @@ public class XFillerPostLogService
         return now - lastAt.Value < cooldown;
     }
 
+    public bool IsOnRandomizedCooldownForType(FillerType type, int minDays, int maxDays, DateTime? nowUtc = null)
+    {
+        return FillerPostLogSchedule.IsOnRandomizedCooldownForType(_db, TableName, type, minDays, maxDays, nowUtc);
+    }
+
     private static bool TokenBelongsToOption(FillerType type, string payloadText, string tokenText)
     {
         var token = tokenText ?? "";
@@ -289,6 +302,10 @@ public class XFillerPostLogService
             FillerType.DomainTop => token.StartsWith(payload + " ", StringComparison.OrdinalIgnoreCase),
             FillerType.CrowdGuesses => token.StartsWith("podium[", StringComparison.OrdinalIgnoreCase),
             FillerType.Newcomers => token.StartsWith("slugs[", StringComparison.OrdinalIgnoreCase),
+            FillerType.HistoryDocument => token.StartsWith("history-document[", StringComparison.OrdinalIgnoreCase),
+            FillerType.Ruleset => token.StartsWith("ruleset[", StringComparison.OrdinalIgnoreCase),
+            FillerType.GitHubRepository => token.StartsWith("github-repository[", StringComparison.OrdinalIgnoreCase),
+            FillerType.Donation => token.StartsWith("donation-reminder[", StringComparison.OrdinalIgnoreCase),
             _ => false
         };
     }
