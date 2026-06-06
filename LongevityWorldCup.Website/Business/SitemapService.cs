@@ -44,6 +44,8 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         "/league/prosperan",
         "/league/bortz",
         "/league/pheno",
+        "/league/improvement",
+        "/league/bortz-improvement",
         "/league/crowd"
     ];
 

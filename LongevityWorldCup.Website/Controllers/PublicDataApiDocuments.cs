@@ -62,6 +62,14 @@ public sealed class PublicAthleteApiDocument
     [JsonPropertyName("CrowdCount")]
     public int CrowdCount { get; init; }
 
+    /// <summary>Latest eligible pheno age minus worst eligible pheno age when at least two eligible pheno age submissions exist.</summary>
+    [JsonPropertyName("PhenoAgeImprovementFromWorst")]
+    public double? PhenoAgeImprovementFromWorst { get; init; }
+
+    /// <summary>Latest eligible bortz age minus worst eligible bortz age when at least two eligible bortz age submissions exist.</summary>
+    [JsonPropertyName("BortzAgeImprovementFromWorst")]
+    public double? BortzAgeImprovementFromWorst { get; init; }
+
     /// <summary>Whether the athlete was recently added to the public field.</summary>
     [JsonPropertyName("IsNew")]
     public bool IsNew { get; init; }

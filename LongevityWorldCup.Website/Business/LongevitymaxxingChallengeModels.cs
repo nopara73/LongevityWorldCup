@@ -60,6 +60,7 @@ public sealed record LongevitymaxxingParticipantSummary(
     string TimeZoneId,
     string? AthleteSlug,
     string? AthleteUrl,
+    string? ProfileImageUrl,
     bool ChallengeEmailsStopped);
 
 public sealed record LongevitymaxxingDaySummary(int ChallengeDay, string Date);
@@ -68,6 +69,7 @@ public sealed record LongevitymaxxingLeaderboardRow(
     string ParticipantId,
     string DisplayName,
     string? AthleteUrl,
+    string? ProfileImageUrl,
     int CheckedInDays,
     int TotalPoints,
     int CurrentStreak,
@@ -77,7 +79,7 @@ public sealed record LongevitymaxxingLeaderboardRow(
 
 public sealed record LongevitymaxxingDayCell(int ChallengeDay, bool CheckedIn, int? Score, bool CountsForScore);
 
-public sealed record LongevitymaxxingPodiumRow(int Placement, string DisplayName, string? AthleteUrl, int CheckedInDays, int TotalPoints);
+public sealed record LongevitymaxxingPodiumRow(int Placement, string DisplayName, string? AthleteUrl, string? ProfileImageUrl, int CheckedInDays, int TotalPoints);
 
 public sealed record LongevitymaxxingPublicCall(
     string Key,

@@ -1,4 +1,5 @@
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
 using Quartz;
 
 namespace LongevityWorldCup.Website.Jobs;
@@ -53,7 +54,117 @@ public class FacebookDailyPostJob : IJob
             return;
         }
 
-        _ = _fillerLog.GetSuggestedFillersOrdered();
+        var fillerCandidates = _fillerLog.GetSuggestedFillersOrdered();
+        foreach (var (fillerType, payloadText) in fillerCandidates)
+        {
+            if (!TryGetPeriodicInfoToken(fillerType, out var infoToken) ||
+                !TryGetRandomizedCooldownDays(fillerType, out var minCooldownDays, out var maxCooldownDays))
+                continue;
+
+            var payload = payloadText ?? "";
+            var nowUtc = DateTime.UtcNow;
+            if (_fillerLog.IsOnRandomizedCooldownForType(
+                    fillerType,
+                    minCooldownDays,
+                    maxCooldownDays,
+                    nowUtc))
+            {
+                _logger.LogInformation(
+                    "FacebookDailyPostJob skipped filler in cooldown {FillerType} {PayloadText} ({MinCooldownDays}-{MaxCooldownDays}d randomized)",
+                    fillerType,
+                    payloadText,
+                    minCooldownDays,
+                    maxCooldownDays);
+                continue;
+            }
+
+            var fillerMsg = _facebookEvents.TryBuildFillerMessage(fillerType, payload);
+            if (string.IsNullOrWhiteSpace(fillerMsg))
+                continue;
+
+            _logger.LogInformation(
+                "FacebookDailyPostJob selected filler {FillerType} messageLength {MessageLength} infoToken {InfoToken}",
+                fillerType,
+                fillerMsg.Length,
+                infoToken);
+
+            var fillerSent = await _facebookEvents.TrySendAsync(fillerMsg);
+            if (!fillerSent)
+            {
+                _logger.LogWarning("FacebookDailyPostJob send failed for filler {FillerType}; leaving unlogged", fillerType);
+                return;
+            }
+
+            _fillerLog.LogPost(nowUtc, fillerType, infoToken);
+            _logger.LogInformation("FacebookDailyPostJob posted filler {FillerType}", fillerType);
+            return;
+        }
+
         _logger.LogInformation("FacebookDailyPostJob no postable event found");
+    }
+
+    private static bool TryGetPeriodicInfoToken(FillerType fillerType, out string infoToken)
+    {
+        if (fillerType == FillerType.HistoryDocument)
+        {
+            infoToken = HistoryDocumentReminderPost.InfoToken;
+            return true;
+        }
+
+        if (fillerType == FillerType.Ruleset)
+        {
+            infoToken = RulesetReminderPost.InfoToken;
+            return true;
+        }
+
+        if (fillerType == FillerType.GitHubRepository)
+        {
+            infoToken = GitHubRepositoryReminderPost.InfoToken;
+            return true;
+        }
+
+        if (fillerType == FillerType.Donation)
+        {
+            infoToken = DonationReminderPost.InfoToken;
+            return true;
+        }
+
+        infoToken = "";
+        return false;
+    }
+
+    private static bool TryGetRandomizedCooldownDays(FillerType fillerType, out int minDays, out int maxDays)
+    {
+        if (fillerType == FillerType.HistoryDocument)
+        {
+            minDays = HistoryDocumentReminderPost.MinCooldownDays;
+            maxDays = HistoryDocumentReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        if (fillerType == FillerType.Ruleset)
+        {
+            minDays = RulesetReminderPost.MinCooldownDays;
+            maxDays = RulesetReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        if (fillerType == FillerType.GitHubRepository)
+        {
+            minDays = GitHubRepositoryReminderPost.MinCooldownDays;
+            maxDays = GitHubRepositoryReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        if (fillerType == FillerType.Donation)
+        {
+            minDays = DonationReminderPost.MinCooldownDays;
+            maxDays = DonationReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        minDays = 0;
+        maxDays = 0;
+        return false;
     }
 }

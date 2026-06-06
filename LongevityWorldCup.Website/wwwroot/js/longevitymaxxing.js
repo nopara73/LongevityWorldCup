@@ -48,6 +48,8 @@
         const editForm = document.getElementById("lmxEditForm");
         const editToggle = document.getElementById("lmxEditToggle");
         const signupAgain = document.getElementById("lmxSignupAgain");
+        const profilePictureInput = document.getElementById("lmxProfilePictureInput");
+        const profilePictureButton = document.getElementById("lmxProfilePictureButton");
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
@@ -92,6 +94,15 @@
         editToggle.addEventListener("click", () => {
             const form = document.getElementById("lmxEditForm");
             form.classList.toggle("lmx-hidden");
+        });
+
+        profilePictureButton.addEventListener("click", () => {
+            profilePictureInput.click();
+        });
+
+        profilePictureInput.addEventListener("change", async () => {
+            const file = profilePictureInput.files && profilePictureInput.files[0];
+            if (file) await uploadProfilePicture(file, profilePictureInput);
         });
 
         editForm.addEventListener("submit", async event => {
@@ -393,7 +404,7 @@
         toggle("lmxSignupPanel", state.signupOpen && !hasParticipant);
         toggle("lmxParticipantPanel", hasParticipant);
         toggle("lmxClosedPanel", false);
-        toggle("lmxResendPanel", publicClosed);
+        toggle("lmxResendPanel", !hasParticipant);
         toggle("lmxNotesPanel", hasParticipant && !checkInOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
@@ -404,14 +415,17 @@
         toggle("lmxParticipantCalls", hasParticipant && !checkInOnly);
         toggle("lmxEditCallField", hasParticipant && state.signupOpen && !checkInOnly);
         if (checkInOnly) toggle("lmxEditForm", false);
-        if (publicClosed) {
+        if (!hasParticipant) {
             const completed = state.phase === "completed";
+            const signupOpen = state.signupOpen;
             setText("lmxResendTitle", completed ? "Need participant access?" : "Need your check-in link?");
             setText(
                 "lmxResendCopy",
                 completed
                     ? "If you joined the challenge, enter your email and we will send your private participant link."
-                    : "If you joined before signup closed, enter your email and we will send your private check-in link.");
+                    : signupOpen
+                        ? "Already joined or opened this page in a new browser? Enter your email and we will send your private link."
+                        : "If you joined before signup closed, enter your email and we will send your private check-in link.");
             setText("lmxResendButtonText", completed ? "Send participant link" : "Send check-in link");
         }
         const details = document.getElementById("lmxSignupDetails");
@@ -455,10 +469,28 @@
         document.getElementById("lmxEditName").value = participant.displayName || "";
         setAthleteSelectorValue("lmxEditAthlete", participant.athleteSlug || participant.athleteUrl || "");
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
+        renderProfilePictureControls(participant);
         renderCallVoteControls("lmxEditCalls", state.public.calls || [], state.callAvailability || []);
         renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);
         renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || []);
+    }
+
+    function renderProfilePictureControls(participant) {
+        const field = document.getElementById("lmxProfilePictureField");
+        const preview = document.getElementById("lmxProfilePicturePreview");
+        const image = document.getElementById("lmxProfilePictureImage");
+        if (!field || !preview || !image) return;
+
+        const canUpload = !(participant.athleteSlug || participant.athleteUrl);
+        field.classList.toggle("lmx-hidden", !canUpload);
+        if (!canUpload) return;
+
+        const profileImage = String(participant.profileImageUrl || "").trim();
+        preview.classList.toggle("placeholder", !profileImage);
+        preview.setAttribute("aria-hidden", profileImage ? "false" : "true");
+        image.src = profileImage || ATHLETE_PLACEHOLDER_IMAGE;
+        image.alt = profileImage ? `${participant.displayName || "Participant"} profile picture` : "";
     }
 
     function renderCallsForSignup(calls) {
@@ -738,6 +770,97 @@
         }, "Saving...");
     }
 
+    async function uploadProfilePicture(file, input) {
+        if (!accessToken) return;
+        if (file.size > 8 * 1024 * 1024) {
+            setStatus("lmxProfilePictureStatus", "Profile picture must be 8 MB or smaller.", true);
+            input.value = "";
+            return;
+        }
+
+        const uploadFile = await prepareProfilePictureFile(file);
+        const formData = new FormData();
+        formData.append("accessToken", accessToken);
+        formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
+
+        const button = document.getElementById("lmxProfilePictureButton");
+        input.disabled = true;
+        if (button) button.disabled = true;
+        setStatus("lmxProfilePictureStatus", "Uploading...", false);
+        try {
+            const result = await postForm(`${API}/profile-picture`, formData);
+            participantState = result;
+            publicState = result.public;
+            renderAll();
+            setStatus("lmxProfilePictureStatus", "Uploaded.", false);
+        } catch (err) {
+            setStatus("lmxProfilePictureStatus", messageOf(err), true);
+        } finally {
+            input.disabled = false;
+            if (button) button.disabled = false;
+            input.value = "";
+        }
+    }
+
+    async function prepareProfilePictureFile(file) {
+        const type = String(file.type || "");
+        const isServerPreferred = /^image\/(jpeg|png|webp)$/i.test(type);
+        const shouldNormalize = file.size > 1024 * 1024 || !isServerPreferred;
+        if (!shouldNormalize) return file;
+
+        try {
+            const bitmap = await loadProfileBitmap(file);
+            const maxDimension = 1600;
+            const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+            const width = Math.max(1, Math.round(bitmap.width * scale));
+            const height = Math.max(1, Math.round(bitmap.height * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return file;
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            if (typeof bitmap.close === "function") bitmap.close();
+
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
+            if (!blob) return file;
+            return new File([blob], replaceImageExtension(file.name || "profile-picture", "jpg"), { type: "image/jpeg" });
+        } catch (_) {
+            return file;
+        }
+    }
+
+    async function loadProfileBitmap(file) {
+        if (window.createImageBitmap) {
+            try {
+                return await createImageBitmap(file, { imageOrientation: "from-image" });
+            } catch (_) {
+            }
+        }
+
+        return await new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const image = new Image();
+            image.onload = () => {
+                URL.revokeObjectURL(url);
+                resolve(image);
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error("Image preview failed"));
+            };
+            image.src = url;
+        });
+    }
+
+    function replaceImageExtension(name, extension) {
+        const clean = String(name || "profile-picture").replace(/\.[^.]+$/, "");
+        return `${clean || "profile-picture"}.${extension}`;
+    }
+
     function renderNotes(notes) {
         const container = document.getElementById("lmxNotes");
         if (!notes.length) {
@@ -761,15 +884,23 @@
 
     function participantNameHtml(row, nameHtml) {
         const athlete = findAthleteForParticipant(row);
-        const image = athlete?.profilePic || ATHLETE_PLACEHOLDER_IMAGE;
-        const avatarClass = athlete ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
-        const alt = athlete ? `${row.displayName || "Participant"} profile picture` : "";
+        const profileImage = String(row.profileImageUrl || "").trim();
+        const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
+        const image = athleteProfileImage || profileImage || ATHLETE_PLACEHOLDER_IMAGE;
+        const hasProfileImage = !!(athleteProfileImage || profileImage);
+        const avatarClass = hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
+        const alt = hasProfileImage ? `${row.displayName || "Participant"} profile picture` : "";
         return `<div class="lmx-participant-name">
-            <span class="${avatarClass}" aria-hidden="${athlete ? "false" : "true"}">
+            <span class="${avatarClass}" aria-hidden="${hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(image)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
             </span>
             <span class="lmx-participant-label">${nameHtml}</span>
         </div>`;
+    }
+
+    function isPlaceholderProfileImage(url) {
+        const value = String(url || "").trim();
+        return !value || value.includes(ATHLETE_PLACEHOLDER_IMAGE);
     }
 
     function findAthleteForParticipant(row) {
@@ -1023,6 +1154,15 @@
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
+        });
+        return readJsonResponse(response);
+    }
+
+    async function postForm(url, formData) {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Accept": "application/json" },
+            body: formData
         });
         return readJsonResponse(response);
     }

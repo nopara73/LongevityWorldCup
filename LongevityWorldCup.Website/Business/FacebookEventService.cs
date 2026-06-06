@@ -175,8 +175,20 @@ public class FacebookEventService
 
     public string? TryBuildFillerMessage(FillerType fillerType, string payloadText)
     {
-        _ = fillerType;
         _ = payloadText;
+
+        if (fillerType == FillerType.HistoryDocument)
+            return HistoryDocumentReminderPost.BuildText();
+
+        if (fillerType == FillerType.Ruleset)
+            return RulesetReminderPost.BuildText();
+
+        if (fillerType == FillerType.GitHubRepository)
+            return GitHubRepositoryReminderPost.BuildText();
+
+        if (fillerType == FillerType.Donation)
+            return DonationReminderPost.BuildText();
+
         return null;
     }
 

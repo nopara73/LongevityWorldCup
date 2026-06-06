@@ -172,6 +172,22 @@
                             <label for="lmxEditAthlete">LWC athlete profile <span>optional</span></label>
                             <input id="lmxEditAthlete" autocomplete="off" placeholder="Only if you are already listed as an athlete">
                         </div>
+                        <div id="lmxProfilePictureField" class="lmx-field lmx-profile-picture-field">
+                            <span class="lmx-label">Profile picture <span>optional</span></span>
+                            <div class="lmx-profile-upload">
+                                <span id="lmxProfilePicturePreview" class="lmx-profile-preview placeholder" aria-hidden="true">
+                                    <img id="lmxProfilePictureImage" src="/assets/content-images/headshot.webp" alt="" loading="lazy" decoding="async">
+                                </span>
+                                <div class="lmx-profile-upload-actions">
+                                    <button id="lmxProfilePictureButton" class="lmx-button secondary" type="button">
+                                        <i class="fas fa-image" aria-hidden="true"></i>
+                                        Upload profile picture
+                                    </button>
+                                    <input id="lmxProfilePictureInput" type="file" accept="image/*">
+                                    <div id="lmxProfilePictureStatus" class="lmx-status"></div>
+                                </div>
+                            </div>
+                        </div>
                         <div id="lmxEditCallField" class="lmx-field">
                             <span class="lmx-label">Call availability <span>optional</span></span>
                             <p class="lmx-field-help">Check every time you could attend. Final times are chosen after signup closes.</p>
