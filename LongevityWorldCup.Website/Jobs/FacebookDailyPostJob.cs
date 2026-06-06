@@ -30,9 +30,20 @@ public class FacebookDailyPostJob : IJob
 
         foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, _) in pending)
         {
+            if (SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(type, out var skipReason))
+            {
+                _events.MarkEventsFacebookSkipped(new[] { (id, skipReason) });
+                _logger.LogInformation("FacebookDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, skipReason);
+                continue;
+            }
+
             var msg = _facebookEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
+            {
+                _events.MarkEventsFacebookSkipped(new[] { (id, SocialEventSkipReason.EmptyMessage) });
+                _logger.LogInformation("FacebookDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, SocialEventSkipReason.EmptyMessage);
                 continue;
+            }
 
             _logger.LogInformation(
                 "FacebookDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",

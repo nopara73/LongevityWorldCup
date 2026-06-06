@@ -869,7 +869,7 @@
             </div>
 
             <div class="payload-box">
-                <h2>Direct Post</h2>
+                <h2>Direct Queue</h2>
                 <label>
                     <span>Secret</span>
                     <input id="designerSecretInput" type="password" autocomplete="off" />
@@ -881,12 +881,12 @@
                 </div>
                 <textarea id="secretHashOutput" class="token" readonly hidden></textarea>
                 <div class="payload-actions">
-                    <button id="postEventBtn" type="button">Post Event</button>
+                    <button id="postEventBtn" type="button">Queue Event</button>
                     <button id="copyCleanupCommandBtn" class="secondary" type="button" disabled hidden>Copy Cleanup SQL</button>
                     <div id="directPostStatus" class="post-status" aria-live="polite"></div>
                 </div>
                 <textarea id="cleanupCommandOutput" class="token" readonly hidden></textarea>
-                <div id="postValidationHint" class="validation-hint" hidden>Title and at least one destination are required before posting.</div>
+                <div id="postValidationHint" class="validation-hint" hidden>Title and at least one destination are required before queueing.</div>
             </div>
 
             <details class="payload-box">
@@ -894,7 +894,7 @@
                 <ol class="live-checklist">
                     <li>Generate a config hash from a temporary secret and set <code>CustomEventDesignerSecretHash</code> in the published Linux config.</li>
                     <li>Restart <code>longevityworldcup.service</code> so the config is reloaded.</li>
-                    <li>Use a harmless title, select only Webpage, and post once.</li>
+                    <li>Use a harmless title, select only Webpage, and queue once.</li>
                     <li>Confirm the event appears on the website, then copy the cleanup SQL if the test row should be removed.</li>
                     <li>Rollback by clearing the config hash or restoring the previous config value, then restart.</li>
                 </ol>
@@ -2268,13 +2268,13 @@
         async function postEvent() {
             const payload = buildEventPayload();
             if (!payload.title || !hasSelectedDestination(payload)) {
-                setDirectPostStatus("Title and at least one destination are required before posting.", "error");
+                setDirectPostStatus("Title and at least one destination are required before queueing.", "error");
                 update();
                 return;
             }
 
             postEventBtn.disabled = true;
-            setDirectPostStatus("Posting...", "");
+            setDirectPostStatus("Queueing...", "");
             clearCleanupCommand();
 
             try {
@@ -2298,18 +2298,21 @@
                 if (!response.ok) {
                     const message = typeof body === "string"
                         ? body
-                        : (body && body.message) || `Post failed with HTTP ${response.status}.`;
+                        : (body && body.message) || `Queue failed with HTTP ${response.status}.`;
                     clearCleanupCommand();
-                    setDirectPostStatus(message || `Post failed with HTTP ${response.status}.`, "error");
+                    setDirectPostStatus(message || `Queue failed with HTTP ${response.status}.`, "error");
                     return;
                 }
 
-                const targets = Array.isArray(body.selectedTargets) ? body.selectedTargets.join(", ") : "";
+                const targetList = Array.isArray(body.queuedTargets)
+                    ? body.queuedTargets
+                    : (Array.isArray(body.selectedTargets) ? body.selectedTargets : []);
+                const targets = targetList.join(", ");
                 setCleanupCommand(body.eventId);
-                setDirectPostStatus(`Posted event ${body.eventId}${targets ? ` to ${targets}` : ""}.`, "success");
+                setDirectPostStatus(`Queued event ${body.eventId}${targets ? ` for ${targets}` : ""}.`, "success");
             } catch {
                 clearCleanupCommand();
-                setDirectPostStatus("Post failed. Check your connection and try again.", "error");
+                setDirectPostStatus("Queue failed. Check your connection and try again.", "error");
             } finally {
                 update();
             }
