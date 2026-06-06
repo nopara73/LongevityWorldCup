@@ -30,8 +30,6 @@
 | **Bortz Age** | The seasonal Pro biological aging clock based on chronological age and a larger blood-biomarker panel. | Bortz, Bortz Blood Age |
 | **Seasonal clock** | A clock whose eligible results are limited to the active season's valid window. | Yearly clock |
 | **All-time clock** | A clock whose best eligible result is selected across the athlete's full history. | Historical clock |
-| **Clock rotation** | The practice of changing seasonal clocks so the competition cannot optimize around one static test forever. | Formula change, rules churn |
-| **Multi-clock competition** | A competition model that keeps distinct clocks active for different tracks or seasons. | Mixed calculator setup |
 | **Biological Age Difference** | The signed value `biological age - chronological age`; lower and more negative values rank higher within the same ordering class. | Reduction, score |
 | **Age Reduction** | The user-facing competition score that represents a favorable negative Biological Age Difference. | Age difference, years reversed |
 | **Effective Age Reduction** | The ranking value used in the Ultimate League: bortz age difference for Pro athletes, otherwise pheno age difference. | Current score, active score |
@@ -79,59 +77,25 @@
 | **Custom Event** | A manually designed event intended for the event board and social dispatch. | Announcement, post |
 | **Social post** | A generated message for platforms such as X, Threads, Facebook, Slack, or future integrations. | Tweet, announcement |
 | **Share preview** | The Open Graph or social-card representation of a page, athlete, or league link. | Thumbnail, card |
-| **Athlete 1v1 challenge** | A proposed community-game format where athletes challenge each other and rankings emerge from matchups. | Matchup league, challenge league |
 | **Lifestyle challenge** | A proposed side competition using lifestyle tracker or journal inputs such as sleep, nutrition, exercise, and vice tracking. | Habit challenge, side quest |
 | **Longevitymaxxing Challenge** | A 14-day Lifestyle challenge where participants check in daily on sleep, exercise, nutrition, and vices on a public visual leaderboard. | Habit tracker, wellness app |
 
-## Money and public positioning
-
-| Term | Definition | Aliases to avoid |
-| --- | --- | --- |
-| **Prize pool** | The Bitcoin-funded money reserved for top Ultimate League finishers. | Payout pot, donation goal |
-| **Bitcoin donation** | A contribution that funds the prize pool and organizational costs. | Payment, sponsor money |
-| **Sponsorship package** | A future monetization offer for companies that want visibility through the competition. | Sponsor tier, ad package |
-| **Longevity sport** | The public framing of longevity practice as a measurable competition with seasons, athletes, and leaderboards. | Health app, biohacking site |
-| **Biological age research** | Research into clocks, biomarkers, mortality-risk ordering, and datasets that can improve competition metrics. | Calculator work, science content |
-| **Aging-related mortality** | Death risk from age-associated causes used when evaluating biological aging clocks. | All-cause death, health risk |
-| **Mortality-risk ordering** | A model's ability to rank who is likely to die earlier from aging-related causes. | Prediction accuracy |
-| **C-index** | The survival-analysis metric used in nopara73's clock research to evaluate mortality-risk ordering. | AUC, accuracy |
-| **Ageless clock** | A biological aging clock that does not use chronological age as an input. | Age-free clock |
-
-## Relationships
-
-- A **Longevity athlete** belongs to zero or more **Leagues** through track, division, generation, exclusive league, or crowd eligibility.
-- An **Application** can become one **Longevity athlete** after **Application review**.
-- A **Result submission** contains one or more **Biomarker records** and must provide **Proof**.
-- A **Biomarker record** can feed pheno age, bortz age, or both, depending on which required biomarkers are present.
-- The **Amateur** all-time path is currently defined by pheno age; the **Pro** seasonal path is currently defined by bortz age.
-- The **Ultimate League** ranks **Pro** athletes before **Amateur** athletes, then applies **Effective Age Reduction** and tie breakers.
-- **Badges** are derived from leaderboard positions, clock metrics, submission behavior, crowd metrics, and editorial rules.
-- **Events** announce athlete joins, rank changes, donations, milestones, badge awards, custom events, and season final results.
-- **Social posts** can be generated from **Events**, **Badges**, athlete rankings, and league context.
-
 ## Domain rule notes
 
-- **Crowd Age leaderboard** eligibility starts at 100 accepted guesses. Ordering is **Crowd Age Difference**, then **Crowd Count**, date of birth, and name.
+- **Ultimate League** ranks **Pro** athletes before **Amateur** athletes, then applies **Effective Age Reduction** and tie breakers.
+- **Crowd Age leaderboard** starts at 100 accepted guesses and orders by **Crowd Age Difference**, **Crowd Count**, date of birth, and name.
 - **Guess My Age** applies server-side abuse protection before increasing **Crowd Count**: realistic guesses are accepted at most once per client IP and athlete during the configured short window.
-- **Improvement leaderboard** ordering is **Pheno Age Improvement**, then pheno age reduction, date of birth, and name.
-- **Bortz Improvement leaderboard** ordering is **Bortz Age Improvement**, then bortz age reduction, date of birth, and name. It is available through filters and routes, not the top-row leaderboard switcher.
-- Both improvement leaderboards require at least two eligible submissions for their clock and are separate from the **Ultimate League**.
-- **Longevitymaxxing Challenge** Day 1 is practice: it counts for checked-in days, streak, completion, and consistency signals, but not habit points, category leader badges, or point tie-breaks.
-- **Longevitymaxxing Challenge** call times may be selected before signup closes when needed for 24-hour call reminders.
+- Improvement leaderboards require at least two eligible submissions and are separate from the **Ultimate League**. Pheno orders by **Pheno Age Improvement**, then pheno age reduction, date of birth, and name; Bortz uses the Bortz equivalents and is route/filter-only.
+- **Longevitymaxxing Challenge** Day 1 counts for checked-in days, streak, completion, and consistency signals, but not habit points, category leader badges, or point tie-breaks.
+- **Longevitymaxxing Challenge** call times may be selected before signup closes for 24-hour reminders.
 - **Longevitymaxxing Challenge** final results and linked-athlete completions can appear as **Events**, but do not affect **Ultimate League** ranking, biological age placements, or athlete **Badges**.
-- **Longevitymaxxing Challenge** profile pictures are challenge-only unless a participant has a linked **Longevity athlete** profile picture, which remains the display priority. Uploaded challenge images take priority over cached Gravatar fallbacks.
+- **Longevitymaxxing Challenge** profile pictures are challenge-only unless a linked **Longevity athlete** profile picture exists. Uploaded challenge images take priority over cached Gravatar fallbacks.
 
-## Flagged ambiguities
+## Naming notes
 
-- **Age Reduction** is semantically positive in public copy but implemented as a signed difference where more negative values are better; use **Biological Age Difference** when discussing code or sort direction, and **Age Reduction** for user-facing competition copy.
-- **Age Reduction** and **Effective Age Reduction** are title case as standalone labels, table headings, badge names, and schema terms. In running sentences, use lowercase **age reduction** and **effective age reduction** unless normal sentence-start capitalization applies.
-- **Track** and **League** are often used interchangeably, but they are distinct: **Track** is Pro or Amateur, while **League** is a ranking view such as Ultimate, division, generation, exclusive, Amateur, or crowd age.
-- **Pro** and **Professional** are both acceptable public names for the same track. Use whichever fits the immediate context best; do not treat either as a copy issue by itself.
-- **Pheno Age**, **Bortz Age**, and **Crowd Age** are standalone public labels for chips, headings, tabs, table labels, badge labels, and other non-sentence UI. In running sentences, use lowercase **pheno age**, **bortz age**, and **crowd age**, except when normal sentence-start capitalization applies. If the clock name naturally starts a sentence, write **Pheno age**, **Bortz age**, or **Crowd age**; do not rewrite the sentence into "This pheno age..." or "The bortz age..." just to keep the term lowercase. Keep `PhenoAge`, `BortzAge`, and `CrowdAge` only for code identifiers, serialized fields, external names that require them, or quoted legacy data.
-- **Clock**, **calculator**, and **result** should not be collapsed: the **clock** is the formula, the **calculator** is the UI/tool, and the **result** is an athlete's computed biological age.
-- **Proof**, "proof picture", "report", and "screenshot" overlap in conversation; use **Proof** for the evidence asset and name the asset type only when validation rules depend on it.
-- **Event** can mean a stored system update, a public timeline item, or a manually designed **Custom Event**; use **Custom Event** for admin-created announcements and **Event** for the persisted event model.
-- **Ranking**, **rank**, and **placement** overlap; use **rank** for computed current order and **placement** for stored or historical finishing positions.
-- **Crowd Age Difference** follows the same signed convention as biological age differences but is separate from Ultimate League ranking.
-- **Pheno Age Improvement** and **Bortz Age Improvement** are distinct from the **Best Improvement** badge metric: improvement leaderboards use worst-to-latest biological age, while the badge metric uses baseline-to-latest for the same clock.
+- Use **Biological Age Difference** for signed implementation values and **Age Reduction** for user-facing favorable reductions.
+- Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age reduction in running sentences unless normal capitalization applies. Keep `PhenoAge`, `BortzAge`, and `CrowdAge` for code identifiers, serialized fields, external names, or quoted legacy data.
+- Keep **Track** and **League** distinct: Track is Pro or Amateur; League is a ranking view.
+- Do not collapse **clock**, **calculator**, and **result**; use **rank** for computed order and **placement** for stored or historical positions.
+- **Pheno Age Improvement** and **Bortz Age Improvement** are worst-to-latest leaderboard metrics; **Best Improvement** is a baseline-to-latest badge metric.
 - **Bortz sex input** is unresolved in the issue tracker; avoid treating current bortz age output as definitively aligned with the original paper until that decision is settled.
