@@ -48,6 +48,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("The first check-in email arrives the morning after Day 1", html);
         Assert.DoesNotContain("Get your link", html);
         Assert.DoesNotContain("daily max", html);
+        Assert.Contains("peak points/day", html);
         Assert.Contains("points/day", html);
         Assert.Contains("id=\"lmxSlackInviteLink\"", html);
         Assert.Contains("Join Slack", html);
@@ -206,6 +207,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Your first check-in email arrives the morning after Day 1. Nothing is due before then.", javascript);
         Assert.Contains("Practice check-in", javascript);
         Assert.Contains("Counts for checked-in days and streak, not points.", javascript);
+        Assert.Contains("later days ramp", javascript);
+        Assert.Contains("Peak points/day", javascript);
         Assert.Contains("cell.countsForScore === false", javascript);
         Assert.Contains(".lmx-cell.practice", css);
         Assert.Contains(".lmx-practice-note", css);

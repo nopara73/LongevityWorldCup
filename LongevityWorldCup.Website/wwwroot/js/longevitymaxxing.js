@@ -221,7 +221,7 @@
         const checks = (state.leaderboard || []).reduce((sum, row) => sum + row.checkedInDays, 0);
         setText("lmxMetricPeople", String((state.leaderboard || []).length));
         setText("lmxMetricChecks", String(checks));
-        setText("lmxMetricMax", String(state.dailyMaxScore || 8));
+        setText("lmxMetricMax", String(state.dailyMaxScore || 11));
         setText("lmxMetricPhase", phaseLabel(state.phase));
         setText("lmxHeroStatus", phaseLabel(state.phase));
         setText("lmxPhaseLabel", phaseLabel(state.phase));
@@ -234,7 +234,7 @@
             setText("lmxBoardMeta", `${(state.leaderboard || []).length} people signed up · starts ${formatDateLabel(state.startDate)}`);
         } else {
             setText("lmxBoardTitle", state.phase === "completed" ? "Final leaderboard" : "Live leaderboard");
-            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · Day 1 practice · checked-in days rank first`);
+            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · Day 1 practice · later days ramp · checked-in days rank first`);
         }
         setText("lmxSignupKicker", state.signupOpen ? "free signup" : "signup closed");
         setText("lmxSignupTitle", state.signupOpen ? `Join free before ${formatDateLabel(state.startDate)}` : "Signup is closed");
@@ -280,7 +280,7 @@
             highlights.innerHTML = [
                 opsTile("People", (state.leaderboard || []).length, "fa-users"),
                 opsTile("Check-ins", (state.leaderboard || []).reduce((sum, row) => sum + row.checkedInDays, 0), "fa-list-check"),
-                opsTile("Max points/day", state.dailyMaxScore || 8, "fa-bolt"),
+                opsTile("Peak points/day", state.dailyMaxScore || 11, "fa-bolt"),
                 opsTile("Status", phaseLabel(state.phase), "fa-signal")
             ].join("");
             life.className = "lmx-life-strip lmx-ops-status";
@@ -552,7 +552,7 @@
                     return `<div class="lmx-cell practice" title="Day ${cell.challengeDay}: practice check-in" aria-label="Day ${cell.challengeDay}: practice check-in">P</div>`;
                 }
                 const score = typeof cell.score === "number" ? cell.score : 0;
-                const scoreClass = score >= 6 ? "score-high" : score >= 3 ? "score-mid" : "score-low";
+                const scoreClass = score >= 8 ? "score-high" : score >= 4 ? "score-mid" : "score-low";
                 return `<div class="lmx-cell ${scoreClass}" title="Day ${cell.challengeDay}: ${score}">${score}</div>`;
             }).join("");
             return `<div class="lmx-board-row" role="row">

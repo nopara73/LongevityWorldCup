@@ -260,6 +260,47 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task HabitPointsRampSlightlyAfterPracticeDay()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("ramp@example.com", "Ramp Rae");
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            1,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            2,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            14,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-22T08:00:00Z"));
+
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-22T09:00:00Z"));
+        var row = Assert.Single(state.Leaderboard);
+
+        Assert.Equal(11, state.DailyMaxScore);
+        Assert.Equal(19, row.TotalPoints);
+        Assert.Null(row.Cells.Single(cell => cell.ChallengeDay == 1).Score);
+        Assert.Equal(8, row.Cells.Single(cell => cell.ChallengeDay == 2).Score);
+        Assert.Equal(11, row.Cells.Single(cell => cell.ChallengeDay == 14).Score);
+    }
+
+    [Fact]
     public async Task DailyReminderCandidatesSkipCompletedTargetDayAndStoppedEmails()
     {
         using var fixture = TestChallengeFixture.Create();

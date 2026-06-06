@@ -16,8 +16,9 @@ namespace LongevityWorldCup.Website.Business;
 public sealed class LongevitymaxxingChallengeService
 {
     private const string ChallengeName = "Longevitymaxxing Challenge";
-    private const int DailyMaxScore = 8;
+    private const int RawDailyMaxScore = 8;
     private const int PracticeCheckInDay = 1;
+    private const double FinalDayScoreMultiplier = 1.4d;
     public const int MaxProfilePictureUploadBytes = 8 * 1024 * 1024;
     private const int ProfilePictureSize = 512;
     private const string GravatarMissingCacheVersion = "v4";
@@ -67,7 +68,7 @@ public sealed class LongevitymaxxingChallengeService
             settings.SignupClosesAtUtc.ToString("o", CultureInfo.InvariantCulture),
             settings.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             settings.DurationDays,
-            DailyMaxScore,
+            GetScoredPoints(settings.DurationDays, RawDailyMaxScore, settings.DurationDays),
             BuildDays(settings),
             leaderboard,
             BuildPodium(settings, leaderboard, now),
@@ -797,7 +798,7 @@ public sealed class LongevitymaxxingChallengeService
             checkIns.TryGetValue(p.Id, out var byDay);
             byDay ??= [];
             var checkedInDays = byDay.Count;
-            var totalPoints = byDay.Values.Sum(GetScoredPoints);
+            var totalPoints = byDay.Values.Sum(c => GetScoredPoints(c, settings.DurationDays));
             var currentStreak = CalculateCurrentStreak(settings, p, byDay, now);
             var latest = byDay.Values
                 .Select(c => c.CheckedInAtUtc)
@@ -807,7 +808,7 @@ public sealed class LongevitymaxxingChallengeService
             var badges = BuildBadges(settings, p.Id, byDay, currentStreak, categoryLeaders);
             var cells = Enumerable.Range(1, settings.DurationDays)
                 .Select(day => byDay.TryGetValue(day, out var checkIn)
-                    ? new LongevitymaxxingDayCell(day, true, CountsForScore(day) ? checkIn.Score : null, CountsForScore(day))
+                    ? new LongevitymaxxingDayCell(day, true, CountsForScore(day) ? GetScoredPoints(checkIn, settings.DurationDays) : null, CountsForScore(day))
                     : new LongevitymaxxingDayCell(day, false, null, CountsForScore(day)))
                 .ToList();
 
@@ -955,8 +956,27 @@ public sealed class LongevitymaxxingChallengeService
     private static bool CountsForScore(int challengeDay)
         => challengeDay != PracticeCheckInDay;
 
-    private static int GetScoredPoints(CheckInRecord checkIn)
-        => CountsForScore(checkIn.ChallengeDay) ? checkIn.Score : 0;
+    private static int GetScoredPoints(CheckInRecord checkIn, int durationDays)
+        => GetScoredPoints(checkIn.ChallengeDay, checkIn.Score, durationDays);
+
+    private static int GetScoredPoints(int challengeDay, int rawScore, int durationDays)
+    {
+        if (!CountsForScore(challengeDay) || rawScore <= 0)
+            return 0;
+
+        return (int)Math.Round(rawScore * GetScoreMultiplier(challengeDay, durationDays), MidpointRounding.AwayFromZero);
+    }
+
+    private static double GetScoreMultiplier(int challengeDay, int durationDays)
+    {
+        var scoredDays = Math.Max(1, durationDays - PracticeCheckInDay);
+        var scoredDayIndex = Math.Clamp(challengeDay - PracticeCheckInDay, 1, scoredDays);
+        if (scoredDays == 1)
+            return 1d;
+
+        var progress = (double)(scoredDayIndex - 1) / (scoredDays - 1);
+        return 1d + ((FinalDayScoreMultiplier - 1d) * progress);
+    }
 
     private IReadOnlyList<LongevitymaxxingPrivateNote> GetParticipantVisibleNotes(string participantId)
     {
