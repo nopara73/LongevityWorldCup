@@ -15,6 +15,16 @@ namespace LongevityWorldCup.Website.Business;
 public class AthleteDataService : IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
+    internal static readonly IReadOnlyList<int> AthleteCountMilestoneThresholds =
+    [
+        10,
+        42, 69, 100, 123,
+        200, 222, 250, 256, 300, 404, 500, 666, 777, 888, 999,
+        1000, 1024, 1234, 1337, 1500, 1618,
+        2000, 2048, 2222, 2500, 3000, 3141, 3333, 4000, 4444,
+        5000, 5555, 6969, 7500, 8008, 8888, 9001, 9999, 10000,
+        11111, 12345, 22222, 54321
+    ];
     private readonly DateTime _serviceStartUtc = DateTime.UtcNow;
     private static readonly TimeSpan NewAthleteWindow = TimeSpan.FromDays(30);
     private const int EventThumbSizePx = 96;
@@ -466,19 +476,8 @@ public class AthleteDataService : IDisposable
         if (joined.Count == 0)
             return;
 
-        // Fun-first, spaced milestones (marketing-friendly, not too dense)
-        int[] thresholds = new[]
-        {
-            10,
-            42, 69, 100, 123,
-            256, 300, 404, 500, 666, 777,
-            1000, 1337, 1618,
-            2000, 3141,
-            5000, 6969, 9001, 10000
-        };
-
         var payload = new List<(int Count, DateTime OccurredAtUtc)>();
-        foreach (var t in thresholds)
+        foreach (var t in AthleteCountMilestoneThresholds)
         {
             if (joined.Count >= t)
             {
