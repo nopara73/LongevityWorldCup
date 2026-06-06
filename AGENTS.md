@@ -24,12 +24,9 @@ Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, 
 
 Use its canonical terms when naming UI text, code concepts, issues, and docs. If behavior or terminology changes, update `UBIQUITOUS_LANGUAGE.md` in the same change.
 
-### Longevitymaxxing Challenge
-
-- The Longevitymaxxing Challenge is a standalone Lifestyle challenge. Keep it separate from Ultimate League ranking, biological age placements, and athlete badges.
-- Final results and linked-athlete completions may appear as Events/highlights, but those highlights must not affect rankings, placements, or badges.
-- Call times may be selected before signup closes when needed for 24-hour call reminders.
-- Challenge profile pictures are challenge-only unless a participant has a linked Longevity athlete profile picture, which remains the display priority. Do not create or modify athlete profile pictures from challenge uploads or Gravatar fallbacks.
+- Keep the Longevitymaxxing Challenge separate from Ultimate League ranking, biological age placements, and athlete badges, even when challenge results appear as Events/highlights.
+- Longevitymaxxing Challenge call times may be selected before signup closes when needed for 24-hour call reminders.
+- Challenge uploads and Gravatar fallbacks are challenge-only profile pictures; linked Longevity athlete profile pictures stay the display priority and must not be created or modified from challenge images.
 
 ## Ranking Logic Must Stay Aligned
 
