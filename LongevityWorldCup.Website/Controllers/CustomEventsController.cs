@@ -36,21 +36,21 @@ public sealed class CustomEventsController(EventDataService events, Config confi
 
         if (string.IsNullOrEmpty(request.Secret) || request.Secret.Length > MaxSecretLength)
         {
-            _log.LogWarning("Custom Event Designer direct post rejected because the secret was missing or too long.");
+            _log.LogWarning("Custom Event Designer direct queue rejected because the secret was missing or too long.");
             return Unauthorized("Invalid secret.");
         }
 
         var verification = SecretHashVerifier.Verify(request.Secret, _config.CustomEventDesignerSecretHash);
         if (verification == SecretVerificationResult.NotConfigured)
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Custom Event Designer direct posting is not configured.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Custom Event Designer direct queueing is not configured.");
         if (verification == SecretVerificationResult.InvalidHash)
         {
-            _log.LogError("Custom Event Designer direct posting is disabled because CustomEventDesignerSecretHash is invalid.");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Custom Event Designer direct posting is not configured.");
+            _log.LogError("Custom Event Designer direct queueing is disabled because CustomEventDesignerSecretHash is invalid.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Custom Event Designer direct queueing is not configured.");
         }
         if (verification != SecretVerificationResult.Verified)
         {
-            _log.LogWarning("Custom Event Designer direct post rejected because the secret did not match.");
+            _log.LogWarning("Custom Event Designer direct queue rejected because the secret did not match.");
             return Unauthorized("Invalid secret.");
         }
 
@@ -79,7 +79,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             deliveryTargets: targets);
 
         _log.LogInformation(
-            "Custom Event Designer direct post created event {EventId} for targets {Targets}.",
+            "Custom Event Designer direct queue created event {EventId} for targets {Targets}.",
             eventId,
             string.Join(",", selectedTargets));
 
@@ -87,6 +87,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         {
             success = true,
             eventId,
+            queuedTargets = selectedTargets,
             selectedTargets
         });
     }
