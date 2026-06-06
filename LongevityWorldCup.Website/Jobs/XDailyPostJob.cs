@@ -64,38 +64,19 @@ public class XDailyPostJob : IJob
 
         foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, xPriority) in pending)
         {
-            if (type == EventType.BadgeAward)
+            if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(
+                    type,
+                    text,
+                    occurredAtUtc,
+                    xPriority,
+                    freshCutoff,
+                    _athletes.HasSingleGlobalPlaceOneBadgeHolder,
+                    out var skipReason))
             {
-                if (EventHelpers.TryExtractBadgeLabel(text, out var label))
-                {
-                    var norm = EventHelpers.NormalizeBadgeLabel(label);
-                    if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    var isSingleWinnerBadge =
-                        string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase);
-                    if (isSingleWinnerBadge &&
-                        (!EventHelpers.TryExtractPlace(text, out var badgePlace) || badgePlace != 1))
-                        continue;
-
-                    var isBestImprovement =
-                        string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase);
-                    if (isBestImprovement && !_athletes.HasSingleGlobalPlaceOneBadgeHolder(label))
-                    {
-                        _logger.LogInformation("XDailyPostJob skipped tie Best Improvement badge event {BadgeLabel}", label);
-                        continue;
-                    }
-                }
-            }
-
-            if (xPriority <= EventDataService.XPriorityPrimaryMax && occurredAtUtc < freshCutoff)
+                _events.MarkEventsXSkipped(new[] { (id, skipReason) });
+                _logger.LogInformation("XDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, skipReason);
                 continue;
+            }
 
             var nowUtc = DateTime.UtcNow;
             var subjectSlug = TryGetSubjectSlugForEvent(type, text);
@@ -106,7 +87,12 @@ public class XDailyPostJob : IJob
             }
 
             var msg = _xEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
-            if (string.IsNullOrWhiteSpace(msg)) continue;
+            if (string.IsNullOrWhiteSpace(msg))
+            {
+                _events.MarkEventsXSkipped(new[] { (id, SocialEventSkipReason.EmptyMessage) });
+                _logger.LogInformation("XDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, SocialEventSkipReason.EmptyMessage);
+                continue;
+            }
 
             _logger.LogInformation(
                 "XDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
