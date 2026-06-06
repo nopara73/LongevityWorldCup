@@ -83,6 +83,48 @@ public class ThreadsEventService
         return false;
     }
 
+    public async Task<bool> TrySendImageAsync(string text, string imageUrl)
+    {
+        const int maxAttempts = 2;
+        const int retryDelayMs = 750;
+        text ??= "";
+        imageUrl = imageUrl?.Trim() ?? "";
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                var postId = await _threads.SendImagePostAsync(text, imageUrl);
+                if (!string.IsNullOrWhiteSpace(postId))
+                    return true;
+
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning("Threads image send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, text);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogWarning("Threads image send returned no post id after retries: {Text}", text);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                if (attempt < maxAttempts)
+                {
+                    _log.LogWarning(ex, "Threads image send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, text);
+                    await Task.Delay(retryDelayMs);
+                    continue;
+                }
+
+                _log.LogError(ex, "Threads image send failed after retries: {Text}", text);
+                return false;
+            }
+        }
+
+        return false;
+    }
+
     public async Task SendEventAsync(EventType type, string rawText)
     {
         _ = await TrySendEventAsync(type, rawText);
@@ -206,41 +248,7 @@ public class ThreadsEventService
             imageAsset.Value.PublicUrl,
             plan.PostText.Length);
 
-        const int maxAttempts = 2;
-        const int retryDelayMs = 750;
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                var postId = await _threads.SendImagePostAsync(plan.PostText, imageAsset.Value.PublicUrl);
-                if (!string.IsNullOrWhiteSpace(postId))
-                    return true;
-
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning("Threads image send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, plan.PostText);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogWarning("Threads image send returned no post id after retries: {Text}", plan.PostText);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning(ex, "Threads image send failed (attempt {Attempt}/{MaxAttempts}), retrying: {Text}", attempt, maxAttempts, plan.PostText);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogError(ex, "Threads image send failed after retries: {Text}", plan.PostText);
-                return false;
-            }
-        }
-
-        return false;
+        return await TrySendImageAsync(plan.PostText, imageAsset.Value.PublicUrl);
     }
 
     private string SlugToName(string slug)

@@ -33,6 +33,28 @@ public sealed class SocialImageRenderingTests
     }
 
     [Fact]
+    public async Task AthleteCountMilestoneMemes_ResolveOnlyApprovedMemeNumbers()
+    {
+        using var factory = CreateFactory();
+        var memes = factory.Services.GetRequiredService<AthleteCountMilestoneMemeService>();
+
+        foreach (var count in new[] { 404, 666, 777, 1337, 9001 })
+        {
+            Assert.True(memes.TryGetMeme(count, out var meme));
+            Assert.Equal(count, meme.AthleteCount);
+            Assert.StartsWith("https://longevityworldcup.com/assets/social/memes/", meme.PublicUrl);
+            Assert.True(File.Exists(meme.FullPath));
+
+            using var image = await Image.LoadAsync(meme.FullPath);
+            Assert.True(image.Width > 0);
+            Assert.True(image.Height > 0);
+        }
+
+        foreach (var count in new[] { 42, 69, 100, 123, 256, 300, 500, 1000, 1618, 3141, 6969, 10000 })
+            Assert.False(memes.TryGetMeme(count, out _));
+    }
+
+    [Fact]
     public async Task CustomEventAutoposterImage_RenderAsPngCanvas()
     {
         using var factory = CreateFactory();
