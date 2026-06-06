@@ -61,6 +61,7 @@ public class XDailyPostJob : IJob
         _events.SetAthletesForX(_athletes.GetAthletesForX());
         var pending = _events.GetPendingXEvents();
         var freshCutoff = DateTime.UtcNow.AddDays(-7);
+        var skippedEvents = new List<(string Id, SocialEventSkipReason Reason)>();
 
         foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, xPriority) in pending)
         {
@@ -73,8 +74,7 @@ public class XDailyPostJob : IJob
                     _athletes.HasSingleGlobalPlaceOneBadgeHolder,
                     out var skipReason))
             {
-                _events.MarkEventsXSkipped(new[] { (id, skipReason) });
-                _logger.LogInformation("XDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, skipReason);
+                skippedEvents.Add((id, skipReason));
                 continue;
             }
 
@@ -89,10 +89,11 @@ public class XDailyPostJob : IJob
             var msg = _xEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
             {
-                _events.MarkEventsXSkipped(new[] { (id, SocialEventSkipReason.EmptyMessage) });
-                _logger.LogInformation("XDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, SocialEventSkipReason.EmptyMessage);
+                skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
                 continue;
             }
+
+            FlushSkippedEvents(skippedEvents);
 
             _logger.LogInformation(
                 "XDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
@@ -125,6 +126,8 @@ public class XDailyPostJob : IJob
             _logger.LogInformation("XDailyPostJob posted event {Id}", id);
             return;
         }
+
+        FlushSkippedEvents(skippedEvents);
 
         if (await TryPostHistoryReminderAsync())
             return;
@@ -194,6 +197,27 @@ public class XDailyPostJob : IJob
         }
 
         _logger.LogInformation("XDailyPostJob no postable event found");
+    }
+
+    private void FlushSkippedEvents(List<(string Id, SocialEventSkipReason Reason)> skippedEvents)
+    {
+        if (skippedEvents.Count == 0)
+            return;
+
+        _events.MarkEventsXSkipped(skippedEvents);
+        _logger.LogInformation(
+            "XDailyPostJob marked {Count} event(s) processed with skip reasons: {SkipReasonSummary}",
+            skippedEvents.Count,
+            FormatSkipReasonSummary(skippedEvents));
+        skippedEvents.Clear();
+    }
+
+    private static string FormatSkipReasonSummary(IEnumerable<(string Id, SocialEventSkipReason Reason)> skippedEvents)
+    {
+        return string.Join(", ", skippedEvents
+            .GroupBy(x => x.Reason)
+            .OrderBy(x => x.Key.ToString(), StringComparer.Ordinal)
+            .Select(x => $"{x.Key}={x.Count()}"));
     }
 
     private bool TryRequiresMilestoneMemeMedia(EventType type, string rawText)

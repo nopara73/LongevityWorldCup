@@ -27,23 +27,24 @@ public class FacebookDailyPostJob : IJob
         _logger.LogInformation("FacebookDailyPostJob {ts}", DateTime.UtcNow);
         _facebookEvents.SetAthletesForFacebook(_athletes.GetAthletesForX());
         var pending = _events.GetPendingFacebookEvents();
+        var skippedEvents = new List<(string Id, SocialEventSkipReason Reason)>();
 
         foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, _) in pending)
         {
             if (SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(type, out var skipReason))
             {
-                _events.MarkEventsFacebookSkipped(new[] { (id, skipReason) });
-                _logger.LogInformation("FacebookDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, skipReason);
+                skippedEvents.Add((id, skipReason));
                 continue;
             }
 
             var msg = _facebookEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
             {
-                _events.MarkEventsFacebookSkipped(new[] { (id, SocialEventSkipReason.EmptyMessage) });
-                _logger.LogInformation("FacebookDailyPostJob marked event {Id} processed with skip reason {SkipReason}", id, SocialEventSkipReason.EmptyMessage);
+                skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
                 continue;
             }
+
+            FlushSkippedEvents(skippedEvents);
 
             _logger.LogInformation(
                 "FacebookDailyPostJob selected event {Id} type {Type} occurredAt {OccurredAtUtc} visibleOnWebsite {VisibleOnWebsite} messageLength {MessageLength}",
@@ -64,6 +65,8 @@ public class FacebookDailyPostJob : IJob
             _logger.LogInformation("FacebookDailyPostJob posted event {Id}", id);
             return;
         }
+
+        FlushSkippedEvents(skippedEvents);
 
         var fillerCandidates = _fillerLog.GetSuggestedFillersOrdered();
         foreach (var (fillerType, payloadText) in fillerCandidates)
@@ -112,6 +115,27 @@ public class FacebookDailyPostJob : IJob
         }
 
         _logger.LogInformation("FacebookDailyPostJob no postable event found");
+    }
+
+    private void FlushSkippedEvents(List<(string Id, SocialEventSkipReason Reason)> skippedEvents)
+    {
+        if (skippedEvents.Count == 0)
+            return;
+
+        _events.MarkEventsFacebookSkipped(skippedEvents);
+        _logger.LogInformation(
+            "FacebookDailyPostJob marked {Count} event(s) processed with skip reasons: {SkipReasonSummary}",
+            skippedEvents.Count,
+            FormatSkipReasonSummary(skippedEvents));
+        skippedEvents.Clear();
+    }
+
+    private static string FormatSkipReasonSummary(IEnumerable<(string Id, SocialEventSkipReason Reason)> skippedEvents)
+    {
+        return string.Join(", ", skippedEvents
+            .GroupBy(x => x.Reason)
+            .OrderBy(x => x.Key.ToString(), StringComparer.Ordinal)
+            .Select(x => $"{x.Key}={x.Count()}"));
     }
 
     private static bool TryGetPeriodicInfoToken(FillerType fillerType, out string infoToken)
