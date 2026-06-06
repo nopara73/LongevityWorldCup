@@ -68,9 +68,9 @@ public sealed class SocialMessageBuilderTests
     }
 
     [Theory]
-    [InlineData(200, "200 athletes are now on the leaderboard, another clean round-number checkpoint.", "200 athletes are now on the leaderboard. Clean round-number checkpoint.", "clean round-number checkpoint")]
+    [InlineData(200, "200 athletes are now on the leaderboard.", "200 athletes are now on the leaderboard.", "The competition reached")]
     [InlineData(222, "222 athletes are now on the leaderboard, perfectly doubled.", "222 athletes are now on the leaderboard. Perfectly doubled.", "perfectly doubled")]
-    [InlineData(2048, "2,048 athletes are now on the leaderboard, power-of-two checkpoint unlocked.", "2,048 athletes are now on the leaderboard. Power-of-two checkpoint unlocked.", "Power-of-two checkpoint unlocked")]
+    [InlineData(2048, "2,048 athletes are now on the leaderboard, power-of-two territory.", "2,048 athletes are now on the leaderboard. Power-of-two territory.", "power-of-two territory")]
     [InlineData(8008, "8,008 athletes are now on the leaderboard, calculator humor survived.", "8,008 athletes are now on the leaderboard. Calculator humor survived.", "calculator humor survived")]
     [InlineData(9999, "9,999 athletes are now on the leaderboard, one short of five digits.", "9,999 athletes are now on the leaderboard. One short of five digits.", "one short of five digits")]
     public void MilestoneEventBuilders_ReturnNewMilestoneMessages(

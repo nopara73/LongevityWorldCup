@@ -95,6 +95,25 @@ public sealed class SocialEventSkipPolicyTests
     }
 
     [Fact]
+    public void Slack_OldAthleteCountMilestonesAreSkipped()
+    {
+        var freshCutoffUtc = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.True(EventDataService.ShouldSkipSlackNotification(
+            EventType.AthleteCountMilestone,
+            freshCutoffUtc.AddSeconds(-1),
+            freshCutoffUtc));
+        Assert.False(EventDataService.ShouldSkipSlackNotification(
+            EventType.AthleteCountMilestone,
+            freshCutoffUtc,
+            freshCutoffUtc));
+        Assert.False(EventDataService.ShouldSkipSlackNotification(
+            EventType.CustomEvent,
+            freshCutoffUtc.AddYears(-1),
+            freshCutoffUtc));
+    }
+
+    [Fact]
     public void XOrThreads_UnsupportedEventTypesAreTerminalSkips()
     {
         var skipped = SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(
