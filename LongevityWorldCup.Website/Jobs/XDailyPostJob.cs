@@ -116,9 +116,16 @@ public class XDailyPostJob : IJob
                 visibleOnWebsite,
                 msg.Length);
 
+            var requiresMemeMedia = TryRequiresMilestoneMemeMedia(type, text);
             var mediaIds = type == EventType.AthleteCountMilestone
                 ? await XDailyPostMediaHelper.TryBuildMediaIdsAsync(type, text, _images, _xApiClient, _milestoneMemes)
                 : null;
+            if (requiresMemeMedia && mediaIds is not { Count: > 0 })
+            {
+                _logger.LogWarning("XDailyPostJob meme media upload failed for event {Id}; leaving unprocessed", id);
+                return;
+            }
+
             var sent = mediaIds is { Count: > 0 }
                 ? await _xEvents.TrySendAsync(msg, mediaIds)
                 : await _xEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
@@ -201,6 +208,16 @@ public class XDailyPostJob : IJob
         }
 
         _logger.LogInformation("XDailyPostJob no postable event found");
+    }
+
+    private bool TryRequiresMilestoneMemeMedia(EventType type, string rawText)
+    {
+        if (type != EventType.AthleteCountMilestone)
+            return false;
+        if (!EventHelpers.TryExtractAthleteCount(rawText, out var count))
+            return false;
+
+        return _milestoneMemes.TryGetMeme(count, out _);
     }
 
     private async Task<bool> TryPostHistoryReminderAsync()
