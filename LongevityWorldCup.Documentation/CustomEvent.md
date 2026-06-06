@@ -1,4 +1,4 @@
-## Run from the designer page direct post
+## Queue from the designer page
 
 Open:
 
@@ -6,11 +6,11 @@ Open:
 /internal/custom-event-designer.html
 ```
 
-Direct posting is disabled until the server config contains a hash in `CustomEventDesignerSecretHash`.
+Direct queueing is disabled until the server config contains a hash in `CustomEventDesignerSecretHash`.
 
 To configure it on the Linux server:
 
-1. Choose a temporary posting secret.
+1. Choose a temporary queueing secret.
 2. Enter it in the designer page `Secret` field.
 3. Click `Generate Config Hash`.
 4. Copy the generated hash into `/var/www/LongevityWorldCup/publish/config.json` as `CustomEventDesignerSecretHash`.
@@ -31,16 +31,19 @@ Fill in:
 - `Webpage` if the post should also appear on `/events`
 - `Secret`
 
-Then click `Post Event`.
+Then click `Queue Event`.
 
 Behavior:
 
 - if `Webpage` is enabled, the post is stored in the DB and also appears on the public event feed
 - if `Webpage` is disabled, the post is still stored in the DB, but it stays hidden from the public website
-- hidden website posts can still be sent to Slack / X / Threads / Facebook
+- hidden website posts can still be queued for Slack / X / Threads / Facebook
 - when `Webpage` is disabled, social post generation does not include a public event URL
-- selected social destinations are stored as pending by setting their `Processed` column to `0`
+- selected social destinations are queued by setting their `Processed` column to `0`
 - unselected social destinations are stored as already processed by setting their `Processed` column to `1`
+- the designer/API response reports `queuedTargets`; it also returns `selectedTargets` for backwards compatibility with older callers
+- a queued social target is not confirmation that the platform accepted the post; platform send success is only known after dispatch completes and the corresponding `Processed` column becomes `1` without a skip reason
+- if dispatch cannot or should not send a queued target, the platform-specific skip reason column records why, for example `PlatformNotConfigured`, `EmptyMessage`, or a terminal platform policy reason
 
 ## Safe live-test checklist
 
@@ -52,11 +55,11 @@ Use the smallest possible blast radius for the first live test.
 4. Open `/internal/custom-event-designer.html`.
 5. Use a harmless title such as `Test event - delete me`.
 6. Select `Webpage` only and clear Slack, X, Threads, and Facebook.
-7. Click `Post Event`.
+7. Click `Queue Event`.
 8. Confirm the response shows an event id.
 9. Confirm the event appears on the public event feed.
 10. Copy the cleanup SQL from the designer page and delete the test row if it should not remain public.
-11. Roll back by restoring the previous `CustomEventDesignerSecretHash` value, or clearing it to disable direct posting.
+11. Roll back by restoring the previous `CustomEventDesignerSecretHash` value, or clearing it to disable direct queueing.
 12. Restart the website again so rollback takes effect.
 
 Linux production paths:
@@ -76,7 +79,7 @@ Cleanup SQL format:
 sudo sqlite3 /var/www/.longevityworldcup/LongevityWorldCup.db "DELETE FROM Events WHERE Id = 'ID_GOES_HERE';"
 ```
 
-If the test accidentally used a social destination, inspect the corresponding processed column before deleting the row. A selected social target is pending while its processed column is `0`.
+If the test accidentally used a social destination, inspect the corresponding processed and skip reason columns before deleting the row. A selected social target is still queued while its processed column is `0`; it is processed when the column is `1`. If the processed column is `1` and the skip reason column is non-empty, no platform post was sent for that destination.
 
 ## Run from the designer page payload
 
@@ -99,8 +102,21 @@ Behavior:
 
 - if `Webpage` is enabled, the post is stored in the DB and also appears on the public event feed
 - if `Webpage` is disabled, the post is still stored in the DB, but it stays hidden from the public website
-- hidden website posts can still be sent to Slack / X / Threads / Facebook
+- hidden website posts can still be queued for Slack / X / Threads / Facebook
 - when `Webpage` is disabled, social post generation does not include a public event URL
+
+The payload path writes the same event flags as the designer/API path. Selected social destinations are queued with their platform `Processed` column set to `0`; unselected destinations are marked processed with `1`.
+
+## Social dispatch and skip reasons
+
+Daily social jobs process pending rows where the platform `Processed` column is `0`.
+
+- X and Threads can post supported fresh primary Events and Custom Events. Stale primary Events, unsupported event types, unsupported payloads, and non-postable badge variants are marked processed with a skip reason.
+- Facebook daily posting currently supports Custom Events. Non-custom Facebook rows are terminal skips and are marked processed with `FacebookSupportsCustomEventsOnly`.
+- Subject cooldown for X and Threads leaves the row unprocessed so it can be retried on a later run.
+- Platform send failures leave the row unprocessed so the next job run can retry.
+- Successful sends mark the row processed and clear any old skip reason for that platform.
+- If a queued Custom Event targets an unconfigured platform during immediate dispatch, it is marked processed with `PlatformNotConfigured`.
 
 Example:
 
