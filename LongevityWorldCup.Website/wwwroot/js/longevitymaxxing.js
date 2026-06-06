@@ -364,7 +364,7 @@
                 { icon: "fa-circle-check", text: "No due day" },
                 { icon: "fa-envelope", text: "Reminder skips when done" }
             ],
-            note: selectedCalls.length ? "Selected calls are listed below." : "Call times appear here after signup closes."
+            note: selectedCalls.length ? "Selected calls are listed below." : "Call times appear here before reminders go out."
         };
     }
 
@@ -1286,13 +1286,13 @@
 
     function pendingCallTimeLabel(signupClosesAtUtc) {
         const date = new Date(signupClosesAtUtc);
-        if (Number.isNaN(date.getTime())) return "Meeting time pending until signup closes.";
+        if (Number.isNaN(date.getTime())) return "Meeting time pending.";
         const closes = new Intl.DateTimeFormat("en-US", {
             weekday: "long",
             month: "short",
             day: "numeric"
         }).format(date);
-        return `Meeting time pending until signup closes on ${closes}.`;
+        return `Meeting time pending. Signup closes on ${closes}.`;
     }
 
     function setStatus(id, message, isError) {

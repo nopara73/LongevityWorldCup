@@ -598,7 +598,7 @@ public sealed class LongevitymaxxingChallengeService
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings();
-        if (now < settings.SignupClosesAtUtc)
+        if (now < settings.CallSelectionClosesAtUtc)
             return;
 
         _db.Run(sqlite =>
@@ -748,17 +748,41 @@ public sealed class LongevitymaxxingChallengeService
                     .Select(s => new LongevitymaxxingCallSlot(s.Id.Trim(), ParseDateTimeOffset(s.StartsAtUtc, DateTimeOffset.UtcNow).ToUniversalTime().ToString("o")))
                     .ToList()))
             .ToList();
+        var callSelectionCloses = ParseDateTimeOffset(
+            cfg.CallSelectionClosesAtUtc,
+            GetDefaultCallSelectionClosesAtUtc(calls, signupCloses));
 
         return new ChallengeSettings(
             start,
             start.AddDays(durationDays - 1),
             durationDays,
             signupCloses.ToUniversalTime(),
+            callSelectionCloses.ToUniversalTime(),
             reminderHour,
             string.IsNullOrWhiteSpace(cfg.SlackInviteUrl) ? "" : cfg.SlackInviteUrl.Trim(),
             string.IsNullOrWhiteSpace(cfg.SlackRoomUrl) ? null : cfg.SlackRoomUrl.Trim(),
             string.IsNullOrWhiteSpace(cfg.VideoCallUrl) ? null : cfg.VideoCallUrl.Trim(),
             calls);
+    }
+
+    private static DateTimeOffset GetDefaultCallSelectionClosesAtUtc(
+        IReadOnlyList<CallSettings> calls,
+        DateTimeOffset signupClosesAtUtc)
+    {
+        var earliestCall = calls
+            .SelectMany(call => call.CandidateSlots)
+            .Select(slot => ParseDateTimeOffset(slot.StartsAtUtc, DateTimeOffset.MaxValue).ToUniversalTime())
+            .Where(startsAt => startsAt != DateTimeOffset.MaxValue)
+            .Order()
+            .FirstOrDefault();
+
+        if (earliestCall == default)
+            return signupClosesAtUtc;
+
+        var firstReminderDueAt = earliestCall - TimeSpan.FromHours(24);
+        return firstReminderDueAt < signupClosesAtUtc
+            ? firstReminderDueAt
+            : signupClosesAtUtc;
     }
 
     private IReadOnlyList<LongevitymaxxingLeaderboardRow> BuildLeaderboard(
@@ -1756,6 +1780,7 @@ public sealed class LongevitymaxxingChallengeService
         DateOnly EndDate,
         int DurationDays,
         DateTimeOffset SignupClosesAtUtc,
+        DateTimeOffset CallSelectionClosesAtUtc,
         int DailyReminderHourLocal,
         string SlackInviteUrl,
         string? SlackRoomUrl,
