@@ -263,6 +263,18 @@ public static class XMessageBuilder
         if (ShouldSuppressFiller(fillerType, fillerPhase))
             return "";
 
+        if (fillerType == FillerType.HistoryDocument)
+            return RejectIfTooLong(HistoryDocumentReminderPost.BuildText());
+
+        if (fillerType == FillerType.Ruleset)
+            return RejectIfTooLong(RulesetReminderPost.BuildText());
+
+        if (fillerType == FillerType.GitHubRepository)
+            return RejectIfTooLong(GitHubRepositoryReminderPost.BuildText());
+
+        if (fillerType == FillerType.Donation)
+            return RejectIfTooLong(DonationReminderPost.BuildText());
+
         if (fillerType == FillerType.Top3Leaderboard)
         {
             if (!EventHelpers.TryExtractLeague(payloadText ?? "", out var leagueSlug) || string.IsNullOrWhiteSpace(leagueSlug))
