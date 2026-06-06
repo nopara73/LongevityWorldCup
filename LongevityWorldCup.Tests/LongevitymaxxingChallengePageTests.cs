@@ -213,19 +213,16 @@ public sealed class LongevitymaxxingChallengePageTests
 
     private static WebApplicationFactory<Program> CreateFactory(Config? config = null)
     {
-        return new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
+        return new TestWebApplicationFactory(builder =>
+        {
+            if (config is not null)
             {
-                builder.UseSetting("EnableScheduledJobs", "false");
-                builder.UseSetting("EnableStartupBadgeRefresh", "false");
-                if (config is not null)
+                builder.ConfigureTestServices(services =>
                 {
-                    builder.ConfigureTestServices(services =>
-                    {
-                        services.RemoveAll<Config>();
-                        services.AddSingleton(config);
-                    });
-                }
-            });
+                    services.RemoveAll<Config>();
+                    services.AddSingleton(config);
+                });
+            }
+        });
     }
 }
