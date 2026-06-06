@@ -87,32 +87,48 @@ public class XImageService
         const int stripWidth = 1024;
         const int stripHeight = 196;
         var segmentWidth = stripWidth / athletes.Count;
-        var portraitSize = athletes.Count >= 4 ? 126 : 156;
+        var hasLongNames = HasLongNewcomerName(athletes, fonts.Bold);
+        var portraitSize = athletes.Count >= 4
+            ? (hasLongNames ? 112 : 126)
+            : (hasLongNames ? 126 : 156);
         var portraitY = stripY + ((stripHeight - portraitSize) / 2);
 
         for (var i = 0; i < athletes.Count; i++)
         {
             var athlete = athletes[i];
             var segmentX = stripX + (i * segmentWidth);
-            var portraitX = segmentX + (athletes.Count >= 4 ? 18 : 34);
-            var nameX = portraitX + portraitSize + (athletes.Count >= 4 ? 20 : 34);
-            var maxNameWidth = athletes.Count == 3
-                ? 122f
-                : MathF.Max(86f, segmentWidth - portraitSize - 40f);
+            var portraitInset = athletes.Count >= 4
+                ? (hasLongNames ? 14 : 18)
+                : (hasLongNames ? 22 : 34);
+            var nameGap = athletes.Count >= 4
+                ? (hasLongNames ? 16 : 20)
+                : (hasLongNames ? 22 : 34);
+            var portraitX = segmentX + portraitInset;
+            var nameX = portraitX + portraitSize + nameGap;
+            var dividerX = athletes.Count == 3 && !hasLongNames
+                ? portraitX + 312f
+                : segmentX + segmentWidth - 1f;
+            var rightBoundary = i < athletes.Count - 1
+                ? dividerX - 18f
+                : stripX + stripWidth - 20f;
+            var maxNameWidth = MathF.Max(86f, rightBoundary - nameX);
 
             await DrawRoundedProfileAsync(image, athlete.ProfilePath!, portraitX, portraitY, portraitSize, portraitSize, 18, GreenAccent, 4f);
 
             image.Mutate(ctx =>
             {
-                var nameFont = FitFontToWidth(fonts.Bold, athlete.Name, athletes.Count >= 4 ? 28f : 32f, 18f, maxNameWidth);
-                DrawTextShadow(ctx, athlete.Name, nameFont, new PointF(nameX, stripY + 78f), HorizontalAlignment.Left, 2f);
-                DrawWrappedText(ctx, athlete.Name, nameFont, TextColor, new PointF(nameX, stripY + 78f), maxNameWidth, 1, 38f);
+                DrawBoundedNameLabel(
+                    ctx,
+                    athlete.Name,
+                    fonts.Bold,
+                    new PointF(nameX, portraitY + (portraitSize / 2f)),
+                    maxNameWidth,
+                    athletes.Count >= 4 ? 28f : 32f,
+                    18f,
+                    maxLines: 2);
 
                 if (i < athletes.Count - 1)
                 {
-                    var dividerX = athletes.Count == 3
-                        ? portraitX + 312f
-                        : segmentX + segmentWidth - 18f;
                     ctx.Fill(new Rgba32(255, 255, 255, 42), new RectangularPolygon(dividerX, stripY + 38f, 2f, 120f));
                 }
             });
@@ -522,6 +538,166 @@ public class XImageService
                 VerticalAlignment = VerticalAlignment.Top
             }, text, color ?? TextColor);
         });
+    }
+
+    private static void DrawBoundedNameLabel(
+        IImageProcessingContext ctx,
+        string text,
+        FontFamily family,
+        PointF leftCenter,
+        float maxWidth,
+        float startSize,
+        float minSize,
+        int maxLines)
+    {
+        if (string.IsNullOrWhiteSpace(text) || maxWidth <= 0 || maxLines <= 0)
+            return;
+
+        Font font;
+        IReadOnlyList<string> lines;
+        for (var singleLineSize = startSize; singleLineSize >= minSize; singleLineSize -= 1f)
+        {
+            var singleLineFont = family.CreateFont(singleLineSize, FontStyle.Bold);
+            if (TextMeasurer.MeasureSize(text, new RichTextOptions(singleLineFont)).Width > maxWidth)
+                continue;
+
+            font = singleLineFont;
+            lines = [text];
+            DrawBoundedNameLines(ctx, lines, font, leftCenter, TextColor);
+            return;
+        }
+
+        var size = startSize;
+        while (true)
+        {
+            font = family.CreateFont(size, FontStyle.Bold);
+            var wrapped = WrapTextStrict(text, font, maxWidth, maxLines);
+            lines = wrapped.Lines;
+            if (!wrapped.Truncated || size <= minSize)
+                break;
+            size -= 1f;
+        }
+
+        DrawBoundedNameLines(ctx, lines, font, leftCenter, TextColor);
+    }
+
+    private static void DrawBoundedNameLines(
+        IImageProcessingContext ctx,
+        IReadOnlyList<string> lines,
+        Font font,
+        PointF leftCenter,
+        Color color)
+    {
+        var lineHeight = MathF.Ceiling(font.Size * 1.08f);
+        var totalHeight = (lineHeight * lines.Count) - MathF.Max(0f, lineHeight - font.Size);
+        var y = leftCenter.Y - (totalHeight / 2f);
+        foreach (var line in lines)
+        {
+            DrawTextShadow(ctx, line, font, new PointF(leftCenter.X, y), HorizontalAlignment.Left, 2f);
+            ctx.DrawText(new RichTextOptions(font)
+            {
+                Origin = new PointF(leftCenter.X, y),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
+            }, line, color);
+            y += lineHeight;
+        }
+    }
+
+    private static bool HasLongNewcomerName(IReadOnlyList<AthleteRenderInfo> athletes, FontFamily family)
+    {
+        var probeFont = family.CreateFont(24f, FontStyle.Bold);
+        return athletes.Any(a => TextMeasurer.MeasureSize(a.Name, new RichTextOptions(probeFont)).Width > 170f);
+    }
+
+    private static WrappedText WrapTextStrict(string text, Font font, float maxWidth, int maxLines)
+    {
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var lines = new List<string>();
+        var current = "";
+        var truncated = false;
+
+        for (var index = 0; index < words.Length; index++)
+        {
+            var word = words[index];
+            var candidate = string.IsNullOrWhiteSpace(current) ? word : $"{current} {word}";
+            if (TextMeasurer.MeasureSize(candidate, new RichTextOptions(font)).Width <= maxWidth)
+            {
+                current = candidate;
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(current))
+            {
+                lines.Add(current);
+                current = "";
+                if (lines.Count >= maxLines)
+                {
+                    truncated = true;
+                    lines[^1] = AppendEllipsisToWidth(lines[^1], font, maxWidth);
+                    return new WrappedText(lines, truncated);
+                }
+
+                index--;
+                continue;
+            }
+
+            lines.Add(EllipsizeToWidth(word, font, maxWidth));
+            truncated = true;
+            if (lines.Count >= maxLines)
+                return new WrappedText(lines, truncated);
+        }
+
+        if (!string.IsNullOrWhiteSpace(current))
+            lines.Add(current);
+
+        if (lines.Count > maxLines)
+        {
+            truncated = true;
+            lines = lines.Take(maxLines).ToList();
+            lines[^1] = AppendEllipsisToWidth(lines[^1], font, maxWidth);
+        }
+
+        if (lines.Count == maxLines && words.Length > 0)
+        {
+            var consumed = string.Join(" ", lines).Length;
+            if (consumed < text.Trim().Length)
+            {
+                truncated = true;
+                lines[^1] = AppendEllipsisToWidth(lines[^1], font, maxWidth);
+            }
+        }
+
+        return new WrappedText(lines, truncated);
+    }
+
+    private static string AppendEllipsisToWidth(string text, Font font, float maxWidth)
+    {
+        const string ellipsis = "...";
+        var trimmed = text.TrimEnd();
+        while (trimmed.Length > 0 &&
+               TextMeasurer.MeasureSize(trimmed + ellipsis, new RichTextOptions(font)).Width > maxWidth)
+        {
+            trimmed = trimmed[..^1].TrimEnd();
+        }
+
+        return string.IsNullOrWhiteSpace(trimmed) ? ellipsis : trimmed + ellipsis;
+    }
+
+    private static string EllipsizeToWidth(string text, Font font, float maxWidth)
+    {
+        const string ellipsis = "...";
+        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
+            return text;
+
+        var trimmed = text.TrimEnd();
+        while (trimmed.Length > 0 &&
+               TextMeasurer.MeasureSize(trimmed + ellipsis, new RichTextOptions(font)).Width > maxWidth)
+        {
+            trimmed = trimmed[..^1].TrimEnd();
+        }
+
+        return string.IsNullOrWhiteSpace(trimmed) ? ellipsis : trimmed + ellipsis;
     }
 
     private static void MakeCircular(Image<Rgba32> image)
@@ -1024,5 +1200,6 @@ public class XImageService
     }
 
     private sealed record AthleteRenderInfo(string Slug, string Name, string? ProfilePath, int Rank, double? AgeReduction);
+    private sealed record WrappedText(IReadOnlyList<string> Lines, bool Truncated);
     private readonly record struct LeaderboardRow(int Rank, int X, int Y, int Width, int Height, int PortraitSize);
 }
