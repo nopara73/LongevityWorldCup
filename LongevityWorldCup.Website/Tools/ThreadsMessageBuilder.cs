@@ -337,21 +337,21 @@ public static class ThreadsMessageBuilder
             var winnerSlug = getBestDomainWinnerSlug?.Invoke(domainKey.Trim());
             if (string.IsNullOrWhiteSpace(winnerSlug)) return "";
             var name = slugToName(winnerSlug);
-            var (label, emoji) = domainKey.ToLowerInvariant() switch
+            var (label, emoji, clockLabel) = domainKey.ToLowerInvariant() switch
             {
-                "liver" => ("liver", "\U0001F9EC"),
-                "kidney" => ("kidney", "\U0001F4A7"),
-                "metabolic" => ("metabolic", "\U0001F525"),
-                "inflammation" => ("inflammation", ""),
-                "immune" => ("immune", "\U0001F6E1\uFE0F"),
-                "vitamin_d" => ("vitamin D", "\u2600\uFE0F"),
-                _ => ("domain", "")
+                "liver" => ("liver", "\U0001F9EC", "Bortz"),
+                "kidney" => ("kidney", "\U0001F4A7", "Bortz"),
+                "metabolic" => ("metabolic", "\U0001F525", "Bortz"),
+                "inflammation" => ("inflammation", "", "CRP"),
+                "immune" => ("immune", "\U0001F6E1\uFE0F", "Bortz"),
+                "vitamin_d" => ("vitamin D", "\u2600\uFE0F", "Bortz"),
+                _ => ("domain", "", "Bortz")
             };
             var line1 = isEarly
-                ? BuildEarlyDomainLine(name, label, emoji, fillerBasis)
+                ? BuildEarlyDomainLine(name, label, emoji, clockLabel, fillerBasis)
                 : string.IsNullOrEmpty(emoji)
-                    ? $"{name} has the strongest {label} profile in the field right now."
-                    : $"{name} has the strongest {label} profile in the field right now {emoji}";
+                    ? BuildMatureDomainLine(name, label, clockLabel)
+                    : $"{BuildMatureDomainLine(name, label, clockLabel)} {emoji}";
             var url = AthleteUrl(winnerSlug);
             var lines = new List<string>
             {
@@ -703,7 +703,15 @@ public static class ThreadsMessageBuilder
         };
     }
 
-    private static string BuildEarlyDomainLine(string name, string label, string emoji, XPostSampleBasis? basis)
+    private static string BuildMatureDomainLine(string name, string label, string clockLabel)
+    {
+        if (string.Equals(label, "inflammation", StringComparison.OrdinalIgnoreCase))
+            return $"{name} currently has the strongest inflammation profile in the Longevity World Cup field.";
+
+        return $"{name} currently has the strongest {clockLabel} {label} profile.";
+    }
+
+    private static string BuildEarlyDomainLine(string name, string label, string emoji, string clockLabel, XPostSampleBasis? basis)
     {
         if (string.Equals(label, "inflammation", StringComparison.OrdinalIgnoreCase))
         {
@@ -712,7 +720,7 @@ public static class ThreadsMessageBuilder
         }
 
         var cohort = basis == XPostSampleBasis.PhenoAge ? "amateur" : "pro";
-        var lineBase = $"{name} has the strongest {label} profile among the first {cohort} athletes so far";
+        var lineBase = $"{name} has the strongest {clockLabel} {label} profile among the first {cohort} athletes so far";
         return string.IsNullOrEmpty(emoji) ? lineBase : $"{lineBase} {emoji}";
     }
 }

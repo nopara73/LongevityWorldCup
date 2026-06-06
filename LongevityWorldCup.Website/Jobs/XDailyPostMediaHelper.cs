@@ -9,7 +9,8 @@ internal static class XDailyPostMediaHelper
         EventType type,
         string rawText,
         XImageService images,
-        XApiClient xApiClient)
+        XApiClient xApiClient,
+        AthleteCountMilestoneMemeService milestoneMemes)
     {
         if (type == EventType.NewRank)
         {
@@ -19,7 +20,7 @@ internal static class XDailyPostMediaHelper
                 return null;
 
             await using var imageStream = await images.BuildNewRankImageAsync(winnerSlug, prevSlug);
-            return await UploadSinglePngAsync(imageStream, xApiClient);
+            return await UploadSingleAsync(imageStream, "image/png", xApiClient);
         }
 
         if (type == EventType.AthleteCountMilestone)
@@ -27,8 +28,14 @@ internal static class XDailyPostMediaHelper
             if (!EventHelpers.TryExtractAthleteCount(rawText, out var count) || count <= 0)
                 return null;
 
+            if (milestoneMemes.TryGetMeme(count, out var meme))
+            {
+                await using var memeStream = File.OpenRead(meme.FullPath);
+                return await UploadSingleAsync(memeStream, meme.ContentType, xApiClient);
+            }
+
             await using var imageStream = await images.BuildAthleteCountMilestoneImageAsync(count);
-            return await UploadSinglePngAsync(imageStream, xApiClient);
+            return await UploadSingleAsync(imageStream, "image/png", xApiClient);
         }
 
         if (type != EventType.BadgeAward)
@@ -56,15 +63,15 @@ internal static class XDailyPostMediaHelper
             return null;
 
         await using var singleImageStream = await images.BuildSingleAthleteImageAsync(slug);
-        return await UploadSinglePngAsync(singleImageStream, xApiClient);
+        return await UploadSingleAsync(singleImageStream, "image/png", xApiClient);
     }
 
-    private static async Task<IReadOnlyList<string>?> UploadSinglePngAsync(Stream? imageStream, XApiClient xApiClient)
+    private static async Task<IReadOnlyList<string>?> UploadSingleAsync(Stream? imageStream, string contentType, XApiClient xApiClient)
     {
         if (imageStream == null)
             return null;
 
-        var mediaId = await xApiClient.UploadMediaAsync(imageStream, "image/png");
+        var mediaId = await xApiClient.UploadMediaAsync(imageStream, contentType);
         if (string.IsNullOrWhiteSpace(mediaId))
             return null;
 

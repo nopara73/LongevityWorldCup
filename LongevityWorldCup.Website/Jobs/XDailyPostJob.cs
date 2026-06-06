@@ -21,14 +21,28 @@ public class XDailyPostJob : IJob
     private readonly XEventService _xEvents;
     private readonly AthleteDataService _athletes;
     private readonly XFillerPostLogService _fillerLog;
+    private readonly XImageService _images;
+    private readonly XApiClient _xApiClient;
+    private readonly AthleteCountMilestoneMemeService _milestoneMemes;
 
-    public XDailyPostJob(ILogger<XDailyPostJob> logger, EventDataService events, XEventService xEvents, AthleteDataService athletes, XFillerPostLogService fillerLog)
+    public XDailyPostJob(
+        ILogger<XDailyPostJob> logger,
+        EventDataService events,
+        XEventService xEvents,
+        AthleteDataService athletes,
+        XFillerPostLogService fillerLog,
+        XImageService images,
+        XApiClient xApiClient,
+        AthleteCountMilestoneMemeService milestoneMemes)
     {
         _logger = logger;
         _events = events;
         _xEvents = xEvents;
         _athletes = athletes;
         _fillerLog = fillerLog;
+        _images = images;
+        _xApiClient = xApiClient;
+        _milestoneMemes = milestoneMemes;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -102,7 +116,12 @@ public class XDailyPostJob : IJob
                 visibleOnWebsite,
                 msg.Length);
 
-            var sent = await _xEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
+            var mediaIds = type == EventType.AthleteCountMilestone
+                ? await XDailyPostMediaHelper.TryBuildMediaIdsAsync(type, text, _images, _xApiClient, _milestoneMemes)
+                : null;
+            var sent = mediaIds is { Count: > 0 }
+                ? await _xEvents.TrySendAsync(msg, mediaIds)
+                : await _xEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
                 _logger.LogWarning("XDailyPostJob send failed for event {Id}; leaving unprocessed", id);

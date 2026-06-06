@@ -14,14 +14,22 @@ public class ThreadsDailyPostJob : IJob
     private readonly ThreadsEventService _threadsEvents;
     private readonly AthleteDataService _athletes;
     private readonly ThreadsFillerPostLogService _fillerLog;
+    private readonly AthleteCountMilestoneMemeService _milestoneMemes;
 
-    public ThreadsDailyPostJob(ILogger<ThreadsDailyPostJob> logger, EventDataService events, ThreadsEventService threadsEvents, AthleteDataService athletes, ThreadsFillerPostLogService fillerLog)
+    public ThreadsDailyPostJob(
+        ILogger<ThreadsDailyPostJob> logger,
+        EventDataService events,
+        ThreadsEventService threadsEvents,
+        AthleteDataService athletes,
+        ThreadsFillerPostLogService fillerLog,
+        AthleteCountMilestoneMemeService milestoneMemes)
     {
         _logger = logger;
         _events = events;
         _threadsEvents = threadsEvents;
         _athletes = athletes;
         _fillerLog = fillerLog;
+        _milestoneMemes = milestoneMemes;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -87,7 +95,9 @@ public class ThreadsDailyPostJob : IJob
                 visibleOnWebsite,
                 msg.Length);
 
-            var sent = await _threadsEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
+            var sent = TryGetMilestoneMemeImageUrl(type, text, out var memeImageUrl)
+                ? await _threadsEvents.TrySendImageAsync(msg, memeImageUrl)
+                : await _threadsEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
                 _logger.LogWarning("ThreadsDailyPostJob send failed for event {Id}; leaving unprocessed", id);
@@ -167,6 +177,20 @@ public class ThreadsDailyPostJob : IJob
         }
 
         _logger.LogInformation("ThreadsDailyPostJob no postable event found");
+    }
+
+    private bool TryGetMilestoneMemeImageUrl(EventType type, string rawText, out string imageUrl)
+    {
+        imageUrl = "";
+        if (type != EventType.AthleteCountMilestone)
+            return false;
+        if (!EventHelpers.TryExtractAthleteCount(rawText, out var count))
+            return false;
+        if (!_milestoneMemes.TryGetMeme(count, out var meme))
+            return false;
+
+        imageUrl = meme.PublicUrl;
+        return true;
     }
 
     private async Task<bool> TryPostHistoryReminderAsync()
