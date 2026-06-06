@@ -19,26 +19,27 @@ public sealed class AthleteOgImageService
     private const int CanvasHeight = 630;
 
     private const int ProfileX = 78;
-    private const int ProfileY = 126;
-    private const int ProfileWidth = 420;
-    private const int ProfileHeight = 420;
-    private const int ProfileRadius = 36;
-    private const float PanelX = 536f;
-    private const float PanelY = 92f;
-    private const float PanelWidth = 620f;
-    private const float PanelHeight = 456f;
-    private const float PanelRadius = 30f;
+    private const int ProfileY = 132;
+    private const int ProfileWidth = 392;
+    private const int ProfileHeight = 392;
+    private const int ProfileRadius = 24;
+    private const float PanelX = 512f;
+    private const float PanelY = 132f;
+    private const float PanelWidth = 650f;
+    private const float PanelHeight = 392f;
+    private const float PanelRadius = 24f;
     private static readonly Color RankColor = ParseHex("FF4081");
     private static readonly Color ReductionColor = ParseHex("78DA3B");
     private static readonly Color NameColor = Color.White;
     private static readonly Color MetricLabelColor = ParseHex("FFFFFFD9"); // white @ 85% opacity
     private static readonly Color PanelFillColor = new(new Rgba32(5, 11, 10, 255));
-    private static readonly Color PanelStrokeColor = new(new Rgba32(142, 218, 96, 82));
+    private static readonly Color PanelStrokeColor = new(new Rgba32(255, 255, 255, 42));
     private static readonly Color TextShadowColor = new(new Rgba32(0, 0, 0, 185));
-    private static readonly Color RadarGridColor = new(new Rgba32(184, 211, 190, 54));
-    private static readonly Color RadarAxisColor = new(new Rgba32(184, 211, 190, 45));
-    private static readonly Color RadarFillColor = new(new Rgba32(120, 218, 59, 82));
-    private static readonly Color RadarStrokeColor = new(new Rgba32(120, 218, 59, 232));
+    private static readonly Color RadarGridColor = new(new Rgba32(184, 211, 190, 40));
+    private static readonly Color RadarAxisColor = new(new Rgba32(184, 211, 190, 34));
+    private static readonly Color RadarFillColor = new(new Rgba32(120, 218, 59, 76));
+    private static readonly Color RadarStrokeColor = new(new Rgba32(120, 218, 59, 224));
+    private static readonly Color RadarLabelColor = new(new Rgba32(226, 235, 229, 214));
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
@@ -211,11 +212,11 @@ public sealed class AthleteOgImageService
         }
 
         var fontFamily = GetFontFamily();
-        var nameFont = FitFontToWidth(fontFamily, payload.Name, 58f, 38f, 500f);
-        var metricFont = fontFamily.CreateFont(74f, FontStyle.Bold);
-        var labelFont = fontFamily.CreateFont(25f, FontStyle.Bold);
+        var nameFont = FitFontToWidth(fontFamily, payload.Name, 52f, 34f, 330f);
+        var metricFont = fontFamily.CreateFont(66f, FontStyle.Bold);
+        var labelFont = fontFamily.CreateFont(23f, FontStyle.Bold);
         var smallLabelFont = fontFamily.CreateFont(20f, FontStyle.Bold);
-        var radarLabelFont = fontFamily.CreateFont(22f, FontStyle.Bold);
+        var radarLabelFont = fontFamily.CreateFont(21f, FontStyle.Bold);
 
         var rankText = $"#{payload.Rank}";
         var reductionText = FormatReduction(payload.AgeReduction);
@@ -223,20 +224,20 @@ public sealed class AthleteOgImageService
         image.Mutate(ctx =>
         {
             FillRoundedRect(ctx, PanelX, PanelY, PanelWidth, PanelHeight, PanelRadius, PanelFillColor);
-            FillRoundedRectBorder(ctx, PanelX, PanelY, PanelWidth, PanelHeight, PanelRadius, 2f, PanelStrokeColor);
-            ctx.Fill(ToRgba(ReductionColor, 225), new RectangularPolygon(PanelX + 40f, PanelY + 50f, 112f, 5f));
+            FillRoundedRectBorder(ctx, PanelX, PanelY, PanelWidth, PanelHeight, PanelRadius, 1.5f, PanelStrokeColor);
+            ctx.Fill(ToRgba(ReductionColor, 218), new RectangularPolygon(PanelX + 40f, PanelY + 52f, 108f, 5f));
 
             DrawTextShadow(
                 ctx,
                 payload.Name,
                 nameFont,
-                new PointF(PanelX + 40f, PanelY + 76f),
+                new PointF(PanelX + 40f, PanelY + 78f),
                 HorizontalAlignment.Left);
 
             ctx.DrawText(
                 new RichTextOptions(nameFont)
                 {
-                    Origin = new PointF(PanelX + 40f, PanelY + 76f),
+                    Origin = new PointF(PanelX + 40f, PanelY + 78f),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
                 },
@@ -245,8 +246,8 @@ public sealed class AthleteOgImageService
 
             DrawRadarChart(ctx, payload.RadarValues, fontFamily, radarLabelFont);
 
-            DrawMetricBlock(ctx, PanelX + 40f, PanelY + 324f, 178f, RankColor, payload.LeagueName, rankText, metricFont, labelFont, smallLabelFont, HorizontalAlignment.Left);
-            DrawMetricBlock(ctx, PanelX + 372f, PanelY + 324f, 174f, ReductionColor, "Age reduction", reductionText, metricFont, labelFont, smallLabelFont, HorizontalAlignment.Right);
+            DrawMetricBlock(ctx, PanelX + 40f, PanelY + 288f, 190f, RankColor, payload.LeagueName, rankText, metricFont, labelFont, smallLabelFont, HorizontalAlignment.Left);
+            DrawMetricBlock(ctx, PanelX + 386f, PanelY + 288f, 198f, ReductionColor, "Age reduction", reductionText, metricFont, labelFont, smallLabelFont, HorizontalAlignment.Right);
         });
 
         await image.SaveAsPngAsync(outputPath, ct);
@@ -268,10 +269,10 @@ public sealed class AthleteOgImageService
 
             image.Mutate(ctx =>
             {
-                FillRoundedRect(ctx, ProfileX + 10f, ProfileY + 12f, ProfileWidth, ProfileHeight, ProfileRadius, new Rgba32(0, 0, 0, 126));
-                FillRoundedRect(ctx, ProfileX - 4f, ProfileY - 4f, ProfileWidth + 8f, ProfileHeight + 8f, ProfileRadius + 4f, ToRgba(ReductionColor, 210));
+                FillRoundedRect(ctx, ProfileX + 10f, ProfileY + 12f, ProfileWidth, ProfileHeight, ProfileRadius, new Rgba32(0, 0, 0, 128));
+                FillRoundedRect(ctx, ProfileX - 2f, ProfileY - 2f, ProfileWidth + 4f, ProfileHeight + 4f, ProfileRadius + 2f, new Rgba32(255, 255, 255, 42));
                 ctx.DrawImage(profile, new Point(ProfileX, ProfileY), 1f);
-                FillRoundedRectBorder(ctx, ProfileX, ProfileY, ProfileWidth, ProfileHeight, ProfileRadius, 2f, new Rgba32(255, 255, 255, 54));
+                FillRoundedRectBorder(ctx, ProfileX, ProfileY, ProfileWidth, ProfileHeight, ProfileRadius, 1.5f, new Rgba32(255, 255, 255, 70));
             });
         }
         catch (Exception ex)
@@ -293,11 +294,9 @@ public sealed class AthleteOgImageService
         Font smallLabelFont,
         HorizontalAlignment alignment)
     {
-        var ruleX = alignment == HorizontalAlignment.Right ? x + width - 120f : x;
-        ctx.Fill(ToRgba(accent, 230), new RectangularPolygon(ruleX, y, 120f, 5f));
         var originX = alignment == HorizontalAlignment.Right ? x + width : x;
-        var labelOrigin = new PointF(originX, y + 28f);
-        var valueOrigin = new PointF(originX, y + 62f);
+        var labelOrigin = new PointF(originX, y);
+        var valueOrigin = new PointF(originX, y + 31f);
 
         ctx.DrawText(new RichTextOptions(valueFont)
         {
@@ -320,8 +319,8 @@ public sealed class AthleteOgImageService
 
     private static void DrawRadarChart(IImageProcessingContext ctx, double[]? values, FontFamily fontFamily, Font labelFont)
     {
-        var center = new PointF(830f, 302f);
-        const float radius = 116f;
+        var center = new PointF(940f, 304f);
+        const float radius = 88f;
         var labels = new[] { "Immune", "Liver", "Kidney", "Metabolism", "Inflammation" };
         var angles = Enumerable.Range(0, labels.Length)
             .Select(i => -MathF.PI / 2f + (MathF.Tau * i / labels.Length))
@@ -330,29 +329,29 @@ public sealed class AthleteOgImageService
         for (var ring = 1; ring <= 4; ring++)
         {
             var ringRadius = radius * ring / 4f;
-            ctx.DrawPolygon(RadarGridColor, 1.15f, BuildRadarPoints(center, ringRadius, angles, null));
+            ctx.DrawPolygon(RadarGridColor, 1f, BuildRadarPoints(center, ringRadius, angles, null));
         }
 
         foreach (var angle in angles)
         {
             var end = PointOnCircle(center, radius, angle);
-            DrawLine(ctx, center, end, RadarAxisColor, 1.1f);
+            DrawLine(ctx, center, end, RadarAxisColor, 1f);
         }
 
         if (values is { Length: 5 })
         {
             var shape = BuildRadarPoints(center, radius, angles, values);
             ctx.FillPolygon(RadarFillColor, shape);
-            ctx.DrawPolygon(RadarStrokeColor, 3f, shape);
+            ctx.DrawPolygon(RadarStrokeColor, 2.8f, shape);
             foreach (var point in shape)
-                ctx.Fill(RadarStrokeColor, new EllipsePolygon(point.X, point.Y, 4.5f));
+                ctx.Fill(RadarStrokeColor, new EllipsePolygon(point.X, point.Y, 4f));
         }
 
-        DrawRadarLabel(ctx, labels[0], labelFont, new PointF(center.X, center.Y - radius - 42f), HorizontalAlignment.Center);
-        DrawRadarLabel(ctx, labels[1], labelFont, new PointF(center.X + radius + 48f, center.Y - 40f), HorizontalAlignment.Left);
-        DrawRadarLabel(ctx, labels[2], labelFont, new PointF(center.X + radius + 32f, center.Y + 88f), HorizontalAlignment.Left);
-        DrawRadarLabel(ctx, labels[3], FitFontToWidth(fontFamily, labels[3], labelFont.Size, 16f, 126f), new PointF(center.X - radius - 42f, center.Y + 88f), HorizontalAlignment.Right);
-        DrawRadarLabel(ctx, labels[4], FitFontToWidth(fontFamily, labels[4], labelFont.Size, 15f, 132f), new PointF(center.X - radius - 50f, center.Y - 40f), HorizontalAlignment.Right);
+        DrawRadarLabel(ctx, labels[0], labelFont, new PointF(center.X, center.Y - radius - 34f), HorizontalAlignment.Center);
+        DrawRadarLabel(ctx, labels[1], labelFont, new PointF(center.X + radius + 8f, center.Y - 28f), HorizontalAlignment.Left);
+        DrawRadarLabel(ctx, labels[2], labelFont, new PointF(center.X + radius + 8f, center.Y + 74f), HorizontalAlignment.Left);
+        DrawRadarLabel(ctx, labels[3], FitFontToWidth(fontFamily, labels[3], labelFont.Size, 17f, 128f), new PointF(center.X - radius - 28f, center.Y + 74f), HorizontalAlignment.Right);
+        DrawRadarLabel(ctx, labels[4], FitFontToWidth(fontFamily, labels[4], labelFont.Size, 17f, 136f), new PointF(center.X - radius - 32f, center.Y - 28f), HorizontalAlignment.Right);
     }
 
     private static double[]? BuildPhenoRadarValues(string normalizedSlug, JsonArray snapshot)
@@ -434,7 +433,7 @@ public sealed class AthleteOgImageService
             Origin = origin,
             HorizontalAlignment = alignment,
             VerticalAlignment = VerticalAlignment.Center
-        }, text, MetricLabelColor);
+        }, text, RadarLabelColor);
     }
 
     private static string BuildTempRenderPath(string outputPath)
@@ -499,7 +498,7 @@ public sealed class AthleteOgImageService
             : "";
 
         var raw = string.Join("|",
-            "athlete-og-v27",
+            "athlete-og-v31",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
