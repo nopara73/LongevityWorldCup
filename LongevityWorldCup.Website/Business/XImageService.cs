@@ -70,26 +70,52 @@ public class XImageService
         using var image = CreateCanvas(GreenAccent);
         var fonts = GetFontFamilies();
         await DrawBrandAsync(image, fonts.Bold);
-        DrawTitleBlock(
-            image,
-            fonts,
-            "",
-            "New athletes",
-            "",
-            GreenAccent);
 
-        const int size = 208;
-        const int gap = 34;
-        var totalWidth = (athletes.Count * size) + ((athletes.Count - 1) * gap);
-        var startX = (CanvasWidth - totalWidth) / 2;
-        const int y = 274;
+        image.Mutate(ctx =>
+        {
+            var titleFont = FitFontToWidth(fonts.Bold, "New athletes", 70f, 52f, 520f);
+            ctx.Fill(ToRgba(GreenAccent, 225), new RectangularPolygon(HeaderX, 138f, 152f, 5f));
+            DrawTextShadow(ctx, "New athletes", titleFont, new PointF(HeaderX, 204f), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, "New athletes", titleFont, TextColor, new PointF(HeaderX, 204f), 560f, 1, 74f);
+
+            FillRoundedRect(ctx, 88f, 312f, 1024f, 196f, 24f, new Rgba32(10, 17, 15, 215));
+            ctx.Draw(new Rgba32(255, 255, 255, 28), 1f, new RectangularPolygon(88f, 312f, 1024f, 196f));
+        });
+
+        const int stripX = 88;
+        const int stripY = 312;
+        const int stripWidth = 1024;
+        const int stripHeight = 196;
+        var segmentWidth = stripWidth / athletes.Count;
+        var portraitSize = athletes.Count >= 4 ? 126 : 156;
+        var portraitY = stripY + ((stripHeight - portraitSize) / 2);
 
         for (var i = 0; i < athletes.Count; i++)
         {
             var athlete = athletes[i];
-            var x = startX + (i * (size + gap));
-            await DrawPortraitAsync(image, athlete.ProfilePath!, x, y, size, GreenAccent, 5.5f);
-            DrawCenteredLabel(image, athlete.Name, fonts.Bold, x + (size / 2f), y + size + 20f, 240f, 30f);
+            var segmentX = stripX + (i * segmentWidth);
+            var portraitX = segmentX + (athletes.Count >= 4 ? 18 : 34);
+            var nameX = portraitX + portraitSize + (athletes.Count >= 4 ? 20 : 34);
+            var maxNameWidth = athletes.Count == 3
+                ? 122f
+                : MathF.Max(86f, segmentWidth - portraitSize - 40f);
+
+            await DrawRoundedProfileAsync(image, athlete.ProfilePath!, portraitX, portraitY, portraitSize, portraitSize, 18, GreenAccent, 4f);
+
+            image.Mutate(ctx =>
+            {
+                var nameFont = FitFontToWidth(fonts.Bold, athlete.Name, athletes.Count >= 4 ? 28f : 32f, 18f, maxNameWidth);
+                DrawTextShadow(ctx, athlete.Name, nameFont, new PointF(nameX, stripY + 78f), HorizontalAlignment.Left, 2f);
+                DrawWrappedText(ctx, athlete.Name, nameFont, TextColor, new PointF(nameX, stripY + 78f), maxNameWidth, 1, 38f);
+
+                if (i < athletes.Count - 1)
+                {
+                    var dividerX = athletes.Count == 3
+                        ? portraitX + 312f
+                        : segmentX + segmentWidth - 18f;
+                    ctx.Fill(new Rgba32(255, 255, 255, 42), new RectangularPolygon(dividerX, stripY + 38f, 2f, 120f));
+                }
+            });
         }
 
         return await SaveToStreamAsync(image);
@@ -400,6 +426,42 @@ public class XImageService
         }
     }
 
+    private async Task DrawRoundedProfileAsync(
+        Image<Rgba32> image,
+        string path,
+        int x,
+        int y,
+        int width,
+        int height,
+        float radius,
+        Color accent,
+        float strokeWidth)
+    {
+        try
+        {
+            using var profile = await Image.LoadAsync<Rgba32>(path);
+            profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
+            {
+                Size = new Size(width, height),
+                Mode = ResizeMode.Crop,
+                Position = AnchorPositionMode.Center
+            }));
+            ClipRoundedRectangle(profile, radius);
+
+            image.Mutate(ctx =>
+            {
+                FillRoundedRect(ctx, x + 8f, y + 10f, width + strokeWidth, height + strokeWidth, radius + strokeWidth, new Rgba32(0, 0, 0, 130));
+                FillRoundedRect(ctx, x - strokeWidth, y - strokeWidth, width + (strokeWidth * 2f), height + (strokeWidth * 2f), radius + strokeWidth, ToRgba(accent, 235));
+                ctx.DrawImage(profile, new Point(x, y), 1f);
+                FillRoundedRectBorder(ctx, x, y, width, height, radius, 1.4f, new Rgba32(255, 255, 255, 72));
+            });
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to load social image profile image {Path}", path);
+        }
+    }
+
     private static void DrawScoreboardMetricRow(
         IImageProcessingContext ctx,
         string value,
@@ -489,6 +551,57 @@ public class XImageService
             });
             ctx.DrawImage(mask, new Point(0, 0), 1f);
         });
+    }
+
+    private static void ClipRoundedRectangle(Image<Rgba32> image, float radius)
+    {
+        using var mask = new Image<Rgba32>(image.Width, image.Height, Color.Transparent);
+        mask.Mutate(ctx =>
+        {
+            ctx.SetGraphicsOptions(new GraphicsOptions
+            {
+                Antialias = true,
+                AntialiasSubpixelDepth = 16
+            });
+            FillRoundedRect(ctx, 0, 0, image.Width, image.Height, radius, Color.White);
+        });
+
+        image.Mutate(ctx =>
+        {
+            ctx.SetGraphicsOptions(new GraphicsOptions
+            {
+                AlphaCompositionMode = PixelAlphaCompositionMode.DestIn,
+                Antialias = true,
+                AntialiasSubpixelDepth = 16
+            });
+            ctx.DrawImage(mask, new Point(0, 0), 1f);
+        });
+    }
+
+    private static void FillRoundedRect(IImageProcessingContext ctx, float x, float y, float width, float height, float radius, Color color)
+    {
+        if (width <= 0 || height <= 0)
+            return;
+
+        var r = MathF.Max(0, MathF.Min(radius, MathF.Min(width, height) / 2f));
+        var centerWidth = width - (2f * r);
+        var centerHeight = height - (2f * r);
+        if (centerWidth > 0)
+            ctx.Fill(color, new RectangularPolygon(x + r, y, centerWidth, height));
+        if (centerHeight > 0)
+            ctx.Fill(color, new RectangularPolygon(x, y + r, width, centerHeight));
+        ctx.Fill(color, new EllipsePolygon(x + r, y + r, r));
+        ctx.Fill(color, new EllipsePolygon(x + width - r, y + r, r));
+        ctx.Fill(color, new EllipsePolygon(x + r, y + height - r, r));
+        ctx.Fill(color, new EllipsePolygon(x + width - r, y + height - r, r));
+    }
+
+    private static void FillRoundedRectBorder(IImageProcessingContext ctx, float x, float y, float width, float height, float radius, float thickness, Color color)
+    {
+        FillRoundedRect(ctx, x, y, width, thickness, MathF.Min(radius, thickness), color);
+        FillRoundedRect(ctx, x, y + height - thickness, width, thickness, MathF.Min(radius, thickness), color);
+        FillRoundedRect(ctx, x, y, thickness, height, MathF.Min(radius, thickness), color);
+        FillRoundedRect(ctx, x + width - thickness, y, thickness, height, MathF.Min(radius, thickness), color);
     }
 
     private static void DrawBackground(Image<Rgba32> image, Color accentColor)
