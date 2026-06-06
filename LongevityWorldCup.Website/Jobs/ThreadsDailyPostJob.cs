@@ -99,16 +99,31 @@ public class ThreadsDailyPostJob : IJob
             return;
         }
 
+        if (await TryPostHistoryReminderAsync())
+            return;
+
+        if (await TryPostPeriodicReminderAsync(FillerType.Ruleset))
+            return;
+
+        if (await TryPostPeriodicReminderAsync(FillerType.GitHubRepository))
+            return;
+
+        if (await TryPostPeriodicReminderAsync(FillerType.Donation))
+            return;
+
         var fillerCandidates = _fillerLog.GetSuggestedFillersOrdered();
         foreach (var (fillerType, payloadText) in fillerCandidates)
         {
+            if (IsPeriodicReminder(fillerType))
+                continue;
+
             var payload = payloadText ?? "";
             var cooldown = GetCooldownForFiller(fillerType);
             var nowUtc = DateTime.UtcNow;
-            var onCooldown = _fillerLog.IsOnCooldownForType(fillerType, cooldown, nowUtc);
+            var onCooldown = IsFillerOnCooldown(fillerType, cooldown, nowUtc);
             if (onCooldown)
             {
-                _logger.LogInformation("ThreadsDailyPostJob skipped filler in cooldown {FillerType} {PayloadText} ({CooldownDays}d)", fillerType, payloadText, cooldown.TotalDays);
+                _logger.LogInformation("ThreadsDailyPostJob skipped filler in cooldown {FillerType} {PayloadText} ({Cooldown})", fillerType, payloadText, FormatCooldown(fillerType, cooldown));
                 continue;
             }
 
@@ -127,7 +142,7 @@ public class ThreadsDailyPostJob : IJob
                 continue;
             }
 
-            if (_fillerLog.IsUnchangedFromLastForOption(fillerType, payload, infoToken))
+            if (ShouldCheckUnchangedToken(fillerType) && _fillerLog.IsUnchangedFromLastForOption(fillerType, payload, infoToken))
             {
                 _logger.LogInformation("ThreadsDailyPostJob skipped unchanged filler {FillerType} {PayloadText}", fillerType, payloadText);
                 continue;
@@ -154,6 +169,50 @@ public class ThreadsDailyPostJob : IJob
         _logger.LogInformation("ThreadsDailyPostJob no postable event found");
     }
 
+    private async Task<bool> TryPostHistoryReminderAsync()
+    {
+        return await TryPostPeriodicReminderAsync(FillerType.HistoryDocument);
+    }
+
+    private async Task<bool> TryPostPeriodicReminderAsync(FillerType fillerType)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var cooldown = GetCooldownForFiller(fillerType);
+        if (IsFillerOnCooldown(fillerType, cooldown, nowUtc))
+        {
+            _logger.LogInformation(
+                "ThreadsDailyPostJob skipped filler in cooldown {FillerType} ({Cooldown})",
+                fillerType,
+                FormatCooldown(fillerType, cooldown));
+            return false;
+        }
+
+        var fillerMsg = _threadsEvents.TryBuildFillerMessage(fillerType, "");
+        if (string.IsNullOrWhiteSpace(fillerMsg))
+            return false;
+
+        var infoToken = TryBuildFillerInfoToken(fillerType, "");
+        if (string.IsNullOrWhiteSpace(infoToken))
+            return false;
+
+        _logger.LogInformation(
+            "ThreadsDailyPostJob selected filler {FillerType} messageLength {MessageLength} infoToken {InfoToken}",
+            fillerType,
+            fillerMsg.Length,
+            infoToken);
+
+        var fillerSent = await _threadsEvents.TrySendAsync(fillerMsg);
+        if (!fillerSent)
+        {
+            _logger.LogWarning("ThreadsDailyPostJob send failed for filler {FillerType}; leaving unlogged", fillerType);
+            return true;
+        }
+
+        _fillerLog.LogPost(nowUtc, fillerType, infoToken);
+        _logger.LogInformation("ThreadsDailyPostJob posted filler {FillerType}", fillerType);
+        return true;
+    }
+
     private string? TryBuildFillerInfoToken(FillerType fillerType, string payloadText)
     {
         static string Norm(string? s) => string.IsNullOrWhiteSpace(s) ? "" : s.Trim().ToLowerInvariant();
@@ -166,6 +225,18 @@ public class ThreadsDailyPostJob : IJob
             if (top3.Count == 0) return null;
             return $"league[{Norm(leagueSlug)}] slugs[{string.Join(", ", top3)}]";
         }
+
+        if (fillerType == FillerType.HistoryDocument)
+            return HistoryDocumentReminderPost.InfoToken;
+
+        if (fillerType == FillerType.Ruleset)
+            return RulesetReminderPost.InfoToken;
+
+        if (fillerType == FillerType.GitHubRepository)
+            return GitHubRepositoryReminderPost.InfoToken;
+
+        if (fillerType == FillerType.Donation)
+            return DonationReminderPost.InfoToken;
 
         if (fillerType == FillerType.CrowdGuesses)
         {
@@ -212,8 +283,78 @@ public class ThreadsDailyPostJob : IJob
         return fillerType switch
         {
             FillerType.CrowdGuesses => TimeSpan.FromDays(10),
+            FillerType.HistoryDocument => TimeSpan.FromDays(HistoryDocumentReminderPost.MinCooldownDays),
+            FillerType.Ruleset => TimeSpan.FromDays(RulesetReminderPost.MinCooldownDays),
+            FillerType.GitHubRepository => TimeSpan.FromDays(GitHubRepositoryReminderPost.MinCooldownDays),
+            FillerType.Donation => TimeSpan.FromDays(DonationReminderPost.MinCooldownDays),
             _ => TimeSpan.FromDays(7)
         };
+    }
+
+    private bool IsFillerOnCooldown(FillerType fillerType, TimeSpan cooldown, DateTime nowUtc)
+    {
+        if (TryGetRandomizedCooldownDays(fillerType, out var minDays, out var maxDays))
+        {
+            return _fillerLog.IsOnRandomizedCooldownForType(
+                fillerType,
+                minDays,
+                maxDays,
+                nowUtc);
+        }
+
+        return _fillerLog.IsOnCooldownForType(fillerType, cooldown, nowUtc);
+    }
+
+    private static bool ShouldCheckUnchangedToken(FillerType fillerType)
+    {
+        return !IsPeriodicReminder(fillerType);
+    }
+
+    private static string FormatCooldown(FillerType fillerType, TimeSpan cooldown)
+    {
+        return TryGetRandomizedCooldownDays(fillerType, out var minDays, out var maxDays)
+            ? $"{minDays}-{maxDays}d randomized"
+            : $"{cooldown.TotalDays}d";
+    }
+
+    private static bool IsPeriodicReminder(FillerType fillerType)
+    {
+        return fillerType is FillerType.HistoryDocument or FillerType.Ruleset or FillerType.GitHubRepository or FillerType.Donation;
+    }
+
+    private static bool TryGetRandomizedCooldownDays(FillerType fillerType, out int minDays, out int maxDays)
+    {
+        if (fillerType == FillerType.HistoryDocument)
+        {
+            minDays = HistoryDocumentReminderPost.MinCooldownDays;
+            maxDays = HistoryDocumentReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        if (fillerType == FillerType.Ruleset)
+        {
+            minDays = RulesetReminderPost.MinCooldownDays;
+            maxDays = RulesetReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        if (fillerType == FillerType.GitHubRepository)
+        {
+            minDays = GitHubRepositoryReminderPost.MinCooldownDays;
+            maxDays = GitHubRepositoryReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        if (fillerType == FillerType.Donation)
+        {
+            minDays = DonationReminderPost.MinCooldownDays;
+            maxDays = DonationReminderPost.MaxCooldownDays;
+            return true;
+        }
+
+        minDays = 0;
+        maxDays = 0;
+        return false;
     }
 
     private static string? TryGetSubjectSlugForEvent(EventType type, string rawText)

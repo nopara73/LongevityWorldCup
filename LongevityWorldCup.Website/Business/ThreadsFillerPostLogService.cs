@@ -120,6 +120,10 @@ public class ThreadsFillerPostLogService
         options.Add((FillerType.CrowdGuesses, ""));
         foreach (var dk in DomainKeys)
             options.Add((FillerType.DomainTop, $"domain[{dk}]"));
+        options.Add((FillerType.HistoryDocument, ""));
+        options.Add((FillerType.Ruleset, ""));
+        options.Add((FillerType.GitHubRepository, ""));
+        options.Add((FillerType.Donation, ""));
 
         var lastByOption = _db.Run(sqlite =>
         {
@@ -225,6 +229,11 @@ public class ThreadsFillerPostLogService
         return now - lastAt.Value < cooldown;
     }
 
+    public bool IsOnRandomizedCooldownForType(FillerType type, int minDays, int maxDays, DateTime? nowUtc = null)
+    {
+        return FillerPostLogSchedule.IsOnRandomizedCooldownForType(_db, TableName, type, minDays, maxDays, nowUtc);
+    }
+
     private static bool TokenBelongsToOption(FillerType type, string payloadText, string token)
     {
         var payload = payloadText ?? "";
@@ -240,6 +249,10 @@ public class ThreadsFillerPostLogService
                 && t.Contains($"domain[{domainKey.Trim().ToLowerInvariant()}]", StringComparison.Ordinal),
             FillerType.CrowdGuesses => t.StartsWith("podium[", StringComparison.Ordinal),
             FillerType.Newcomers => t.StartsWith("slugs[", StringComparison.Ordinal),
+            FillerType.HistoryDocument => t.StartsWith("history-document[", StringComparison.Ordinal),
+            FillerType.Ruleset => t.StartsWith("ruleset[", StringComparison.Ordinal),
+            FillerType.GitHubRepository => t.StartsWith("github-repository[", StringComparison.Ordinal),
+            FillerType.Donation => t.StartsWith("donation-reminder[", StringComparison.Ordinal),
             _ => false
         };
     }
