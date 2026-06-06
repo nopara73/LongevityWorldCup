@@ -18,33 +18,32 @@ public sealed class AthleteOgImageService
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 630;
 
-    private const int ProfileX = 78;
-    private const int ProfileY = 132;
-    private const int ProfileWidth = 392;
-    private const int ProfileHeight = 392;
-    private const int ProfileRadius = 24;
-    private const float PanelX = 512f;
-    private const float PanelY = 132f;
-    private const float PanelWidth = 650f;
-    private const float PanelHeight = 392f;
-    private const float PanelRadius = 24f;
+    private const int PortraitX = 112;
+    private const int PortraitY = 176;
+    private const int PortraitSize = 292;
+    private const float TitleX = 472f;
+    private const float TitleY = 178f;
+    private const float TitleMaxWidth = 624f;
+    private const float MetricRowX = 472f;
+    private const float MetricRowWidth = 586f;
+    private const float MetricRowHeight = 82f;
+    private const float RankRowY = 318f;
+    private const float ReductionRowY = 422f;
+    private const float HeaderX = 72f;
+    private static readonly Color BackgroundTop = ParseHex("05080B");
+    private static readonly Color BackgroundBottom = ParseHex("15181B");
     private static readonly Color RankColor = ParseHex("FF4081");
     private static readonly Color ReductionColor = ParseHex("78DA3B");
     private static readonly Color NameColor = Color.White;
-    private static readonly Color MetricLabelColor = ParseHex("FFFFFFD9"); // white @ 85% opacity
-    private static readonly Color PanelFillColor = new(new Rgba32(5, 11, 10, 255));
-    private static readonly Color PanelStrokeColor = new(new Rgba32(255, 255, 255, 42));
+    private static readonly Color MutedTextColor = new(new Rgba32(214, 222, 232, 220));
+    private static readonly Color MetricRowFillColor = new(new Rgba32(18, 29, 28, 218));
+    private static readonly Color MetricRowStrokeColor = new(new Rgba32(255, 255, 255, 90));
     private static readonly Color TextShadowColor = new(new Rgba32(0, 0, 0, 185));
-    private static readonly Color RadarGridColor = new(new Rgba32(184, 211, 190, 40));
-    private static readonly Color RadarAxisColor = new(new Rgba32(184, 211, 190, 34));
-    private static readonly Color RadarFillColor = new(new Rgba32(120, 218, 59, 76));
-    private static readonly Color RadarStrokeColor = new(new Rgba32(120, 218, 59, 224));
-    private static readonly Color RadarLabelColor = new(new Rgba32(226, 235, 229, 214));
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
     private readonly ILogger<AthleteOgImageService> _log;
-    private readonly string _templatePath;
+    private readonly string _logoPath;
     private readonly string _fontPath;
     private readonly string _outputDir;
     private readonly FontCollection _fonts = new();
@@ -57,7 +56,7 @@ public sealed class AthleteOgImageService
         _env = env;
         _athletes = athletes;
         _log = log;
-        _templatePath = IOPath.Combine(_env.WebRootPath, "assets", "og_athlete_template.png");
+        _logoPath = IOPath.Combine(_env.WebRootPath, "assets", "HdLogo.png");
         _fontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Bold.ttf");
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "og", "athlete");
     }
@@ -71,10 +70,9 @@ public sealed class AthleteOgImageService
         int Rank,
         double AgeReduction,
         string? ProfilePicUrl,
-        double[]? RadarValues,
         string Signature);
 
-    public bool IsConfigured => File.Exists(_templatePath) && File.Exists(_fontPath);
+    public bool IsConfigured => File.Exists(_logoPath) && File.Exists(_fontPath);
 
     public bool TryGetCurrentPayload(string rawSlug, out AthleteOgPayload payload)
     {
@@ -126,8 +124,7 @@ public sealed class AthleteOgImageService
             : stats.AgeReduction ?? ageReductionFromRanking;
         var leagueName = ResolveLeagueDisplayName(leagueSlug);
         var profilePicUrl = athlete["ProfilePic"]?.GetValue<string>();
-        var radarValues = BuildPhenoRadarValues(normalized, snapshot);
-        var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, profilePicUrl, radarValues);
+        var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, profilePicUrl);
 
         payload = new AthleteOgPayload(
             InternalSlug: normalized,
@@ -138,7 +135,6 @@ public sealed class AthleteOgImageService
             Rank: rank,
             AgeReduction: ageReduction,
             ProfilePicUrl: profilePicUrl,
-            RadarValues: radarValues,
             Signature: signature);
 
         return true;
@@ -197,57 +193,45 @@ public sealed class AthleteOgImageService
 
     private async Task RenderImageAsync(AthleteOgPayload payload, string outputPath, CancellationToken ct)
     {
-        await using var templateStream = File.OpenRead(_templatePath);
-        using var image = await Image.LoadAsync<Rgba32>(templateStream, ct);
+        using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
+        DrawBackground(image, RankColor);
 
-        if (image.Width != CanvasWidth || image.Height != CanvasHeight)
-        {
-            image.Mutate(ctx => ctx.Resize(CanvasWidth, CanvasHeight));
-        }
-
+        var fontFamily = GetFontFamily();
+        await DrawBrandAsync(image, fontFamily);
         var profilePath = ResolveProfilePath(payload.ProfilePicUrl);
         if (!string.IsNullOrWhiteSpace(profilePath) && File.Exists(profilePath))
         {
             await DrawProfilePhotoAsync(image, profilePath, payload.InternalSlug, ct);
         }
 
-        var fontFamily = GetFontFamily();
-        var nameFont = FitFontToWidth(fontFamily, payload.Name, 52f, 34f, 330f);
-        var metricFont = fontFamily.CreateFont(66f, FontStyle.Bold);
-        var labelFont = fontFamily.CreateFont(23f, FontStyle.Bold);
-        var smallLabelFont = fontFamily.CreateFont(20f, FontStyle.Bold);
-        var radarLabelFont = fontFamily.CreateFont(21f, FontStyle.Bold);
+        var name = FitTextToWidth(fontFamily, payload.Name, 66f, 38f, TitleMaxWidth);
+        var valueFont = fontFamily.CreateFont(42f, FontStyle.Bold);
+        var labelFont = fontFamily.CreateFont(28f, FontStyle.Bold);
 
         var rankText = $"#{payload.Rank}";
         var reductionText = FormatReduction(payload.AgeReduction);
 
         image.Mutate(ctx =>
         {
-            FillRoundedRect(ctx, PanelX, PanelY, PanelWidth, PanelHeight, PanelRadius, PanelFillColor);
-            FillRoundedRectBorder(ctx, PanelX, PanelY, PanelWidth, PanelHeight, PanelRadius, 1.5f, PanelStrokeColor);
-            ctx.Fill(ToRgba(ReductionColor, 218), new RectangularPolygon(PanelX + 40f, PanelY + 52f, 108f, 5f));
-
             DrawTextShadow(
                 ctx,
-                payload.Name,
-                nameFont,
-                new PointF(PanelX + 40f, PanelY + 78f),
+                name.Text,
+                name.Font,
+                new PointF(TitleX, TitleY),
                 HorizontalAlignment.Left);
 
             ctx.DrawText(
-                new RichTextOptions(nameFont)
+                new RichTextOptions(name.Font)
                 {
-                    Origin = new PointF(PanelX + 40f, PanelY + 78f),
+                    Origin = new PointF(TitleX, TitleY),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
                 },
-                payload.Name,
+                name.Text,
                 NameColor);
 
-            DrawRadarChart(ctx, payload.RadarValues, fontFamily, radarLabelFont);
-
-            DrawMetricBlock(ctx, PanelX + 40f, PanelY + 288f, 190f, RankColor, payload.LeagueName, rankText, metricFont, labelFont, smallLabelFont, HorizontalAlignment.Left);
-            DrawMetricBlock(ctx, PanelX + 386f, PanelY + 288f, 198f, ReductionColor, "Age reduction", reductionText, metricFont, labelFont, smallLabelFont, HorizontalAlignment.Right);
+            DrawScoreboardMetricRow(ctx, rankText, "Current rank", valueFont, labelFont, RankColor, MetricRowX, RankRowY, MetricRowWidth, MetricRowHeight);
+            DrawScoreboardMetricRow(ctx, reductionText, "Age Reduction", valueFont, labelFont, ReductionColor, MetricRowX, ReductionRowY, MetricRowWidth, MetricRowHeight);
         });
 
         await image.SaveAsPngAsync(outputPath, ct);
@@ -261,18 +245,21 @@ public sealed class AthleteOgImageService
             using var profile = await Image.LoadAsync<Rgba32>(profileStream, ct);
             profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
             {
-                Size = new Size(ProfileWidth, ProfileHeight),
+                Size = new Size(PortraitSize, PortraitSize),
                 Mode = ResizeMode.Crop,
                 Position = AnchorPositionMode.Center
             }));
-            ClipRoundedRectangle(profile, ProfileRadius);
+            MakeCircular(profile);
 
             image.Mutate(ctx =>
             {
-                FillRoundedRect(ctx, ProfileX + 10f, ProfileY + 12f, ProfileWidth, ProfileHeight, ProfileRadius, new Rgba32(0, 0, 0, 128));
-                FillRoundedRect(ctx, ProfileX - 2f, ProfileY - 2f, ProfileWidth + 4f, ProfileHeight + 4f, ProfileRadius + 2f, new Rgba32(255, 255, 255, 42));
-                ctx.DrawImage(profile, new Point(ProfileX, ProfileY), 1f);
-                FillRoundedRectBorder(ctx, ProfileX, ProfileY, ProfileWidth, ProfileHeight, ProfileRadius, 1.5f, new Rgba32(255, 255, 255, 70));
+                var centerX = PortraitX + (PortraitSize / 2f);
+                var centerY = PortraitY + (PortraitSize / 2f);
+                ctx.Fill(new Rgba32(0, 0, 0, 150), new EllipsePolygon(centerX + 8f, centerY + 10f, (PortraitSize / 2f) + 8f));
+                ctx.Fill(new Rgba32(255, 255, 255, 16), new EllipsePolygon(centerX, centerY, (PortraitSize / 2f) + 13f));
+                ctx.Draw(ToRgba(RankColor, 235), 6f, new EllipsePolygon(centerX, centerY, (PortraitSize / 2f) + 3f));
+                ctx.DrawImage(profile, new Point(PortraitX, PortraitY), 1f);
+                ctx.Draw(new Rgba32(255, 255, 255, 66), 1.5f, new EllipsePolygon(centerX, centerY, (PortraitSize / 2f) - 1f));
             });
         }
         catch (Exception ex)
@@ -281,159 +268,145 @@ public sealed class AthleteOgImageService
         }
     }
 
-    private static void DrawMetricBlock(
+    private async Task DrawBrandAsync(Image<Rgba32> image, FontFamily boldFamily)
+    {
+        var brandFont = boldFamily.CreateFont(22f, FontStyle.Bold);
+
+        try
+        {
+            using var logo = await LoadLogoMarkAsync();
+            using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
+            {
+                Size = new Size(54, 54),
+                Mode = ResizeMode.Max
+            }));
+            using var backgroundLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
+            {
+                Size = new Size(455, 455),
+                Mode = ResizeMode.Max
+            }));
+
+            image.Mutate(ctx =>
+            {
+                ctx.DrawImage(backgroundLogo, new Point(810, 42), 0.065f);
+                ctx.DrawImage(smallLogo, new Point((int)HeaderX, 38), 0.96f);
+            });
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Failed to draw athlete OG logo.");
+        }
+
+        image.Mutate(ctx =>
+        {
+            ctx.DrawText(new RichTextOptions(brandFont)
+            {
+                Origin = new PointF(HeaderX + 68f, 41f),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
+            }, "LONGEVITY\nWORLD CUP", NameColor);
+        });
+    }
+
+    private async Task<Image<Rgba32>> LoadLogoMarkAsync()
+    {
+        await using var logoStream = File.OpenRead(_logoPath);
+        var logo = await Image.LoadAsync<Rgba32>(logoStream);
+        logo.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    var pixel = row[x];
+                    var brightness = (pixel.R + pixel.G + pixel.B) / 3f;
+                    if (brightness < 110f)
+                    {
+                        row[x] = Color.Transparent;
+                        continue;
+                    }
+
+                    var alpha = (byte)Math.Clamp((brightness - 110f) * 2.4f, 0f, pixel.A);
+                    row[x] = new Rgba32(255, 255, 255, alpha);
+                }
+            }
+        });
+        return logo;
+    }
+
+    private static void DrawScoreboardMetricRow(
         IImageProcessingContext ctx,
+        string value,
+        string label,
+        Font valueFont,
+        Font labelFont,
+        Color accent,
         float x,
         float y,
         float width,
-        Color accent,
-        string label,
-        string value,
-        Font valueFont,
-        Font labelFont,
-        Font smallLabelFont,
-        HorizontalAlignment alignment)
+        float height)
     {
-        var originX = alignment == HorizontalAlignment.Right ? x + width : x;
-        var labelOrigin = new PointF(originX, y);
-        var valueOrigin = new PointF(originX, y + 31f);
+        ctx.Fill(MetricRowFillColor, new RectangularPolygon(x, y, width, height));
+        ctx.Draw(MetricRowStrokeColor, 1f, new RectangularPolygon(x, y, width, height));
+        ctx.Fill(ToRgba(accent, 235), new RectangularPolygon(x, y, 10f, height));
 
-        ctx.DrawText(new RichTextOptions(valueFont)
+        var valueFontToUse = value.Length > 4
+            ? FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 142f)
+            : valueFont;
+
+        DrawTextShadow(ctx, value, valueFontToUse, new PointF(x + 48f, y + 16f), HorizontalAlignment.Left);
+        ctx.DrawText(new RichTextOptions(valueFontToUse)
         {
-            Origin = valueOrigin,
-            HorizontalAlignment = alignment,
+            Origin = new PointF(x + 48f, y + 16f),
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
         }, value, accent);
 
-        var finalLabelFont = alignment == HorizontalAlignment.Left && label.Length > 15
-            ? smallLabelFont
-            : labelFont;
-
-        ctx.DrawText(new RichTextOptions(finalLabelFont)
+        ctx.DrawText(new RichTextOptions(labelFont)
         {
-            Origin = labelOrigin,
-            HorizontalAlignment = alignment,
+            Origin = new PointF(x + 198f, y + 24f),
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
-        }, label, MetricLabelColor);
+        }, label, MutedTextColor);
     }
 
-    private static void DrawRadarChart(IImageProcessingContext ctx, double[]? values, FontFamily fontFamily, Font labelFont)
+    private static void DrawBackground(Image<Rgba32> image, Color accentColor)
     {
-        var center = new PointF(940f, 304f);
-        const float radius = 88f;
-        var labels = new[] { "Immune", "Liver", "Kidney", "Metabolism", "Inflammation" };
-        var angles = Enumerable.Range(0, labels.Length)
-            .Select(i => -MathF.PI / 2f + (MathF.Tau * i / labels.Length))
-            .ToArray();
+        var top = BackgroundTop.ToPixel<Rgba32>();
+        var bottom = BackgroundBottom.ToPixel<Rgba32>();
+        var accent = accentColor.ToPixel<Rgba32>();
 
-        for (var ring = 1; ring <= 4; ring++)
+        image.ProcessPixelRows(accessor =>
         {
-            var ringRadius = radius * ring / 4f;
-            ctx.DrawPolygon(RadarGridColor, 1f, BuildRadarPoints(center, ringRadius, angles, null));
-        }
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                var vertical = y / (float)(accessor.Height - 1);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    var horizontal = x / (float)(row.Length - 1);
+                    var baseR = Lerp(top.R, bottom.R, vertical);
+                    var baseG = Lerp(top.G, bottom.G, vertical);
+                    var baseB = Lerp(top.B, bottom.B, vertical);
 
-        foreach (var angle in angles)
+                    var edgeLight = MathF.Max(0f, 1f - MathF.Sqrt(MathF.Pow((horizontal - 0.76f) / 0.5f, 2f) + MathF.Pow((vertical - 0.22f) / 0.68f, 2f)));
+                    var laneLight = MathF.Max(0f, 1f - MathF.Abs((horizontal + vertical * 0.32f) - 0.38f) / 0.075f) * 0.15f;
+                    var accentLight = MathF.Min(0.22f, edgeLight * 0.18f + laneLight);
+
+                    row[x] = new Rgba32(
+                        (byte)Math.Clamp(baseR + (accent.R * accentLight), 0, 255),
+                        (byte)Math.Clamp(baseG + (accent.G * accentLight), 0, 255),
+                        (byte)Math.Clamp(baseB + (accent.B * accentLight), 0, 255),
+                        255);
+                }
+            }
+        });
+
+        image.Mutate(ctx =>
         {
-            var end = PointOnCircle(center, radius, angle);
-            DrawLine(ctx, center, end, RadarAxisColor, 1f);
-        }
-
-        if (values is { Length: 5 })
-        {
-            var shape = BuildRadarPoints(center, radius, angles, values);
-            ctx.FillPolygon(RadarFillColor, shape);
-            ctx.DrawPolygon(RadarStrokeColor, 2.8f, shape);
-            foreach (var point in shape)
-                ctx.Fill(RadarStrokeColor, new EllipsePolygon(point.X, point.Y, 4f));
-        }
-
-        DrawRadarLabel(ctx, labels[0], labelFont, new PointF(center.X, center.Y - radius - 34f), HorizontalAlignment.Center);
-        DrawRadarLabel(ctx, labels[1], labelFont, new PointF(center.X + radius + 8f, center.Y - 28f), HorizontalAlignment.Left);
-        DrawRadarLabel(ctx, labels[2], labelFont, new PointF(center.X + radius + 8f, center.Y + 74f), HorizontalAlignment.Left);
-        DrawRadarLabel(ctx, labels[3], FitFontToWidth(fontFamily, labels[3], labelFont.Size, 17f, 128f), new PointF(center.X - radius - 28f, center.Y + 74f), HorizontalAlignment.Right);
-        DrawRadarLabel(ctx, labels[4], FitFontToWidth(fontFamily, labels[4], labelFont.Size, 17f, 136f), new PointF(center.X - radius - 32f, center.Y - 28f), HorizontalAlignment.Right);
-    }
-
-    private static double[]? BuildPhenoRadarValues(string normalizedSlug, JsonArray snapshot)
-    {
-        var stats = snapshot
-            .OfType<JsonObject>()
-            .Select(o => PhenoStatsCalculator.Compute(o, DateTime.UtcNow.Date))
-            .Where(s => !string.IsNullOrWhiteSpace(s.Slug) && s.BestMarkerValues is { Length: 10 })
-            .ToList();
-
-        var current = stats.FirstOrDefault(s => string.Equals(NormalizeSlug(s.Slug), normalizedSlug, StringComparison.Ordinal));
-        if (current?.BestMarkerValues is not { Length: 10 } currentMarkers)
-            return null;
-
-        var allScores = stats
-            .Select(s => BuildPhenoDomainScores(s.BestMarkerValues!))
-            .Where(scores => scores.All(double.IsFinite))
-            .ToList();
-        if (allScores.Count == 0)
-            return null;
-
-        var currentScores = BuildPhenoDomainScores(currentMarkers);
-        if (!currentScores.All(double.IsFinite))
-            return null;
-
-        var values = new double[currentScores.Length];
-        for (var i = 0; i < currentScores.Length; i++)
-        {
-            var domainScores = allScores.Select(scores => scores[i]).OrderBy(score => score).ToList();
-            var lowerCount = domainScores.Count(score => score < currentScores[i]);
-            values[i] = 100d * (domainScores.Count - lowerCount) / domainScores.Count;
-        }
-
-        return values;
-    }
-
-    private static double[] BuildPhenoDomainScores(double[] markerValues)
-    {
-        return
-        [
-            PhenoAgeHelper.CalculateImmunePhenoAgeContributor(markerValues),
-            PhenoAgeHelper.CalculateLiverPhenoAgeContributor(markerValues),
-            PhenoAgeHelper.CalculateKidneyPhenoAgeContributor(markerValues),
-            PhenoAgeHelper.CalculateMetabolicPhenoAgeContributor(markerValues),
-            PhenoAgeHelper.CalculateInflammationPhenoAgeContributor(markerValues)
-        ];
-    }
-
-    private static PointF[] BuildRadarPoints(PointF center, float radius, float[] angles, double[]? values)
-    {
-        var points = new PointF[angles.Length];
-        for (var i = 0; i < angles.Length; i++)
-        {
-            var scale = values is null
-                ? 1f
-                : (float)Math.Clamp(values[i] / 100d, 0.08d, 1d);
-            points[i] = PointOnCircle(center, radius * scale, angles[i]);
-        }
-
-        return points;
-    }
-
-    private static PointF PointOnCircle(PointF center, float radius, float angle)
-    {
-        return new PointF(
-            center.X + (MathF.Cos(angle) * radius),
-            center.Y + (MathF.Sin(angle) * radius));
-    }
-
-    private static void DrawLine(IImageProcessingContext ctx, PointF from, PointF to, Color color, float thickness)
-    {
-        ctx.DrawLine(color, thickness, from, to);
-    }
-
-    private static void DrawRadarLabel(IImageProcessingContext ctx, string text, Font font, PointF origin, HorizontalAlignment alignment)
-    {
-        ctx.DrawText(new RichTextOptions(font)
-        {
-            Origin = origin,
-            HorizontalAlignment = alignment,
-            VerticalAlignment = VerticalAlignment.Center
-        }, text, RadarLabelColor);
+            ctx.Fill(new Rgba32(0, 0, 0, 74), new RectangularPolygon(0, 0, CanvasWidth, 72f));
+        });
     }
 
     private static string BuildTempRenderPath(string outputPath)
@@ -483,22 +456,17 @@ public sealed class AthleteOgImageService
         double ageReduction,
         string name,
         string leagueName,
-        string? profilePicUrl,
-        double[]? radarValues)
+        string? profilePicUrl)
     {
-        var templateTicks = File.Exists(_templatePath) ? File.GetLastWriteTimeUtc(_templatePath).Ticks : 0L;
+        var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
         var fontTicks = File.Exists(_fontPath) ? File.GetLastWriteTimeUtc(_fontPath).Ticks : 0L;
         var profilePath = ResolveProfilePath(profilePicUrl);
         var profileTicks = !string.IsNullOrWhiteSpace(profilePath) && File.Exists(profilePath)
             ? File.GetLastWriteTimeUtc(profilePath).Ticks
             : 0L;
 
-        var radarPart = radarValues is { Length: 5 }
-            ? string.Join(",", radarValues.Select(v => v.ToString("0.00", CultureInfo.InvariantCulture)))
-            : "";
-
         var raw = string.Join("|",
-            "athlete-og-v31",
+            "athlete-og-v32",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
@@ -506,8 +474,7 @@ public sealed class AthleteOgImageService
             name,
             leagueName,
             profilePicUrl ?? "",
-            radarPart,
-            templateTicks.ToString(CultureInfo.InvariantCulture),
+            logoTicks.ToString(CultureInfo.InvariantCulture),
             fontTicks.ToString(CultureInfo.InvariantCulture),
             profileTicks.ToString(CultureInfo.InvariantCulture));
 
@@ -720,6 +687,11 @@ public sealed class AthleteOgImageService
         return new Rgba32(pixel.R, pixel.G, pixel.B, alpha);
     }
 
+    private static float Lerp(float a, float b, float t)
+    {
+        return a + ((b - a) * t);
+    }
+
     private static Font FitFontToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
     {
         var size = startSize;
@@ -734,9 +706,38 @@ public sealed class AthleteOgImageService
         return family.CreateFont(minSize, FontStyle.Bold);
     }
 
-    private static void ClipRoundedRectangle(Image<Rgba32> image, float radius)
+    private static (string Text, Font Font) FitTextToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
     {
-        using var mask = new Image<Rgba32>(image.Width, image.Height, Color.Transparent);
+        var font = FitFontToWidth(family, text, startSize, minSize, maxWidth);
+        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
+            return (text, font);
+
+        return (EllipsizeToWidth(text, font, maxWidth), font);
+    }
+
+    private static string EllipsizeToWidth(string text, Font font, float maxWidth)
+    {
+        const string ellipsis = "...";
+        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
+            return text;
+
+        var trimmed = text.TrimEnd();
+        while (trimmed.Length > 0 &&
+               TextMeasurer.MeasureSize(trimmed + ellipsis, new RichTextOptions(font)).Width > maxWidth)
+        {
+            trimmed = trimmed[..^1].TrimEnd();
+        }
+
+        return string.IsNullOrWhiteSpace(trimmed) ? ellipsis : trimmed + ellipsis;
+    }
+
+    private static void MakeCircular(Image<Rgba32> image)
+    {
+        var w = image.Width;
+        var h = image.Height;
+        var radius = Math.Min(w, h) / 2f;
+
+        using var mask = new Image<Rgba32>(w, h, Color.Transparent);
         mask.Mutate(ctx =>
         {
             ctx.SetGraphicsOptions(new GraphicsOptions
@@ -744,7 +745,7 @@ public sealed class AthleteOgImageService
                 Antialias = true,
                 AntialiasSubpixelDepth = 16
             });
-            FillRoundedRect(ctx, 0, 0, image.Width, image.Height, radius, Color.White);
+            ctx.Fill(Color.White, new EllipsePolygon(w / 2f, h / 2f, radius));
         });
 
         image.Mutate(ctx =>
@@ -757,30 +758,6 @@ public sealed class AthleteOgImageService
             });
             ctx.DrawImage(mask, new Point(0, 0), 1f);
         });
-    }
-
-    private static void FillRoundedRect(IImageProcessingContext ctx, float x, float y, float width, float height, float radius, Color color)
-    {
-        var r = MathF.Min(radius, MathF.Min(width, height) / 2f);
-        var centerWidth = MathF.Max(0f, width - (2f * r));
-        var centerHeight = MathF.Max(0f, height - (2f * r));
-
-        if (centerWidth > 0f)
-            ctx.Fill(color, new RectangularPolygon(x + r, y, centerWidth, height));
-        if (centerHeight > 0f)
-            ctx.Fill(color, new RectangularPolygon(x, y + r, width, centerHeight));
-        ctx.Fill(color, new EllipsePolygon(x + r, y + r, r));
-        ctx.Fill(color, new EllipsePolygon(x + width - r, y + r, r));
-        ctx.Fill(color, new EllipsePolygon(x + r, y + height - r, r));
-        ctx.Fill(color, new EllipsePolygon(x + width - r, y + height - r, r));
-    }
-
-    private static void FillRoundedRectBorder(IImageProcessingContext ctx, float x, float y, float width, float height, float radius, float thickness, Color color)
-    {
-        FillRoundedRect(ctx, x, y, width, thickness, MathF.Min(radius, thickness), color);
-        FillRoundedRect(ctx, x, y + height - thickness, width, thickness, MathF.Min(radius, thickness), color);
-        FillRoundedRect(ctx, x, y, thickness, height, MathF.Min(radius, thickness), color);
-        FillRoundedRect(ctx, x + width - thickness, y, thickness, height, MathF.Min(radius, thickness), color);
     }
 
     private static void DrawTextShadow(
