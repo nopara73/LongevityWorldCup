@@ -37,10 +37,24 @@ public class FacebookDailyPostJob : IJob
                 continue;
             }
 
+            var claimedCustomEvent = false;
+            if (type == EventType.CustomEvent)
+            {
+                claimedCustomEvent = _events.TryClaimPendingCustomEventForDispatch(id, SocialPlatform.Facebook);
+                if (!claimedCustomEvent)
+                {
+                    _logger.LogInformation("FacebookDailyPostJob skipped custom event {Id} because another dispatcher claimed it", id);
+                    continue;
+                }
+            }
+
             var msg = _facebookEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
             {
-                skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
+                if (claimedCustomEvent)
+                    _events.MarkClaimedCustomEventSkippedForDispatch(id, SocialPlatform.Facebook, SocialEventSkipReason.EmptyMessage);
+                else
+                    skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
                 continue;
             }
 
@@ -57,11 +71,16 @@ public class FacebookDailyPostJob : IJob
             var sent = await _facebookEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
+                if (claimedCustomEvent)
+                    _events.FinalizeClaimedCustomEventForDispatch(id, SocialPlatform.Facebook, succeeded: false);
                 _logger.LogWarning("FacebookDailyPostJob send failed for event {Id}; leaving unprocessed", id);
                 return;
             }
 
-            _events.MarkEventsFacebookProcessed(new[] { id });
+            if (claimedCustomEvent)
+                _events.FinalizeClaimedCustomEventForDispatch(id, SocialPlatform.Facebook, succeeded: true);
+            else
+                _events.MarkEventsFacebookProcessed(new[] { id });
             _logger.LogInformation("FacebookDailyPostJob posted event {Id}", id);
             return;
         }

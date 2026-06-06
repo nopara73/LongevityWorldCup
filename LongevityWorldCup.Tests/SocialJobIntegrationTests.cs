@@ -103,6 +103,38 @@ public sealed class SocialJobIntegrationTests
     }
 
     [Fact]
+    public async Task FacebookJob_CustomEventClaimPreventsImmediateDispatchDuplicate()
+    {
+        SocialJobFixture? callbackFixture = null;
+        var immediateDispatchTriggered = false;
+        using var fixture = SocialJobFixture.Create(
+            facebookSendSucceeds: true,
+            onFacebookRequest: () =>
+            {
+                if (immediateDispatchTriggered)
+                    return;
+
+                immediateDispatchTriggered = true;
+                callbackFixture!.ProcessPendingImmediateCustomEvents();
+            });
+        callbackFixture = fixture;
+        var eventId = fixture.InsertEvent(
+            EventType.CustomEvent,
+            "Race test\n\nOnly one Facebook request should be made.",
+            DateTime.UtcNow,
+            slackProcessed: 1,
+            xProcessed: 1,
+            threadsProcessed: 1,
+            facebookProcessed: 0);
+
+        await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
+
+        Assert.True(immediateDispatchTriggered);
+        Assert.Equal((1, null), fixture.ReadPlatformState(eventId, "Facebook"));
+        Assert.Single(fixture.FacebookRequests);
+    }
+
+    [Fact]
     public void ImmediateCustomDispatch_SuccessClearsStaleSkipReason()
     {
         using var fixture = SocialJobFixture.Create(facebookSendSucceeds: true);
@@ -188,7 +220,7 @@ public sealed class SocialJobIntegrationTests
         public List<HttpRequestMessage> ThreadsRequests { get; }
         public List<HttpRequestMessage> FacebookRequests { get; }
 
-        public static SocialJobFixture Create(bool xSendSucceeds = true, bool facebookSendSucceeds = true)
+        public static SocialJobFixture Create(bool xSendSucceeds = true, bool facebookSendSucceeds = true, Action? onFacebookRequest = null)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-social-job-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(root, "athletes"));
@@ -236,9 +268,13 @@ public sealed class SocialJobIntegrationTests
                 NullLogger<ThreadsApiClient>.Instance);
             var facebookClient = new FacebookApiClient(
                 new HttpClient(new RecordingHttpHandler(
-                    _ => facebookSendSucceeds
-                        ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"id":"facebook-1"}""") }
-                        : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") },
+                    _ =>
+                    {
+                        onFacebookRequest?.Invoke();
+                        return facebookSendSucceeds
+                            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"id":"facebook-1"}""") }
+                            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") };
+                    },
                     facebookRequests)),
                 config,
                 NullLogger<FacebookApiClient>.Instance);

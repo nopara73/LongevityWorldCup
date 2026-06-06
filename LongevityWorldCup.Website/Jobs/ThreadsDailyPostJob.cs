@@ -65,10 +65,24 @@ public class ThreadsDailyPostJob : IJob
                 continue;
             }
 
+            var claimedCustomEvent = false;
+            if (type == EventType.CustomEvent)
+            {
+                claimedCustomEvent = _events.TryClaimPendingCustomEventForDispatch(id, SocialPlatform.Threads);
+                if (!claimedCustomEvent)
+                {
+                    _logger.LogInformation("ThreadsDailyPostJob skipped custom event {Id} because another dispatcher claimed it", id);
+                    continue;
+                }
+            }
+
             var msg = _threadsEvents.TryBuildMessage(type, text, id, visibleOnWebsite);
             if (string.IsNullOrWhiteSpace(msg))
             {
-                skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
+                if (claimedCustomEvent)
+                    _events.MarkClaimedCustomEventSkippedForDispatch(id, SocialPlatform.Threads, SocialEventSkipReason.EmptyMessage);
+                else
+                    skippedEvents.Add((id, SocialEventSkipReason.EmptyMessage));
                 continue;
             }
 
@@ -87,10 +101,15 @@ public class ThreadsDailyPostJob : IJob
                 : await _threadsEvents.TrySendEventAsync(type, text, id, visibleOnWebsite);
             if (!sent)
             {
+                if (claimedCustomEvent)
+                    _events.FinalizeClaimedCustomEventForDispatch(id, SocialPlatform.Threads, succeeded: false);
                 _logger.LogWarning("ThreadsDailyPostJob send failed for event {Id}; leaving unprocessed", id);
                 return;
             }
-            _events.MarkEventsThreadsProcessed(new[] { id });
+            if (claimedCustomEvent)
+                _events.FinalizeClaimedCustomEventForDispatch(id, SocialPlatform.Threads, succeeded: true);
+            else
+                _events.MarkEventsThreadsProcessed(new[] { id });
             _fillerLog.LogSubjectPost(nowUtc, $"event[{id}] type[{type}]", subjectSlug);
             _logger.LogInformation("ThreadsDailyPostJob posted event {Id}", id);
             return;

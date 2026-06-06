@@ -1,5 +1,10 @@
+using System.Net;
+using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -47,6 +52,33 @@ public sealed class SocialMessageBuilderTests
         Assert.Equal(
             expectedSlack,
             SlackMessageBuilder.ForEventText(EventType.CustomEvent, raw, SlugToName));
+    }
+
+    [Fact]
+    public void FacebookCustomEventBuilder_ReturnsGoldenMessageThroughServicePath()
+    {
+        var facebookEvents = CreateFacebookEventService();
+        facebookEvents.SetAthletesForFacebook([SiimForSocial()]);
+        const string raw = "Community update\n\nSiim [bold](wins), [strong](majorly). Welcome [mention](siim_land).";
+        const string expected = "Community update\n\nSiim wins, majorly. Welcome Siim Land.";
+
+        Assert.Equal(expected, facebookEvents.TryBuildMessage(EventType.CustomEvent, raw, "event123", visibleOnWebsite: true));
+        Assert.Equal(expected, facebookEvents.TryBuildMessage(EventType.CustomEvent, raw, "event123", visibleOnWebsite: false));
+        Assert.Null(facebookEvents.TryBuildMessage(EventType.CustomEvent, raw, eventId: null));
+        Assert.Null(facebookEvents.TryBuildMessage(EventType.NewRank, "slug[siim_land] rank[1]", "event123"));
+    }
+
+    [Fact]
+    public void FacebookCustomEventBuilder_KeepsLongTextPostThatThreadsWouldRenderAsImage()
+    {
+        var facebookEvents = CreateFacebookEventService();
+        var body = new string('A', 700);
+        var raw = "Long update\n\n" + body;
+        var expected = "Long update\n\n" + body;
+
+        Assert.Equal(expected, facebookEvents.TryBuildMessage(EventType.CustomEvent, raw, "event123", visibleOnWebsite: true));
+        Assert.Equal(CustomEventPostMode.Image, CustomEventSocialComposer.BuildPlan("event123", raw, 500, SlugToName).Mode);
+        Assert.Equal(CustomEventPostMode.Text, CustomEventSocialComposer.BuildPlan("event123", raw, 63206, SlugToName).Mode);
     }
 
     [Fact]
@@ -160,4 +192,54 @@ public sealed class SocialMessageBuilderTests
 
     private static XPostSampleSize MatureSample(XPostSampleBasis basis)
         => new(basis, N: 21, PhenoCount: 21, BortzCount: 21, CombinedCount: 21);
+
+    private static FacebookEventService CreateFacebookEventService()
+    {
+        var env = new TestWebHostEnvironment();
+        var config = new Config
+        {
+            FacebookPageId = "page-id",
+            FacebookPageAccessToken = "facebook-token"
+        };
+        var client = new FacebookApiClient(
+            new HttpClient(new NoOpHttpHandler()),
+            config,
+            NullLogger<FacebookApiClient>.Instance);
+        return new FacebookEventService(
+            client,
+            NullLogger<FacebookEventService>.Instance,
+            new CustomEventImageService(env, NullLogger<CustomEventImageService>.Instance));
+    }
+
+    private static AthleteForX SiimForSocial()
+        => new(
+            "siim_land",
+            "Siim Land",
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    private sealed class NoOpHttpHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"id":"facebook-1"}""") });
+        }
+    }
+
+    private sealed class TestWebHostEnvironment : IWebHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "LongevityWorldCup.Tests";
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+        public string WebRootPath { get; set; } = AppContext.BaseDirectory;
+        public string EnvironmentName { get; set; } = "Test";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    }
 }
