@@ -17,6 +17,14 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.NewRank, "slug[alice] rank[4]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.NewRank, "slug[alice] rank[1]", now.AddDays(-8), 0, freshCutoff, true, true, SocialEventSkipReason.StalePrimaryEvent };
         yield return new object[] { EventType.AthleteCountMilestone, "athletes[100]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.BecamePro, "slug[alice]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.BecamePro, "not-a-slug", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
+        yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[44.2] to[41.8]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[41.8] to[44.2]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
+        yield return new object[] { EventType.CrowdAgeTop10Change, "slug[alice] place[3] prevPlace[8] crowdAge[35.2] crowdCount[123]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.CrowdAgeTop10Change, "slug[alice] place[11] crowdAge[35.2] crowdCount[123]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
+        yield return new object[] { EventType.AgeImprovementTop10Change, "slug[alice] clock[pheno] place[3] prevPlace[8] improvement[-6.8] ageReduction[-20.4]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.AgeImprovementTop10Change, "slug[alice] clock[pheno] place[11] improvement[-6.8] ageReduction[-20.4]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Podcast] cat[Global] val[] place[1]", now, 99, freshCutoff, true, true, SocialEventSkipReason.PodcastBadgeHandledImmediately };
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Pheno Age - lowest] cat[Global] val[] place[2]", now, 2, freshCutoff, true, true, SocialEventSkipReason.NonWinningSingleWinnerBadge };
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Pheno Age best improvement] cat[Global] val[] place[1]", now, 3, freshCutoff, false, true, SocialEventSkipReason.TiedBestImprovementBadge };
@@ -31,6 +39,10 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.NewRank, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.BadgeAward, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.AthleteCountMilestone, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
+        yield return new object[] { EventType.BecamePro, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
+        yield return new object[] { EventType.BiologicalAgeImproved, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
+        yield return new object[] { EventType.CrowdAgeTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
+        yield return new object[] { EventType.AgeImprovementTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
         yield return new object[] { EventType.DonationReceived, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
     }
 

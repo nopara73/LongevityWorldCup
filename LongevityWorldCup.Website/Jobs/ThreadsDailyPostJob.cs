@@ -412,7 +412,12 @@ public class ThreadsDailyPostJob : IJob
 
     private static string? TryGetSubjectSlugForEvent(EventType type, string rawText)
     {
-        if (type == EventType.NewRank || type == EventType.BadgeAward)
+        if (type == EventType.NewRank ||
+            type == EventType.BadgeAward ||
+            type == EventType.BecamePro ||
+            type == EventType.BiologicalAgeImproved ||
+            type == EventType.CrowdAgeTop10Change ||
+            type == EventType.AgeImprovementTop10Change)
         {
             if (EventHelpers.TryExtractSlug(rawText, out var slug) && !string.IsNullOrWhiteSpace(slug))
                 return slug.Trim();

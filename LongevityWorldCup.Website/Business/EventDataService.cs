@@ -28,7 +28,11 @@ public enum EventType
     BadgeAward = 5,
     CustomEvent = 6,
     SeasonFinalResult = 7,
-    LongevitymaxxingChallengeResult = 8
+    LongevitymaxxingChallengeResult = 8,
+    BecamePro = 9,
+    BiologicalAgeImproved = 10,
+    CrowdAgeTop10Change = 11,
+    AgeImprovementTop10Change = 12
 }
 
 public sealed record CustomEventDeliveryTargets(
@@ -84,6 +88,10 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceAthleteMilestone = 8d;
     private const double DefaultRelevanceBadgeAward = 8d;
     private const double DefaultRelevanceLongevitymaxxingChallengeResult = 9d;
+    private const double DefaultRelevanceBecamePro = 9d;
+    private const double DefaultRelevanceBiologicalAgeImproved = 9d;
+    private const double DefaultRelevanceCrowdAgeTop10Change = 8d;
+    private const double DefaultRelevanceAgeImprovementTop10Change = 8d;
     private const int MaxCustomEventRetries = 3;
 
     private readonly DatabaseManager _db;
@@ -676,6 +684,26 @@ public sealed class EventDataService : IDisposable
             return 8;
         }
 
+        if (type == EventType.BecamePro)
+        {
+            return 8;
+        }
+
+        if (type == EventType.BiologicalAgeImproved)
+        {
+            return 8;
+        }
+
+        if (type == EventType.CrowdAgeTop10Change)
+        {
+            return 8;
+        }
+
+        if (type == EventType.AgeImprovementTop10Change)
+        {
+            return 8;
+        }
+
         return 99;
     }
 
@@ -925,6 +953,302 @@ public sealed class EventDataService : IDisposable
                 pType.Value = (int)EventType.NewRank;
                 pText.Value = text;
                 pOcc.Value = occurredAt;
+                pRel.Value = defaultRelevance;
+                insertCmd.ExecuteNonQuery();
+                created++;
+            }
+
+            tx.Commit();
+        });
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
+        }
+    }
+
+    public void CreateBecameProEvents(
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc)> items,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceBecamePro)
+    {
+        if (items is null) throw new ArgumentNullException(nameof(items));
+
+        int created = 0;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var existsCmd = sqlite.CreateCommand();
+            existsCmd.Transaction = tx;
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+
+            using var insertCmd = sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var (slug, occurredAtUtc) in items)
+            {
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+
+                var text = $"slug[{slug}]";
+                var shouldInsert = true;
+                if (skipIfExists)
+                {
+                    exType.Value = (int)EventType.BecamePro;
+                    exText.Value = text;
+                    shouldInsert = existsCmd.ExecuteScalar() == null;
+                }
+
+                if (!shouldInsert) continue;
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pType.Value = (int)EventType.BecamePro;
+                pText.Value = text;
+                pOcc.Value = EnsureUtc(occurredAtUtc).ToString("o");
+                pRel.Value = defaultRelevance;
+                insertCmd.ExecuteNonQuery();
+                created++;
+            }
+
+            tx.Commit();
+        });
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
+        }
+    }
+
+    public void CreateBiologicalAgeImprovementEvents(
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, double PreviousAge, double NewAge)> items,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceBiologicalAgeImproved)
+    {
+        if (items is null) throw new ArgumentNullException(nameof(items));
+
+        int created = 0;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var existsCmd = sqlite.CreateCommand();
+            existsCmd.Transaction = tx;
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+
+            using var insertCmd = sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var (slug, occurredAtUtc, clock, previousAge, newAge) in items)
+            {
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+                var normalizedClock = NormalizeImprovementClock(clock);
+                if (normalizedClock is null) continue;
+                if (!double.IsFinite(previousAge) || !double.IsFinite(newAge)) continue;
+                if (newAge >= previousAge) continue;
+
+                var previousText = previousAge.ToString("0.##", CultureInfo.InvariantCulture);
+                var newText = newAge.ToString("0.##", CultureInfo.InvariantCulture);
+                var text = $"slug[{slug}] clock[{normalizedClock}] from[{previousText}] to[{newText}]";
+
+                var shouldInsert = true;
+                if (skipIfExists)
+                {
+                    exType.Value = (int)EventType.BiologicalAgeImproved;
+                    exText.Value = text;
+                    shouldInsert = existsCmd.ExecuteScalar() == null;
+                }
+
+                if (!shouldInsert) continue;
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pType.Value = (int)EventType.BiologicalAgeImproved;
+                pText.Value = text;
+                pOcc.Value = EnsureUtc(occurredAtUtc).ToString("o");
+                pRel.Value = defaultRelevance;
+                insertCmd.ExecuteNonQuery();
+                created++;
+            }
+
+            tx.Commit();
+        });
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
+        }
+    }
+
+    public void CreateCrowdAgeTop10ChangeEvents(
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Place, int? PreviousPlace, string? PreviousSlug, double CrowdAge, int CrowdCount)> items,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceCrowdAgeTop10Change)
+    {
+        if (items is null) throw new ArgumentNullException(nameof(items));
+
+        int created = 0;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var existsCmd = sqlite.CreateCommand();
+            existsCmd.Transaction = tx;
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+
+            using var insertCmd = sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var (slug, occurredAtUtc, place, previousPlace, previousSlug, crowdAge, crowdCount) in items)
+            {
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+                if (place is < 1 or > 10) continue;
+                if (previousPlace is < 1 or > 10) continue;
+                if (!double.IsFinite(crowdAge)) continue;
+                if (crowdCount < 1) continue;
+
+                var parts = new List<string>
+                {
+                    $"slug[{NormalizeEventToken(slug)}]",
+                    $"place[{place.ToString(CultureInfo.InvariantCulture)}]"
+                };
+
+                if (previousPlace.HasValue)
+                    parts.Add($"prevPlace[{previousPlace.Value.ToString(CultureInfo.InvariantCulture)}]");
+                if (!string.IsNullOrWhiteSpace(previousSlug))
+                    parts.Add($"prev[{NormalizeEventToken(previousSlug)}]");
+
+                parts.Add($"crowdAge[{crowdAge.ToString("0.##", CultureInfo.InvariantCulture)}]");
+                parts.Add($"crowdCount[{crowdCount.ToString(CultureInfo.InvariantCulture)}]");
+
+                var text = string.Join(" ", parts);
+
+                var shouldInsert = true;
+                if (skipIfExists)
+                {
+                    exType.Value = (int)EventType.CrowdAgeTop10Change;
+                    exText.Value = text;
+                    shouldInsert = existsCmd.ExecuteScalar() == null;
+                }
+
+                if (!shouldInsert) continue;
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pType.Value = (int)EventType.CrowdAgeTop10Change;
+                pText.Value = text;
+                pOcc.Value = EnsureUtc(occurredAtUtc).ToString("o");
+                pRel.Value = defaultRelevance;
+                insertCmd.ExecuteNonQuery();
+                created++;
+            }
+
+            tx.Commit();
+        });
+
+        if (created > 0)
+        {
+            ReloadIntoCache();
+        }
+    }
+
+    public void CreateAgeImprovementTop10ChangeEvents(
+        IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, int Place, int? PreviousPlace, string? PreviousSlug, double Improvement, double AgeReduction)> items,
+        bool skipIfExists = true,
+        double defaultRelevance = DefaultRelevanceAgeImprovementTop10Change)
+    {
+        if (items is null) throw new ArgumentNullException(nameof(items));
+
+        int created = 0;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var existsCmd = sqlite.CreateCommand();
+            existsCmd.Transaction = tx;
+            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
+            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+
+            using var insertCmd = sqlite.CreateCommand();
+            insertCmd.Transaction = tx;
+            insertCmd.CommandText =
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+            var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
+            var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
+            var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
+            var pOcc = insertCmd.Parameters.Add("@occ", SqliteType.Text);
+            var pRel = insertCmd.Parameters.Add("@rel", SqliteType.Real);
+
+            foreach (var (slug, occurredAtUtc, rawClock, place, previousPlace, previousSlug, improvement, ageReduction) in items)
+            {
+                if (string.IsNullOrWhiteSpace(slug)) continue;
+                var clock = NormalizeImprovementClock(rawClock);
+                if (clock is null) continue;
+                if (place is < 1 or > 10) continue;
+                if (previousPlace is < 1 or > 10) continue;
+                if (!double.IsFinite(improvement)) continue;
+                if (!double.IsFinite(ageReduction)) continue;
+
+                var parts = new List<string>
+                {
+                    $"slug[{NormalizeEventToken(slug)}]",
+                    $"clock[{clock}]",
+                    $"place[{place.ToString(CultureInfo.InvariantCulture)}]"
+                };
+
+                if (previousPlace.HasValue)
+                    parts.Add($"prevPlace[{previousPlace.Value.ToString(CultureInfo.InvariantCulture)}]");
+                if (!string.IsNullOrWhiteSpace(previousSlug))
+                    parts.Add($"prev[{NormalizeEventToken(previousSlug)}]");
+
+                parts.Add($"improvement[{improvement.ToString("0.##", CultureInfo.InvariantCulture)}]");
+                parts.Add($"ageReduction[{ageReduction.ToString("0.##", CultureInfo.InvariantCulture)}]");
+
+                var text = string.Join(" ", parts);
+
+                var shouldInsert = true;
+                if (skipIfExists)
+                {
+                    exType.Value = (int)EventType.AgeImprovementTop10Change;
+                    exText.Value = text;
+                    shouldInsert = existsCmd.ExecuteScalar() == null;
+                }
+
+                if (!shouldInsert) continue;
+
+                pId.Value = Guid.NewGuid().ToString("N");
+                pType.Value = (int)EventType.AgeImprovementTop10Change;
+                pText.Value = text;
+                pOcc.Value = EnsureUtc(occurredAtUtc).ToString("o");
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
                 created++;
@@ -1540,11 +1864,15 @@ public sealed class EventDataService : IDisposable
             (filters.Count > 0 ? " WHERE " + string.Join(" AND ", filters) : "") +
             $" ORDER BY OccurredAt {(newestFirst ? "DESC" : "ASC")}, CASE " +
             $"WHEN Type = {(int)EventType.Joined} THEN 0 " +
-            $"WHEN Type = {(int)EventType.NewRank} THEN 1 " +
-            $"WHEN Type = {(int)EventType.SeasonFinalResult} THEN 2 " +
-            $"WHEN Type = {(int)EventType.LongevitymaxxingChallengeResult} THEN 3 " +
-            $"WHEN Type = {(int)EventType.BadgeAward} THEN 4 " +
-            $"ELSE 5 END ASC" +
+            $"WHEN Type = {(int)EventType.BecamePro} THEN 1 " +
+            $"WHEN Type = {(int)EventType.BiologicalAgeImproved} THEN 2 " +
+            $"WHEN Type = {(int)EventType.CrowdAgeTop10Change} THEN 3 " +
+            $"WHEN Type = {(int)EventType.AgeImprovementTop10Change} THEN 4 " +
+            $"WHEN Type = {(int)EventType.NewRank} THEN 5 " +
+            $"WHEN Type = {(int)EventType.SeasonFinalResult} THEN 6 " +
+            $"WHEN Type = {(int)EventType.LongevitymaxxingChallengeResult} THEN 7 " +
+            $"WHEN Type = {(int)EventType.BadgeAward} THEN 8 " +
+            $"ELSE 9 END ASC" +
             (limit.HasValue ? " LIMIT @limit OFFSET @offset" : "");
 
         return _db.Run(sqlite =>
@@ -1626,6 +1954,21 @@ public sealed class EventDataService : IDisposable
     private static DateTime EnsureUtc(DateTime dt) =>
         dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
+    private static string? NormalizeImprovementClock(string? clock)
+    {
+        if (string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(clock, "phenoage", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(clock, "pheno age", StringComparison.OrdinalIgnoreCase))
+            return "pheno";
+
+        if (string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(clock, "bortzage", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(clock, "bortz age", StringComparison.OrdinalIgnoreCase))
+            return "bortz";
+
+        return null;
+    }
+
     private void FireAndForgetSlack(EventType type, string rawText)
     {
         if (type == EventType.NewRank)
@@ -1650,6 +1993,30 @@ public sealed class EventDataService : IDisposable
         if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
         {
             _ = _slackEvents.SendImmediateAsync(type, rawText);
+            return;
+        }
+
+        if (type == EventType.BecamePro)
+        {
+            _ = _slackEvents.BufferAsync(type, rawText);
+            return;
+        }
+
+        if (type == EventType.BiologicalAgeImproved)
+        {
+            _ = _slackEvents.BufferAsync(type, rawText);
+            return;
+        }
+
+        if (type == EventType.CrowdAgeTop10Change)
+        {
+            _ = _slackEvents.BufferAsync(type, rawText);
+            return;
+        }
+
+        if (type == EventType.AgeImprovementTop10Change)
+        {
+            _ = _slackEvents.BufferAsync(type, rawText);
             return;
         }
 
