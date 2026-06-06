@@ -130,7 +130,10 @@ public sealed class EventDataService : IDisposable
                         SlackProcessed INTEGER NOT NULL DEFAULT 0,
                         XProcessed     INTEGER NOT NULL DEFAULT 0,
                         ThreadsProcessed INTEGER NOT NULL DEFAULT 0,
-                        FacebookProcessed INTEGER NOT NULL DEFAULT 0
+                        FacebookProcessed INTEGER NOT NULL DEFAULT 0,
+                        XSkipReason    TEXT,
+                        ThreadsSkipReason TEXT,
+                        FacebookSkipReason TEXT
                     );
                     """;
                 cmd.ExecuteNonQuery();
@@ -219,6 +222,18 @@ public sealed class EventDataService : IDisposable
                     cmd.CommandText = "UPDATE Events SET VisibleOnWebsite = 1;";
                     cmd.ExecuteNonQuery();
                 }
+
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN XSkipReason TEXT;";
+                try { cmd.ExecuteNonQuery(); }
+                catch { }
+
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN ThreadsSkipReason TEXT;";
+                try { cmd.ExecuteNonQuery(); }
+                catch { }
+
+                cmd.CommandText = "ALTER TABLE Events ADD COLUMN FacebookSkipReason TEXT;";
+                try { cmd.ExecuteNonQuery(); }
+                catch { }
 
                 cmd.CommandText = "CREATE INDEX IF NOT EXISTS IX_Events_OccurredAt ON Events(OccurredAt);";
                 cmd.ExecuteNonQuery();
@@ -472,7 +487,9 @@ public sealed class EventDataService : IDisposable
         _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"UPDATE Events SET {processedColumn} = @state WHERE Id = @id AND {processedColumn} = 2;";
+            var skipReasonColumn = GetSkipReasonColumn(processedColumn);
+            var clearSkipReason = succeeded && skipReasonColumn is not null ? $", {skipReasonColumn} = NULL" : "";
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = @state{clearSkipReason} WHERE Id = @id AND {processedColumn} = 2;";
             cmd.Parameters.AddWithValue("@state", succeeded ? 1 : 0);
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
@@ -485,10 +502,25 @@ public sealed class EventDataService : IDisposable
         _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = $"UPDATE Events SET {processedColumn} = 1 WHERE Type = @type AND {processedColumn} = 0;";
+            var skipReasonColumn = GetSkipReasonColumn(processedColumn);
+            var skipReasonUpdate = skipReasonColumn is null ? "" : $", {skipReasonColumn} = @skipReason";
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = 1{skipReasonUpdate} WHERE Type = @type AND {processedColumn} = 0;";
             cmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
+            if (skipReasonColumn is not null)
+                cmd.Parameters.AddWithValue("@skipReason", SocialEventSkipReason.PlatformNotConfigured.ToString());
             cmd.ExecuteNonQuery();
         });
+    }
+
+    private static string? GetSkipReasonColumn(string processedColumn)
+    {
+        return processedColumn switch
+        {
+            "XProcessed" => "XSkipReason",
+            "ThreadsProcessed" => "ThreadsSkipReason",
+            "FacebookProcessed" => "FacebookSkipReason",
+            _ => null
+        };
     }
 
     public const int XPriorityPrimaryMax = 8;
@@ -498,12 +530,7 @@ public sealed class EventDataService : IDisposable
         var list = _db.Run(sqlite =>
         {
             var filters = new List<string> { "XProcessed = 0" };
-            var parameters = new List<SqliteParameter>
-            {
-                new SqliteParameter("@joined", (int)EventType.Joined)
-            };
-
-            filters.Add("Type != @joined");
+            var parameters = new List<SqliteParameter>();
 
             if (fromUtc.HasValue)
             {
@@ -590,6 +617,16 @@ public sealed class EventDataService : IDisposable
 
     public void MarkEventsXProcessed(IEnumerable<string> ids)
     {
+        MarkEventsProcessed(ids, "XProcessed", "XSkipReason");
+    }
+
+    public void MarkEventsXSkipped(IEnumerable<(string Id, SocialEventSkipReason Reason)> skipped)
+    {
+        MarkEventsSkipped(skipped, "XProcessed", "XSkipReason");
+    }
+
+    private void MarkEventsProcessed(IEnumerable<string> ids, string processedColumn, string skipReasonColumn)
+    {
         var idList = ids.ToList();
         if (idList.Count == 0) return;
 
@@ -598,11 +635,36 @@ public sealed class EventDataService : IDisposable
             using var tx = sqlite.BeginTransaction();
             using var cmd = sqlite.CreateCommand();
             cmd.Transaction = tx;
-            cmd.CommandText = "UPDATE Events SET XProcessed = 1 WHERE Id = @id AND XProcessed = 0";
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = 1, {skipReasonColumn} = NULL WHERE Id = @id AND {processedColumn} = 0";
             var pId = cmd.Parameters.Add("@id", SqliteType.Text);
             foreach (var id in idList)
             {
                 pId.Value = id;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        });
+    }
+
+    private void MarkEventsSkipped(IEnumerable<(string Id, SocialEventSkipReason Reason)> skipped, string processedColumn, string skipReasonColumn)
+    {
+        var rows = skipped
+            .Where(x => !string.IsNullOrWhiteSpace(x.Id) && x.Reason != SocialEventSkipReason.None)
+            .ToList();
+        if (rows.Count == 0) return;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var cmd = sqlite.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = $"UPDATE Events SET {processedColumn} = 1, {skipReasonColumn} = @reason WHERE Id = @id AND {processedColumn} = 0";
+            var pId = cmd.Parameters.Add("@id", SqliteType.Text);
+            var pReason = cmd.Parameters.Add("@reason", SqliteType.Text);
+            foreach (var (id, reason) in rows)
+            {
+                pId.Value = id;
+                pReason.Value = reason.ToString();
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
@@ -614,12 +676,7 @@ public sealed class EventDataService : IDisposable
         var list = _db.Run(sqlite =>
         {
             var filters = new List<string> { "ThreadsProcessed = 0" };
-            var parameters = new List<SqliteParameter>
-            {
-                new SqliteParameter("@joined", (int)EventType.Joined)
-            };
-
-            filters.Add("Type != @joined");
+            var parameters = new List<SqliteParameter>();
 
             if (fromUtc.HasValue)
             {
@@ -667,23 +724,12 @@ public sealed class EventDataService : IDisposable
 
     public void MarkEventsThreadsProcessed(IEnumerable<string> ids)
     {
-        var idList = ids.ToList();
-        if (idList.Count == 0) return;
+        MarkEventsProcessed(ids, "ThreadsProcessed", "ThreadsSkipReason");
+    }
 
-        _db.Run(sqlite =>
-        {
-            using var tx = sqlite.BeginTransaction();
-            using var cmd = sqlite.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = "UPDATE Events SET ThreadsProcessed = 1 WHERE Id = @id AND ThreadsProcessed = 0";
-            var pId = cmd.Parameters.Add("@id", SqliteType.Text);
-            foreach (var id in idList)
-            {
-                pId.Value = id;
-                cmd.ExecuteNonQuery();
-            }
-            tx.Commit();
-        });
+    public void MarkEventsThreadsSkipped(IEnumerable<(string Id, SocialEventSkipReason Reason)> skipped)
+    {
+        MarkEventsSkipped(skipped, "ThreadsProcessed", "ThreadsSkipReason");
     }
 
     public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite, int XPriority)> GetPendingFacebookEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
@@ -691,12 +737,7 @@ public sealed class EventDataService : IDisposable
         var list = _db.Run(sqlite =>
         {
             var filters = new List<string> { "FacebookProcessed = 0" };
-            var parameters = new List<SqliteParameter>
-            {
-                new SqliteParameter("@joined", (int)EventType.Joined)
-            };
-
-            filters.Add("Type != @joined");
+            var parameters = new List<SqliteParameter>();
 
             if (fromUtc.HasValue)
             {
@@ -744,23 +785,12 @@ public sealed class EventDataService : IDisposable
 
     public void MarkEventsFacebookProcessed(IEnumerable<string> ids)
     {
-        var idList = ids.ToList();
-        if (idList.Count == 0) return;
+        MarkEventsProcessed(ids, "FacebookProcessed", "FacebookSkipReason");
+    }
 
-        _db.Run(sqlite =>
-        {
-            using var tx = sqlite.BeginTransaction();
-            using var cmd = sqlite.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = "UPDATE Events SET FacebookProcessed = 1 WHERE Id = @id AND FacebookProcessed = 0";
-            var pId = cmd.Parameters.Add("@id", SqliteType.Text);
-            foreach (var id in idList)
-            {
-                pId.Value = id;
-                cmd.ExecuteNonQuery();
-            }
-            tx.Commit();
-        });
+    public void MarkEventsFacebookSkipped(IEnumerable<(string Id, SocialEventSkipReason Reason)> skipped)
+    {
+        MarkEventsSkipped(skipped, "FacebookProcessed", "FacebookSkipReason");
     }
 
     public void SetAthletesForX(IReadOnlyList<AthleteForX> items)
