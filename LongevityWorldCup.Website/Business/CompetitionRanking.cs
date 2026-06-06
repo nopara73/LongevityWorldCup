@@ -15,6 +15,20 @@ public sealed record CrowdAgeRankCandidate(
     int CrowdCount,
     DateTime DobUtc);
 
+public sealed record PhenoAgeImprovementRankCandidate(
+    string Slug,
+    string Name,
+    double PhenoAgeImprovement,
+    double PhenoAgeReduction,
+    DateTime DobUtc);
+
+public sealed record BortzAgeImprovementRankCandidate(
+    string Slug,
+    string Name,
+    double BortzAgeImprovement,
+    double BortzAgeReduction,
+    DateTime DobUtc);
+
 /// <summary>
 /// Result returned by a hypothetical Ultimate League rank preview.
 /// </summary>
@@ -68,6 +82,24 @@ public static class CompetitionRanking
         return rows
             .OrderBy(t => t.CrowdAgeReduction)
             .ThenByDescending(t => t.CrowdCount)
+            .ThenBy(t => t.DobUtc)
+            .ThenBy(t => t.Name, StringComparer.Ordinal);
+    }
+
+    public static IOrderedEnumerable<PhenoAgeImprovementRankCandidate> SortByPhenoAgeImprovementRules(IEnumerable<PhenoAgeImprovementRankCandidate> rows)
+    {
+        return rows
+            .OrderBy(t => t.PhenoAgeImprovement)
+            .ThenBy(t => t.PhenoAgeReduction)
+            .ThenBy(t => t.DobUtc)
+            .ThenBy(t => t.Name, StringComparer.Ordinal);
+    }
+
+    public static IOrderedEnumerable<BortzAgeImprovementRankCandidate> SortByBortzAgeImprovementRules(IEnumerable<BortzAgeImprovementRankCandidate> rows)
+    {
+        return rows
+            .OrderBy(t => t.BortzAgeImprovement)
+            .ThenBy(t => t.BortzAgeReduction)
             .ThenBy(t => t.DobUtc)
             .ThenBy(t => t.Name, StringComparer.Ordinal);
     }

@@ -26,6 +26,8 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 
 The Longevitymaxxing Challenge is a standalone Lifestyle challenge and must not be mixed into Ultimate League ranking, biological age placements, or athlete badges.
 Longevitymaxxing Challenge final results and linked-athlete completions may appear as Events/highlights; keep those highlights separate from Ultimate League ranking, biological age placements, and athlete badges.
+Longevitymaxxing Challenge profile pictures for participants without linked athlete profiles are challenge-only generated assets; do not create or modify athlete profile pictures from those uploads.
+For Longevitymaxxing Challenge participants, linked Longevity athlete profile pictures remain the display priority when present, uploaded challenge profile pictures have priority over cached Gravatar fallbacks, and neither challenge uploads nor Gravatar fallbacks create or modify Longevity athlete profile pictures.
 
 ## Ranking Logic Must Stay Aligned
 
@@ -35,6 +37,7 @@ Longevitymaxxing Challenge final results and linked-athlete completions may appe
 - The expected outcome is that the backend and frontend produce the same ordering and the same placements for the same data.
 - Bioage calculator rank previews are clock-specific: pheno age shows the Pheno-only field rank, and bortz age shows the Bortz-only field rank.
 - The crowd age leaderboard view is separate from Ultimate League ranking. Only athletes with at least 100 crowd guesses are eligible. It follows the same sign convention as other age-reduction columns: `CrowdAge - chronologicalAge`, with more negative values ranking higher, then higher `CrowdCount`, then older date of birth, then name.
+- Improvement leaderboard views are separate from Ultimate League ranking. Pheno Improvement is exposed through filters/routes as `Improvement` and ranks `latest eligible pheno age - worst eligible pheno age`; Bortz Improvement is also available through filters/routes and ranks `latest eligible bortz age - worst eligible bortz age`. Lower and more negative values rank higher, then the same clock's age reduction, then older date of birth, then name.
 - Guess My Age submissions are server-rate-limited before increasing `CrowdCount`: one accepted realistic guess per client IP and athlete during the configured short window.
 
 ## Ultimate League Ordering
@@ -61,7 +64,7 @@ Longevitymaxxing Challenge final results and linked-athlete completions may appe
 ## Social API Token Maintenance
 
 - Threads access token maintenance is part of the daily Threads social post job, even on days with no postable content.
-- `ThreadsAccessTokenExpiresAtUtc` and `ThreadsAccessTokenLastRefreshAttemptAtUtc` are runtime config metadata used to avoid silent token expiry; keep them in sync when manually replacing `ThreadsAccessToken`.
+- `ThreadsAccessTokenExpiresAtUtc` and `ThreadsAccessTokenLastRefreshAttemptAtUtc` are runtime config metadata used to avoid silent token expiry; keep them in sync when manually replacing `ThreadsAccessToken`. Runtime social token updates may be persisted in `/var/www/.longevityworldcup/runtime-config.json` when `publish/config.json` is not writable, so update or remove that sidecar if you need a manual config replacement to take precedence immediately.
 - Expired Threads tokens cannot be recovered in code. Generate a fresh token in Meta, then let the app refresh it proactively before future expiry.
 
 ## Keep This File Updated

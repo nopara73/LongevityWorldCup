@@ -154,6 +154,7 @@ public class AthleteDataService : IDisposable
 
         // Hydrate persisted age‐guess stats from SQLite
         ReloadCrowdStats();
+        HydrateAgeImprovementIntoAthletesJson();
         HydratePlacementsIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
         HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
@@ -223,6 +224,7 @@ public class AthleteDataService : IDisposable
         try
         {
             ReloadCrowdStats();
+            HydrateAgeImprovementIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
@@ -503,6 +505,7 @@ public class AthleteDataService : IDisposable
             var newlyJoined = EnsureDbRowsForNewAthletes();
 
             ReloadCrowdStats();
+            HydrateAgeImprovementIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
@@ -778,8 +781,12 @@ public class AthleteDataService : IDisposable
                 obj["LowestBortzAge"] = Math.Round(r.LowestBortzAge.Value, 2);
             if (r.PhenoAgeDiffFromBaseline.HasValue)
                 obj["PhenoAgeDiffFromBaseline"] = Math.Round(r.PhenoAgeDiffFromBaseline.Value, 2);
+            if (r.PhenoAgeImprovementFromWorst.HasValue)
+                obj["PhenoAgeImprovementFromWorst"] = Math.Round(r.PhenoAgeImprovementFromWorst.Value, 2);
             if (r.BortzAgeDiffFromBaseline.HasValue)
                 obj["BortzAgeDiffFromBaseline"] = Math.Round(r.BortzAgeDiffFromBaseline.Value, 2);
+            if (r.BortzAgeImprovementFromWorst.HasValue)
+                obj["BortzAgeImprovementFromWorst"] = Math.Round(r.BortzAgeImprovementFromWorst.Value, 2);
 
             results.Add((new CompetitionRankCandidate(slug, name, hasBortz, effectiveDiff, dobUtc), obj));
         }
@@ -919,6 +926,62 @@ public class AthleteDataService : IDisposable
             var crowdAgeReduction = crowdAge - chronologicalAge;
 
             list.Add(new CrowdAgeRankCandidate(slug, name, crowdAge, crowdAgeReduction, crowdCount, dobUtc));
+        }
+
+        return list;
+    }
+
+    private IReadOnlyList<PhenoAgeImprovementRankCandidate> GetPhenoAgeImprovementRankCandidates()
+    {
+        var snapshot = GetAthletesSnapshot();
+        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
+        var list = new List<PhenoAgeImprovementRankCandidate>();
+
+        foreach (var r in statsMap.Values)
+        {
+            if (!r.DobUtc.HasValue ||
+                !r.PhenoAgeImprovementFromWorst.HasValue ||
+                !double.IsFinite(r.PhenoAgeImprovementFromWorst.Value) ||
+                !r.AgeReduction.HasValue ||
+                !double.IsFinite(r.AgeReduction.Value))
+            {
+                continue;
+            }
+
+            list.Add(new PhenoAgeImprovementRankCandidate(
+                r.Slug,
+                r.Name ?? "",
+                r.PhenoAgeImprovementFromWorst.Value,
+                r.AgeReduction.Value,
+                r.DobUtc.Value));
+        }
+
+        return list;
+    }
+
+    private IReadOnlyList<BortzAgeImprovementRankCandidate> GetBortzAgeImprovementRankCandidates()
+    {
+        var snapshot = GetAthletesSnapshot();
+        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
+        var list = new List<BortzAgeImprovementRankCandidate>();
+
+        foreach (var r in statsMap.Values)
+        {
+            if (!r.DobUtc.HasValue ||
+                !r.BortzAgeImprovementFromWorst.HasValue ||
+                !double.IsFinite(r.BortzAgeImprovementFromWorst.Value) ||
+                !r.BortzAgeReduction.HasValue ||
+                !double.IsFinite(r.BortzAgeReduction.Value))
+            {
+                continue;
+            }
+
+            list.Add(new BortzAgeImprovementRankCandidate(
+                r.Slug,
+                r.Name ?? "",
+                r.BortzAgeImprovementFromWorst.Value,
+                r.BortzAgeReduction.Value,
+                r.DobUtc.Value));
         }
 
         return list;
@@ -1213,6 +1276,22 @@ public class AthleteDataService : IDisposable
                 .ToList();
         }
 
+        if (!requireBortz &&
+            (string.Equals(leagueSlug, "improvement", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(leagueSlug, "pheno-improvement", StringComparison.OrdinalIgnoreCase)))
+        {
+            return CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates())
+                .Select(t => t.Slug)
+                .ToList();
+        }
+
+        if (!requireBortz && string.Equals(leagueSlug, "bortz-improvement", StringComparison.OrdinalIgnoreCase))
+        {
+            return CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates())
+                .Select(t => t.Slug)
+                .ToList();
+        }
+
         var order = GetRankingsOrder();
         if (order.Count == 0) return Array.Empty<string>();
         if (string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase))
@@ -1380,6 +1459,47 @@ public class AthleteDataService : IDisposable
                 var arr = new JsonArray();
                 foreach (var v in p) arr.Add(v is int x ? JsonValue.Create(x) : null);
                 athleteJson["Placements"] = arr;
+            }
+        }
+    }
+
+    private void HydrateAgeImprovementIntoAthletesJson()
+    {
+        var snapshot = GetAthletesSnapshot();
+        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
+
+        lock (_athletesJsonLock)
+        {
+            foreach (var athleteJson in _athletes.OfType<JsonObject>())
+            {
+                var slug = athleteJson["AthleteSlug"]?.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(slug) ||
+                    !statsMap.TryGetValue(slug, out var stats))
+                {
+                    athleteJson.Remove("PhenoAgeImprovementFromWorst");
+                    athleteJson.Remove("BortzAgeImprovementFromWorst");
+                    continue;
+                }
+
+                if (stats.PhenoAgeImprovementFromWorst.HasValue &&
+                    double.IsFinite(stats.PhenoAgeImprovementFromWorst.Value))
+                {
+                    athleteJson["PhenoAgeImprovementFromWorst"] = stats.PhenoAgeImprovementFromWorst.Value;
+                }
+                else
+                {
+                    athleteJson.Remove("PhenoAgeImprovementFromWorst");
+                }
+
+                if (stats.BortzAgeImprovementFromWorst.HasValue &&
+                    double.IsFinite(stats.BortzAgeImprovementFromWorst.Value))
+                {
+                    athleteJson["BortzAgeImprovementFromWorst"] = stats.BortzAgeImprovementFromWorst.Value;
+                }
+                else
+                {
+                    athleteJson.Remove("BortzAgeImprovementFromWorst");
+                }
             }
         }
     }

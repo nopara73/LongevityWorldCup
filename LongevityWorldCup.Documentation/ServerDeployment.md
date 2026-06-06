@@ -78,6 +78,8 @@ The final sync preserves production-owned runtime paths:
 
 Deletion is scoped to `wwwroot/athletes/` so removed athlete proofs disappear from production without turning this deploy into a broad cleanup of old unrelated server files.
 
+Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
+
 ## Check Website
 https://www.longevityworldcup.com/
 
@@ -225,6 +227,8 @@ After first run, config file is created:
 ```sh
 sudo nano /var/www/LongevityWorldCup/publish/config.json
 ```
+
+The app may also create `/var/www/.longevityworldcup/runtime-config.json` for rotated X, Threads, and Facebook tokens when `publish/config.json` is read-only to `www-data`.
 
 Make sure to publish the app at the unisable google website if it's a new setup. Otherwise refresh token expires in 7 days: https://console.cloud.google.com/auth/audience  
 Publish before generating refresh token!

@@ -65,6 +65,8 @@ public sealed class SocialImageRenderingTests
                      "ruleset",
                      "view-bortz",
                      "view-pheno",
+                     "view-improvement",
+                     "view-bortz-improvement",
                      "view-crowd"
                  })
         {

@@ -84,6 +84,20 @@ public sealed class PageOgImageService
                 "Track verified Pheno Age submissions across the accessible Amateur path.",
                 "78DA3B",
                 ["Pheno Age", "Amateur track", "All-time clock"]),
+            ["view-improvement"] = new(
+                "view-improvement",
+                "Progress view",
+                "Improvement leaderboard",
+                "Track Pheno Improvement from each athlete's worst eligible result to latest eligible result.",
+                "78DA3B",
+                ["Pheno Improvement", "Latest result", "Worst result"]),
+            ["view-bortz-improvement"] = new(
+                "view-bortz-improvement",
+                "Pro progress view",
+                "Bortz Improvement leaderboard",
+                "Track Bortz Improvement from each athlete's worst eligible result to latest eligible result.",
+                "FFB020",
+                ["Bortz Improvement", "Pro track", "Latest result"]),
             ["view-crowd"] = new(
                 "view-crowd",
                 "Community view",

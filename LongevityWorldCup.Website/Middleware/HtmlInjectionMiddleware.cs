@@ -47,6 +47,12 @@ namespace LongevityWorldCup.Website.Middleware
                 ["pheno"] = new(
                     "Pheno Age Leaderboard | Longevity World Cup",
                     "Verified Pheno Age submissions."),
+                ["improvement"] = new(
+                    "Improvement Leaderboard | Longevity World Cup",
+                    "Pheno Improvement rankings."),
+                ["bortz-improvement"] = new(
+                    "Bortz Improvement Leaderboard | Longevity World Cup",
+                    "Bortz Improvement rankings."),
                 ["crowd"] = new(
                     "Crowd Age Leaderboard | Longevity World Cup",
                     "Crowd Age rankings from accepted guesses.")
@@ -833,7 +839,7 @@ $@"<script type=""module"">
 
             if (IsLeagueRoute(canonicalPath))
             {
-                var raw = canonicalPath["/league/".Length..].Trim('/');
+                var raw = NormalizeLeaderboardViewSlug(canonicalPath["/league/".Length..].Trim('/'));
                 if (LeaderboardViewSeoBySlug.ContainsKey(raw))
                 {
                     viewSlug = raw.ToLowerInvariant();
@@ -848,7 +854,7 @@ $@"<script type=""module"">
                 return false;
             }
 
-            var candidate = viewQuery.ToString().Trim().ToLowerInvariant();
+            var candidate = NormalizeLeaderboardViewSlug(viewQuery.ToString().Trim());
             if (!LeaderboardViewSeoBySlug.ContainsKey(candidate))
             {
                 return false;
@@ -856,6 +862,13 @@ $@"<script type=""module"">
 
             viewSlug = candidate;
             return true;
+        }
+
+        private static string NormalizeLeaderboardViewSlug(string value)
+        {
+            return string.Equals(value, "pheno-improvement", StringComparison.OrdinalIgnoreCase)
+                ? "improvement"
+                : value.ToLowerInvariant();
         }
 
         private string BuildStructuredDataJson(SeoMeta seo)

@@ -15,6 +15,8 @@ public sealed class SharePreviewMetadataTests
     [InlineData("/ruleset", "/og/page/ruleset.png?v=")]
     [InlineData("/league/bortz", "/og/page/view-bortz.png?v=")]
     [InlineData("/league/pheno", "/og/page/view-pheno.png?v=")]
+    [InlineData("/league/improvement", "/og/page/view-improvement.png?v=")]
+    [InlineData("/league/bortz-improvement", "/og/page/view-bortz-improvement.png?v=")]
     [InlineData("/league/crowd", "/og/page/view-crowd.png?v=")]
     public async Task PublicPages_UseGeneratedPageSharePreviewImages(string path, string expectedImagePath)
     {

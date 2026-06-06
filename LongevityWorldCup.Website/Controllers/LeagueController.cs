@@ -22,6 +22,9 @@ namespace LongevityWorldCup.Website.Controllers
                 ["prosperan"] = "/?filters=prosperan",
                 ["bortz"] = "/?view=bortz",
                 ["pheno"] = "/?view=pheno",
+                ["improvement"] = "/?view=improvement",
+                ["pheno-improvement"] = "/?view=improvement",
+                ["bortz-improvement"] = "/?view=bortz-improvement",
                 ["crowd"] = "/?view=crowd"
             };
 
