@@ -39,7 +39,11 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Ultimate League Pro/Amateur ordering is domain behavior: Pro entries must appear before Amateur entries.
 - The crowd age leaderboard view is separate from Ultimate League ranking. Only athletes with at least 100 crowd guesses are eligible. It follows the same sign convention as other age-reduction columns: `CrowdAge - chronologicalAge`, with more negative values ranking higher, then higher `CrowdCount`, then older date of birth, then name.
 - Improvement leaderboard views are separate from Ultimate League ranking. Pheno Improvement is exposed through filters/routes as `Improvement` and ranks `latest eligible pheno age - worst eligible pheno age`; Bortz Improvement is also available through filters/routes and ranks `latest eligible bortz age - worst eligible bortz age`. Lower and more negative values rank higher, then the same clock's age reduction, then older date of birth, then name.
+- Pheno/Bortz Improvement top-10 placement changes emit Events after the initial stored placement snapshot; keep these separate from biological-age improvement Events.
 - Guess My Age submissions are server-rate-limited before increasing `CrowdCount`: one accepted realistic guess per client IP and athlete during the configured short window.
+- Existing Amateur athletes emit a went Pro Event when they first gain an eligible Bortz Age result; athletes who join already Pro only emit normal join/rank Events.
+- Existing athletes emit a biological-age improvement Event when a changed result lowers their stored best pheno age or Bortz Age; this is separate from Pheno/Bortz Improvement leaderboard metrics.
+- Crowd Age top-10 placement changes emit Events after the initial stored placement snapshot; they follow the separate Crowd Age leaderboard ordering and must not affect Ultimate League ranking.
 
 ## Static Asset Loading Must Use Middleware Versioning
 
@@ -53,6 +57,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Athlete profile and proof asset URLs should be versioned when emitted from the data service. Unversioned `/athletes/...` and `/generated/...` requests are intentionally cached briefly only as a fallback.
 - When changing the API of an existing external JS file, review every injected HTML/partial caller in the repo and ensure the versioned URL path still goes through the middleware replacement flow.
 - If a helper is moved from inline script to a separate JS file, verify that the file is loaded in every page, modal, iframe, or embedded context that uses that helper.
+- Homepage highlights are intentionally curated, not a raw Event feed; preserve same-athlete de-duplication and the fourth-visit highlights-before-podium layout behavior when changing `index.html` or event-board rendering.
 
 ## Social API Token Maintenance
 

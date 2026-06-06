@@ -838,7 +838,15 @@
             return window.__sharedAthletesRequest;
         };
 
-        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8 };
+        const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12 };
+        const EVENT_TYPE_NAME_BY_ID = {};
+        Object.keys(EVENT_TYPE).forEach(name => {
+            EVENT_TYPE_NAME_BY_ID[String(EVENT_TYPE[name])] = name;
+        });
+
+        function eventTypeName(type){
+            return EVENT_TYPE_NAME_BY_ID[String(Number(type))] || "Unknown";
+        }
 
         function buildEventSkeletonRows(count=5){
             return Array.from({ length: count }, () => `
@@ -1121,6 +1129,12 @@
             const n = parseInt(raw, 10);
             return Number.isFinite(n) ? n : null;
         }
+        function extractFloatToken(text, key){
+            const raw = extractToken(text, key);
+            if(raw===null) return null;
+            const n = parseFloat(raw);
+            return Number.isFinite(n) ? n : null;
+        }
 
         function renderTextWithSlugLinks(text, linkNames, athletesIndex, afterSlug){
             const s=String(text);
@@ -1310,6 +1324,7 @@
                 const type=Number(e[map["type"]]??0);
                 const text=String(e[map["text"]]??"");
                 const occurredAt=e[map["occurredat"]]??e[map["occurredAt"]]??e["OccurredAt"]??null;
+                const relevance=Number(e[map["relevance"]]??e["Relevance"]??0);
 
                 const slugTokens=extractSlugs(text).map(s=>slugifyLocal(normalizeLinkId(s)));
                 const primarySlug=slugTokens[0]||null;
@@ -1349,8 +1364,15 @@
                 const totalPoints = extractIntToken(text, "points");
                 const challengeDays = extractIntToken(text, "days");
                 const challengeCompleted = /completed\[1\]/.test(text);
+                const bioAgeFrom = extractFloatToken(text, "from");
+                const bioAgeTo = extractFloatToken(text, "to");
+                const previousPlace = extractIntToken(text, "prevPlace");
+                const eventCrowdAge = extractFloatToken(text, "crowdAge");
+                const eventCrowdCount = extractIntToken(text, "crowdCount");
+                const eventImprovement = extractFloatToken(text, "improvement");
+                const eventAgeReduction = extractFloatToken(text, "ageReduction");
 
-                return { id, type, text, occurredAt, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff, challengeKey, challengeDisplayName, checkedInDays, totalPoints, challengeDays, challengeCompleted };
+                return { id, type, text, occurredAt, relevance, slugs: slugTokens, primarySlug, prevSlug, prevSlugs, isSolo, badgeBurstKey, rank, sats, milestoneCount, badgeLabel, leagueCategory, leagueValue, place, seasonId, clockId, ageDiff, challengeKey, challengeDisplayName, checkedInDays, totalPoints, challengeDays, challengeCompleted, bioAgeFrom, bioAgeTo, previousPlace, eventCrowdAge, eventCrowdCount, eventImprovement, eventAgeReduction };
             });
         }
 
@@ -1493,7 +1515,7 @@
         }
 
         function groupAthleteBursts(rows, windowMs=60000){
-            const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult]);
+            const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult, EVENT_TYPE.BecamePro, EVENT_TYPE.BiologicalAgeImproved, EVENT_TYPE.CrowdAgeTop10Change, EVENT_TYPE.AgeImprovementTop10Change]);
 
             const timeOf=r=>{
                 const t=+new Date(r && r.occurredAt ? r.occurredAt : 0);
@@ -1604,7 +1626,7 @@
                 const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
 
                 let avatarHtml = "";
-                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult)
+                const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change)
                     && r.primarySlug
                     && url
                     && !isSelfRow
@@ -1618,7 +1640,7 @@
                     ? ` data-athlete-slug="${esc(primaryKey)}"`
                     : ``;
 
-                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
+                if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
                     if (img) {
                         avatarHtml = canLinkAvatar
                             ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}><img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></a>`
@@ -1731,6 +1753,95 @@
                                 msgHtml = `${nameWithRank} adds ${bubble} to the collection`;
                             }
                         }
+                    }
+                } else if (r.type === EVENT_TYPE.BecamePro && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+                    msgHtml = `${nameWithRank} went Pro`;
+                } else if (r.type === EVENT_TYPE.BiologicalAgeImproved && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+                    const clockNorm = String(r.clockId || "").toLowerCase().replace(/\s+/g,"");
+                    const clockText = clockNorm === "bortz" || clockNorm === "bortzage" ? "Bortz Age" : "pheno age";
+                    const fromText = Number.isFinite(r.bioAgeFrom)
+                        ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(r.bioAgeFrom)
+                        : "?";
+                    const toText = Number.isFinite(r.bioAgeTo)
+                        ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(r.bioAgeTo)
+                        : "?";
+                    msgHtml = `${nameWithRank} improved their ${esc(clockText)} from <strong class="age-years-accent">${esc(fromText)}</strong> to <strong class="age-years-accent">${esc(toText)}</strong> years`;
+                } else if (r.type === EVENT_TYPE.CrowdAgeTop10Change && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+                    const placeN = Number.isFinite(r.place) ? r.place : null;
+                    const previousPlaceN = Number.isFinite(r.previousPlace) ? r.previousPlace : null;
+                    const placeText = placeN ? ordinal(placeN) : "?";
+                    const movementText = previousPlaceN
+                        ? (previousPlaceN > placeN ? `climbed from ${ordinal(previousPlaceN)} to ${placeText}` : `moved from ${ordinal(previousPlaceN)} to ${placeText}`)
+                        : `entered the top 10 at ${placeText}`;
+                    const prevHtml = r.prevSlug
+                        ? renderTextWithSlugLinks(`slug[${r.prevSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
+                        : "";
+                    const crowdAgeText = Number.isFinite(r.eventCrowdAge)
+                        ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(r.eventCrowdAge)
+                        : "?";
+                    const crowdCountText = Number.isFinite(r.eventCrowdCount)
+                        ? new Intl.NumberFormat().format(r.eventCrowdCount)
+                        : "?";
+                    if (r.crowdAgeDirection === "lost") {
+                        const toHtml = r.otherSlug
+                            ? renderTextWithSlugLinks(`slug[${r.otherSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
+                            : "";
+                        msgHtml = toHtml
+                            ? `${nameWithRank} lost the ${esc(placeText)} Crowd Age position to ${toHtml}`
+                            : `${nameWithRank} lost the ${esc(placeText)} Crowd Age position`;
+                    } else {
+                        const prevText = prevHtml ? `, ahead of ${prevHtml}` : "";
+                        msgHtml = `${nameWithRank} ${esc(movementText)} in Crowd Age${prevText} <span class="event-inline-text">(<strong class="age-years-accent">${esc(crowdAgeText)}</strong> years, ${esc(crowdCountText)} guesses)</span>`;
+                    }
+                } else if (r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug) {
+                    const nameWithRank = renderTextWithSlugLinks(
+                        `slug[${r.primarySlug}]`,
+                        linkNames,
+                        athletesIndex,
+                        afterNameWithCurrentRankFor()
+                    );
+                    const placeN = Number.isFinite(r.place) ? r.place : null;
+                    const previousPlaceN = Number.isFinite(r.previousPlace) ? r.previousPlace : null;
+                    const placeText = placeN ? ordinal(placeN) : "?";
+                    const movementText = previousPlaceN
+                        ? (previousPlaceN > placeN ? `climbed from ${ordinal(previousPlaceN)} to ${placeText}` : `moved from ${ordinal(previousPlaceN)} to ${placeText}`)
+                        : `entered the top 10 at ${placeText}`;
+                    const clockNorm = String(r.clockId || "").toLowerCase().replace(/\s+/g,"");
+                    const leaderboardName = clockNorm === "bortz" || clockNorm === "bortzage" ? "Bortz Improvement" : "Pheno Improvement";
+                    const improvementText = Number.isFinite(r.eventImprovement)
+                        ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 1, signDisplay: "exceptZero" }).format(r.eventImprovement)
+                        : "?";
+                    if (r.improvementDirection === "lost") {
+                        const toHtml = r.otherSlug
+                            ? renderTextWithSlugLinks(`slug[${r.otherSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
+                            : "";
+                        msgHtml = toHtml
+                            ? `${nameWithRank} lost the ${esc(placeText)} ${esc(leaderboardName)} position to ${toHtml}`
+                            : `${nameWithRank} lost the ${esc(placeText)} ${esc(leaderboardName)} position`;
+                    } else {
+                        const prevHtml = r.prevSlug
+                            ? renderTextWithSlugLinks(`slug[${r.prevSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
+                            : "";
+                        const prevText = prevHtml ? `, ahead of ${prevHtml}` : "";
+                        msgHtml = `${nameWithRank} ${esc(movementText)} in ${esc(leaderboardName)}${prevText} <span class="event-inline-text">(<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
@@ -1867,6 +1978,9 @@
                 tr.className = "row-appear main-row";
                 tr.dataset.rowIndex = String(idx);
                 tr.dataset.groupId = `g_${idx}`;
+                tr.dataset.eventTypeName = eventTypeName(r.type);
+                if (r.primarySlug) tr.dataset.primarySlug = String(r.primarySlug);
+                if (r.homepageHighlightSelection) tr.dataset.highlightSelection = String(r.homepageHighlightSelection);
                 if (r.id) tr.dataset.eventId = String(r.id);
                 tr.innerHTML =
                     `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
@@ -2085,6 +2199,150 @@
             return out;
         }
 
+        const HOMEPAGE_ATHLETE_HIGHLIGHT_TYPES = new Set([
+            EVENT_TYPE.Joined,
+            EVENT_TYPE.NewRank,
+            EVENT_TYPE.BadgeAward,
+            EVENT_TYPE.LongevitymaxxingChallengeResult,
+            EVENT_TYPE.BecamePro,
+            EVENT_TYPE.BiologicalAgeImproved,
+            EVENT_TYPE.CrowdAgeTop10Change,
+            EVENT_TYPE.AgeImprovementTop10Change
+        ]);
+
+        function rowTimeMs(row){
+            const t=+new Date(row && row.occurredAt ? row.occurredAt : 0);
+            return Number.isFinite(t) ? t : 0;
+        }
+
+        function topPlaceBonus(place, maxPlace=10){
+            if(!Number.isFinite(place) || place<1 || place>maxPlace) return 0;
+            return maxPlace + 1 - place;
+        }
+
+        function homepageAthleteHighlightKey(row){
+            if(!(row && row.primarySlug && HOMEPAGE_ATHLETE_HIGHLIGHT_TYPES.has(row.type))) return null;
+            return String(row.primarySlug);
+        }
+
+        function badgeHighlightScore(row){
+            const key=normalizeBadgeKey(row && row.badgeLabel);
+            const placeBonus=topPlaceBonus(row && row.place, 3);
+            let score=placeBonus*35;
+
+            if(row && row.isGroup){
+                const count=Number.isFinite(row.badgeCount) ? row.badgeCount : (Array.isArray(row.items) ? row.items.length : 1);
+                score += Math.min(count, 6)*12;
+            }
+
+            if(key==="age reduction") score += 120;
+            else if(key==="pheno age - lowest" || key==="bortz age - lowest" || key==="crowd age - lowest") score += 110;
+            else if(key==="pheno age best improvement" || key==="bortz age best improvement") score += 100;
+            else if(key.startsWith("best domain -")) score += 85;
+            else score += 55;
+
+            const cat=normalizeBadgeKey(row && row.leagueCategory);
+            if(!cat || cat==="global") score += 12;
+            return score;
+        }
+
+        function homepageHighlightImportance(row){
+            if(!row) return 0;
+
+            const relevance=Number.isFinite(row.relevance) ? row.relevance*20 : 0;
+            switch(row.type){
+                case EVENT_TYPE.NewRank:
+                    return 10000 + relevance + topPlaceBonus(row.rank, 10)*120;
+                case EVENT_TYPE.BecamePro:
+                    return 9400 + relevance;
+                case EVENT_TYPE.BiologicalAgeImproved: {
+                    const delta = Number.isFinite(row.bioAgeFrom) && Number.isFinite(row.bioAgeTo)
+                        ? Math.max(0, row.bioAgeFrom - row.bioAgeTo)
+                        : 0;
+                    return 9300 + relevance + Math.min(delta, 20)*20;
+                }
+                case EVENT_TYPE.BadgeAward:
+                    return 9000 + relevance + badgeHighlightScore(row);
+                case EVENT_TYPE.LongevitymaxxingChallengeResult:
+                    return 8800 + relevance + topPlaceBonus(row.place, 10)*50 + (row.challengeCompleted ? 25 : 0);
+                case EVENT_TYPE.CrowdAgeTop10Change: {
+                    const movement = Number.isFinite(row.previousPlace) && Number.isFinite(row.place)
+                        ? Math.max(0, row.previousPlace - row.place)
+                        : 0;
+                    return 8700 + relevance + topPlaceBonus(row.place, 10)*45 + movement*10;
+                }
+                case EVENT_TYPE.AgeImprovementTop10Change: {
+                    const magnitude = Number.isFinite(row.eventImprovement) ? Math.min(Math.abs(row.eventImprovement), 25) : 0;
+                    const movement = Number.isFinite(row.previousPlace) && Number.isFinite(row.place)
+                        ? Math.max(0, row.previousPlace - row.place)
+                        : 0;
+                    return 8650 + relevance + topPlaceBonus(row.place, 10)*45 + movement*10 + magnitude*5;
+                }
+                case EVENT_TYPE.Joined:
+                    return 5000 + relevance;
+                default:
+                    return relevance;
+            }
+        }
+
+        function compareHomepageHighlightPreference(a,b){
+            const sa=homepageHighlightImportance(a);
+            const sb=homepageHighlightImportance(b);
+            if(sa!==sb) return sa-sb;
+
+            const ta=rowTimeMs(a);
+            const tb=rowTimeMs(b);
+            if(ta!==tb) return ta-tb;
+
+            const ia=String(a && a.id || "");
+            const ib=String(b && b.id || "");
+            return ia.localeCompare(ib);
+        }
+
+        function selectHomepageHighlightRows(rows, maxRows){
+            if(!Number.isFinite(maxRows) || maxRows<=0) return rows;
+
+            const nonAthlete=[];
+            const bestByAthlete=new Map();
+            const repeats=[];
+
+            for(const row of rows){
+                const key=homepageAthleteHighlightKey(row);
+                if(!key){
+                    row.homepageHighlightSelection = "global";
+                    nonAthlete.push(row);
+                    continue;
+                }
+
+                const existing=bestByAthlete.get(key);
+                if(!existing){
+                    row.homepageHighlightSelection = "primary";
+                    bestByAthlete.set(key,row);
+                    continue;
+                }
+
+                if(compareHomepageHighlightPreference(row,existing)>0){
+                    existing.homepageHighlightSelection = "repeat";
+                    repeats.push(existing);
+                    row.homepageHighlightSelection = "primary";
+                    bestByAthlete.set(key,row);
+                }else{
+                    row.homepageHighlightSelection = "repeat";
+                    repeats.push(row);
+                }
+            }
+
+            const uniqueRows=nonAthlete.concat([...bestByAthlete.values()]);
+            if(uniqueRows.length>=maxRows) return uniqueRows;
+
+            repeats.sort((a,b)=>compareHomepageHighlightPreference(b,a));
+            const backfill = repeats.slice(0,maxRows-uniqueRows.length);
+            backfill.forEach(row => {
+                row.homepageHighlightSelection = "backfill-repeat";
+            });
+            return uniqueRows.concat(backfill);
+        }
+
         function normalizeIncomingAthleteId(id){
             if(id==null) return '';
             let s=String(id).trim();
@@ -2221,6 +2479,32 @@
                                 return;
                             }
                         }
+
+                        if(r.type===EVENT_TYPE.CrowdAgeTop10Change){
+                            if(r.prevSlug===target){
+                                const winner = r.primarySlug;
+
+                                r.crowdAgeDirection = "lost";
+                                r.otherSlug = winner || null;
+
+                                r.primarySlug = target;
+                                r.prevSlug = null;
+                                return;
+                            }
+                        }
+
+                        if(r.type===EVENT_TYPE.AgeImprovementTop10Change){
+                            if(r.prevSlug===target){
+                                const winner = r.primarySlug;
+
+                                r.improvementDirection = "lost";
+                                r.otherSlug = winner || null;
+
+                                r.primarySlug = target;
+                                r.prevSlug = null;
+                                return;
+                            }
+                        }
                     });
                 }else{
                     rows=rows.filter(r=>
@@ -2234,6 +2518,10 @@
 
                 if(!target){
                     rows = filterBadgeRowsForMainFeed(rows, mode);
+                }
+
+                if(mode==="highlights"){
+                    rows = selectHomepageHighlightRows(rows, n);
                 }
 
                 rows.sort((a,b)=>{

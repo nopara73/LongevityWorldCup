@@ -32,6 +32,87 @@ public sealed class SocialMessageBuilderTests
     }
 
     [Fact]
+    public void BecameProEventBuilders_ReturnGoldenMessages()
+    {
+        const string raw = "slug[siim_land]";
+        var expectedX =
+            "Siim Land went Pro.\n\n" +
+            "Bortz Age results now place them in the Pro track.\n\n" +
+            "https://longevityworldcup.com/athlete/siim-land";
+        const string expectedSlack =
+            "<https://longevityworldcup.com/athlete/siim-land|Siim Land> went Pro";
+
+        Assert.Equal(expectedX, XMessageBuilder.ForEventText(EventType.BecamePro, raw, SlugToName));
+        Assert.Equal(expectedX, ThreadsMessageBuilder.ForEventText(EventType.BecamePro, raw, SlugToName));
+        Assert.Equal(expectedSlack, SlackMessageBuilder.ForEventText(EventType.BecamePro, raw, SlugToName));
+    }
+
+    [Fact]
+    public void MergedSlackRankAndBecameProEvent_ReturnsWentProMessage()
+    {
+        var items = new[]
+        {
+            (EventType.NewRank, "slug[siim_land] rank[2] prev[bryan_johnson]"),
+            (EventType.BecamePro, "slug[siim_land]")
+        };
+        const string expected =
+            "In the Ultimate League, <https://longevityworldcup.com/athlete/siim-land|Siim Land> is now #2 🥈, ahead of <https://longevityworldcup.com/athlete/bryan-johnson|Bryan Johnson>, and went Pro";
+
+        Assert.Equal(expected, SlackMessageBuilder.ForMergedGroup(items, SlugToName));
+    }
+
+    [Theory]
+    [InlineData("pheno", "pheno age")]
+    [InlineData("bortz", "Bortz Age")]
+    public void BiologicalAgeImprovementEventBuilders_ReturnGoldenMessages(string clock, string expectedClockLabel)
+    {
+        var raw = $"slug[siim_land] clock[{clock}] from[44.21] to[41.8]";
+        var expectedX =
+            $"Siim Land improved their {expectedClockLabel} from 44.21 to 41.8 years.\n\n" +
+            "https://longevityworldcup.com/athlete/siim-land";
+        var expectedSlack =
+            $"<https://longevityworldcup.com/athlete/siim-land|Siim Land> improved their {expectedClockLabel} from 44.21 to 41.8 years";
+
+        Assert.Equal(expectedX, XMessageBuilder.ForEventText(EventType.BiologicalAgeImproved, raw, SlugToName));
+        Assert.Equal(expectedX, ThreadsMessageBuilder.ForEventText(EventType.BiologicalAgeImproved, raw, SlugToName));
+        Assert.Equal(expectedSlack, SlackMessageBuilder.ForEventText(EventType.BiologicalAgeImproved, raw, SlugToName));
+    }
+
+    [Fact]
+    public void CrowdAgeTop10ChangeEventBuilders_ReturnGoldenMessages()
+    {
+        const string raw = "slug[siim_land] place[3] prevPlace[8] prev[bryan_johnson] crowdAge[35.25] crowdCount[123]";
+        var expectedX =
+            "Siim Land climbed from 8th to 3rd in the Crowd Age leaderboard, ahead of Bryan Johnson.\n\n" +
+            "Crowd Age: 35.3 years from 123 guesses.\n\n" +
+            "https://longevityworldcup.com/athlete/siim-land?ctx=crowd";
+        var expectedSlack =
+            "<https://longevityworldcup.com/athlete/siim-land|Siim Land> climbed from 8th to 3rd in Crowd Age, ahead of <https://longevityworldcup.com/athlete/bryan-johnson|Bryan Johnson> (35.3 years, 123 guesses)";
+
+        Assert.Equal(expectedX, XMessageBuilder.ForEventText(EventType.CrowdAgeTop10Change, raw, SlugToName));
+        Assert.Equal(expectedX, ThreadsMessageBuilder.ForEventText(EventType.CrowdAgeTop10Change, raw, SlugToName));
+        Assert.Equal(expectedSlack, SlackMessageBuilder.ForEventText(EventType.CrowdAgeTop10Change, raw, SlugToName));
+    }
+
+    [Theory]
+    [InlineData("pheno", "Pheno Improvement", "improvement")]
+    [InlineData("bortz", "Bortz Improvement", "bortz-improvement")]
+    public void AgeImprovementTop10ChangeEventBuilders_ReturnGoldenMessages(string clock, string leaderboardName, string ctx)
+    {
+        var raw = $"slug[siim_land] clock[{clock}] place[3] prevPlace[8] prev[bryan_johnson] improvement[-6.75] ageReduction[-20.4]";
+        var expectedX =
+            $"Siim Land climbed from 8th to 3rd in the {leaderboardName} leaderboard, ahead of Bryan Johnson.\n\n" +
+            "Improvement: -6.8 years from worst to latest eligible result.\n\n" +
+            $"https://longevityworldcup.com/athlete/siim-land?ctx={ctx}";
+        var expectedSlack =
+            $"<https://longevityworldcup.com/athlete/siim-land|Siim Land> climbed from 8th to 3rd in {leaderboardName}, ahead of <https://longevityworldcup.com/athlete/bryan-johnson|Bryan Johnson> (-6.8 years)";
+
+        Assert.Equal(expectedX, XMessageBuilder.ForEventText(EventType.AgeImprovementTop10Change, raw, SlugToName));
+        Assert.Equal(expectedX, ThreadsMessageBuilder.ForEventText(EventType.AgeImprovementTop10Change, raw, SlugToName));
+        Assert.Equal(expectedSlack, SlackMessageBuilder.ForEventText(EventType.AgeImprovementTop10Change, raw, SlugToName));
+    }
+
+    [Fact]
     public void CustomEventBuilders_ReturnGoldenMessages()
     {
         const string raw = "Community update\n\nSiim [bold](wins), [strong](majorly). Welcome [mention](siim_land).";
