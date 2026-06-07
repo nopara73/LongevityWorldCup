@@ -18,6 +18,10 @@ public static class SlackMessageBuilder
         {
             EventType.NewRank => BuildNewRank(slug, rank, prev, slugToName),
             EventType.Joined => BuildJoined(slug, slugToName),
+            EventType.BecamePro => BuildBecamePro(slug, slugToName),
+            EventType.BiologicalAgeImproved => BuildBiologicalAgeImprovement(slug, rawText, slugToName),
+            EventType.CrowdAgeTop10Change => BuildCrowdAgeTop10Change(slug, rawText, slugToName),
+            EventType.AgeImprovementTop10Change => BuildAgeImprovementTop10Change(slug, rawText, slugToName),
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
             EventType.BadgeAward => BuildBadgeAward(rawText, getPodcastLinkForSlug),
@@ -54,6 +58,7 @@ public static class SlackMessageBuilder
 
         int? newRank = null;
         string? prevSlug = null;
+        var hasBecamePro = false;
 
         bool hasPodcast = false;
 
@@ -69,6 +74,12 @@ public static class SlackMessageBuilder
 
         foreach (var it in list)
         {
+            if (it.Type == EventType.BecamePro)
+            {
+                hasBecamePro = true;
+                continue;
+            }
+
             if (it.Type == EventType.NewRank)
             {
                 if (EventHelpers.TryExtractRank(it.Raw, out var r)) newRank = r;
@@ -148,7 +159,8 @@ public static class SlackMessageBuilder
             }
         }
 
-        if (!newRank.HasValue || newRank.Value <= 0) return "";
+        if (!newRank.HasValue || newRank.Value <= 0)
+            return hasBecamePro ? BuildBecamePro(slug, slugToName) : "";
 
         static string F2(double v) => v.ToString("0.00", CultureInfo.InvariantCulture);
 
@@ -228,7 +240,7 @@ public static class SlackMessageBuilder
         var hasAwardExtras = !string.IsNullOrWhiteSpace(awardText);
         var hasPodcastExtra = hasPodcast;
 
-        if (!hasLeagueExtras && !hasAwardExtras && !hasPodcastExtra)
+        if (!hasBecamePro && !hasLeagueExtras && !hasAwardExtras && !hasPodcastExtra)
         {
             return BuildNewRank(slug, newRank.Value, prevSlug, slugToName);
         }
@@ -248,12 +260,17 @@ public static class SlackMessageBuilder
             sb.Append(prevLink);
         }
 
+        if (hasBecamePro)
+        {
+            sb.Append(", and went Pro");
+        }
+
         // If the athlete is already #1 in the Ultimate League, listing additional
         // #1 positions in sub-leagues/divisions is redundant noise for Slack.
         // In that case we intentionally skip the "also #1 in ..." wording.
         if (hasLeagueExtras)
         {
-            sb.Append(", and also #1 in ");
+            sb.Append(hasBecamePro ? ", also #1 in " : ", and also #1 in ");
             sb.Append(JoinList(leagueParts));
         }
         else if (!string.IsNullOrWhiteSpace(awardText))
@@ -321,6 +338,81 @@ public static class SlackMessageBuilder
         var prevNameLink = Link(AthleteUrl(prev), prevName);
 
         return $"{currNameLink} is now {rankWithMedal} in Ultimate League, ahead of {prevNameLink}";
+    }
+
+    private static string BuildBecamePro(string? slug, Func<string, string> slugToName)
+    {
+        if (slug is null) return "An athlete went Pro";
+
+        var name = slugToName(slug);
+        var nameLink = Link(AthleteUrl(slug), name);
+        return $"{nameLink} went Pro";
+    }
+
+    private static string BuildBiologicalAgeImprovement(string? slug, string rawText, Func<string, string> slugToName)
+    {
+        if (slug is null ||
+            !EventHelpers.TryExtractBiologicalAgeImprovement(rawText, out var clock, out var fromAge, out var toAge))
+        {
+            return Escape(rawText);
+        }
+
+        var name = slugToName(slug);
+        var nameLink = Link(AthleteUrl(slug), name);
+        var clockLabel = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
+            ? "Bortz Age"
+            : "pheno age";
+        var fromText = fromAge.ToString("0.##", CultureInfo.InvariantCulture);
+        var toText = toAge.ToString("0.##", CultureInfo.InvariantCulture);
+        return $"{nameLink} improved their {clockLabel} from {fromText} to {toText} years";
+    }
+
+    private static string BuildCrowdAgeTop10Change(string? slug, string rawText, Func<string, string> slugToName)
+    {
+        if (slug is null ||
+            !EventHelpers.TryExtractCrowdAgeTop10Change(rawText, out var place, out var previousPlace, out var crowdAge, out var crowdCount))
+        {
+            return Escape(rawText);
+        }
+
+        var name = slugToName(slug);
+        var nameLink = Link(AthleteUrl(slug), name);
+        EventHelpers.TryExtractPrev(rawText, out var prevSlug);
+        var prevText = !string.IsNullOrWhiteSpace(prevSlug)
+            ? $", ahead of {Link(AthleteUrl(prevSlug), slugToName(prevSlug))}"
+            : "";
+        var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
+        var countText = crowdCount.ToString("N0", CultureInfo.InvariantCulture);
+        var movement = previousPlace.HasValue
+            ? previousPlace.Value > place ? $"climbed from {Ordinal(previousPlace.Value)} to {Ordinal(place)}" : $"moved from {Ordinal(previousPlace.Value)} to {Ordinal(place)}"
+            : $"entered the top 10 at {Ordinal(place)}";
+
+        return $"{nameLink} {movement} in Crowd Age{prevText} ({crowdAgeText} years, {countText} guesses)";
+    }
+
+    private static string BuildAgeImprovementTop10Change(string? slug, string rawText, Func<string, string> slugToName)
+    {
+        if (slug is null ||
+            !EventHelpers.TryExtractAgeImprovementTop10Change(rawText, out var clock, out var place, out var previousPlace, out var improvement, out _))
+        {
+            return Escape(rawText);
+        }
+
+        var name = slugToName(slug);
+        var nameLink = Link(AthleteUrl(slug), name);
+        EventHelpers.TryExtractPrev(rawText, out var prevSlug);
+        var prevText = !string.IsNullOrWhiteSpace(prevSlug)
+            ? $", ahead of {Link(AthleteUrl(prevSlug), slugToName(prevSlug))}"
+            : "";
+        var movement = previousPlace.HasValue
+            ? previousPlace.Value > place ? $"climbed from {Ordinal(previousPlace.Value)} to {Ordinal(place)}" : $"moved from {Ordinal(previousPlace.Value)} to {Ordinal(place)}"
+            : $"entered the top 10 at {Ordinal(place)}";
+        var leaderboardName = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
+            ? "Bortz Improvement"
+            : "Pheno Improvement";
+        var improvementText = FormatSignedYears(improvement);
+
+        return $"{nameLink} {movement} in {leaderboardName}{prevText} ({improvementText} years)";
     }
 
     private static string BuildDonation(string rawText)
@@ -454,6 +546,12 @@ public static class SlackMessageBuilder
     private static string Link(string url, string text) => $"<{url}|{Escape(text)}>";
 
     private static string Escape(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private static string FormatSignedYears(double years)
+    {
+        var text = years.ToString("0.#", CultureInfo.InvariantCulture);
+        return years > 0 ? $"+{text}" : text;
+    }
 
     private static string Ordinal(int n)
     {
