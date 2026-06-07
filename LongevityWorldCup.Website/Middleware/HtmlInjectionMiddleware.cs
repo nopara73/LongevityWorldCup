@@ -113,6 +113,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--HEAD-->", head)
                         .Replace("<!--HEADER-->", ApplySharedAssetPlaceholders(header))
                         .Replace("<!--FOOTER-->", footer)
+                        .Replace("<!--HOMEPAGE-FIRST-VIEWPORT-->", BuildHomepageFirstViewport(path))
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
                         .Replace("<!--SUB-PROGRESS-BAR-->", subProgressBar)
                         .Replace("<!--LEADERBOARD-CONTENT-->", leaderboardContent)
@@ -637,6 +638,32 @@ $@"<script type=""module"">
             return normalizedPath.Equals("/play", StringComparison.OrdinalIgnoreCase)
                 || normalizedPath.StartsWith("/play/", StringComparison.OrdinalIgnoreCase)
                 || normalizedPath.Contains("/join-game", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string BuildHomepageFirstViewport(string? path)
+        {
+            if (!ShouldRenderHomepageFirstViewport(path))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                return HomepageFirstViewportRenderer.Render(_leaderboardFacts.GetLeaderboardSnapshot());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Falling back to static homepage first-viewport copy after leaderboard signal rendering failed.");
+                return HomepageFirstViewportRenderer.Render(new LeaderboardSnapshot([]));
+            }
+        }
+
+        private static bool ShouldRenderHomepageFirstViewport(string? path)
+        {
+            var normalizedPath = RouteCanonicalization.NormalizePath(path);
+
+            return normalizedPath.Equals("/", StringComparison.OrdinalIgnoreCase)
+                || normalizedPath.Equals("/index.html", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string EncodeMeta(string value)

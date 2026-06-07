@@ -51,11 +51,11 @@
 
     .tagline {
         display: block;
-        margin-top: 0.65rem;
-        font-size: clamp(1rem, 1.5vw, 1.1rem);
+        margin-top: 0.5rem;
+        font-size: clamp(0.95rem, 1.4vw, 1.04rem);
         font-weight: 400;
         color: #e2e8f0;
-        letter-spacing: 0.04em;
+        letter-spacing: 0;
     }
 
     body {
@@ -78,7 +78,7 @@
         background: var(--background-color);
         color: var(--light-text-color);
         text-align: center;
-        padding: clamp(0.95rem, 2vw, 1.2rem) 0 clamp(1.05rem, 2.2vw, 1.35rem);
+        padding: clamp(0.8rem, 1.7vw, 1.05rem) 0 clamp(0.9rem, 2vw, 1.18rem);
         position: relative;
         overflow: hidden;
         display: flex;
@@ -98,19 +98,19 @@
     }
 
     .header-link > .main-logo-image {
-        width: clamp(72px, 8vw, 88px);
+        width: clamp(64px, 7vw, 78px);
         height: auto;
-        margin-bottom: 0.55rem;
+        margin-bottom: 0.46rem;
     }
 
     .bannertext {
         text-align: center; /* Optional */
         box-sizing: border-box;
-        font-size: clamp(1.95rem, 4.4vw, 2.45rem);
+        font-size: clamp(1.85rem, 4vw, 2.3rem);
         line-height: 1.08;
         font-weight: 700;
         text-transform: capitalize;
-        letter-spacing: 0.05em;
+        letter-spacing: 0;
         position: relative;
         text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35);
         max-width: 100%;
@@ -144,8 +144,8 @@
     }
 
     .join-game {
-        margin-top: 1rem;
-        padding: 0.75rem 1.65rem;
+        margin-top: 0.78rem;
+        padding: 0.68rem 1.45rem;
         font-size: clamp(1.08rem, 1.7vw, 1.25rem);
         line-height: 1;
         background: var(--main-action-color);
@@ -607,7 +607,7 @@
     .site-sticky-header-title {
         font-size: 1.1rem;
         font-weight: 700;
-        letter-spacing: 2px;
+        letter-spacing: 0;
         text-transform: capitalize;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
@@ -619,28 +619,28 @@
 
     @media (max-width: 768px) {
         main {
-            margin-top: 1.2rem;
+            margin-top: 1rem;
         }
 
         header {
-            padding: 1.05rem 0 1.25rem;
+            padding: 0.86rem 0 1rem;
         }
 
         .header-link > .main-logo-image {
-            width: 76px;
-            margin-bottom: 0.55rem;
+            width: 66px;
+            margin-bottom: 0.45rem;
         }
 
         .bannertext {
-            font-size: 2.35rem;
+            font-size: 2.1rem;
             letter-spacing: 0;
             max-width: calc(100vw - 1.5rem);
             padding-inline: 0.5rem;
         }
 
         .join-game {
-            margin-top: 1rem;
-            padding: 0.78rem 1.55rem;
+            margin-top: 0.78rem;
+            padding: 0.72rem 1.42rem;
             max-width: calc(100vw - 3rem);
         }
 
@@ -671,13 +671,13 @@
 
     @media (max-width: 600px) {
         .bannertext {
-            font-size: 2rem;
+            font-size: 1.85rem;
             letter-spacing: 0;
             max-width: calc(100vw - 1.25rem);
         }
 
         .tagline {
-            font-size: 0.96rem;
+            font-size: 0.9rem;
         }
 
         .join-game {
@@ -687,17 +687,17 @@
 
     @media (max-width: 420px) and (max-height: 820px) {
         header {
-            padding-top: 1.05rem;
-            padding-bottom: 1.35rem;
+            padding-top: 0.82rem;
+            padding-bottom: 0.96rem;
         }
 
         .header-link > .main-logo-image {
-            width: 86px;
-            margin-bottom: 0.7rem;
+            width: 66px;
+            margin-bottom: 0.45rem;
         }
 
         .bannertext {
-            font-size: 1.9rem;
+            font-size: 1.72rem;
             line-height: 1.05;
             max-width: calc(100vw - 1.25rem);
         }
@@ -708,9 +708,36 @@
         }
 
         .join-game {
-            margin-top: 0.9rem;
-            padding: 0.75rem 1.45rem;
-            font-size: 1.08rem;
+            margin-top: 0.72rem;
+            padding: 0.68rem 1.32rem;
+            font-size: 1.02rem;
+        }
+    }
+
+    @media (max-width: 420px) and (max-height: 720px) {
+        header {
+            padding-top: 0.58rem;
+            padding-bottom: 0.68rem;
+        }
+
+        .header-link > .main-logo-image {
+            width: 50px;
+            margin-bottom: 0.3rem;
+        }
+
+        .bannertext {
+            font-size: 1.5rem;
+            line-height: 1.03;
+        }
+
+        .tagline {
+            display: none;
+        }
+
+        .join-game {
+            margin-top: 0.55rem;
+            padding: 0.58rem 1.08rem;
+            font-size: 0.95rem;
         }
     }
 
