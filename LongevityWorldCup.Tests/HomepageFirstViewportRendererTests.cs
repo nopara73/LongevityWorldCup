@@ -17,20 +17,21 @@ public sealed class HomepageFirstViewportRendererTests
 
         var html = HomepageFirstViewportRenderer.Render(snapshot);
 
-        Assert.Contains("Live longevity sport", html);
+        Assert.Contains("Ultimate League", html);
         Assert.Contains("Pro before Amateur", html);
         Assert.Contains("Ultimate #1", html);
-        Assert.Contains("Top Amateur", html);
-        Assert.Contains("<strong>3</strong><span>athletes</span>", html);
-        Assert.Contains("<strong>2</strong><span>Pro</span>", html);
-        Assert.Contains("<strong>1</strong><span>Amateur</span>", html);
-        Assert.True(html.IndexOf("First Pro", StringComparison.Ordinal) < html.IndexOf("First Amateur", StringComparison.Ordinal));
+        Assert.Contains("Ultimate #1: First Pro", html);
+        Assert.Contains("<strong>3</strong> athletes</span>", html);
+        Assert.Contains("<strong>2</strong> Pro</span>", html);
+        Assert.Contains("<strong>1</strong> Amateur</span>", html);
         Assert.Contains("href=\"/athlete/first-pro\"", html);
-        Assert.Contains("href=\"/athlete/first-amateur\"", html);
+        Assert.DoesNotContain("href=\"/athlete/first-amateur\"", html);
+        Assert.DoesNotContain("Apply as athlete", html);
+        Assert.DoesNotContain("data-homepage-rank-card", html);
     }
 
     [Fact]
-    public void Render_EscapesNamesAndOnlyUsesGeneratedThumbnails()
+    public void Render_EscapesLeaderName()
     {
         var snapshot = new LeaderboardSnapshot([
             Row(
@@ -39,22 +40,21 @@ public sealed class HomepageFirstViewportRendererTests
                 track: "Pro",
                 displayName: "<script>alert(1)</script>",
                 ageReduction: -1.0,
-                thumbnail: "/athletes/bad/bad.webp?v=1"),
+                thumbnail: "/generated/thumbs/athletes/safe.webp?v=2"),
             Row(
                 rank: 2,
                 slug: "safe",
                 track: "Amateur",
                 displayName: "Safe Athlete",
                 ageReduction: -2.0,
-                thumbnail: "/generated/thumbs/athletes/safe.webp?v=2")
+                thumbnail: "/athletes/bad/bad.webp?v=1")
         ]);
 
         var html = HomepageFirstViewportRenderer.Render(snapshot);
 
         Assert.DoesNotContain("<script>", html);
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html);
-        Assert.DoesNotContain("/athletes/bad/bad.webp", html);
-        Assert.Contains("/generated/thumbs/athletes/safe.webp?v=2", html);
+        Assert.Contains("Ultimate #1: &lt;script&gt;alert(1)&lt;/script&gt;", html);
     }
 
     private static LeaderboardSnapshotRow Row(
