@@ -15,6 +15,66 @@ namespace LongevityWorldCup.Tests;
 public sealed class SocialJobIntegrationTests
 {
     [Fact]
+    public void BecameProAndBiologicalAgeImprovedEvents_AreWebsiteOnly()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var occurredAtUtc = new DateTime(2026, 6, 7, 12, 0, 0, DateTimeKind.Utc);
+
+        fixture.Events.CreateBecameProEvents(new[] { ("alice", occurredAtUtc) });
+        fixture.Events.CreateBiologicalAgeImprovementEvents(new[] { ("bob", occurredAtUtc, "pheno", 44.2, 41.8) });
+
+        var rows = fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT Type, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed
+                FROM Events
+                WHERE Type IN (@becamePro, @bioImproved)
+                ORDER BY Type;
+                """;
+            cmd.Parameters.AddWithValue("@becamePro", (int)EventType.BecamePro);
+            cmd.Parameters.AddWithValue("@bioImproved", (int)EventType.BiologicalAgeImproved);
+
+            var result = new List<(EventType Type, int VisibleOnWebsite, int SlackProcessed, int XProcessed, int ThreadsProcessed, int FacebookProcessed)>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add((
+                    (EventType)reader.GetInt32(0),
+                    reader.GetInt32(1),
+                    reader.GetInt32(2),
+                    reader.GetInt32(3),
+                    reader.GetInt32(4),
+                    reader.GetInt32(5)));
+            }
+
+            return result;
+        });
+
+        Assert.Collection(
+            rows,
+            row =>
+            {
+                Assert.Equal(EventType.BecamePro, row.Type);
+                Assert.Equal(1, row.VisibleOnWebsite);
+                Assert.Equal(1, row.SlackProcessed);
+                Assert.Equal(1, row.XProcessed);
+                Assert.Equal(1, row.ThreadsProcessed);
+                Assert.Equal(1, row.FacebookProcessed);
+            },
+            row =>
+            {
+                Assert.Equal(EventType.BiologicalAgeImproved, row.Type);
+                Assert.Equal(1, row.VisibleOnWebsite);
+                Assert.Equal(1, row.SlackProcessed);
+                Assert.Equal(1, row.XProcessed);
+                Assert.Equal(1, row.ThreadsProcessed);
+                Assert.Equal(1, row.FacebookProcessed);
+            });
+    }
+
+    [Fact]
     public async Task FacebookJob_MarksNonCustomRowsSkippedBeforePostingCustomEvent()
     {
         using var fixture = SocialJobFixture.Create(facebookSendSucceeds: true);

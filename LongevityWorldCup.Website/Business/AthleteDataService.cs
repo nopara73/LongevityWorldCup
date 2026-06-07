@@ -63,6 +63,12 @@ public class AthleteDataService : IDisposable
 
     // single-column biomarker/test signature to detect new/changed test submissions
     private const string TestSigColumn = "TestSig";
+    private const string HadBortzColumn = "HadBortz";
+    private const string LastLowestPhenoAgeColumn = "LastLowestPhenoAge";
+    private const string LastLowestBortzAgeColumn = "LastLowestBortzAge";
+    private const string CrowdAgeTop10PlacementColumn = "CrowdAgeTop10Placement";
+    private const string PhenoImprovementTop10PlacementColumn = "PhenoImprovementTop10Placement";
+    private const string BortzImprovementTop10PlacementColumn = "BortzImprovementTop10Placement";
 
     // NEW: notify listeners (e.g., BadgeDataService) after reloads
     public event Action? AthletesChanged;
@@ -99,6 +105,12 @@ public class AthleteDataService : IDisposable
                 var hasCurrentPlacement = false;
                 var hasLastAgeDiff = false;
                 var hasTestSig = false; // track if our signature column exists
+                var hasHadBortz = false;
+                var hasLastLowestPhenoAge = false;
+                var hasLastLowestBortzAge = false;
+                var hasCrowdAgeTop10Placement = false;
+                var hasPhenoImprovementTop10Placement = false;
+                var hasBortzImprovementTop10Placement = false;
                 using (var r = cmd.ExecuteReader())
                 {
                     while (r.Read())
@@ -112,6 +124,18 @@ public class AthleteDataService : IDisposable
                             hasLastAgeDiff = true;
                         if (string.Equals(colName, TestSigColumn, StringComparison.OrdinalIgnoreCase))
                             hasTestSig = true;
+                        if (string.Equals(colName, HadBortzColumn, StringComparison.OrdinalIgnoreCase))
+                            hasHadBortz = true;
+                        if (string.Equals(colName, LastLowestPhenoAgeColumn, StringComparison.OrdinalIgnoreCase))
+                            hasLastLowestPhenoAge = true;
+                        if (string.Equals(colName, LastLowestBortzAgeColumn, StringComparison.OrdinalIgnoreCase))
+                            hasLastLowestBortzAge = true;
+                        if (string.Equals(colName, CrowdAgeTop10PlacementColumn, StringComparison.OrdinalIgnoreCase))
+                            hasCrowdAgeTop10Placement = true;
+                        if (string.Equals(colName, PhenoImprovementTop10PlacementColumn, StringComparison.OrdinalIgnoreCase))
+                            hasPhenoImprovementTop10Placement = true;
+                        if (string.Equals(colName, BortzImprovementTop10PlacementColumn, StringComparison.OrdinalIgnoreCase))
+                            hasBortzImprovementTop10Placement = true;
                     }
                 }
 
@@ -139,6 +163,36 @@ public class AthleteDataService : IDisposable
                 {
                     TryAddAthletesColumn(sqlite, $"{TestSigColumn} TEXT NULL");
                 }
+
+                if (!hasHadBortz)
+                {
+                    TryAddAthletesColumn(sqlite, $"{HadBortzColumn} INTEGER NULL");
+                }
+
+                if (!hasLastLowestPhenoAge)
+                {
+                    TryAddAthletesColumn(sqlite, $"{LastLowestPhenoAgeColumn} REAL NULL");
+                }
+
+                if (!hasLastLowestBortzAge)
+                {
+                    TryAddAthletesColumn(sqlite, $"{LastLowestBortzAgeColumn} REAL NULL");
+                }
+
+                if (!hasCrowdAgeTop10Placement)
+                {
+                    TryAddAthletesColumn(sqlite, $"{CrowdAgeTop10PlacementColumn} INTEGER NULL");
+                }
+
+                if (!hasPhenoImprovementTop10Placement)
+                {
+                    TryAddAthletesColumn(sqlite, $"{PhenoImprovementTop10PlacementColumn} INTEGER NULL");
+                }
+
+                if (!hasBortzImprovementTop10Placement)
+                {
+                    TryAddAthletesColumn(sqlite, $"{BortzImprovementTop10PlacementColumn} INTEGER NULL");
+                }
             }
         });
 
@@ -164,7 +218,9 @@ public class AthleteDataService : IDisposable
 
         // Hydrate persisted age‐guess stats from SQLite
         ReloadCrowdStats();
+        SyncCrowdAgeTop10Placements(emitEvents: false);
         HydrateAgeImprovementIntoAthletesJson();
+        SyncAgeImprovementTop10Placements(emitEvents: false);
         HydratePlacementsIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
         HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
@@ -172,6 +228,10 @@ public class AthleteDataService : IDisposable
 
         // persist biomarker/test signature for all athletes (so we can detect new/changed tests later)
         var changedSigsAtStartup = SyncBiomarkerSignatures(); // returns slugs whose signatures changed
+        var becameProAtStartup = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+        var bioAgeImprovementsAtStartup = SyncBestBioAgeStates(
+            changedSigsAtStartup,
+            newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
 
         // Watch the per-athlete folders recursively
         var athletesDir = Path.Combine(env.WebRootPath, "athletes");
@@ -194,6 +254,16 @@ public class AthleteDataService : IDisposable
         {
             var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
             eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+        }
+
+        if (becameProAtStartup.Count > 0)
+        {
+            eventDataService.CreateBecameProEvents(becameProAtStartup, skipIfExists: true);
+        }
+
+        if (bioAgeImprovementsAtStartup.Count > 0)
+        {
+            eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovementsAtStartup, skipIfExists: true);
         }
 
         DetectAndEmitRankUpsForSlugs(
@@ -234,6 +304,7 @@ public class AthleteDataService : IDisposable
         try
         {
             ReloadCrowdStats();
+            SyncCrowdAgeTop10Placements(emitEvents: true);
             HydrateAgeImprovementIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
@@ -246,6 +317,7 @@ public class AthleteDataService : IDisposable
         }
 
         PushAthleteDirectoryToEvents();
+        SyncCrowdAgeTop10Placements(emitEvents: true);
         AthletesChanged?.Invoke();
     }
 
@@ -505,6 +577,7 @@ public class AthleteDataService : IDisposable
 
             ReloadCrowdStats();
             HydrateAgeImprovementIntoAthletesJson();
+            SyncAgeImprovementTop10Placements(emitEvents: true);
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
@@ -512,11 +585,25 @@ public class AthleteDataService : IDisposable
 
             // recompute and persist biomarker/test signatures after reload
             var changedSigs = SyncBiomarkerSignatures();
+            var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+            var bioAgeImprovements = SyncBestBioAgeStates(
+                changedSigs,
+                newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
 
             if (newlyJoined.Count > 0)
             {
                 var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
                 _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+            }
+
+            if (becamePro.Count > 0)
+            {
+                _eventDataService.CreateBecameProEvents(becamePro, skipIfExists: true);
+            }
+
+            if (bioAgeImprovements.Count > 0)
+            {
+                _eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovements, skipIfExists: true);
             }
 
             DetectAndEmitRankUpsForSlugs(
@@ -930,6 +1017,92 @@ public class AthleteDataService : IDisposable
         return list;
     }
 
+    private IReadOnlyList<(string Slug, int Place, double CrowdAge, int CrowdCount)> GetCrowdAgeTop10Snapshot()
+    {
+        return CompetitionRanking.SortByCrowdAgeRules(GetCrowdAgeRankCandidates())
+            .Take(10)
+            .Select((candidate, index) => (
+                candidate.Slug,
+                Place: index + 1,
+                candidate.CrowdAge,
+                candidate.CrowdCount))
+            .ToList();
+    }
+
+    private void SyncCrowdAgeTop10Placements(bool emitEvents)
+    {
+        var currentTop10 = GetCrowdAgeTop10Snapshot();
+        var currentBySlug = currentTop10.ToDictionary(x => x.Slug, x => x, StringComparer.OrdinalIgnoreCase);
+        var changed = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Place, int? PreviousPlace, string? PreviousSlug, double CrowdAge, int CrowdCount)>();
+        var nowUtc = DateTime.UtcNow;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var select = sqlite.CreateCommand();
+            select.Transaction = tx;
+            select.CommandText = $"SELECT Key, {CrowdAgeTop10PlacementColumn} FROM Athletes";
+
+            var stored = new List<(string Slug, int? Place)>();
+            using (var r = select.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    var slug = r.GetString(0);
+                    var place = r.IsDBNull(1) ? (int?)null : r.GetInt32(1);
+                    stored.Add((slug, place));
+                }
+            }
+
+            var previousSlugByPlace = stored
+                .Where(x => x.Place is >= 1 and <= 10)
+                .GroupBy(x => x.Place!.Value)
+                .ToDictionary(g => g.Key, g => g.First().Slug);
+
+            using var update = sqlite.CreateCommand();
+            update.Transaction = tx;
+            update.CommandText = $"UPDATE Athletes SET {CrowdAgeTop10PlacementColumn}=@place WHERE Key=@slug";
+            var pPlace = update.Parameters.Add("@place", SqliteType.Integer);
+            var pSlug = update.Parameters.Add("@slug", SqliteType.Text);
+
+            foreach (var (slug, previousPlace) in stored)
+            {
+                currentBySlug.TryGetValue(slug, out var current);
+                int? currentPlace = current.Place is >= 1 and <= 10 ? current.Place : null;
+
+                if (emitEvents &&
+                    currentPlace.HasValue &&
+                    previousPlace != currentPlace)
+                {
+                    previousSlugByPlace.TryGetValue(currentPlace.Value, out var previousSlug);
+                    if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
+                        previousSlug = null;
+
+                    changed.Add((
+                        slug,
+                        nowUtc,
+                        currentPlace.Value,
+                        previousPlace,
+                        previousSlug,
+                        current.CrowdAge,
+                        current.CrowdCount));
+                }
+
+                if (previousPlace == currentPlace) continue;
+
+                pPlace.Value = currentPlace.HasValue ? currentPlace.Value : DBNull.Value;
+                pSlug.Value = slug;
+                update.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        });
+
+        if (changed.Count > 0)
+            _eventDataService.CreateCrowdAgeTop10ChangeEvents(changed, skipIfExists: true);
+    }
+
     private IReadOnlyList<PhenoAgeImprovementRankCandidate> GetPhenoAgeImprovementRankCandidates()
     {
         var snapshot = GetAthletesSnapshot();
@@ -984,6 +1157,130 @@ public class AthleteDataService : IDisposable
         }
 
         return list;
+    }
+
+    private IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> GetAgeImprovementTop10Snapshot(string clock)
+    {
+        if (string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase))
+        {
+            return CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates())
+                .Take(10)
+                .Select((candidate, index) => (
+                    candidate.Slug,
+                    Place: index + 1,
+                    Clock: "pheno",
+                    Improvement: candidate.PhenoAgeImprovement,
+                    AgeReduction: candidate.PhenoAgeReduction))
+                .ToList();
+        }
+
+        if (string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
+        {
+            return CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates())
+                .Take(10)
+                .Select((candidate, index) => (
+                    candidate.Slug,
+                    Place: index + 1,
+                    Clock: "bortz",
+                    Improvement: candidate.BortzAgeImprovement,
+                    AgeReduction: candidate.BortzAgeReduction))
+                .ToList();
+        }
+
+        return [];
+    }
+
+    private void SyncAgeImprovementTop10Placements(bool emitEvents)
+    {
+        SyncAgeImprovementTop10Placements(
+            clock: "pheno",
+            placementColumn: PhenoImprovementTop10PlacementColumn,
+            currentTop10: GetAgeImprovementTop10Snapshot("pheno"),
+            emitEvents: emitEvents);
+
+        SyncAgeImprovementTop10Placements(
+            clock: "bortz",
+            placementColumn: BortzImprovementTop10PlacementColumn,
+            currentTop10: GetAgeImprovementTop10Snapshot("bortz"),
+            emitEvents: emitEvents);
+    }
+
+    private void SyncAgeImprovementTop10Placements(
+        string clock,
+        string placementColumn,
+        IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> currentTop10,
+        bool emitEvents)
+    {
+        var currentBySlug = currentTop10.ToDictionary(x => x.Slug, x => x, StringComparer.OrdinalIgnoreCase);
+        var changed = new List<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, int Place, int? PreviousPlace, string? PreviousSlug, double Improvement, double AgeReduction)>();
+        var nowUtc = DateTime.UtcNow;
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var select = sqlite.CreateCommand();
+            select.Transaction = tx;
+            select.CommandText = $"SELECT Key, {placementColumn} FROM Athletes";
+
+            var stored = new List<(string Slug, int? Place)>();
+            using (var r = select.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    var slug = r.GetString(0);
+                    var place = r.IsDBNull(1) ? (int?)null : r.GetInt32(1);
+                    stored.Add((slug, place));
+                }
+            }
+
+            var previousSlugByPlace = stored
+                .Where(x => x.Place is >= 1 and <= 10)
+                .GroupBy(x => x.Place!.Value)
+                .ToDictionary(g => g.Key, g => g.First().Slug);
+
+            using var update = sqlite.CreateCommand();
+            update.Transaction = tx;
+            update.CommandText = $"UPDATE Athletes SET {placementColumn}=@place WHERE Key=@slug";
+            var pPlace = update.Parameters.Add("@place", SqliteType.Integer);
+            var pSlug = update.Parameters.Add("@slug", SqliteType.Text);
+
+            foreach (var (slug, previousPlace) in stored)
+            {
+                currentBySlug.TryGetValue(slug, out var current);
+                int? currentPlace = current.Place is >= 1 and <= 10 ? current.Place : null;
+
+                if (emitEvents &&
+                    currentPlace.HasValue &&
+                    previousPlace != currentPlace)
+                {
+                    previousSlugByPlace.TryGetValue(currentPlace.Value, out var previousSlug);
+                    if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
+                        previousSlug = null;
+
+                    changed.Add((
+                        slug,
+                        nowUtc,
+                        clock,
+                        currentPlace.Value,
+                        previousPlace,
+                        previousSlug,
+                        current.Improvement,
+                        current.AgeReduction));
+                }
+
+                if (previousPlace == currentPlace) continue;
+
+                pPlace.Value = currentPlace.HasValue ? currentPlace.Value : DBNull.Value;
+                pSlug.Value = slug;
+                update.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        });
+
+        if (changed.Count > 0)
+            _eventDataService.CreateAgeImprovementTop10ChangeEvents(changed, skipIfExists: true);
     }
 
     private static double CalculateAgeAtDate(DateTime birthDateUtc, DateTime atDateUtc)
@@ -1836,6 +2133,183 @@ public class AthleteDataService : IDisposable
         }
 
         return map;
+    }
+
+    private List<(string AthleteSlug, DateTime OccurredAtUtc)> SyncProTrackStates(IEnumerable<string>? newcomerSlugs)
+    {
+        var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+                        ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var current = BuildProTrackMap();
+        var nowUtc = DateTime.UtcNow;
+        var becamePro = new List<(string AthleteSlug, DateTime OccurredAtUtc)>();
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var select = sqlite.CreateCommand();
+            select.Transaction = tx;
+            select.CommandText = $"SELECT Key, {HadBortzColumn} FROM Athletes";
+
+            var stored = new List<(string Slug, int? HadBortz)>();
+            using (var r = select.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    var slug = r.GetString(0);
+                    int? hadBortz = r.IsDBNull(1) ? null : r.GetInt32(1);
+                    stored.Add((slug, hadBortz));
+                }
+            }
+
+            using var update = sqlite.CreateCommand();
+            update.Transaction = tx;
+            update.CommandText = $"UPDATE Athletes SET {HadBortzColumn}=@hadBortz WHERE Key=@slug";
+            var pHadBortz = update.Parameters.Add("@hadBortz", SqliteType.Integer);
+            var pSlug = update.Parameters.Add("@slug", SqliteType.Text);
+
+            foreach (var (slug, hadBortz) in stored)
+            {
+                var hasBortzNow = current.TryGetValue(slug, out var isPro) && isPro;
+                if (hadBortz == 0 && hasBortzNow && !newcomers.Contains(slug))
+                {
+                    becamePro.Add((slug, nowUtc));
+                }
+
+                var currentValue = hasBortzNow ? 1 : 0;
+                if (hadBortz == currentValue) continue;
+
+                pHadBortz.Value = currentValue;
+                pSlug.Value = slug;
+                update.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        });
+
+        return becamePro;
+    }
+
+    private Dictionary<string, bool> BuildProTrackMap()
+    {
+        var map = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        var rankings = GetRankingsOrder();
+        foreach (var o in rankings.OfType<JsonObject>())
+        {
+            var slug = o["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug)) continue;
+
+            map[slug] = o["LowestBortzAge"] is JsonValue bortzVal &&
+                        bortzVal.TryGetValue<double>(out var bortzAge) &&
+                        double.IsFinite(bortzAge);
+        }
+
+        return map;
+    }
+
+    private List<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, double PreviousAge, double NewAge)> SyncBestBioAgeStates(
+        IEnumerable<string>? changedSlugs,
+        IEnumerable<string>? newcomerSlugs)
+    {
+        var changed = changedSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+                      ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+                        ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var current = BuildBestBioAgeMap();
+        var nowUtc = DateTime.UtcNow;
+        var improvements = new List<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, double PreviousAge, double NewAge)>();
+
+        _db.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+
+            using var select = sqlite.CreateCommand();
+            select.Transaction = tx;
+            select.CommandText = $"SELECT Key, {LastLowestPhenoAgeColumn}, {LastLowestBortzAgeColumn} FROM Athletes";
+
+            var stored = new List<(string Slug, double? LastPheno, double? LastBortz)>();
+            using (var r = select.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    var slug = r.GetString(0);
+                    var lastPheno = r.IsDBNull(1) ? (double?)null : r.GetDouble(1);
+                    var lastBortz = r.IsDBNull(2) ? (double?)null : r.GetDouble(2);
+                    stored.Add((slug, lastPheno, lastBortz));
+                }
+            }
+
+            using var update = sqlite.CreateCommand();
+            update.Transaction = tx;
+            update.CommandText =
+                $"UPDATE Athletes SET {LastLowestPhenoAgeColumn}=@pheno, {LastLowestBortzAgeColumn}=@bortz WHERE Key=@slug";
+            var pPheno = update.Parameters.Add("@pheno", SqliteType.Real);
+            var pBortz = update.Parameters.Add("@bortz", SqliteType.Real);
+            var pSlug = update.Parameters.Add("@slug", SqliteType.Text);
+
+            foreach (var (slug, lastPheno, lastBortz) in stored)
+            {
+                current.TryGetValue(slug, out var currentAges);
+                var currentPheno = currentAges.Pheno;
+                var currentBortz = currentAges.Bortz;
+                var canEmit = changed.Contains(slug) && !newcomers.Contains(slug);
+
+                if (canEmit && IsImproved(lastPheno, currentPheno))
+                    improvements.Add((slug, nowUtc, "pheno", lastPheno!.Value, currentPheno!.Value));
+
+                if (canEmit && IsImproved(lastBortz, currentBortz))
+                    improvements.Add((slug, nowUtc, "bortz", lastBortz!.Value, currentBortz!.Value));
+
+                if (SameNullableDouble(lastPheno, currentPheno) && SameNullableDouble(lastBortz, currentBortz))
+                    continue;
+
+                pPheno.Value = currentPheno.HasValue ? currentPheno.Value : DBNull.Value;
+                pBortz.Value = currentBortz.HasValue ? currentBortz.Value : DBNull.Value;
+                pSlug.Value = slug;
+                update.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        });
+
+        return improvements;
+    }
+
+    private Dictionary<string, (double? Pheno, double? Bortz)> BuildBestBioAgeMap()
+    {
+        var snapshot = GetAthletesSnapshot();
+        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
+        var map = new Dictionary<string, (double? Pheno, double? Bortz)>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var result in statsMap.Values)
+        {
+            var pheno = result.SubmissionCount > 0 && result.LowestPhenoAge.HasValue && double.IsFinite(result.LowestPhenoAge.Value)
+                ? result.LowestPhenoAge
+                : null;
+            var bortz = result.BortzSubmissionCount > 0 && result.LowestBortzAge.HasValue && double.IsFinite(result.LowestBortzAge.Value)
+                ? result.LowestBortzAge
+                : null;
+            map[result.Slug] = (pheno, bortz);
+        }
+
+        return map;
+    }
+
+    private static bool IsImproved(double? previous, double? current)
+    {
+        return previous.HasValue &&
+               current.HasValue &&
+               double.IsFinite(previous.Value) &&
+               double.IsFinite(current.Value) &&
+               current.Value < previous.Value;
+    }
+
+    private static bool SameNullableDouble(double? left, double? right)
+    {
+        if (!left.HasValue || !right.HasValue)
+            return !left.HasValue && !right.HasValue;
+
+        return Math.Abs(left.Value - right.Value) < 0.0000001;
     }
 
     private void PersistCurrentPlacementsSnapshot(Dictionary<string, int> current, Dictionary<string, double> currentAgeDiffs)

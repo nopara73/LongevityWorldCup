@@ -1999,10 +1999,43 @@
 
         const homepageHighlightsBaseRows = 5;
         const homepageHighlightsMaxRows = 12;
+        const homepageVisitCounterKey = 'lwcHomepageVisitCount:v1';
+        const homepageHighlightsBeforePodiumVisit = 4;
         let homepageHighlightsRows = homepageHighlightsBaseRows;
         let homepageHighlightsMeasureTimer = null;
         let homepageHighlightsResizeTimer = null;
         let homepageHighlightsWaitAttempts = 0;
+
+        function incrementHomepageVisitCount() {
+            try {
+                const raw = window.localStorage ? window.localStorage.getItem(homepageVisitCounterKey) : null;
+                const current = Number.parseInt(raw || '0', 10);
+                const next = Math.min((Number.isFinite(current) && current >= 0 ? current : 0) + 1, 1000000);
+                window.localStorage.setItem(homepageVisitCounterKey, String(next));
+                return next;
+            } catch (_) {
+                return 1;
+            }
+        }
+
+        function placeHomepageHighlightsForVisit() {
+            const visitCount = incrementHomepageVisitCount();
+            const main = document.querySelector('main');
+            if (visitCount < homepageHighlightsBeforePodiumVisit) {
+                if (main) main.dataset.homepageVisitLayout = 'default';
+                return;
+            }
+
+            const highlights = document.querySelector('.lwc-highlights-countdown-wrapper');
+            const leaderboard = document.querySelector('.main-container');
+            if (!highlights || !leaderboard || !leaderboard.parentNode) {
+                if (main) main.dataset.homepageVisitLayout = 'default';
+                return;
+            }
+
+            leaderboard.parentNode.insertBefore(highlights, leaderboard);
+            if (main) main.dataset.homepageVisitLayout = 'repeat';
+        }
 
         function loadHomepageHighlights(rowCount, reason = 'unknown') {
             homepageHighlightsRows = rowCount;
@@ -2068,6 +2101,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            placeHomepageHighlightsForVisit();
             fitHomepageHighlights();
             LoadLeaderboard(true, 10);
 

@@ -111,6 +111,42 @@ public static class XMessageBuilder
             return RejectIfTooLong(newRankMsg);
         }
 
+        if (type == EventType.BecamePro)
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var proSlug)) return "";
+            var athlete = slugToName(proSlug);
+            return RejectIfTooLong(BuildBecameProLine(athlete, AthleteUrl(proSlug)));
+        }
+
+        if (type == EventType.BiologicalAgeImproved)
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var improvementSlug)) return "";
+            if (!EventHelpers.TryExtractBiologicalAgeImprovement(rawText, out var clock, out var fromAge, out var toAge)) return "";
+            var athlete = slugToName(improvementSlug);
+            return RejectIfTooLong(BuildBiologicalAgeImprovementLine(athlete, clock, fromAge, toAge, AthleteUrl(improvementSlug)));
+        }
+
+        if (type == EventType.CrowdAgeTop10Change)
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var crowdSlug)) return "";
+            if (!EventHelpers.TryExtractCrowdAgeTop10Change(rawText, out var crowdPlace, out var previousPlace, out var crowdAge, out var crowdCount)) return "";
+            EventHelpers.TryExtractPrev(rawText, out var prevSlug);
+            var athlete = slugToName(crowdSlug);
+            var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
+            return RejectIfTooLong(BuildCrowdAgeTop10Line(athlete, crowdPlace, previousPlace, prev, crowdAge, crowdCount, AthleteUrl(crowdSlug, "crowd")));
+        }
+
+        if (type == EventType.AgeImprovementTop10Change)
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var improvementLeaderboardSlug)) return "";
+            if (!EventHelpers.TryExtractAgeImprovementTop10Change(rawText, out var improvementClock, out var improvementPlace, out var previousPlace, out var improvement, out _)) return "";
+            EventHelpers.TryExtractPrev(rawText, out var prevSlug);
+            var athlete = slugToName(improvementLeaderboardSlug);
+            var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
+            var leagueCtxSlug = string.Equals(improvementClock, "bortz", StringComparison.OrdinalIgnoreCase) ? "bortz-improvement" : "improvement";
+            return RejectIfTooLong(BuildAgeImprovementTop10Line(athlete, improvementClock, improvementPlace, previousPlace, prev, improvement, AthleteUrl(improvementLeaderboardSlug, leagueCtxSlug)));
+        }
+
         if (type != EventType.BadgeAward) return "";
 
         if (!EventHelpers.TryExtractBadgeLabel(rawText, out var label)) return "";
@@ -441,6 +477,19 @@ public static class XMessageBuilder
         if (type == EventType.NewRank)
             return XPostSampleBasis.Combined;
 
+        if (type == EventType.BecamePro)
+            return XPostSampleBasis.Bortz;
+
+        if (type == EventType.BiologicalAgeImproved)
+        {
+            if (!EventHelpers.TryExtractClock(rawText, out var clock))
+                return null;
+
+            return string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
+                ? XPostSampleBasis.Bortz
+                : XPostSampleBasis.PhenoAge;
+        }
+
         if (type != EventType.BadgeAward)
             return null;
 
@@ -716,6 +765,94 @@ public static class XMessageBuilder
             XPostPhase.Early => $"{lead}\n\n{LeaderboardUrl}",
             _ => $"{lead}\n\n{LeaderboardUrl}"
         };
+    }
+
+    private static string BuildBecameProLine(string athleteName, string athleteUrl)
+    {
+        return $"{athleteName} went Pro.\n\nBortz Age results now place them in the Pro track.\n\n{athleteUrl}";
+    }
+
+    private static string BuildBiologicalAgeImprovementLine(
+        string athleteName,
+        string clock,
+        double fromAge,
+        double toAge,
+        string athleteUrl)
+    {
+        var clockLabel = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
+            ? "Bortz Age"
+            : "pheno age";
+        var fromText = fromAge.ToString("0.##", CultureInfo.InvariantCulture);
+        var toText = toAge.ToString("0.##", CultureInfo.InvariantCulture);
+        return $"{athleteName} improved their {clockLabel} from {fromText} to {toText} years.\n\n{athleteUrl}";
+    }
+
+    private static string FormatSignedYears(double years)
+    {
+        var text = years.ToString("0.#", CultureInfo.InvariantCulture);
+        return years > 0 ? $"+{text}" : text;
+    }
+
+    private static string BuildCrowdAgeTop10Line(
+        string athleteName,
+        int place,
+        int? previousPlace,
+        string? previousAthlete,
+        double crowdAge,
+        int crowdCount,
+        string athleteUrl)
+    {
+        var placeText = CrowdOrdinal(place);
+        var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
+        var countText = crowdCount.ToString("N0", CultureInfo.InvariantCulture);
+        var movement = previousPlace.HasValue
+            ? previousPlace.Value > place ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {placeText}" : $"moved from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
+            : $"entered the top 10 at {placeText}";
+
+        var lead = !string.IsNullOrWhiteSpace(previousAthlete)
+            ? $"{athleteName} {movement} in the Crowd Age leaderboard, ahead of {previousAthlete}."
+            : $"{athleteName} {movement} in the Crowd Age leaderboard.";
+
+        return $"{lead}\n\nCrowd Age: {crowdAgeText} years from {countText} guesses.\n\n{athleteUrl}";
+    }
+
+    private static string BuildAgeImprovementTop10Line(
+        string athleteName,
+        string clock,
+        int place,
+        int? previousPlace,
+        string? previousAthlete,
+        double improvement,
+        string athleteUrl)
+    {
+        var placeText = CrowdOrdinal(place);
+        var movement = previousPlace.HasValue
+            ? previousPlace.Value > place ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {placeText}" : $"moved from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
+            : $"entered the top 10 at {placeText}";
+        var leaderboardName = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
+            ? "Bortz Improvement"
+            : "Pheno Improvement";
+        var improvementText = FormatSignedYears(improvement);
+
+        var lead = !string.IsNullOrWhiteSpace(previousAthlete)
+            ? $"{athleteName} {movement} in the {leaderboardName} leaderboard, ahead of {previousAthlete}."
+            : $"{athleteName} {movement} in the {leaderboardName} leaderboard.";
+
+        return $"{lead}\n\nImprovement: {improvementText} years from worst to latest eligible result.\n\n{athleteUrl}";
+    }
+
+    private static string CrowdOrdinal(int n)
+    {
+        var suffix = (n % 100) is 11 or 12 or 13
+            ? "th"
+            : (n % 10) switch
+            {
+                1 => "st",
+                2 => "nd",
+                3 => "rd",
+                _ => "th"
+            };
+        return $"{n}{suffix}";
     }
 
     private static string BuildTop3LeaderboardIntro(XPostPhase? phase, string leagueDisplayName)
