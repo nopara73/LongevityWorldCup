@@ -143,31 +143,19 @@
         }
 
         .homepage-first-viewport {
-            max-width: 1250px;
-            margin: 0 auto 1.35rem;
-            display: grid;
-            grid-template-columns: minmax(0, 1.04fr) minmax(340px, 0.96fr);
-            gap: 1rem;
-            align-items: stretch;
-        }
-
-        .homepage-hero-panel,
-        .homepage-live-panel {
-            border-radius: 15px;
+            max-width: 820px;
+            margin: 0 auto 1.45rem;
+            padding: 0 1rem;
             box-sizing: border-box;
-            overflow: hidden;
         }
 
-        .homepage-hero-panel {
-            padding: 1.35rem 1.45rem;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(244, 250, 251, 0.96));
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.1);
-            text-align: left;
+        .homepage-first-copy {
+            min-width: 0;
+            text-align: center;
         }
 
-        .homepage-hero-kicker {
-            margin: 0 0 0.55rem;
+        .homepage-first-kicker {
+            margin: 0 0 0.5rem;
             color: #00798a;
             font-size: 0.82rem;
             font-weight: 700;
@@ -175,71 +163,50 @@
             text-transform: uppercase;
         }
 
-        .homepage-hero-title {
+        .homepage-first-title {
             margin: 0;
             padding: 0;
             color: #172033;
-            font-size: 2.1rem;
-            line-height: 1.08;
-            text-align: left;
+            font-size: clamp(1.7rem, 3.2vw, 2.55rem);
+            line-height: 1.07;
+            text-align: center;
             text-shadow: none;
             letter-spacing: 0;
-            word-wrap: normal;
+            max-width: 13.6em;
+            margin-inline: auto;
+            overflow-wrap: anywhere;
         }
 
-        .homepage-hero-intro {
+        .homepage-first-intro {
             margin: 0.75rem 0 0;
+            margin-inline: auto;
             max-width: 34rem;
             color: #334155;
             font-size: 1rem;
-            line-height: 1.5;
+            line-height: 1.48;
         }
 
-        .homepage-hero-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.65rem;
-            margin-top: 1rem;
-        }
-
-        .homepage-hero-action {
+        .homepage-first-link {
             min-height: 44px;
-            padding: 0.68rem 1rem;
+            margin-top: 1rem;
+            padding: 0.68rem 1.05rem;
+            border: 1px solid rgba(0, 188, 212, 0.45);
             border-radius: 999px;
+            background: rgba(255, 255, 255, 0.66);
+            color: #006979;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
-            font-weight: 700;
             font-size: 0.98rem;
+            font-weight: 700;
             line-height: 1.15;
             text-decoration: none;
             transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .homepage-hero-action-primary {
-            background: var(--main-action-color);
-            color: var(--light-text-color);
-            box-shadow: 0 6px 14px rgba(34, 197, 94, 0.24);
-        }
-
-        .homepage-hero-action-primary:hover,
-        .homepage-hero-action-primary:focus-visible {
-            color: var(--light-text-color);
-            background: var(--main-action-selected-color);
-            box-shadow: 0 8px 18px rgba(34, 197, 94, 0.3);
-            transform: translateY(-1px);
-            outline: none;
-        }
-
-        .homepage-hero-action-secondary {
-            background: #f8fafc;
-            border: 1px solid rgba(0, 188, 212, 0.38);
-            color: #006979;
-        }
-
-        .homepage-hero-action-secondary:hover,
-        .homepage-hero-action-secondary:focus-visible {
+        .homepage-first-link:hover,
+        .homepage-first-link:focus-visible {
             background: rgba(0, 188, 212, 0.08);
             color: #004d59;
             box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.13);
@@ -247,187 +214,35 @@
             outline: none;
         }
 
-        .homepage-signal-row {
+        .homepage-competition-line {
+            margin-top: 0.95rem;
             display: flex;
             flex-wrap: wrap;
-            gap: 0.45rem;
-            margin-top: 1rem;
-        }
-
-        .homepage-signal-chip {
-            display: inline-flex;
-            align-items: center;
-            min-height: 30px;
-            padding: 0.32rem 0.65rem;
-            border: 1px solid rgba(15, 23, 42, 0.1);
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.72);
-            color: #334155;
-            font-size: 0.82rem;
-            font-weight: 600;
-            line-height: 1.15;
-            box-sizing: border-box;
-        }
-
-        .homepage-live-panel {
-            padding: 1.05rem;
-            background: linear-gradient(135deg, #161616, #343434);
-            color: rgba(255, 255, 255, 0.93);
-            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
-            display: grid;
-            grid-template-rows: auto auto 1fr;
-            gap: 0.8rem;
-        }
-
-        .homepage-live-header {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 0.25rem;
-        }
-
-        .homepage-live-label {
-            color: #a7f3f7;
-            font-size: 0.86rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .homepage-live-rule {
-            color: rgba(255, 255, 255, 0.72);
-            font-size: 0.82rem;
-            line-height: 1.3;
-        }
-
-        .homepage-live-metrics {
-            display: grid;
-            grid-template-columns: 1.15fr 0.9fr 0.9fr;
-            gap: 0.5rem;
-        }
-
-        .homepage-live-metrics > span {
-            min-width: 0;
-            padding: 0.58rem 0.62rem;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 11px;
-            background: rgba(255, 255, 255, 0.07);
-            display: grid;
-            gap: 0.12rem;
-        }
-
-        .homepage-live-metrics strong {
-            color: #ffffff;
-            font-size: 1.35rem;
-            line-height: 1;
-        }
-
-        .homepage-live-metrics span span {
-            color: rgba(255, 255, 255, 0.72);
-            font-size: 0.77rem;
-            line-height: 1.15;
-        }
-
-        .homepage-rank-list {
-            display: grid;
-            gap: 0.6rem;
-            align-content: start;
-        }
-
-        .homepage-rank-card {
-            min-width: 0;
-            padding: 0.72rem;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            color: inherit;
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr);
-            gap: 0.7rem;
-            align-items: center;
-            text-decoration: none;
-            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .homepage-rank-card-primary {
-            background: rgba(0, 188, 212, 0.13);
-            border-color: rgba(0, 188, 212, 0.32);
-        }
-
-        .homepage-rank-card:hover,
-        .homepage-rank-card:focus-visible {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.14);
-            transform: translateY(-1px);
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
-            outline: none;
-        }
-
-        .homepage-rank-portrait,
-        .homepage-rank-initials {
-            width: 3.25rem;
-            height: 3.25rem;
-            border-radius: 50%;
-            flex: 0 0 auto;
-            box-sizing: border-box;
-        }
-
-        .homepage-rank-portrait {
-            object-fit: cover;
-            border: 2px solid rgba(255, 255, 255, 0.68);
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .homepage-rank-initials {
-            display: inline-flex;
+            gap: 0.42rem 0.8rem;
             align-items: center;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.13);
-            border: 1px solid rgba(255, 255, 255, 0.24);
-            color: #ffffff;
+            color: #475569;
+            font-size: 0.86rem;
+            line-height: 1.25;
+        }
+
+        .homepage-competition-line strong {
+            color: #172033;
+            font-weight: 800;
+        }
+
+        .homepage-competition-line a {
+            color: #00798a;
             font-weight: 700;
-            font-size: 1rem;
+            text-decoration: none;
         }
 
-        .homepage-rank-copy {
-            min-width: 0;
-            display: grid;
-            gap: 0.2rem;
-        }
-
-        .homepage-rank-label {
-            color: #a7f3f7;
-            font-size: 0.78rem;
-            font-weight: 700;
-            line-height: 1.15;
-            text-transform: uppercase;
-        }
-
-        .homepage-rank-name {
-            min-width: 0;
-            color: #ffffff;
-            font-size: 1rem;
-            font-weight: 700;
-            line-height: 1.2;
-            overflow-wrap: anywhere;
-        }
-
-        .homepage-rank-score {
-            color: rgba(255, 255, 255, 0.75);
-            font-size: 0.82rem;
-            line-height: 1.2;
-        }
-
-        .homepage-rank-score strong {
-            color: #9ae8b2;
-        }
-
-        .homepage-live-empty {
-            margin: 0;
-            padding: 0.75rem;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.78);
-            font-size: 0.9rem;
-            line-height: 1.35;
+        .homepage-competition-line a:hover,
+        .homepage-competition-line a:focus-visible {
+            color: var(--secondary-color);
+            text-decoration: underline;
+            text-underline-offset: 0.16em;
+            outline: none;
         }
 
         .game-description strong {
@@ -990,73 +805,34 @@
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .homepage-first-viewport {
-                grid-template-columns: 1fr;
-                gap: 0.85rem;
+                max-width: 440px;
                 margin-bottom: 1.15rem;
             }
 
-            .homepage-hero-panel,
-            .homepage-live-panel {
-                border-radius: 14px;
+            .homepage-first-copy,
+            .homepage-first-title {
+                text-align: center;
             }
 
-            .homepage-hero-panel {
-                padding: 1.05rem;
+            .homepage-first-title {
+                font-size: 1.9rem;
+                line-height: 1.1;
             }
 
-            .homepage-hero-title {
-                font-size: 1.72rem;
-                line-height: 1.12;
-            }
-
-            .homepage-hero-intro {
+            .homepage-first-intro {
+                max-width: 25rem;
+                margin-inline: auto;
                 font-size: 0.95rem;
                 line-height: 1.42;
-                margin-top: 0.62rem;
             }
 
-            .homepage-hero-actions {
+            .homepage-first-link {
+                margin-top: 0.85rem;
+            }
+
+            .homepage-competition-line {
+                justify-content: center;
                 margin-top: 0.82rem;
-                gap: 0.55rem;
-            }
-
-            .homepage-hero-action {
-                flex: 1 1 10.5rem;
-                padding-inline: 0.85rem;
-            }
-
-            .homepage-signal-row {
-                margin-top: 0.82rem;
-                gap: 0.38rem;
-            }
-
-            .homepage-live-panel {
-                padding: 0.88rem;
-                gap: 0.66rem;
-            }
-
-            .homepage-live-metrics {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .homepage-live-metrics > span {
-                padding: 0.48rem 0.5rem;
-                border-radius: 10px;
-            }
-
-            .homepage-live-metrics strong {
-                font-size: 1.16rem;
-            }
-
-            .homepage-rank-card {
-                padding: 0.62rem;
-                border-radius: 11px;
-            }
-
-            .homepage-rank-portrait,
-            .homepage-rank-initials {
-                width: 2.85rem;
-                height: 2.85rem;
             }
 
             .contribute-section {
@@ -1524,59 +1300,26 @@
                 margin-bottom: 1rem;
             }
 
-            .homepage-hero-panel {
-                padding: 0.92rem;
-            }
-
-            .homepage-hero-kicker {
+            .homepage-first-kicker {
                 margin-bottom: 0.42rem;
                 font-size: 0.76rem;
             }
 
-            .homepage-hero-title {
-                font-size: 1.52rem;
+            .homepage-first-title {
+                font-size: 1.58rem;
             }
 
-            .homepage-hero-action {
-                flex-basis: 100%;
+            .homepage-first-intro {
+                font-size: 0.9rem;
             }
 
-            .homepage-signal-chip {
-                min-height: 28px;
-                padding: 0.28rem 0.52rem;
-                font-size: 0.76rem;
-            }
-
-            .homepage-signal-chip:nth-child(2) {
-                display: none;
-            }
-
-            .homepage-live-rule {
+            .homepage-competition-line {
+                gap: 0.34rem 0.62rem;
                 font-size: 0.78rem;
             }
 
-            .homepage-live-metrics {
-                gap: 0.38rem;
-            }
-
-            .homepage-live-metrics strong {
-                font-size: 1.05rem;
-            }
-
-            .homepage-live-metrics span span {
-                font-size: 0.7rem;
-            }
-
-            .homepage-rank-label {
-                font-size: 0.72rem;
-            }
-
-            .homepage-rank-name {
-                font-size: 0.94rem;
-            }
-
-            .homepage-rank-score {
-                font-size: 0.76rem;
+            .homepage-competition-line a {
+                flex-basis: 100%;
             }
 
             .lwc-highlights-countdown-wrapper {
@@ -2028,15 +1771,7 @@
         /* Very small screens - further optimize */
         @media (max-width: 480px) {
             .homepage-first-viewport {
-                gap: 0.72rem;
-            }
-
-            .homepage-live-panel {
-                padding: 0.72rem;
-            }
-
-            .homepage-live-metrics > span {
-                padding-inline: 0.38rem;
+                margin-bottom: 0.9rem;
             }
 
             .archive-mobile-card {
@@ -2069,48 +1804,24 @@
         }
 
         @media (max-width: 420px) and (max-height: 720px) {
-            .homepage-signal-row {
-                display: none;
-            }
-
-            .homepage-hero-title {
+            .homepage-first-title {
                 font-size: 1.36rem;
                 line-height: 1.08;
             }
 
-            .homepage-hero-intro {
-                font-size: 0.86rem;
-                line-height: 1.32;
-                margin-top: 0.5rem;
-            }
-
-            .homepage-hero-actions {
-                flex-wrap: nowrap;
-                gap: 0.42rem;
-                margin-top: 0.65rem;
-            }
-
-            .homepage-hero-action {
-                flex: 1 1 0;
-                min-height: 40px;
-                padding: 0.48rem 0.42rem;
-                font-size: 0.86rem;
-            }
-
-            .homepage-live-header {
-                gap: 0.16rem;
-            }
-
-            .homepage-live-rule {
-                font-size: 0.74rem;
-            }
-
-            .homepage-live-panel {
-                gap: 0.5rem;
-            }
-
-            .homepage-rank-card:not(.homepage-rank-card-primary) {
+            .homepage-first-intro {
                 display: none;
+            }
+
+            .homepage-first-link {
+                min-height: 40px;
+                margin-top: 0.68rem;
+                padding: 0.54rem 0.92rem;
+                font-size: 0.9rem;
+            }
+
+            .homepage-competition-line {
+                margin-top: 0.64rem;
             }
         }
 

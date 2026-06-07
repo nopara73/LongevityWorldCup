@@ -16,12 +16,13 @@ public sealed class HomepagePageTests
         var html = await client.GetStringAsync("/");
 
         Assert.Contains("class=\"homepage-first-viewport\"", html);
-        Assert.Contains("Live longevity sport", html);
+        Assert.Contains("Reverse biological age. Rise on the leaderboard.", html);
         Assert.Contains("Ultimate League", html);
         Assert.Contains("Pro before Amateur", html);
-        Assert.Contains("Apply as athlete", html);
+        Assert.Contains("Ultimate #1:", html);
         Assert.Contains("View leaderboard", html);
-        Assert.Contains("data-homepage-rank-card=\"true\"", html);
+        Assert.DoesNotContain("data-homepage-rank-card", html);
+        Assert.DoesNotContain("Apply as athlete", html);
         Assert.DoesNotContain("<!--HOMEPAGE-FIRST-VIEWPORT-->", html);
     }
 
