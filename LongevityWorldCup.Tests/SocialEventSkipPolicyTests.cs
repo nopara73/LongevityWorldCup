@@ -17,10 +17,10 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.NewRank, "slug[alice] rank[4]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.NewRank, "slug[alice] rank[1]", now.AddDays(-8), 0, freshCutoff, true, true, SocialEventSkipReason.StalePrimaryEvent };
         yield return new object[] { EventType.AthleteCountMilestone, "athletes[100]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
-        yield return new object[] { EventType.BecamePro, "slug[alice]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
-        yield return new object[] { EventType.BecamePro, "not-a-slug", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
-        yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[44.2] to[41.8]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
-        yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[41.8] to[44.2]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
+        yield return new object[] { EventType.BecamePro, "slug[alice]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
+        yield return new object[] { EventType.BecamePro, "not-a-slug", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
+        yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[44.2] to[41.8]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
+        yield return new object[] { EventType.BiologicalAgeImproved, "slug[alice] clock[pheno] from[41.8] to[44.2]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
         yield return new object[] { EventType.CrowdAgeTop10Change, "slug[alice] place[3] prevPlace[8] crowdAge[35.2] crowdCount[123]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
         yield return new object[] { EventType.CrowdAgeTop10Change, "slug[alice] place[11] crowdAge[35.2] crowdCount[123]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.AgeImprovementTop10Change, "slug[alice] clock[pheno] place[3] prevPlace[8] improvement[-6.8] ageReduction[-20.4]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
@@ -122,6 +122,14 @@ public sealed class SocialEventSkipPolicyTests
         Assert.False(EventDataService.ShouldSkipSlackNotification(
             EventType.CustomEvent,
             freshCutoffUtc.AddYears(-1),
+            freshCutoffUtc));
+        Assert.True(EventDataService.ShouldSkipSlackNotification(
+            EventType.BecamePro,
+            freshCutoffUtc,
+            freshCutoffUtc));
+        Assert.True(EventDataService.ShouldSkipSlackNotification(
+            EventType.BiologicalAgeImproved,
+            freshCutoffUtc,
             freshCutoffUtc));
     }
 

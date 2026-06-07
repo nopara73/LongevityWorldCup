@@ -46,22 +46,10 @@ public static class SocialEventSkipPolicy
             return false;
         }
 
-        if (type == EventType.BecamePro)
+        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved)
         {
-            reason = EventHelpers.TryExtractSlug(text, out var slug) && !string.IsNullOrWhiteSpace(slug)
-                ? default
-                : SocialEventSkipReason.UnsupportedEventPayload;
-            return reason != default;
-        }
-
-        if (type == EventType.BiologicalAgeImproved)
-        {
-            reason = EventHelpers.TryExtractSlug(text, out var slug) &&
-                     !string.IsNullOrWhiteSpace(slug) &&
-                     EventHelpers.TryExtractBiologicalAgeImprovement(text, out _, out _, out _)
-                ? default
-                : SocialEventSkipReason.UnsupportedEventPayload;
-            return reason != default;
+            reason = SocialEventSkipReason.UnsupportedEventType;
+            return true;
         }
 
         if (type == EventType.CrowdAgeTop10Change)
