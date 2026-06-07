@@ -334,6 +334,9 @@ public sealed class EventDataService : IDisposable
 
     internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc)
     {
+        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved)
+            return true;
+
         return type == EventType.AthleteCountMilestone && EnsureUtc(occurredAtUtc) < freshCutoffUtc;
     }
 
@@ -684,16 +687,6 @@ public sealed class EventDataService : IDisposable
             return 8;
         }
 
-        if (type == EventType.BecamePro)
-        {
-            return 8;
-        }
-
-        if (type == EventType.BiologicalAgeImproved)
-        {
-            return 8;
-        }
-
         if (type == EventType.CrowdAgeTop10Change)
         {
             return 8;
@@ -989,7 +982,8 @@ public sealed class EventDataService : IDisposable
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) " +
+                "VALUES (@id, @type, @text, @occ, @rel, 1, 1, 1, 1);";
             var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
             var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
@@ -1051,7 +1045,8 @@ public sealed class EventDataService : IDisposable
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
             insertCmd.CommandText =
-                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance) VALUES (@id, @type, @text, @occ, @rel);";
+                "INSERT INTO Events (Id, Type, Text, OccurredAt, Relevance, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed) " +
+                "VALUES (@id, @type, @text, @occ, @rel, 1, 1, 1, 1);";
             var pId = insertCmd.Parameters.Add("@id", SqliteType.Text);
             var pType = insertCmd.Parameters.Add("@type", SqliteType.Integer);
             var pText = insertCmd.Parameters.Add("@text", SqliteType.Text);
@@ -1993,18 +1988,6 @@ public sealed class EventDataService : IDisposable
         if (type == EventType.DonationReceived || type == EventType.AthleteCountMilestone)
         {
             _ = _slackEvents.SendImmediateAsync(type, rawText);
-            return;
-        }
-
-        if (type == EventType.BecamePro)
-        {
-            _ = _slackEvents.BufferAsync(type, rawText);
-            return;
-        }
-
-        if (type == EventType.BiologicalAgeImproved)
-        {
-            _ = _slackEvents.BufferAsync(type, rawText);
             return;
         }
 
