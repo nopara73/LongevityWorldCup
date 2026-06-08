@@ -419,7 +419,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Contains("Call link:\nhttps://meet.example.test", content.TextBody);
         Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
-        Assert.Contains("2026-06-08 04:00 (Europe/Budapest, UTC+02:00)", content.TextBody);
+        Assert.Contains("2026-06-08 04:00 (Europe/Budapest)", content.TextBody);
+        Assert.DoesNotContain("2026-06-08 02:00 UTC", content.TextBody);
+        Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.Contains("Full call schedule:", content.TextBody);
         Assert.Contains("- Midpoint:", content.TextBody);
 
@@ -488,6 +490,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
         Assert.Contains("Call link: https://meet.example.test", content.TextBody);
+        Assert.Contains("2026-06-08 04:00 (Europe/Budapest)", content.TextBody);
+        Assert.DoesNotContain("2026-06-08 02:00 UTC", content.TextBody);
+        Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.Contains("- Kickoff:", content.TextBody);
         Assert.Contains("- Midpoint:", content.TextBody);
         Assert.Contains("- Finale:", content.TextBody);
