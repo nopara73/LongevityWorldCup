@@ -392,11 +392,43 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("kickoff", reminder.CallKey);
         Assert.Equal("24h", reminder.ReminderKind);
         Assert.Equal("2026-06-08T02:00:00.0000000+00:00", reminder.StartsAtUtc);
+        Assert.Equal("UTC", reminder.TimeZoneId);
+        Assert.Equal(3, reminder.Calls.Count);
 
         Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-07T02:05:00Z")));
 
         fixture.Service.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, DateTimeOffset.Parse("2026-06-07T02:06:00Z"));
         Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T02:07:00Z")));
+    }
+
+    [Fact]
+    public async Task CallReminderEmailIncludesLinkTimezoneScheduleAndCalendarInvite()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync(
+            "call@example.com",
+            "Call Casey",
+            [new("kickoff", "kickoff-b")],
+            timeZoneId: "Europe/Budapest");
+
+        var reminder = Assert.Single(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T02:05:00Z")));
+        var content = SmtpLongevitymaxxingEmailSender.BuildCallReminderEmailContent(
+            reminder,
+            fixture.Service.BuildAccessUrl(reminder.AccessToken),
+            fixture.Service.BuildStopUrl(reminder.StopToken));
+
+        Assert.Contains("Call link:\nhttps://meet.example.test", content.TextBody);
+        Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
+        Assert.Contains("2026-06-08 04:00 (Europe/Budapest, UTC+02:00)", content.TextBody);
+        Assert.Contains("Full call schedule:", content.TextBody);
+        Assert.Contains("- Midpoint:", content.TextBody);
+
+        var attachment = Assert.Single(content.Attachments);
+        Assert.Equal("longevitymaxxing-call.ics", attachment.FileName);
+        Assert.Contains("BEGIN:VEVENT", attachment.Text);
+        Assert.Contains("SUMMARY:Longevitymaxxing Kickoff call", attachment.Text);
+        Assert.Contains("LOCATION:https://meet.example.test", attachment.Text);
+        Assert.DoesNotContain("SUMMARY:Longevitymaxxing Midpoint call", attachment.Text);
     }
 
     [Fact]
@@ -436,6 +468,37 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         fixture.Service.MarkChallengeStartSent(single.ParticipantId, DateTimeOffset.Parse("2026-06-08T00:04:00Z"));
         Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-08T00:05:00Z")));
+    }
+
+    [Fact]
+    public async Task ChallengeStartEmailIncludesAllCallsLinksTimezoneAndCalendarInvite()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync(
+            "start@example.com",
+            "Start Sam",
+            [new("kickoff", "kickoff-b"), new("midpoint", "midpoint-a"), new("finale", "finale-a")],
+            timeZoneId: "Europe/Budapest");
+
+        var start = Assert.Single(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-08T00:01:00Z")));
+        var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(
+            start,
+            fixture.Service.BuildAccessUrl(start.AccessToken),
+            fixture.Service.BuildStopUrl(start.StopToken));
+
+        Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
+        Assert.Contains("Call link: https://meet.example.test", content.TextBody);
+        Assert.Contains("- Kickoff:", content.TextBody);
+        Assert.Contains("- Midpoint:", content.TextBody);
+        Assert.Contains("- Finale:", content.TextBody);
+        Assert.Contains("A calendar invite with all selected calls is attached.", content.TextBody);
+
+        var attachment = Assert.Single(content.Attachments);
+        Assert.Equal("longevitymaxxing-calls.ics", attachment.FileName);
+        Assert.Equal(3, CountOccurrences(attachment.Text, "BEGIN:VEVENT"));
+        Assert.Contains("SUMMARY:Longevitymaxxing Kickoff call", attachment.Text);
+        Assert.Contains("SUMMARY:Longevitymaxxing Midpoint call", attachment.Text);
+        Assert.Contains("SUMMARY:Longevitymaxxing Finale call", attachment.Text);
     }
 
     [Fact]
@@ -503,6 +566,19 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var uri = new Uri(url);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
         return query[key].ToString();
+    }
+
+    private static int CountOccurrences(string value, string pattern)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = value.IndexOf(pattern, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += pattern.Length;
+        }
+
+        return count;
     }
 
     private static void SubmitChallengeDays(
@@ -640,10 +716,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
             string email,
             string name,
             IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? callAvailability = null,
-            string? athleteLink = null)
+            string? athleteLink = null,
+            string timeZoneId = "UTC")
         {
             var now = DateTimeOffset.Parse("2026-06-06T12:00:00Z");
-            await Service.SignupAsync(new LongevitymaxxingSignupRequest(email, name, "UTC", athleteLink, callAvailability ?? []), now);
+            await Service.SignupAsync(new LongevitymaxxingSignupRequest(email, name, timeZoneId, athleteLink, callAvailability ?? []), now);
             var token = ReadQueryToken(Email.Confirmations.Last().Url, "confirm");
             var access = await Service.ConfirmAsync(token, now.AddMinutes(1));
             return access.AccessToken;

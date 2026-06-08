@@ -501,6 +501,7 @@ public sealed class LongevitymaxxingChallengeService
                 participant.Id,
                 participant.Email,
                 participant.DisplayName,
+                participant.TimeZoneId,
                 participant.AccessToken,
                 participant.StopToken,
                 calls))
@@ -530,7 +531,7 @@ public sealed class LongevitymaxxingChallengeService
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings();
         TrySelectCallSlots(now);
-        var selectedCalls = BuildPublicCalls(settings)
+        var selectedCalls = BuildParticipantCalls(settings)
             .Where(c => c.SelectedSlot is not null)
             .ToList();
         if (selectedCalls.Count == 0)
@@ -561,13 +562,15 @@ public sealed class LongevitymaxxingChallengeService
                         participant.Id,
                         participant.Email,
                         participant.DisplayName,
+                        participant.TimeZoneId,
                         participant.AccessToken,
                         participant.StopToken,
                         call.Key,
                         call.Label,
                         call.SelectedSlot.StartsAtUtc,
                         kind,
-                        settings.VideoCallUrl));
+                        call.VideoCallUrl,
+                        selectedCalls));
                 }
             }
         }
