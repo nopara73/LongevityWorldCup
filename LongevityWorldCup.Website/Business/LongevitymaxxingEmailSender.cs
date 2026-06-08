@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -65,43 +67,96 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
     public Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopUrl, CancellationToken ct = default)
     {
-        var startsAt = DateTimeOffset.TryParse(reminder.StartsAtUtc, out var parsed)
-            ? parsed.ToString("yyyy-MM-dd HH:mm 'UTC'")
-            : reminder.StartsAtUtc;
-        var body =
-            $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-            $"The Longevitymaxxing {reminder.CallLabel} call starts at {startsAt}.\n\n" +
-            $"Open the participant page for the call link:\n{challengeUrl}\n\n" +
-            $"Stop challenge emails: {stopUrl}\n\n" +
-            "Longevity World Cup";
-
-        return SendAsync(reminder.Email, reminder.DisplayName, $"Longevitymaxxing {reminder.CallLabel} call reminder", body, ct);
+        var content = BuildCallReminderEmailContent(reminder, challengeUrl, stopUrl);
+        return SendAsync(reminder.Email, reminder.DisplayName, content.Subject, content.TextBody, ct, content.Attachments);
     }
 
     public Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default)
     {
+        var content = BuildChallengeStartEmailContent(start, challengeUrl, stopUrl);
+        return SendAsync(start.Email, start.DisplayName, content.Subject, content.TextBody, ct, content.Attachments);
+    }
+
+    internal static LongevitymaxxingEmailContent BuildCallReminderEmailContent(
+        LongevitymaxxingCallReminderCandidate reminder,
+        string challengeUrl,
+        string stopUrl)
+    {
+        var localStartsAt = FormatInParticipantTimeZone(reminder.StartsAtUtc, reminder.TimeZoneId);
+        var utcStartsAt = FormatUtc(reminder.StartsAtUtc);
+        var link = string.IsNullOrWhiteSpace(reminder.VideoCallUrl)
+            ? "Call link: not configured yet."
+            : $"Call link:\n{reminder.VideoCallUrl}";
+        var schedule = BuildScheduleBlock(reminder.Calls, reminder.TimeZoneId);
+        var calendarCalls = reminder.Calls
+            .Where(call => string.Equals(call.Key, reminder.CallKey, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var attachments = BuildCalendarAttachment(
+            "longevitymaxxing-call.ics",
+            "Longevitymaxxing call",
+            calendarCalls,
+            challengeUrl);
+
+        var body =
+            $"Hi {SafeName(reminder.DisplayName)},\n\n" +
+            $"The Longevitymaxxing {reminder.CallLabel} call starts at {localStartsAt} / {utcStartsAt}.\n" +
+            $"Timezone: {SafeTimeZoneLabel(reminder.TimeZoneId)}\n\n" +
+            $"{link}\n\n" +
+            $"{schedule}\n\n" +
+            "A calendar invite for this call is attached.\n\n" +
+            $"Participant page:\n{challengeUrl}\n\n" +
+            $"Stop challenge emails: {stopUrl}\n\n" +
+            "Longevity World Cup";
+
+        return new LongevitymaxxingEmailContent(
+            $"Longevitymaxxing {reminder.CallLabel} call reminder",
+            body,
+            attachments);
+    }
+
+    internal static LongevitymaxxingEmailContent BuildChallengeStartEmailContent(
+        LongevitymaxxingChallengeStartCandidate start,
+        string challengeUrl,
+        string stopUrl)
+    {
         var callLines = start.Calls
             .Where(call => call.SelectedSlot is not null)
-            .Select(call => $"- {call.Label}: {FormatUtc(call.SelectedSlot!.StartsAtUtc)}")
+            .Select(call => FormatCallLine(call, start.TimeZoneId))
             .ToList();
         var calls = callLines.Count == 0
             ? ""
             : "\n\nCalls:\n" + string.Join("\n", callLines);
+        var attachmentText = callLines.Count == 0
+            ? ""
+            : "\nA calendar invite with all selected calls is attached.\n";
+        var attachments = BuildCalendarAttachment(
+            "longevitymaxxing-calls.ics",
+            "Longevitymaxxing Challenge calls",
+            start.Calls,
+            challengeUrl);
 
         var body =
             $"Hi {SafeName(start.DisplayName)},\n\n" +
             "The Longevitymaxxing Challenge is starting.\n\n" +
             "For 14 days, check in once per day about the previous day: Sleep, Exercise, Nutrition, and Vices. No photos, no long report, no perfect schedule required.\n" +
             "The Day 1 check-in is practice: it counts for checked-in days and streak, not points.\n" +
+            $"Timezone: {SafeTimeZoneLabel(start.TimeZoneId)}\n" +
             $"{calls}\n\n" +
+            $"{attachmentText}" +
             $"Open your participant page for check-ins, leaderboard, Slack, and meeting links:\n{challengeUrl}\n\n" +
             $"Stop challenge emails: {stopUrl}\n\n" +
             "Longevity World Cup";
 
-        return SendAsync(start.Email, start.DisplayName, "Longevitymaxxing Challenge starts now", body, ct);
+        return new LongevitymaxxingEmailContent("Longevitymaxxing Challenge starts now", body, attachments);
     }
 
-    private async Task SendAsync(string email, string displayName, string subject, string textBody, CancellationToken ct)
+    private async Task SendAsync(
+        string email,
+        string displayName,
+        string subject,
+        string textBody,
+        CancellationToken ct,
+        IReadOnlyList<LongevitymaxxingEmailAttachment>? attachments = null)
     {
         var smtpServer = RequireConfiguredValue(_config.SmtpServer, nameof(_config.SmtpServer));
         var smtpUser = RequireConfiguredValue(_config.SmtpUser, nameof(_config.SmtpUser));
@@ -112,7 +167,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         message.From.Add(new MailboxAddress("Longevity World Cup", RequireConfiguredValue(_config.EmailFrom, nameof(_config.EmailFrom))));
         message.To.Add(new MailboxAddress(displayName ?? string.Empty, email));
         message.Subject = subject;
-        message.Body = new TextPart("plain") { Text = textBody };
+        message.Body = BuildBody(textBody, attachments);
 
         using var client = new SmtpClient();
         await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls, ct).ConfigureAwait(false);
@@ -121,6 +176,23 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         await client.DisconnectAsync(true, ct).ConfigureAwait(false);
 
         _logger.LogInformation("Sent Longevitymaxxing email '{Subject}' to {Email}", subject, email);
+    }
+
+    private static MimeEntity BuildBody(string textBody, IReadOnlyList<LongevitymaxxingEmailAttachment>? attachments)
+    {
+        if (attachments is null || attachments.Count == 0)
+            return new TextPart("plain") { Text = textBody };
+
+        var builder = new BodyBuilder { TextBody = textBody };
+        foreach (var attachment in attachments)
+        {
+            builder.Attachments.Add(
+                attachment.FileName,
+                Encoding.UTF8.GetBytes(attachment.Text),
+                ContentType.Parse(attachment.ContentType));
+        }
+
+        return builder.ToMessageBody();
     }
 
     private static string SafeName(string? displayName)
@@ -135,6 +207,151 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             ? parsed.ToUniversalTime().ToString("yyyy-MM-dd HH:mm 'UTC'")
             : value;
     }
+
+    private static string BuildScheduleBlock(IReadOnlyList<LongevitymaxxingParticipantCall> calls, string timeZoneId)
+    {
+        var callLines = calls
+            .Where(call => call.SelectedSlot is not null)
+            .Select(call => FormatCallLine(call, timeZoneId))
+            .ToList();
+
+        return callLines.Count == 0
+            ? "Full call schedule: not selected yet."
+            : "Full call schedule:\n" + string.Join("\n", callLines);
+    }
+
+    private static string FormatCallLine(LongevitymaxxingParticipantCall call, string timeZoneId)
+    {
+        var startsAt = call.SelectedSlot is null
+            ? "time pending"
+            : $"{FormatInParticipantTimeZone(call.SelectedSlot.StartsAtUtc, timeZoneId)} / {FormatUtc(call.SelectedSlot.StartsAtUtc)}";
+        var link = string.IsNullOrWhiteSpace(call.VideoCallUrl)
+            ? ""
+            : $"\n  Call link: {call.VideoCallUrl}";
+
+        return $"- {call.Label}: {startsAt}{link}";
+    }
+
+    private static string FormatInParticipantTimeZone(string startsAtUtc, string timeZoneId)
+    {
+        if (!DateTimeOffset.TryParse(startsAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
+            return startsAtUtc;
+
+        var local = TimeZoneInfo.ConvertTime(parsed.ToUniversalTime(), ResolveTimeZone(timeZoneId));
+        return $"{local:yyyy-MM-dd HH:mm} ({SafeTimeZoneLabel(timeZoneId)}, {FormatUtcOffset(local.Offset)})";
+    }
+
+    private static string SafeTimeZoneLabel(string? timeZoneId)
+    {
+        var value = (timeZoneId ?? "").Trim();
+        return string.IsNullOrWhiteSpace(value) ? "UTC" : value;
+    }
+
+    private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        }
+        catch
+        {
+            if (TimeZoneInfo.TryConvertIanaIdToWindowsId(timeZoneId, out var windowsId))
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(windowsId);
+                }
+                catch
+                {
+                }
+            }
+
+            return TimeZoneInfo.Utc;
+        }
+    }
+
+    private static string FormatUtcOffset(TimeSpan offset)
+    {
+        if (offset == TimeSpan.Zero)
+            return "UTC+00:00";
+
+        var sign = offset < TimeSpan.Zero ? "-" : "+";
+        var duration = offset.Duration();
+        return $"UTC{sign}{duration:hh\\:mm}";
+    }
+
+    private static IReadOnlyList<LongevitymaxxingEmailAttachment> BuildCalendarAttachment(
+        string fileName,
+        string calendarName,
+        IReadOnlyList<LongevitymaxxingParticipantCall> calls,
+        string challengeUrl)
+    {
+        var selectedCalls = calls
+            .Where(call => call.SelectedSlot is not null)
+            .ToList();
+        if (selectedCalls.Count == 0)
+            return [];
+
+        var builder = new StringBuilder()
+            .AppendLine("BEGIN:VCALENDAR")
+            .AppendLine("VERSION:2.0")
+            .AppendLine("PRODID:-//Longevity World Cup//Longevitymaxxing Challenge//EN")
+            .AppendLine("CALSCALE:GREGORIAN")
+            .AppendLine("METHOD:PUBLISH")
+            .AppendLine($"X-WR-CALNAME:{EscapeCalendarText(calendarName)}");
+
+        foreach (var call in selectedCalls)
+        {
+            if (!DateTimeOffset.TryParse(call.SelectedSlot!.StartsAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
+                continue;
+
+            var startsAt = parsed.ToUniversalTime();
+            var endsAt = startsAt.AddHours(1);
+            var description = string.IsNullOrWhiteSpace(call.VideoCallUrl)
+                ? $"Participant page: {challengeUrl}"
+                : $"Call link: {call.VideoCallUrl}\nParticipant page: {challengeUrl}";
+            builder
+                .AppendLine("BEGIN:VEVENT")
+                .AppendLine($"UID:{BuildCalendarUid(call, startsAt)}")
+                .AppendLine($"DTSTAMP:{FormatCalendarUtc(startsAt)}")
+                .AppendLine($"DTSTART:{FormatCalendarUtc(startsAt)}")
+                .AppendLine($"DTEND:{FormatCalendarUtc(endsAt)}")
+                .AppendLine($"SUMMARY:{EscapeCalendarText($"Longevitymaxxing {call.Label} call")}")
+                .AppendLine($"DESCRIPTION:{EscapeCalendarText(description)}");
+
+            if (!string.IsNullOrWhiteSpace(call.VideoCallUrl))
+                builder.AppendLine($"LOCATION:{EscapeCalendarText(call.VideoCallUrl)}");
+
+            builder.AppendLine("END:VEVENT");
+        }
+
+        builder.AppendLine("END:VCALENDAR");
+        return
+        [
+            new LongevitymaxxingEmailAttachment(
+                fileName,
+                "text/calendar; charset=utf-8",
+                builder.ToString())
+        ];
+    }
+
+    private static string BuildCalendarUid(LongevitymaxxingParticipantCall call, DateTimeOffset startsAt)
+        => $"longevitymaxxing-{SanitizeUidPart(call.Key)}-{FormatCalendarUtc(startsAt)}@longevityworldcup.com";
+
+    private static string SanitizeUidPart(string value)
+        => new((value ?? "").Select(ch => char.IsLetterOrDigit(ch) || ch == '-' ? ch : '-').ToArray());
+
+    private static string FormatCalendarUtc(DateTimeOffset value)
+        => value.ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
+
+    private static string EscapeCalendarText(string value)
+        => (value ?? "")
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal)
+            .Replace(";", "\\;", StringComparison.Ordinal)
+            .Replace(",", "\\,", StringComparison.Ordinal);
 
     private static string RequireConfiguredValue(string? value, string name)
     {
@@ -162,3 +379,13 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         throw new InvalidOperationException($"{environmentVariableName} is not configured.");
     }
 }
+
+internal sealed record LongevitymaxxingEmailContent(
+    string Subject,
+    string TextBody,
+    IReadOnlyList<LongevitymaxxingEmailAttachment> Attachments);
+
+internal sealed record LongevitymaxxingEmailAttachment(
+    string FileName,
+    string ContentType,
+    string Text);

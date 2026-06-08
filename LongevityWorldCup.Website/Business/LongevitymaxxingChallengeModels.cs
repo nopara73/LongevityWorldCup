@@ -129,18 +129,21 @@ public sealed record LongevitymaxxingCallReminderCandidate(
     string ParticipantId,
     string Email,
     string DisplayName,
+    string TimeZoneId,
     string AccessToken,
     string StopToken,
     string CallKey,
     string CallLabel,
     string StartsAtUtc,
     string ReminderKind,
-    string? VideoCallUrl);
+    string? VideoCallUrl,
+    IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
 
 public sealed record LongevitymaxxingChallengeStartCandidate(
     string ParticipantId,
     string Email,
     string DisplayName,
+    string TimeZoneId,
     string AccessToken,
     string StopToken,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
