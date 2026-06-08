@@ -83,7 +83,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         string stopUrl)
     {
         var localStartsAt = FormatInParticipantTimeZone(reminder.StartsAtUtc, reminder.TimeZoneId);
-        var utcStartsAt = FormatUtc(reminder.StartsAtUtc);
         var link = string.IsNullOrWhiteSpace(reminder.VideoCallUrl)
             ? "Call link: not configured yet."
             : $"Call link:\n{reminder.VideoCallUrl}";
@@ -99,7 +98,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
         var body =
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-            $"The Longevitymaxxing {reminder.CallLabel} call starts at {localStartsAt} / {utcStartsAt}.\n" +
+            $"The Longevitymaxxing {reminder.CallLabel} call starts at {localStartsAt}.\n" +
             $"Timezone: {SafeTimeZoneLabel(reminder.TimeZoneId)}\n\n" +
             $"{link}\n\n" +
             $"{schedule}\n\n" +
@@ -201,13 +200,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         return string.IsNullOrWhiteSpace(name) ? "there" : name;
     }
 
-    private static string FormatUtc(string value)
-    {
-        return DateTimeOffset.TryParse(value, out var parsed)
-            ? parsed.ToUniversalTime().ToString("yyyy-MM-dd HH:mm 'UTC'")
-            : value;
-    }
-
     private static string BuildScheduleBlock(IReadOnlyList<LongevitymaxxingParticipantCall> calls, string timeZoneId)
     {
         var callLines = calls
@@ -224,7 +216,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
     {
         var startsAt = call.SelectedSlot is null
             ? "time pending"
-            : $"{FormatInParticipantTimeZone(call.SelectedSlot.StartsAtUtc, timeZoneId)} / {FormatUtc(call.SelectedSlot.StartsAtUtc)}";
+            : FormatInParticipantTimeZone(call.SelectedSlot.StartsAtUtc, timeZoneId);
         var link = string.IsNullOrWhiteSpace(call.VideoCallUrl)
             ? ""
             : $"\n  Call link: {call.VideoCallUrl}";
@@ -238,7 +230,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             return startsAtUtc;
 
         var local = TimeZoneInfo.ConvertTime(parsed.ToUniversalTime(), ResolveTimeZone(timeZoneId));
-        return $"{local:yyyy-MM-dd HH:mm} ({SafeTimeZoneLabel(timeZoneId)}, {FormatUtcOffset(local.Offset)})";
+        return $"{local:yyyy-MM-dd HH:mm} ({SafeTimeZoneLabel(timeZoneId)})";
     }
 
     private static string SafeTimeZoneLabel(string? timeZoneId)
@@ -268,16 +260,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
             return TimeZoneInfo.Utc;
         }
-    }
-
-    private static string FormatUtcOffset(TimeSpan offset)
-    {
-        if (offset == TimeSpan.Zero)
-            return "UTC+00:00";
-
-        var sign = offset < TimeSpan.Zero ? "-" : "+";
-        var duration = offset.Duration();
-        return $"UTC{sign}{duration:hh\\:mm}";
     }
 
     private static IReadOnlyList<LongevitymaxxingEmailAttachment> BuildCalendarAttachment(
