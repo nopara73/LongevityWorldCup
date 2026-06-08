@@ -50,6 +50,8 @@
         const signupAgain = document.getElementById("lmxSignupAgain");
         const profilePictureInput = document.getElementById("lmxProfilePictureInput");
         const profilePictureButton = document.getElementById("lmxProfilePictureButton");
+        const signupTimeZone = document.getElementById("lmxSignupTimeZone");
+        const editTimeZone = document.getElementById("lmxEditTimeZone");
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
@@ -121,6 +123,16 @@
                 renderAll();
                 setStatus("lmxEditStatus", "Saved.", false);
             }, "Saving...");
+        });
+
+        signupTimeZone.addEventListener("change", () => {
+            renderCallsForSignup((publicState && publicState.calls) || []);
+        });
+
+        editTimeZone.addEventListener("change", () => {
+            if (!participantState) return;
+            renderCallVoteControls("lmxEditCalls", participantState.public.calls || [], participantState.callAvailability || []);
+            renderParticipantCalls(participantState.calls || [], participantState.public.signupClosesAtUtc);
         });
     }
 
@@ -507,7 +519,7 @@
                 const checked = selectedKeys.has(`${call.key}:${slot.id}`) ? " checked" : "";
                 return `<label class="lmx-check" for="${escAttr(id)}">
                     <input id="${escAttr(id)}" type="checkbox" data-call-key="${escAttr(call.key)}" data-slot-id="${escAttr(slot.id)}"${checked}>
-                    <span>${esc(formatDateTime(slot.startsAtUtc))}</span>
+                    <span>${esc(formatDateTime(slot.startsAtUtc, getCallDisplayTimeZone(containerId)))}</span>
                 </label>`;
             }).join("");
             return `<div class="lmx-call-group"><strong>${esc(call.label)}</strong>${slots || "<span>No slots yet.</span>"}</div>`;
@@ -522,7 +534,8 @@
         }
 
         container.innerHTML = (calls || []).map(call => {
-            const when = call.selectedSlot ? formatDateTime(call.selectedSlot.startsAtUtc) : pendingCallTimeLabel(signupClosesAtUtc);
+            const timeZoneId = getParticipantTimeZone();
+            const when = call.selectedSlot ? formatDateTime(call.selectedSlot.startsAtUtc, timeZoneId) : pendingCallTimeLabel(signupClosesAtUtc, timeZoneId);
             const link = call.videoCallUrl
                 ? `<a class="lmx-call-link" href="${escAttr(call.videoCallUrl)}" target="_blank" rel="noopener">Google Meet</a>`
                 : "";
@@ -1271,28 +1284,59 @@
         return date.toISOString().slice(0, 10);
     }
 
-    function formatDateTime(value) {
+    function formatDateTime(value, timeZoneId) {
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value || "";
-        return new Intl.DateTimeFormat("en-US", {
+        const options = {
             weekday: "short",
             month: "short",
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
             timeZoneName: "short"
-        }).format(date);
+        };
+        const timeZone = normalizeDisplayTimeZone(timeZoneId);
+        if (timeZone) options.timeZone = timeZone;
+        return new Intl.DateTimeFormat("en-US", options).format(date);
     }
 
-    function pendingCallTimeLabel(signupClosesAtUtc) {
+    function pendingCallTimeLabel(signupClosesAtUtc, timeZoneId) {
         const date = new Date(signupClosesAtUtc);
         if (Number.isNaN(date.getTime())) return "Meeting time pending.";
-        const closes = new Intl.DateTimeFormat("en-US", {
+        const options = {
             weekday: "long",
             month: "short",
             day: "numeric"
-        }).format(date);
+        };
+        const timeZone = normalizeDisplayTimeZone(timeZoneId);
+        if (timeZone) options.timeZone = timeZone;
+        const closes = new Intl.DateTimeFormat("en-US", options).format(date);
         return `Meeting time pending. Signup closes on ${closes}.`;
+    }
+
+    function getCallDisplayTimeZone(containerId) {
+        if (containerId === "lmxSignupCalls") {
+            return document.getElementById("lmxSignupTimeZone")?.value;
+        }
+        if (containerId === "lmxEditCalls") {
+            return document.getElementById("lmxEditTimeZone")?.value || getParticipantTimeZone();
+        }
+        return getParticipantTimeZone();
+    }
+
+    function getParticipantTimeZone() {
+        return participantState?.participant?.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    }
+
+    function normalizeDisplayTimeZone(timeZoneId) {
+        const value = String(timeZoneId || "").trim();
+        if (!value) return null;
+        try {
+            new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
+            return value;
+        } catch {
+            return null;
+        }
     }
 
     function setStatus(id, message, isError) {
