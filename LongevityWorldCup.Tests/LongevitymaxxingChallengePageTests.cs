@@ -61,6 +61,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Upload profile picture", html);
         Assert.Contains("id=\"lmxProfilePictureInput\" type=\"file\" accept=\"image/*\"", html);
         Assert.Contains("Timezone, profile, and calls", html);
+        Assert.Contains("Used for reminder timing and call times.", html);
         Assert.Contains("Call availability <span>optional</span>", html);
         Assert.Contains("/css/longevitymaxxing.css?v=", html);
         Assert.Contains("/js/longevitymaxxing.js?v=", html);
@@ -165,6 +166,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("free signup", javascript);
         Assert.Contains("Join free before", javascript);
         Assert.Contains("Intl.DateTimeFormat().resolvedOptions().timeZone", javascript);
+        Assert.Contains("const COMMON_TIME_ZONES = [", javascript);
+        Assert.Contains("\"America/New_York\"", javascript);
+        Assert.DoesNotContain("supportedValuesOf(\"timeZone\")", javascript);
         Assert.Contains("fillTimeZones(document.getElementById(\"lmxSignupTimeZone\"));", javascript);
         Assert.Contains("fillTimeZones(document.getElementById(\"lmxEditTimeZone\"));", javascript);
         Assert.Contains("setDefaultTimezone(document.getElementById(\"lmxSignupTimeZone\"));", javascript);

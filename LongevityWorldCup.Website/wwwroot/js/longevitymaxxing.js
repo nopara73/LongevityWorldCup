@@ -13,6 +13,34 @@
         { key: "vices", icon: "fa-shield-halved", title: "Vices", text: "Were your vices under control yesterday?" }
     ];
     const ATHLETE_PLACEHOLDER_IMAGE = "/assets/content-images/headshot.webp";
+    const COMMON_TIME_ZONES = [
+        "UTC",
+        "Europe/London",
+        "Europe/Berlin",
+        "Europe/Budapest",
+        "Europe/Athens",
+        "Asia/Jerusalem",
+        "Asia/Dubai",
+        "Asia/Kolkata",
+        "Asia/Bangkok",
+        "Asia/Singapore",
+        "Asia/Tokyo",
+        "Australia/Sydney",
+        "Pacific/Auckland",
+        "America/St_Johns",
+        "America/Halifax",
+        "America/New_York",
+        "America/Chicago",
+        "America/Denver",
+        "America/Los_Angeles",
+        "America/Anchorage",
+        "Pacific/Honolulu",
+        "America/Mexico_City",
+        "America/Bogota",
+        "America/Lima",
+        "America/Sao_Paulo",
+        "America/Argentina/Buenos_Aires"
+    ];
 
     let publicState = null;
     let participantState = null;
@@ -1211,10 +1239,7 @@
     function fillTimeZones(select) {
         if (!select) return;
         const current = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        const zones = typeof Intl.supportedValuesOf === "function"
-            ? Intl.supportedValuesOf("timeZone")
-            : ["UTC", current];
-        select.innerHTML = Array.from(new Set(["UTC", current, ...zones]))
+        select.innerHTML = Array.from(new Set([current, ...COMMON_TIME_ZONES]))
             .filter(Boolean)
             .map(zone => `<option value="${escAttr(zone)}">${esc(zone)}</option>`)
             .join("");
