@@ -30,7 +30,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Ultimate League** ranks Pro before Amateur, then applies **Effective Age Reduction** and tie breakers.
 - Existing **Amateur** athletes emit a **went Pro Event** when they first gain an eligible **Bortz Age** result. New athletes who join already eligible for **Pro** only emit normal join/rank Events.
 - Existing athletes emit a biological-age improvement **Event** when a changed result lowers their stored best **pheno age** or **Bortz Age**. This is an Event only; it is separate from the Pheno/Bortz Improvement leaderboard metrics.
-- Homepage highlights are a curated subset of **Events**, not the raw Event feed; they may suppress repeated athlete-centric Events and keep only the most important Event per athlete when enough unique highlights exist.
+- Homepage highlights are a curated subset of **Events**, not the raw Event feed; they may suppress repeated athlete-centric Events and keep only the most important fresh Event per athlete when enough unique highlights exist. Stale historical Events must not suppress a newer Event from the same athlete.
 - **Crowd Age** top-10 placement changes emit **Events** after the initial stored placement snapshot. These follow the separate **Crowd Age leaderboard** ordering and do not affect **Ultimate League** ranking.
 - **Crowd Age** top-10 placement **Events** are only for the athlete whose own accepted guess changed the leaderboard and who entered or improved by displacing a previous holder. Passive shifts caused by someone else moving, losing eligibility, or falling out are not Events.
 - **Crowd Age leaderboard** requires 100 accepted guesses and orders by **Crowd Age Difference**, **Crowd Count**, date of birth, and name.

@@ -210,7 +210,7 @@
     .events-board.athlete-scroll td.event-message .event-message-cell > *{min-width:0}
     .events-board.athlete-scroll td.event-message .event-message-cell{
         white-space:normal;
-        overflow-x:hidden;
+        overflow:visible;
         flex-wrap:wrap;
         row-gap:.15rem;
     }
@@ -376,7 +376,7 @@
         display:flex;
         align-items:center;
         align-content:center;
-        flex-wrap:nowrap;
+        flex-wrap:wrap;
         gap:var(--badge-gap);
         line-height:1.35;
         min-height:calc(var(--event-row-min) - (var(--row-pad-y) * 2));
@@ -384,12 +384,12 @@
         padding-bottom:var(--row-pad-y);
         box-sizing:border-box;
         min-width:0;
-        overflow-x:auto;
-        overflow-y:hidden;
-        white-space:nowrap;
+        overflow:visible;
+        white-space:normal;
+        row-gap:.15rem;
     }
     .events-board td.event-message .event-message-cell *{
-        white-space:nowrap;
+        white-space:normal;
     }
 
     .event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
@@ -447,6 +447,14 @@
         opacity:1;
         text-decoration:underline;
         text-decoration-color:var(--events-muted);
+    }
+
+    .events-board td.event-message .event-message-cell .name-and-rank,
+    .events-board td.event-message .event-message-cell .rank-badge,
+    .events-board td.event-message .event-message-cell .badge-class,
+    .events-board td.event-message .event-message-cell .badge-chip,
+    .events-board td.event-message .event-message-cell .more-link{
+        white-space:nowrap;
     }
 
     .donation-amount{color:var(--secondary-color,#ff4f87);font-weight:700}
@@ -575,9 +583,43 @@
     }
 
     .custom-event-title{
+        display:block;
         min-width:0;
+        max-width:100%;
+        white-space:normal;
         overflow-wrap:anywhere;
         word-break:break-word;
+        line-height:1.35;
+    }
+
+    .custom-event-title a{
+        overflow-wrap:anywhere;
+        word-break:break-word;
+    }
+
+    .events-board table tbody tr.custom-event-row td.event-message .event-message-cell{
+        overflow:visible !important;
+        white-space:normal;
+        flex-wrap:wrap;
+        row-gap:.15rem;
+        scrollbar-width:none;
+    }
+
+    .events-board table tbody tr.custom-event-row:not(.custom-event-no-details) td.event-message .event-message-cell{
+        position:relative;
+        padding-right:34px;
+    }
+
+    .events-board table tbody tr.custom-event-row td.event-message .event-message-cell::-webkit-scrollbar{
+        display:none;
+    }
+
+    .events-board table tbody tr.custom-event-row td.event-message .event-message-cell *{
+        white-space:normal;
+    }
+
+    .events-board table tbody tr.custom-event-row td.event-message .event-message-cell .custom-event-expander{
+        white-space:nowrap;
     }
 
     .custom-event-expander,
@@ -599,9 +641,9 @@
         align-items:center;
         justify-content:center;
 
-        width:44px;
-        height:44px;
-        margin:-.82rem 0 -.82rem .2rem;
+        width:28px;
+        height:28px;
+        margin:0;
         padding:0;
 
         color:var(--events-text);
@@ -609,6 +651,12 @@
         box-sizing:border-box;
         cursor:pointer;
         vertical-align:middle;
+    }
+    .events-board table tbody tr.custom-event-row:not(.custom-event-no-details) .custom-event-expander{
+        position:absolute;
+        right:0;
+        top:50%;
+        transform:translateY(-50%);
     }
     .custom-event-expander:hover,
     .custom-event-expander:focus-visible{
@@ -693,8 +741,7 @@
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell{
             display:block;
             white-space:normal;
-            overflow-x:hidden;
-            overflow-y:visible;
+            overflow:visible;
             flex-wrap:wrap;
             align-items:baseline;
             column-gap:.2rem;
@@ -742,7 +789,7 @@
         /* Mobile athlete profile: avoid per-row horizontal scrolling/overlap in highlights. */
         .events-board.athlete-scroll td.event-message .event-message-cell{
             white-space:normal;
-            overflow-x:hidden;
+            overflow:visible;
             flex-wrap:wrap;
             column-gap:.22rem;
             row-gap:.15rem;
@@ -2274,6 +2321,8 @@
             return Number.isFinite(t) ? t : 0;
         }
 
+        const HOMEPAGE_ATHLETE_FRESHNESS_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
         function topPlaceBonus(place, maxPlace=10){
             if(!Number.isFinite(place) || place<1 || place>maxPlace) return 0;
             return maxPlace + 1 - place;
@@ -2345,12 +2394,14 @@
         }
 
         function compareHomepageHighlightPreference(a,b){
+            const ta=rowTimeMs(a);
+            const tb=rowTimeMs(b);
+            if(ta && tb && Math.abs(ta-tb)>HOMEPAGE_ATHLETE_FRESHNESS_WINDOW_MS) return ta-tb;
+
             const sa=homepageHighlightImportance(a);
             const sb=homepageHighlightImportance(b);
             if(sa!==sb) return sa-sb;
 
-            const ta=rowTimeMs(a);
-            const tb=rowTimeMs(b);
             if(ta!==tb) return ta-tb;
 
             const ia=String(a && a.id || "");

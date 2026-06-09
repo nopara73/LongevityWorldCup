@@ -65,7 +65,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Athlete profile and proof asset URLs should be versioned when emitted from the data service. Unversioned `/athletes/...` and `/generated/...` requests are intentionally cached briefly only as a fallback.
 - When changing the API of an existing external JS file, review every injected HTML/partial caller in the repo and ensure the versioned URL path still goes through the middleware replacement flow.
 - If a helper is moved from inline script to a separate JS file, verify that the file is loaded in every page, modal, iframe, or embedded context that uses that helper.
-- Homepage highlights are intentionally curated, not a raw Event feed; preserve same-athlete de-duplication and the fourth-visit highlights-before-podium layout behavior when changing `index.html` or event-board rendering.
+- Homepage highlights are intentionally curated, not a raw Event feed; preserve same-athlete de-duplication for fresh Events, keep stale historical Events from suppressing newer Events by the same athlete, and preserve the fourth-visit highlights-before-podium layout behavior when changing `index.html` or event-board rendering.
 
 ## Social API Token Maintenance
 
