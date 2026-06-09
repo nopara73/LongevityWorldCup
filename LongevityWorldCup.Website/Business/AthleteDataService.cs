@@ -44,6 +44,18 @@ public class AthleteDataService : IDisposable
         }
     }
 
+    public IReadOnlySet<string> GetActiveAthleteSlugs()
+    {
+        lock (_athletesJsonLock)
+        {
+            return _athletes
+                .OfType<JsonObject>()
+                .Select(a => a["AthleteSlug"]?.GetValue<string>())
+                .Where(slug => !string.IsNullOrWhiteSpace(slug))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase)!;
+        }
+    }
+
     private readonly IWebHostEnvironment _env;
     private readonly EventDataService _eventDataService;
     private readonly FileSystemWatcher _athleteWatcher;
@@ -304,7 +316,7 @@ public class AthleteDataService : IDisposable
         try
         {
             ReloadCrowdStats();
-            SyncCrowdAgeTop10Placements(emitEvents: true);
+            SyncCrowdAgeTop10Placements(emitEvents: false);
             HydrateAgeImprovementIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
@@ -317,7 +329,6 @@ public class AthleteDataService : IDisposable
         }
 
         PushAthleteDirectoryToEvents();
-        SyncCrowdAgeTop10Placements(emitEvents: true);
         AthletesChanged?.Invoke();
     }
 
@@ -577,7 +588,6 @@ public class AthleteDataService : IDisposable
 
             ReloadCrowdStats();
             HydrateAgeImprovementIntoAthletesJson();
-            SyncAgeImprovementTop10Placements(emitEvents: true);
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
             HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
@@ -585,6 +595,7 @@ public class AthleteDataService : IDisposable
 
             // recompute and persist biomarker/test signatures after reload
             var changedSigs = SyncBiomarkerSignatures();
+            SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
             var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
             var bioAgeImprovements = SyncBestBioAgeStates(
                 changedSigs,
@@ -725,6 +736,8 @@ public class AthleteDataService : IDisposable
                     athleteJson["CrowdAge"] = median;
                 }
             }
+
+            SyncCrowdAgeTop10Placements(emitEvents: true, eventSubjectSlugs: new[] { athleteSlug });
         }
         finally
         {
@@ -1029,10 +1042,11 @@ public class AthleteDataService : IDisposable
             .ToList();
     }
 
-    private void SyncCrowdAgeTop10Placements(bool emitEvents)
+    private void SyncCrowdAgeTop10Placements(bool emitEvents, IEnumerable<string>? eventSubjectSlugs = null)
     {
         var currentTop10 = GetCrowdAgeTop10Snapshot();
         var currentBySlug = currentTop10.ToDictionary(x => x.Slug, x => x, StringComparer.OrdinalIgnoreCase);
+        var eventSubjects = BuildTop10EventSubjectSet(emitEvents, eventSubjectSlugs);
         var changed = new List<(string AthleteSlug, DateTime OccurredAtUtc, int Place, int? PreviousPlace, string? PreviousSlug, double CrowdAge, int CrowdCount)>();
         var nowUtc = DateTime.UtcNow;
 
@@ -1079,14 +1093,17 @@ public class AthleteDataService : IDisposable
                     if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
                         previousSlug = null;
 
-                    changed.Add((
-                        slug,
-                        nowUtc,
-                        currentPlace.Value,
-                        previousPlace,
-                        previousSlug,
-                        current.CrowdAge,
-                        current.CrowdCount));
+                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, currentPlace.Value, previousSlug, eventSubjects))
+                    {
+                        changed.Add((
+                            slug,
+                            nowUtc,
+                            currentPlace.Value,
+                            previousPlace,
+                            previousSlug,
+                            current.CrowdAge,
+                            current.CrowdCount));
+                    }
                 }
 
                 if (previousPlace == currentPlace) continue;
@@ -1190,28 +1207,32 @@ public class AthleteDataService : IDisposable
         return [];
     }
 
-    private void SyncAgeImprovementTop10Placements(bool emitEvents)
+    private void SyncAgeImprovementTop10Placements(bool emitEvents, IEnumerable<string>? eventSubjectSlugs = null)
     {
         SyncAgeImprovementTop10Placements(
             clock: "pheno",
             placementColumn: PhenoImprovementTop10PlacementColumn,
             currentTop10: GetAgeImprovementTop10Snapshot("pheno"),
-            emitEvents: emitEvents);
+            emitEvents: emitEvents,
+            eventSubjectSlugs: eventSubjectSlugs);
 
         SyncAgeImprovementTop10Placements(
             clock: "bortz",
             placementColumn: BortzImprovementTop10PlacementColumn,
             currentTop10: GetAgeImprovementTop10Snapshot("bortz"),
-            emitEvents: emitEvents);
+            emitEvents: emitEvents,
+            eventSubjectSlugs: eventSubjectSlugs);
     }
 
     private void SyncAgeImprovementTop10Placements(
         string clock,
         string placementColumn,
         IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> currentTop10,
-        bool emitEvents)
+        bool emitEvents,
+        IEnumerable<string>? eventSubjectSlugs)
     {
         var currentBySlug = currentTop10.ToDictionary(x => x.Slug, x => x, StringComparer.OrdinalIgnoreCase);
+        var eventSubjects = BuildTop10EventSubjectSet(emitEvents, eventSubjectSlugs);
         var changed = new List<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, int Place, int? PreviousPlace, string? PreviousSlug, double Improvement, double AgeReduction)>();
         var nowUtc = DateTime.UtcNow;
 
@@ -1258,15 +1279,18 @@ public class AthleteDataService : IDisposable
                     if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
                         previousSlug = null;
 
-                    changed.Add((
-                        slug,
-                        nowUtc,
-                        clock,
-                        currentPlace.Value,
-                        previousPlace,
-                        previousSlug,
-                        current.Improvement,
-                        current.AgeReduction));
+                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, currentPlace.Value, previousSlug, eventSubjects))
+                    {
+                        changed.Add((
+                            slug,
+                            nowUtc,
+                            clock,
+                            currentPlace.Value,
+                            previousPlace,
+                            previousSlug,
+                            current.Improvement,
+                            current.AgeReduction));
+                    }
                 }
 
                 if (previousPlace == currentPlace) continue;
@@ -1281,6 +1305,33 @@ public class AthleteDataService : IDisposable
 
         if (changed.Count > 0)
             _eventDataService.CreateAgeImprovementTop10ChangeEvents(changed, skipIfExists: true);
+    }
+
+    private static HashSet<string> BuildTop10EventSubjectSet(bool emitEvents, IEnumerable<string>? eventSubjectSlugs)
+    {
+        if (!emitEvents)
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        return (eventSubjectSlugs ?? Enumerable.Empty<string>())
+            .Where(slug => !string.IsNullOrWhiteSpace(slug))
+            .Select(slug => slug.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    internal static bool ShouldEmitTop10PlacementChangeEvent(
+        string slug,
+        int? previousPlace,
+        int currentPlace,
+        string? previousSlug,
+        IReadOnlySet<string> eventSubjectSlugs)
+    {
+        if (string.IsNullOrWhiteSpace(slug) || !eventSubjectSlugs.Contains(slug))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(previousSlug))
+            return false;
+
+        return !previousPlace.HasValue || currentPlace < previousPlace.Value;
     }
 
     private static double CalculateAgeAtDate(DateTime birthDateUtc, DateTime atDateUtc)

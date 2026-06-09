@@ -93,6 +93,7 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceCrowdAgeTop10Change = 8d;
     private const double DefaultRelevanceAgeImprovementTop10Change = 8d;
     private const int MaxCustomEventRetries = 3;
+    private const int MinimumActiveAthleteSlugCountForEventCleanup = 10;
 
     private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
@@ -1888,6 +1889,91 @@ public sealed class EventDataService : IDisposable
         });
     }
 
+    public int CleanupEventsForMissingAthletes(IReadOnlySet<string> activeAthleteSlugs)
+    {
+        ArgumentNullException.ThrowIfNull(activeAthleteSlugs);
+
+        var normalizedActiveSlugs = activeAthleteSlugs
+            .Select(NormalizeAthleteSlugForEventCleanup)
+            .Where(slug => !string.IsNullOrWhiteSpace(slug))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (normalizedActiveSlugs.Count < MinimumActiveAthleteSlugCountForEventCleanup)
+        {
+            _log.LogWarning(
+                "Skipped missing-athlete Event cleanup because only {AthleteCount} active athlete slug(s) were loaded.",
+                normalizedActiveSlugs.Count);
+            return 0;
+        }
+
+        var removed = _db.Run(sqlite =>
+        {
+            var staleIds = new List<string>();
+
+            using (var select = sqlite.CreateCommand())
+            {
+                select.CommandText = "SELECT Id, Type, Text FROM Events WHERE VisibleOnWebsite <> 0;";
+                using var reader = select.ExecuteReader();
+                while (reader.Read())
+                {
+                    var id = reader.GetString(0);
+                    var typeInt = reader.GetInt32(1);
+                    var text = reader.GetString(2);
+                    var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
+
+                    if (!IsAthleteCentricEventType(type))
+                        continue;
+
+                    var referencedSlugs = ExtractReferencedAthleteSlugs(text);
+                    if (referencedSlugs.Count == 0)
+                        continue;
+
+                    if (referencedSlugs.Any(slug => !normalizedActiveSlugs.Contains(slug)))
+                        staleIds.Add(id);
+                }
+            }
+
+            if (staleIds.Count == 0)
+                return 0;
+
+            using var tx = sqlite.BeginTransaction();
+            using var hide = sqlite.CreateCommand();
+            hide.Transaction = tx;
+            hide.CommandText =
+                """
+                UPDATE Events
+                SET VisibleOnWebsite = 0,
+                    SlackProcessed = 1,
+                    XProcessed = 1,
+                    ThreadsProcessed = 1,
+                    FacebookProcessed = 1,
+                    XSkipReason = COALESCE(XSkipReason, 'MissingAthlete'),
+                    ThreadsSkipReason = COALESCE(ThreadsSkipReason, 'MissingAthlete'),
+                    FacebookSkipReason = COALESCE(FacebookSkipReason, 'MissingAthlete')
+                WHERE Id = @id AND VisibleOnWebsite <> 0;
+                """;
+            var pId = hide.Parameters.Add("@id", SqliteType.Text);
+
+            var count = 0;
+            foreach (var id in staleIds)
+            {
+                pId.Value = id;
+                count += hide.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return count;
+        });
+
+        if (removed > 0)
+        {
+            _log.LogInformation("Hid {EventCount} athlete Event(s) referencing athletes missing from the leaderboard.", removed);
+            ReloadIntoCache();
+        }
+
+        return removed;
+    }
+
     public void ReloadIntoCache()
     {
         var arr = new JsonArray();
@@ -1907,6 +1993,48 @@ public sealed class EventDataService : IDisposable
 
         var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
         return new EventItem(id, type, text, occurred, relevance, visibleOnWebsite);
+    }
+
+    internal static bool IsAthleteCentricEventType(EventType type) =>
+        type is EventType.Joined
+            or EventType.NewRank
+            or EventType.BadgeAward
+            or EventType.SeasonFinalResult
+            or EventType.LongevitymaxxingChallengeResult
+            or EventType.BecamePro
+            or EventType.BiologicalAgeImproved
+            or EventType.CrowdAgeTop10Change
+            or EventType.AgeImprovementTop10Change;
+
+    internal static IReadOnlyList<string> ExtractReferencedAthleteSlugs(string text)
+    {
+        var slugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (EventHelpers.TryExtractSlug(text, out var slug))
+            AddNormalizedSlug(slugs, slug);
+
+        if (EventHelpers.TryExtractPrev(text, out var prev))
+            AddNormalizedSlug(slugs, prev);
+
+        if (EventHelpers.TryExtractPrevs(text, out var prevs))
+        {
+            foreach (var previousSlug in prevs)
+                AddNormalizedSlug(slugs, previousSlug);
+        }
+
+        return slugs.ToList();
+    }
+
+    internal static string NormalizeAthleteSlugForEventCleanup(string? slug) =>
+        string.IsNullOrWhiteSpace(slug)
+            ? string.Empty
+            : slug.Trim().Replace('-', '_');
+
+    private static void AddNormalizedSlug(HashSet<string> slugs, string slug)
+    {
+        var normalized = NormalizeAthleteSlugForEventCleanup(slug);
+        if (!string.IsNullOrWhiteSpace(normalized))
+            slugs.Add(normalized);
     }
 
     private static string BuildLongevitymaxxingChallengeResultText(LongevitymaxxingChallengeResultEventRow row)
