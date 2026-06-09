@@ -714,6 +714,7 @@
 }
 
 .lmx-status {
+    margin-top: 0.35rem;
     min-height: 1.3rem;
     color: #475569;
     font-weight: 700;

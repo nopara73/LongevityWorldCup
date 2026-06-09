@@ -756,7 +756,7 @@
                 <i class="fas fa-check" aria-hidden="true"></i>
                 Save day ${day.challengeDay}
             </button>
-            <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? "Saved. You can edit this until the window closes." : ""}</div>
+            <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? "Saved. You can edit this check-in today." : ""}</div>
         </form>`;
     }
 
