@@ -2018,9 +2018,27 @@
             }
         }
 
+        function isHomepageVisitCounterRoute() {
+            const path = (window.location && window.location.pathname ? window.location.pathname : '/').toLowerCase();
+            const isHomepagePath = path === '/' || path === '/index.html';
+            if (!isHomepagePath) return false;
+
+            try {
+                const params = new URLSearchParams(window.location.search || '');
+                return !params.has('athlete');
+            } catch (_) {
+                return true;
+            }
+        }
+
         function placeHomepageHighlightsForVisit() {
-            const visitCount = incrementHomepageVisitCount();
             const main = document.querySelector('main');
+            if (!isHomepageVisitCounterRoute()) {
+                if (main) main.dataset.homepageVisitLayout = 'default';
+                return;
+            }
+
+            const visitCount = incrementHomepageVisitCount();
             if (visitCount < homepageHighlightsBeforePodiumVisit) {
                 if (main) main.dataset.homepageVisitLayout = 'default';
                 return;
