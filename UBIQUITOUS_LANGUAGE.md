@@ -41,6 +41,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Longevitymaxxing Challenge** Day 1 counts for check-ins, streak, completion, and consistency signals, but not habit points, category leader badges, or point tie-breaks.
 - **Longevitymaxxing Challenge** habit points use a small day-weight ramp after Day 1: Day 2 starts at the raw 8-point maximum and the final day peaks at 11 points.
 - **Longevitymaxxing Challenge** call times may be selected before signup closes for 24-hour reminders.
+- **Longevitymaxxing Challenge** daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - **Longevitymaxxing Challenge** profile pictures are challenge-only unless a linked **Longevity athlete** profile picture exists. Uploaded challenge images outrank cached Gravatar fallbacks.
 
 ## Naming Notes

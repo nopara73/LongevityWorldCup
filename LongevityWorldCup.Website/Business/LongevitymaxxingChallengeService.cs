@@ -448,7 +448,7 @@ public sealed class LongevitymaxxingChallengeService
         {
             var tz = ResolveTimeZone(participant.TimeZoneId);
             var localNow = TimeZoneInfo.ConvertTime(now, tz);
-            if (localNow.Hour != settings.DailyReminderHourLocal)
+            if (localNow.Hour < settings.DailyReminderHourLocal)
                 continue;
 
             var targetDate = DateOnly.FromDateTime(localNow.DateTime).AddDays(-1);

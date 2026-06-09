@@ -305,8 +305,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("daily@example.com", "Daily Dana");
-        var reminderTime = DateTimeOffset.Parse("2026-06-09T08:05:00Z");
+        var earlyTime = DateTimeOffset.Parse("2026-06-09T07:05:00Z");
+        var reminderTime = DateTimeOffset.Parse("2026-06-09T11:05:00Z");
 
+        Assert.Empty(fixture.Service.GetDailyReminderCandidates(earlyTime));
         var beforeCheckIn = fixture.Service.GetDailyReminderCandidates(reminderTime);
         var reminder = Assert.Single(beforeCheckIn);
         Assert.Equal(1, reminder.ChallengeDay);
@@ -402,7 +404,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task CallReminderEmailIncludesLinkTimezoneScheduleAndCalendarInvite()
+    public async Task CallReminderEmailIncludesTimeLinkAndParticipantPageOnly()
     {
         using var fixture = TestChallengeFixture.Create();
         await fixture.ConfirmParticipantAsync(
@@ -418,19 +420,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
             fixture.Service.BuildStopUrl(reminder.StopToken));
 
         Assert.Contains("Call link:\nhttps://meet.example.test", content.TextBody);
-        Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
         Assert.Contains("2026-06-08 04:00 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("Participant page:\nhttps://example.test/longevitymaxxing?", content.TextBody);
         Assert.DoesNotContain("2026-06-08 02:00 UTC", content.TextBody);
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
-        Assert.Contains("Full call schedule:", content.TextBody);
-        Assert.Contains("- Midpoint:", content.TextBody);
-
-        var attachment = Assert.Single(content.Attachments);
-        Assert.Equal("longevitymaxxing-call.ics", attachment.FileName);
-        Assert.Contains("BEGIN:VEVENT", attachment.Text);
-        Assert.Contains("SUMMARY:Longevitymaxxing Kickoff call", attachment.Text);
-        Assert.Contains("LOCATION:https://meet.example.test", attachment.Text);
-        Assert.DoesNotContain("SUMMARY:Longevitymaxxing Midpoint call", attachment.Text);
+        Assert.DoesNotContain("Full call schedule:", content.TextBody);
+        Assert.DoesNotContain("- Midpoint:", content.TextBody);
+        Assert.DoesNotContain("calendar invite", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(content.Attachments);
     }
 
     [Fact]
