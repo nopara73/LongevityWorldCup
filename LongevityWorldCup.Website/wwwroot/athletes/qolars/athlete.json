@@ -1,0 +1,41 @@
+{
+  "Name": "QoLArs",
+  "DisplayName": null,
+  "MediaContact": "LarsAndKarla.longevity@proton.me",
+  "DateOfBirth": {
+    "Year": 1970,
+    "Month": 11,
+    "Day": 17
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-02",
+      "AlbGL": 49,
+      "CreatUmolL": 84.96,
+      "GluMmolL": 4.5,
+      "CrpMgL": 0.32,
+      "LymPc": 35.4,
+      "McvFL": 85.2,
+      "RdwPc": 12.6,
+      "AlpUL": 65,
+      "Wbc1000cellsuL": 3.78,
+      "NeutrophilPc": 53.7,
+      "MonocytePc": 8.7,
+      "Rbc10e12L": 4.73,
+      "MchPg": 30,
+      "UreaMmolL": 4.82,
+      "CystatinCMgL": 0.59,
+      "Hba1cMmolMol": 34,
+      "CholesterolMmolL": 4.45,
+      "ApoA1GL": 1.65,
+      "AltUL": 13,
+      "GgtUL": 11,
+      "ShbgNmolL": 65.6,
+      "VitaminDNmolL": 133.5
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Norway",
+  "Why": "For me, improving QoL is an ars.\n\"Ars longa, vita brevis\" — art is long, life is short. I joined for the motivation and the blood test feedback to improve my QoL, which can be an arse. My goal is to turn vita brevis into a high-quality vita longa.",
+  "PersonalLink": null
+}

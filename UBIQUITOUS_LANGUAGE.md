@@ -32,10 +32,12 @@ Use this as a compact guardrail for terms agents often misuse.
 - Existing athletes emit a biological-age improvement **Event** when a changed result lowers their stored best **pheno age** or **Bortz Age**. This is an Event only; it is separate from the Pheno/Bortz Improvement leaderboard metrics.
 - Homepage highlights are a curated subset of **Events**, not the raw Event feed; they may suppress repeated athlete-centric Events and keep only the most important Event per athlete when enough unique highlights exist.
 - **Crowd Age** top-10 placement changes emit **Events** after the initial stored placement snapshot. These follow the separate **Crowd Age leaderboard** ordering and do not affect **Ultimate League** ranking.
+- **Crowd Age** top-10 placement **Events** are only for the athlete whose own accepted guess changed the leaderboard and who entered or improved by displacing a previous holder. Passive shifts caused by someone else moving, losing eligibility, or falling out are not Events.
 - **Crowd Age leaderboard** requires 100 accepted guesses and orders by **Crowd Age Difference**, **Crowd Count**, date of birth, and name.
 - **Guess My Age** increments **Crowd Count** only after server-side rate limiting accepts one realistic guess per client IP and athlete during the configured short window.
 - Improvement leaderboards require at least two eligible submissions and are separate from the **Ultimate League**. Pheno orders by `latest eligible pheno age - worst eligible pheno age`, then pheno age reduction, date of birth, and name. Bortz uses Bortz equivalents and is route/filter-only.
 - Pheno/Bortz Improvement top-10 placement changes emit **Events** after the initial stored placement snapshot. These are placement Events for the improvement leaderboards, not biological-age improvement Events.
+- Pheno/Bortz Improvement top-10 placement **Events** are only for the athlete whose own result changed and who entered or improved by displacing a previous holder. Passive shifts caused by another athlete falling out or moving down are not Events.
 - **Best Improvement** is a baseline-to-latest badge metric, not the worst-to-latest improvement leaderboard metric.
 - **Longevitymaxxing Challenge** results may appear as **Events**, but never affect **Ultimate League** ranking, biological age placements, or athlete **Badges**.
 - **Longevitymaxxing Challenge** Day 1 counts for check-ins, streak, completion, and consistency signals, but not habit points, category leader badges, or point tie-breaks.

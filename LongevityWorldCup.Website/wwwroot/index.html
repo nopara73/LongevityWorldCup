@@ -802,6 +802,18 @@
                 height: 100%;
             }
 
+            #events-root-index .events-board table {
+                table-layout: fixed;
+            }
+
+            #events-root-index .events-board col.events-col-avatar {
+                width: 52px;
+            }
+
+            #events-root-index .events-board col.events-col-date {
+                width: 76px;
+            }
+
             #events-root-index .events-board td.col-avatar {
                 width: 52px;
             }
@@ -816,8 +828,10 @@
             }
 
             #events-root-index .events-board td.event-message .event-message-cell {
+                display: block;
                 white-space: normal;
                 overflow-x: hidden;
+                overflow-y: visible;
                 flex-wrap: wrap;
                 align-items: baseline;
                 column-gap: 0.22rem;
@@ -839,6 +853,10 @@
             #events-root-index .events-board td.event-message .event-message-cell .badge-class,
             #events-root-index .events-board td.event-message .event-message-cell .badge-chip,
             #events-root-index .events-board td.event-message .event-message-cell .more-link {
+                white-space: nowrap;
+            }
+
+            #events-root-index .events-board td.event-message .event-message-cell .event-measurement {
                 white-space: nowrap;
             }
 
@@ -1184,6 +1202,14 @@
                 padding-right: 14px;
             }
 
+            #events-root-index .events-board col.events-col-avatar {
+                width: 48px;
+            }
+
+            #events-root-index .events-board col.events-col-date {
+                width: 58px;
+            }
+
             .lwc-countdown-body {
                 padding: 18px 14px 20px;
             }
@@ -1236,6 +1262,16 @@
                 width: min(100%, 19rem);
                 padding: 0.85rem 1.4rem;
                 font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            #events-root-index .events-board col.events-col-avatar {
+                width: 44px;
+            }
+
+            #events-root-index .events-board col.events-col-date {
+                width: 0;
             }
         }
 

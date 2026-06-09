@@ -16,6 +16,16 @@
             padding-bottom: 0;
         }
 
+        .event-board-page .events-board col.events-col-date {
+            width: 106px;
+        }
+
+        .event-board-page .events-board td.col-date {
+            width: 106px;
+            white-space: normal;
+            line-height: 1.15;
+        }
+
         @media (min-width: 720px) {
             .event-board-page .events-board {
                 flex-grow: 0;
@@ -27,6 +37,14 @@
             .event-board-page .events-board table {
                 width: 100%;
                 table-layout: fixed;
+            }
+
+            .event-board-page .events-board col.events-col-avatar {
+                width: 68px;
+            }
+
+            .event-board-page .events-board col.events-col-date {
+                width: 96px;
             }
 
             .event-board-page .events-board tbody td {
@@ -44,8 +62,10 @@
             }
 
             .event-board-page .events-board td.event-message .event-message-cell {
+                display: block;
                 white-space: normal;
                 overflow-x: hidden;
+                overflow-y: visible;
                 flex-wrap: wrap;
                 column-gap: 0.2rem;
                 row-gap: 0.16rem;
@@ -65,10 +85,29 @@
                 white-space: nowrap;
             }
 
+            .event-board-page .events-board td.event-message .event-message-cell .event-measurement {
+                white-space: nowrap;
+            }
+
             .event-board-page .events-board td.col-date {
-                width: 82px;
+                width: 96px;
                 padding-left: 8px;
                 font-size: 0.76rem;
+                white-space: normal;
+                line-height: 1.15;
+            }
+        }
+
+        @media (min-width: 421px) and (max-width: 600px) {
+            .event-board-page .events-board:not(.athlete-scroll) col.events-col-date {
+                width: 86px;
+            }
+
+            .event-board-page .events-board:not(.athlete-scroll) td.col-date {
+                width: 86px;
+                padding-left: 8px;
+                white-space: normal;
+                line-height: 1.15;
             }
         }
     </style>

@@ -257,6 +257,17 @@ namespace LongevityWorldCup.Website
 
             var app = builder.Build();
 
+            var athleteDataService = app.Services.GetRequiredService<AthleteDataService>();
+            var hiddenMissingAthleteEvents = app.Services
+                .GetRequiredService<EventDataService>()
+                .CleanupEventsForMissingAthletes(athleteDataService.GetActiveAthleteSlugs());
+            if (hiddenMissingAthleteEvents > 0)
+            {
+                app.Logger.LogInformation(
+                    "Startup hid {EventCount} Event(s) referencing athletes missing from the leaderboard.",
+                    hiddenMissingAthleteEvents);
+            }
+
             if (enableStartupBadgeRefresh)
             {
                 app.Services.GetRequiredService<BadgeDataService>();

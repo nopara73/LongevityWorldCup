@@ -139,11 +139,16 @@
     .events-board table{
         flex-grow:1;
         width:100%;
+        table-layout:fixed;
         border-collapse:separate;
         border-spacing:0;
         align-self:flex-start;
         padding-bottom:5px
     }
+
+    .events-board col.events-col-avatar{width:84px}
+    .events-board col.events-col-message{width:auto}
+    .events-board col.events-col-date{width:92px}
 
     .events-board thead th{
         background:
@@ -168,6 +173,21 @@
         table-layout:fixed;
     }
 
+    .events-board.athlete-scroll #eventsTable{
+        display:block;
+        width:100%;
+        min-width:0;
+        box-sizing:border-box;
+    }
+
+    .events-board.athlete-scroll #eventsTable tbody,
+    .events-board.athlete-scroll #eventsTable tbody tr.main-row,
+    .events-board.athlete-scroll #eventsTable tbody tr.events-skeleton-row{
+        width:100%;
+        min-width:0;
+        box-sizing:border-box;
+    }
+
     .events-board.athlete-scroll #eventsTable tbody{
         display:block;
         max-height:420px;
@@ -178,6 +198,14 @@
     }
 
     .events-board.athlete-scroll #eventsTable td.col-date{width:76px}
+    .events-board.athlete-scroll td.event-message{
+        min-width:0;
+        width:auto;
+    }
+    .events-board.athlete-scroll td.event-message .event-message-cell{
+        width:100%;
+        flex:1 1 auto;
+    }
 
     .events-board.athlete-scroll td.event-message .event-message-cell > *{min-width:0}
     .events-board.athlete-scroll td.event-message .event-message-cell{
@@ -239,12 +267,12 @@
     .events-board table tbody tr.zebra-even{background-color:var(--zebra-even)}
     .events-board table tbody tr.zebra-odd{background-color:var(--zebra-odd)}
     .events-board table tbody tr:hover{
-        transform:scale(1.01);
+        transform:translateY(-1px);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
         background-color:var(--events-hover-bg)
     }
     .events-board table tbody tr.group-hover{
-        transform:scale(1.01);
+        transform:translateY(-1px);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
         background-color:var(--events-hover-bg);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
@@ -252,12 +280,12 @@
 
     .events-board table tbody tr.custom-event-row.is-open:hover + tr.custom-event-details,
     .events-board table tbody tr.custom-event-details:hover{
-        transform:scale(1.01);
+        transform:translateY(-1px);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
     .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover){
-        transform:scale(1.01);
+        transform:translateY(-1px);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
         background-color:var(--events-hover-bg);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
@@ -370,18 +398,19 @@
     .event-message a:focus{color:var(--secondary-color,#ff4f87);text-decoration-color:var(--secondary-color,#ff4f87)}
     .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
     .event-message .event-inline-text{min-width:0;white-space:normal}
-    .name-and-rank{display:inline-flex;align-items:baseline;gap:.15rem}
+    .events-board .event-measurement,
+    .events-board .event-measurement *{white-space:nowrap!important}
+    .name-and-rank{display:inline-block;vertical-align:baseline;white-space:nowrap}
+    .name-and-rank .rank-badge{padding-left:.15rem}
     .event-message .rank-badge{display:inline-flex;align-items:baseline;gap:.15rem;white-space:nowrap}
     .event-message .rank-icon{margin-left:.2rem}
     .event-message a.event-athlete-link:not(.avatar-link){
-        display:inline-flex;
-        align-items:center;
-        min-height:44px;
-        min-width:44px;
-        justify-content:center;
-        margin:-11px 0;
-        padding:0 .05rem;
-        line-height:1.1;
+        display:inline;
+        min-height:0;
+        min-width:0;
+        margin:0;
+        padding:0;
+        line-height:inherit;
     }
     .event-message a.placement-link{
         display:inline-flex;
@@ -392,6 +421,14 @@
         margin:-12px -.3rem;
         padding:0 .25rem;
         text-decoration:none;
+    }
+    .event-message .name-and-rank .placement-link{
+        display:inline;
+        min-height:0;
+        min-width:0;
+        margin:0;
+        padding:0 0 0 .15rem;
+        line-height:inherit;
     }
     .event-message a.placement-link:hover,
     .event-message a.placement-link:focus{text-decoration:none}
@@ -643,7 +680,7 @@
         .events-board table tbody tr:hover{transform:none;box-shadow:0 4px 10px rgba(0,0,0,.08)}
         .events-board td.event-message{align-items:center;align-content:center}
 
-        /* Homepage/mobile highlights: prevent table-width blowout from single-line rows. */
+        /* Compact highlights need normal inline text wrapping; flex-wrapping splits phrases badly. */
         .events-board:not(.athlete-scroll){
             --badge-size:21px;
             --badge-icon-size:.7rem;
@@ -654,8 +691,10 @@
             font-size:.9rem;
         }
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell{
+            display:block;
             white-space:normal;
             overflow-x:hidden;
+            overflow-y:visible;
             flex-wrap:wrap;
             align-items:baseline;
             column-gap:.2rem;
@@ -669,10 +708,16 @@
             width:32px;
             padding-right:7px;
         }
+        .events-board:not(.athlete-scroll) col.events-col-avatar{
+            width:64px;
+        }
         .events-board:not(.athlete-scroll) td.col-date{
             width:58px;
             padding-left:6px;
             white-space:nowrap;
+        }
+        .events-board:not(.athlete-scroll) col.events-col-date{
+            width:58px;
         }
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell *{
             white-space:normal;
@@ -729,13 +774,19 @@
         .events-board:not(.athlete-scroll) td.col-date{
             display:none;
         }
+        .events-board:not(.athlete-scroll) col.events-col-date{
+            width:0;
+        }
 
         .events-board:not(.athlete-scroll) table{
-            table-layout:auto;
+            table-layout:fixed;
         }
 
         .events-board.athlete-scroll td.col-date{
             display:none;
+        }
+        .events-board.athlete-scroll col.events-col-date{
+            width:0;
         }
 
         .events-board.athlete-scroll #eventsTable thead,
@@ -759,6 +810,9 @@
             width:30px;
             padding-right:6px;
         }
+        .events-board:not(.athlete-scroll) col.events-col-avatar{
+            width:56px;
+        }
 
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell{
             column-gap:.16rem;
@@ -772,6 +826,11 @@
 
 <div id="events-root" class="events-board" aria-busy="true">
     <table id="eventsTable">
+        <colgroup>
+            <col class="events-col-avatar">
+            <col class="events-col-message">
+            <col class="events-col-date">
+        </colgroup>
         <thead>
         <tr>
             <th colspan="3">
@@ -1808,8 +1867,8 @@
                             ? `${nameWithRank} lost the ${esc(placeText)} Crowd Age position to ${toHtml}`
                             : `${nameWithRank} lost the ${esc(placeText)} Crowd Age position`;
                     } else {
-                        const prevText = prevHtml ? `, ahead of ${prevHtml}` : "";
-                        msgHtml = `${nameWithRank} ${esc(movementText)} in Crowd Age${prevText} <span class="event-inline-text">(<strong class="age-years-accent">${esc(crowdAgeText)}</strong> years, ${esc(crowdCountText)} guesses)</span>`;
+                        const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
+                        msgHtml = `${nameWithRank} ${esc(movementText)} in Crowd Age${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(crowdAgeText)}</strong> years, ${esc(crowdCountText)} guesses)</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug) {
                     const nameWithRank = renderTextWithSlugLinks(
@@ -1840,8 +1899,8 @@
                         const prevHtml = r.prevSlug
                             ? renderTextWithSlugLinks(`slug[${r.prevSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
                             : "";
-                        const prevText = prevHtml ? `, ahead of ${prevHtml}` : "";
-                        msgHtml = `${nameWithRank} ${esc(movementText)} in ${esc(leaderboardName)}${prevText} <span class="event-inline-text">(<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
+                        const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
+                        msgHtml = `${nameWithRank} ${esc(movementText)} in ${esc(leaderboardName)}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
                     }
                 } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                     const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
