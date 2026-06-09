@@ -45,12 +45,16 @@ public sealed class SwaggerOpenApiTests
     }
 
     [Fact]
-    public async Task SwaggerJson_DoesNotDeclareAuthRequirement()
+    public async Task SwaggerJson_DeclaresNoAuthRequirement()
     {
         using var document = await LoadSwaggerDocumentAsync();
         var root = document.RootElement;
 
-        Assert.False(root.TryGetProperty("security", out _));
+        Assert.True(root.TryGetProperty("security", out var security));
+        Assert.Equal(JsonValueKind.Array, security.ValueKind);
+        Assert.Equal(1, security.GetArrayLength());
+        Assert.Empty(security[0].EnumerateObject());
+
         if (root.TryGetProperty("components", out var components))
         {
             Assert.False(components.TryGetProperty("securitySchemes", out _));

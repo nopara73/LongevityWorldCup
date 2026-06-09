@@ -278,6 +278,7 @@ namespace LongevityWorldCup.Website
             {
                 options.PreSerializeFilters.Add((swaggerDocument, _) =>
                 {
+                    swaggerDocument.Security = [new OpenApiSecurityRequirement()];
                     swaggerDocument.Servers =
                     [
                         new OpenApiServer
