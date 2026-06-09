@@ -39,6 +39,10 @@ sudo rsync -a --checksum --no-owner --no-group \
   "$publish_output"/ /var/www/LongevityWorldCup/publish/
 sudo rsync -a --checksum --delete --no-owner --no-group \
   "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
+sudo mkdir -p /var/www/LongevityWorldCup/publish/wwwroot/generated
+sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/wwwroot/generated
+sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type d -exec chmod 755 {} \;
+sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type f -exec chmod 644 {} \;
 sudo systemctl start longevityworldcup.service
 service_stopped=0
 
