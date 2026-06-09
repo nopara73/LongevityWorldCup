@@ -1151,6 +1151,7 @@
 
 .lmx-checkin-card > .lmx-button {
     justify-self: start;
+    margin-top: 0.5rem;
 }
 
 .lmx-practice-note {
