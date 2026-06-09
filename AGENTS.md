@@ -18,6 +18,12 @@ When producing temporary files that are only for agent-side inspection or delive
 
 Do not place disposable outputs in tracked project folders such as `output/`, `wwwroot/`, `docs/`, or test fixture directories unless the user explicitly asks for a committed artifact there.
 
+## Production Server Access
+
+Agents working in this repository may have direct SSH access to the production server through the local SSH alias `lwc-server`. When a task needs production inspection, logs, database checks, service status, or deployment verification, check whether `ssh lwc-server` is available before inventing indirect workarounds or asking the user to run server commands.
+
+Before making production changes over SSH, read `LongevityWorldCup.Documentation/ServerDeployment.md` and follow its documented paths, service names, runtime config locations, and preservation rules. Prefer read-only SSH checks unless the task explicitly requires a server-side change.
+
 ## Domain Language
 
 Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, biological age calculators, badges, events, social posting, or user-facing competition copy, read `UBIQUITOUS_LANGUAGE.md`.
