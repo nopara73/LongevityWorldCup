@@ -1,11 +1,13 @@
 (function () {
     const STORAGE_KEY = "lmxAccessToken";
     const API = "/api/longevitymaxxing";
+    const CALL_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
     const ANSWERS = [
         { label: "No", value: 0 },
         { label: "Somewhat", value: 1 },
         { label: "Yes", value: 2 }
     ];
+    const SAVED_CHECKIN_TEXT = "Saved. You can edit this check-in today.";
     const QUESTIONS = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you sleep well at night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you intentionally challenge or rest your body yesterday?" },
@@ -564,10 +566,14 @@
         container.innerHTML = (calls || []).map(call => {
             const timeZoneId = getParticipantTimeZone();
             const when = call.selectedSlot ? formatDateTime(call.selectedSlot.startsAtUtc, timeZoneId) : pendingCallTimeLabel(signupClosesAtUtc, timeZoneId);
-            const link = call.videoCallUrl
+            const startsAtMs = call.selectedSlot ? Date.parse(call.selectedSlot.startsAtUtc) : NaN;
+            const done = Number.isFinite(startsAtMs) && startsAtMs + CALL_ACTIVE_WINDOW_MS < Date.now();
+            const link = done
+                ? `<span class="lmx-call-done">Done</span>`
+                : call.videoCallUrl
                 ? `<a class="lmx-call-link" href="${escAttr(call.videoCallUrl)}" target="_blank" rel="noopener">Google Meet</a>`
                 : "";
-            return `<div class="lmx-call-group"><strong>${esc(call.label)}</strong><div class="lmx-call-meta"><span>${esc(when)}</span>${link}</div></div>`;
+            return `<div class="lmx-call-group${done ? " done" : ""}"><strong>${esc(call.label)}</strong><div class="lmx-call-meta"><span>${esc(when)}</span>${link}</div></div>`;
         }).join("");
     }
 
@@ -693,9 +699,12 @@
                 const group = button.closest(".lmx-segmented");
                 group.querySelectorAll("button").forEach(item => item.setAttribute("aria-pressed", "false"));
                 button.setAttribute("aria-pressed", "true");
+                updateCheckInSaveState(button.closest("form"));
             });
         });
         container.querySelectorAll("form").forEach(form => {
+            form.querySelector("textarea")?.addEventListener("input", () => updateCheckInSaveState(form));
+            updateCheckInSaveState(form);
             form.addEventListener("submit", event => {
                 event.preventDefault();
                 submitCheckIn(form);
@@ -735,6 +744,8 @@
         const existing = day.existing || {};
         const saved = savedDays.has(day.challengeDay);
         const practice = day.countsForScore === false;
+        const hasExisting = !!day.existing;
+        const note = (existing.note || "").trim();
         const questions = QUESTIONS.map(q => {
             const current = typeof existing[q.key] === "number" ? existing[q.key] : 1;
             const buttons = ANSWERS.map(answer => `<button type="button" data-value="${answer.value}" aria-pressed="${answer.value === current ? "true" : "false"}">${answer.label}</button>`).join("");
@@ -744,19 +755,23 @@
             </div>`;
         }).join("");
 
-        return `<form class="lmx-checkin-card" data-day="${day.challengeDay}">
+        const originalAttrs = QUESTIONS
+            .map(q => `data-original-${q.key}="${typeof existing[q.key] === "number" ? existing[q.key] : 1}"`)
+            .join(" ");
+
+        return `<form class="lmx-checkin-card" data-day="${day.challengeDay}" data-saved="${hasExisting ? "true" : "false"}" ${originalAttrs} data-original-note="${escAttr(note)}">
             <h3>Day ${day.challengeDay} <span class="lmx-phase">${practice ? `Practice check-in - ${esc(formatCheckInDate(day.date))}` : esc(formatCheckInDate(day.date))}</span></h3>
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             ${questions}
             <div class="lmx-field">
                 <label for="lmx-note-${day.challengeDay}">Participant note <span>optional</span></label>
-                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible to participants only">${esc(existing.note || "")}</textarea>
+                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible to participants only">${esc(note)}</textarea>
             </div>
-            <button class="lmx-button" type="submit">
+            <button class="lmx-button" type="submit"${hasExisting ? " disabled" : ""}>
                 <i class="fas fa-check" aria-hidden="true"></i>
                 Save day ${day.challengeDay}
             </button>
-            <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? "Saved. You can edit this check-in today." : ""}</div>
+            <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
         </form>`;
     }
 
@@ -790,16 +805,15 @@
 
     async function submitCheckIn(form) {
         if (!accessToken) return;
+        if (!hasCheckInChanged(form)) return;
         await withButton(form.querySelector("button[type='submit']"), async () => {
+            const draft = collectCheckInDraft(form);
             const payload = {
                 accessToken,
                 challengeDay: Number(form.dataset.day),
-                note: form.querySelector("textarea").value.trim() || null
+                note: draft.note || null
             };
-            QUESTIONS.forEach(q => {
-                const pressed = form.querySelector(`.lmx-question[data-key="${q.key}"] button[aria-pressed="true"]`);
-                payload[q.key] = Number(pressed ? pressed.dataset.value : 1);
-            });
+            QUESTIONS.forEach(q => payload[q.key] = draft[q.key]);
             const result = await postJson(`${API}/check-in`, payload);
             savedDays.add(payload.challengeDay);
             participantState = result;
@@ -809,6 +823,41 @@
             selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
         }, "Saving...");
+    }
+
+    function collectCheckInDraft(form) {
+        const draft = {
+            note: form.querySelector("textarea").value.trim()
+        };
+        QUESTIONS.forEach(q => {
+            const pressed = form.querySelector(`.lmx-question[data-key="${q.key}"] button[aria-pressed="true"]`);
+            draft[q.key] = Number(pressed ? pressed.dataset.value : 1);
+        });
+        return draft;
+    }
+
+    function hasCheckInChanged(form) {
+        if (!form || form.dataset.saved !== "true") return true;
+
+        const draft = collectCheckInDraft(form);
+        if ((form.dataset.originalNote || "") !== draft.note) return true;
+
+        return QUESTIONS.some(q => Number(form.dataset[`original${capitalize(q.key)}`]) !== draft[q.key]);
+    }
+
+    function updateCheckInSaveState(form) {
+        if (!form) return;
+
+        const button = form.querySelector("button[type='submit']");
+        const status = form.querySelector(".lmx-status");
+        const changed = hasCheckInChanged(form);
+
+        if (button) button.disabled = !changed;
+        if (status && form.dataset.saved === "true") {
+            status.textContent = changed ? "" : SAVED_CHECKIN_TEXT;
+            status.classList.remove("error");
+            status.classList.toggle("success", !changed);
+        }
     }
 
     async function uploadProfilePicture(file, input) {
@@ -1384,6 +1433,10 @@
 
     function messageOf(err) {
         return err && err.message ? err.message : "Something went wrong.";
+    }
+
+    function capitalize(value) {
+        return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
     }
 
     function esc(value) {
