@@ -80,7 +80,7 @@ public sealed class LongevitymaxxingChallengePageTests
 
         Assert.Contains("\"challengeName\":\"Longevitymaxxing Challenge\"", json);
         Assert.Contains("\"startDate\":\"2026-06-08\"", json);
-        Assert.Contains("\"signupClosesAtUtc\":\"2026-06-08T00:00:00.0000000+00:00\"", json);
+        Assert.Contains("\"signupClosesAtUtc\":\"2026-06-09T22:00:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T06:30:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T13:00:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T16:00:00.0000000+00:00\"", json);
@@ -109,6 +109,26 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("does not affect Ultimate League rankings", html);
         Assert.Contains("href=\"/longevitymaxxing\"", html);
         Assert.Contains("/api/longevitymaxxing/state", html);
+    }
+
+    [Fact]
+    public async Task Homepage_AdvertisesLongevitymaxxingChallengeWhileActiveSignupIsOpen()
+    {
+        var now = DateTimeOffset.UtcNow;
+        using var factory = CreateFactory(new Config
+        {
+            LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig
+            {
+                StartDate = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1).ToString("yyyy-MM-dd"),
+                SignupClosesAtUtc = now.AddDays(1).ToString("O")
+            }
+        });
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("id=\"longevitymaxxingPromo\"", html);
+        Assert.Contains("href=\"/longevitymaxxing\"", html);
     }
 
     [Fact]
@@ -165,6 +185,15 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("setStatus(\"lmxSignupStatus\", \"Check these once, then join.\", false);", javascript);
         Assert.Contains("free signup", javascript);
         Assert.Contains("Join free before", javascript);
+        Assert.Contains("Join free today", javascript);
+        Assert.Contains("Signup is open today. Join from the card and catch up from your private link.", javascript);
+        Assert.Contains("function isPreStartSignup", javascript);
+        Assert.Contains("function hasOpenCallVoting", javascript);
+        Assert.Contains("function getOpenCallVoteCalls", javascript);
+        Assert.Contains("renderCallsForSignup(state);", javascript);
+        Assert.Contains("Timezone and profile", javascript);
+        Assert.Contains("state.signupOpen && hasOpenCallVoting(state)", javascript);
+        Assert.Contains("id=\"lmxSignupCallField\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("Intl.DateTimeFormat().resolvedOptions().timeZone", javascript);
         Assert.Contains("const COMMON_TIME_ZONES = [", javascript);
         Assert.Contains("\"America/New_York\"", javascript);

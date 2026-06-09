@@ -40,6 +40,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - Pheno/Bortz Improvement top-10 placement **Events** are only for the athlete whose own result changed and who entered or improved by displacing a previous holder. Passive shifts caused by another athlete falling out or moving down are not Events.
 - **Best Improvement** is a baseline-to-latest badge metric, not the worst-to-latest improvement leaderboard metric.
 - **Longevitymaxxing Challenge** results may appear as **Events**, but never affect **Ultimate League** ranking, biological age placements, or athlete **Badges**.
+- **Longevitymaxxing Challenge** signup may remain open during active challenge days when configured; late participants join the current challenge and catch up through normal eligible check-ins.
 - **Longevitymaxxing Challenge** Day 1 counts for check-ins, streak, completion, and consistency signals, but not habit points, category leader badges, or point tie-breaks.
 - **Longevitymaxxing Challenge** habit points use a small day-weight ramp after Day 1: Day 2 starts at the raw 8-point maximum and the final day peaks at 11 points.
 - **Longevitymaxxing Challenge** call times may be selected before signup closes for 24-hour reminders.

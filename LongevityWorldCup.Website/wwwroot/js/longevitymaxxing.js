@@ -249,7 +249,7 @@
         renderMetrics(state);
         renderHeroContext(state);
         renderChallengeVisuals(state);
-        renderCallsForSignup(state.calls || []);
+        renderCallsForSignup(state);
         renderBoard(state);
         renderPodium(state);
         renderPanels(state);
@@ -260,6 +260,7 @@
     }
 
     function renderMetrics(state) {
+        const preStartSignup = isPreStartSignup(state);
         const checks = (state.leaderboard || []).reduce((sum, row) => sum + row.checkedInDays, 0);
         setText("lmxMetricPeople", String((state.leaderboard || []).length));
         setText("lmxMetricChecks", String(checks));
@@ -268,10 +269,10 @@
         setText("lmxHeroStatus", phaseLabel(state.phase));
         setText("lmxPhaseLabel", phaseLabel(state.phase));
         const startLabel = formatDateLabel(state.startDate);
-        setText("lmxStartChip", state.signupOpen ? `Starts ${startLabel}` : `Started ${startLabel}`);
+        setText("lmxStartChip", preStartSignup ? `Starts ${startLabel}` : `Started ${startLabel}`);
         const boardSection = document.getElementById("lmxBoardSection");
-        if (boardSection) boardSection.classList.toggle("signup-roster", state.signupOpen);
-        if (state.signupOpen) {
+        if (boardSection) boardSection.classList.toggle("signup-roster", preStartSignup);
+        if (preStartSignup) {
             setText("lmxBoardTitle", "Leaderboard");
             setText("lmxBoardMeta", `${(state.leaderboard || []).length} people signed up · starts ${formatDateLabel(state.startDate)}`);
         } else {
@@ -279,12 +280,13 @@
             setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · Day 1 practice · later days ramp · checked-in days rank first`);
         }
         setText("lmxSignupKicker", state.signupOpen ? "free signup" : "signup closed");
-        setText("lmxSignupTitle", state.signupOpen ? `Join free before ${formatDateLabel(state.startDate)}` : "Signup is closed");
+        setText("lmxSignupTitle", state.signupOpen ? (preStartSignup ? `Join free before ${formatDateLabel(state.startDate)}` : "Join free today") : "Signup is closed");
     }
 
     function renderHeroContext(state) {
         const hasParticipant = !!participantState;
-        const dashboardMode = hasParticipant || !state.signupOpen;
+        const preStartSignup = isPreStartSignup(state);
+        const dashboardMode = hasParticipant || !preStartSignup;
         const highlights = document.getElementById("lmxHeroHighlights");
         const life = document.getElementById("lmxLifeStrip");
         if (!highlights || !life) return;
@@ -316,7 +318,9 @@
                 "lmxHeroCopy",
                 state.phase === "completed"
                     ? "The challenge is complete. The final board is archived below."
-                    : "Signup is closed. Follow the public board as the 14-day challenge plays out.");
+                    : state.signupOpen
+                        ? "Signup is open today. Join from the card and catch up from your private link."
+                        : "Signup is closed. Follow the public board as the 14-day challenge plays out.");
             highlights.className = "lmx-benefit-strip lmx-ops-strip";
             highlights.setAttribute("aria-label", "Challenge status");
             highlights.innerHTML = [
@@ -434,7 +438,7 @@
         const hasParticipant = !!participantState;
         const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];
         const checkInOnly = pendingCheckInDays.length > 0;
-        const dashboardMode = hasParticipant || !state.signupOpen;
+        const dashboardMode = hasParticipant || !isPreStartSignup(state);
         const publicClosed = !hasParticipant && !state.signupOpen;
         const hero = document.getElementById("lmxHeroLayout");
         if (hero) {
@@ -455,7 +459,7 @@
         toggle("lmxBoardSection", !checkInOnly);
         toggle("lmxParticipantTools", !checkInOnly);
         toggle("lmxParticipantCalls", hasParticipant && !checkInOnly);
-        toggle("lmxEditCallField", hasParticipant && state.signupOpen && !checkInOnly);
+        toggle("lmxEditCallField", hasParticipant && state.signupOpen && hasOpenCallVoting(state) && !checkInOnly);
         if (checkInOnly) toggle("lmxEditForm", false);
         if (!hasParticipant) {
             const completed = state.phase === "completed";
@@ -512,7 +516,7 @@
         setAthleteSelectorValue("lmxEditAthlete", participant.athleteSlug || participant.athleteUrl || "");
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
         renderProfilePictureControls(participant);
-        renderCallVoteControls("lmxEditCalls", state.public.calls || [], state.callAvailability || []);
+        renderCallVoteControls("lmxEditCalls", getOpenCallVoteCalls(state.public), state.callAvailability || []);
         renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);
         renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || []);
@@ -535,7 +539,19 @@
         image.alt = profileImage ? `${participant.displayName || "Participant"} profile picture` : "";
     }
 
-    function renderCallsForSignup(calls) {
+    function renderCallsForSignup(state) {
+        const field = document.getElementById("lmxSignupCallField");
+        const container = document.getElementById("lmxSignupCalls");
+        const summary = document.getElementById("lmxSignupDetailsSummary");
+        const calls = getOpenCallVoteCalls(state);
+        if (summary) summary.textContent = calls.length ? "Timezone, profile, and calls" : "Timezone and profile";
+        if (!calls.length) {
+            if (container) container.innerHTML = "";
+            if (field) field.classList.add("lmx-hidden");
+            return;
+        }
+
+        if (field) field.classList.remove("lmx-hidden");
         renderCallVoteControls("lmxSignupCalls", calls, []);
     }
 
@@ -579,7 +595,7 @@
 
     function renderBoard(state) {
         const board = document.getElementById("lmxBoard");
-        if (state.signupOpen) {
+        if (isPreStartSignup(state)) {
             renderRosterBoard(board, state);
             return;
         }
@@ -1319,6 +1335,18 @@
             case "completed": return "Final";
             default: return "loading";
         }
+    }
+
+    function isPreStartSignup(state) {
+        return !!state && state.signupOpen && state.phase === "signup";
+    }
+
+    function hasOpenCallVoting(state) {
+        return getOpenCallVoteCalls(state).length > 0;
+    }
+
+    function getOpenCallVoteCalls(state) {
+        return ((state && state.calls) || []).filter(call => !call.selectedSlot && (call.candidateSlots || []).length);
     }
 
     function formatDateLabel(value) {

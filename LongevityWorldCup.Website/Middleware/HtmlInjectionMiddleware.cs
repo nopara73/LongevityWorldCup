@@ -1274,10 +1274,13 @@ $@"<script type=""module"">
         {
             var cfg = _config.LongevitymaxxingChallenge ?? new LongevitymaxxingChallengeConfig();
             var start = ParseDateOnly(cfg.StartDate, DateOnly.FromDateTime(DateTime.UtcNow.Date));
+            var durationDays = cfg.DurationDays is >= 1 and <= 31 ? cfg.DurationDays : 14;
+            var end = start.AddDays(durationDays - 1);
             var signupCloses = ParseDateTimeOffset(cfg.SignupClosesAtUtc, new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero));
             var now = DateTimeOffset.UtcNow;
+            var utcDate = DateOnly.FromDateTime(now.UtcDateTime.Date);
 
-            return now < signupCloses.ToUniversalTime() && DateOnly.FromDateTime(now.UtcDateTime.Date) < start;
+            return now < signupCloses.ToUniversalTime() && utcDate <= end;
         }
 
         private static DateOnly ParseDateOnly(string? value, DateOnly fallback)

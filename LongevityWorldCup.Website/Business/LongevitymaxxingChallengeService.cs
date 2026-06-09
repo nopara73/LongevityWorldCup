@@ -1783,10 +1783,8 @@ public sealed class LongevitymaxxingChallengeService
     private static string GetPhase(ChallengeSettings settings, DateTimeOffset now)
     {
         var utcDate = DateOnly.FromDateTime(now.UtcDateTime);
-        if (IsSignupOpen(settings, now))
-            return "signup";
         if (utcDate < settings.StartDate)
-            return "roster";
+            return IsSignupOpen(settings, now) ? "signup" : "roster";
         if (utcDate <= settings.EndDate.AddDays(2))
             return "active";
         return "completed";
@@ -1795,7 +1793,7 @@ public sealed class LongevitymaxxingChallengeService
     private static bool IsSignupOpen(ChallengeSettings settings, DateTimeOffset now)
     {
         var utcDate = DateOnly.FromDateTime(now.UtcDateTime);
-        return now < settings.SignupClosesAtUtc && utcDate < settings.StartDate;
+        return now < settings.SignupClosesAtUtc && utcDate <= settings.EndDate;
     }
 
     private sealed record ChallengeSettings(
