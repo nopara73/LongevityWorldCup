@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
@@ -33,6 +34,7 @@ public sealed class LongevitymaxxingChallengeService
     private readonly IWebHostEnvironment _environment;
     private readonly ILongevitymaxxingEmailSender _email;
     private readonly ILogger<LongevitymaxxingChallengeService> _logger;
+    private readonly ConcurrentDictionary<string, byte> _profilePictureWarmups = new(StringComparer.Ordinal);
 
     public LongevitymaxxingChallengeService(
         DatabaseManager db,
@@ -57,6 +59,7 @@ public sealed class LongevitymaxxingChallengeService
         var settings = BuildSettings();
         TrySelectCallSlots(now);
         var participants = GetConfirmedParticipants();
+        QueueProfilePictureWarmups(participants);
         var checkIns = GetCheckInsFor(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
         var leaderboard = BuildLeaderboard(settings, participants, checkIns, now);
 
@@ -1524,6 +1527,44 @@ public sealed class LongevitymaxxingChallengeService
         return TryBuildGravatarProfilePictureUrl(participant);
     }
 
+    private void QueueProfilePictureWarmups(IReadOnlyList<ParticipantRecord> participants)
+    {
+        foreach (var participant in participants)
+        {
+            if (HasCachedProfilePicture(participant) || HasFreshGravatarMissingMarker(participant))
+                continue;
+
+            if (!_profilePictureWarmups.TryAdd(participant.Id, 0))
+                continue;
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    _ = TryBuildGravatarProfilePictureUrl(participant);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Longevitymaxxing Gravatar profile picture warm-up failed for participant {ParticipantId}", participant.Id);
+                }
+                finally
+                {
+                    _profilePictureWarmups.TryRemove(participant.Id, out _);
+                }
+            });
+        }
+    }
+
+    private bool HasCachedProfilePicture(ParticipantRecord participant)
+        => File.Exists(GetProfilePicturePath(participant.Id)) ||
+           File.Exists(GetGravatarProfilePicturePath(participant.Id));
+
+    private bool HasFreshGravatarMissingMarker(ParticipantRecord participant)
+    {
+        var missingPath = GetGravatarMissingMarkerPath(participant.Id);
+        return File.Exists(missingPath) && DateTime.UtcNow - File.GetLastWriteTimeUtc(missingPath) < GravatarMissingCacheDuration;
+    }
+
     private static string BuildGeneratedProfilePictureUrl(string path)
     {
         var info = new FileInfo(path);
@@ -1546,7 +1587,7 @@ public sealed class LongevitymaxxingChallengeService
             return BuildGeneratedProfilePictureUrl(gravatarPath);
 
         var missingPath = GetGravatarMissingMarkerPath(participant.Id);
-        if (File.Exists(missingPath) && DateTime.UtcNow - File.GetLastWriteTimeUtc(missingPath) < GravatarMissingCacheDuration)
+        if (HasFreshGravatarMissingMarker(participant))
             return null;
 
         GravatarAvatar? avatar;
