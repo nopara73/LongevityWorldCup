@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
+using System.Threading;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -129,10 +130,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public void PublicStateDoesNotFetchGravatarForUncachedLeaderboardPictures()
+    public void PublicStateWarmsUncachedGravatarWithoutBlockingLeaderboard()
     {
         using var gravatar = CreatePngStream();
-        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+        using var gravatarGate = new ManualResetEventSlim(false);
+        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
         fixture.InsertConfirmedParticipant("uncached@example.com", "Uncached Uma");
 
         var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:00Z"));
@@ -140,7 +142,16 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var row = Assert.Single(state.Leaderboard);
         Assert.Equal("Uncached Uma", row.DisplayName);
         Assert.Null(row.ProfileImageUrl);
-        Assert.Empty(fixture.Http.Requests);
+
+        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(1)));
+        gravatarGate.Set();
+        Assert.True(SpinWait.SpinUntil(() =>
+            fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:01Z")).Leaderboard.Single().ProfileImageUrl is not null,
+            TimeSpan.FromSeconds(2)));
+
+        var warmed = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:02Z")).Leaderboard.Single();
+        Assert.Contains(".gravatar.webp?v=", warmed.ProfileImageUrl);
+        Assert.Single(fixture.Http.Requests);
     }
 
     [Fact]
@@ -687,13 +698,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
             byte[]? gravatarResponse = null,
             string? profileJson = null,
             byte[]? profileImageResponse = null,
-            string? signupClosesAtUtc = null)
+            string? signupClosesAtUtc = null,
+            ManualResetEventSlim? gravatarGate = null)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-lmx-tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             var db = new DatabaseManager(dbPath: Path.Combine(root, "challenge.db"));
             var email = new FakeEmailSender();
-            var http = new FakeHttpClientFactory(gravatarResponse, profileJson, profileImageResponse);
+            var http = new FakeHttpClientFactory(gravatarResponse, profileJson, profileImageResponse, gravatarGate);
             var env = new FakeEnvironment(root);
             var config = new Config
             {
@@ -829,13 +841,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
     private sealed class FakeHttpClientFactory(
         byte[]? gravatarResponse,
         string? profileJson,
-        byte[]? profileImageResponse) : IHttpClientFactory
+        byte[]? profileImageResponse,
+        ManualResetEventSlim? gravatarGate) : IHttpClientFactory
     {
         public List<Uri> Requests { get; } = [];
         public List<string> UserAgents { get; } = [];
 
         public HttpClient CreateClient(string name)
-            => new(new FakeHttpMessageHandler(Requests, UserAgents, gravatarResponse, profileJson, profileImageResponse));
+            => new(new FakeHttpMessageHandler(Requests, UserAgents, gravatarResponse, profileJson, profileImageResponse, gravatarGate));
     }
 
     private sealed class FakeHttpMessageHandler(
@@ -843,7 +856,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
         List<string> userAgents,
         byte[]? gravatarResponse,
         string? profileJson,
-        byte[]? profileImageResponse) : HttpMessageHandler
+        byte[]? profileImageResponse,
+        ManualResetEventSlim? gravatarGate) : HttpMessageHandler
     {
         protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
             => BuildResponse(request);
@@ -855,6 +869,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         {
             requests.Add(request.RequestUri!);
             userAgents.Add(request.Headers.UserAgent.ToString());
+            gravatarGate?.Wait();
             if (string.IsNullOrWhiteSpace(request.Headers.UserAgent.ToString()))
                 return new HttpResponseMessage(HttpStatusCode.Forbidden);
 
