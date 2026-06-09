@@ -176,7 +176,7 @@ namespace LongevityWorldCup.Website
         public string PublicBaseUrl { get; set; } = "https://longevityworldcup.com";
         public string StartDate { get; set; } = "2026-06-08";
         public int DurationDays { get; set; } = 14;
-        public string SignupClosesAtUtc { get; set; } = "2026-06-08T00:00:00Z";
+        public string SignupClosesAtUtc { get; set; } = "2026-06-09T22:00:00Z";
         public string? CallSelectionClosesAtUtc { get; set; }
         public int DailyReminderHourLocal { get; set; } = 7;
         public string SlackInviteUrl { get; set; } = "https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ";

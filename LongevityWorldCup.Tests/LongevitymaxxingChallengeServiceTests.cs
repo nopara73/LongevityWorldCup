@@ -44,6 +44,29 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupCanRemainOpenDuringActiveChallengeWhenConfigured()
+    {
+        using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");
+        var lateSignup = DateTimeOffset.Parse("2026-06-09T12:00:00Z");
+
+        var publicState = fixture.Service.GetPublicState(lateSignup);
+        Assert.Equal("active", publicState.Phase);
+        Assert.True(publicState.SignupOpen);
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "late@example.com",
+            "Late Lina",
+            "UTC",
+            null,
+            []), lateSignup);
+        var access = await fixture.Service.ConfirmAsync(ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"), lateSignup.AddMinutes(1));
+
+        Assert.Contains(access.State.EligibleDays, day => day.ChallengeDay == 1);
+        Assert.DoesNotContain(access.State.EligibleDays, day => day.ChallengeDay == 2);
+        Assert.False(fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T22:01:00Z")).SignupOpen);
+    }
+
+    [Fact]
     public async Task ParticipantWithoutAthleteProfileCanUploadChallengeProfilePicture()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -648,7 +671,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
         public static TestChallengeFixture Create(
             byte[]? gravatarResponse = null,
             string? profileJson = null,
-            byte[]? profileImageResponse = null)
+            byte[]? profileImageResponse = null,
+            string? signupClosesAtUtc = null)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-lmx-tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -667,7 +691,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 {
                     StartDate = "2026-06-08",
                     PublicBaseUrl = "https://example.test/ignored-path",
-                    SignupClosesAtUtc = "2026-06-08T00:00:00Z",
+                    SignupClosesAtUtc = signupClosesAtUtc ?? "2026-06-08T00:00:00Z",
                     DailyReminderHourLocal = 8,
                     SlackInviteUrl = "https://slack.example.test",
                     VideoCallUrl = "https://meet.example.test",

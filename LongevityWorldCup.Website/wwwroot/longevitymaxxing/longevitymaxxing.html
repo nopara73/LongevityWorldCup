@@ -99,7 +99,7 @@
                                 </div>
                             </div>
                             <details id="lmxSignupDetails" class="lmx-details">
-                                <summary>Timezone, profile, and calls</summary>
+                                <summary id="lmxSignupDetailsSummary">Timezone, profile, and calls</summary>
                                 <div class="lmx-details-body">
                                     <div class="lmx-field">
                                         <label for="lmxSignupTimeZone">Timezone</label>
@@ -110,7 +110,7 @@
                                         <label for="lmxSignupAthlete">LWC athlete profile <span>optional</span></label>
                                         <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" placeholder="Only if you are already listed as an athlete">
                                     </div>
-                                    <div class="lmx-field">
+                                    <div id="lmxSignupCallField" class="lmx-field">
                                         <span class="lmx-label">Call availability <span>optional</span></span>
                                         <p class="lmx-field-help">Check every time that could work. The best kickoff, midpoint, and finale times are picked automatically before reminders go out.</p>
                                         <div id="lmxSignupCalls" class="lmx-call-votes"></div>
