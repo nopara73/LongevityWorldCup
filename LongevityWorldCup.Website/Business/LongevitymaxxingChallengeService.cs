@@ -248,12 +248,13 @@ public sealed class LongevitymaxxingChallengeService
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var participant = RequireParticipantByAccessToken(accessToken);
+        var participantSummary = ToParticipantSummary(participant);
         var publicState = GetPublicState(now);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
 
         return new LongevitymaxxingParticipantState(
             publicState,
-            ToParticipantSummary(participant),
+            participantSummary,
             BuildEligibleDays(BuildSettings(), participant, checkIns, now),
             GetParticipantVisibleNotes(participant.Id),
             BuildParticipantCalls(BuildSettings()),
@@ -819,7 +820,7 @@ public sealed class LongevitymaxxingChallengeService
                 p.Id,
                 p.DisplayName,
                 BuildAthleteUrl(p.AthleteSlug),
-                BuildProfilePictureUrl(p),
+                BuildCachedProfilePictureUrl(p),
                 checkedInDays,
                 totalPoints,
                 currentStreak,
@@ -1501,11 +1502,24 @@ public sealed class LongevitymaxxingChallengeService
     private static string? BuildAthleteUrl(string? athleteSlug)
         => string.IsNullOrWhiteSpace(athleteSlug) ? null : $"/athlete/{Uri.EscapeDataString(athleteSlug)}";
 
-    private string? BuildProfilePictureUrl(ParticipantRecord participant)
+    private string? BuildCachedProfilePictureUrl(ParticipantRecord participant)
     {
         var path = GetProfilePicturePath(participant.Id);
         if (File.Exists(path))
             return BuildGeneratedProfilePictureUrl(path);
+
+        var gravatarPath = GetGravatarProfilePicturePath(participant.Id);
+        if (File.Exists(gravatarPath))
+            return BuildGeneratedProfilePictureUrl(gravatarPath);
+
+        return null;
+    }
+
+    private string? BuildProfilePictureUrl(ParticipantRecord participant)
+    {
+        var cached = BuildCachedProfilePictureUrl(participant);
+        if (!string.IsNullOrWhiteSpace(cached))
+            return cached;
 
         return TryBuildGravatarProfilePictureUrl(participant);
     }

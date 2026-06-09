@@ -129,6 +129,21 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public void PublicStateDoesNotFetchGravatarForUncachedLeaderboardPictures()
+    {
+        using var gravatar = CreatePngStream();
+        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+        fixture.InsertConfirmedParticipant("uncached@example.com", "Uncached Uma");
+
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:00Z"));
+
+        var row = Assert.Single(state.Leaderboard);
+        Assert.Equal("Uncached Uma", row.DisplayName);
+        Assert.Null(row.ProfileImageUrl);
+        Assert.Empty(fixture.Http.Requests);
+    }
+
+    [Fact]
     public async Task ParticipantWithoutEmailGravatarFallsBackToDisplayNameProfileSlug()
     {
         using var profileImage = CreatePngStream();
@@ -750,6 +765,31 @@ public sealed class LongevitymaxxingChallengeServiceTests
             var token = ReadQueryToken(Email.Confirmations.Last().Url, "confirm");
             var access = await Service.ConfirmAsync(token, now.AddMinutes(1));
             return access.AccessToken;
+        }
+
+        public void InsertConfirmedParticipant(string email, string name)
+        {
+            var now = DateTimeOffset.Parse("2026-06-06T12:00:00Z").ToString("o");
+            Db.Run(sqlite =>
+            {
+                using var cmd = sqlite.CreateCommand();
+                cmd.CommandText =
+                    """
+                    INSERT INTO LongevitymaxxingParticipants
+                    (Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken, ConfirmedAtUtc, CreatedAtUtc, UpdatedAtUtc)
+                    VALUES (@id, @email, @name, 'UTC', NULL, @access, @confirm, @stop, @confirmed, @created, @updated);
+                    """;
+                cmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
+                cmd.Parameters.AddWithValue("@email", email);
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@access", $"access-{Guid.NewGuid():N}");
+                cmd.Parameters.AddWithValue("@confirm", $"confirm-{Guid.NewGuid():N}");
+                cmd.Parameters.AddWithValue("@stop", $"stop-{Guid.NewGuid():N}");
+                cmd.Parameters.AddWithValue("@confirmed", now);
+                cmd.Parameters.AddWithValue("@created", now);
+                cmd.Parameters.AddWithValue("@updated", now);
+                cmd.ExecuteNonQuery();
+            });
         }
 
         public void Dispose()

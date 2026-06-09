@@ -1249,7 +1249,7 @@
 
     async function getJson(url) {
         const response = await fetch(url, { headers: { "Accept": "application/json" } });
-        return readJsonResponse(response);
+        return readJsonResponse(response, url);
     }
 
     async function postJson(url, payload) {
@@ -1261,7 +1261,7 @@
             },
             body: JSON.stringify(payload)
         });
-        return readJsonResponse(response);
+        return readJsonResponse(response, url);
     }
 
     async function postForm(url, formData) {
@@ -1270,12 +1270,23 @@
             headers: { "Accept": "application/json" },
             body: formData
         });
-        return readJsonResponse(response);
+        return readJsonResponse(response, url);
     }
 
-    async function readJsonResponse(response) {
+    async function readJsonResponse(response, url) {
         const text = await response.text();
-        const data = text ? JSON.parse(text) : {};
+        const contentType = response.headers.get("content-type") || "";
+        let data = {};
+        if (text) {
+            try {
+                data = JSON.parse(text);
+            } catch (_) {
+                const target = String(url || response.url || "request");
+                const typeLabel = contentType ? ` (${contentType})` : "";
+                throw new Error(`${target} returned ${response.status || "a non-JSON response"}${typeLabel}.`);
+            }
+        }
+
         if (!response.ok) {
             throw new Error(data.message || response.statusText || "Request failed");
         }
