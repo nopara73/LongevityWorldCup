@@ -86,23 +86,11 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var link = string.IsNullOrWhiteSpace(reminder.VideoCallUrl)
             ? "Call link: not configured yet."
             : $"Call link:\n{reminder.VideoCallUrl}";
-        var schedule = BuildScheduleBlock(reminder.Calls, reminder.TimeZoneId);
-        var calendarCalls = reminder.Calls
-            .Where(call => string.Equals(call.Key, reminder.CallKey, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var attachments = BuildCalendarAttachment(
-            "longevitymaxxing-call.ics",
-            "Longevitymaxxing call",
-            calendarCalls,
-            challengeUrl);
 
         var body =
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
             $"The Longevitymaxxing {reminder.CallLabel} call starts at {localStartsAt}.\n" +
-            $"Timezone: {SafeTimeZoneLabel(reminder.TimeZoneId)}\n\n" +
             $"{link}\n\n" +
-            $"{schedule}\n\n" +
-            "A calendar invite for this call is attached.\n\n" +
             $"Participant page:\n{challengeUrl}\n\n" +
             $"Stop challenge emails: {stopUrl}\n\n" +
             "Longevity World Cup";
@@ -110,7 +98,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         return new LongevitymaxxingEmailContent(
             $"Longevitymaxxing {reminder.CallLabel} call reminder",
             body,
-            attachments);
+            []);
     }
 
     internal static LongevitymaxxingEmailContent BuildChallengeStartEmailContent(

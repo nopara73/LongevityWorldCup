@@ -178,7 +178,7 @@ namespace LongevityWorldCup.Website
         public int DurationDays { get; set; } = 14;
         public string SignupClosesAtUtc { get; set; } = "2026-06-08T00:00:00Z";
         public string? CallSelectionClosesAtUtc { get; set; }
-        public int DailyReminderHourLocal { get; set; } = 8;
+        public int DailyReminderHourLocal { get; set; } = 7;
         public string SlackInviteUrl { get; set; } = "https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ";
         public string? SlackRoomUrl { get; set; }
         public string VideoCallUrl { get; set; } = "https://meet.google.com/kem-kfpt-bhs";
