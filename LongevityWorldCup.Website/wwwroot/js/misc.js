@@ -264,6 +264,23 @@ window.calculateAgeAtDate = function (birthDate, atDate) {
     return Math.round((totalDays / 365.2425) * 100) / 100;
 }
 
+window.calculateCompletedYearsAtDate = function (birthDate, atDate) {
+    if (!(birthDate instanceof Date)) throw new Error("Invalid input: birthDate must be a Date object");
+    if (!(atDate instanceof Date)) throw new Error("Invalid input: atDate must be a Date object");
+    if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
+    if (isNaN(atDate)) throw new Error("Invalid date.");
+
+    if (birthDate > atDate) throw new Error("Date of birth cannot be in the future.");
+
+    let years = atDate.getFullYear() - birthDate.getFullYear();
+    const birthdayThisYear = new Date(atDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+    if (atDate < birthdayThisYear) {
+        years -= 1;
+    }
+
+    return years;
+}
+
 window.removeAllHighlights = function () {
     document.querySelectorAll('.athlete-name').forEach(element => {
         element.innerHTML = window.escapeHTML(element.textContent);

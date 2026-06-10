@@ -6306,6 +6306,18 @@
         };
     }
 
+    function getCompletedChronologicalAge(fullAthleteData, athleteData) {
+        const dob = fullAthleteData && fullAthleteData.DateOfBirth;
+        if (dob && typeof window.calculateCompletedYearsAtDate === 'function') {
+            return window.calculateCompletedYearsAtDate(
+                new Date(dob.Year, dob.Month - 1, dob.Day),
+                new Date()
+            );
+        }
+
+        return Math.floor(athleteData.chronologicalAge);
+    }
+
     function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
@@ -6366,7 +6378,7 @@
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').innerHTML = renderFlagLabel(fullAthleteData.Flag);
-        document.getElementById('chronologicalAge').textContent = athleteData.chronologicalAge.toFixed(0);
+        document.getElementById('chronologicalAge').textContent = getCompletedChronologicalAge(fullAthleteData, athleteData).toString();
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
         updateYourGuess();
         const lowestBortzAgeEl = document.getElementById('lowestBortzAge');
