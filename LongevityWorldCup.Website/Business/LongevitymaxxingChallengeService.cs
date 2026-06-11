@@ -20,8 +20,13 @@ public sealed class LongevitymaxxingChallengeService
     private const int RawDailyMaxScore = 8;
     private const int PracticeCheckInDay = 1;
     private const double FinalDayScoreMultiplier = 1.4d;
-    public const int MaxProfilePictureUploadBytes = 8 * 1024 * 1024;
+    public const int MaxProfilePictureUploadBytes = 32 * 1024 * 1024;
+    public const int MaxCheckInPhotoCount = 4;
+    public const int MaxCheckInPhotoUploadBytes = 32 * 1024 * 1024;
+    public const int MaxCheckInPhotoRequestBytes = (MaxCheckInPhotoUploadBytes * MaxCheckInPhotoCount) + (512 * 1024);
     private const int ProfilePictureSize = 512;
+    private const int CheckInPhotoMaxDimension = 1600;
+    private const int CheckInPhotoQuality = 82;
     private const string GravatarMissingCacheVersion = "v4";
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
@@ -326,7 +331,7 @@ public sealed class LongevitymaxxingChallengeService
             throw new InvalidOperationException("Profile picture is required.");
 
         if (profilePicture.Length > MaxProfilePictureUploadBytes)
-            throw new InvalidOperationException("Profile picture must be 8 MB or smaller.");
+            throw new InvalidOperationException("The profile picture could not be uploaded. Choose one standard phone photo and try again.");
 
         var outputPath = GetProfilePicturePath(participant.Id);
         var tempPath = $"{outputPath}.{Guid.NewGuid():N}.tmp";
@@ -364,13 +369,62 @@ public sealed class LongevitymaxxingChallengeService
         {
             TryDeleteFile(tempPath);
             _logger.LogWarning(ex, "Longevitymaxxing profile picture upload failed for participant {ParticipantId}", participant.Id);
-            throw new InvalidOperationException("The profile picture could not be processed. Please try a JPG, PNG, or WebP image under 8 MB.", ex);
+            throw new InvalidOperationException("The profile picture could not be processed. Please try a JPG, PNG, or WebP image.", ex);
         }
 
         return GetParticipantState(accessToken);
     }
 
     public LongevitymaxxingParticipantState SubmitCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc = null)
+    {
+        var checkIn = ValidateCheckIn(request, nowUtc);
+        return SaveCheckIn(checkIn, []);
+    }
+
+    public async Task<LongevitymaxxingParticipantState> SubmitCheckInAsync(
+        LongevitymaxxingCheckInRequest request,
+        IReadOnlyList<IFormFile>? notePhotos,
+        DateTimeOffset? nowUtc = null,
+        CancellationToken ct = default)
+    {
+        var checkIn = ValidateCheckIn(request, nowUtc);
+        var photoFiles = (notePhotos ?? [])
+            .Where(photo => photo is { Length: > 0 })
+            .ToList();
+
+        if (photoFiles.Count == 0)
+            return SaveCheckIn(checkIn, []);
+
+        var existingImages = GetCheckInImagesFor(checkIn.Participant.Id, checkIn.Request.ChallengeDay);
+        if (existingImages.Count + photoFiles.Count > MaxCheckInPhotoCount)
+            throw new InvalidOperationException($"Each check-in can have up to {MaxCheckInPhotoCount} photos.");
+
+        var nextIndex = existingImages.Count == 0 ? 1 : existingImages.Max(image => image.ImageIndex) + 1;
+        var processedImages = new List<PendingCheckInImage>();
+        try
+        {
+            foreach (var photo in photoFiles)
+            {
+                processedImages.Add(await ProcessCheckInPhotoAsync(
+                    checkIn.Participant,
+                    checkIn.Request.ChallengeDay,
+                    photo,
+                    nextIndex++,
+                    checkIn.NowUtc,
+                    ct).ConfigureAwait(false));
+            }
+
+            return SaveCheckIn(checkIn, processedImages);
+        }
+        catch
+        {
+            foreach (var image in processedImages)
+                TryDeleteFile(image.OutputPath);
+            throw;
+        }
+    }
+
+    private ValidatedCheckIn ValidateCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings();
@@ -384,6 +438,11 @@ public sealed class LongevitymaxxingChallengeService
         var note = NormalizeNote(request.Note);
         var challengeDate = settings.StartDate.AddDays(request.ChallengeDay - 1);
 
+        return new ValidatedCheckIn(request, now, participant, values.Sleep, values.Exercise, values.Nutrition, values.Vices, note, challengeDate);
+    }
+
+    private LongevitymaxxingParticipantState SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages)
+    {
         _db.Run(sqlite =>
         {
             using var upsert = sqlite.CreateCommand();
@@ -400,20 +459,91 @@ public sealed class LongevitymaxxingChallengeService
                     Note = excluded.Note,
                     UpdatedAtUtc = excluded.UpdatedAtUtc;
                 """;
-            Add(upsert, "@participantId", participant.Id);
-            Add(upsert, "@day", request.ChallengeDay);
-            Add(upsert, "@date", challengeDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-            Add(upsert, "@sleep", values.Sleep);
-            Add(upsert, "@exercise", values.Exercise);
-            Add(upsert, "@nutrition", values.Nutrition);
-            Add(upsert, "@vices", values.Vices);
-            Add(upsert, "@note", note);
-            Add(upsert, "@checked", now.ToString("o"));
-            Add(upsert, "@updated", now.ToString("o"));
+            Add(upsert, "@participantId", checkIn.Participant.Id);
+            Add(upsert, "@day", checkIn.Request.ChallengeDay);
+            Add(upsert, "@date", checkIn.ChallengeDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            Add(upsert, "@sleep", checkIn.Sleep);
+            Add(upsert, "@exercise", checkIn.Exercise);
+            Add(upsert, "@nutrition", checkIn.Nutrition);
+            Add(upsert, "@vices", checkIn.Vices);
+            Add(upsert, "@note", checkIn.Note);
+            Add(upsert, "@checked", checkIn.NowUtc.ToString("o"));
+            Add(upsert, "@updated", checkIn.NowUtc.ToString("o"));
             upsert.ExecuteNonQuery();
+
+            foreach (var image in newImages)
+            {
+                using var insertImage = sqlite.CreateCommand();
+                insertImage.CommandText =
+                    """
+                    INSERT INTO LongevitymaxxingCheckInImages
+                    (ParticipantId, ChallengeDay, ImageIndex, FileName, Width, Height, CreatedAtUtc)
+                    VALUES (@participantId, @day, @imageIndex, @fileName, @width, @height, @created);
+                    """;
+                Add(insertImage, "@participantId", checkIn.Participant.Id);
+                Add(insertImage, "@day", checkIn.Request.ChallengeDay);
+                Add(insertImage, "@imageIndex", image.ImageIndex);
+                Add(insertImage, "@fileName", image.FileName);
+                Add(insertImage, "@width", image.Width);
+                Add(insertImage, "@height", image.Height);
+                Add(insertImage, "@created", image.CreatedAtUtc.ToString("o"));
+                insertImage.ExecuteNonQuery();
+            }
         });
 
-        return GetParticipantState(request.AccessToken, now);
+        return GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc);
+    }
+
+    private async Task<PendingCheckInImage> ProcessCheckInPhotoAsync(
+        ParticipantRecord participant,
+        int challengeDay,
+        IFormFile photo,
+        int imageIndex,
+        DateTimeOffset nowUtc,
+        CancellationToken ct)
+    {
+        if (photo.Length > MaxCheckInPhotoUploadBytes)
+            throw new InvalidOperationException("That photo could not be uploaded. Choose one standard phone photo and try again.");
+
+        var fileName = $"{participant.Id}-day{challengeDay:00}-{imageIndex}.webp";
+        var outputPath = GetCheckInPhotoPath(fileName);
+        var tempPath = $"{outputPath}.{Guid.NewGuid():N}.tmp";
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+        try
+        {
+            await using var input = photo.OpenReadStream();
+            using var image = await Image.LoadAsync(input, ct).ConfigureAwait(false);
+            image.Mutate(ctx => ctx
+                .AutoOrient()
+                .Resize(new ResizeOptions
+                {
+                    Size = new Size(CheckInPhotoMaxDimension, CheckInPhotoMaxDimension),
+                    Mode = ResizeMode.Max
+                }));
+            image.Metadata.ExifProfile = null;
+
+            await image.SaveAsync(tempPath, new WebpEncoder
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                Quality = CheckInPhotoQuality
+            }, ct).ConfigureAwait(false);
+
+            File.Move(tempPath, outputPath, overwrite: true);
+            return new PendingCheckInImage(imageIndex, fileName, outputPath, image.Width, image.Height, nowUtc);
+        }
+        catch (UnknownImageFormatException ex)
+        {
+            TryDeleteFile(tempPath);
+            _logger.LogWarning(ex, "Longevitymaxxing check-in photo upload used an unsupported image format for participant {ParticipantId} day {ChallengeDay}", participant.Id, challengeDay);
+            throw new InvalidOperationException("That photo format is not supported. Please upload a JPG, PNG, or WebP image.", ex);
+        }
+        catch (Exception ex)
+        {
+            TryDeleteFile(tempPath);
+            _logger.LogWarning(ex, "Longevitymaxxing check-in photo upload failed for participant {ParticipantId} day {ChallengeDay}", participant.Id, challengeDay);
+            throw new InvalidOperationException("That photo could not be processed. Try a normal camera photo or screenshot.", ex);
+        }
     }
 
     public void StopChallengeEmails(string token, DateTimeOffset? nowUtc = null)
@@ -713,6 +843,17 @@ public sealed class LongevitymaxxingChallengeService
                     PRIMARY KEY (ParticipantId, ChallengeDay)
                 );
 
+                CREATE TABLE IF NOT EXISTS LongevitymaxxingCheckInImages (
+                    ParticipantId TEXT NOT NULL,
+                    ChallengeDay INTEGER NOT NULL,
+                    ImageIndex INTEGER NOT NULL,
+                    FileName TEXT NOT NULL,
+                    Width INTEGER NOT NULL,
+                    Height INTEGER NOT NULL,
+                    CreatedAtUtc TEXT NOT NULL,
+                    PRIMARY KEY (ParticipantId, ChallengeDay, ImageIndex)
+                );
+
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingReminderLog (
                     ParticipantId TEXT NOT NULL,
                     ChallengeDay INTEGER NOT NULL,
@@ -955,7 +1096,7 @@ public sealed class LongevitymaxxingChallengeService
                     CountsForScore(x.day.Value),
                     existing is null
                         ? null
-                        : new LongevitymaxxingCheckInDraft(existing.Sleep, existing.Exercise, existing.Nutrition, existing.Vices, existing.Note));
+                        : new LongevitymaxxingCheckInDraft(existing.Sleep, existing.Exercise, existing.Nutrition, existing.Vices, existing.Note, existing.Images));
             })
             .ToList();
     }
@@ -996,25 +1137,45 @@ public sealed class LongevitymaxxingChallengeService
                 FROM LongevitymaxxingCheckIns c
                 JOIN LongevitymaxxingParticipants p ON p.Id = c.ParticipantId
                 WHERE p.ConfirmedAtUtc IS NOT NULL
-                  AND c.Note IS NOT NULL
-                  AND TRIM(c.Note) <> ''
+                  AND (
+                    (c.Note IS NOT NULL AND TRIM(c.Note) <> '')
+                    OR EXISTS (
+                        SELECT 1
+                        FROM LongevitymaxxingCheckInImages i
+                        WHERE i.ParticipantId = c.ParticipantId
+                          AND i.ChallengeDay = c.ChallengeDay
+                    )
+                  )
                 ORDER BY c.UpdatedAtUtc DESC
                 LIMIT 100;
                 """;
-            var notes = new List<LongevitymaxxingPrivateNote>();
+            var rows = new List<(string ParticipantId, string DisplayName, int ChallengeDay, string Date, string? Note, string UpdatedAtUtc)>();
+            var participantIds = new HashSet<string>(StringComparer.Ordinal);
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                notes.Add(new LongevitymaxxingPrivateNote(
-                    reader.GetString(0),
+                var id = reader.GetString(0);
+                participantIds.Add(id);
+                rows.Add((
+                    id,
                     reader.GetString(1),
                     reader.GetInt32(2),
                     reader.GetString(3),
-                    reader.GetString(4),
+                    reader.IsDBNull(4) ? null : reader.GetString(4),
                     reader.GetString(5)));
             }
 
-            return notes;
+            var imagesByCheckIn = GetCheckInImagesFor(sqlite, participantIds);
+            return rows
+                .Select(row => new LongevitymaxxingPrivateNote(
+                    row.ParticipantId,
+                    row.DisplayName,
+                    row.ChallengeDay,
+                    row.Date,
+                    row.Note,
+                    row.UpdatedAtUtc,
+                    BuildCheckInImages(imagesByCheckIn, row.ParticipantId, row.ChallengeDay)))
+                .ToList();
         });
     }
 
@@ -1129,6 +1290,7 @@ public sealed class LongevitymaxxingChallengeService
 
         return _db.Run(sqlite =>
         {
+            var imagesByCheckIn = GetCheckInImagesFor(sqlite, participantIds);
             using var cmd = sqlite.CreateCommand();
             var placeholders = participantIds.Select((_, i) => $"@id{i}").ToList();
             cmd.CommandText =
@@ -1155,7 +1317,8 @@ public sealed class LongevitymaxxingChallengeService
                     reader.GetInt32(6),
                     reader.IsDBNull(7) ? null : reader.GetString(7),
                     ParseNullableDateTimeOffset(reader.GetString(8)),
-                    ParseNullableDateTimeOffset(reader.GetString(9)));
+                    ParseNullableDateTimeOffset(reader.GetString(9)),
+                    BuildCheckInImages(imagesByCheckIn, reader.GetString(0), reader.GetInt32(1)));
 
                 if (!result.TryGetValue(record.ParticipantId, out var byDay))
                 {
@@ -1168,6 +1331,87 @@ public sealed class LongevitymaxxingChallengeService
 
             return result;
         });
+    }
+
+    private IReadOnlyList<CheckInImageRecord> GetCheckInImagesFor(string participantId, int challengeDay)
+    {
+        return _db.Run(sqlite =>
+        {
+            var imagesByCheckIn = GetCheckInImagesFor(sqlite, new HashSet<string>(StringComparer.Ordinal) { participantId });
+            return imagesByCheckIn.TryGetValue((participantId, challengeDay), out var images)
+                ? images
+                : [];
+        });
+    }
+
+    private static Dictionary<(string ParticipantId, int ChallengeDay), List<CheckInImageRecord>> GetCheckInImagesFor(
+        SqliteConnection sqlite,
+        IReadOnlySet<string> participantIds)
+    {
+        var result = new Dictionary<(string ParticipantId, int ChallengeDay), List<CheckInImageRecord>>();
+        if (participantIds.Count == 0)
+            return result;
+
+        using var cmd = sqlite.CreateCommand();
+        var placeholders = participantIds.Select((_, i) => $"@imageParticipantId{i}").ToList();
+        cmd.CommandText =
+            $"""
+            SELECT ParticipantId, ChallengeDay, ImageIndex, FileName, Width, Height, CreatedAtUtc
+            FROM LongevitymaxxingCheckInImages
+            WHERE ParticipantId IN ({string.Join(",", placeholders)})
+            ORDER BY ParticipantId, ChallengeDay, ImageIndex;
+            """;
+
+        var index = 0;
+        foreach (var id in participantIds)
+            Add(cmd, $"@imageParticipantId{index++}", id);
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var record = new CheckInImageRecord(
+                reader.GetString(0),
+                reader.GetInt32(1),
+                reader.GetInt32(2),
+                reader.GetString(3),
+                reader.GetInt32(4),
+                reader.GetInt32(5),
+                reader.GetString(6));
+            var key = (record.ParticipantId, record.ChallengeDay);
+            if (!result.TryGetValue(key, out var images))
+            {
+                images = [];
+                result[key] = images;
+            }
+
+            images.Add(record);
+        }
+
+        return result;
+    }
+
+    private IReadOnlyList<LongevitymaxxingCheckInImage> BuildCheckInImages(
+        IReadOnlyDictionary<(string ParticipantId, int ChallengeDay), List<CheckInImageRecord>> imagesByCheckIn,
+        string participantId,
+        int challengeDay)
+    {
+        if (!imagesByCheckIn.TryGetValue((participantId, challengeDay), out var images))
+            return [];
+
+        return images
+            .Select(ToCheckInImage)
+            .Where(image => image is not null)
+            .Cast<LongevitymaxxingCheckInImage>()
+            .ToList();
+    }
+
+    private LongevitymaxxingCheckInImage? ToCheckInImage(CheckInImageRecord image)
+    {
+        var path = GetCheckInPhotoPath(image.FileName);
+        if (!File.Exists(path))
+            return null;
+
+        return new LongevitymaxxingCheckInImage(BuildGeneratedCheckInPhotoUrl(path), image.Width, image.Height);
     }
 
     private ParticipantRecord RequireParticipantByAccessToken(string accessToken)
@@ -1571,8 +1815,17 @@ public sealed class LongevitymaxxingChallengeService
         return $"/generated/longevitymaxxing/profile-pictures/{Uri.EscapeDataString(Path.GetFileName(path))}?v={info.LastWriteTimeUtc.Ticks}";
     }
 
+    private static string BuildGeneratedCheckInPhotoUrl(string path)
+    {
+        var info = new FileInfo(path);
+        return $"/generated/longevitymaxxing/check-in-photos/{Uri.EscapeDataString(Path.GetFileName(path))}?v={info.LastWriteTimeUtc.Ticks}";
+    }
+
     private string GetProfilePicturePath(string participantId)
         => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "profile-pictures", $"{participantId}.webp");
+
+    private string GetCheckInPhotoPath(string fileName)
+        => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "check-in-photos", Path.GetFileName(fileName));
 
     private string GetGravatarProfilePicturePath(string participantId)
         => Path.Combine(_environment.WebRootPath, "generated", "longevitymaxxing", "profile-pictures", $"{participantId}.gravatar.webp");
@@ -1596,14 +1849,14 @@ public sealed class LongevitymaxxingChallengeService
             avatar = FetchGravatarProfilePicture(participant);
             if (avatar is null)
             {
-                File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
+                WriteGravatarMissingMarker(missingPath);
                 return null;
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Longevitymaxxing Gravatar profile picture lookup failed for participant {ParticipantId}", participant.Id);
-            try { File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)); } catch { }
+            WriteGravatarMissingMarker(missingPath);
             return null;
         }
 
@@ -1741,6 +1994,18 @@ public sealed class LongevitymaxxingChallengeService
         return entry.TryGetProperty("thumbnailUrl", out var thumbnail) && thumbnail.ValueKind == JsonValueKind.String
             ? thumbnail.GetString()
             : null;
+    }
+
+    private static void WriteGravatarMissingMarker(string missingPath)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(missingPath)!);
+            File.WriteAllText(missingPath, DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
+        }
+        catch
+        {
+        }
     }
 
     private static void TryDeleteFile(string path)
@@ -1885,6 +2150,34 @@ public sealed class LongevitymaxxingChallengeService
 
     private sealed record GravatarAvatar(string Url, byte[] Bytes);
 
+    private sealed record ValidatedCheckIn(
+        LongevitymaxxingCheckInRequest Request,
+        DateTimeOffset NowUtc,
+        ParticipantRecord Participant,
+        int Sleep,
+        int Exercise,
+        int Nutrition,
+        int Vices,
+        string? Note,
+        DateOnly ChallengeDate);
+
+    private sealed record PendingCheckInImage(
+        int ImageIndex,
+        string FileName,
+        string OutputPath,
+        int Width,
+        int Height,
+        DateTimeOffset CreatedAtUtc);
+
+    private sealed record CheckInImageRecord(
+        string ParticipantId,
+        int ChallengeDay,
+        int ImageIndex,
+        string FileName,
+        int Width,
+        int Height,
+        string CreatedAtUtc);
+
     private sealed record CheckInRecord(
         string ParticipantId,
         int ChallengeDay,
@@ -1895,7 +2188,8 @@ public sealed class LongevitymaxxingChallengeService
         int Vices,
         string? Note,
         DateTimeOffset? CheckedInAtUtc,
-        DateTimeOffset? UpdatedAtUtc)
+        DateTimeOffset? UpdatedAtUtc,
+        IReadOnlyList<LongevitymaxxingCheckInImage> Images)
     {
         public int Score => Sleep + Exercise + Nutrition + Vices;
     }
