@@ -106,11 +106,42 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     }
 
     [HttpPost("check-in")]
+    [Consumes("application/json")]
     public IActionResult CheckIn([FromBody] LongevitymaxxingCheckInRequest request)
     {
         try
         {
             return Ok(_challenge.SubmitCheckIn(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("check-in")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(LongevitymaxxingChallengeService.MaxCheckInPhotoRequestBytes)]
+    public async Task<IActionResult> CheckInWithPhotos(
+        [FromForm] LongevitymaxxingCheckInFormRequest request,
+        [FromForm(Name = "notePhotos")] List<IFormFile>? notePhotos,
+        CancellationToken ct)
+    {
+        try
+        {
+            var checkIn = new LongevitymaxxingCheckInRequest(
+                request.AccessToken,
+                request.ChallengeDay,
+                request.Sleep,
+                request.Exercise,
+                request.Nutrition,
+                request.Vices,
+                request.Note);
+            return Ok(await _challenge.SubmitCheckInAsync(checkIn, notePhotos, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -143,3 +174,14 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
 public sealed record LongevitymaxxingTokenRequest(string Token);
 
 public sealed record LongevitymaxxingEmailRequest(string Email);
+
+public sealed class LongevitymaxxingCheckInFormRequest
+{
+    public string AccessToken { get; set; } = "";
+    public int ChallengeDay { get; set; }
+    public int Sleep { get; set; }
+    public int Exercise { get; set; }
+    public int Nutrition { get; set; }
+    public int Vices { get; set; }
+    public string? Note { get; set; }
+}

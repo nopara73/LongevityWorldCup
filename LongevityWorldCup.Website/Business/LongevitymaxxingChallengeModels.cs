@@ -106,15 +106,22 @@ public sealed record LongevitymaxxingCheckInDraft(
     int Exercise,
     int Nutrition,
     int Vices,
-    string? Note);
+    string? Note,
+    IReadOnlyList<LongevitymaxxingCheckInImage> Images);
 
 public sealed record LongevitymaxxingPrivateNote(
     string ParticipantId,
     string DisplayName,
     int ChallengeDay,
     string Date,
-    string Note,
-    string UpdatedAtUtc);
+    string? Note,
+    string UpdatedAtUtc,
+    IReadOnlyList<LongevitymaxxingCheckInImage> Images);
+
+public sealed record LongevitymaxxingCheckInImage(
+    string Url,
+    int Width,
+    int Height);
 
 public sealed record LongevitymaxxingReminderCandidate(
     string ParticipantId,

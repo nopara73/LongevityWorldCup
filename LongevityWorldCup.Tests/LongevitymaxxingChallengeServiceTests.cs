@@ -108,6 +108,49 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task CheckInCanAttachWebReadyPhotosToParticipantNotes()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("notes@example.com", "Notes Nora");
+        using var stream = CreatePngStream(width: 2400, height: 1200);
+        var file = CreatePngFormFile(stream, formName: "notePhotos", fileName: "kitchen.png");
+        var now = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+
+        var state = await fixture.Service.SubmitCheckInAsync(
+            new LongevitymaxxingCheckInRequest(access, 1, 2, 2, 2, 2, "Good breakfast prep."),
+            [file],
+            now);
+
+        var note = Assert.Single(state.Notes);
+        Assert.Equal("Good breakfast prep.", note.Note);
+        var image = Assert.Single(note.Images);
+        Assert.Contains("/generated/longevitymaxxing/check-in-photos/", image.Url);
+        Assert.Contains("?v=", image.Url);
+        Assert.Equal(1600, image.Width);
+        Assert.Equal(800, image.Height);
+
+        var draft = Assert.Single(state.EligibleDays).Existing;
+        Assert.NotNull(draft);
+        Assert.Single(draft.Images);
+
+        var storedFileName = Path.GetFileName(new Uri($"https://example.test{image.Url}").AbsolutePath);
+        var storedPath = Path.Combine(fixture.ContentRoot, "generated", "longevitymaxxing", "check-in-photos", storedFileName);
+        Assert.True(File.Exists(storedPath));
+        var storedInfo = Image.Identify(storedPath);
+        Assert.NotNull(storedInfo);
+        Assert.Equal(1600, storedInfo.Width);
+        Assert.Equal(800, storedInfo.Height);
+
+        var edited = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access, 1, 2, 1, 2, 2, "Edited note."),
+            now.AddMinutes(5));
+
+        var editedNote = Assert.Single(edited.Notes);
+        Assert.Equal("Edited note.", editedNote.Note);
+        Assert.Single(editedNote.Images);
+    }
+
+    [Fact]
     public async Task ParticipantWithoutUploadedPictureFallsBackToCachedGravatar()
     {
         using var gravatar = CreatePngStream();
@@ -654,18 +697,18 @@ public sealed class LongevitymaxxingChallengeServiceTests
         }
     }
 
-    private static MemoryStream CreatePngStream()
+    private static MemoryStream CreatePngStream(int width = 4, int height = 4)
     {
         var stream = new MemoryStream();
-        using var image = new Image<Rgba32>(4, 4, new Rgba32(21, 184, 166));
+        using var image = new Image<Rgba32>(width, height, new Rgba32(21, 184, 166));
         image.SaveAsPng(stream);
         stream.Position = 0;
         return stream;
     }
 
-    private static IFormFile CreatePngFormFile(MemoryStream stream)
+    private static IFormFile CreatePngFormFile(MemoryStream stream, string formName = "profilePicture", string fileName = "profile.png")
     {
-        return new FormFile(stream, 0, stream.Length, "profilePicture", "profile.png")
+        return new FormFile(stream, 0, stream.Length, formName, fileName)
         {
             Headers = new HeaderDictionary(),
             ContentType = "image/png"
