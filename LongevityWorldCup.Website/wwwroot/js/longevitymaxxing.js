@@ -8,6 +8,8 @@
         { label: "Yes", value: 2 }
     ];
     const SAVED_CHECKIN_TEXT = "Saved. You can edit this check-in today.";
+    const MAX_NOTE_PHOTOS = 4;
+    const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const QUESTIONS = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you sleep well at night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you intentionally challenge or rest your body yesterday?" },
@@ -51,6 +53,8 @@
     let signupDetailsPrompted = false;
     let selectedCheckInDay = null;
     const savedDays = new Set();
+    const pendingNotePhotos = new Map();
+    const pendingNotePhotoUrls = new Map();
     const athleteSelectors = new Map();
     let athleteDirectory = [];
     let athleteDirectoryPromise = null;
@@ -703,6 +707,8 @@
 
         const orderedDays = [...days].sort((a, b) => a.challengeDay - b.challengeDay);
         const activeDay = pickActiveCheckInDay(orderedDays);
+        const previousForm = container.querySelector(".lmx-checkin-card");
+        if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
         container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay);
         container.querySelectorAll(".lmx-checkin-switcher button").forEach(button => {
             button.addEventListener("click", () => {
@@ -720,6 +726,15 @@
         });
         container.querySelectorAll("form").forEach(form => {
             form.querySelector("textarea")?.addEventListener("input", () => updateCheckInSaveState(form));
+            form.querySelector("[data-photo-button]")?.addEventListener("click", () => {
+                form.querySelector("input[data-note-photos]")?.click();
+            });
+            form.querySelector("input[data-note-photos]")?.addEventListener("change", event => {
+                setPendingNotePhotos(form, Array.from(event.target.files || []));
+                renderSelectedNotePhotoPreviews(form);
+                updateCheckInSaveState(form);
+            });
+            renderSelectedNotePhotoPreviews(form);
             updateCheckInSaveState(form);
             form.addEventListener("submit", event => {
                 event.preventDefault();
@@ -762,6 +777,11 @@
         const practice = day.countsForScore === false;
         const hasExisting = !!day.existing;
         const note = (existing.note || "").trim();
+        const savedImages = Array.isArray(existing.images) ? existing.images : [];
+        const savedImageHtml = savedImages.length
+            ? `<div class="lmx-note-photo-grid saved" aria-label="Saved note photos">${savedImages.map((image, index) => notePhotoHtml(image, `${day.challengeDay}-${index}`)).join("")}</div>`
+            : "";
+        const photoSlotsLeft = Math.max(0, MAX_NOTE_PHOTOS - savedImages.length);
         const questions = QUESTIONS.map(q => {
             const current = typeof existing[q.key] === "number" ? existing[q.key] : 1;
             const buttons = ANSWERS.map(answer => `<button type="button" data-value="${answer.value}" aria-pressed="${answer.value === current ? "true" : "false"}">${answer.label}</button>`).join("");
@@ -783,12 +803,109 @@
                 <label for="lmx-note-${day.challengeDay}">Participant note <span>optional</span></label>
                 <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible to participants only">${esc(note)}</textarea>
             </div>
+            <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
+                <span class="lmx-label">Note photos <span>optional</span></span>
+                ${savedImageHtml}
+                <div class="lmx-note-photo-picker">
+                    <button class="lmx-button secondary" type="button" data-photo-button${photoSlotsLeft <= 0 ? " disabled" : ""}>
+                        <i class="fas fa-images" aria-hidden="true"></i>
+                        Add photos
+                    </button>
+                    <input id="lmx-note-photos-${day.challengeDay}" type="file" accept="image/*,.heic,.heif" multiple data-note-photos ${photoSlotsLeft <= 0 ? "disabled" : ""}>
+                    <span class="lmx-photo-count" data-photo-count>${photoSlotsLeft <= 0 ? "Photo limit reached" : `${photoSlotsLeft} slots left`}</span>
+                </div>
+                <div class="lmx-note-photo-grid pending" data-photo-previews></div>
+            </div>
             <button class="lmx-button" type="submit"${hasExisting ? " disabled" : ""}>
                 <i class="fas fa-check" aria-hidden="true"></i>
                 Save day ${day.challengeDay}
             </button>
             <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
         </form>`;
+    }
+
+    function notePhotoHtml(image, key) {
+        const url = String(image && image.url || "").trim();
+        if (!url) return "";
+        const width = Number(image.width) || "";
+        const height = Number(image.height) || "";
+        return `<a class="lmx-note-photo" href="${escAttr(url)}" target="_blank" rel="noopener" aria-label="Open note photo">
+            <img src="${escAttr(url)}" alt="" loading="lazy" decoding="async" width="${escAttr(width)}" height="${escAttr(height)}" data-photo-key="${escAttr(key)}">
+        </a>`;
+    }
+
+    function setPendingNotePhotos(form, files) {
+        const key = checkInDayKey(form);
+        const slots = Number(form.querySelector(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
+        const photos = files
+            .filter(file => /^image\//i.test(String(file.type || "")) || /\.(heic|heif)$/i.test(file.name || ""))
+            .slice(0, Math.max(0, slots));
+
+        revokePendingNotePhotoUrls(key);
+        if (photos.length) pendingNotePhotos.set(key, photos);
+        else pendingNotePhotos.delete(key);
+    }
+
+    function removePendingNotePhoto(form, index) {
+        const key = checkInDayKey(form);
+        const photos = getPendingNotePhotos(form).filter((_, photoIndex) => photoIndex !== index);
+        revokePendingNotePhotoUrls(key);
+        if (photos.length) pendingNotePhotos.set(key, photos);
+        else pendingNotePhotos.delete(key);
+        const input = form.querySelector("input[data-note-photos]");
+        if (input && !photos.length) input.value = "";
+        renderSelectedNotePhotoPreviews(form);
+        updateCheckInSaveState(form);
+    }
+
+    function renderSelectedNotePhotoPreviews(form) {
+        const previews = form.querySelector("[data-photo-previews]");
+        const count = form.querySelector("[data-photo-count]");
+        if (!previews) return;
+
+        const key = checkInDayKey(form);
+        const photos = getPendingNotePhotos(form);
+        const slots = Number(form.querySelector(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
+        revokePendingNotePhotoUrls(key);
+        const urls = photos.map(photo => URL.createObjectURL(photo));
+        if (urls.length) pendingNotePhotoUrls.set(key, urls);
+
+        previews.innerHTML = photos.map((photo, index) => `<span class="lmx-note-photo pending-item">
+            <img src="${escAttr(urls[index])}" alt="" loading="lazy" decoding="async">
+            <button type="button" class="lmx-note-photo-remove" data-remove-photo="${index}" title="Remove photo" aria-label="Remove photo">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+            </button>
+        </span>`).join("");
+
+        previews.querySelectorAll("[data-remove-photo]").forEach(button => {
+            button.addEventListener("click", () => removePendingNotePhoto(form, Number(button.dataset.removePhoto)));
+        });
+
+        if (count) {
+            const remaining = Math.max(0, slots - photos.length);
+            count.textContent = photos.length
+                ? `${photos.length} selected · ${remaining} slots left`
+                : (slots <= 0 ? "Photo limit reached" : `${slots} slots left`);
+        }
+    }
+
+    function clearPendingNotePhotos(challengeDay) {
+        const key = String(challengeDay);
+        revokePendingNotePhotoUrls(key);
+        pendingNotePhotos.delete(key);
+    }
+
+    function revokePendingNotePhotoUrls(key) {
+        (pendingNotePhotoUrls.get(key) || []).forEach(url => URL.revokeObjectURL(url));
+        pendingNotePhotoUrls.delete(key);
+    }
+
+    function getPendingNotePhotos(form) {
+        return pendingNotePhotos.get(checkInDayKey(form)) || [];
+    }
+
+    function checkInDayKey(form) {
+        return String(Number(form?.dataset.day || 0));
     }
 
     function emptyCheckInHtml() {
@@ -824,14 +941,18 @@
         if (!hasCheckInChanged(form)) return;
         await withButton(form.querySelector("button[type='submit']"), async () => {
             const draft = collectCheckInDraft(form);
+            const notePhotos = getPendingNotePhotos(form);
             const payload = {
                 accessToken,
                 challengeDay: Number(form.dataset.day),
                 note: draft.note || null
             };
             QUESTIONS.forEach(q => payload[q.key] = draft[q.key]);
-            const result = await postJson(`${API}/check-in`, payload);
+            const result = notePhotos.length
+                ? await postCheckInWithPhotos(payload, notePhotos)
+                : await postJson(`${API}/check-in`, payload);
             savedDays.add(payload.challengeDay);
+            clearPendingNotePhotos(payload.challengeDay);
             participantState = result;
             publicState = result.public;
             const nextMissing = getPendingCheckInDays(participantState)
@@ -839,6 +960,24 @@
             selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
         }, "Saving...");
+    }
+
+    async function postCheckInWithPhotos(payload, photos) {
+        const formData = new FormData();
+        formData.append("accessToken", payload.accessToken);
+        formData.append("challengeDay", String(payload.challengeDay));
+        formData.append("sleep", String(payload.sleep));
+        formData.append("exercise", String(payload.exercise));
+        formData.append("nutrition", String(payload.nutrition));
+        formData.append("vices", String(payload.vices));
+        if (payload.note) formData.append("note", payload.note);
+
+        const prepared = await Promise.all(photos.map(prepareNotePhotoFile));
+        prepared.forEach((photo, index) => {
+            formData.append("notePhotos", photo, photo.name || `check-in-photo-${index + 1}.webp`);
+        });
+
+        return postForm(`${API}/check-in`, formData);
     }
 
     function collectCheckInDraft(form) {
@@ -856,6 +995,7 @@
         if (!form || form.dataset.saved !== "true") return true;
 
         const draft = collectCheckInDraft(form);
+        if (getPendingNotePhotos(form).length > 0) return true;
         if ((form.dataset.originalNote || "") !== draft.note) return true;
 
         return QUESTIONS.some(q => Number(form.dataset[`original${capitalize(q.key)}`]) !== draft[q.key]);
@@ -878,11 +1018,6 @@
 
     async function uploadProfilePicture(file, input) {
         if (!accessToken) return;
-        if (file.size > 8 * 1024 * 1024) {
-            setStatus("lmxProfilePictureStatus", "Profile picture must be 8 MB or smaller.", true);
-            input.value = "";
-            return;
-        }
 
         const uploadFile = await prepareProfilePictureFile(file);
         const formData = new FormData();
@@ -939,6 +1074,38 @@
         }
     }
 
+    async function prepareNotePhotoFile(file) {
+        try {
+            const bitmap = await loadProfileBitmap(file);
+            const scale = Math.min(1, NOTE_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+            const width = Math.max(1, Math.round(bitmap.width * scale));
+            const height = Math.max(1, Math.round(bitmap.height * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return file;
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            if (typeof bitmap.close === "function") bitmap.close();
+
+            let blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
+            let extension = "webp";
+            if (!blob || blob.type !== "image/webp") {
+                blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
+                extension = "jpg";
+            }
+
+            if (!blob) return file;
+            const type = blob.type || (extension === "jpg" ? "image/jpeg" : "image/webp");
+            return new File([blob], replaceImageExtension(file.name || "check-in-photo", extension), { type });
+        } catch (_) {
+            return file;
+        }
+    }
+
     async function loadProfileBitmap(file) {
         if (window.createImageBitmap) {
             try {
@@ -974,10 +1141,18 @@
             return;
         }
 
-        container.innerHTML = notes.map(note => `<article class="lmx-note">
-            <strong>${esc(note.displayName)} · Day ${note.challengeDay}</strong>
-            <p>${esc(note.note)}</p>
-        </article>`).join("");
+        container.innerHTML = notes.map(note => {
+            const images = Array.isArray(note.images) ? note.images : [];
+            const imageHtml = images.length
+                ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
+                : "";
+            const noteText = String(note.note || "").trim();
+            return `<article class="lmx-note">
+                <strong>${esc(note.displayName)} · Day ${note.challengeDay}</strong>
+                ${noteText ? `<p>${esc(noteText)}</p>` : ""}
+                ${imageHtml}
+            </article>`;
+        }).join("");
     }
 
     function collectAvailability(containerId) {
