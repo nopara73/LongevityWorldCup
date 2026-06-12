@@ -239,6 +239,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-note-photo-grid", css);
         Assert.Contains(".lmx-note-photo img", css);
         Assert.Contains("object-fit: contain", css);
+        Assert.Contains("white-space: pre-wrap;", css);
         Assert.Contains("lmxSlackInviteLink", javascript);
         Assert.Contains("lmxSlackRoomLink", javascript);
         Assert.Contains("state.slackRoomUrl", javascript);

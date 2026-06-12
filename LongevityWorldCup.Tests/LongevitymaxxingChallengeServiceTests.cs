@@ -117,12 +117,12 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var now = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
 
         var state = await fixture.Service.SubmitCheckInAsync(
-            new LongevitymaxxingCheckInRequest(access, 1, 2, 2, 2, 2, "Good breakfast prep."),
+            new LongevitymaxxingCheckInRequest(access, 1, 2, 2, 2, 2, "Good breakfast prep.\nps.: kept line break"),
             [file],
             now);
 
         var note = Assert.Single(state.Notes);
-        Assert.Equal("Good breakfast prep.", note.Note);
+        Assert.Equal("Good breakfast prep.\nps.: kept line break", note.Note);
         var image = Assert.Single(note.Images);
         Assert.Contains("/generated/longevitymaxxing/check-in-photos/", image.Url);
         Assert.Contains("?v=", image.Url);

@@ -1366,6 +1366,8 @@
     margin: 0;
     color: #334155;
     line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .lmx-hidden {
