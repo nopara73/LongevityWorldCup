@@ -15,6 +15,7 @@ namespace LongevityWorldCup.Website.Business
         public string? ChronoBortzDifference { get; set; }
         public string? SubmissionId { get; set; }
         public string? FreePass { get; set; }
+        public string? Discount { get; set; }
         public string? PersonalLink { get; set; }
         public string? ProfilePic { get; set; } // Base64 string
         public List<string>? ProofPics { get; set; } // List of Base64 strings
@@ -46,6 +47,8 @@ namespace LongevityWorldCup.Website.Business
         public string? OfferType { get; set; }
         public string? Currency { get; set; }
         public decimal? AmountUsd { get; set; }
+        public string? DiscountCode { get; set; }
+        public decimal? DiscountPercent { get; set; }
     }
 
     public class DateOfBirthData

@@ -337,6 +337,9 @@
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
+        if (window.captureDiscountFromUrl) {
+            window.captureDiscountFromUrl();
+        }
 
         function getAthleteDisplayName() {
             if (athlete?.DisplayName && athlete.DisplayName.trim()) {
@@ -347,9 +350,11 @@
         }
 
         function setPendingPaymentOffer(offer) {
-            const effectiveOffer = window.applyFreePassToPaymentOffer
-                ? window.applyFreePassToPaymentOffer(offer)
-                : offer;
+            const effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
+                : window.applyFreePassToPaymentOffer
+                    ? window.applyFreePassToPaymentOffer(offer)
+                    : offer;
             sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
         }
 
@@ -462,12 +467,19 @@
                                 goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)
                                     ? goProDiscountResult.finalPriceUsd
                                     : 100;
-                            setPendingPaymentOffer({
+                            let paymentOffer = {
                                 source: 'go-pro-upgrade',
                                 offerType: 'pro',
                                 currency: 'USD',
                                 amountUsd
-                            });
+                            };
+                            if (goProDiscountResult
+                                && Array.isArray(goProDiscountResult.components)
+                                && goProDiscountResult.components.some(component => component && component.kind === 'discountCode')
+                                && window.addActiveDiscountMetadataToPaymentOffer) {
+                                paymentOffer = window.addActiveDiscountMetadataToPaymentOffer(paymentOffer);
+                            }
+                            setPendingPaymentOffer(paymentOffer);
                         }
                     );
                     optionsContainer.insertBefore(submitButton, backButton);

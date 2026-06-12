@@ -464,6 +464,9 @@
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
+        if (window.captureDiscountFromUrl) {
+            window.captureDiscountFromUrl();
+        }
 
         function getAthleteDisplayName() {
             if (athlete?.DisplayName && athlete.DisplayName.trim()) {
@@ -533,14 +536,17 @@
                     paymentOffer: (() => {
                         try {
                             const paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
-                            return window.applyFreePassToPaymentOffer
-                                ? window.applyFreePassToPaymentOffer(paymentOffer)
-                                : paymentOffer;
+                            return window.applyPaymentAdjustmentsToPaymentOffer
+                                ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                                : window.applyFreePassToPaymentOffer
+                                    ? window.applyFreePassToPaymentOffer(paymentOffer)
+                                    : paymentOffer;
                         } catch (_) {
                             return null;
                         }
                     })(),
-                    freePass: window.getFreePassValue ? window.getFreePassValue() : null
+                    freePass: window.getFreePassValue ? window.getFreePassValue() : null,
+                    discount: window.getDiscountValue ? window.getDiscountValue() : null
                 };
 
                 const submitButton = document.getElementById('submitButton');

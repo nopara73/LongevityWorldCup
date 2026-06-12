@@ -266,11 +266,37 @@ function toMoney(value) {
     return asFixed.endsWith(".00") ? asFixed.slice(0, -3) : asFixed;
 }
 
+function readActiveProDiscount() {
+    const getter = window.getActiveProDiscount;
+    const discount = typeof getter === "function" ? getter() : null;
+    if (!discount || typeof discount !== "object") return null;
+
+    const percent = Number(discount.percent);
+    if (!Number.isFinite(percent) || percent <= 0) return null;
+
+    return {
+        code: String(discount.code || "").trim(),
+        label: String(discount.label || discount.code || "discount code").trim(),
+        percent
+    };
+}
+
 function buildDiscountBreakdown(athlete, options = {}) {
     const components = [];
 
     if (options.isOnLeaderboard !== false) {
         components.push({ label: "Leaderboard", percent: 10, isBadge: false, kind: "leaderboard" });
+    }
+
+    const activeProDiscount = readActiveProDiscount();
+    if (activeProDiscount) {
+        components.push({
+            label: activeProDiscount.label,
+            percent: activeProDiscount.percent,
+            isBadge: false,
+            kind: "discountCode",
+            code: activeProDiscount.code
+        });
     }
 
     if (hasPersonalLink(athlete)) {
@@ -346,6 +372,7 @@ function describeDiscountReason(component) {
     if (!component) return "eligible achievements";
 
     if (component.kind === "leaderboard") return "being on the leaderboard";
+    if (component.kind === "discountCode") return component.code ? `using discount code ${component.code}` : "using a discount code";
     if (component.kind === "personalLink") return "linking your personal page";
     if (component.kind === "perfectGuess") return "guessing an athlete's age perfectly";
 
