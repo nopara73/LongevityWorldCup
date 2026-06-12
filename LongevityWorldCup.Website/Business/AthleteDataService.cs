@@ -12,7 +12,12 @@ using SixLabors.ImageSharp.Processing;
 
 namespace LongevityWorldCup.Website.Business;
 
-public class AthleteDataService : IDisposable
+public interface IAthleteSnapshotProvider
+{
+    JsonArray GetAthletesSnapshot();
+}
+
+public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
     internal static readonly IReadOnlyList<int> AthleteCountMilestoneThresholds =
