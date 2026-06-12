@@ -31,6 +31,7 @@ namespace LongevityWorldCup.Website
         public string? BTCPayBaseUrl { get; set; }
         public string? BTCPayStoreId { get; set; }
         public string? BTCPayGreenfieldApiKey { get; set; }
+        public string? DiscountSignupReportEmailTo { get; set; }
 
         public string? XApiKey { get; set; }
         public string? XApiSecret { get; set; }

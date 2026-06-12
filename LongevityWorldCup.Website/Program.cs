@@ -100,6 +100,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<DatabaseManager>();
             builder.Services.AddSingleton<CrowdAgeGuessRateLimiter>();
             builder.Services.AddSingleton<AthleteDataService>();
+            builder.Services.AddSingleton<IAthleteSnapshotProvider>(sp => sp.GetRequiredService<AthleteDataService>());
             builder.Services.AddSingleton<EventDataService>();
             builder.Services.AddSingleton<SeasonFinalizerService>();
             builder.Services.AddSingleton<BitcoinDataService>();
@@ -131,6 +132,9 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
             builder.Services.AddSingleton<ILongevitymaxxingEmailSender, SmtpLongevitymaxxingEmailSender>();
             builder.Services.AddSingleton<LongevitymaxxingChallengeService>();
+            builder.Services.AddSingleton<IBtcpayInvoiceClient, BtcpayInvoiceClient>();
+            builder.Services.AddSingleton<IDiscountSignupReportEmailSender, SmtpDiscountSignupReportEmailSender>();
+            builder.Services.AddSingleton<DiscountSignupReportService>();
 
             if (enableScheduledJobs)
             {
@@ -141,6 +145,7 @@ namespace LongevityWorldCup.Website
                     var dailyKey = new JobKey("DailyJob");
                     var weeklyKey = new JobKey("WeeklyJob");
                     var monthlyKey = new JobKey("MonthlyJob");
+                    var discountSignupMonthlyReportKey = new JobKey("DiscountSignupMonthlyReportJob");
                     var yearlyKey = new JobKey("YearlyJob");
                     var donationKey = new JobKey("BitcoinDonationCheckJob");
                     var backupKey = new JobKey("DatabaseBackupJob");
@@ -167,6 +172,12 @@ namespace LongevityWorldCup.Website
                     q.AddTrigger(t => t.ForJob(monthlyKey)
                         .WithIdentity("MonthlyTrigger")
                         .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 1 * ?").InTimeZone(TimeZoneInfo.Utc)));
+
+                    // Every month fourth day 08:00, reporting the previous calendar month after a short review/payment grace period.
+                    q.AddJob<DiscountSignupMonthlyReportJob>(o => o.WithIdentity(discountSignupMonthlyReportKey));
+                    q.AddTrigger(t => t.ForJob(discountSignupMonthlyReportKey)
+                        .WithIdentity("DiscountSignupMonthlyReportTrigger")
+                        .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 8 4 * ?").InTimeZone(TimeZoneInfo.Utc)));
 
                     // Every year first day 00:00
                     q.AddJob<YearlyJob>(o => o.WithIdentity(yearlyKey));

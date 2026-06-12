@@ -16,10 +16,16 @@ namespace LongevityWorldCup.Website.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public partial class ApplicationController(IWebHostEnvironment environment, ILogger<HomeController> logger) : ControllerBase
+    public partial class ApplicationController(
+        IWebHostEnvironment environment,
+        ILogger<HomeController> logger,
+        DiscountSignupReportService? discountSignupReports = null,
+        IBtcpayInvoiceClient? btcpayInvoices = null) : ControllerBase
     {
         private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         private readonly ILogger<HomeController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly DiscountSignupReportService? _discountSignupReports = discountSignupReports;
+        private readonly IBtcpayInvoiceClient? _btcpayInvoices = btcpayInvoices;
         private static readonly SemaphoreSlim PaidInvoiceNotificationFileLock = new(1, 1);
 
         private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new()
@@ -81,8 +87,8 @@ namespace LongevityWorldCup.Website.Controllers
         private const int ProofImageMaxDimension = 2560;
         private const int ExistingWebpProfilePassthroughBytes = 4 * 1024 * 1024;
         private const int ExistingWebpProofPassthroughBytes = 2 * 1024 * 1024;
-        private const string MightyKlausDiscountCode = "mightyklaus";
-        private const decimal MightyKlausDiscountPercent = 40m;
+        private const string MightyKlausDiscountCode = DiscountCodes.MightyKlaus;
+        private const decimal MightyKlausDiscountPercent = DiscountCodes.MightyKlausPercent;
 
         // Helper method to parse Base64 image strings and extract bytes, content type, and extension
         private static (byte[]? bytes, string? contentType, string? extension) ParseBase64Image(string base64String)
@@ -464,6 +470,18 @@ namespace LongevityWorldCup.Website.Controllers
                         isResultSubmissionOnly,
                         isEditSubmissionOnly);
 
+                    await TryRecordDiscountSignupAsync(
+                        applicantData,
+                        accountEmail,
+                        folderKey,
+                        submissionId,
+                        submissionKind,
+                        requestedAmountUsd,
+                        paymentCurrency,
+                        paymentRequired: false,
+                        invoiceId: null,
+                        checkoutLink: null);
+
                     _logger.LogInformation(
                         "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
                         submissionId,
@@ -499,6 +517,18 @@ namespace LongevityWorldCup.Website.Controllers
                         invoiceResult.Error);
                     return StatusCode(500, $"Application sent, but failed to create BTCPay invoice: {invoiceResult.Error}");
                 }
+
+                await TryRecordDiscountSignupAsync(
+                    applicantData,
+                    accountEmail,
+                    folderKey,
+                    submissionId,
+                    submissionKind,
+                    requestedAmountUsd,
+                    paymentCurrency,
+                    paymentRequired: true,
+                    invoiceResult.InvoiceId,
+                    invoiceResult.CheckoutLink);
 
                 await TrySendApplicationConfirmationEmailAsync(
                     config,
@@ -536,6 +566,48 @@ namespace LongevityWorldCup.Website.Controllers
                     profilePicLength,
                     zipSizeBytes);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        private async Task TryRecordDiscountSignupAsync(
+            ApplicantData applicantData,
+            string? accountEmail,
+            string folderKey,
+            string submissionId,
+            string submissionKind,
+            decimal requestedAmountUsd,
+            string paymentCurrency,
+            bool paymentRequired,
+            string? invoiceId,
+            string? checkoutLink)
+        {
+            if (_discountSignupReports is null)
+                return;
+            if (!DiscountSignupReportService.ShouldTrackDiscountSignup(applicantData.Discount, submissionKind))
+                return;
+
+            try
+            {
+                await _discountSignupReports.RecordApplicationAsync(
+                    new DiscountSignupApplication(
+                        SubmissionId: submissionId,
+                        DiscountCode: applicantData.Discount ?? "",
+                        SubmittedAtUtc: DateTimeOffset.UtcNow,
+                        ApplicantName: applicantData.Name?.Trim(),
+                        DisplayName: string.IsNullOrWhiteSpace(applicantData.DisplayName) ? null : applicantData.DisplayName.Trim(),
+                        AccountEmail: accountEmail,
+                        ExpectedAthleteSlug: BuildExpectedAthleteSlug(folderKey),
+                        SubmissionKind: submissionKind,
+                        RequestedAmount: requestedAmountUsd < 0m ? 0m : requestedAmountUsd,
+                        RequestedCurrency: paymentCurrency,
+                        PaymentRequired: paymentRequired,
+                        InvoiceId: invoiceId,
+                        CheckoutLink: checkoutLink),
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to record discount signup attribution. SubmissionId={SubmissionId} DiscountCode={DiscountCode}", submissionId, applicantData.Discount);
             }
         }
 
@@ -746,6 +818,8 @@ namespace LongevityWorldCup.Website.Controllers
                 });
             }
 
+            await TryUpdateDiscountSignupPaymentStatusAsync(request.InvoiceId.Trim(), invoiceResult);
+
             var notificationSent = false;
             var alreadyNotified = false;
             if (invoiceResult.IsPaid)
@@ -766,9 +840,9 @@ namespace LongevityWorldCup.Website.Controllers
                         request,
                         invoiceResult.Status,
                         invoiceResult.AdditionalStatus,
-                        invoiceResult.Amount,
+                        invoiceResult.AmountText,
                         invoiceResult.Currency,
-                        invoiceResult.PaidAmount,
+                        invoiceResult.PaidAmountText,
                         invoiceResult.CheckoutLink);
                     if (paymentEmailResult.Success)
                     {
@@ -787,6 +861,25 @@ namespace LongevityWorldCup.Website.Controllers
                 notificationSent,
                 alreadyNotified
             });
+        }
+
+        private async Task TryUpdateDiscountSignupPaymentStatusAsync(string invoiceId, BtcpayInvoiceLookupResult invoiceResult)
+        {
+            if (_discountSignupReports is null)
+                return;
+
+            try
+            {
+                await _discountSignupReports.UpdatePaymentStatusForInvoiceAsync(
+                    invoiceId,
+                    invoiceResult,
+                    DateTimeOffset.UtcNow,
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update discount signup payment attribution for invoice {InvoiceId}", invoiceId);
+            }
         }
 
         private async Task<(bool Success, string? CheckoutLink, string? InvoiceId, string? Error)> CreateBtcpayInvoiceAsync(
@@ -877,16 +970,19 @@ namespace LongevityWorldCup.Website.Controllers
             return $"{origin}/review";
         }
 
-        private async Task<(bool Success, bool IsPaid, string? Status, string? AdditionalStatus, string? Amount, string? Currency, string? PaidAmount, string? CheckoutLink, string? BuyerEmail, string? AthleteNameFromMetadata, string? Error)> GetBtcpayInvoiceAsync(
+        private async Task<BtcpayInvoiceLookupResult> GetBtcpayInvoiceAsync(
             Config config,
             string invoiceId)
         {
+            if (_btcpayInvoices is not null)
+                return await _btcpayInvoices.GetInvoiceAsync(config, invoiceId, HttpContext?.RequestAborted ?? CancellationToken.None);
+
             if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl))
-                return (false, false, null, null, null, null, null, null, null, null, "BTCPayBaseUrl is missing in config.");
+                return BtcpayInvoiceLookupResult.Failure("BTCPayBaseUrl is missing in config.");
             if (string.IsNullOrWhiteSpace(config.BTCPayStoreId))
-                return (false, false, null, null, null, null, null, null, null, null, "BTCPayStoreId is missing in config.");
+                return BtcpayInvoiceLookupResult.Failure("BTCPayStoreId is missing in config.");
             if (string.IsNullOrWhiteSpace(config.BTCPayGreenfieldApiKey))
-                return (false, false, null, null, null, null, null, null, null, null, "BTCPayGreenfieldApiKey is missing in config.");
+                return BtcpayInvoiceLookupResult.Failure("BTCPayGreenfieldApiKey is missing in config.");
 
             using var client = new HttpClient();
             var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
@@ -897,23 +993,10 @@ namespace LongevityWorldCup.Website.Controllers
             var responseBody = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                return (false, false, null, null, null, null, null, null, null, null, $"BTCPay API {(int)response.StatusCode}: {responseBody}");
+                return BtcpayInvoiceLookupResult.Failure($"BTCPay API {(int)response.StatusCode}: {responseBody}");
             }
 
-            using var json = JsonDocument.Parse(responseBody);
-            TryGetPropertyString(json.RootElement, "status", out var status);
-            TryGetPropertyString(json.RootElement, "additionalStatus", out var additionalStatus);
-            TryGetPropertyString(json.RootElement, "amount", out var amount);
-            TryGetPropertyString(json.RootElement, "currency", out var currency);
-            TryGetPropertyString(json.RootElement, "paidAmount", out var paidAmount);
-            TryGetPropertyString(json.RootElement, "checkoutLink", out var checkoutLink);
-            TryGetNestedPropertyString(json.RootElement, "buyer", "email", out var buyerEmail);
-            TryGetNestedPropertyString(json.RootElement, "metadata", "athleteName", out var athleteNameFromMetadata);
-
-            var paidAmountValue = 0m;
-            _ = decimal.TryParse(paidAmount, NumberStyles.Any, CultureInfo.InvariantCulture, out paidAmountValue);
-            var isPaid = string.Equals(status, "Settled", StringComparison.OrdinalIgnoreCase) || paidAmountValue > 0m;
-            return (true, isPaid, status, additionalStatus, amount, currency, paidAmount, checkoutLink, buyerEmail, athleteNameFromMetadata, null);
+            return BtcpayInvoiceClient.ParseInvoiceJson(responseBody);
         }
 
         private async Task<(bool Success, string? Error)> SendPaymentFollowupEmailAsync(
@@ -1368,6 +1451,14 @@ namespace LongevityWorldCup.Website.Controllers
             return string.IsNullOrWhiteSpace(slug) ? "unknown" : slug;
         }
 
+        private static string BuildExpectedAthleteSlug(string folderKey)
+        {
+            var trimmed = folderKey.Trim();
+            return string.IsNullOrWhiteSpace(trimmed)
+                ? "unknown"
+                : trimmed.Replace('-', '_');
+        }
+
         private static async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message)
         {
             var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
@@ -1555,13 +1646,7 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static string? NormalizeDiscountValue(string? value)
         {
-            var trimmed = value?.Trim();
-            if (string.IsNullOrEmpty(trimmed))
-                return null;
-
-            return string.Equals(trimmed, MightyKlausDiscountCode, StringComparison.OrdinalIgnoreCase)
-                ? MightyKlausDiscountCode
-                : null;
+            return DiscountCodes.Normalize(value);
         }
 
         private ImageOptimizationResult OptimizeProfileImage((byte[]? bytes, string? contentType, string? extension) imageData, string submissionId)
