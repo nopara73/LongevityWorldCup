@@ -689,6 +689,9 @@
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
+        if (window.captureDiscountFromUrl) {
+            window.captureDiscountFromUrl();
+        }
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
 
@@ -831,7 +834,9 @@
             } catch (_) {
                 paymentOffer = null;
             }
-            if (window.applyFreePassToPaymentOffer) {
+            if (window.applyPaymentAdjustmentsToPaymentOffer) {
+                paymentOffer = window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer);
+            } else if (window.applyFreePassToPaymentOffer) {
                 paymentOffer = window.applyFreePassToPaymentOffer(paymentOffer);
             }
 
@@ -851,7 +856,8 @@
                 profilePic: profilePic, // Base64 string
                 proofPics: proofPics, // Array of Base64 strings
                 paymentOffer: paymentOffer,
-                freePass: window.getFreePassValue ? window.getFreePassValue() : null
+                freePass: window.getFreePassValue ? window.getFreePassValue() : null,
+                discount: window.getDiscountValue ? window.getDiscountValue() : null
             };
 
             return applicantData;

@@ -64,10 +64,25 @@
 
 <script>
     window.LWC_FREE_PASS_SESSION_KEY = 'lwcFreePass';
+    window.LWC_DISCOUNT_SESSION_KEY = 'lwcDiscount';
+
+    const LWC_REUSABLE_PRO_DISCOUNTS = {
+        mightyklaus: {
+            code: 'mightyklaus',
+            percent: 40,
+            label: 'Mighty Klaus',
+            appliesToOfferType: 'pro'
+        }
+    };
 
     function normalizeFreePassValue(value) {
         const normalized = value === null || value === undefined ? '' : String(value).trim();
         return normalized.length > 0 ? normalized : null;
+    }
+
+    function normalizeDiscountValue(value) {
+        const normalized = value === null || value === undefined ? '' : String(value).trim().toLowerCase();
+        return Object.prototype.hasOwnProperty.call(LWC_REUSABLE_PRO_DISCOUNTS, normalized) ? normalized : null;
     }
 
     window.captureFreePassFromUrl = function () {
@@ -89,6 +104,31 @@
                 delete window.__lwcFreePassValue;
             } else {
                 window.__lwcFreePassValue = value;
+            }
+        }
+
+        return value;
+    };
+
+    window.captureDiscountFromUrl = function () {
+        const params = new URLSearchParams(window.location.search || '');
+        if (!params.has('discount')) {
+            return window.getDiscountValue();
+        }
+
+        const value = normalizeDiscountValue(params.get('discount'));
+        try {
+            if (value === null) {
+                sessionStorage.removeItem(window.LWC_DISCOUNT_SESSION_KEY);
+                delete window.__lwcDiscountValue;
+            } else {
+                sessionStorage.setItem(window.LWC_DISCOUNT_SESSION_KEY, value);
+            }
+        } catch (_) {
+            if (value === null) {
+                delete window.__lwcDiscountValue;
+            } else {
+                window.__lwcDiscountValue = value;
             }
         }
 
@@ -121,8 +161,87 @@
         return fallbackValue;
     };
 
+    window.getDiscountValue = function () {
+        try {
+            const storedValue = sessionStorage.getItem(window.LWC_DISCOUNT_SESSION_KEY);
+            const normalizedValue = normalizeDiscountValue(storedValue);
+            if (normalizedValue !== null) {
+                return normalizedValue;
+            }
+
+            if (storedValue !== null) {
+                sessionStorage.removeItem(window.LWC_DISCOUNT_SESSION_KEY);
+            }
+        } catch (_) {
+        }
+
+        if (!Object.prototype.hasOwnProperty.call(window, '__lwcDiscountValue')) {
+            return null;
+        }
+
+        const fallbackValue = normalizeDiscountValue(window.__lwcDiscountValue);
+        if (fallbackValue === null) {
+            delete window.__lwcDiscountValue;
+        }
+
+        return fallbackValue;
+    };
+
     window.hasFreePass = function () {
         return window.getFreePassValue() !== null;
+    };
+
+    window.hasDiscount = function () {
+        return window.getDiscountValue() !== null;
+    };
+
+    window.getActiveProDiscount = function () {
+        const code = window.getDiscountValue();
+        return code === null ? null : LWC_REUSABLE_PRO_DISCOUNTS[code];
+    };
+
+    function roundUsd(value) {
+        return Math.round(value * 100) / 100;
+    }
+
+    function addDiscountMetadata(offer, discount) {
+        if (!offer || !discount) return offer;
+
+        return Object.assign({}, offer, {
+            discountCode: discount.code,
+            discountPercent: discount.percent
+        });
+    }
+
+    window.addActiveDiscountMetadataToPaymentOffer = function (offer) {
+        const discount = window.getActiveProDiscount();
+        if (!offer || !discount) return offer;
+
+        const offerType = String(offer.offerType || '').trim().toLowerCase();
+        if (offerType !== discount.appliesToOfferType) return offer;
+
+        return addDiscountMetadata(offer, discount);
+    };
+
+    window.applyDiscountToPaymentOffer = function (offer) {
+        const discount = window.getActiveProDiscount();
+        if (!offer || !discount) return offer;
+
+        const offerType = String(offer.offerType || '').trim().toLowerCase();
+        if (offerType !== discount.appliesToOfferType) return offer;
+
+        if (offer.discountCode === discount.code && Number(offer.discountPercent) === discount.percent) {
+            return offer;
+        }
+
+        const amountUsd = Number(offer.amountUsd);
+        if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+            return addDiscountMetadata(offer, discount);
+        }
+
+        return addDiscountMetadata(Object.assign({}, offer, {
+            amountUsd: roundUsd(amountUsd * (1 - discount.percent / 100))
+        }), discount);
     };
 
     window.applyFreePassToPaymentOffer = function (offer) {
@@ -135,6 +254,15 @@
             currency: offer && offer.currency ? offer.currency : 'USD',
             amountUsd: 0
         });
+    };
+
+    window.applyPaymentAdjustmentsToPaymentOffer = function (offer) {
+        const discountedOffer = window.applyDiscountToPaymentOffer
+            ? window.applyDiscountToPaymentOffer(offer)
+            : offer;
+        return window.applyFreePassToPaymentOffer
+            ? window.applyFreePassToPaymentOffer(discountedOffer)
+            : discountedOffer;
     };
 </script>
 

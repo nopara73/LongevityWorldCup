@@ -1381,6 +1381,31 @@
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
+        if (window.captureDiscountFromUrl) {
+            window.captureDiscountFromUrl();
+        }
+
+        function preserveAppliedDiscountMetadata(offer, result) {
+            const hasDiscountCode = result
+                && Array.isArray(result.components)
+                && result.components.some(component => component && component.kind === 'discountCode');
+            return hasDiscountCode && window.addActiveDiscountMetadataToPaymentOffer
+                ? window.addActiveDiscountMetadataToPaymentOffer(offer)
+                : offer;
+        }
+
+        function buildDirectBortzPaymentOffer() {
+            const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
+                ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
+                : null;
+            const amountUsd = result && Number.isFinite(result.finalPriceUsd) ? result.finalPriceUsd : 100;
+            return preserveAppliedDiscountMetadata({
+                source: 'direct-bortz-age',
+                offerType: 'pro',
+                currency: 'USD',
+                amountUsd
+            }, result);
+        }
 
         function initializeBortzLabAccessGate() {
             const panel = document.getElementById('bortzLabAccessPanel');
@@ -2764,16 +2789,13 @@
                  window.location.href = '/proofs';
              } else {
                  if (!sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
-                     const paymentOffer = {
-                         source: 'direct-bortz-age',
-                         offerType: 'pro',
-                         currency: 'USD',
-                         amountUsd: 100
-                     };
+                     const paymentOffer = buildDirectBortzPaymentOffer();
                      sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
-                         window.applyFreePassToPaymentOffer
-                             ? window.applyFreePassToPaymentOffer(paymentOffer)
-                             : paymentOffer
+                         window.applyPaymentAdjustmentsToPaymentOffer
+                             ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                             : window.applyFreePassToPaymentOffer
+                                 ? window.applyFreePassToPaymentOffer(paymentOffer)
+                                 : paymentOffer
                      ));
                  }
                  window.location.href = '/apply';

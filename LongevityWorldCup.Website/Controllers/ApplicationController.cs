@@ -81,6 +81,8 @@ namespace LongevityWorldCup.Website.Controllers
         private const int ProofImageMaxDimension = 2560;
         private const int ExistingWebpProfilePassthroughBytes = 4 * 1024 * 1024;
         private const int ExistingWebpProofPassthroughBytes = 2 * 1024 * 1024;
+        private const string MightyKlausDiscountCode = "mightyklaus";
+        private const decimal MightyKlausDiscountPercent = 40m;
 
         // Helper method to parse Base64 image strings and extract bytes, content type, and extension
         private static (byte[]? bytes, string? contentType, string? extension) ParseBase64Image(string base64String)
@@ -221,6 +223,15 @@ namespace LongevityWorldCup.Website.Controllers
             string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
             applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
+            applicantData.Discount = NormalizeDiscountValue(applicantData.Discount)
+                ?? NormalizeDiscountValue(applicantData.PaymentOffer?.DiscountCode);
+            if (applicantData.PaymentOffer is not null)
+            {
+                applicantData.PaymentOffer.DiscountCode = applicantData.Discount;
+                applicantData.PaymentOffer.DiscountPercent = applicantData.Discount is null
+                    ? null
+                    : MightyKlausDiscountPercent;
+            }
             var hasFreePass = applicantData.FreePass is not null;
 
             // Prepare the email body (excluding the images)
@@ -822,6 +833,8 @@ namespace LongevityWorldCup.Website.Controllers
                     ["orderId"] = orderId,
                     ["source"] = source,
                     ["offerType"] = offerType,
+                    ["discountCode"] = applicantData.Discount,
+                    ["discountPercent"] = applicantData.PaymentOffer?.DiscountPercent,
                     ["submissionType"] = isEditSubmissionOnly ? "edit" : isResultSubmissionOnly ? "result" : "application",
                     ["athleteName"] = applicantData.Name?.Trim(),
                     ["accountEmail"] = accountEmail
@@ -1006,6 +1019,7 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine($"Attachment filename: {attachmentFilename}")
                 .AppendLine($"Payment due: {paymentDueText}")
                 .AppendLine($"Free pass: {FormatFreePassAuditValue(applicantData.FreePass)}")
+                .AppendLine($"Discount: {FormatDiscountAuditValue(applicantData.Discount)}")
                 .AppendLine()
                 .AppendLine("Changed fields:")
                 .AppendLine(changedFields)
@@ -1028,6 +1042,16 @@ namespace LongevityWorldCup.Website.Controllers
             return string.IsNullOrEmpty(trimmed)
                 ? "present (empty value)"
                 : FormatAuditValue(TrimForLog(trimmed, 500));
+        }
+
+        private static string FormatDiscountAuditValue(string? discount)
+        {
+            if (discount is null)
+                return "none";
+
+            return discount == MightyKlausDiscountCode
+                ? $"{MightyKlausDiscountCode} ({MightyKlausDiscountPercent:0.##}% reusable Pro discount)"
+                : FormatAuditValue(TrimForLog(discount, 500));
         }
 
         private static void AppendLegacyApplicationEmailIntro(
@@ -1527,6 +1551,17 @@ namespace LongevityWorldCup.Website.Controllers
         {
             var trimmed = value?.Trim();
             return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+        }
+
+        private static string? NormalizeDiscountValue(string? value)
+        {
+            var trimmed = value?.Trim();
+            if (string.IsNullOrEmpty(trimmed))
+                return null;
+
+            return string.Equals(trimmed, MightyKlausDiscountCode, StringComparison.OrdinalIgnoreCase)
+                ? MightyKlausDiscountCode
+                : null;
         }
 
         private ImageOptimizationResult OptimizeProfileImage((byte[]? bytes, string? contentType, string? extension) imageData, string submissionId)

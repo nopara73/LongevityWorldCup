@@ -1121,6 +1121,9 @@
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
+        if (window.captureDiscountFromUrl) {
+            window.captureDiscountFromUrl();
+        }
 
         if (bloodDrawDateInput) {
             const todayLocal = new Date();
@@ -2129,9 +2132,11 @@
                          amountUsd: 10
                      };
                      sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
-                         window.applyFreePassToPaymentOffer
-                             ? window.applyFreePassToPaymentOffer(paymentOffer)
-                             : paymentOffer
+                         window.applyPaymentAdjustmentsToPaymentOffer
+                             ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                             : window.applyFreePassToPaymentOffer
+                                 ? window.applyFreePassToPaymentOffer(paymentOffer)
+                                 : paymentOffer
                      ));
                  }
                  window.location.href = '/apply';

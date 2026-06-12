@@ -834,17 +834,36 @@
       if (window.captureFreePassFromUrl) {
         window.captureFreePassFromUrl();
       }
+      if (window.captureDiscountFromUrl) {
+        window.captureDiscountFromUrl();
+      }
 
       function setPendingPaymentOffer(offer) {
-        const effectiveOffer = window.applyFreePassToPaymentOffer
-          ? window.applyFreePassToPaymentOffer(offer)
-          : offer;
+        const effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
+          ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
+          : window.applyFreePassToPaymentOffer
+            ? window.applyFreePassToPaymentOffer(offer)
+            : offer;
         sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
       }
 
-      function getFreePassQuerySuffix() {
-        const value = window.getFreePassValue ? window.getFreePassValue() : null;
-        return value === null ? "" : `?freepass=${encodeURIComponent(value)}`;
+      function getCheckoutQuerySuffix() {
+        const params = new URLSearchParams();
+        const freePassValue = window.getFreePassValue ? window.getFreePassValue() : null;
+        const discountValue = window.getDiscountValue ? window.getDiscountValue() : null;
+        if (freePassValue !== null) params.set("freepass", freePassValue);
+        if (discountValue !== null) params.set("discount", discountValue);
+        const query = params.toString();
+        return query ? `?${query}` : "";
+      }
+
+      function preserveAppliedDiscountMetadata(offer, result) {
+        const hasDiscountCode = result
+          && Array.isArray(result.components)
+          && result.components.some(component => component && component.kind === "discountCode");
+        return hasDiscountCode && window.addActiveDiscountMetadataToPaymentOffer
+          ? window.addActiveDiscountMetadataToPaymentOffer(offer)
+          : offer;
       }
 
       function startAmateurApplication() {
@@ -854,7 +873,7 @@
           currency: "USD",
           amountUsd: 10
         });
-        window.location.href = `/pheno-age${getFreePassQuerySuffix()}`;
+        window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
       }
 
       function startProApplication() {
@@ -862,13 +881,14 @@
           ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
           : null;
         const amountUsd = result && Number.isFinite(result.finalPriceUsd) ? result.finalPriceUsd : 100;
-        setPendingPaymentOffer({
+        const paymentOffer = preserveAppliedDiscountMetadata({
           source: "join-game",
           offerType: "pro",
           currency: "USD",
           amountUsd
-        });
-        window.location.href = `/bortz-age${getFreePassQuerySuffix()}`;
+        }, result);
+        setPendingPaymentOffer(paymentOffer);
+        window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
       }
 
       function createPriceHtmlFallback(result) {
@@ -940,7 +960,8 @@
       }
 
       function ensureProDiscountsLoaded() {
-        return Promise.resolve();
+        if (window.proDiscounts) return Promise.resolve();
+        return import("{{ASSET_PRO_DISCOUNTS_JS}}");
       }
 
       const ready = window.modulesReady || Promise.resolve();

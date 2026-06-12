@@ -121,6 +121,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--AGE-VISUALIZATION-->", ageVisualization)
                         .Replace("{{ASSET_BIOAGEFORM_CSS}}", _assetVersionProvider.AppendVersion("/css/bioageform.css"))
                         .Replace("{{ASSET_CUSTOM_EVENT_MARKUP_JS}}", _assetVersionProvider.AppendVersion("/js/custom-event-markup.js"))
+                        .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                         .Replace("{{ASSET_LONGEVITYMAXXING_CSS}}", _assetVersionProvider.AppendVersion("/css/longevitymaxxing.css"))
                         .Replace("{{ASSET_LONGEVITYMAXXING_JS}}", _assetVersionProvider.AppendVersion("/js/longevitymaxxing.js"))
                         .Replace("{{ASSET_CUSTOM_EVENT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/custom_event.png"))
@@ -413,7 +414,8 @@ $@"<script type=""module"">
                         "/js/misc.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
-                        "/js/bioage-rank-preview.js"
+                        "/js/bioage-rank-preview.js",
+                        "/js/pro-discounts.js"
                     ]),
                 "/onboarding/convergence.html" => new HeadAssetConfig(
                     IncludeValidator: true,

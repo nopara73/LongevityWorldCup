@@ -73,6 +73,24 @@ public class ApplicationImageOptimizationTests
         Assert.Equal(expected, result);
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    [InlineData("mightyklaus", "mightyklaus")]
+    [InlineData(" MightyKlaus ", "mightyklaus")]
+    [InlineData("foo", null)]
+    public void NormalizeDiscountValueAllowsOnlyReusableMightyKlausCode(string? input, string? expected)
+    {
+        var method = typeof(ApplicationController).GetMethod("NormalizeDiscountValue", BindingFlags.Static | BindingFlags.NonPublic);
+
+        Assert.NotNull(method);
+
+        var result = method!.Invoke(null, [input]);
+
+        Assert.Equal(expected, result);
+    }
+
     private sealed class TestWebHostEnvironment : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = "LongevityWorldCup.Tests";
