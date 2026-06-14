@@ -105,7 +105,9 @@ public sealed class DiscountSignupReportServiceTests
         Assert.Equal(["inv-paid", "inv-open"], fixture.Btcpay.RequestedInvoiceIds);
 
         var sent = Assert.Single(fixture.Email.Sent);
-        Assert.Equal(DiscountSignupReportService.DefaultRecipientEmail, sent.RecipientEmail);
+        Assert.Equal(
+            [DiscountSignupReportService.DefaultRecipientEmail, DiscountSignupReportService.MightyKlausRecipientEmail],
+            sent.RecipientEmails);
         Assert.Contains("[LWC] MightyKlaus discount signup report: 2026-05", sent.Subject);
         Assert.Contains("- Full applications completed: 2", sent.Body);
         Assert.Contains("- Paid applications: 1", sent.Body);
@@ -124,6 +126,17 @@ public sealed class DiscountSignupReportServiceTests
         Assert.False(duplicate.Sent);
         Assert.Equal("already sent", duplicate.Reason);
         Assert.Single(fixture.Email.Sent);
+    }
+
+    [Fact]
+    public void GetReportRecipientEmailsAddsMightyKlausRecipientWithoutDuplicatingConfiguredRecipients()
+    {
+        var recipients = DiscountSignupReportService.GetReportRecipientEmails(
+            "owner@example.test; klaus@klaustownsend.com, OWNER@example.test");
+
+        Assert.Equal(
+            ["owner@example.test", DiscountSignupReportService.MightyKlausRecipientEmail],
+            recipients);
     }
 
     [Theory]
@@ -250,12 +263,12 @@ public sealed class DiscountSignupReportServiceTests
     {
         public List<SentEmail> Sent { get; } = [];
 
-        public Task SendAsync(Config config, string recipientEmail, string subject, string textBody, CancellationToken ct = default)
+        public Task SendAsync(Config config, IReadOnlyList<string> recipientEmails, string subject, string textBody, CancellationToken ct = default)
         {
-            Sent.Add(new SentEmail(recipientEmail, subject, textBody));
+            Sent.Add(new SentEmail([.. recipientEmails], subject, textBody));
             return Task.CompletedTask;
         }
     }
 
-    private sealed record SentEmail(string RecipientEmail, string Subject, string Body);
+    private sealed record SentEmail(IReadOnlyList<string> RecipientEmails, string Subject, string Body);
 }
