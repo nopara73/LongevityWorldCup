@@ -10,21 +10,25 @@ namespace LongevityWorldCup.Website.Business;
 
 public interface IDiscountSignupReportEmailSender
 {
-    Task SendAsync(Config config, string recipientEmail, string subject, string textBody, CancellationToken ct = default);
+    Task SendAsync(Config config, IReadOnlyList<string> recipientEmails, string subject, string textBody, CancellationToken ct = default);
 }
 
 public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportEmailSender
 {
-    public async Task SendAsync(Config config, string recipientEmail, string subject, string textBody, CancellationToken ct = default)
+    public async Task SendAsync(Config config, IReadOnlyList<string> recipientEmails, string subject, string textBody, CancellationToken ct = default)
     {
         var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
         var smtpUser = RequireConfiguredValue(config.SmtpUser, nameof(config.SmtpUser));
         var smtpPort = RequireConfiguredPort(config.SmtpPort);
         var smtpPassword = GetConfiguredSecret(config.SmtpPassword, "LWC_SMTP_PASSWORD");
+        var recipients = RequireConfiguredRecipients(recipientEmails);
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Longevity World Cup", RequireConfiguredValue(config.EmailFrom, nameof(config.EmailFrom))));
-        message.To.Add(new MailboxAddress(string.Empty, RequireConfiguredValue(recipientEmail, nameof(recipientEmail))));
+        foreach (var recipient in recipients)
+        {
+            message.To.Add(MailboxAddress.Parse(recipient));
+        }
         message.Subject = subject;
         message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
 
@@ -72,11 +76,26 @@ public sealed class SmtpDiscountSignupReportEmailSender : IDiscountSignupReportE
 
         return string.IsNullOrWhiteSpace(configValue) ? null : configValue.Trim();
     }
+
+    private static IReadOnlyList<string> RequireConfiguredRecipients(IReadOnlyList<string>? recipientEmails)
+    {
+        var recipients = recipientEmails?
+            .Where(email => !string.IsNullOrWhiteSpace(email))
+            .Select(email => email.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+
+        if (recipients.Count == 0)
+            throw new InvalidOperationException("At least one report recipient must be configured.");
+
+        return recipients;
+    }
 }
 
 public sealed class DiscountSignupReportService
 {
     public const string DefaultRecipientEmail = "longevityworldcup@gmail.com";
+    public const string MightyKlausRecipientEmail = "klaus@klaustownsend.com";
     private const string ApplicationsTable = "DiscountSignupApplications";
     private const string ReportsTable = "DiscountSignupMonthlyReportLog";
     private const string FullApplicationSubmissionKind = "full-application";
@@ -263,18 +282,17 @@ public sealed class DiscountSignupReportService
 
         var records = GetApplications(normalizedDiscount, periodStart, periodEnd);
         var report = BuildReport(normalizedDiscount, periodStart, periodEnd, generatedAtUtc.ToUniversalTime(), records, _athletes.GetAthletesSnapshot());
-        var recipient = string.IsNullOrWhiteSpace(_config.DiscountSignupReportEmailTo)
-            ? DefaultRecipientEmail
-            : _config.DiscountSignupReportEmailTo.Trim();
+        var recipients = GetReportRecipientEmails(_config.DiscountSignupReportEmailTo);
+        var recipientLogValue = string.Join(", ", recipients);
 
-        await _email.SendAsync(_config, recipient, report.Subject, report.Body, ct).ConfigureAwait(false);
-        MarkReportSent(normalizedDiscount, periodStart, periodEnd, generatedAtUtc.ToUniversalTime(), recipient, report.Subject, report.Body);
+        await _email.SendAsync(_config, recipients, report.Subject, report.Body, ct).ConfigureAwait(false);
+        MarkReportSent(normalizedDiscount, periodStart, periodEnd, generatedAtUtc.ToUniversalTime(), recipientLogValue, report.Subject, report.Body);
 
         _logger.LogInformation(
-            "Sent {DiscountCode} signup report for {PeriodStart:yyyy-MM} to {RecipientEmail}. Completed={CompletedCount} Paid={PaidCount} Accepted={AcceptedCount}",
+            "Sent {DiscountCode} signup report for {PeriodStart:yyyy-MM} to {RecipientEmails}. Completed={CompletedCount} Paid={PaidCount} Accepted={AcceptedCount}",
             normalizedDiscount,
             periodStart,
-            recipient,
+            recipientLogValue,
             report.CompletedCount,
             report.PaidCount,
             report.AcceptedCount);
@@ -289,6 +307,28 @@ public sealed class DiscountSignupReportService
             PaidCount: report.PaidCount,
             AcceptedCount: report.AcceptedCount,
             PaidTotals: report.PaidTotals);
+    }
+
+    internal static IReadOnlyList<string> GetReportRecipientEmails(string? configuredRecipientEmails)
+    {
+        var recipients = new List<string>();
+        if (string.IsNullOrWhiteSpace(configuredRecipientEmails))
+        {
+            recipients.Add(DefaultRecipientEmail);
+        }
+        else
+        {
+            recipients.AddRange(
+                configuredRecipientEmails
+                    .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(email => !string.IsNullOrWhiteSpace(email)));
+        }
+
+        recipients.Add(MightyKlausRecipientEmail);
+
+        return recipients
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     internal static DiscountSignupReport BuildReport(
