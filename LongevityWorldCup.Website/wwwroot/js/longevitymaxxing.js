@@ -618,9 +618,7 @@
                 if (cell.countsForScore === false) {
                     return `<div class="lmx-cell practice" title="Day ${cell.challengeDay}: practice check-in" aria-label="Day ${cell.challengeDay}: practice check-in">P</div>`;
                 }
-                const score = typeof cell.score === "number" ? cell.score : 0;
-                const scoreClass = score >= 8 ? "score-high" : score >= 4 ? "score-mid" : "score-low";
-                return `<div class="lmx-cell ${scoreClass}" title="Day ${cell.challengeDay}: ${score}">${score}</div>`;
+                return scoredDayCellHtml(cell);
             }).join("");
             return `<div class="lmx-board-row" role="row">
                 <div class="lmx-name" role="cell">${participant}<div class="lmx-badges">${badges}</div></div>
@@ -638,6 +636,56 @@
             ${publicViewer ? "" : `<div role="columnheader">Streak</div>`}
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
         </div>${rows || emptyBoardRow(state.durationDays || 14, publicViewer)}`;
+    }
+
+    function scoredDayCellHtml(cell) {
+        const score = typeof cell.score === "number" ? cell.score : 0;
+        const breakdown = habitBreakdown(cell);
+        const title = habitCellTitle(cell, score, breakdown);
+        if (!breakdown.length) {
+            const scoreClass = score >= 8 ? "score-high" : score >= 4 ? "score-mid" : "score-low";
+            return `<div class="lmx-cell ${scoreClass}" title="${escAttr(title)}" aria-label="${escAttr(title)}">${score}</div>`;
+        }
+
+        const rawScore = breakdown.reduce((sum, item) => sum + item.value, 0);
+        const scoreClass = rawScore >= 6 ? "score-high" : rawScore >= 3 ? "score-mid" : "score-low";
+        const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
+        return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
+            <span class="lmx-cell-score">${score}</span>
+            <span class="lmx-habit-marks">${marks}</span>
+        </div>`;
+    }
+
+    function habitBreakdown(cell) {
+        const habits = [
+            { key: "sleep", label: "Sleep", short: "S" },
+            { key: "exercise", label: "Exercise", short: "E" },
+            { key: "nutrition", label: "Nutrition", short: "N" },
+            { key: "vices", label: "Vices", short: "V" }
+        ];
+        const values = habits.map(habit => {
+            const value = Number(cell[habit.key]);
+            return Number.isFinite(value)
+                ? { ...habit, value: Math.max(0, Math.min(2, value)) }
+                : null;
+        });
+
+        return values.every(Boolean) ? values : [];
+    }
+
+    function habitCellTitle(cell, score, breakdown) {
+        if (!breakdown.length) return `Day ${cell.challengeDay}: ${score}`;
+
+        const pieces = breakdown.map(item => `${item.label} ${item.value}/2`);
+        const missed = breakdown.filter(item => item.value < 2).map(item => item.label.toLowerCase());
+        const missedText = missed.length ? `. Missing: ${missed.join(", ")}` : ". Full day";
+        return `Day ${cell.challengeDay}: ${score} points. ${pieces.join(", ")}${missedText}`;
+    }
+
+    function habitMarkClass(value) {
+        if (value >= 2) return "lmx-habit-mark full";
+        if (value > 0) return "lmx-habit-mark partial";
+        return "lmx-habit-mark missed";
     }
 
     function renderRosterBoard(board, state) {
