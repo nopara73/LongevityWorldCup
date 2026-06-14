@@ -50,6 +50,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("daily max", html);
         Assert.Contains("peak points/day", html);
         Assert.Contains("points/day", html);
+        Assert.Contains("Score colors and habit key", html);
+        Assert.Contains("fa-moon", html);
+        Assert.Contains("fa-dumbbell", html);
+        Assert.Contains("fa-bowl-food", html);
+        Assert.Contains("fa-shield-halved", html);
         Assert.Contains("id=\"lmxSlackInviteLink\"", html);
         Assert.Contains("Join Slack", html);
         Assert.Contains("id=\"lmxSlackRoomLink\"", html);
@@ -171,6 +176,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode && !checkInOnly);", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
+        Assert.DoesNotContain("S/E/N/V dots show habit gaps", javascript);
+        Assert.Contains("function scoredDayCellHtml", javascript);
+        Assert.Contains("function habitBreakdown", javascript);
+        Assert.Contains("function habitCellTitle", javascript);
         Assert.Contains("data-label=\"Days\"", javascript);
         Assert.Contains("Need participant access?", javascript);
         Assert.Contains("Already joined or opened this page in a new browser?", javascript);
