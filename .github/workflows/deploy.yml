@@ -90,6 +90,15 @@ jobs:
             git reset --hard origin/master
             git clean -fd
 
+            dotnet_version="$(dotnet --version)"
+            case "$dotnet_version" in
+              10.*) ;;
+              *)
+                echo "Expected .NET SDK 10.x on production server, found $dotnet_version."
+                exit 1
+                ;;
+            esac
+
             git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
             dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output"
 
