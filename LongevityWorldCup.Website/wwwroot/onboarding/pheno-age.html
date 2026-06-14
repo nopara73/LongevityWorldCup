@@ -22,6 +22,79 @@
             overflow-wrap: break-word;
         }
 
+        .lab-access-panel {
+            margin: 1rem auto 0;
+            width: min(100%, 600px);
+            max-width: calc(100vw - 2rem);
+            padding: 1.1rem 1.15rem 1rem;
+            box-sizing: border-box;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 188, 212, 0.22);
+            background: linear-gradient(180deg, #ffffff, #f8feff);
+            color: #2d3748;
+            text-align: center;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .lab-access-panel h2 {
+            margin: 0;
+            font-size: 1.08rem;
+            line-height: 1.25;
+            color: var(--dark-text-color);
+        }
+
+        .lab-access-panel p {
+            margin: 0.45rem auto 0;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            max-width: 32rem;
+        }
+
+        .lab-access-panel a:not(.option-button) {
+            color: #0f7f90;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .lab-access-panel a:not(.option-button):hover {
+            text-decoration: underline;
+        }
+
+        .lab-access-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            min-height: 44px;
+            margin: 0.75rem auto 0;
+            padding: 0.45rem 0.85rem;
+            box-sizing: border-box;
+            border: 1px solid rgba(0, 188, 212, 0.28);
+            border-radius: 8px;
+            background: #fff;
+            color: #0f7f90;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.2;
+            text-decoration: none;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .lab-access-link:hover {
+            border-color: rgba(0, 188, 212, 0.48);
+            background: #f8feff;
+            color: #096978;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+        }
+
+        .lab-access-panel[hidden] {
+            display: none !important;
+        }
+
         #mainPageTitleH2 {
             width: min(100%, 600px);
             max-width: 100%;
@@ -879,6 +952,13 @@
                 Calculate <span style="color:var(--primary-color)">Pheno</span> Age
             </h1>
             <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Enter blood-test values to estimate <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a> and preview rank.</p>
+            <section id="phenoLabAccessPanel" class="lab-access-panel" data-aos="fade" data-aos-duration="700" data-aos-delay="325" aria-labelledby="phenoLabAccessTitle" hidden>
+                <h2 id="phenoLabAccessTitle">Need the blood panel?</h2>
+                <p>This New Zealand panel covers the biomarkers for pheno age. Created by <a href="/athlete/klaus-townsend" target="_blank" rel="noopener noreferrer">Klaus Townsend</a>.</p>
+                <a id="phenoLabAccessLink" class="lab-access-link" href="https://merch.longevityworldcup.com/product/amateur-league-test-package-new-zealand/" target="_blank" rel="noopener noreferrer">
+                    Open New Zealand panel&nbsp;<i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                </a>
+            </section>
             <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <div class="lwc-wizard-nav" aria-label="Calculator steps">
                     <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to age and date step" aria-current="step">
@@ -1194,12 +1274,97 @@
 
         const bloodDrawDateInput = document.getElementById('blood-draw-date');
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
+        const PHENO_LAB_GEO_CACHE_KEY = 'phenoLabGeoEligibility';
 
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
         if (window.captureDiscountFromUrl) {
             window.captureDiscountFromUrl();
+        }
+
+        function initializePhenoLabAccessGate() {
+            const panel = document.getElementById('phenoLabAccessPanel');
+            if (!panel) return;
+
+            function revealIfEligible(countryCode) {
+                const country = String(countryCode || '').trim().toUpperCase();
+                const isEligible = country === 'NZ';
+
+                panel.hidden = !isEligible;
+                return isEligible;
+            }
+
+            function getLocalPreviewGeo() {
+                const isLocalhost = window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.hostname === '[::1]';
+                if (!isLocalhost) return null;
+
+                const value = new URLSearchParams(window.location.search).get('labGeo');
+                const match = value && value.trim().toUpperCase().match(/^([A-Z]{2})(?:-[A-Z0-9]{2,3})?$/);
+                if (!match) return null;
+
+                return { countryCode: match[1] };
+            }
+
+            function readCachedEligibility() {
+                try {
+                    const raw = localStorage.getItem(PHENO_LAB_GEO_CACHE_KEY);
+                    if (!raw) return null;
+                    const cached = JSON.parse(raw);
+                    if (!cached || Date.now() - cached.timestamp > 24 * 60 * 60 * 1000) return null;
+                    return cached;
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            function writeCachedEligibility(countryCode) {
+                try {
+                    localStorage.setItem(PHENO_LAB_GEO_CACHE_KEY, JSON.stringify({
+                        countryCode,
+                        timestamp: Date.now()
+                    }));
+                } catch (_) { /* ignore */ }
+            }
+
+            const previewGeo = getLocalPreviewGeo();
+            if (previewGeo) {
+                revealIfEligible(previewGeo.countryCode);
+                return;
+            }
+
+            const cached = readCachedEligibility();
+            if (cached) {
+                revealIfEligible(cached.countryCode);
+                return;
+            }
+
+            fetch('https://ipapi.co/json/', { cache: 'no-store' })
+                .then(response => response.ok ? response.json() : null)
+                .then(location => {
+                    if (!location) return;
+                    const countryCode = location.country_code || location.country || '';
+                    writeCachedEligibility(countryCode);
+                    revealIfEligible(countryCode);
+                })
+                .catch(() => {
+                    panel.hidden = true;
+                });
+        }
+
+        initializePhenoLabAccessGate();
+
+        if (typeof window !== 'undefined') {
+            window.lwcPhenoLabAccess = {
+                refresh: initializePhenoLabAccessGate,
+                clearCache: function () {
+                    try {
+                        localStorage.removeItem(PHENO_LAB_GEO_CACHE_KEY);
+                    } catch (_) { /* ignore */ }
+                }
+            };
         }
 
         if (bloodDrawDateInput) {
