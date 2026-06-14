@@ -26,13 +26,11 @@ git reset --hard origin/master
 git clean -fd
 
 dotnet_version="$(dotnet --version)"
-case "$dotnet_version" in
-  10.*) ;;
-  *)
-    echo "Expected .NET SDK 10.x on production server, found $dotnet_version."
-    exit 1
-    ;;
-esac
+dotnet_major="${dotnet_version%%.*}"
+if [ "$dotnet_major" != "10" ]; then
+  echo "Expected .NET SDK 10.x on production server, found $dotnet_version."
+  exit 1
+fi
 
 git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
 
