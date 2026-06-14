@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))</RepositoryRoot>
     <DocumentationPageGeneratorProject>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/LongevityWorldCup.MarkdownPageGenerator.csproj</DocumentationPageGeneratorProject>
-    <DocumentationPageGeneratorDll>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/bin/$(Configuration)/net8.0/LongevityWorldCup.MarkdownPageGenerator.dll</DocumentationPageGeneratorDll>
+    <DocumentationPageGeneratorDll>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/bin/$(Configuration)/net10.0/LongevityWorldCup.MarkdownPageGenerator.dll</DocumentationPageGeneratorDll>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,14 +29,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
-    <PackageReference Include="MailKit" Version="4.16.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="9.0.8" />
-    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.75.0" />
+    <PackageReference Include="MailKit" Version="4.17.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.9" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.18.1" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
   </ItemGroup>
 
   <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
