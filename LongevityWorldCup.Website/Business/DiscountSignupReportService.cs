@@ -320,7 +320,7 @@ public sealed class DiscountSignupReportService
         {
             recipients.AddRange(
                 configuredRecipientEmails
-                    .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Where(email => !string.IsNullOrWhiteSpace(email)));
         }
 
