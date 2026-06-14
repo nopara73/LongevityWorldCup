@@ -12,10 +12,10 @@
             max-width: 620px;
             margin: 2.25rem auto;
             padding: 2rem;
-            background: rgba(255, 255, 255, 0.84);
-            border: 1px solid rgba(255, 255, 255, 0.68);
-            border-radius: 16px;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+            background: var(--card-bg, #fffefa);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-panel, 10px);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             text-align: center;
         }
 
@@ -35,7 +35,7 @@
         .unsubscribe-copy {
             max-width: 34rem;
             margin: 0 auto;
-            color: #243446;
+            color: #24332c;
             line-height: 1.45;
         }
 
@@ -49,7 +49,7 @@
 
         .unsubscribe-form label {
             font-weight: 700;
-            color: #243446;
+            color: #24332c;
         }
 
         .unsubscribe-form input {
@@ -57,16 +57,16 @@
             box-sizing: border-box;
             min-height: 46px;
             padding: 0.75rem 0.85rem;
-            border: 1px solid rgba(80, 97, 118, 0.28);
-            border-radius: 10px;
+            border: 1px solid rgba(70, 85, 77, 0.28);
+            border-radius: var(--radius-control, 999px);
             background: rgba(255, 255, 255, 0.92);
-            color: #243446;
+            color: #24332c;
             font: inherit;
         }
 
         .unsubscribe-form input:focus {
             border-color: var(--primary-color);
-            outline: 3px solid rgba(0, 188, 212, 0.18);
+            outline: 3px solid rgba(11, 125, 69, 0.18);
             outline-offset: 1px;
         }
 
@@ -80,24 +80,23 @@
             margin-top: 0.25rem;
             padding: 0.75rem 1.15rem;
             border: none;
-            border-radius: 10px;
-            background: #0a7c0a;
-            color: #fff;
+            border-radius: var(--radius-control, 999px);
+            background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+            color: #06100b;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 8px 18px rgba(10, 124, 10, 0.16);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
 
         .unsubscribe-button:hover,
         .unsubscribe-button:focus-visible {
-            background: #096f09;
-            box-shadow: 0 10px 22px rgba(10, 124, 10, 0.22);
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             transform: translateY(-1px);
         }
 
         .unsubscribe-button:focus-visible {
-            outline: 3px solid rgba(10, 124, 10, 0.22);
+            outline: 3px solid rgba(67, 238, 131, 0.45);
             outline-offset: 2px;
         }
 
@@ -112,7 +111,7 @@
             .unsubscribe-panel {
                 margin: 1.5rem 1rem;
                 padding: 1.35rem 1rem;
-                border-radius: 14px;
+                border-radius: var(--radius-panel, 10px);
             }
 
             .unsubscribe-panel h1 {
@@ -130,7 +129,7 @@
     <main>
         <section class="unsubscribe-panel">
             <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Unsubscribe</h1>
-            <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
+            <p class="unsubscribe-copy">Remove your email from the Longevity World Cup season bulletin.</p>
 
             <form id="unsubscribe-form" class="unsubscribe-form" novalidate>
                 <label for="email">Email address</label>
@@ -138,7 +137,7 @@
                        name="email"
                        type="email"
                        autocomplete="email"
-                       placeholder="you@example.com"
+                       placeholder="Email address"
                        required />
 
                 <button id="unsubscribe-button"
@@ -164,7 +163,7 @@
 
             function setMessage(text, isError) {
                 message.textContent = text;
-                message.style.color = isError ? "#cc0000" : "#0a7c0a";
+                message.style.color = isError ? "#b3261e" : "#0b7d45";
             }
 
             form.addEventListener("submit", async function (event) {

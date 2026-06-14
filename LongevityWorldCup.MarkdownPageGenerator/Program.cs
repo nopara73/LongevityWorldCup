@@ -84,16 +84,16 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
     {
         return $"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <a class="documentation-source-link" href="{source}" target="_blank" rel="noopener">Source Markdown</a>
+            <a class="documentation-source-link" href="{source}" target="_blank" rel="noopener">Public source</a>
         </nav>
 """;
     }
 
     return $$"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <div class="documentation-nav-title">Contents</div>
+            <div class="documentation-nav-title">Official index</div>
 {{string.Join(Environment.NewLine, links)}}
-            <a class="documentation-source-link" href="{{source}}" target="_blank" rel="noopener">Source Markdown</a>
+            <a class="documentation-source-link" href="{{source}}" target="_blank" rel="noopener">Public source</a>
         </nav>
 """;
 }
@@ -157,18 +157,23 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             display: grid;
             gap: 0.2rem;
             padding: 0.85rem 0.7rem 0.95rem;
-            border-left: 3px solid var(--primary-color);
-            border-radius: 0 8px 8px 0;
-            background: rgba(255, 255, 255, 0.48);
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-panel, 10px);
+            background:
+                linear-gradient(180deg, var(--surface-green-tint), rgba(255, 254, 250, 0) 36%),
+                var(--card-bg);
+            box-shadow: var(--surface-shadow);
         }
 
         .documentation-nav-title {
             margin: 0 0 0.35rem;
             padding: 0 0.45rem;
-            color: #334155;
+            color: var(--primary-color);
+            font-family: var(--display-font);
             font-size: 0.78rem;
-            font-weight: 700;
+            font-weight: 400;
+            font-synthesis: none;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
         }
 
@@ -176,9 +181,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             display: block;
             padding: 0.38rem 0.45rem;
             border-radius: 6px;
-            color: #334155;
-            font-size: 0.92rem;
-            line-height: 1.25;
+            color: var(--text-soft, #33423b);
+            font-size: var(--text-ui, 0.9375rem);
+            line-height: var(--leading-ui, 1.35);
             text-decoration: none;
         }
 
@@ -186,15 +191,15 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             margin-left: 0.55rem;
             padding-top: 0.28rem;
             padding-bottom: 0.28rem;
-            color: #506176;
-            font-size: 0.86rem;
+            color: var(--text-muted, #46554d);
+            font-size: var(--text-small, 0.875rem);
         }
 
         .documentation-nav a:hover,
         .documentation-nav a:focus-visible,
         .documentation-nav a.is-active {
-            background: rgba(0, 188, 212, 0.12);
-            color: #047888;
+            background: var(--surface-green-tint-strong);
+            color: var(--primary-color);
             outline: none;
         }
 
@@ -205,46 +210,66 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-nav .documentation-source-link {
             margin-top: 0.65rem;
             padding-top: 0.75rem;
-            border-top: 1px solid rgba(15, 23, 42, 0.1);
+            border-top: 1px solid var(--surface-border);
             color: var(--primary-color);
-            font-weight: 700;
+            font-weight: 900;
         }
 
         .documentation-document {
+            position: relative;
             box-sizing: border-box;
             padding: clamp(1.35rem, 3vw, 2.2rem);
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.56);
-            color: #233142;
-            font-size: 1.04rem;
-            line-height: 1.7;
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-panel, 10px);
+            background:
+                linear-gradient(180deg, var(--surface-row-alt), rgba(255, 254, 250, 0) 22%),
+                var(--card-bg);
+            box-shadow: var(--surface-shadow);
+            color: var(--text-soft, #33423b);
+            font-size: var(--text-body, 1rem);
+            line-height: var(--leading-reading, 1.68);
             overflow-wrap: break-word;
+        }
+
+        .documentation-document::before {
+            content: "Official competition dossier";
+            display: block;
+            margin: 0 0 0.55rem;
+            color: var(--primary-color);
+            font-size: var(--text-caption, 0.75rem);
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
         }
 
         .documentation-document h1,
         .documentation-document h2,
         .documentation-document h3,
         .documentation-document h4 {
-            color: #1f2b3a;
-            line-height: 1.16;
+            color: var(--ink);
+            font-family: var(--display-font);
+            font-weight: 400;
+            font-synthesis: none;
+            line-height: var(--leading-tight, 1.12);
             overflow-wrap: anywhere;
+            text-wrap: balance;
+            text-transform: uppercase;
         }
 
         .documentation-document h1 {
             margin: 0 0 1.25rem;
             padding: 0 0 1rem;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+            border-bottom: 1px solid var(--surface-border-strong);
             text-align: left;
             font-size: clamp(2.1rem, 4vw, 2.85rem);
-            letter-spacing: 0;
+            letter-spacing: var(--tracking-display, 0.02em);
             text-shadow: none;
         }
 
         .documentation-document h2 {
             margin: 2.45rem 0 0.85rem;
             padding-top: 1.05rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            border-top: 1px solid var(--surface-border-strong);
             text-align: left;
             font-size: clamp(1.55rem, 3vw, 2rem);
             text-shadow: none;
@@ -264,7 +289,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-document p,
         .documentation-document ul,
         .documentation-document ol {
+            max-width: 68ch;
             margin: 0 0 1rem;
+            text-wrap: pretty;
         }
 
         .documentation-document ul,
@@ -275,6 +302,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-document li {
             margin: 0.44rem 0;
             padding-left: 0.1rem;
+            line-height: var(--leading-reading, 1.68);
         }
 
         .documentation-document a {
@@ -286,7 +314,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-document a:hover,
         .documentation-document a:focus-visible {
-            color: #008fa1;
+            color: #0a5c36;
         }
 
         .documentation-document img {
@@ -298,10 +326,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             height: auto;
             object-fit: contain;
             margin: 1.45rem auto 1.8rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--surface-border-strong);
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.82);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+            background: var(--card-bg);
+            box-shadow: none;
         }
 
         .documentation-document table {
@@ -310,31 +338,35 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             margin: 1.25rem 0 1.5rem;
             overflow-x: auto;
             border-collapse: collapse;
-            background: rgba(255, 255, 255, 0.64);
+            background: var(--card-bg);
+            border: 1px solid var(--surface-border);
             border-radius: 8px;
         }
 
         .documentation-document th,
         .documentation-document td {
             padding: 0.62rem 0.75rem;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+            border-bottom: 1px solid var(--surface-border);
             text-align: left;
             vertical-align: top;
             white-space: nowrap;
         }
 
         .documentation-document th {
-            color: #111827;
-            background: rgba(0, 188, 212, 0.1);
-            font-weight: 700;
+            color: var(--primary-color);
+            background: var(--surface-green-tint);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .documentation-source {
             margin: 2.25rem 0 0;
             padding-top: 1rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
-            color: #506176;
-            font-size: 0.95rem;
+            border-top: 1px solid var(--surface-border);
+            color: var(--text-muted, #46554d);
+            font-size: var(--text-ui, 0.9375rem);
+            line-height: var(--leading-body, 1.55);
             text-align: left;
         }
 
@@ -349,50 +381,72 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 position: static;
                 display: flex;
                 flex-wrap: wrap;
-                gap: 0.35rem;
+                gap: 0.4rem;
                 align-items: center;
                 margin: 0 0 1rem;
-                padding: 0.6rem;
-                border-left: 0;
-                border-top: 3px solid var(--primary-color);
-                border-radius: 0 0 8px 8px;
+                padding: 0.72rem;
+                border: 1px solid var(--surface-border);
+                border-radius: var(--radius-panel, 10px);
+                max-height: min(17rem, 38svh);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(11, 125, 69, 0.45) transparent;
             }
 
             .documentation-nav-title {
-                display: none;
+                display: block;
+                flex: 1 0 100%;
+                margin: 0 0 0.18rem;
+                padding: 0 0 0.45rem;
+                border-bottom: 1px solid var(--surface-border);
+                color: var(--primary-color);
+                font-size: var(--text-caption, 0.75rem);
+                letter-spacing: 0.14em;
             }
 
             .documentation-nav a {
-                flex: 0 0 auto;
-                background: rgba(255, 255, 255, 0.58);
-                white-space: nowrap;
+                /* Long timeline entries must wrap inside the chip instead of
+                   running off the right edge of narrow viewports. */
+                flex: 1 1 10.5rem;
+                max-width: 100%;
+                min-height: 2.28rem;
+                display: inline-flex;
+                align-items: center;
+                border: 1px solid var(--surface-border);
+                background: var(--card-bg);
+                font-size: var(--text-ui, 0.9375rem);
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
 
             .documentation-nav .documentation-nav-level-3 {
                 margin-left: 0;
-                font-size: 0.9rem;
+                font-size: var(--text-ui, 0.9375rem);
             }
 
             .documentation-nav .documentation-source-link {
                 margin-top: 0;
-                padding-top: 0.38rem;
-                border-top: 0;
+                border-color: transparent;
+                background: var(--surface-green-tint);
             }
         }
 
         @media (max-width: 600px) {
             .documentation-document {
                 padding: 1.1rem;
-                font-size: 0.98rem;
-                line-height: 1.64;
+                font-size: var(--text-body, 1rem);
+                line-height: var(--leading-reading, 1.68);
             }
 
             .documentation-document h1 {
                 font-size: 1.95rem;
+                line-height: 1.02;
             }
 
             .documentation-document h2 {
                 font-size: 1.45rem;
+                line-height: 1.08;
             }
 
             .documentation-document img {

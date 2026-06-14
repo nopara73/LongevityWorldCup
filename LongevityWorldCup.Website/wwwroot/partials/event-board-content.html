@@ -4,17 +4,17 @@
         --row-stagger-step:24ms;
         --row-stagger-group-size:8;
         --row-delay:0ms;
-        --donation-gift:#10b981;
-        --details-bg:rgba(0,188,212,.08);
-        --zebra-even:rgba(240,244,248,.5);
+        --donation-gift:var(--primary-color, #0b7d45);
+        --details-bg:var(--surface-green-tint, rgba(11, 125, 69,.08));
+        --zebra-even:var(--surface-row-alt, rgba(28,39,34,.035));
         --zebra-odd:transparent;
         --events-text:var(--dark-text-color);
-        --events-muted:#7a8a99;
-        --events-border:rgba(0,0,0,.06);
-        --events-hover-bg:rgba(240,244,248,.8);
-        --events-header-bg:#e6f7fa;
-        --events-header-ink:#065f6b;
-        --events-header-action:#067487;
+        --events-muted:#74807a;
+        --events-border:var(--surface-border, rgba(28,39,34,.12));
+        --events-hover-bg:var(--surface-row-hover, rgba(11,125,69,.07));
+        --events-header-bg:var(--surface-green-tint, rgba(11,125,69,.08));
+        --events-header-ink:#0a5c36;
+        --events-header-action:#0b7d45;
         --event-row-min:44px;
         --row-pad-y:2px;
         --badge-size:24px;
@@ -24,8 +24,11 @@
         --badge-chip-pad-x:.45rem;
         --badge-gap:.25rem;
         --badge-inline-gap:.2rem;
-        --milestone-people:#6366f1;
-        --custom-event-accent:#00C2A8;
+        --milestone-people:#8f6a0e;
+        --custom-event-accent:#0b7d45;
+        /* Standalone embeds don't load the shared header tokens, so the display
+           stack is restated here; Anton resolves wherever the page loads it. */
+        --display-font:"Anton", Impact, Haettenschweiler, "Arial Narrow Bold", "Roboto", sans-serif;
     }
 
     @keyframes fadeInBoard{
@@ -50,14 +53,92 @@
 
     .events-board{
         display:flex;
+        flex-direction:column;
         align-items:stretch;
         background-color:var(--card-bg);
         color:var(--events-text);
-        border-radius:20px;
-        box-shadow:0 10px 30px rgba(0,0,0,.1);
+        border:1px solid var(--surface-border, rgba(28,39,34,.12));
+        border-radius:var(--radius-panel, 10px);
+        box-shadow:var(--surface-shadow, 0 4px 10px rgba(28,39,34,.08));
         overflow:hidden;
         flex-grow:1;
         margin:0 auto
+    }
+
+    .events-pulse{
+        display:grid;
+        grid-template-columns:minmax(0,1.35fr) repeat(3,minmax(7rem,1fr));
+        gap:.75rem;
+        padding:.85rem;
+        background:
+                linear-gradient(135deg, rgba(67,238,131,.16), rgba(67,238,131,0) 42%),
+                var(--ink, #131b17);
+        color:var(--light-text-color, #f8f7ef);
+        border-bottom:1px solid var(--chrome-border, rgba(248,247,239,.14));
+    }
+
+    .events-pulse[hidden]{display:none}
+
+    .events-pulse-lede,
+    .events-pulse-stat{
+        min-width:0;
+        border:1px solid var(--chrome-border, rgba(248,247,239,.14));
+        border-radius:var(--radius-card, 8px);
+        background:var(--chrome-panel-bg, rgba(248,247,239,.06));
+        padding:.72rem .8rem;
+    }
+
+    .events-pulse-kicker{
+        display:block;
+        margin-bottom:.16rem;
+        color:var(--accent-bright, #43ee83);
+        font-size:.68rem;
+        font-weight:800;
+        letter-spacing:.09em;
+        text-transform:uppercase;
+    }
+
+    .events-pulse-lede strong,
+    .events-pulse-stat strong{
+        display:block;
+        color:var(--light-text-color, #f8f7ef);
+        font-family:var(--display-font);
+        font-size:1.35rem;
+        font-weight:400;
+        font-synthesis:none;
+        line-height:1;
+        text-transform:uppercase;
+    }
+
+    .events-pulse-lede span,
+    .events-pulse-stat span{
+        display:block;
+        margin-top:.26rem;
+        color:rgba(248,247,239,.72);
+        font-size:.78rem;
+        line-height:1.32;
+    }
+
+    @media (max-width: 760px){
+        .events-pulse{
+            grid-template-columns:repeat(2,minmax(0,1fr));
+            gap:.5rem;
+            padding:.65rem;
+        }
+
+        .events-pulse-lede{
+            grid-column:1 / -1;
+        }
+
+        .events-pulse-lede,
+        .events-pulse-stat{
+            padding:.6rem .62rem;
+        }
+
+        .events-pulse-lede strong,
+        .events-pulse-stat strong{
+            font-size:1.08rem;
+        }
     }
 
     @keyframes skeletonShimmer{
@@ -152,13 +233,15 @@
 
     .events-board thead th{
         background:
-                linear-gradient(rgba(0,188,212,.12),rgba(0,188,212,.12)),
+                linear-gradient(rgba(11, 125, 69,.12),rgba(11, 125, 69,.12)),
                 var(--events-header-bg, var(--card-bg));
         color:var(--events-header-ink);
         text-transform:uppercase;
-        font-weight:800;
-        font-size:.85rem;
-        letter-spacing:1px;
+        font-family:var(--display-font);
+        font-weight:400;
+        font-synthesis:none;
+        font-size:.98rem;
+        letter-spacing:.06em;
         text-align:left;
         padding:15px 20px;
         border-bottom:1px solid var(--events-border);
@@ -239,20 +322,20 @@
         box-sizing:border-box;
         color:var(--events-header-action);
         font-weight:700;
-        font-size:.85rem;
+        font-size:.92rem;
         line-height:1.1;
         text-decoration:underline;
-        text-decoration-color:rgba(6,116,135,.35);
+        text-decoration-color:rgba(11,125,69,.35);
         text-underline-offset:2px;
         border-radius:6px;
     }
     .view-all:hover,
     .view-all:focus{
-        color:#055563;
+        color:#0a5c36;
         text-decoration-color:currentColor;
     }
     .view-all:focus-visible{
-        outline:2px solid rgba(6,116,135,.45);
+        outline:2px solid rgba(11,125,69,.45);
         outline-offset:3px;
         border-radius:4px;
     }
@@ -264,16 +347,40 @@
         background-color:var(--zebra-odd);
         box-shadow:inset 0 -1px 0 var(--events-border)
     }
+    .events-board table tbody tr.events-date-separator{
+        height:auto;
+        background:
+                linear-gradient(90deg, rgba(11,125,69,.16), rgba(11,125,69,0) 58%),
+                var(--paper, #f4f3ea);
+        box-shadow:inset 0 -1px 0 var(--surface-border), inset 0 1px 0 var(--surface-border);
+        cursor:default;
+    }
+    .events-board table tbody tr.events-date-separator:hover{
+        transform:none;
+        box-shadow:inset 0 -1px 0 var(--surface-border), inset 0 1px 0 var(--surface-border);
+        background:
+                linear-gradient(90deg, rgba(11,125,69,.16), rgba(11,125,69,0) 58%),
+                var(--paper, #f4f3ea);
+    }
+    .events-date-cell{
+        padding:.42rem 1.25rem!important;
+        color:#294137;
+        font-size:.72rem;
+        font-weight:900;
+        letter-spacing:.08em;
+        line-height:1.2;
+        text-transform:uppercase;
+    }
     .events-board table tbody tr.zebra-even{background-color:var(--zebra-even)}
     .events-board table tbody tr.zebra-odd{background-color:var(--zebra-odd)}
     .events-board table tbody tr:hover{
         transform:translateY(-1px);
-        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        box-shadow:var(--surface-shadow);
         background-color:var(--events-hover-bg)
     }
     .events-board table tbody tr.group-hover{
         transform:translateY(-1px);
-        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        box-shadow:var(--surface-shadow);
         background-color:var(--events-hover-bg);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
@@ -281,12 +388,12 @@
     .events-board table tbody tr.custom-event-row.is-open:hover + tr.custom-event-details,
     .events-board table tbody tr.custom-event-details:hover{
         transform:translateY(-1px);
-        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        box-shadow:var(--surface-shadow);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
     .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover){
         transform:translateY(-1px);
-        box-shadow:0 4px 10px rgba(0,0,0,.08);
+        box-shadow:var(--surface-shadow);
         background-color:var(--events-hover-bg);
         transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
     }
@@ -323,7 +430,7 @@
 
     .avatar,.avatar-fallback{
         width:24px;height:24px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;
-        border:2px solid var(--secondary-color,#ff4f87);
+        border:2px solid var(--secondary-color,#8f6a0e);
         box-shadow:0 1px 3px rgba(0,0,0,.12);
         background:#eef3f7
     }
@@ -395,7 +502,7 @@
     .event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
     .events-board td.event-message .event-message-cell a{overflow-wrap:normal;word-break:normal}
     .event-message a:hover,
-    .event-message a:focus{color:var(--secondary-color,#ff4f87);text-decoration-color:var(--secondary-color,#ff4f87)}
+    .event-message a:focus{color:var(--secondary-color,#8f6a0e);text-decoration-color:var(--secondary-color,#8f6a0e)}
     .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
     .event-message .event-inline-text{min-width:0;white-space:normal}
     .events-board .event-measurement,
@@ -457,12 +564,12 @@
         white-space:nowrap;
     }
 
-    .donation-amount{color:var(--secondary-color,#ff4f87);font-weight:700}
-    .age-years-accent{color:#4caf50;font-weight:700}
+    .donation-amount{color:var(--secondary-color,#8f6a0e);font-weight:700}
+    .age-years-accent{color:#0b7d45;font-weight:700}
     .donation-gift-avatar{
         width:24px;height:24px;border-radius:50%;
-        background:var(--donation-gift,#10b981);
-        border:2px solid var(--donation-gift,#10b981)!important;
+        background:var(--donation-gift,var(--primary-color,#0b7d45));
+        border:2px solid var(--donation-gift,var(--primary-color,#0b7d45))!important;
         box-shadow:0 1px 2px rgba(0,0,0,.06);
         display:grid;place-items:center;line-height:0
     }
@@ -470,18 +577,18 @@
 
     .milestone-people-avatar{
         width:24px;height:24px;border-radius:50%;
-        background:var(--milestone-people,#6366f1);
-        border:2px solid var(--milestone-people,#6366f1)!important;
+        background:var(--milestone-people,#8f6a0e);
+        border:2px solid var(--milestone-people,#8f6a0e)!important;
         box-shadow:0 1px 2px rgba(0,0,0,.06);
         display:grid;place-items:center;line-height:0
     }
     .milestone-people-avatar i{color:#fff!important;display:block;font-size:.95rem;line-height:1}
-    .milestone-count{color:var(--secondary-color,#ff4f87);font-weight:700}
-    .count-accent{color:var(--secondary-color,#ff4f87);font-weight:700}
+    .milestone-count{color:var(--secondary-color,#8f6a0e);font-weight:700}
+    .count-accent{color:var(--secondary-color,#8f6a0e);font-weight:700}
 
     .badge-list{display:flex;flex-wrap:wrap;gap:.35rem}
     .badge-chip{
-        background:rgba(0,188,212,.12);
+        background:rgba(11, 125, 69,.12);
         color:var(--primary-color);
         border-radius:999px;
         padding:.15rem .55rem;
@@ -502,28 +609,28 @@
         max-width:var(--badge-size);
         max-height:var(--badge-size);
         flex:0 0 var(--badge-size);
-        border:1px solid rgba(0,0,0,.48)!important;
+        border:1px solid rgba(19,27,23,.36)!important;
         border-radius:999px;
         line-height:1;
-        box-shadow:0 1px 2px rgba(0,0,0,.22);
+        box-shadow:0 1px 2px rgba(28,39,34,.16);
         margin-inline:var(--badge-inline-gap);
         margin-block:1px;
         vertical-align:middle
     }
     .events-board .badge-class.badge-family-rank{border-radius:999px}
-    .events-board .badge-class.badge-family-domain{border:0!important;border-radius:0;clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);background:#111!important;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.16))}
+    .events-board .badge-class.badge-family-domain{border:0!important;border-radius:0;clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);background:var(--ink,#131b17)!important;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(28,39,34,.16))}
     .events-board .badge-class.badge-family-domain::before{content:"";position:absolute;inset:1px;z-index:0;background:var(--badge-bg,linear-gradient(135deg,#555,#222));clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%)}
     .events-board .badge-class.badge-family-pace{border-radius:8px}
     .events-board .badge-class.badge-family-utility{border-radius:6px}
     .events-board .badge-class.badge-overflow-count{
-        background:linear-gradient(135deg,#f8fbfc,#dfe9ec)!important;
-        border:1px solid rgba(0,188,212,.42)!important;
+        background:linear-gradient(135deg,var(--card-bg,#fffefa),var(--paper,#f4f3ea))!important;
+        border:1px solid var(--control-border-hover,rgba(11,125,69,.32))!important;
         color:var(--primary-color);
         font-size:.72rem;
         font-weight:800;
         letter-spacing:.01em;
         text-decoration:none;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 2px 4px rgba(0,0,0,.12);
+        box-shadow:var(--surface-shadow,0 4px 10px rgba(28,39,34,.08));
     }
     .events-board .badge-class.badge-overflow-count::after{display:none}
     .events-board a.badge-class.badge-overflow-count:hover,
@@ -549,7 +656,7 @@
     .events-board .others-flyout{
         position:absolute;top:1.3em;left:0;display:none;
         background:var(--card-bg,#fff);padding:.35rem .5rem;border-radius:8px;
-        box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid var(--events-border);
+        box-shadow:var(--surface-shadow-lifted,0 6px 14px rgba(28,39,34,.12));border:1px solid var(--events-border);
         z-index:3;white-space:nowrap
     }
     .events-board .others-wrapper:hover .others-flyout{display:block}
@@ -566,7 +673,7 @@
     .events-board tbody tr.details-row{display:none}
 
     .events-board tbody tr.custom-event-details{
-        display:table-row;
+        display:none;
         transform:none;
         box-shadow:none;
         background-color:transparent;
@@ -660,7 +767,7 @@
     }
     .custom-event-expander:hover,
     .custom-event-expander:focus-visible{
-        background:rgba(0,188,212,.08) !important;
+        background:rgba(11, 125, 69,.08) !important;
     }
 
     .custom-event-expander::before{
@@ -721,10 +828,11 @@
         .view-all{font-size:.78rem;color:var(--events-header-action)}
         .events-board tbody td{padding:0 12px;height:auto;line-height:1.28}
         .events-board table tbody tr{height:auto}
+        .events-date-cell{padding:.5rem .85rem!important}
         .col-avatar{width:28px}
         .avatar,.avatar-fallback{width:22px;height:22px;border-width:2px}
         .event-message{font-size:.95rem}
-        .col-date{font-size:.72rem;opacity:1;color:#64748b;padding-left:6px}
+        .col-date{font-size:.72rem;opacity:1;color:#5d6b63;padding-left:6px}
         .events-board table tbody tr:hover{transform:none;box-shadow:0 4px 10px rgba(0,0,0,.08)}
         .events-board td.event-message{align-items:center;align-content:center}
 
@@ -872,6 +980,7 @@
 </style>
 
 <div id="events-root" class="events-board" aria-busy="true">
+    <div id="eventsPulse" class="events-pulse" hidden></div>
     <table id="eventsTable">
         <colgroup>
             <col class="events-col-avatar">
@@ -1090,7 +1199,9 @@
         function formatListDate(iso,{separator=', '}={}){
             const d=new Date(iso); if(isNaN(d)) return '';
             const nowYear=new Date().getFullYear();
-            const base=d.toLocaleDateString(undefined,{month:'short',day:'numeric'}).replace(/,/g,'');
+            // The UI copy is English; pin dates to English too so a Hungarian/German
+            // browser locale doesn't render "jún. 9." inside English sentences.
+            const base=d.toLocaleDateString('en-US',{month:'short',day:'numeric'}).replace(/,/g,'');
             return d.getFullYear()===nowYear?base:`${base}${separator}${d.getFullYear()}`;
         }
         function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return `${n}${s[(v-20)%10]||s[v]||s[0]}`;}
@@ -1669,12 +1780,76 @@
             let idx=0;
             const rows=[...tbody.querySelectorAll('tr')];
             rows.forEach(r=>{
+                if(r.classList.contains('events-date-separator')) return;
                 if(r.classList.contains('details-row')) return;
                 r.classList.remove('zebra-even','zebra-odd');
                 const cls=(idx%2===0)?'zebra-even':'zebra-odd';
                 r.classList.add(cls);
                 idx++;
             });
+        }
+
+        function eventGroupDateKey(value){
+            if(!value) return "";
+            const d = new Date(value);
+            if(Number.isNaN(+d)) return "";
+            return d.toISOString().slice(0, 10);
+        }
+
+        function eventGroupDateLabel(value){
+            if(!value) return "Undated";
+            const d = new Date(value);
+            if(Number.isNaN(+d)) return "Undated";
+            return new Intl.DateTimeFormat("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+            }).format(d);
+        }
+
+        function renderEventsPulse(rows, mode){
+            const pulse = document.getElementById("eventsPulse");
+            if(!pulse) return;
+            if(mode !== "viewAll" || !Array.isArray(rows) || rows.length === 0){
+                pulse.hidden = true;
+                pulse.innerHTML = "";
+                return;
+            }
+
+            const recent = rows.slice(0, Math.min(rows.length, 50));
+            const rankMoves = recent.filter(r =>
+                r.type === EVENT_TYPE.NewRank ||
+                r.type === EVENT_TYPE.CrowdAgeTop10Change ||
+                r.type === EVENT_TYPE.AgeImprovementTop10Change ||
+                r.type === EVENT_TYPE.BecamePro ||
+                r.type === EVENT_TYPE.BiologicalAgeImproved).length;
+            const badges = recent.filter(r => r.type === EVENT_TYPE.BadgeAward).length;
+            const joins = recent.filter(r => r.type === EVENT_TYPE.Joined).length;
+            const newest = recent.find(r => !!r.occurredAt);
+            const latestLabel = newest ? formatListDate(newest.occurredAt, { separator: " " }) : "Live feed";
+
+            pulse.innerHTML = `
+                <div class="events-pulse-lede">
+                    <span class="events-pulse-kicker">Public race pulse</span>
+                    <strong>${esc(latestLabel)}</strong>
+                    <span>Latest verified movement from the scoreboard, badges, challenges, and athlete milestones.</span>
+                </div>
+                <div class="events-pulse-stat">
+                    <span class="events-pulse-kicker">Movement</span>
+                    <strong>${rankMoves}</strong>
+                    <span>rank, pro, or age-improvement signals in the latest feed window</span>
+                </div>
+                <div class="events-pulse-stat">
+                    <span class="events-pulse-kicker">Badges</span>
+                    <strong>${badges}</strong>
+                    <span>recent badge awards or badge changes</span>
+                </div>
+                <div class="events-pulse-stat">
+                    <span class="events-pulse-kicker">New athletes</span>
+                    <strong>${joins}</strong>
+                    <span>recent public joins</span>
+                </div>`;
+            pulse.hidden = false;
         }
 
         function renderRows(rows, athletesIndex, linkNames, options=null){
@@ -1693,6 +1868,10 @@
             const frag = document.createDocumentFragment();
             const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             const rowsToRender = shouldAppend ? rows.slice(appendFromIndex) : rows;
+            const renderDateSeparators = !!(options && options.mode === "viewAll");
+            let previousDateGroup = shouldAppend
+                ? eventGroupDateKey(rows[Math.max(0, appendFromIndex - 1)] && rows[Math.max(0, appendFromIndex - 1)].occurredAt)
+                : "";
 
             const afterNameWithCurrentRankFor = () => (slug, aObj) => {
                 if (!aObj) return "";
@@ -1714,6 +1893,14 @@
             rowsToRender.forEach((r, localIdx) => {
                 const idx = shouldAppend ? appendFromIndex + localIdx : localIdx;
                 const dateLabel = r.occurredAt ? formatListDate(r.occurredAt) : "";
+                const dateGroup = eventGroupDateKey(r.occurredAt);
+                if(renderDateSeparators && dateGroup && dateGroup !== previousDateGroup){
+                    const separator = document.createElement("tr");
+                    separator.className = "events-date-separator";
+                    separator.innerHTML = `<td colspan="3" class="events-date-cell">${esc(eventGroupDateLabel(r.occurredAt))}</td>`;
+                    frag.appendChild(separator);
+                    previousDateGroup = dateGroup;
+                }
                 const rel = (r.type === EVENT_TYPE.Joined && r.occurredAt)
                     ? relativeDayLabel(r.occurredAt)
                     : "";
@@ -1961,7 +2148,7 @@
                     const takenText = Number.isFinite(taken) ? ordinal(taken) : "?";
                     const iconHtml  = Number.isFinite(taken) ? podiumIcon(taken) : "";
                     const takenHtml = Number.isFinite(taken)
-                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #8f6a0e)">${esc(takenText)}</strong>${iconHtml}</span>`
                         : esc(takenText);
 
                     if(r.newRankDirection === "lost"){
@@ -2003,7 +2190,7 @@
                     const placeText = placeN ? ordinal(placeN) : "?";
                     const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                     const placeHtml = placeN
-                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #8f6a0e)">${esc(placeText)}</strong>${placeIconHtml}</span>`
                         : esc(placeText);
 
                     const seasonN = Number.isFinite(r.seasonId) ? r.seasonId : null;
@@ -2032,7 +2219,7 @@
                     const placeText = placeN ? ordinal(placeN) : "";
                     const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                     const placeHtml = placeN
-                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #8f6a0e)">${esc(placeText)}</strong>${placeIconHtml}</span>`
                         : "";
 
                     const checkedIn = Number.isFinite(r.checkedInDays) ? r.checkedInDays : null;
@@ -2657,7 +2844,9 @@
                     && previousHomepageRowIds.length === existingHomepageRowCount
                     && previousHomepageRowIds.every((id, idx) => currentRowIds[idx] === id);
 
+                renderEventsPulse(rows, mode);
                 renderRows(rows,athletesIndex,!!linkNames,{
+                    mode,
                     preserveExistingRows: canAppendHomepageRows,
                     appendFromIndex: canAppendHomepageRows ? previousHomepageRowIds.length : 0
                 });
@@ -2667,6 +2856,7 @@
                 clearEventsLoadingState();
             }).catch(()=>{
                 clearEventsLoadingState();
+                renderEventsPulse([], "none");
                 const tbody=document.querySelector("#eventsTable tbody");
                 if(tbody) tbody.innerHTML=`<tr><td colspan="3">Failed to load events</td></tr>`;
             });

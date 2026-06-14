@@ -46,17 +46,17 @@
             left: 0;
             right: 0;
             padding: 0.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--surface-border-strong, rgba(28, 39, 34, 0.18));
             border-radius: 8px;
-            background: #fff;
+            background: var(--card-bg, #fffefa);
             width: 100%;
             max-height: min(12rem, 36vh);
             overflow-y: auto;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             box-sizing: border-box;
-            z-index: 9999;
+            z-index: 1003;
             scrollbar-width: thin;
-            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
+            scrollbar-color: rgba(11, 125, 69, 0.45) transparent;
         }
 
             .autocomplete-items div {
@@ -66,7 +66,7 @@
                 padding: 0.6rem 0.7rem;
                 border-radius: 6px;
                 box-sizing: border-box;
-                color: #2d3748;
+                color: #24332c;
                 cursor: pointer;
                 font-size: 1rem;
                 line-height: 1.25;
@@ -78,8 +78,8 @@
 
                 .autocomplete-items div:hover,
                 .autocomplete-active {
-                    background-color: rgba(0, 188, 212, 0.12);
-                    color: #243446;
+                    background-color: rgba(11, 125, 69, 0.12);
+                    color: #1c2722;
                 }
 
                 .autocomplete-items div .lwc-flag-icon {
@@ -109,33 +109,34 @@
             width: 100%;
             min-height: 44px;
             padding: 0.65rem 0.85rem;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--control-border, #cbd2c8);
             border-radius: 8px;
+            background-color: var(--control-bg, #fffefa);
+            color: var(--dark-text-color, #1c2722);
             font-size: 1rem;
             font-family: inherit;
             line-height: 1.35;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            background-color: #fff;
             box-sizing: border-box;
         }
 
             #divisionDisplayInput:focus, #flagDisplayInput:focus, #mediaContactInput:focus, #personalLinkInput:focus, #whyDisplayInput:focus {
                 outline: none;
-                border-color: var(--primary-color, #00bcd4);
-                box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+                border-color: var(--primary-color, #0b7d45);
+                box-shadow: var(--control-focus-ring, 0 0 0 3px rgba(11, 125, 69, 0.16));
             }
 
         #divisionDisplaySelect {
             width: 100%;
             min-height: 44px;
             padding: 0.65rem 2.25rem 0.65rem 0.85rem;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--control-border, #cbd2c8);
             border-radius: 8px;
             font-size: 1rem;
             font-family: inherit;
             line-height: 1.35;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            background-color: #fff;
+            background-color: var(--control-bg, #fffefa);
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
             background-repeat: no-repeat;
             background-position: right 0.85rem center;
@@ -146,8 +147,8 @@
 
             #divisionDisplaySelect:focus {
                 outline: none;
-                border-color: var(--primary-color, #00bcd4);
-                box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+                border-color: var(--primary-color, #0b7d45);
+                box-shadow: var(--control-focus-ring, 0 0 0 3px rgba(11, 125, 69, 0.16));
             }
 
         #changeProfileCropperModal {
@@ -156,7 +157,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
+            background: var(--card-bg, #fffefa);
             z-index: 10000;
             box-sizing: border-box;
             padding: 1.25rem;
@@ -164,10 +165,9 @@
             max-width: 430px;
             max-height: calc(100dvh - 1.5rem);
             overflow: auto;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--surface-border-strong, rgba(28, 39, 34, 0.18));
             border-radius: 8px;
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
-            display: flex;
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -199,9 +199,9 @@
             max-height: min(54vh, 360px);
             object-fit: contain;
             box-sizing: border-box;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
             border-radius: 8px;
-            background: #f8fafc;
+            background: #f7f6ee;
         }
 
         /* dark backdrop & lock scroll when modal is open */
@@ -212,9 +212,9 @@
             left: 0;
             width: 100vw;
             height: 100dvh;
-            background: rgba(15, 23, 42, 0.58);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            background: var(--chrome-overlay-bg, rgba(3, 7, 6, 0.72));
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
             z-index: 9998; /* sits just under the modal’s 10000 */
         }
 
@@ -274,7 +274,7 @@
             justify-content: center;
             gap: 0.65rem;
             min-height: 1.25rem;
-            color: #64748b;
+            color: #5d6b63;
             font-size: 0.85rem;
             font-weight: 700;
             line-height: 1;
@@ -337,16 +337,26 @@
 
         @media (max-width: 600px) {
             .edit-profile-main {
-                padding: 2rem 1.35rem 2.75rem;
+                padding: 1.35rem 1.35rem 2.75rem;
             }
 
             .edit-profile-title {
-                margin-bottom: 1rem;
+                margin-bottom: 0.75rem;
                 font-size: 2rem;
             }
 
             .edit-profile-visual {
-                margin-bottom: 1.25rem;
+                margin-bottom: 0.85rem;
+            }
+
+            .edit-profile-visual .illustration {
+                width: min(100%, 240px);
+                max-height: 220px;
+                object-fit: cover;
+            }
+
+            #changeProfilePicWrapper {
+                margin-bottom: 0.7rem;
             }
 
             #changeProfileCropperModal {
@@ -359,6 +369,30 @@
                 max-height: min(48vh, 320px);
             }
 
+        }
+
+        @media (max-width: 360px) {
+            .edit-profile-main {
+                padding-top: 1rem;
+            }
+
+            .edit-profile-title {
+                margin-bottom: 0.55rem;
+                font-size: 1.75rem;
+            }
+
+            .edit-profile-visual {
+                margin-bottom: 0.65rem;
+            }
+
+            .edit-profile-visual .illustration {
+                width: min(100%, 200px);
+                max-height: 185px;
+            }
+
+            #changeProfilePicWrapper {
+                margin-bottom: 0.55rem;
+            }
         }
 
         @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
@@ -443,14 +477,14 @@
                 </button>
                 <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
                 <input type="file" id="profileCameraInputModal" accept="image/*" capture="user" style="display: none;">
-                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture">
-                    <i class="fa fa-undo"></i>
+                <button type="button" id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture" aria-label="Restore profile picture">
+                    <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <select id="divisionDisplaySelect"></select>
-                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division">
-                    <i class="fa fa-undo"></i>
+                <button type="button" id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division" aria-label="Restore division">
+                    <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
@@ -459,8 +493,8 @@
                        name="flagDisplay"
                        autocomplete="off"
                        placeholder="Type or select a flag…">
-                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag">
-                    <i class="fa fa-undo"></i>
+                <button type="button" id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
+                    <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
@@ -469,9 +503,9 @@
                        name="personalLink"
                        inputmode="url"
                        autocomplete="off"
-                       placeholder="Enter personal link…">
-                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link">
-                    <i class="fa fa-undo"></i>
+                       placeholder="Public site or profile URL">
+                <button type="button" id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link" aria-label="Restore personal link">
+                    <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
@@ -479,19 +513,19 @@
                        id="mediaContactInput"
                        name="mediaContact"
                        autocomplete="off"
-                       placeholder="Enter media contact…">
-                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact">
-                    <i class="fa fa-undo"></i>
+                       placeholder="Media email or public contact link">
+                <button type="button" id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
+                    <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <textarea id="whyDisplayInput"
                           name="whyDisplay"
                           rows="3"
-                          placeholder="What drives you?"></textarea>
+                          placeholder="Short public athlete statement"></textarea>
 
-                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why">
-                    <i class="fa fa-undo"></i>
+                <button type="button" id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
+                    <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
@@ -562,11 +596,6 @@
         setSubmitChangeRequestButton();
 
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(() => {
-                const viewTarget = document.querySelector('h1');
-                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
             document.querySelector('picture').innerHTML = `
@@ -821,7 +850,7 @@
                         const displayError = typeof err === 'string' ? err : (err && err.message || String(err));
                         customAlert(`Submission failed:\n\n${displayError}`).then(() => {
                             submitButton.disabled = false;
-                            submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
+                            submitButton.innerHTML = 'Submit change request&nbsp;<i class="fas fa-arrow-right" aria-hidden="true"></i>';
                         });
                     });
             });
@@ -985,7 +1014,7 @@
 
         function setSubmitChangeRequestButton() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = 'Submit change request&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.innerHTML = 'Submit change request&nbsp;<i class="fas fa-arrow-right" aria-hidden="true"></i>';
             submitButton.setAttribute('type', 'submit');
         }
 
@@ -1139,7 +1168,7 @@
         function validateWhyDisplay(value) {
             const v = value.trim();
             if (!v) {
-                customAlert('Your why is the light. Don’t leave us in the dark.');
+                customAlert('Please add a short athlete statement before submitting.');
                 restoreWhyDisplayToOriginal();
                 return false;
             }

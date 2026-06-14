@@ -11,23 +11,23 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            z-index: 1000;
+            background: var(--chrome-overlay-bg-soft, rgba(3, 7, 6, 0.58));
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            z-index: 10000;
             justify-content: center;
             align-items: center;
             overflow: auto;
         }
 
         .dialog-content {
-            background-color: #fefefe;
+            background-color: var(--card-bg, #fffefa);
             margin: 5% auto;
             padding: 2.25rem 1.25rem 1.25rem;
             border: none;
-            border-radius: 15px;
+            border-radius: var(--radius-panel, 10px);
             text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             max-width: 400px;
             width: 90%;
             overflow-y: auto;
@@ -36,15 +36,55 @@
             position: relative;
         }
 
+        .newsletter-dialog-title {
+            margin: 0.4rem 0 0.65rem;
+            color: var(--ink, #131b17);
+            font-family: var(--display-font);
+            font-size: clamp(1.9rem, 8vw, 2.35rem);
+            font-weight: 400;
+            font-synthesis: none;
+            letter-spacing: 0;
+            line-height: 0.98;
+            text-transform: uppercase;
+        }
+
+        .newsletter-dialog-kicker {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 26px;
+            margin: 0 auto 0.15rem;
+            padding: 0.25rem 0.65rem;
+            border: 1px solid rgba(11, 125, 69, 0.26);
+            border-radius: var(--radius-control, 999px);
+            background: var(--surface-green-tint, rgba(11, 125, 69, 0.08));
+            color: var(--primary-color, #0b7d45);
+            font-size: var(--text-caption, 0.75rem);
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            line-height: var(--leading-ui, 1.35);
+            text-transform: uppercase;
+        }
+
+        .checkmark-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            margin: 0 auto 0.7rem;
+            border: 1px solid rgba(11, 125, 69, 0.24);
+            border-radius: 50%;
+            background: var(--surface-green-tint, rgba(11, 125, 69, 0.08));
+            color: var(--primary-color, #0b7d45);
+        }
+
         .checkmark-container::before {
-            content: '\f058'; /* Font Awesome checkmark unicode */
-            font-family: 'Font Awesome 6 Free'; /* Ensure the correct font family */
-            font-weight: 900; /* Use solid style */
-            display: block; /* Ensure it occupies space */
-            margin: 0 auto; /* Center horizontally */
-            text-align: center; /* Center align the checkmark */
-            font-size: 100px; /* Adjust size */
-            color: rgba(0, 200, 0, 0.5); /* Green color with opacity */
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            display: block;
+            font-size: 1.65rem;
             z-index: 0;
         }
 
@@ -59,17 +99,17 @@
             right: 0.75rem;
             width: 44px;
             height: 44px;
-            background: rgba(15, 23, 42, 0.06);
-            color: rgba(15, 23, 42, 0.68);
+            background: var(--surface-row-alt, rgba(28,39,34,.035));
+            color: rgba(28, 39, 34, 0.68);
             z-index: 2;
-            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .dialog-content .close:hover,
         .dialog-content .close:focus-visible {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.14);
+            background: var(--surface-green-tint, rgba(11, 125, 69, 0.08));
+            color: var(--primary-color, #0b7d45);
+            box-shadow: var(--focus-ring, 0 0 0 4px rgba(67, 238, 131, 0.26));
             outline: none;
         }
 
@@ -84,20 +124,20 @@
             display: inline-block;
             padding: 0.7rem 1.5rem;
             font-size: 1rem;
-            background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8);
+            background: var(--main-action-color);
             color: var(--light-text-color);
             border: none;
-            border-radius: 25px;
+            border-radius: var(--radius-control, 999px);
             cursor: pointer;
             transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             width: 80%;
         }
 
             .dialog-button:hover {
-                background: linear-gradient(135deg, #4fa3e8, #5eb2f2);
-                transform: scale(1.05);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+                background: var(--main-action-selected-color);
+                transform: translateY(-1px);
+                box-shadow: var(--focus-ring, 0 0 0 4px rgba(67, 238, 131, 0.26)), var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             }
 
         @keyframes fadeIn {
@@ -112,12 +152,6 @@
             }
         }
 
-        button:hover {
-            background: linear-gradient(135deg, var(--secondary-color, #e74c3c), #ff6b5a); /* Consistent gradient on hover */
-            transform: scale(1.05); /* Slight hover enlarge effect */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Add shadow effect */
-        }
-
         .copy-btn:hover {
             background: none; /* Prevent the background change */
             transform: none; /* Prevent scaling of the button */
@@ -126,19 +160,20 @@
 
             .copy-btn:hover i {
                 color: var(--secondary-color); /* Change icon color on hover */
-                transform: scale(1.2); /* Slightly enlarge the icon */
-                transition: transform 0.2s ease, color 0.2s ease; /* Smooth transition for both color and size */
+                transition: color 0.2s ease; /* Smooth transition for color */
             }
 
+        /* The pitch is the only sentence between the poster and the product:
+           it reads as a statement, not a caption, so it gets one step more size. */
         .game-description {
             text-align: center;
             margin: 0 auto 1.1rem;
-            line-height: 1.55;
-            color: #334155;
-            font-size: clamp(1.02rem, 1.3vw, 1.08rem);
+            line-height: 1.5;
+            color: #33423b;
+            font-size: clamp(1.05rem, 1.5vw, 1.22rem);
             font-weight: 400;
             letter-spacing: 0.005em;
-            max-width: 43em;
+            max-width: 40em;
             padding: 0 1rem;
         }
 
@@ -163,14 +198,1219 @@
             outline: none;
         }
 
+        /* The dark scoreboard chrome stops at the hero's bottom edge: content below
+           lives on the light page surface so sections breathe like the rest of the
+           site. html stays dark so iOS rubber-band overscroll matches the hero/footer. */
+        html:has(.lwc-home-hero) {
+            background: #030706;
+        }
+
+        body:has(.lwc-home-hero) {
+            background: var(--header-to-body-bg);
+        }
+
+        body:has(.lwc-home-hero) > header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            padding: 0;
+            overflow: visible;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        /* The hero carries its own brand row and CTA, so the standard header is
+           hidden — but the floating PLAY pill must survive for post-scroll access. */
+        body:has(.lwc-home-hero) > header .header-link,
+        body:has(.lwc-home-hero) > header .join-game:not(.scrolled-button) {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            clip: rect(0 0 0 0) !important;
+            clip-path: inset(50%) !important;
+            opacity: 0 !important;
+        }
+
+        body:has(.lwc-home-hero) #site-sticky-header {
+            display: flex !important;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        body:has(.lwc-home-hero) #site-sticky-header::before {
+            opacity: 1;
+        }
+
+        @media (min-width: 769px) {
+            body:has(.lwc-home-hero) #site-sticky-header {
+                padding: 0.38rem 1rem;
+            }
+
+            body:has(.lwc-home-hero) .site-sticky-header-link {
+                min-height: 3rem;
+                gap: 0.65rem;
+            }
+
+            body:has(.lwc-home-hero) .site-sticky-header-logo {
+                width: 36px;
+                height: 36px;
+            }
+
+            body:has(.lwc-home-hero) .site-sticky-header-title {
+                font-size: 1.45rem;
+            }
+        }
+
+        .lwc-home-hero {
+            --lwc-hero-bg: #030706;
+            --lwc-hero-bg-soft: #08100e;
+            --lwc-hero-ink: #f8f7ef;
+            --lwc-hero-muted: rgba(248, 247, 239, 0.7);
+            --lwc-hero-line: rgba(248, 247, 239, 0.23);
+            --lwc-hero-green: #43ee83;
+            position: relative;
+            width: 100vw;
+            min-height: 100vh;
+            min-height: 100svh;
+            margin: -1.35rem calc(50% - 50vw) 1.75rem;
+            overflow: hidden;
+            isolation: isolate;
+            color: var(--lwc-hero-ink);
+            background:
+                radial-gradient(circle at 13% 84%, rgba(67, 238, 131, 0.1), transparent 28%),
+                linear-gradient(180deg, var(--lwc-hero-bg-soft), var(--lwc-hero-bg) 46%, #000 100%);
+        }
+
+        .lwc-home-hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
+            background-size: 100% 6px, 16px 100%;
+            opacity: 0.58;
+        }
+
+        .lwc-home-hero-inner {
+            position: relative;
+            width: min(100%, 1180px);
+            min-height: 100vh;
+            min-height: 100svh;
+            margin: 0 auto;
+            padding: clamp(1.25rem, 3vw, 2rem) clamp(1.125rem, 5vw, 4rem) 1.5rem;
+        }
+
+        .lwc-home-hero-nav {
+            position: relative;
+            z-index: 8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            color: var(--lwc-hero-ink);
+            font-size: clamp(0.75rem, 1.8vw, 0.92rem);
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        .lwc-home-hero-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: inherit;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .lwc-home-hero-brand img {
+            width: 1.125rem;
+            height: 1.125rem;
+            object-fit: contain;
+            filter: invert(1) brightness(1.45);
+        }
+
+        .lwc-home-hero-nav-label {
+            max-width: 12rem;
+            text-align: right;
+        }
+
+        .lwc-home-hero-mark {
+            position: absolute;
+            z-index: -2;
+            width: clamp(34rem, 68vw, 54rem);
+            aspect-ratio: 1;
+            left: min(-7rem, -5vw);
+            top: clamp(12rem, 27vw, 15.5rem);
+            background: url("{{ASSET_LOGO}}") center / contain no-repeat;
+            filter: invert(1) grayscale(1) brightness(0.66);
+            opacity: 0.28;
+            transform: rotate(10deg);
+            pointer-events: none;
+        }
+
+        .lwc-home-hero-copy {
+            position: relative;
+            z-index: 5;
+            width: min(100%, 42rem);
+            padding-top: clamp(5rem, 15vw, 8rem);
+        }
+
+        .lwc-home-hero-kicker {
+            display: block;
+            margin: 0 0 0.45rem;
+            color: var(--lwc-hero-ink);
+            font-family: var(--display-font);
+            font-size: clamp(3rem, 9vw, 6.75rem);
+            line-height: 0.82;
+            font-weight: 400;
+            font-synthesis: none;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .lwc-home-hero-score {
+            display: flex;
+            align-items: flex-end;
+            margin: 0.2rem 0 0;
+            color: var(--lwc-hero-green);
+            font-family: var(--display-font);
+            font-size: clamp(7.2rem, 24vw, 16rem);
+            line-height: 0.78;
+            font-weight: 400;
+            font-synthesis: none;
+            letter-spacing: 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .lwc-home-hero-score-unit {
+            display: inline-block;
+            width: min-content;
+            margin-left: 0.08em;
+            padding-bottom: 0.12em;
+            font-size: 0.2em;
+            line-height: 0.9;
+            vertical-align: bottom;
+            white-space: normal;
+        }
+
+        .lwc-home-hero-copy p {
+            max-width: 19rem;
+            margin: clamp(1.1rem, 3vw, 1.65rem) 0 0;
+            color: var(--lwc-hero-ink);
+            font-size: clamp(1.15rem, 3vw, 1.45rem);
+            line-height: 1.22;
+            letter-spacing: 0;
+            text-align: left;
+        }
+
+        .lwc-home-hero-stats {
+            position: absolute;
+            left: clamp(1.125rem, 5vw, 4rem);
+            right: clamp(1.125rem, 5vw, 4rem);
+            bottom: 7.75rem;
+            z-index: 7;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+            border-top: 1px solid var(--lwc-hero-line);
+            padding-top: 0.85rem;
+        }
+
+        .lwc-home-hero-stats div,
+        .lwc-home-hero-stats dt,
+        .lwc-home-hero-stats dd {
+            min-width: 0;
+            margin: 0;
+        }
+
+        .lwc-home-hero-stats b {
+            display: block;
+            color: var(--lwc-hero-green);
+            font-family: var(--display-font);
+            font-size: clamp(2rem, 6vw, 3.35rem);
+            line-height: 0.9;
+            font-weight: 400;
+            font-synthesis: none;
+            letter-spacing: 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .lwc-home-hero-stats dd {
+            display: block;
+            margin-top: 0.45rem;
+            color: var(--lwc-hero-ink);
+            font-size: clamp(0.78rem, 1.6vw, 0.92rem);
+            line-height: 1.1;
+        }
+
+        .lwc-home-hero-actions {
+            position: absolute;
+            left: clamp(1.125rem, 5vw, 4rem);
+            right: clamp(1.125rem, 5vw, 4rem);
+            bottom: 1.45rem;
+            z-index: 8;
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .lwc-home-hero-cta {
+            min-height: 3.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: var(--lwc-hero-green);
+            color: #020403;
+            text-decoration: none;
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            font-weight: 700;
+            box-shadow: 0 14px 32px rgba(67, 238, 131, 0.22);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .lwc-home-hero-cta:hover,
+        .lwc-home-hero-cta:focus-visible {
+            background: var(--lwc-hero-green);
+            color: #020403;
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 4px rgba(67, 238, 131, 0.22);
+            outline: none;
+        }
+
+        .lwc-home-hero-secondary-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 3.25rem;
+            padding: 0 1.15rem;
+            border: 1px solid rgba(248, 247, 239, 0.28);
+            border-radius: 999px;
+            color: rgba(248, 247, 239, 0.9);
+            background: rgba(248, 247, 239, 0.055);
+            font-size: 0.92rem;
+            line-height: 1.2;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+            transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        }
+
+        .lwc-home-hero-arena {
+            display: none;
+        }
+
+        .lwc-home-hero-arena-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid rgba(248, 247, 239, 0.16);
+        }
+
+        .lwc-home-hero-arena-title {
+            display: block;
+            color: var(--lwc-hero-ink);
+            font-family: var(--display-font);
+            font-size: clamp(1.7rem, 2.2vw, 2.45rem);
+            line-height: 0.95;
+            font-weight: 400;
+            font-synthesis: none;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .lwc-home-hero-arena-link {
+            flex: 0 0 auto;
+            color: var(--lwc-hero-green);
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-decoration: underline;
+            text-underline-offset: 0.18em;
+        }
+
+        .lwc-home-hero-arena-roster {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            align-items: end;
+            gap: 0.75rem;
+            min-height: 20.5rem;
+            padding-top: 1rem;
+        }
+
+        .lwc-home-hero-arena-placeholder,
+        .lwc-home-hero-arena-athlete {
+            min-width: 0;
+            border: 1px solid rgba(248, 247, 239, 0.16);
+            border-radius: var(--radius-panel, 10px);
+            background: linear-gradient(180deg, rgba(248, 247, 239, 0.1), rgba(248, 247, 239, 0.055));
+        }
+
+        .lwc-home-hero-arena-placeholder {
+            min-height: 15rem;
+            padding: 0.85rem;
+            color: rgba(248, 247, 239, 0.68);
+            font-size: 0.82rem;
+            font-weight: 700;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        .lwc-home-hero-arena-athlete {
+            appearance: none;
+            -webkit-appearance: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 16.8rem;
+            padding: 0.9rem 0.7rem 0.8rem;
+            color: var(--lwc-hero-ink);
+            font: inherit;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        }
+
+        .lwc-home-hero-arena-athlete.first {
+            order: 1;
+            min-height: 19.5rem;
+            border-color: rgba(212, 175, 55, 0.46);
+            background: linear-gradient(180deg, rgba(248, 247, 239, 0.14), rgba(212, 175, 55, 0.08));
+        }
+
+        .lwc-home-hero-arena-athlete.second {
+            order: 2;
+        }
+
+        .lwc-home-hero-arena-athlete.third {
+            order: 3;
+        }
+
+        .lwc-home-hero-arena-athlete:hover,
+        .lwc-home-hero-arena-athlete:focus-visible {
+            outline: none;
+            transform: translateY(-1px);
+            border-color: rgba(67, 238, 131, 0.42);
+            box-shadow: 0 0 0 4px rgba(67, 238, 131, 0.16);
+        }
+
+        .lwc-home-hero-arena-rank {
+            margin-bottom: 0.45rem;
+            color: rgba(248, 247, 239, 0.72);
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .lwc-home-hero-arena-athlete img {
+            width: clamp(4.25rem, 6.2vw, 5.5rem);
+            height: clamp(4.25rem, 6.2vw, 5.5rem);
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(67, 238, 131, 0.72);
+            background: rgba(248, 247, 239, 0.18);
+        }
+
+        .lwc-home-hero-arena-athlete.first img {
+            width: clamp(5rem, 7vw, 6.35rem);
+            height: clamp(5rem, 7vw, 6.35rem);
+            border-color: rgba(212, 175, 55, 0.9);
+        }
+
+        .lwc-home-hero-arena-name {
+            display: block;
+            width: 100%;
+            margin-top: 0.72rem;
+            color: var(--lwc-hero-ink);
+            font-size: 0.95rem;
+            line-height: 1.15;
+            font-weight: 900;
+            overflow-wrap: anywhere;
+        }
+
+        .lwc-home-hero-arena-score {
+            display: block;
+            margin-top: auto;
+            padding-top: 0.75rem;
+            color: var(--lwc-hero-green);
+            font-family: var(--display-font);
+            font-size: clamp(2rem, 3.1vw, 3rem);
+            line-height: 0.9;
+            font-weight: 400;
+            font-synthesis: none;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .lwc-home-hero-arena-caption {
+            display: block;
+            margin-top: 0.35rem;
+            color: rgba(248, 247, 239, 0.7);
+            font-size: 0.68rem;
+            line-height: 1.1;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .lwc-home-hero-arena-prize {
+            display: block;
+            margin-top: 0.62rem;
+            color: rgba(248, 247, 239, 0.9);
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+
+        .lwc-home-hero-arena-proof {
+            margin: 0.85rem 0 0;
+            color: rgba(248, 247, 239, 0.72);
+            font-size: 0.88rem;
+            line-height: 1.35;
+        }
+
+        .lwc-home-hero-trust {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.9rem;
+        }
+
+        .lwc-home-hero-trust a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 2rem;
+            padding: 0.25rem 0.7rem;
+            border: 1px solid rgba(248, 247, 239, 0.2);
+            border-radius: 999px;
+            color: rgba(248, 247, 239, 0.9);
+            background: rgba(248, 247, 239, 0.07);
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .lwc-home-hero-trust a:hover,
+        .lwc-home-hero-trust a:focus-visible {
+            outline: none;
+            color: #020403;
+            background: var(--lwc-hero-green);
+            border-color: transparent;
+        }
+
+        .lwc-home-hero-arena-action {
+            display: block;
+            margin-top: 0.55rem;
+            color: rgba(248, 247, 239, 0.82);
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        /* Desktop: the poster keeps its drama but stops hogging the whole viewport —
+           the podium peeks above the fold so the first screen shows the actual
+           product, and the CTA stops stretching into a 1100px-wide pill. Mobile
+           keeps the full-bleed 100svh composition untouched. */
+        @media (min-width: 641px) and (min-height: 760px) {
+            .lwc-home-hero,
+            .lwc-home-hero-inner {
+                min-height: calc(100svh - 9.5rem);
+            }
+
+            .lwc-home-hero-actions {
+                right: auto;
+                width: 34rem;
+                grid-template-columns: 21rem 1fr;
+                align-items: center;
+                gap: 1.5rem;
+            }
+
+            .lwc-home-hero-secondary-link {
+                text-align: left;
+                min-width: 12rem;
+                white-space: nowrap;
+            }
+        }
+
+        /* With the podium reveal the hero loses ~150px of height, so the display
+           type steps down through three height tiers to keep clear air between the
+           score and the bottom-pinned stats row on every common laptop height. */
+        @media (min-width: 1024px) and (min-height: 900px) and (max-height: 999px) {
+            .lwc-home-hero-copy {
+                padding-top: 4.25rem;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: 5.6rem;
+            }
+
+            .lwc-home-hero-score {
+                font-size: 12.5rem;
+            }
+
+            .lwc-home-hero-copy p {
+                margin-top: 1.05rem;
+                font-size: 1.25rem;
+            }
+        }
+
+        @media (min-width: 1024px) and (min-height: 800px) and (max-height: 899px) {
+            .lwc-home-hero-copy {
+                padding-top: 3.25rem;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: 4.9rem;
+            }
+
+            .lwc-home-hero-score {
+                font-size: 10.75rem;
+            }
+
+            .lwc-home-hero-copy p {
+                margin-top: 1.05rem;
+                font-size: 1.25rem;
+            }
+        }
+
+        /* 1366x768 / 1024x768 territory: the tightest tier, so the subtitle keeps
+           daylight above the stats hairline instead of crowding it. */
+        @media (min-width: 1024px) and (min-height: 561px) and (max-height: 799px) {
+            .lwc-home-hero-copy {
+                padding-top: 2.8rem;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: 4.4rem;
+            }
+
+            .lwc-home-hero-score {
+                font-size: 9.6rem;
+            }
+
+            .lwc-home-hero-copy p {
+                margin-top: 0.9rem;
+                font-size: 1.18rem;
+            }
+        }
+
+        @media (min-width: 1024px) and (min-height: 650px) {
+            .lwc-home-hero {
+                min-height: clamp(36rem, 74svh, 50rem);
+                margin-bottom: 0;
+            }
+
+            .lwc-home-hero-inner {
+                width: min(100%, 1500px);
+                min-height: inherit;
+                display: grid;
+                grid-template-columns: minmax(27rem, 0.8fr) minmax(32rem, 1.08fr);
+                grid-template-rows: auto auto auto;
+                align-content: center;
+                align-items: center;
+                column-gap: clamp(2.25rem, 4.6vw, 5.75rem);
+                padding-top: clamp(2rem, 5vh, 3.6rem);
+                padding-bottom: clamp(2rem, 4vh, 3rem);
+            }
+
+            .lwc-home-hero-mark {
+                width: clamp(30rem, 45vw, 48rem);
+                left: clamp(-8rem, -8vw, -4rem);
+                top: auto;
+                bottom: -12rem;
+                opacity: 0.18;
+            }
+
+            .lwc-home-hero-copy {
+                grid-column: 1;
+                grid-row: 1;
+                width: 100%;
+                padding-top: 0;
+                align-self: end;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: clamp(3.8rem, 5.2vw, 6.45rem);
+            }
+
+            .lwc-home-hero-score {
+                font-size: clamp(7.25rem, 10.6vw, 13.2rem);
+            }
+
+            .lwc-home-hero-copy p {
+                max-width: 26rem;
+                margin-top: 1rem;
+                font-size: clamp(1.1rem, 1.45vw, 1.35rem);
+            }
+
+            .lwc-home-hero-stats {
+                position: static;
+                grid-column: 1;
+                grid-row: 2;
+                margin-top: 1.2rem;
+                padding-top: 0.82rem;
+            }
+
+            .lwc-home-hero-stats b {
+                font-size: clamp(2rem, 3.2vw, 3.15rem);
+            }
+
+            .lwc-home-hero-actions {
+                position: static;
+                grid-column: 1;
+                grid-row: 3;
+                width: auto;
+                margin-top: 1.2rem;
+                display: flex;
+                align-items: center;
+                gap: 1.1rem;
+            }
+
+            .lwc-home-hero-cta {
+                min-width: 13.5rem;
+                padding-inline: 2rem;
+                background: var(--lwc-hero-green);
+            }
+
+            .lwc-home-hero-secondary-link {
+                text-align: left;
+            }
+
+            .lwc-home-hero-arena {
+                grid-column: 2;
+                grid-row: 1 / span 3;
+                align-self: center;
+                justify-self: end;
+                display: flex;
+                flex-direction: column;
+                width: min(100%, 44rem);
+                padding: clamp(1rem, 1.6vw, 1.35rem);
+                border: 1px solid rgba(248, 247, 239, 0.18);
+                border-radius: var(--radius-panel, 10px);
+                background:
+                    radial-gradient(circle at 50% 0%, rgba(67, 238, 131, 0.12), transparent 42%),
+                    linear-gradient(180deg, rgba(248, 247, 239, 0.085), rgba(248, 247, 239, 0.035));
+                box-shadow: inset 0 1px 0 rgba(248, 247, 239, 0.08);
+            }
+
+            body:has(.lwc-home-hero) .game-description {
+                margin-top: 1.25rem;
+            }
+        }
+
+        @media (min-width: 1600px) and (min-height: 900px) {
+            .lwc-home-hero-inner {
+                width: min(100%, 1580px);
+                grid-template-columns: minmax(31rem, 0.9fr) minmax(40rem, 1.1fr);
+                column-gap: clamp(3rem, 5vw, 6.5rem);
+            }
+
+            .lwc-home-hero-arena {
+                width: min(100%, 46.5rem);
+                padding: 1.45rem;
+            }
+
+            .lwc-home-hero-arena-title {
+                font-size: clamp(2.35rem, 2.2vw, 2.85rem);
+            }
+
+            .lwc-home-hero-arena-roster {
+                min-height: 22.5rem;
+                gap: 0.9rem;
+                padding-top: 1.15rem;
+            }
+
+            .lwc-home-hero-arena-athlete {
+                min-height: 18.2rem;
+            }
+
+            .lwc-home-hero-arena-athlete.first {
+                min-height: 21.2rem;
+            }
+
+            .lwc-home-hero-arena-athlete img {
+                width: clamp(4.5rem, 5.6vw, 6.25rem);
+                height: clamp(4.5rem, 5.6vw, 6.25rem);
+            }
+
+            .lwc-home-hero-arena-athlete.first img {
+                width: clamp(5.35rem, 6.4vw, 7.2rem);
+                height: clamp(5.35rem, 6.4vw, 7.2rem);
+            }
+
+            .lwc-home-hero-arena-score {
+                font-size: clamp(2.4rem, 3.2vw, 3.55rem);
+            }
+        }
+
+        @media (min-width: 1024px) and (min-height: 650px) and (max-height: 820px) {
+            .lwc-home-hero {
+                min-height: 35rem;
+            }
+
+            .lwc-home-hero-inner {
+                grid-template-columns: minmax(24rem, 0.74fr) minmax(27rem, 0.96fr);
+                column-gap: clamp(1.5rem, 4vw, 3.4rem);
+                padding-top: 1.6rem;
+                padding-bottom: 1.7rem;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: 3.75rem;
+            }
+
+            .lwc-home-hero-score {
+                font-size: 7.85rem;
+            }
+
+            .lwc-home-hero-copy p {
+                max-width: 23rem;
+                margin-top: 0.7rem;
+                font-size: 1.05rem;
+            }
+
+            .lwc-home-hero-stats {
+                margin-top: 0.95rem;
+            }
+
+            .lwc-home-hero-stats b {
+                font-size: 2.35rem;
+            }
+
+            .lwc-home-hero-actions {
+                margin-top: 0.95rem;
+            }
+
+            .lwc-home-hero-arena {
+                width: min(100%, 35.25rem);
+                padding: 0.9rem;
+            }
+
+            .lwc-home-hero-arena-roster {
+                min-height: 17.6rem;
+                gap: 0.55rem;
+            }
+
+            .lwc-home-hero-arena-athlete {
+                min-height: 14.4rem;
+                padding: 0.75rem 0.55rem 0.65rem;
+            }
+
+            .lwc-home-hero-arena-athlete.first {
+                min-height: 16.9rem;
+            }
+
+            .lwc-home-hero-arena-name {
+                font-size: 0.86rem;
+            }
+
+            .lwc-home-hero-arena-score {
+                font-size: 2.18rem;
+            }
+
+            .lwc-home-hero-arena-proof {
+                display: none;
+            }
+
+            .lwc-home-hero-trust {
+                margin-top: 0.65rem;
+            }
+
+            .lwc-home-hero-trust a {
+                min-height: 1.75rem;
+                padding-inline: 0.55rem;
+                font-size: 0.7rem;
+            }
+        }
+
+        .lwc-home-hero-secondary-link:hover,
+        .lwc-home-hero-secondary-link:focus-visible {
+            color: #020403;
+            background: var(--lwc-hero-ink);
+            border-color: transparent;
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 4px rgba(248, 247, 239, 0.12);
+            outline: none;
+        }
+
+        /* The conversion pitch is the first words after the hero poster: it needs
+           clear air below the full-bleed dark block before the podium begins. */
+        body:has(.lwc-home-hero) .game-description {
+            margin-top: clamp(1.7rem, 4vw, 2.5rem);
+        }
+
+        @media (min-width: 641px) and (max-width: 1023px) {
+            .lwc-home-hero {
+                min-height: 0;
+                margin-bottom: 0;
+            }
+
+            .lwc-home-hero-inner {
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                padding: 1.1rem clamp(2.25rem, 5.4vw, 3rem) 1.25rem;
+            }
+
+            .lwc-home-hero-mark {
+                width: 44rem;
+                left: -10rem;
+                top: 18rem;
+                opacity: 0.2;
+            }
+
+            .lwc-home-hero-copy {
+                order: 1;
+                width: 100%;
+                padding-top: 3.8rem;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: clamp(4.2rem, 8vw, 4.9rem);
+                line-height: 0.84;
+            }
+
+            .lwc-home-hero-score {
+                font-size: clamp(8.4rem, 18vw, 10rem);
+            }
+
+            .lwc-home-hero-copy p {
+                max-width: 22rem;
+                margin-top: 0.72rem;
+                font-size: 1.16rem;
+            }
+
+            .lwc-home-hero-arena {
+                order: 2;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                margin-top: 1.05rem;
+                padding: 0.8rem;
+                border: 1px solid rgba(248, 247, 239, 0.18);
+                border-radius: var(--radius-panel, 10px);
+                background:
+                    radial-gradient(circle at 50% 0%, rgba(67, 238, 131, 0.11), transparent 44%),
+                    linear-gradient(180deg, rgba(248, 247, 239, 0.085), rgba(248, 247, 239, 0.035));
+            }
+
+            .lwc-home-hero-arena-header {
+                padding-bottom: 0.55rem;
+            }
+
+            .lwc-home-hero-arena-title {
+                font-size: 1.7rem;
+            }
+
+            .lwc-home-hero-arena-roster {
+                min-height: 0;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.55rem;
+                padding-top: 0.6rem;
+            }
+
+            .lwc-home-hero-arena-athlete,
+            .lwc-home-hero-arena-athlete.first {
+                min-height: 8.8rem;
+                padding: 0.52rem 0.45rem 0.55rem;
+            }
+
+            .lwc-home-hero-arena-athlete img,
+            .lwc-home-hero-arena-athlete.first img {
+                width: 3.2rem;
+                height: 3.2rem;
+            }
+
+            .lwc-home-hero-arena-name {
+                margin-top: 0.42rem;
+                font-size: 0.76rem;
+                line-height: 1.08;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .lwc-home-hero-arena-score {
+                margin-top: auto;
+                padding-top: 0.38rem;
+                font-size: 1.72rem;
+            }
+
+            .lwc-home-hero-arena-caption,
+            .lwc-home-hero-arena-prize,
+            .lwc-home-hero-arena-action,
+            .lwc-home-hero-arena-proof,
+            .lwc-home-hero-trust {
+                display: none;
+            }
+
+            .lwc-home-hero-stats {
+                position: static;
+                order: 3;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                width: 100%;
+                margin-top: 0.9rem;
+                padding-top: 0.7rem;
+            }
+
+            .lwc-home-hero-stats b {
+                font-size: clamp(2rem, 6vw, 2.55rem);
+            }
+
+            .lwc-home-hero-actions {
+                position: static;
+                order: 4;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                width: 100%;
+                margin-top: 0.85rem;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+                gap: 0.75rem;
+            }
+
+            .lwc-home-hero-cta,
+            .lwc-home-hero-secondary-link {
+                min-height: 2.8rem;
+            }
+
+            body:has(.lwc-home-hero) .game-description {
+                margin-top: 1.35rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .lwc-home-hero {
+                min-height: 0;
+                margin-bottom: 0;
+            }
+
+            .lwc-home-hero-inner {
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                padding: 1rem 1.125rem 1.05rem;
+            }
+
+            .lwc-home-hero-mark {
+                width: 36rem;
+                left: -9rem;
+                top: 15.5rem;
+                opacity: 0.2;
+            }
+
+            .lwc-home-hero-copy {
+                order: 1;
+                padding-top: 3.25rem;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: clamp(2.9rem, 13.2vw, 3.65rem);
+                line-height: 0.82;
+            }
+
+            .lwc-home-hero-score {
+                font-size: clamp(5.25rem, 26vw, 6.65rem);
+            }
+
+            .lwc-home-hero-copy p {
+                max-width: 17rem;
+                margin-top: 0.62rem;
+                font-size: 1.02rem;
+            }
+
+            .lwc-home-hero-stats {
+                position: static;
+                order: 3;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                gap: 0.5rem;
+                margin-top: 0.58rem;
+                padding-top: 0.58rem;
+            }
+
+            .lwc-home-hero-stats b {
+                font-size: clamp(1.6rem, 8vw, 2.05rem);
+            }
+
+            .lwc-home-hero-stats dd {
+                margin-top: 0.25rem;
+                font-size: 0.72rem;
+            }
+
+            .lwc-home-hero-actions {
+                position: static;
+                order: 4;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                width: 100%;
+                margin-top: 0.65rem;
+                gap: 0.5rem;
+            }
+
+            .lwc-home-hero-cta {
+                min-height: 2.72rem;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .lwc-home-hero-secondary-link {
+                min-height: 2.62rem;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .lwc-home-hero-arena {
+                order: 2;
+                display: flex;
+                flex-direction: column;
+                margin-top: 0.65rem;
+                padding: 0.6rem;
+                border: 1px solid rgba(248, 247, 239, 0.18);
+                border-radius: var(--radius-panel, 10px);
+                background:
+                    radial-gradient(circle at 50% 0%, rgba(67, 238, 131, 0.11), transparent 44%),
+                    linear-gradient(180deg, rgba(248, 247, 239, 0.085), rgba(248, 247, 239, 0.035));
+            }
+
+            .lwc-home-hero-arena-header {
+                padding-bottom: 0.45rem;
+            }
+
+            .lwc-home-hero-arena-title {
+                font-size: 1.45rem;
+            }
+
+            .lwc-home-hero-arena-link {
+                font-size: 0.74rem;
+            }
+
+            .lwc-home-hero-arena-roster {
+                min-height: 0;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.35rem;
+                padding-top: 0.5rem;
+            }
+
+            .lwc-home-hero-arena-placeholder,
+            .lwc-home-hero-arena-athlete {
+                border-radius: 8px;
+            }
+
+            .lwc-home-hero-arena-placeholder {
+                min-height: 6.5rem;
+                padding: 0.55rem 0.35rem;
+                font-size: 0.68rem;
+            }
+
+            .lwc-home-hero-arena-athlete,
+            .lwc-home-hero-arena-athlete.first {
+                min-height: 6.85rem;
+                padding: 0.35rem 0.25rem 0.4rem;
+            }
+
+            .lwc-home-hero-arena-rank {
+                margin-bottom: 0.22rem;
+                font-size: 0.58rem;
+            }
+
+            .lwc-home-hero-arena-athlete img,
+            .lwc-home-hero-arena-athlete.first img {
+                width: 2.45rem;
+                height: 2.45rem;
+                border-width: 2px;
+            }
+
+            .lwc-home-hero-arena-name {
+                margin-top: 0.28rem;
+                font-size: 0.66rem;
+                line-height: 1.05;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .lwc-home-hero-arena-score {
+                margin-top: auto;
+                padding-top: 0.28rem;
+                font-size: 1.42rem;
+            }
+
+            .lwc-home-hero-arena-caption,
+            .lwc-home-hero-arena-prize,
+            .lwc-home-hero-arena-action,
+            .lwc-home-hero-arena-proof,
+            .lwc-home-hero-trust {
+                display: none;
+            }
+        }
+
+        /* Short viewports (landscape phones): a 100svh hero can't hold the pinned
+           stats and CTA, so the composition flows in document order instead. */
+        @media (max-height: 560px) {
+            .lwc-home-hero,
+            .lwc-home-hero-inner {
+                min-height: 0;
+            }
+
+            .lwc-home-hero-inner {
+                padding-bottom: 1.4rem;
+            }
+
+            .lwc-home-hero-copy {
+                padding-top: 2.75rem;
+            }
+
+            .lwc-home-hero-kicker {
+                font-size: clamp(2.4rem, 7vw, 4rem);
+            }
+
+            .lwc-home-hero-score {
+                font-size: clamp(4.6rem, 16vw, 9rem);
+            }
+
+            .lwc-home-hero-stats {
+                position: static;
+                margin-top: 1.6rem;
+            }
+
+            .lwc-home-hero-actions {
+                position: static;
+                width: 100%;
+                margin-top: 1.2rem;
+            }
+
+            .lwc-home-hero-secondary-link {
+                display: block;
+            }
+        }
+
         /* Common container for sections */
         .section-container {
-            background-color: var(--card-bg);
-            border-radius: 15px;
+            background:
+                linear-gradient(180deg, rgba(11, 125, 69, 0.035), rgba(255, 254, 250, 0) 34%),
+                var(--card-bg);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-panel, 10px);
             padding: 2rem;
             margin: 2rem auto;
             max-width: 1250px; /* Adjusted to better match the leaderboard width */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             text-align: center;
         }
 
@@ -194,7 +1434,7 @@
             /* Paragraph style */
             .section-container p {
                 font-size: 1rem;
-                color: #4a5568;
+                color: #46554d;
                 margin-bottom: 1.5rem;
                 line-height: 1.7;
                 font-weight: 400;
@@ -203,8 +1443,178 @@
 
             .section-container p strong {
                 font-weight: 600;
-                color: #2d3748;
+                color: #24332c;
             }
+
+        /* One scoreboard voice for every homepage section heading */
+        .section-container h2,
+        .newsletter-section h2 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            font-family: var(--display-font);
+            font-weight: 400;
+            font-synthesis: none;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--ink);
+        }
+
+        .section-container h2 i,
+        .newsletter-section h2 i {
+            color: var(--primary-color);
+            font-size: 0.78em;
+        }
+
+        .homepage-competition-record {
+            max-width: 1250px;
+            margin: 2.75rem auto 0;
+            padding: 0 0;
+        }
+
+        .homepage-sequence-heading {
+            max-width: 780px;
+            margin: 0 auto 1.1rem;
+            padding: 0 1rem;
+            text-align: center;
+        }
+
+        .homepage-sequence-kicker {
+            margin: 0 0 0.35rem;
+            color: var(--primary-color);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .homepage-sequence-heading h2 {
+            margin: 0;
+            color: var(--ink);
+            font-family: var(--display-font);
+            font-size: clamp(1.9rem, 3vw, 3rem);
+            font-weight: 400;
+            font-synthesis: none;
+            letter-spacing: 0.02em;
+            line-height: 0.98;
+            text-transform: uppercase;
+        }
+
+        body:has(.lwc-home-hero) .leaderboard .sidebar,
+        body:has(.lwc-home-hero) .leaderboard-toolbar .sidebar-toggle {
+            display: none;
+        }
+
+        body:has(.lwc-home-hero) .leaderboard table {
+            width: 100%;
+        }
+
+        .homepage-support-row {
+            max-width: 1250px;
+            margin: 2rem auto;
+            display: grid;
+            grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+            gap: 1.5rem;
+            align-items: start;
+            scroll-margin-top: 5.5rem;
+        }
+
+        .homepage-support-row > .section-container,
+        .homepage-support-row > .events-board--timer {
+            max-width: none;
+            margin: 0;
+            min-width: 0;
+        }
+
+        .homepage-support-row .contribute-section {
+            overflow: hidden;
+            padding: 0;
+            scroll-margin-top: 5.5rem;
+        }
+
+        .homepage-support-row .contribute-content {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(7rem, 10rem);
+            justify-items: stretch;
+            align-items: center;
+            align-content: start;
+            gap: 1rem 1.2rem;
+            padding: 1.3rem 1.75rem 1.65rem;
+        }
+
+        .homepage-support-row .contribute-content h2,
+        .homepage-support-row .contribute-content p,
+        .homepage-support-row .contribute-content .btc-address {
+            grid-column: 1 / -1;
+        }
+
+        .homepage-support-row .contribute-content h2,
+        .homepage-support-row .contribute-content p,
+        .homepage-support-row .btc-status,
+        .homepage-support-row .qr-code-container,
+        .homepage-support-row .btc-address {
+            margin: 0;
+        }
+
+        .homepage-support-row .contribute-content h2 {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.65rem;
+            width: calc(100% + 3.5rem);
+            margin: -1.3rem -1.75rem 0;
+            padding: 1.05rem 1.75rem;
+            background:
+                linear-gradient(180deg, rgba(67, 238, 131, 0.08), rgba(67, 238, 131, 0) 68%),
+                #030706;
+            border-bottom: 1px solid rgba(248, 247, 239, 0.14);
+            color: #f8f7ef;
+            font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+            line-height: 1;
+            text-align: left;
+        }
+
+        .homepage-support-row .contribute-content h2 i {
+            color: var(--lwc-hero-green, #43ee83);
+        }
+
+        .homepage-support-row .contribute-content p {
+            max-width: 36rem;
+            text-align: left;
+        }
+
+        .homepage-support-row .btc-status {
+            width: 100%;
+            align-self: stretch;
+        }
+
+        .homepage-support-row .qr-code-container {
+            justify-self: end;
+            align-self: stretch;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 100%;
+            padding: 0.55rem;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-card, 8px);
+            background: rgba(255, 254, 250, 0.72);
+            box-sizing: border-box;
+        }
+
+        .homepage-support-row .qr-code-img {
+            width: min(126px, 100%);
+            max-width: 100%;
+            box-shadow: none;
+        }
+
+        .homepage-support-row .btc-address {
+            width: 100%;
+            box-sizing: border-box;
+        }
 
         .homepage-faq-section {
             max-width: 1250px;
@@ -217,7 +1627,7 @@
                 justify-content: center;
                 gap: 0.55rem;
                 margin: 0 0 1.35rem;
-                color: #2d3748;
+                color: var(--ink);
                 font-size: clamp(1.45rem, 2.4vw, 2rem);
                 line-height: 1.2;
                 text-align: center;
@@ -230,20 +1640,20 @@
             }
 
             .homepage-faq-item {
-                border-top: 1px solid rgba(15, 23, 42, 0.12);
+                border-top: 1px solid var(--surface-border, rgba(28,39,34,.12));
                 padding-top: 0.9rem;
             }
 
             .homepage-faq-item h3 {
                 margin: 0 0 0.45rem;
-                color: #2d3748;
+                color: #24332c;
                 font-size: 1rem;
                 line-height: 1.3;
             }
 
             .homepage-faq-item p {
                 margin: 0;
-                color: #4a5568;
+                color: #46554d;
                 font-size: 0.95rem;
                 line-height: 1.6;
             }
@@ -270,48 +1680,89 @@
                 text-decoration: none;
             }
 
+            .homepage-faq-actions {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.75rem;
+                margin-top: 1.25rem;
+            }
+
+            .homepage-faq-actions a {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 44px;
+                padding: 0.55rem 1.15rem;
+                border-radius: var(--radius-control, 999px);
+                font-weight: 800;
+                line-height: var(--leading-ui, 1.35);
+                text-decoration: none;
+            }
+
+            .homepage-faq-primary {
+                background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+                color: #04130a;
+                box-shadow: var(--cta-green-shadow, inset 0 1px 0 rgba(255,255,255,.35), 0 2px 10px rgba(46,219,111,.24));
+            }
+
+            .homepage-faq-secondary {
+                border: 1px solid var(--surface-border-strong, rgba(28,39,34,.18));
+                background: var(--card-bg, #fffefa);
+                color: #1c2722;
+            }
+
+            .homepage-faq-actions a:hover,
+            .homepage-faq-actions a:focus-visible {
+                transform: translateY(-1px);
+                outline: none;
+                box-shadow: var(--focus-ring);
+            }
+
+            .homepage-faq-actions a:focus-visible {
+                text-decoration: none;
+            }
+
             /* Input field style */
             .section-container input[type="email"] {
                 padding: 0.6rem 1rem;
                 width: 250px;
                 max-width: 350px;
-                border-radius: 25px;
-                border: 1px solid var(--primary-color);
+                border-radius: var(--radius-control, 999px);
+                border: 1px solid rgba(11, 125, 69, 0.42);
                 margin-right: 1rem;
                 box-sizing: border-box;
             }
 
-            /* Button style */
-            .section-container button {
-                padding: 0.6rem 1.5rem;
-                font-size: 1rem;
-                background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
-                color: var(--light-text-color);
-                border: none;
-                border-radius: 25px;
-                cursor: pointer;
-                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-                max-width: 350px;
+            .newsletter-section .shared-email-button {
+                background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+                color: #04130a;
+                box-shadow: var(--cta-green-shadow, inset 0 1px 0 rgba(255,255,255,.35), 0 2px 10px rgba(46,219,111,.24));
             }
 
-                .section-container button:hover {
-                    background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
-                    transform: scale(1.05); /* Slight enlarge effect */
-                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+                .newsletter-section .shared-email-button:hover,
+                .newsletter-section .shared-email-button:focus-visible {
+                    background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+                    color: #04130a;
+                    transform: translateY(-1px);
+                    box-shadow: var(--cta-green-shadow-hover, 0 0 0 4px rgba(67,238,131,.22));
+                    outline: none;
                 }
 
         /* Styling for the VIEW FULL RANKINGS button */
         .rankings-btn {
             padding: 0.9rem 1.8rem;
             font-size: 1.08rem;
-            background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
+            background: var(--main-action-color);
             color: var(--light-text-color);
             border: none;
-            border-radius: 150px;
+            border-radius: var(--radius-control, 999px);
             cursor: pointer;
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+            font-weight: 900;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            box-shadow: 0 4px 10px rgba(19, 27, 23, 0.22);
         }
 
         .full-rankings-action {
@@ -320,10 +1771,12 @@
         }
 
             /* Hover effect for the VIEW FULL RANKINGS button */
-            .rankings-btn:hover {
-                background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
-                transform: scale(1.05); /* Slight enlarge effect */
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+            .rankings-btn:hover,
+            .rankings-btn:focus-visible {
+                background: var(--main-action-selected-color);
+                transform: translateY(-1px);
+                box-shadow: 0 0 0 4px rgba(67, 238, 131, 0.25), 0 6px 12px rgba(19, 27, 23, 0.25);
+                outline: none;
             }
 
         /* Align form elements */
@@ -354,7 +1807,7 @@
             }
 
             .copy-btn:hover i {
-                transform: scale(1.2);
+                transform: translateY(-1px);
                 color: var(--secondary-color);
             }
 
@@ -385,9 +1838,11 @@
             overflow: hidden;
             color: var(--dark-text-color); /* Use light text color */
             padding: 2rem;
-            border-radius: 15px;
+            border-radius: var(--radius-panel, 10px);
             margin-top: 2rem;
-            background: var(--card-bg);
+            background:
+                linear-gradient(180deg, rgba(11, 125, 69, 0.045), rgba(255, 254, 250, 0) 42%),
+                var(--card-bg);
         }
 
         .contribute-content {
@@ -397,7 +1852,7 @@
 
         .contribute-section h3,
         .contribute-section p {
-            color: #4a5568;
+            color: #46554d;
             text-align: center;
             line-height: 1.7;
             font-weight: 400;
@@ -406,17 +1861,24 @@
 
         .contribute-section strong {
             font-weight: 600;
-            color: #2d3748;
+            color: #24332c;
         }
 
         .newsletter-section {
-            background: var(--card-bg);
+            position: relative;
+            isolation: isolate;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(67, 238, 131, 0.08), transparent 34%),
+                linear-gradient(120deg, rgba(3, 7, 6, 0.96), rgba(28, 39, 34, 0.96)),
+                var(--ink);
             color: var(--dark-text-color);
-            border-radius: 15px;
-            padding: 1.85rem 2rem 1.95rem;
+            border: 1px solid rgba(248, 247, 239, 0.12);
+            border-radius: var(--radius-panel, 10px);
+            padding: 1.9rem 2rem 2.05rem;
             margin: 2rem auto;
             max-width: 1250px;
             text-align: center;
+            box-shadow: 0 12px 28px rgba(3, 7, 6, 0.2), inset 0 1px 0 rgba(248, 247, 239, 0.08);
         }
 
             .newsletter-section h2 {
@@ -424,9 +1886,9 @@
                 align-items: center;
                 justify-content: center;
                 gap: 0.55rem;
-                margin: 0 0 1.15rem;
+                margin: 0 0 0.7rem;
                 font-size: clamp(1.45rem, 2.4vw, 2rem);
-                color: #2d3748;
+                color: #f8f7ef;
             }
 
             .newsletter-section h2 i {
@@ -434,7 +1896,7 @@
             }
 
             .newsletter-section p {
-                color: #4a5568;
+                color: rgba(248, 247, 239, 0.76);
                 line-height: 1.7;
                 font-weight: 400;
                 letter-spacing: 0.005em;
@@ -444,27 +1906,29 @@
                 max-width: 56rem;
                 margin-left: auto;
                 margin-right: auto;
-                margin-bottom: 1.35rem;
+                margin-bottom: 1.25rem;
             }
 
             .newsletter-section strong {
                 font-weight: 600;
-                color: #2d3748;
+                color: #24332c;
             }
 
             .shared-email-input {
                 color: var(--dark-text-color);
-                border: 2px solid var(--primary-color);
-                transition: border-color 0.3s ease;
+                border: 1px solid rgba(248, 247, 239, 0.22);
+                background: rgba(248, 247, 239, 0.96);
+                transition: border-color 0.18s ease, box-shadow 0.18s ease;
                 outline: none;
                 padding: 0.6rem 1rem;
-                border-radius: 25px;
+                border-radius: var(--radius-control, 999px);
                 box-sizing: border-box;
                 min-height: 44px;
             }
 
                 .shared-email-input:focus {
-                    border-color: var(--secondary-color);
+                    border-color: var(--lwc-hero-green, #43ee83);
+                    box-shadow: 0 0 0 4px rgba(67, 238, 131, 0.18);
                 }
 
             .newsletter-section .shared-email-input {
@@ -472,15 +1936,25 @@
                 margin-right: 0;
             }
 
+            .newsletter-section #newsletter-form {
+                width: min(100%, 42rem);
+                margin: 0 auto;
+                padding: 0.35rem;
+                border: 1px solid rgba(248, 247, 239, 0.16);
+                border-radius: var(--radius-control, 999px);
+                background: rgba(248, 247, 239, 0.06);
+                box-shadow: inset 0 1px 0 rgba(248, 247, 239, 0.08);
+            }
+
             .shared-email-button {
                 padding: 0.6rem 1.5rem;
                 font-size: 1rem;
-                background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8);
-                color: var(--light-text-color);
+                background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+                color: #04130a;
                 border: none;
-                border-radius: 25px;
+                border-radius: var(--radius-control, 999px);
                 cursor: pointer;
-                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+                transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
                 max-width: 350px;
                 box-sizing: border-box;
                 white-space: nowrap;
@@ -493,9 +1967,9 @@
             }
 
                 .shared-email-button:hover {
-                    background: linear-gradient(135deg, #4fa3e8, #5eb2f2);
-                    transform: scale(1.05);
-                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+                    background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+                    transform: translateY(-1px);
+                    box-shadow: var(--cta-green-shadow-hover, 0 0 0 4px rgba(67, 238, 131, 0.22));
                 }
 
         .btc-status {
@@ -506,10 +1980,11 @@
             gap: 0.45rem;
             width: min(100%, 340px);
             padding: 0.85rem 1rem;
-            border-radius: 14px;
-            background: rgba(248, 250, 252, 0.88);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(15, 23, 42, 0.06);
-            color: #334155;
+            border: 1px solid rgba(11, 125, 69, 0.16);
+            border-radius: var(--radius-card, 8px);
+            background: rgba(255, 254, 250, 0.76);
+            box-shadow: none;
+            color: #33423b;
         }
 
         .btc-status-topline {
@@ -520,14 +1995,14 @@
         }
 
         .btc-status-title {
-            color: #475569;
+            color: #46554d;
             font-size: 0.95rem;
             line-height: 1.2;
             text-align: left;
         }
 
         .btc-status-goal {
-            color: #64748b;
+            color: #5d6b63;
             font-size: 0.82rem;
             font-weight: 600;
             line-height: 1.2;
@@ -536,7 +2011,7 @@
         }
 
         .btc-status-value {
-            color: #334155;
+            color: #33423b;
             font-size: 1.35rem;
             line-height: 1.15;
             text-align: left;
@@ -545,10 +2020,10 @@
 
         .btc-status-track {
             width: 100%;
-            height: 0.35rem;
+            height: 0.42rem;
             overflow: hidden;
             border-radius: 999px;
-            background: rgba(148, 163, 184, 0.22);
+            background: rgba(11, 125, 69, 0.12);
             margin: 0;
         }
 
@@ -557,7 +2032,7 @@
             width: 21%;
             height: 100%;
             border-radius: inherit;
-            background: linear-gradient(90deg, rgba(247, 147, 26, 0.85), rgba(255, 193, 7, 0.55));
+            background: linear-gradient(90deg, #43ee83, rgba(212, 175, 55, 0.82));
             transition: width 0.5s ease-in-out;
         }
 
@@ -574,9 +2049,10 @@
             white-space: nowrap; /* Prevent wrapping */
             max-width: 500px; /* Prevent it from stretching too large */
             margin: 1rem auto; /* Center horizontally */
-            background-color: rgba(211, 211, 211, 0.15); /* Light Gray */
+            border: 1px solid rgba(11, 125, 69, 0.14);
+            background-color: rgba(11, 125, 69, 0.055);
             padding: 0.5rem 1rem;
-            border-radius: 25px;
+            border-radius: var(--radius-control, 999px);
         }
 
             .btc-address a,
@@ -604,7 +2080,7 @@
 
                 .btc-address a:hover,
                 .btc-address a:focus-visible {
-                    background: rgba(0, 188, 212, 0.08);
+                    background: rgba(11,125,69, 0.08);
                 }
 
         .copy-btn {
@@ -650,6 +2126,23 @@
             height: auto;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .qr-code-fallback {
+            display: none;
+            max-width: 13rem;
+            margin: 0.7rem auto 0;
+            color: #46554d;
+            font-size: 0.9rem;
+            line-height: 1.35;
+        }
+
+        .qr-code-container.qr-code-unavailable .qr-code-img {
+            display: none;
+        }
+
+        .qr-code-container.qr-code-unavailable .qr-code-fallback {
+            display: block;
         }
 
         @media (min-width: 900px) {
@@ -766,6 +2259,14 @@
                 gap: 0.85rem;
             }
 
+                .newsletter-section #newsletter-form {
+                    padding: 0;
+                    border: 0;
+                    border-radius: 0;
+                    background: transparent;
+                    box-shadow: none;
+                }
+
                 #newsletter-form .shared-email-input {
                     width: 100%;
                     margin: 0;
@@ -781,25 +2282,21 @@
 
         .lwc-highlights-countdown-wrapper {
             max-width: 1250px;
-            margin: 2rem auto 2.25rem;
-            display: flex;
-            gap: 1.75rem;
-            align-items: stretch;
+            margin: 1.15rem auto 1.6rem;
+            display: block;
         }
 
-            /* Keep the paired highlights/swag cards visually locked to the same row height */
             .lwc-highlights-countdown-wrapper > #events-root-index,
             .lwc-highlights-countdown-wrapper > #lwc-countdown-box {
-                flex: 1 1 0;
+                width: 100%;
             }
 
             .lwc-highlights-countdown-wrapper > #events-root-index {
-                display: flex;
+                display: block;
             }
 
             .lwc-highlights-countdown-wrapper > #events-root-index > .events-board {
-                flex: 1 1 auto;
-                height: 100%;
+                height: auto;
             }
 
             #events-root-index .events-board table {
@@ -865,9 +2362,10 @@
             align-items: stretch;
             padding: 0; /* spacing handled inside */
             margin-bottom: 0;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
             background-color: var(--card-bg);
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius-panel, 10px);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             overflow: hidden;
         }
 
@@ -887,19 +2385,21 @@
 
         .lwc-countdown-header-row {
             background:
-                linear-gradient(rgba(0, 188, 212, 0.12), rgba(0, 188, 212, 0.12)),
+                linear-gradient(rgba(11,125,69, 0.12), rgba(11,125,69, 0.12)),
                 var(--events-header-bg, var(--card-bg));
-            color: var(--primary-color);
-            padding: 15px 20px;
+            color: var(--events-header-ink, var(--primary-color));
+            padding: 13px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
             box-sizing: border-box;
             text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
-            font-weight: 800;
+            font-family: var(--display-font);
+            font-size: 0.98rem;
+            letter-spacing: 0.06em;
+            font-weight: 400;
+            font-synthesis: none;
             border-bottom: 1px solid var(--events-border, rgba(0, 0, 0, 0.06));
         }
 
@@ -926,24 +2426,25 @@
             align-items: center;
             justify-content: center;
             min-height: 44px;
-            padding: 0 0.55rem;
+            padding: 0 0.7rem;
             box-sizing: border-box;
-            color: inherit;
-            text-decoration: underline;
-            text-decoration-color: rgba(0, 150, 166, 0.35);
-            text-underline-offset: 2px;
-            font-size: 0.85rem;
-            font-weight: 700;
+            border: 1px solid rgba(248, 247, 239, 0.26);
+            border-radius: var(--radius-button, 8px);
+            color: var(--light-text-color, #f8f7ef);
+            text-decoration: none;
+            font-family: var(--font-body, Roboto, sans-serif);
+            font-size: 0.78rem;
+            font-weight: 900;
             line-height: 1.1;
             white-space: nowrap;
-            border-radius: 6px;
             opacity: 1;
         }
 
         .lwc-merch-header-link:hover,
         .lwc-merch-header-link:focus-visible {
-            color: #087f8f;
-            text-decoration-color: currentColor;
+            color: #04130a;
+            background: var(--accent-bright, #43ee83);
+            border-color: var(--accent-bright, #43ee83);
         }
 
         .lwc-countdown-chip {
@@ -952,7 +2453,7 @@
             font-size: 0.66rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            border: 1px solid rgba(0, 188, 212, 0.3);
+            border: 1px solid rgba(11,125,69, 0.3);
             background: rgba(255, 255, 255, 0.7);
             color: var(--primary-color);
             white-space: nowrap;
@@ -998,20 +2499,26 @@
         .lwc-merch-body {
             align-items: stretch;
             justify-content: flex-start;
-            text-align: center;
-            gap: 0.7rem;
+            text-align: left;
+            gap: 0.95rem;
+            background:
+                radial-gradient(80% 85% at 100% 0%, rgba(67, 238, 131, 0.08), transparent 58%),
+                linear-gradient(180deg, rgba(11, 125, 69, 0.045), rgba(11, 125, 69, 0)),
+                var(--card-bg, #fffefa);
         }
 
         .lwc-merch-copy {
             margin: 0;
+            max-width: 58ch;
             font-size: 0.88rem;
-            line-height: 1.36;
-            color: #506176;
+            line-height: 1.42;
+            color: #33423b;
         }
 
         .lwc-merch-copy-link {
-            color: inherit;
+            color: var(--primary-color, #0b7d45);
             text-decoration: underline;
+            text-underline-offset: 0.13em;
         }
 
         .lwc-merch-grid {
@@ -1027,35 +2534,42 @@
         .lwc-merch-item {
             display: flex;
             flex-direction: column;
-            gap: 0.42rem;
+            gap: 0;
             align-items: stretch;
             color: inherit;
             text-decoration: none;
-            padding: 0.38rem;
-            border-radius: 14px;
-            background: rgba(248, 250, 252, 0.92);
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-            transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+            padding: 0;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-card, 8px);
+            background:
+                linear-gradient(180deg, rgba(11, 125, 69, 0.035), rgba(255, 254, 250, 0) 42%),
+                var(--card-bg, #fffefa);
+            box-shadow: none;
+            transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+            overflow: hidden;
         }
 
         .lwc-merch-item:hover,
         .lwc-merch-item:focus-visible {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
-            background: #ffffff;
+            transform: translateY(-1px);
+            border-color: rgba(11, 125, 69, 0.32);
+            background: var(--card-bg, #fffefa);
         }
 
         .lwc-merch-item:focus-visible {
-            outline: 3px solid rgba(0, 188, 212, 0.28);
+            outline: 3px solid rgba(11,125,69, 0.28);
             outline-offset: 2px;
         }
 
         .lwc-merch-thumb {
             width: 100%;
-            aspect-ratio: 428 / 418;
+            aspect-ratio: 16 / 11;
             object-fit: cover;
-            object-position: top;
-            border-radius: 10px;
+            object-position: center 34%;
+            border-bottom: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            background:
+                linear-gradient(135deg, rgba(11, 125, 69, 0.06), rgba(212, 175, 55, 0.07)),
+                var(--paper, #f4f3ea);
             display: block;
         }
 
@@ -1063,22 +2577,32 @@
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 0.08rem;
-            text-align: center;
-            align-items: center;
+            gap: 0.14rem;
+            padding: 0.58rem 0.65rem 0.64rem;
+            text-align: left;
+            align-items: flex-start;
+        }
+
+        .lwc-merch-item-tag {
+            color: var(--primary-color, #0b7d45);
+            font-size: 0.58rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            line-height: 1.1;
+            text-transform: uppercase;
         }
 
         .lwc-merch-item-title {
-            font-size: 0.77rem;
-            line-height: 1.14;
-            font-weight: 700;
-            color: #243446;
+            font-size: 0.82rem;
+            line-height: 1.18;
+            font-weight: 900;
+            color: #1c2722;
         }
 
         .lwc-merch-item-price {
             font-size: 0.72rem;
             line-height: 1.15;
-            color: #506176;
+            color: #5d6b63;
         }
 
         .lwc-merch-mobile-track {
@@ -1094,14 +2618,16 @@
             inset: 0;
             display: flex;
             flex-direction: column;
-            gap: 0.42rem;
+            gap: 0;
             align-items: stretch;
             color: inherit;
             text-decoration: none;
-            padding: 0.38rem;
-            border-radius: 14px;
-            background: rgba(248, 250, 252, 0.92);
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+            padding: 0;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-card, 8px);
+            background: var(--card-bg, #fffefa);
+            box-shadow: none;
+            overflow: hidden;
             opacity: 0;
             pointer-events: none;
             transition: opacity 220ms ease;
@@ -1138,33 +2664,48 @@
             width: 0.6rem;
             height: 0.6rem;
             border-radius: inherit;
-            background: rgba(0, 188, 212, 0.22);
+            background: rgba(11,125,69, 0.22);
             transition: width 180ms ease, transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
         }
 
         .lwc-merch-mobile-dot.is-active::before {
             width: 1.55rem;
-            background: rgba(0, 188, 212, 0.92);
-            box-shadow: 0 4px 10px rgba(0, 188, 212, 0.22);
+            background: var(--primary-color, #0b7d45);
+            box-shadow: none;
         }
 
         .lwc-merch-mobile-dot:hover {
-            background: rgba(0, 188, 212, 0.08);
+            background: rgba(11,125,69, 0.08);
         }
 
         .lwc-merch-mobile-dot:focus-visible {
-            background: rgba(0, 188, 212, 0.1);
-            outline: 3px solid rgba(0, 188, 212, 0.32);
+            background: rgba(11,125,69, 0.1);
+            outline: 3px solid rgba(11,125,69, 0.32);
             outline-offset: 0;
         }
 
         /* mobile: stack the cards */
         @media (max-width: 991px) {
+            .homepage-competition-record {
+                margin-top: 2.15rem;
+                padding: 0 1rem;
+            }
+
+            .homepage-sequence-heading {
+                margin-bottom: 0.9rem;
+                padding: 0;
+            }
+
+            .homepage-support-row {
+                grid-template-columns: 1fr;
+                gap: 1.25rem;
+                margin: 1.35rem auto 2rem;
+                padding: 0 1rem;
+            }
+
             .lwc-highlights-countdown-wrapper {
-                flex-direction: column;
-                gap: 1.35rem;
-                margin-top: 1.35rem;
-                margin-bottom: 2rem;
+                margin-top: 0.95rem;
+                margin-bottom: 1.35rem;
             }
 
                 .lwc-highlights-countdown-wrapper > #events-root-index,
@@ -1175,6 +2716,26 @@
 
             .lwc-countdown-body {
                 padding: 18px 16px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .homepage-support-row .contribute-content {
+                grid-template-columns: 1fr;
+                padding: 1.15rem 1.25rem 1.35rem;
+            }
+
+            .homepage-support-row .contribute-content h2 {
+                width: calc(100% + 2.5rem);
+                margin: -1.15rem -1.25rem 0;
+                padding: 0.95rem 1.25rem;
+            }
+
+            .homepage-support-row .qr-code-container {
+                justify-self: center;
+                width: min(100%, 13rem);
+                min-height: 0;
+                padding: 0.7rem;
             }
         }
 
@@ -1192,7 +2753,7 @@
 
             #events-root-index .events-board,
             .events-board--timer {
-                border-radius: 14px;
+                border-radius: var(--radius-panel, 10px);
             }
 
             #events-root-index .events-board thead th,
@@ -1219,37 +2780,37 @@
             }
 
             .lwc-merch-grid {
-                display: none;
+                display: grid;
+                grid-template-columns: 1fr;
             }
 
             .lwc-merch-mobile-carousel {
-                display: flex;
-                flex-direction: column;
-                gap: 0.44rem;
+                display: none;
             }
 
-            .lwc-merch-mobile-track {
-                aspect-ratio: 1 / 0.82;
-            }
-
-            .lwc-merch-mobile-slide {
+            .lwc-merch-item {
                 display: grid;
-                grid-template-rows: minmax(0, 1fr) auto;
-                gap: 0.38rem;
-                padding: 0.32rem;
+                grid-template-columns: 5.8rem minmax(0, 1fr);
+                min-height: 5.8rem;
             }
 
-            .lwc-merch-mobile-slide .lwc-merch-thumb {
+            .lwc-merch-thumb {
                 height: 100%;
                 aspect-ratio: auto;
-                object-position: center 34%;
+                min-height: 5.8rem;
+                border-right: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+                border-bottom: 0;
             }
 
-            .lwc-merch-mobile-slide .lwc-merch-item-title {
-                font-size: 0.72rem;
+            .lwc-merch-item-copy {
+                padding: 0.62rem 0.7rem;
             }
 
-            .lwc-merch-mobile-slide .lwc-merch-item-price {
+            .lwc-merch-item-title {
+                font-size: 0.82rem;
+            }
+
+            .lwc-merch-item-price {
                 font-size: 0.68rem;
             }
 
@@ -1280,17 +2841,28 @@
                 line-height: 1.34;
             }
 
-            .lwc-merch-mobile-slide {
-                padding: 0.45rem;
+            .lwc-merch-item {
+                grid-template-columns: 5.35rem minmax(0, 1fr);
+                min-height: 5.35rem;
             }
 
-            .lwc-merch-mobile-slide .lwc-merch-item-title {
-                font-size: 0.88rem;
+            .lwc-merch-thumb {
+                height: 100%;
+                aspect-ratio: auto;
+                min-height: 5.35rem;
             }
+        }
 
-            .lwc-merch-mobile-slide .lwc-merch-item-price {
-                font-size: 0.82rem;
-            }
+        #lwc-countdown-box .lwc-countdown-header-row {
+            background:
+                radial-gradient(120% 100% at 50% -35%, rgba(67, 238, 131, 0.12), transparent 62%),
+                linear-gradient(180deg, #0a120e, var(--background-color, #050908) 78%);
+            color: var(--light-text-color, #f8f7ef);
+            border-bottom-color: var(--chrome-border, rgba(248,247,239,.14));
+        }
+
+        #lwc-countdown-box .lwc-countdown-title {
+            color: inherit;
         }
 
         /* ===== Historical Archive Section ===== */
@@ -1324,12 +2896,12 @@
         }
 
         .archive-table-wrapper::-webkit-scrollbar-thumb {
-            background: rgba(0, 188, 212, 0.3);
+            background: rgba(11,125,69, 0.3);
             border-radius: 4px;
         }
 
         .archive-table-wrapper::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 188, 212, 0.5);
+            background: rgba(11,125,69, 0.5);
         }
 
         /* Table Base Styles */
@@ -1337,14 +2909,15 @@
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            border-radius: 15px;
+            border-radius: var(--radius-card, 8px);
             overflow: hidden;
             background-color: var(--card-bg);
+            border: 1px solid rgba(28, 39, 34, 0.08);
         }
 
         /* Header Row */
         .archive-table thead th {
-            background: linear-gradient(rgba(0,188,212,.12), rgba(0,188,212,.12));
+            background: linear-gradient(rgba(11,125,69,.12), rgba(11,125,69,.12));
             color: var(--primary-color);
             font-weight: 600;
             text-transform: uppercase;
@@ -1395,7 +2968,7 @@
         }
 
         .archive-table tbody tr:hover {
-            background-color: rgba(240,244,248,.3);
+            background-color: var(--surface-row-hover, rgba(11,125,69,.07));
         }
 
         /* Table Cells */
@@ -1403,7 +2976,7 @@
             padding: 0.85rem 1.35rem;
             text-align: center;
             font-size: 0.975rem;
-            color: #4a5568;
+            color: #46554d;
             vertical-align: middle;
             font-weight: 400;
             letter-spacing: 0.005em;
@@ -1413,7 +2986,7 @@
         .archive-table td a {
             color: var(--primary-color);
             text-decoration: underline;
-            text-decoration-color: rgba(0, 188, 212, 0.4);
+            text-decoration-color: rgba(11,125,69, 0.4);
             text-underline-offset: 2px;
             font-weight: 500;
             transition: color 0.3s ease, text-decoration-color 0.3s ease;
@@ -1519,7 +3092,7 @@
             .archive-mobile-card {
                 display: block;
                 background: rgba(240, 248, 250, 0.52);
-                border: 1px solid rgba(0, 188, 212, 0.14);
+                border: 1px solid rgba(11,125,69, 0.14);
                 border-radius: 10px;
                 padding: 0.9rem;
                 margin-bottom: 0.95rem;
@@ -1532,13 +3105,13 @@
                 gap: 0.75rem;
                 margin-bottom: 0.65rem;
                 padding-bottom: 0.65rem;
-                border-bottom: 1px solid rgba(0, 188, 212, 0.22);
+                border-bottom: 1px solid rgba(11,125,69, 0.22);
             }
 
             .archive-mobile-card-year {
                 font-weight: 600;
                 font-size: 1rem;
-                color: #2d3748;
+                color: #24332c;
             }
 
             .archive-mobile-card-clock {
@@ -1558,7 +3131,7 @@
                 box-sizing: border-box;
                 color: var(--primary-color);
                 text-decoration: underline;
-                text-decoration-color: rgba(0, 188, 212, 0.5);
+                text-decoration-color: rgba(11,125,69, 0.5);
                 font-weight: 600;
             }
 
@@ -1608,7 +3181,7 @@
                 box-sizing: border-box;
                 color: var(--primary-color);
                 text-decoration: underline;
-                text-decoration-color: rgba(0, 188, 212, 0.4);
+                text-decoration-color: rgba(11,125,69, 0.4);
                 font-weight: 500;
                 font-size: 0.9rem;
             }
@@ -1625,13 +3198,13 @@
             .archive-mobile-card-winner-name a:hover {
                 color: var(--secondary-color);
                 text-decoration-color: var(--secondary-color);
-                background: rgba(0, 188, 212, 0.08);
+                background: rgba(11,125,69, 0.08);
             }
 
             .archive-mobile-card-clock a:hover {
                 color: var(--secondary-color);
                 text-decoration-color: var(--secondary-color);
-                background: rgba(0, 188, 212, 0.08);
+                background: rgba(11,125,69, 0.08);
             }
 
             .archive-section {
@@ -1686,133 +3259,263 @@
     <!--HEADER-->
     <main>
         <h1 class="visually-hidden">Longevity World Cup</h1>
+        <section class="lwc-home-hero" aria-labelledby="lwc-home-hero-title">
+            <div class="lwc-home-hero-inner">
+                <div class="lwc-home-hero-mark" aria-hidden="true"></div>
+
+                <div class="lwc-home-hero-copy">
+                    <span class="lwc-home-hero-kicker" id="lwc-home-hero-title">World cup<br>record</span>
+                    <span class="lwc-home-hero-score">{{HOME_HERO_TOP_SCORE}}<span class="lwc-home-hero-score-unit">years</span></span>
+                    <p>The world championship of&nbsp;age&nbsp;reversal.</p>
+                </div>
+
+                <dl class="lwc-home-hero-stats" aria-label="Current leaderboard summary">
+                    <div>
+                        <dt><b>{{HOME_HERO_ATHLETE_COUNT}}</b></dt>
+                        <dd>global athletes</dd>
+                    </div>
+                    <div>
+                        <dt><b>{{HOME_HERO_PRO_COUNT}}</b></dt>
+                        <dd>pro athletes</dd>
+                    </div>
+                    <div>
+                        <dt><b id="lwcHomeHeroClockCount" aria-live="polite">--</b></dt>
+                        <dd>aging clocks</dd>
+                    </div>
+                </dl>
+
+                <div class="lwc-home-hero-actions">
+                    <a href="/play" class="lwc-home-hero-cta">Apply to compete</a>
+                    <a href="/leaderboard" class="lwc-home-hero-secondary-link">View world standings</a>
+                </div>
+
+                <aside class="lwc-home-hero-arena" aria-label="Live competition preview">
+                    <div class="lwc-home-hero-arena-header">
+                        <span class="lwc-home-hero-arena-title">Live world standings</span>
+                        <a class="lwc-home-hero-arena-link" href="/leaderboard">Full standings</a>
+                    </div>
+                    <div class="lwc-home-hero-arena-roster" id="lwcHomeHeroPodiumPreview" aria-live="polite">
+                        <div class="lwc-home-hero-arena-placeholder">Loading top athletes</div>
+                        <div class="lwc-home-hero-arena-placeholder">Loading podium</div>
+                        <div class="lwc-home-hero-arena-placeholder">Loading ranks</div>
+                    </div>
+                    <p class="lwc-home-hero-arena-proof">Public athlete records with proof images, ranking rules, event history, and prize-pool receipts.</p>
+                    <div class="lwc-home-hero-trust" aria-label="Competition proof links">
+                        <a href="/ruleset">Official rules</a>
+                        <a href="/about#built-in-public">Open source</a>
+                        <a href="#donation-section">Prize pool</a>
+                    </div>
+                </aside>
+            </div>
+        </section>
         <p class="game-description">
-            Too old for your sport? Not <a href="/about">this&nbsp;one</a>. Reverse&nbsp;your&nbsp;age and <strong>rise&nbsp;on&nbsp;the&nbsp;leaderboard!</strong>
+            Blood-test results, public proof, and one live world ranking for longevity athletes. <strong>Submit eligible biomarkers to compete in the official standings.</strong>
         </p>
 
         <!--LEADERBOARD-CONTENT-->
+        <script>
+            (() => {
+                const preview = document.getElementById('lwcHomeHeroPodiumPreview');
+                if (!preview) return;
+
+                const hasBortz = (athlete) => athlete && athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
+                const hasCrowdAge = (athlete, minimumGuessCount) =>
+                    athlete &&
+                    Number.isFinite(athlete.crowdAgeReduction) &&
+                    Number.isFinite(athlete.crowdCount) &&
+                    athlete.crowdCount >= minimumGuessCount;
+                const athleteKeyFor = (athlete) => window.slugifyName((athlete && (athlete.name || athlete.displayName)) || '', true);
+                const getEffectiveAgeReduction = (athlete) => hasBortz(athlete) ? athlete.bortzAgeReduction : athlete.ageReduction;
+                const getPortraitUrl = (athlete) =>
+                    (athlete && (athlete.profilePicThumb || athlete.profilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic)) || '{{ASSET_HD_LOGO_THUMB_SM}}';
+
+                const topBy = (athletes, predicate, compare) => {
+                    const matches = athletes.filter(predicate);
+                    matches.sort(compare);
+                    return matches[0] || null;
+                };
+
+                const addUniquePick = (picks, seen, athlete, label, score, caption) => {
+                    if (!athlete || !Number.isFinite(score)) return false;
+                    const key = athleteKeyFor(athlete);
+                    if (!key || seen.has(key)) return false;
+
+                    picks.push({ athlete, label, score, caption });
+                    seen.add(key);
+                    return true;
+                };
+
+                const buildHeadlinePicks = (athletes, crowdAgeMinimumGuessCount) => {
+                    const picks = [];
+                    const seen = new Set();
+                    const sortedUltimate = athletes.slice().sort(window.compareAthleteRank);
+                    const sortedAmateur = athletes.filter(athlete => !hasBortz(athlete)).sort(window.compareAthleteRankPhenoOnly);
+                    const sortedCrowd = athletes.filter(athlete => hasCrowdAge(athlete, crowdAgeMinimumGuessCount)).sort(window.compareAthleteRankCrowdAge);
+                    const generationOrder = ['Silent Generation', 'Baby Boomers', 'Gen X', 'Millennials', 'Gen Z', 'Gen Alpha'];
+                    const formatDivisionLabel = (divisionLabel, athlete) =>
+                        athlete ? `#1 ${hasBortz(athlete) ? 'Pro' : 'Amateur'} ${divisionLabel}` : `#1 ${divisionLabel}`;
+                    const topWoman = topBy(athletes, athlete => (athlete.division || '').toLowerCase() === "women's", window.compareAthleteRank);
+                    const topMan = topBy(athletes, athlete => (athlete.division || '').toLowerCase() === "men's", window.compareAthleteRank);
+
+                    const candidates = [
+                        {
+                            label: '#1 Pro',
+                            athlete: topBy(athletes, hasBortz, window.compareAthleteRank),
+                            score: athlete => athlete.bortzAgeReduction,
+                            caption: 'pro years reduced'
+                        },
+                        {
+                            label: '#1 Amateur',
+                            athlete: sortedAmateur[0] || null,
+                            score: athlete => athlete.ageReduction,
+                            caption: 'amateur years reduced'
+                        },
+                        {
+                            label: formatDivisionLabel('Woman', topWoman),
+                            athlete: topWoman,
+                            score: getEffectiveAgeReduction,
+                            caption: 'years reduced'
+                        },
+                        {
+                            label: formatDivisionLabel('Man', topMan),
+                            athlete: topMan,
+                            score: getEffectiveAgeReduction,
+                            caption: 'years reduced'
+                        },
+                        {
+                            label: '#1 Open',
+                            athlete: topBy(athletes, athlete => (athlete.division || '').toLowerCase() === 'open', window.compareAthleteRank),
+                            score: getEffectiveAgeReduction,
+                            caption: 'years reduced'
+                        },
+                        {
+                            label: '#1 Crowd Age',
+                            athlete: sortedCrowd[0] || null,
+                            score: athlete => athlete.crowdAgeReduction,
+                            caption: 'crowd years reduced'
+                        },
+                        ...generationOrder.map(generation => ({
+                            label: `#1 ${generation}`,
+                            athlete: topBy(athletes, athlete => athlete.generation === generation, window.compareAthleteRank),
+                            score: getEffectiveAgeReduction,
+                            caption: 'years reduced'
+                        }))
+                    ];
+
+                    candidates.some(candidate => {
+                        if (candidate.athlete) {
+                            addUniquePick(picks, seen, candidate.athlete, candidate.label, candidate.score(candidate.athlete), candidate.caption);
+                        }
+                        return picks.length >= 3;
+                    });
+
+                    sortedUltimate.some(athlete => {
+                        addUniquePick(picks, seen, athlete, `#${athlete.rank || picks.length + 1} Ultimate`, getEffectiveAgeReduction(athlete), 'years reduced');
+                        return picks.length >= 3;
+                    });
+
+                    return picks.slice(0, 3);
+                };
+
+                const formatHeroArenaScore = (score, decimals) => {
+                    if (!Number.isFinite(score)) return '';
+                    const precision = Number.isFinite(decimals) ? decimals : 1;
+                    const rounded = score.toFixed(precision).replace(/\.0$/, '');
+                    return `${score > 0 ? '+' : ''}${rounded}y`;
+                };
+
+                const renderPreview = (event) => {
+                    const athletes = event && event.detail && Array.isArray(event.detail.athleteResults)
+                        ? event.detail.athleteResults
+                        : [];
+                    const crowdAgeMinimumGuessCount = Number.isFinite(event?.detail?.crowdAgeMinimumGuessCount)
+                        ? event.detail.crowdAgeMinimumGuessCount
+                        : 100;
+                    const picks = buildHeadlinePicks(athletes, crowdAgeMinimumGuessCount);
+                    if (picks.length < 3) return;
+
+                    const fragment = document.createDocumentFragment();
+                    const rankClasses = ['first', 'second', 'third'];
+
+                    picks.forEach((pick, index) => {
+                        const athlete = pick.athlete;
+                        const name = athlete.displayName || athlete.name || 'Athlete';
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = `lwc-home-hero-arena-athlete ${rankClasses[index]}`.trim();
+                        button.setAttribute('aria-label', `Open ${name} athlete profile, ${pick.label}`);
+
+                        const rank = document.createElement('span');
+                        rank.className = 'lwc-home-hero-arena-rank';
+                        rank.textContent = pick.label;
+                        button.appendChild(rank);
+
+                        const img = document.createElement('img');
+                        img.src = getPortraitUrl(athlete);
+                        img.alt = '';
+                        img.loading = 'eager';
+                        button.appendChild(img);
+
+                        const nameEl = document.createElement('span');
+                        nameEl.className = 'lwc-home-hero-arena-name';
+                        nameEl.textContent = name;
+                        button.appendChild(nameEl);
+
+                        const scoreEl = document.createElement('span');
+                        scoreEl.className = 'lwc-home-hero-arena-score';
+                        scoreEl.textContent = formatHeroArenaScore(pick.score, athlete.ageReductionDisplayDecimals || 1);
+                        button.appendChild(scoreEl);
+
+                        const captionEl = document.createElement('span');
+                        captionEl.className = 'lwc-home-hero-arena-caption';
+                        captionEl.textContent = pick.caption;
+                        button.appendChild(captionEl);
+
+                        const actionEl = document.createElement('span');
+                        actionEl.className = 'lwc-home-hero-arena-action';
+                        actionEl.textContent = 'View record';
+                        button.appendChild(actionEl);
+
+                        button.addEventListener('click', () => {
+                            const slug = athleteKeyFor(athlete);
+                            if (typeof window.openAthleteModalBySlug === 'function' && slug) {
+                                window.openAthleteModalBySlug(slug, { suppressGuessMyAge: true, markGuessSkipped: false });
+                            }
+                        });
+
+                        fragment.appendChild(button);
+                    });
+
+                    preview.replaceChildren(fragment);
+                    preview.classList.add('is-loaded');
+                };
+
+                const start = () => {
+                    window.addEventListener('lwc:leaderboard-ready', renderPreview);
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', start, { once: true });
+                } else {
+                    start();
+                }
+            })();
+        </script>
         <div class="full-rankings-action">
-            <button id="viewAllAthletesBtn" onclick="window.location.href = window.getFullLeaderboardUrlWithCurrentState ? window.getFullLeaderboardUrlWithCurrentState() : '/leaderboard'" class="rankings-btn" aria-label="View all athletes on the leaderboard">
-                View all athletes
+            <button id="viewAllAthletesBtn" onclick="window.location.href = window.getFullLeaderboardUrlWithCurrentState ? window.getFullLeaderboardUrlWithCurrentState() : '/leaderboard'" class="rankings-btn" aria-label="View the full official standings">
+                View full standings
             </button>
         </div>
 
-        <div class="lwc-highlights-countdown-wrapper">
-            <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
-
-            <div id="lwc-countdown-box" class="events-board events-board--timer">
-                <div class="lwc-countdown-inner">
-                    <div class="lwc-countdown-header-row">
-                        <a class="lwc-countdown-title"
-                           href="https://merch.longevityworldcup.com/"
-                           target="_blank"
-                           rel="noopener">SWAG</a>
-                        <a class="lwc-merch-header-link"
-                           href="https://merch.longevityworldcup.com/"
-                           target="_blank"
-                           rel="noopener">Store</a>
-                    </div>
-
-                    <div class="lwc-countdown-body lwc-merch-body">
-                        <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
-                           href="https://merch.longevityworldcup.com/"
-                           target="_blank"
-                           rel="noopener">Merch store</a> by open source contributor <a class="lwc-merch-copy-link lwc-merch-athlete-link"
-                           href="/athlete/klaus-townsend"
-                           data-athlete-slug="klaus-townsend">Klaus Townsend</a>. High-end, <strong>longevitymaxxing</strong> organic cotton merch.</p>
-                        <div class="lwc-merch-grid">
-                            <a class="lwc-merch-item"
-                               href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
-                               target="_blank"
-                               rel="noopener"
-                               aria-label="Open White glossy mug in the Longevity World Cup merch store">
-                                <img class="lwc-merch-thumb"
-                                     src="{{ASSET_MERCH_MUG}}"
-                                     alt="White glossy mug in the Longevity World Cup merch store">
-                                <span class="lwc-merch-item-copy">
-                                    <span class="lwc-merch-item-title">White glossy mug</span>
-                                    <span class="lwc-merch-item-price">$22.00 - $32.00</span>
-                                </span>
-                            </a>
-                            <a class="lwc-merch-item"
-                               href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
-                               target="_blank"
-                               rel="noopener"
-                               aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
-                                <img class="lwc-merch-thumb"
-                                     src="{{ASSET_MERCH_HOODIE}}"
-                                     alt="Organic cotton hoodie in the Longevity World Cup merch store">
-                                <span class="lwc-merch-item-copy">
-                                    <span class="lwc-merch-item-title">Organic cotton hoodie</span>
-                                    <span class="lwc-merch-item-price">$97.00 - $101.50</span>
-                                </span>
-                            </a>
-                            <a class="lwc-merch-item"
-                               href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
-                               target="_blank"
-                               rel="noopener"
-                               aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
-                                <img class="lwc-merch-thumb"
-                                     src="{{ASSET_MERCH_CAP}}"
-                                     alt="Organic cotton cap in the Longevity World Cup merch store">
-                                <span class="lwc-merch-item-copy">
-                                    <span class="lwc-merch-item-title">Organic cotton cap</span>
-                                    <span class="lwc-merch-item-price">$38.00</span>
-                                </span>
-                            </a>
-                        </div>
-                        <div class="lwc-merch-mobile-carousel" id="lwc-merch-mobile-carousel">
-                            <div class="lwc-merch-mobile-track">
-                                <a class="lwc-merch-mobile-slide is-active"
-                                   href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
-                                   target="_blank"
-                                   rel="noopener"
-                                   aria-label="Open White glossy mug in the Longevity World Cup merch store">
-                                    <img class="lwc-merch-thumb"
-                                         src="{{ASSET_MERCH_MUG}}"
-                                         alt="White glossy mug in the Longevity World Cup merch store">
-                                    <span class="lwc-merch-item-copy">
-                                        <span class="lwc-merch-item-title">White glossy mug</span>
-                                        <span class="lwc-merch-item-price">$22.00 - $32.00</span>
-                                    </span>
-                                </a>
-                                <a class="lwc-merch-mobile-slide"
-                                   href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
-                                   target="_blank"
-                                   rel="noopener"
-                                   aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
-                                    <img class="lwc-merch-thumb"
-                                         src="{{ASSET_MERCH_HOODIE}}"
-                                         alt="Organic cotton hoodie in the Longevity World Cup merch store">
-                                    <span class="lwc-merch-item-copy">
-                                        <span class="lwc-merch-item-title">Organic cotton hoodie</span>
-                                        <span class="lwc-merch-item-price">$97.00 - $101.50</span>
-                                    </span>
-                                </a>
-                                <a class="lwc-merch-mobile-slide"
-                                   href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
-                                   target="_blank"
-                                   rel="noopener"
-                                   aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
-                                    <img class="lwc-merch-thumb"
-                                         src="{{ASSET_MERCH_CAP}}"
-                                         alt="Organic cotton cap in the Longevity World Cup merch store">
-                                    <span class="lwc-merch-item-copy">
-                                        <span class="lwc-merch-item-title">Organic cotton cap</span>
-                                        <span class="lwc-merch-item-price">$38.00</span>
-                                    </span>
-                                </a>
-                            </div>
-                            <div class="lwc-merch-mobile-dots">
-                                <button type="button" class="lwc-merch-mobile-dot is-active" aria-label="Show merch product 1"></button>
-                                <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 2"></button>
-                                <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 3"></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <section class="homepage-competition-record" aria-labelledby="homepage-competition-record-title">
+            <div class="homepage-sequence-heading">
+                <p class="homepage-sequence-kicker">Official record</p>
+                <h2 id="homepage-competition-record-title">Results, champions, and ranking rules.</h2>
             </div>
-        </div>
+
+            <div class="lwc-highlights-countdown-wrapper">
+                <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
+            </div>
 
 
         <!-- 2025 Season Archive Section -->
@@ -1879,13 +3582,14 @@
                 </div>
             </div>
             <p style="margin-top: 1.5rem; font-size: 1rem; color: var(--dark-text-color);">
-                <a href="/history" style="color: var(--primary-color); text-decoration: none;"><i class="fas fa-book-open"></i> </a>
+                <a href="/history" style="color: var(--primary-color); text-decoration: none;" aria-label="Read the history of longevity as a sport"><i class="fas fa-book-open" aria-hidden="true"></i> </a>
                 <a href="/history" style="color: var(--primary-color); text-decoration: underline;">History of longevity as a sport</a>
             </p>
         </div>
+        </section>
 
         <section class="section-container homepage-faq-section" aria-labelledby="homepage-faq-title" data-aos="fade" data-aos-duration="700" data-aos-delay="340">
-            <h2 id="homepage-faq-title"><i class="fas fa-circle-question"></i> FAQ</h2>
+            <h2 id="homepage-faq-title"><i class="fas fa-circle-question"></i> Competition FAQ</h2>
             <div class="homepage-faq-grid">
                 <div class="homepage-faq-item">
                     <h3>What is the Longevity World Cup?</h3>
@@ -1905,19 +3609,24 @@
                 </div>
             </div>
             <p class="homepage-faq-more">
-                <a href="/ruleset#faq" class="homepage-faq-icon-link" aria-hidden="true" tabindex="-1"><i class="fas fa-circle-question"></i> </a>
+                <a href="/ruleset#faq" class="homepage-faq-icon-link" aria-label="Read the extended FAQ"><i class="fas fa-circle-question" aria-hidden="true"></i> </a>
                 <a href="/ruleset#faq">Extended FAQ</a>
             </p>
+            <div class="homepage-faq-actions" aria-label="Competition next steps">
+                <a href="/play" class="homepage-faq-primary">Apply to compete</a>
+                <a href="/leaderboard" class="homepage-faq-secondary">Inspect standings</a>
+            </div>
         </section>
 
+        <div class="homepage-support-row" aria-label="Prize pool and supporter shop">
         <!-- Bitcoin Donation Section -->
         <div id="donation-section" class="section-container contribute-section" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <div class="contribute-content">
                 <!-- In the Contribute section -->
-                <h2><i class="fa-brands fa-btc"></i> Contribute</h2>
+                <h2><i class="fas fa-trophy"></i> Prize pool</h2>
                 <p>
                     <span class="smaller-text">
-                        90% of Bitcoin&nbsp;donations fund the <strong>prize&nbsp;pool</strong> for Longevity&nbsp;World&nbsp;Cup champions:
+                        90% of Bitcoin&nbsp;donations fund <strong>champion payouts</strong> for Longevity&nbsp;World&nbsp;Cup athletes:
                     </span>
                 </p>
                 <div class="btc-status">
@@ -1931,10 +3640,11 @@
                     </div>
                 </div>
                 <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                    <img src="{{ASSET_DONATION_QR}}" alt="Donate with Bitcoin QR code" class="qr-code-img" width="165" height="165" loading="lazy" fetchpriority="low" decoding="async">
+                    <img src="{{ASSET_DONATION_QR}}" alt="Donate with Bitcoin QR code" class="qr-code-img" width="165" height="165" loading="eager" fetchpriority="low" decoding="async" onerror="this.closest('.qr-code-container').classList.add('qr-code-unavailable')">
+                    <span class="qr-code-fallback">QR unavailable. Use the Bitcoin address below.</span>
                 </div>
                 <div class="btc-address">
-                    <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
+                    <a id="btcAddressLink" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="Bitcoin donation address loading">
                         <!-- Bitcoin address will be inserted here by JavaScript -->
                     </a>
                     <span id="copiedText" aria-live="polite" style="display: none;">
@@ -1947,30 +3657,152 @@
             </div>
         </div>
 
+        <div id="lwc-countdown-box" class="events-board events-board--timer">
+            <div class="lwc-countdown-inner">
+                <div class="lwc-countdown-header-row">
+                    <a class="lwc-countdown-title"
+                       href="https://merch.longevityworldcup.com/"
+                       target="_blank"
+                       rel="noopener">Supporter kit</a>
+                    <a class="lwc-merch-header-link"
+                       href="https://merch.longevityworldcup.com/"
+                       target="_blank"
+                       rel="noopener">Shop kit</a>
+                </div>
+
+                <div class="lwc-countdown-body lwc-merch-body">
+                    <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
+                       href="https://merch.longevityworldcup.com/"
+                       target="_blank"
+                       rel="noopener">Community-made supporter gear</a> by open-source contributor <a class="lwc-merch-copy-link lwc-merch-athlete-link"
+                       href="/athlete/klaus-townsend"
+                       data-athlete-slug="klaus-townsend">Klaus Townsend</a>.</p>
+                    <div class="lwc-merch-grid">
+                        <a class="lwc-merch-item"
+                           href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="Open World Cup mug in the Longevity World Cup supporter kit">
+                            <img class="lwc-merch-thumb"
+                                 src="{{ASSET_MERCH_MUG}}"
+                                 alt="World Cup supporter mug">
+                            <span class="lwc-merch-item-copy">
+                                <span class="lwc-merch-item-tag">Support item</span>
+                                <span class="lwc-merch-item-title">World Cup mug</span>
+                                <span class="lwc-merch-item-price">$22.00 - $32.00</span>
+                            </span>
+                        </a>
+                        <a class="lwc-merch-item"
+                           href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="Open Supporter hoodie in the Longevity World Cup supporter kit">
+                            <img class="lwc-merch-thumb"
+                                 src="{{ASSET_MERCH_HOODIE}}"
+                                 alt="Longevity World Cup supporter hoodie">
+                            <span class="lwc-merch-item-copy">
+                                <span class="lwc-merch-item-tag">Support item</span>
+                                <span class="lwc-merch-item-title">Supporter hoodie</span>
+                                <span class="lwc-merch-item-price">$97.00 - $101.50</span>
+                            </span>
+                        </a>
+                        <a class="lwc-merch-item"
+                           href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="Open Supporter cap in the Longevity World Cup supporter kit">
+                            <img class="lwc-merch-thumb"
+                                 src="{{ASSET_MERCH_CAP}}"
+                                 alt="Longevity World Cup supporter cap">
+                            <span class="lwc-merch-item-copy">
+                                <span class="lwc-merch-item-tag">Support item</span>
+                                <span class="lwc-merch-item-title">Supporter cap</span>
+                                <span class="lwc-merch-item-price">$38.00</span>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="lwc-merch-mobile-carousel" id="lwc-merch-mobile-carousel">
+                        <div class="lwc-merch-mobile-track">
+                            <a class="lwc-merch-mobile-slide is-active"
+                               href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
+                               target="_blank"
+                               rel="noopener"
+                               aria-label="Open World Cup mug in the Longevity World Cup supporter kit">
+                                <img class="lwc-merch-thumb"
+                                     src="{{ASSET_MERCH_MUG}}"
+                                     alt="World Cup supporter mug">
+                                <span class="lwc-merch-item-copy">
+                                    <span class="lwc-merch-item-tag">Support item</span>
+                                    <span class="lwc-merch-item-title">World Cup mug</span>
+                                    <span class="lwc-merch-item-price">$22.00 - $32.00</span>
+                                </span>
+                            </a>
+                            <a class="lwc-merch-mobile-slide"
+                               href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
+                               target="_blank"
+                               rel="noopener"
+                               aria-label="Open Supporter hoodie in the Longevity World Cup supporter kit">
+                                <img class="lwc-merch-thumb"
+                                     src="{{ASSET_MERCH_HOODIE}}"
+                                     alt="Longevity World Cup supporter hoodie">
+                                <span class="lwc-merch-item-copy">
+                                    <span class="lwc-merch-item-tag">Support item</span>
+                                    <span class="lwc-merch-item-title">Supporter hoodie</span>
+                                    <span class="lwc-merch-item-price">$97.00 - $101.50</span>
+                                </span>
+                            </a>
+                            <a class="lwc-merch-mobile-slide"
+                               href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
+                               target="_blank"
+                               rel="noopener"
+                               aria-label="Open Supporter cap in the Longevity World Cup supporter kit">
+                                <img class="lwc-merch-thumb"
+                                     src="{{ASSET_MERCH_CAP}}"
+                                     alt="Longevity World Cup supporter cap">
+                                <span class="lwc-merch-item-copy">
+                                    <span class="lwc-merch-item-tag">Support item</span>
+                                    <span class="lwc-merch-item-title">Supporter cap</span>
+                                    <span class="lwc-merch-item-price">$38.00</span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="lwc-merch-mobile-dots">
+                            <button type="button" class="lwc-merch-mobile-dot is-active" aria-label="Show supporter kit item 1"></button>
+                            <button type="button" class="lwc-merch-mobile-dot" aria-label="Show supporter kit item 2"></button>
+                            <button type="button" class="lwc-merch-mobile-dot" aria-label="Show supporter kit item 3"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
         <!-- Minimal Newsletter Subscription Section -->
         <div class="section-container newsletter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <h2><i class="fas fa-calendar-alt"></i> Yearly newsletter</h2>
+            <h2><i class="fas fa-calendar-alt"></i> Season bulletin</h2>
             <p>
                 <span class="smaller-text">
-                    Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
+                    Official season openings, winner announcements, and ranking updates from Longevity World Cup.
                 </span>
             </p>
 
             <form id="newsletter-form">
-                <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" required>
-                <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-label="Subscribe to the Longevity World&nbsp;Cup newsletter">
-                    <i class="fas fa-paper-plane"></i> Subscribe
+                <label for="emailInput" class="visually-hidden">Email address for yearly updates</label>
+                <input type="email" id="emailInput" class="shared-email-input" placeholder="Email address" required>
+                <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-label="Subscribe to the Longevity World&nbsp;Cup season bulletin">
+                    <i class="fas fa-paper-plane"></i> Get bulletin
                 </button>
             </form>
         </div>
         <!-- Newsletter success dialog -->
         <div id="newsletterModal" class="dialog" role="dialog" aria-modal="true" aria-labelledby="newsletterModalTitle" aria-describedby="newsletterSuccessMessage">
             <div class="dialog-content">
-                <h2 id="newsletterModalTitle" class="visually-hidden">Newsletter subscription successful</h2>
+                <span class="newsletter-dialog-kicker">Received</span>
+                <h2 id="newsletterModalTitle" class="newsletter-dialog-title">Season bulletin</h2>
                 <button type="button" id="closeNewsletterBtn1" class="close" aria-label="Close dialog">&times;</button>
                 <div class="checkmark-container"></div>
                 <p id="newsletterSuccessMessage">
-                    You subscribed with <strong>foo@bar.com</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.
+                    Subscription received. We will send official season openings, winner announcements, and ranking updates.
                 </p>
                 <div style="text-align: center; margin-top: 20px;">
                     <button id="closeNewsletterBtn2" class="dialog-button">OK</button>
@@ -2108,11 +3940,11 @@
             const highlightsBoard = highlightsRoot ? highlightsRoot.querySelector('.events-board') : null;
             const highlightsTable = highlightsRoot ? highlightsRoot.querySelector('#eventsTable') : null;
             const highlightsBody = highlightsRoot ? highlightsRoot.querySelector('#eventsTable tbody') : null;
-            const swagCard = document.getElementById('lwc-countdown-box');
+            const pairedCard = document.querySelector('.lwc-highlights-countdown-wrapper > #lwc-countdown-box');
             if (window.innerWidth <= 991) {
                 return;
             }
-            if (!highlightsBoard || !highlightsTable || !highlightsBody || !swagCard) {
+            if (!highlightsBoard || !highlightsTable || !highlightsBody || !pairedCard) {
                 return;
             }
 
@@ -2135,8 +3967,8 @@
 
             const highlightsContentHeight = Math.round(highlightsTable.getBoundingClientRect().height);
             const highlightsBoardHeight = Math.round(highlightsBoard.getBoundingClientRect().height);
-            const swagHeight = Math.round(swagCard.getBoundingClientRect().height);
-            const heightGap = swagHeight - highlightsContentHeight;
+            const targetHeight = Math.round(pairedCard.getBoundingClientRect().height);
+            const heightGap = targetHeight - highlightsContentHeight;
             const canRequestMoreRows = renderedRows >= homepageHighlightsRows && homepageHighlightsRows < homepageHighlightsMaxRows;
             if (heightGap > 28 && canRequestMoreRows) {
                 loadHomepageHighlights(homepageHighlightsRows + 1, 'grow');
@@ -2148,7 +3980,7 @@
         function fitHomepageHighlights() {
             window.clearTimeout(homepageHighlightsMeasureTimer);
             homepageHighlightsWaitAttempts = 0;
-            const initialRows = window.innerWidth > 991 ? 1 : homepageHighlightsBaseRows;
+            const initialRows = homepageHighlightsBaseRows;
             loadHomepageHighlights(initialRows, 'fit');
             homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
         }
@@ -2175,7 +4007,7 @@
             const athleteSlug = link.getAttribute('data-athlete-slug');
             if (!athleteSlug) return;
 
-            const opened = window.openAthleteModalBySlug(athleteSlug, { suppressGuessMyAge: true });
+            const opened = window.openAthleteModalBySlug(athleteSlug, { suppressGuessMyAge: true, markGuessSkipped: false });
             if (!opened) return;
 
             event.preventDefault();
@@ -2348,7 +4180,7 @@
                     })
                     .then(() => {
                         const successMessage = document.getElementById('newsletterSuccessMessage');
-                        successMessage.innerHTML = `You subscribed with <strong>${emailInput}</strong>. At the beginning of each year, we’ll send you an update about last year’s winners and announce the start of the new season.`;
+                        successMessage.innerHTML = `You subscribed with <strong>${emailInput}</strong>. We will send official season openings, winner announcements, and ranking updates.`;
                         newsletterForm.reset();
                         openNewsletterModal(newsletterSubmitButton);
                     })
@@ -2420,6 +4252,23 @@
             });
         }
 
+        function updateHomeHeroClockCount() {
+            const heroClockCount = document.getElementById('lwcHomeHeroClockCount');
+            if (!heroClockCount) return;
+
+            const clockViews = new Set();
+            document.querySelectorAll('.leaderboard-view-switcher input[name="leaderboardView"]').forEach(input => {
+                const value = (input.value || '').toLowerCase();
+                if (!value || value === 'ultimate' || value.includes('improvement')) return;
+                if (input.getAttribute('aria-hidden') === 'true') return;
+                clockViews.add(value);
+            });
+
+            if (clockViews.size > 0) {
+                heroClockCount.textContent = String(clockViews.size);
+            }
+        }
+
         // Fetch actual BTC data and update the progress
         fetch('/api/bitcoin/total-received')
             .then(response => response.json())
@@ -2487,7 +4336,10 @@
             });
 
 
-        window.addEventListener('DOMContentLoaded', adjustBitcoinAddressDisplay);
+        window.addEventListener('DOMContentLoaded', function () {
+            adjustBitcoinAddressDisplay();
+            updateHomeHeroClockCount();
+        });
         window.addEventListener('resize', adjustBitcoinAddressDisplay);
     </script>
 </body>

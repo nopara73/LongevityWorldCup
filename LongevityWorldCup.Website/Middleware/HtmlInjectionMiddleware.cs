@@ -128,6 +128,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"));
                     bodyContent = ApplySharedAssetPlaceholders(bodyContent);
+                    bodyContent = ApplyHomeHeroStats(bodyContent);
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -179,6 +180,49 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                 .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
                 .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
+        }
+
+        private string ApplyHomeHeroStats(string html)
+        {
+            if (!html.Contains("{{HOME_HERO_TOP_SCORE}}", StringComparison.Ordinal))
+            {
+                return html;
+            }
+
+            // The hero headline numbers must always match the live leaderboard;
+            // hardcoded fallbacks below only survive if the snapshot is unavailable.
+            var topScore = "-21.1";
+            var athleteCount = "203";
+            var proCount = "22";
+            try
+            {
+                var rows = _leaderboardFacts.GetLeaderboardSnapshot().Rows;
+                if (rows.Count > 0)
+                {
+                    var best = rows
+                        .Where(r => r.EffectiveAgeReductionYears.HasValue)
+                        .Select(r => r.EffectiveAgeReductionYears!.Value)
+                        .DefaultIfEmpty(double.NaN)
+                        .Min();
+                    if (!double.IsNaN(best))
+                    {
+                        topScore = best.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+                    }
+
+                    athleteCount = rows.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    proCount = rows.Count(r => string.Equals(r.Track, "Pro", StringComparison.OrdinalIgnoreCase))
+                        .ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Falling back to static home hero stats after snapshot read failed.");
+            }
+
+            return html
+                .Replace("{{HOME_HERO_TOP_SCORE}}", topScore)
+                .Replace("{{HOME_HERO_ATHLETE_COUNT}}", athleteCount)
+                .Replace("{{HOME_HERO_PRO_COUNT}}", proCount);
         }
 
         private string ApplyLeaderboardRows(string html, HttpContext context)
@@ -259,6 +303,8 @@ namespace LongevityWorldCup.Website.Middleware
         {
             return html
                 .Replace("{{ASSET_FAVICON_128}}", _assetVersionProvider.AppendVersion("/assets/favicon-128x128.png"))
+                .Replace("{{ASSET_LOGO}}", _assetVersionProvider.AppendVersion("/assets/logo.png"))
+                .Replace("{{ASSET_FONT_ANTON}}", _assetVersionProvider.AppendVersion("/assets/fonts/Anton-Regular.woff2"))
                 .Replace("{{ASSET_ROBOTO_LIGHT}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Light.woff2"))
                 .Replace("{{ASSET_ROBOTO_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Regular.woff2"))
                 .Replace("{{ASSET_ROBOTO_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Bold.woff2"))
@@ -267,8 +313,7 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_MERCH_HOODIE}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/hoodie.webp"))
                 .Replace("{{ASSET_MERCH_CAP}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/cap.webp"))
                 .Replace("{{ASSET_DONATION_QR}}", _assetVersionProvider.AppendVersion("/assets/Donation25QR.png"))
-                .Replace("{{ASSET_HD_LOGO_THUMB_SM}}", _assetVersionProvider.AppendVersion("/assets/HdLogo_thumb_sm.png"))
-                .Replace("{{ASSET_TROLLFACE}}", _assetVersionProvider.AppendVersion("/assets/content-images/trollface.png"));
+                .Replace("{{ASSET_HD_LOGO_THUMB_SM}}", _assetVersionProvider.AppendVersion("/assets/HdLogo_thumb_sm.png"));
         }
 
         private string ApplySharedCssPlaceholders(string html)

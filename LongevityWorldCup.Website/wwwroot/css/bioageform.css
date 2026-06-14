@@ -2,9 +2,9 @@
 .bioageform {
     width: min(100%, 600px);
     max-width: calc(100vw - 2rem);
-    margin: 2rem auto;
-    padding: 1rem;
-    background-color: #f9f9f9;
+    margin: var(--space-xl, 2rem) auto;
+    padding: var(--space-md, 1rem);
+    background-color: var(--card-bg, #fffefa);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -16,8 +16,10 @@
 
     .bioageform label {
         display: block;
-        margin-top: 1rem;
-        font-weight: bold;
+        margin-top: var(--space-sm, 0.75rem);
+        font-size: var(--text-body, 1rem);
+        font-weight: 700;
+        line-height: var(--leading-tight, 1.12);
         color: var(--dark-text-color);
     }
 
@@ -27,19 +29,19 @@
         min-width: 0;
         min-height: 44px;
         padding: 0.65rem 0.75rem;
-        margin-top: 0.5rem;
+        margin-top: var(--space-xs, 0.5rem);
         box-sizing: border-box;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 1rem;
-        line-height: 1.3;
-        background-color: #fff;
+        border: 1px solid var(--control-border, #cbd2c8);
+        border-radius: var(--radius-field, 4px);
+        font-size: var(--text-body, 1rem);
+        line-height: var(--leading-ui, 1.35);
+        background-color: var(--control-bg, #fffefa);
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .bioageform select {
         padding-right: 2.25rem;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2346554d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
         background-repeat: no-repeat;
         background-position: right 0.75rem center;
         background-size: 12px 12px;
@@ -52,7 +54,7 @@
     .bioageform select:focus,
     .bioageform textarea:focus {
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+        box-shadow: var(--control-focus-ring, 0 0 0 3px rgba(11, 125, 69, 0.16));
         outline: none;
     }
 
@@ -61,8 +63,8 @@
     .bioageform {
         width: 100%;
         max-width: calc(100vw - 1.5rem);
-        margin: 1.35rem auto;
-        padding: 0.9rem;
+        margin: var(--space-lg, 1.5rem) auto;
+        padding: var(--space-sm, 0.75rem);
     }
 }
 
@@ -75,46 +77,57 @@
 
 /* Fieldset Styles */
 .bioageform fieldset {
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.7));
-    padding: 1.2rem 1.15rem;
-    margin-top: 2rem;
-    border-radius: 12px;
+    border: 0;
+    background: linear-gradient(180deg, var(--card-bg, #fffefa), var(--paper, #f4f3ea));
+    padding: var(--space-md, 1rem) var(--space-md, 1rem) var(--space-lg, 1.5rem);
+    margin-top: var(--space-lg, 1.5rem);
+    border-radius: var(--radius-panel, 10px);
     width: 100%;
     max-width: 100%;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+    box-shadow: inset 0 0 0 1px var(--surface-border, rgba(28, 39, 34, 0.12)), inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(28, 39, 34, 0.04);
     min-width: 0;
     box-sizing: border-box;
 }
 
 .bioageform fieldset:first-of-type {
-    margin-top: 1rem;
+    margin-top: var(--space-md, 1rem);
 }
 
 .bioageform legend {
-    display: inline-flex;
+    display: flex;
+    float: left;
     align-items: center;
-    max-width: calc(100% - 1rem);
-    min-height: 28px;
-    font-weight: bold;
-    padding: 0.2rem 0.65rem;
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    border-radius: 999px;
-    background: #fff;
-    color: #2d3748;
-    line-height: 1.2;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    margin: 0 0 var(--space-sm, 0.75rem);
+    padding: 0 0 var(--space-xs, 0.5rem);
+    border: 0;
+    border-bottom: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+    border-radius: 0;
+    background: transparent;
+    color: var(--primary-color, #0b7d45);
+    font-size: var(--text-caption, 0.75rem);
+    font-weight: 900;
+    letter-spacing: var(--tracking-label, 0.06em);
+    line-height: var(--leading-tight, 1.12);
+    text-transform: uppercase;
+    box-shadow: none;
     white-space: normal;
     overflow-wrap: anywhere;
 }
 
+.bioageform legend + * {
+    clear: both;
+}
+
 .bioageform legend .category-icon {
     margin-right: 0.4rem;
-    color: #5a6c7d;
+    color: var(--text-subtle, #5d6b63);
 }
 
 .bioageform fieldset > label:first-of-type {
-    margin-top: 0.75rem;
+    margin-top: 0.35rem;
 }
 
 .bioageform textarea {
@@ -122,13 +135,14 @@
     min-width: 0;
     min-height: 7rem;
     padding: 0.65rem 0.75rem;
-    margin-top: 0.5rem;
+    margin-top: var(--space-xs, 0.5rem);
     box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1rem;
-    line-height: 1.45;
+    border: 1px solid var(--control-border, #cbd2c8);
+        border-radius: var(--radius-field, 4px);
+    font-size: var(--text-body, 1rem);
+    line-height: var(--leading-body, 1.55);
     resize: vertical; /* Allow users to resize vertically */
+    background-color: var(--control-bg, #fffefa);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -137,11 +151,12 @@
     margin-top: 1rem;
     padding: 0.85rem 0.8rem;
     box-sizing: border-box;
-    border: 1px solid rgba(0, 188, 212, 0.28);
+    border: 1px solid var(--control-border-hover, rgba(11, 125, 69, 0.32));
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.62);
-    color: #2d3748;
-    font-size: 0.95rem;
+    background: var(--card-bg, #fffefa);
+    color: var(--main-action-selected-color, #24332c);
+    font-size: var(--text-ui, 0.9375rem);
+    line-height: var(--leading-ui, 1.35);
 }
 
 .bioage-rank-preview[hidden] {
@@ -160,8 +175,8 @@
     padding: 0.3rem 0.45rem;
     box-sizing: border-box;
     border-radius: 6px;
-    background: rgba(0, 188, 212, 0.12);
-    color: #087f91;
+    background: var(--surface-green-tint-strong, rgba(11,125,69,.14));
+    color: #0b7d45;
     font-size: 2rem;
     font-weight: 800;
     line-height: 1.05;
@@ -175,17 +190,17 @@
 }
 
 .bioage-rank-label {
-    font-size: 0.72rem;
+    font-size: var(--text-caption, 0.75rem);
     font-weight: 800;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #64748b;
+    color: var(--text-subtle, #5d6b63);
 }
 
 .bioage-rank-meta,
 .bioage-rank-percentile {
-    font-size: 0.92rem;
-    line-height: 1.35;
+    font-size: var(--text-ui, 0.9375rem);
+    line-height: var(--leading-ui, 1.35);
 }
 
 .bioage-rank-meta {
@@ -193,7 +208,7 @@
 }
 
 .bioage-rank-percentile {
-    color: #087f91;
+    color: #0b7d45;
     font-weight: 700;
 }
 
@@ -211,14 +226,14 @@
     min-height: 2.05rem;
     padding: 0.2rem 0.45rem;
     border-radius: 6px;
-    font-size: 0.88rem;
-    line-height: 1.25;
+    font-size: var(--text-small, 0.875rem);
+    line-height: var(--leading-ui, 1.35);
 }
 
 .bioage-rank-row.current {
-    background: rgba(0, 188, 212, 0.12);
+    background: var(--surface-green-tint-strong, rgba(11,125,69,.14));
     font-weight: 800;
-    color: #1f2937;
+    color: var(--dark-text-color, #1c2722);
 }
 
 .bioage-rank-row-place,
@@ -235,10 +250,10 @@
     height: 24px;
     aspect-ratio: 1 / 1;
     overflow: hidden;
-    border: 2px solid var(--secondary-color, #ff4f87);
+    border: 2px solid var(--secondary-color, #8f6a0e);
     border-radius: 50%;
-    background: #eef3f7;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    background: var(--paper, #f4f3ea);
+    box-shadow: var(--surface-shadow, 0 4px 10px rgba(28,39,34,.08));
     box-sizing: border-box;
     pointer-events: none;
 }
@@ -255,7 +270,7 @@
 }
 
 .bioage-rank-row-avatar-fallback {
-    color: #5a6b7b;
+    color: var(--text-subtle, #5d6b63);
     font-size: 0.62rem;
     font-weight: 800;
     line-height: 1;
@@ -284,24 +299,24 @@
 }
 
 .bioage-rank-loading {
-    color: #64748b;
-    font-size: 0.9rem;
+    color: var(--text-subtle, #5d6b63);
+    font-size: var(--text-small, 0.875rem);
 }
 
 @media (max-width: 420px) {
     .bioageform {
         max-width: calc(100vw - 1rem);
-        padding: 0.75rem;
+        padding: var(--space-sm, 0.75rem);
     }
 
     .bioageform fieldset {
-        padding: 1rem 0.85rem;
-        margin-top: 1.35rem;
+        padding: var(--space-sm, 0.75rem) var(--space-sm, 0.75rem) var(--space-md, 1rem);
+        margin-top: var(--space-md, 1rem);
     }
 
     .bioageform legend {
         max-width: 100%;
-        font-size: 0.95rem;
+        font-size: var(--text-caption, 0.75rem);
     }
 
     .bioageform label {
@@ -351,12 +366,12 @@
     margin-top: 1rem;
     padding: 0.85rem;
     box-sizing: border-box;
-    border: 1px solid rgba(0, 188, 212, 0.2);
+    border: 1px solid var(--surface-border-strong, rgba(28,39,34,.18));
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.88);
-    color: #243447;
-    font-size: 1rem;
-    line-height: 1.35;
+    background: var(--card-bg, #fffefa);
+    color: var(--text-soft, #33423b);
+    font-size: var(--text-body, 1rem);
+    line-height: var(--leading-ui, 1.35);
 }
 
 .bioage-hypothetical-rank[hidden] {
@@ -374,31 +389,32 @@
     min-width: 4.75rem;
     padding: 0.5rem 0.65rem;
     border-radius: 8px;
-    background: rgba(0, 188, 212, 0.1);
-    color: #007c89;
+    background: var(--surface-green-tint, rgba(11,125,69,.08));
+    color: var(--primary-color, #0b7d45);
     font-size: 2rem;
     line-height: 1;
-    font-weight: 800;
+    font-weight: 400;
     text-align: center;
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--display-font, Impact, Haettenschweiler, "Arial Narrow Bold", Roboto, sans-serif);
+    font-synthesis: none;
 }
 
 .bioage-rank-label {
-    font-size: 0.75rem;
+    font-size: var(--text-caption, 0.75rem);
     text-transform: uppercase;
     letter-spacing: 0;
-    color: #607184;
+    color: var(--text-subtle, #5d6b63);
     font-weight: 700;
 }
 
 .bioage-rank-context {
     margin-top: 0.15rem;
-    color: #334155;
-    font-size: 0.95rem;
+    color: var(--text-soft, #33423b);
+    font-size: var(--text-ui, 0.9375rem);
 }
 
 .bioage-rank-context strong {
-    color: #1f2937;
+    color: var(--dark-text-color, #1c2722);
 }
 
 .bioage-rank-nearby {
@@ -417,13 +433,13 @@
     min-height: 34px;
     padding: 0.35rem 0.45rem;
     border-radius: 6px;
-    color: #475569;
-    font-size: 0.9rem;
+    color: var(--text-muted, #46554d);
+    font-size: var(--text-small, 0.875rem);
 }
 
 .bioage-rank-nearby li.is-you {
-    background: rgba(0, 188, 212, 0.1);
-    color: #172033;
+    background: var(--surface-green-tint, rgba(11,125,69,.08));
+    color: var(--dark-text-color, #1c2722);
     font-weight: 700;
 }
 
@@ -439,8 +455,8 @@
 }
 
 .bioage-rank-pending {
-    color: #607184;
-    font-size: 0.95rem;
+    color: var(--text-subtle, #5d6b63);
+    font-size: var(--text-ui, 0.9375rem);
     text-align: center;
 }
 

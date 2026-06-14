@@ -68,7 +68,7 @@ a,
 button,
 [role="button"],
 label {
-    -webkit-tap-highlight-color: rgba(0, 188, 212, 0.18);
+    -webkit-tap-highlight-color: rgba(11, 125, 69, 0.18);
 }
 
 a:focus-visible,
@@ -77,7 +77,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-    outline: 3px solid rgba(0, 188, 212, 0.72);
+    outline: 3px solid rgba(11, 125, 69, 0.72);
     outline-offset: 3px;
 }
 

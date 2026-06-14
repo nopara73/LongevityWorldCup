@@ -213,7 +213,7 @@
                 return '<span style="font-weight:800">' + renderMarkup(inner, opts) + "</span>";
             },
             strong: function (inner) {
-                return '<span style="font-weight:800;color:var(--secondary-color,#ff4f87)">' + renderMarkup(inner, opts) + "</span>";
+                return '<span style="font-weight:800;color:var(--secondary-color,#8f6a0e)">' + renderMarkup(inner, opts) + "</span>";
             },
             mention: function (slug) {
                 var resolvedText = resolveMentionText(slug, opts.mentionResolver);
@@ -270,7 +270,7 @@
                 return '<span style="font-weight:800">' + renderImageMarkup(inner, opts) + "</span>";
             },
             strong: function (inner) {
-                return '<span style="font-weight:800;color:var(--secondary-color,#ff4f87)">' + renderImageMarkup(inner, opts) + "</span>";
+                return '<span style="font-weight:800;color:var(--secondary-color,#8f6a0e)">' + renderImageMarkup(inner, opts) + "</span>";
             },
             mention: function (slug) {
                 return escapeHtml(resolveMentionText(slug, opts.mentionResolver));

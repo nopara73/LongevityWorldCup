@@ -12,6 +12,12 @@ This repository is a .NET solution, not a Node/npm-managed app. Browser smoke ch
 
 For repeatable local UI verification, prefer the repo-owned .NET Playwright path or the Codex Browser plugin/in-app browser when available. After building `LongevityWorldCup.Tests`, install browser binaries with `pwsh LongevityWorldCup.Tests\bin\Debug\net8.0\playwright.ps1 install chromium` if needed. If using a separate Playwright runtime for ad hoc checks, first verify that Playwright and its browser binaries actually resolve in that runtime; do not assume the in-app Node REPL has Playwright on its module path.
 
+Before trusting localhost screenshots, confirm exactly one dev-server process owns the port (`netstat -ano | findstr :5017`): an orphaned older `LongevityWorldCup.Website` instance can keep serving and make fresh edits look like they had no effect. A server started with `dotnet run --no-build` also serves whatever binary was last built — if the middleware source is newer than `bin/.../LongevityWorldCup.Website.dll`, rebuild before judging served HTML. Also note `LongevitymaxxingChallengeServiceTests.PublicStateWarmsUncachedGravatarWithoutBlockingLeaderboard` is network-dependent and can fail on a clean tree without any code change.
+
+## Generated Documentation Pages
+
+`wwwroot/misc-pages/about.html`, `history.html`, and `ruleset.html` are **generated output**: every `LongevityWorldCup.Website` build runs `LongevityWorldCup.MarkdownPageGenerator`, which rebuilds them from the markdown sources using the HTML/CSS template embedded in `LongevityWorldCup.MarkdownPageGenerator/Program.cs`. Direct edits to those three files are silently overwritten on the next build or test run. To change their styling or layout, edit the generator template and rebuild; then verify the regenerated files.
+
 ## Local Agent Artifacts
 
 When producing temporary files that are only for agent-side inspection or delivery drafts, write them under the repo-local ignored `.artifacts/` directory. This includes screenshots, rendered HTML previews, generated images, ad hoc reports, logs, exports, or smoke-test captures that are not intended to become source-controlled project assets.
@@ -64,8 +70,12 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Bioage onboarding rank previews load `wwwroot/js/bioage-rank-preview.js` through `HtmlInjectionMiddleware` module paths; keep it versioned with the rest of the injected page assets.
 - Athlete profile and proof asset URLs should be versioned when emitted from the data service. Unversioned `/athletes/...` and `/generated/...` requests are intentionally cached briefly only as a fallback.
 - When changing the API of an existing external JS file, review every injected HTML/partial caller in the repo and ensure the versioned URL path still goes through the middleware replacement flow.
+- Pages served through `HtmlInjectionMiddleware` must never expose raw `{{TOKEN}}` placeholders or partial comment markers to clients; `HtmlPlaceholderInjectionTests` pins this contract (including the homepage hero stats) — when adding a new injected placeholder, make sure its replacement is unconditional or has a server-side fallback.
 - If a helper is moved from inline script to a separate JS file, verify that the file is loaded in every page, modal, iframe, or embedded context that uses that helper.
 - Homepage highlights are intentionally curated, not a raw Event feed; preserve same-athlete de-duplication for fresh Events, keep stale historical Events from suppressing newer Events by the same athlete, and preserve the fourth-visit highlights-before-podium layout behavior when changing `index.html` or event-board rendering.
+- The homepage hero headline numbers (top score, athlete count, pro count) are server-rendered from the leaderboard snapshot via `{{HOME_HERO_TOP_SCORE}}`, `{{HOME_HERO_ATHLETE_COUNT}}`, and `{{HOME_HERO_PRO_COUNT}}` placeholders in `HtmlInjectionMiddleware.ApplyHomeHeroStats`. Do not hardcode live stats in `index.html`; the literals in the middleware are only fallbacks for snapshot failures.
+- The brand display font Anton is self-hosted at `wwwroot/assets/fonts/Anton-Regular.woff2` and loaded through the `{{ASSET_FONT_ANTON}}` placeholder (declared in `partials/header.html`, preloaded in `partials/head.html`). Keep it on the versioned middleware path.
+- On the homepage, only the hero block is dark: `html` stays near-black for overscroll, while `body:has(.lwc-home-hero)` uses the light page surface so the podium, leaderboard embed, and all sections below the hero render on light paper like the rest of the site. Do not reintroduce a black page background under homepage content.
 
 ## Social API Token Maintenance
 

@@ -13,10 +13,10 @@
             max-width: 720px;
             margin: 2.25rem auto;
             padding: 1.75rem;
-            background: rgba(255, 255, 255, 0.78);
-            border: 1px solid rgba(148, 163, 184, 0.24);
-            border-radius: 12px;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+            background: var(--card-bg, #fffefa);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-panel, 10px);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             text-align: center;
         }
 
@@ -42,16 +42,87 @@
             margin: 0 auto 1.35rem;
         }
 
-        .application-review-visual .illustration {
-            width: min(100%, 408px);
-            margin-bottom: 0;
+        .application-review-status {
+            width: min(100%, 520px);
+            margin: 0 auto;
+            padding: 1rem;
+            border: 1px solid var(--surface-border-strong, rgba(28, 39, 34, 0.18));
+            border-radius: var(--radius-panel, 10px);
+            background:
+                linear-gradient(135deg, rgba(11, 125, 69, 0.08), rgba(255, 254, 250, 0.9) 48%),
+                var(--card-bg, #fffefa);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
             box-sizing: border-box;
+            text-align: left;
+        }
+
+        .application-review-status-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            min-height: 1.8rem;
+            margin-bottom: 0.85rem;
+            padding: 0.22rem 0.65rem;
+            border: 1px solid rgba(11, 125, 69, 0.24);
+            border-radius: var(--radius-control, 999px);
+            background: var(--surface-green-tint-strong, rgba(11, 125, 69, 0.14));
+            color: var(--primary-color, #0b7d45);
+            font-size: var(--text-small, 0.875rem);
+            font-weight: 800;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .application-review-status ol {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .application-review-status li {
+            display: grid;
+            grid-template-columns: 2rem minmax(0, 1fr);
+            gap: 0.65rem;
+            align-items: start;
+        }
+
+        .application-review-status-step {
+            display: inline-grid;
+            place-items: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 999px;
+            background: rgba(28, 39, 34, 0.08);
+            color: var(--text-muted, #46554d);
+            font-weight: 900;
+        }
+
+        .application-review-status li:first-child .application-review-status-step {
+            background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+            color: #06100b;
+        }
+
+        .application-review-status strong {
+            display: block;
+            color: var(--ink, #1c2722);
+            font-size: 1rem;
+            line-height: 1.25;
+        }
+
+        .application-review-status span {
+            display: block;
+            margin-top: 0.15rem;
+            color: var(--text-muted, #46554d);
+            font-size: 0.9rem;
+            line-height: 1.35;
         }
 
         .application-review-copy {
             max-width: 62ch;
             margin: 0.8rem auto 0;
-            color: #4f5b68;
+            color: #46554d;
             line-height: 1.45;
             text-align: center;
         }
@@ -60,16 +131,16 @@
             max-width: 560px;
             margin-top: 1rem;
             padding: 0.95rem 1.05rem;
-            border: 1px solid rgba(76, 175, 80, 0.22);
+            border: 1px solid rgba(11, 125, 69, 0.22);
             border-radius: 8px;
-            background: rgba(240, 253, 244, 0.68);
+            background: var(--success-bg, rgba(11, 125, 69, 0.1));
             font-size: 1.02rem;
-            color: #334155;
+            color: #33423b;
             box-sizing: border-box;
         }
 
         .application-review-highlight {
-            color: #2e7d32;
+            color: var(--primary-color, #0b7d45);
             font-weight: 700;
             text-decoration: underline;
             text-decoration-thickness: 1px;
@@ -115,6 +186,10 @@
                 margin-bottom: 0.95rem;
             }
 
+            .application-review-status {
+                padding: 0.85rem;
+            }
+
             .application-review-copy {
                 margin-top: 0.65rem;
                 font-size: 0.95rem;
@@ -142,29 +217,40 @@
     <main>
         <section class="application-review-panel">
             <h1 id="appReviewTitle" class="application-review-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
-                <span id="appReviewText">Application review</span> <i class="fas fa-rocket"></i>
+                <span id="appReviewText">Application review</span> <i class="fas fa-clipboard-check" aria-hidden="true"></i>
             </h1>
-            <!-- Create distinct URLs or manually defined versions for each scenario -->
             <div class="application-review-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-                <picture>
-                    <source srcset="../assets/content-images/bean-waiting.webp" type="image/webp">
-                    <source srcset="../assets/content-images/bean-waiting.png" type="image/png">
-                    <img src="../assets/content-images/bean-waiting.png" alt="Waiting" class="illustration" loading="lazy">
-                </picture>
+                <div class="application-review-status" role="status" aria-live="polite">
+                    <div class="application-review-status-label"><i class="fas fa-check" aria-hidden="true"></i> Received</div>
+                    <ol>
+                        <li>
+                            <span class="application-review-status-step">1</span>
+                            <span><strong>Submission received</strong> Your application is in the review queue.</span>
+                        </li>
+                        <li>
+                            <span class="application-review-status-step">2</span>
+                            <span><strong>Eligibility check</strong> We verify athlete details, submitted proof, and track requirements.</span>
+                        </li>
+                        <li>
+                            <span class="application-review-status-step">3</span>
+                            <span><strong>Email response</strong> You will receive the next step at the contact address below.</span>
+                        </li>
+                    </ol>
+                </div>
             </div>
             <p class="application-review-copy primary" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-                We're reviewing <span id="whatAreWeReviewing">your application</span>, which may take a day or two. Afterwards we'll contact you at <span id="contactEmailPlaceholder" class="application-review-highlight">
+                We're reviewing <span id="whatAreWeReviewing">your application</span>. Most reviews take a day or two; the response will go to <span id="contactEmailPlaceholder" class="application-review-highlight">
                     [insert contact email address here]
                 </span>
             </p>
             <p class="application-review-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <span class="smaller-text">
-                Questions, concerns, or signs of aging? Let us know at <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>
+                Questions about your submission? Contact <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>
             </span>
             </p>
             <p class="application-review-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
                 <span class="smaller-text">
-                Want to hang out with other longevity athletes? Join the <span class="application-review-highlight">#longevity-world-cup</span> room on the <a href="https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ">TumbleBit Slack</a>!
+                Athlete discussion is in <span class="application-review-highlight">#longevity-world-cup</span> on <a href="https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ">TumbleBit Slack</a>.
             </span>
             </p>
             <div class="options-container application-review-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">

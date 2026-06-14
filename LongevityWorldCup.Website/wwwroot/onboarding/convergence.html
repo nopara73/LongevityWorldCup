@@ -39,10 +39,10 @@
             display: block;
             margin-top: 0.55rem;
             padding: 0.55rem 0.7rem;
-            border: 1px solid rgba(220, 38, 38, 0.24);
+            border: 1px solid var(--error-border, rgba(179, 38, 30, 0.24));
             border-radius: 8px;
-            background: rgba(254, 242, 242, 0.94);
-            color: #b91c1c;
+            background: var(--error-bg, rgba(179, 38, 30, 0.08));
+            color: var(--error-text, #8f1f18);
             font-size: 0.9rem;
             font-weight: 700;
             line-height: 1.35;
@@ -51,7 +51,7 @@
 
         .char-counter {
             font-size: 0.9rem;
-            color: green;
+            color: var(--primary-color, #0b7d45);
             position: absolute;
             bottom: 10px;
             right: 10px;
@@ -67,22 +67,22 @@
             left: 0;
             margin-top: 0.45rem;
             padding: 0.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--surface-border-strong, rgba(28, 39, 34, 0.18));
             border-radius: 8px;
-            background-color: white;
-            z-index: 9999;
+            background-color: var(--card-bg, #fffefa);
+            z-index: 1003;
             max-height: min(14rem, 42vh);
             overflow-y: auto;
             width: 100%;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             box-sizing: border-box;
             scrollbar-width: thin;
-            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
+            scrollbar-color: rgba(11, 125, 69, 0.45) transparent;
         }
 
             .autocomplete-items .autocomplete-active {
-                background-color: rgba(0, 188, 212, 0.12);
-                color: #243446;
+                background-color: rgba(11, 125, 69, 0.12);
+                color: #1c2722;
             }
 
             .autocomplete-items div {
@@ -93,7 +93,7 @@
                 box-sizing: border-box;
                 cursor: pointer;
                 border-radius: 6px;
-                color: #2d3748;
+                color: var(--main-action-selected-color, #24332c);
                 font-size: 1rem;
                 line-height: 1.25;
             }
@@ -103,8 +103,8 @@
                 }
 
                 .autocomplete-items div:hover {
-                    background-color: rgba(0, 188, 212, 0.12);
-                    color: #243446;
+                    background-color: rgba(11, 125, 69, 0.12);
+                    color: #1c2722;
                 }
 
                 .autocomplete-items div .lwc-flag-icon {
@@ -120,8 +120,8 @@
                 .autocomplete-items div strong {
                     padding: 0 0.12rem;
                     border-radius: 4px;
-                    background: rgba(0, 188, 212, 0.12);
-                    color: #007f90;
+                    background: rgba(11, 125, 69, 0.12);
+                    color: var(--primary-color, #0b7d45);
                     font-weight: 800;
                 }
         /* Add a new class for the pointer cursor */
@@ -133,11 +133,11 @@
             width: min(100%, 408px);
             margin: 0.75rem auto 1.2rem;
             padding: 0.85rem 1rem 0.85rem 2.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
+            background: var(--card-bg, #fffefa);
             box-sizing: border-box;
-            color: #334155;
+            color: var(--text-soft, #33423b);
             line-height: 1.55;
         }
 
@@ -179,7 +179,7 @@
             justify-content: center;
             gap: 0.65rem;
             min-height: 1.25rem;
-            color: #64748b;
+            color: var(--text-subtle, #5d6b63);
             font-size: 0.85rem;
             font-weight: 700;
             line-height: 1;
@@ -191,7 +191,7 @@
             content: "";
             height: 1px;
             flex: 1 1 auto;
-            background: rgba(100, 116, 139, 0.22);
+            background: rgba(28, 39, 34, 0.18);
         }
 
         .convergence-upload-action .option-button i {
@@ -203,10 +203,10 @@
             max-width: 408px;
             margin: 0.75rem auto 0;
             padding: 0.45rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
             border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            background: var(--card-bg, #fffefa);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             box-sizing: border-box;
             overflow: hidden;
         }
@@ -218,7 +218,7 @@
             height: auto;
             margin: 0 auto;
             border-radius: 6px;
-            background: #f8fafc;
+            background: #f7f6ee;
         }
 
         .convergence-crop-preview .cropper-container {
@@ -247,12 +247,12 @@
             min-height: 42px;
             margin: 0 0 0.75rem;
             padding: 0.6rem 0.85rem;
-            border: 1px solid rgba(22, 163, 74, 0.22);
+            border: 1px solid rgba(11, 125, 69, 0.22);
             border-radius: 8px;
-            background: rgba(240, 253, 244, 0.94);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: var(--success-bg, rgba(11, 125, 69, 0.1));
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             box-sizing: border-box;
-            color: #166534;
+            color: var(--success-text, #075f35);
             font-weight: 700;
             line-height: 1.25;
         }
@@ -262,10 +262,10 @@
             display: block !important;
             margin: 0 !important;
             padding: 0.45rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
             border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            background: var(--card-bg, #fffefa);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             box-sizing: border-box;
             overflow: hidden;
         }
@@ -281,7 +281,7 @@
             max-width: 100% !important;
             border: 0 !important;
             border-radius: 6px;
-            background: #f8fafc;
+            background: #f7f6ee;
             object-fit: contain;
         }
 
@@ -292,11 +292,11 @@
             min-height: 44px;
             min-width: 44px;
             padding: 0.45rem 0.75rem !important;
-            background-color: #b91c1c !important;
+            background-color: var(--danger-color, #b3261e) !important;
             color: var(--light-text-color);
             border: none;
             border-radius: 999px !important;
-            box-shadow: 0 3px 8px rgba(127, 29, 29, 0.28);
+            box-shadow: 0 3px 8px rgba(143, 31, 24, 0.28);
             box-sizing: border-box;
             cursor: pointer;
             font-size: 0.8rem;
@@ -308,34 +308,51 @@
             max-width: 408px;
             margin: 1.25rem auto 1.35rem;
             padding: 0.9rem 1.05rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid rgba(28, 39, 34, 0.14);
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: var(--card-bg, #fffefa);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             box-sizing: border-box;
-            color: #222;
+            color: #1c2722;
         }
 
         #biomarker-checklist h4 {
             margin: 0 0 0.35rem !important;
-            color: #111827;
+            color: #1c2722;
         }
 
         #biomarker-checklist p {
             margin: 0 !important;
-            color: #334155;
+            color: var(--text-soft, #33423b);
             line-height: 1.35;
         }
 
-        /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
+        /* Flow-specific alignment only; visual styling comes from the shared button rule. */
         .back-button {
             margin-right: auto !important;
-            margin-left: 0 !important; /* Resets left margin */
+            margin-left: 0 !important;
         }
 
         .convergence-main [data-aos]:not(.aos-animate) {
             opacity: 1;
             transform: none;
+        }
+
+        .convergence-main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .convergence-main > h1 {
+            order: 1;
+        }
+
+        #inputForm {
+            order: 2;
+        }
+
+        #descriptionForm {
+            order: 3;
         }
 
         .convergence-actions {
@@ -358,9 +375,9 @@
         }
 
         .convergence-actions .option-button:disabled {
-            background: #eef2f7 !important;
-            border: 1px solid rgba(100, 116, 139, 0.16);
-            color: #64748b;
+            background: var(--disabled-bg, #e2e1d6) !important;
+            border: 1px solid var(--disabled-border, rgba(28, 39, 34, 0.12));
+            color: var(--disabled-text, #97a098);
             box-shadow: none !important;
             cursor: not-allowed;
             opacity: 1;
@@ -368,9 +385,9 @@
         }
 
         .convergence-actions .option-button:disabled:hover {
-            background: #eef2f7 !important;
-            border-color: rgba(100, 116, 139, 0.16);
-            color: #64748b;
+            background: var(--disabled-bg, #e2e1d6) !important;
+            border-color: var(--disabled-border, rgba(28, 39, 34, 0.12));
+            color: var(--disabled-text, #97a098);
             box-shadow: none !important;
             transform: none;
         }
@@ -383,10 +400,10 @@
         .convergence-helper-text {
             margin: 0.75rem 0 0;
             padding: 0.8rem 0.9rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(28, 39, 34, 0.12);
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            color: #334155;
+            background: var(--card-bg, #fffefa);
+            color: var(--text-soft, #33423b);
             line-height: 1.48;
             box-sizing: border-box;
         }
@@ -404,10 +421,10 @@
             max-width: 32rem;
             margin: 1.1rem auto 0;
             padding: 0.95rem 1rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(28, 39, 34, 0.12);
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            color: #334155;
+            background: var(--card-bg, #fffefa);
+            color: var(--text-soft, #33423b);
             line-height: 1.5;
             text-align: left;
             box-sizing: border-box;
@@ -422,20 +439,20 @@
         }
 
         .convergence-stage-copy strong {
-            color: #1f2937;
+            color: #1c2722;
         }
 
         .convergence-stage-copy em {
-            color: #1f2937;
+            color: #1c2722;
         }
 
         .convergence-application-copy {
             margin: 0.75rem 0 1.1rem;
             padding: 0.85rem 0.95rem;
-            border: 1px solid rgba(0, 188, 212, 0.22);
+            border: 1px solid rgba(11, 125, 69, 0.22);
             border-radius: 8px;
-            background: rgba(0, 188, 212, 0.08);
-            color: #2d3748;
+            background: rgba(11, 125, 69, 0.08);
+            color: var(--main-action-selected-color, #24332c);
             line-height: 1.5;
             box-sizing: border-box;
         }
@@ -452,16 +469,54 @@
             align-items: center;
             margin: 0.55rem 0 0 auto;
             padding: 0.25rem 0.65rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(28, 39, 34, 0.12);
             border-radius: 999px;
-            background: rgba(248, 250, 252, 0.96);
+            background: var(--card-bg, #fffefa);
             box-sizing: border-box;
             font-weight: 700;
             line-height: 1;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 1px 2px rgba(28, 39, 34, 0.06);
         }
 
         @media (max-width: 600px) {
+            .convergence-main {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .convergence-main > h1 {
+                order: 1;
+                margin-bottom: 0.45rem;
+            }
+
+            #inputForm {
+                order: 2;
+                margin-top: 0.85rem;
+            }
+
+            #descriptionForm {
+                order: 3;
+                gap: 0.75rem;
+                margin-top: 0.85rem;
+                padding: 0.75rem;
+            }
+
+            #descriptionForm > div:first-child {
+                order: 2;
+            }
+
+            #descriptionForm .sub-progress-container {
+                order: 1;
+                margin-bottom: 0;
+            }
+
+            #descriptionForm .convergence-stage-copy,
+            #descriptionForm #profilePicText,
+            #descriptionForm #proofText,
+            #descriptionForm #finalDetailsText {
+                order: 3;
+            }
+
             .convergence-actions {
                 width: min(100%, 320px);
                 margin-top: 1.25rem;
@@ -472,15 +527,14 @@
             }
 
             #descriptionForm .illustration {
-                width: min(100%, 290px);
-                max-height: 218px;
+                width: min(100%, 238px);
+                max-height: 154px;
                 object-fit: cover;
                 border-width: 3px;
-                margin-bottom: 1rem;
+                margin-bottom: 0;
             }
 
             #descriptionForm .sub-progress-container {
-                margin-bottom: 1rem;
                 padding-inline: 12px;
             }
 
@@ -512,7 +566,7 @@
     <!--HEADER-->
     <main class="convergence-main">
         <!--MAIN-PROGRESS-BAR-->
-        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
+        <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">Athlete details</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <div style="text-align: center;">
                 <picture id="illustrationPicture" style="display:''">
@@ -524,17 +578,17 @@
             </div>
             <!--SUB-PROGRESS-BAR-->
             <div id="privacyText" class="convergence-stage-copy" style="display:none">
-                <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                <p><strong>Public rankings require public athlete records.</strong></p>
                 <p>
-                    Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                    Longevity World Cup is a public competition. Rankings need an inspectable athlete record, proof, and enough public identity for spectators, media, and other competitors to trust the result.
                 </p>
                 <p>
-                    So, does he lack privacy? <strong>No</strong>, he made a decision to selectively reveal himself to the world.
+                    By applying, you accept that a public athlete record is part of competing.
                 </p>
             </div>
 
             <div id="profilePicText" class="convergence-stage-copy" style="display:none">
-                <p>Next, provide your profile picture. Smiling is optional!</p>
+                <p>Next, provide a clear profile picture for your public athlete record.</p>
             </div>
 
             <div id="proofText" class="convergence-stage-copy" style="display:none">
@@ -551,7 +605,7 @@
 
                 <!-- Name Field -->
                 <label for="name">Name</label>
-                <input type="text" id="name" name="name" required aria-required="true" autocomplete="name" placeholder="Real name or cyber alias — your call">
+                <input type="text" id="name" name="name" required aria-required="true" autocomplete="name" placeholder="Name shown on the standings">
                 <span id="nameError" class="error-message"></span>
 
                 <!-- Division Field -->
@@ -563,14 +617,14 @@
                 <!-- Flag Field with Autocomplete -->
                 <label for="flag">Flag</label>
                 <div class="autocomplete-container">
-                    <input type="text" id="flag" name="flag" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
+                    <input type="text" id="flag" name="flag" required aria-required="true" autocomplete="off" placeholder="Country, region, or team flag">
                     <span id="flagError" class="error-message"></span>
                 </div>
             </fieldset>
             <fieldset id="privacyDetails">
                 <legend>Visibility choice</legend>
                 <p>
-                    <strong>It's now your turn to make that decision.</strong>
+                    <strong>Confirm that you can compete with a public athlete record.</strong>
                 </p>
                 <p>
                     <span class="smaller-text">
@@ -636,18 +690,18 @@
 
                 <!-- Link to Personal Page (Optional) -->
                 <label for="personalLink">Link (optional)</label>
-                <input type="url" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" placeholder="https://yourwebsite.com">
+                <input type="url" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" placeholder="Public site or profile URL">
                 <p class="convergence-helper-text">
-                    Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
+                    Provide the public site or social profile you want listed on your athlete record.
                 </p>
 
                 <!-- Media Contact (Required) -->
                 <label for="mediaContact">Media contact (required)</label>
-                <input id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@coolpeopleonly.com">
+                <input id="mediaContact" name="mediaContact" required aria-required="true" placeholder="Media email or public contact link">
 
                 <p class="convergence-helper-text">
                     <span class="smaller-text">
-                        Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
+                        Provide a contact point that can be shown with your public record. Use a dedicated media email or a public inbox, not a private address.
                     </span>
                 </p>
             </fieldset>
@@ -655,16 +709,16 @@
                 <!-- Email Field -->
                 <legend for="accountEmail">Contact email</legend>
                 <div id="congratsText" class="convergence-application-copy" style="display:none">
-                    <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
+                    Provide an email where we can reach you about your application.
                 </div>
-                <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" autocomplete="email" placeholder="pizza_lover@hungry.com">
+                <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" autocomplete="email" placeholder="Contact email">
             </fieldset>
 
             <!-- WHY Field (Initially Hidden) -->
             <fieldset id="whyField" style="display: none; position: relative;">
                 <legend>Motivation</legend>
                 <label for="why">What drives you forward?</label>
-                <textarea id="why" name="why" rows="5" placeholder="Share your motivation here..."></textarea>
+                <textarea id="why" name="why" rows="5" placeholder="Short public athlete statement"></textarea>
                 <div id="whyCharCounter" class="char-counter">0/250</div>
             </fieldset>
 
@@ -693,7 +747,7 @@
             window.captureDiscountFromUrl();
         }
         const urlParams = new URLSearchParams(window.location.search);
-        const isFake = urlParams.get('fake') === '1';
+        const shouldAutofillPreview = urlParams.get('fake') === '1';
 
         // Update the progress bar to the appropriate stage
         // Assuming updateMainProgress and updateSubProgress are defined elsewhere
@@ -755,7 +809,7 @@
             divisionSelect.value = (chosen || options[0]).value;
         }
 
-        function fillFakeData() {
+        function fillPreviewData() {
             const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9pQ9JxwAAAAASUVORK5CYII=';
 
             const nameInput = document.getElementById('name');
@@ -766,10 +820,10 @@
             const personalLinkInput = document.getElementById('personalLink');
 
             if (nameInput && !nameInput.value.trim()) {
-                nameInput.value = 'Fake Athlete';
+                nameInput.value = 'Preview Athlete';
             }
             if (flagInput && !flagInput.value.trim()) {
-                flagInput.value = 'Cyberspace';
+                flagInput.value = 'Open Division';
             }
 
             setFakeDivisionValue();
@@ -778,13 +832,13 @@
                 whyInput.value = 'I compete to quantify healthy aging, learn from others, and push my baseline forward every season.';
             }
             if (mediaContactInput && !mediaContactInput.value.trim()) {
-                mediaContactInput.value = 'media+fake@longevityworldcup.com';
+                mediaContactInput.value = 'media+preview@longevityworldcup.com';
             }
             if (accountEmailInput && !accountEmailInput.value.trim()) {
-                accountEmailInput.value = 'fake.athlete@longevityworldcup.com';
+                accountEmailInput.value = 'preview@longevityworldcup.com';
             }
             if (personalLinkInput && !personalLinkInput.value.trim()) {
-                personalLinkInput.value = 'https://example.com/fake-athlete';
+                personalLinkInput.value = 'https://www.longevityworldcup.com/leaderboard';
             }
 
             if (!profilePic) {
@@ -801,9 +855,9 @@
             if (currentStage === 7) checkFormValidityStage7();
         }
 
-        function applyFakeDataIfNeeded() {
-            if (!isFake) return;
-            fillFakeData();
+        function applyPreviewDataIfNeeded() {
+            if (!shouldAutofillPreview) return;
+            fillPreviewData();
         }
 
         function collectApplicantData() {
@@ -865,7 +919,7 @@
 
         function setNextButtonToApply() {
             const nextButton = document.getElementById('nextButton');
-            nextButton.innerHTML = 'Apply&nbsp;<i class="fa fa-rocket"></i>';
+            nextButton.textContent = 'Submit application';
             nextButton.setAttribute('type', 'submit');
         }
 
@@ -919,8 +973,8 @@
 
             switch (stage) {
                 case 1:
-                    // Stage 1: Enter the Arena
-                    document.querySelector('h1').innerHTML = "1. Enter the arena";
+                    // Stage 1: athlete details
+                    document.querySelector('h1').innerHTML = "Athlete details";
                     updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
@@ -980,8 +1034,8 @@
                     checkFormValidityStage1();
                     break;
                 case 2:
-                    // Stage 2: Finding Your Why
-                    document.querySelector('h1').innerHTML = "2. Finding your why";
+                    // Stage 2: motivation
+                    document.querySelector('h1').innerHTML = "Why compete";
                     updateIllustration("why", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Eye";
                     illustrationImage.loading = "lazy";
@@ -1001,24 +1055,23 @@
                     checkFormValidityStage2();
                     break;
                 case 3:
-                    // Stage 3: The price of glory
-                    document.querySelector('h1').innerHTML = "3. The price of glory";
-                    updateIllustration("cr7v2", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Cristiano Ronaldo";
+                    // Stage 3: public visibility consent
+                    document.querySelector('h1').innerHTML = "Public record consent";
+                    updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Longevity World Cup public record";
                     illustrationImage.loading = "lazy";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
-                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
                     updateSubProgress(3);
-                    nextButton.textContent = 'Bring it on!';
+                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
 
                     // Enable Next button
                     nextButton.disabled = false;
                     break;
                 case 4:
-                    // Stage 4: Almost There
-                    document.querySelector('h1').innerHTML = "4/a. Almost there";
+                    // Stage 4: profile photo
+                    document.querySelector('h1').innerHTML = "Profile photo";
                     updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Headshot";
                     illustrationImage.loading = "lazy";
@@ -1046,8 +1099,8 @@
                     attachUploadEventListeners();
                     break;
                 case 5:
-                    // Stage 5: Don't Trust, Verify
-                    document.querySelector('h1').innerHTML = "4/b. Don't trust, verify";
+                    // Stage 5: proof upload
+                    document.querySelector('h1').innerHTML = "Proof upload";
                     updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Proof image";
                     illustrationImage.loading = "lazy";
@@ -1083,7 +1136,7 @@
                     break;
                 case 6:
                     // Stage 6: Final Details
-                    document.querySelector('h1').innerHTML = "5. Final details";
+                    document.querySelector('h1').innerHTML = "Final details";
                     updateIllustration("finishv2", "jpg", webpSource, jpegSource, illustrationImage);
                     illustrationImage.alt = "Finish line";
                     illustrationImage.loading = "lazy";
@@ -1139,7 +1192,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Initialize the first stage
             goToStage(currentStage);
-            applyFakeDataIfNeeded();
+            applyPreviewDataIfNeeded();
 
             const athletesPromise = fetch('/api/data/athletes')
                 .then(response => response.json())
@@ -1313,7 +1366,7 @@
                         checkFormValidityStage1(); // Check validity in case other fields are already filled
                     }
 
-                    applyFakeDataIfNeeded();
+                    applyPreviewDataIfNeeded();
 
                     document.getElementById('division').addEventListener('change', function () {
                         document.getElementById('flag').focus();

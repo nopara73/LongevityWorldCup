@@ -29,20 +29,62 @@
         }
 
         .not-found-visual {
-            margin: 0 auto 1.45rem;
+            margin: 0;
             text-align: center;
         }
 
-        .not-found-visual .illustration {
-            width: min(100%, 360px);
-            margin-bottom: 0;
+        .not-found-routes {
+            width: min(100%, 408px);
+            margin: 1rem auto 0;
+            padding: 0.8rem;
             box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-card, 8px);
+            background: var(--card-bg, #fffefa);
+        }
+
+        .not-found-routes span {
+            grid-column: 1 / -1;
+            color: #5d6b63;
+            font-size: 0.74rem;
+            font-weight: 900;
+            line-height: 1;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .not-found-routes a {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35rem 0.55rem;
+            border: 1px solid var(--surface-border-strong, rgba(28, 39, 34, 0.18));
+            border-radius: var(--radius-control, 999px);
+            background: var(--card-bg, #fffefa);
+            color: var(--primary-color, #0b7d45);
+            font-weight: 800;
+            line-height: 1.15;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .not-found-routes a:hover,
+        .not-found-routes a:focus-visible {
+            background: var(--surface-green-tint, rgba(11, 125, 69, 0.08));
+            border-color: rgba(11, 125, 69, 0.32);
+            outline: none;
+            box-shadow: var(--focus-ring, 0 0 0 4px rgba(67, 238, 131, 0.26));
         }
 
         .not-found-copy {
             max-width: 42ch;
             margin: 0 auto 1.5rem;
-            color: #3f3f3f;
+            color: #46554d;
             line-height: 1.45;
             text-align: center;
         }
@@ -54,6 +96,7 @@
             display: flex;
             flex-direction: column;
             align-items: stretch;
+            gap: 0.75rem;
             margin: 0 auto;
         }
 
@@ -69,6 +112,10 @@
             margin-left: 0;
         }
 
+        .not-found-actions .option-button.green {
+            margin: 0;
+        }
+
         @media (max-width: 600px) {
             .not-found-main {
                 padding: 2rem 1.35rem 2.75rem;
@@ -80,11 +127,23 @@
             }
 
             .not-found-visual {
-                margin-bottom: 1.25rem;
+                order: 4;
+                width: 100%;
+                margin: 0;
             }
 
-            .not-found-visual .illustration {
-                width: min(100%, 300px);
+            .not-found-copy {
+                order: 2;
+                margin-bottom: 1rem;
+            }
+
+            .not-found-actions {
+                order: 3;
+            }
+
+            .not-found-routes {
+                grid-template-columns: 1fr;
+                margin-top: 1rem;
             }
         }
     </style>
@@ -94,18 +153,24 @@
     <main class="not-found-main">
 
         <h1 id="appReviewTitle" class="not-found-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">404 not found</h1>
-        <div class="not-found-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-            <picture>
-                <img src="../error/herold.png" alt="Illustration for page not found" class="illustration" loading="lazy">
-            </picture>
-        </div>
         <p class="not-found-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            This page didn’t qualify for the Longevity World Cup
+            This page is not available. Go to the live standings or return home.
         </p>
         <div class="options-container not-found-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <button class="option-button green" onclick="window.location.href = '/leaderboard'">
+                View leaderboard&nbsp;<i class="fas fa-arrow-right"></i>
+            </button>
             <button class="option-button back-button" onclick="window.location.href = '/'">
                 <i class="fas fa-home"></i>&nbsp;Home
             </button>
+        </div>
+        <div class="not-found-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
+            <div class="not-found-routes" aria-label="Official routes">
+                <span>Official routes</span>
+                <a href="/leaderboard">Standings</a>
+                <a href="/ruleset">Ruleset</a>
+                <a href="/play">Apply</a>
+            </div>
         </div>
     </main>
     <!--FOOTER-->

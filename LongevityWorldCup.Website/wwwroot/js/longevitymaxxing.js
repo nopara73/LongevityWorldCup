@@ -266,22 +266,32 @@
     function renderMetrics(state) {
         const preStartSignup = isPreStartSignup(state);
         const checks = (state.leaderboard || []).reduce((sum, row) => sum + row.checkedInDays, 0);
+        const participantCount = (state.leaderboard || []).length;
         setText("lmxMetricPeople", String((state.leaderboard || []).length));
         setText("lmxMetricChecks", String(checks));
         setText("lmxMetricMax", String(state.dailyMaxScore || 11));
         setText("lmxMetricPhase", phaseLabel(state.phase));
         setText("lmxHeroStatus", phaseLabel(state.phase));
-        setText("lmxPhaseLabel", phaseLabel(state.phase));
+        setText("lmxPhaseLabel", checks > 0 ? phaseLabel(state.phase) : "Awaiting scores");
         const startLabel = formatDateLabel(state.startDate);
         setText("lmxStartChip", preStartSignup ? `Starts ${startLabel}` : `Started ${startLabel}`);
         const boardSection = document.getElementById("lmxBoardSection");
         if (boardSection) boardSection.classList.toggle("signup-roster", preStartSignup);
+        if (boardSection) boardSection.classList.toggle("empty-live-board", !preStartSignup && checks === 0);
         if (preStartSignup) {
-            setText("lmxBoardTitle", "Leaderboard");
-            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people signed up · starts ${formatDateLabel(state.startDate)}`);
+            setText("lmxBoardTitle", "Starting roster");
+            setText("lmxBoardMeta", `${participantCount} ${participantCount === 1 ? "person" : "people"} signed up · starts ${formatDateLabel(state.startDate)} · public board opens with first check-ins`);
+        } else if (checks === 0) {
+            setText("lmxBoardTitle", state.phase === "completed" ? "Final challenge board" : "Live challenge board");
+            setText(
+                "lmxBoardMeta",
+                participantCount > 0
+                    ? `${participantCount} ${participantCount === 1 ? "participant is" : "participants are"} on the field · scores appear after the first qualifying check-in`
+                    : "Public board opens with the first qualifying check-in · consistency ranks first · points break ties"
+            );
         } else {
-            setText("lmxBoardTitle", state.phase === "completed" ? "Final leaderboard" : "Live leaderboard");
-            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · Day 1 practice · later days ramp · checked-in days rank first`);
+            setText("lmxBoardTitle", state.phase === "completed" ? "Final challenge board" : "Live challenge board");
+            setText("lmxBoardMeta", `${participantCount} ${participantCount === 1 ? "participant" : "participants"} · ${checks} check-ins · consistency ranks first · later days carry more point weight`);
         }
         setText("lmxSignupKicker", state.signupOpen ? "free signup" : "signup closed");
         setText("lmxSignupTitle", state.signupOpen ? (preStartSignup ? `Join free before ${formatDateLabel(state.startDate)}` : "Join free today") : "Signup is closed");
@@ -606,6 +616,14 @@
 
         const publicViewer = !participantState;
         board.className = publicViewer ? "lmx-board public" : "lmx-board";
+        const hasRows = (state.leaderboard || []).length > 0;
+        const hasChecks = (state.leaderboard || []).some(row => row.checkedInDays > 0);
+        if (!hasRows || !hasChecks) {
+            board.className = "lmx-board public empty";
+            board.innerHTML = emptyBoardRow(state, publicViewer);
+            return;
+        }
+
         const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
         const rows = (state.leaderboard || []).map(row => {
             const name = row.athleteUrl
@@ -637,7 +655,7 @@
             <div role="columnheader">Score</div>
             ${publicViewer ? "" : `<div role="columnheader">Streak</div>`}
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyBoardRow(state.durationDays || 14, publicViewer)}`;
+        </div>${rows}`;
     }
 
     function renderRosterBoard(board, state) {
@@ -658,27 +676,50 @@
         board.innerHTML = `<div class="lmx-board-row lmx-roster-row header" role="row">
             <div role="columnheader">Participant</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyRosterRow(state.durationDays || 14)}`;
+        </div>${rows || emptyRosterRow(state)}`;
     }
 
-    function emptyBoardRow(durationDays, publicViewer) {
-        return `<div class="lmx-board-row" role="row">
-            <div class="lmx-name" role="cell">
-                <span class="lmx-empty-name">No one has joined yet</span>
-            </div>
-            <div class="lmx-number" role="cell" data-label="Days">0</div>
-            <div class="lmx-number" role="cell" data-label="Score">0</div>
-            ${publicViewer ? "" : `<div class="lmx-number" role="cell" data-label="Streak">0</div>`}
-            <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${Array.from({ length: durationDays }, () => `<div class="lmx-cell empty"></div>`).join("")}</div>
-        </div>`;
+    function emptyBoardRow(state, publicViewer) {
+        const signupCopy = state.signupOpen
+            ? "Signup is open. Accepted check-ins will create the first public ranking row."
+            : "Rows appear here after accepted check-ins qualify for the public board.";
+        return emptyBoardStateRow(
+            "Board opens with the first qualifying check-in",
+            signupCopy,
+            state.signupOpen ? "Join free from the signup card above." : "Standings publish here as soon as the first result qualifies."
+        );
     }
 
-    function emptyRosterRow(durationDays) {
-        return `<div class="lmx-board-row lmx-roster-row" role="row">
-            <div class="lmx-name" role="cell">
-                <span class="lmx-empty-name">No one has joined yet</span>
+    function emptyRosterRow(state) {
+        return emptyBoardStateRow(
+            "Waiting for first challengers",
+            `The roster will fill here as people join before ${formatDateLabel(state.startDate)}.`,
+            "This is the preseason board, not a broken leaderboard."
+        );
+    }
+
+    function emptyBoardStateRow(title, copy, actionText) {
+        return `<div class="lmx-board-row lmx-empty-board-row" role="row">
+            <div class="lmx-empty-board-card" role="cell">
+                <span class="lmx-mini-label">public board</span>
+                <strong>${esc(title)}</strong>
+                <span>${esc(copy)}</span>
+                <em>${esc(actionText)}</em>
+                <div class="lmx-empty-board-facts" aria-label="Challenge ranking rules">
+                    <div>
+                        <small>Eligibility</small>
+                        <b>Accepted check-in</b>
+                    </div>
+                    <div>
+                        <small>Ranking</small>
+                        <b>Checked-in days</b>
+                    </div>
+                    <div>
+                        <small>Tie-break</small>
+                        <b>Total points</b>
+                    </div>
+                </div>
             </div>
-            <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${Array.from({ length: durationDays }, () => `<div class="lmx-cell empty"></div>`).join("")}</div>
         </div>`;
     }
 

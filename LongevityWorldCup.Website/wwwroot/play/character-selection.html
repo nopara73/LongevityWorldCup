@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Longevity World Cup - Character Selection</title>
+    <title>Access athlete record | Longevity World Cup</title>
     <!--HEAD-->
     <style>
         /* Hide the join-game button in the header */
@@ -10,9 +10,10 @@
         }
 
         .character-selection-main {
-            max-width: 760px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2.5rem 1rem 3.25rem;
+            min-height: 520px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -24,19 +25,134 @@
         }
 
         .character-selection-title {
-            margin: 0 0 1.25rem;
+            margin: 0 0 0.65rem;
             text-align: center;
+            order: 1;
+        }
+
+        .character-selection-lede {
+            order: 2;
+            width: min(100%, 440px);
+            margin: 0 0 1rem;
+            color: var(--text-soft, #33423b);
+            font-size: var(--text-ui, 0.9375rem);
+            line-height: var(--leading-body, 1.55);
+            text-align: center;
+        }
+
+        .character-selection-panel {
+            order: 3;
+            width: min(100%, 440px);
+            padding: 0;
+            box-sizing: border-box;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-panel, 10px);
+            background: var(--card-bg, #fffefa);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28,39,34,.08));
+            overflow: hidden;
+        }
+
+        .character-selection-scope {
+            order: 4;
+            width: min(100%, 440px);
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+            box-sizing: border-box;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-panel, 10px);
+            background:
+                linear-gradient(180deg, rgba(11, 125, 69, 0.035), rgba(255, 254, 250, 0) 72%),
+                var(--card-bg, #fffefa);
+            color: var(--text-soft, #33423b);
+            box-shadow: none;
+        }
+
+        .character-selection-scope-title {
+            display: block;
+            margin: 0 0 0.5rem;
+            color: var(--primary-color, #0b7d45);
+            font-size: var(--text-caption, 0.75rem);
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .character-selection-scope p {
+            margin: 0;
+            color: var(--text-muted, #46554d);
+            font-size: var(--text-small, 0.875rem);
+            line-height: var(--leading-body, 1.55);
+        }
+
+        .character-selection-scope-list {
+            display: grid;
+            gap: 0.45rem;
+            margin: 0.85rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .character-selection-scope-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            min-height: 2rem;
+            color: var(--dark-text-color, #1c2722);
+            font-size: var(--text-small, 0.875rem);
+            font-weight: 800;
+            line-height: var(--leading-ui, 1.35);
+        }
+
+        .character-selection-scope-list li::before {
+            content: "";
+            width: 0.48rem;
+            height: 0.48rem;
+            flex: 0 0 auto;
+            border-radius: 999px;
+            background: var(--primary-color, #0b7d45);
+            box-shadow: 0 0 0 3px rgba(11, 125, 69, 0.1);
+        }
+
+        .character-selection-panel-header {
+            padding: 0.8rem 1rem;
+            background:
+                radial-gradient(120% 100% at 50% -35%, rgba(67, 238, 131, 0.1), transparent 62%),
+                linear-gradient(180deg, #0a120e, var(--background-color, #050908) 78%);
+            border-bottom: 1px solid var(--chrome-border, rgba(248, 247, 239, 0.14));
+            color: var(--light-text-color, #f8f7ef);
+            font-size: 0.78rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .character-selection-panel-body {
+            padding: 1.15rem 1rem 1rem;
         }
 
         .character-selection-visual {
-            margin: 0 auto 1.4rem;
+            display: none;
+            margin: 0 auto 1.15rem;
             text-align: center;
+            order: 2;
+        }
+
+        .character-selection-visual.is-selected {
+            display: block;
         }
 
         .character-selection-visual .illustration {
-            width: min(100%, 408px);
+            width: 112px;
+            height: 112px;
             margin-bottom: 0;
+            border: 3px solid var(--secondary-color, #8f6a0e);
+            border-radius: 50%;
+            object-fit: cover;
             box-sizing: border-box;
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28,39,34,.08));
         }
 
         .autocomplete-wrapper {
@@ -46,13 +162,14 @@
             flex-direction: column;
             align-items: center;
             width: 100%; /* Make the container fill the form width */
-            margin-bottom: 1.4rem;
+            margin-bottom: 1rem;
             transition: margin-bottom 0.2s ease;
+            order: 1;
         }
 
         @supports selector(:has(*)) {
             .autocomplete-wrapper:has(.autocomplete-items) {
-                margin-bottom: calc(1.4rem + min(12rem, 36vh));
+                margin-bottom: calc(1rem + min(12rem, 36vh));
             }
         }
 
@@ -72,8 +189,10 @@
                 width: 100%;
                 min-height: 44px;
                 padding: 0.65rem 1rem;
-                border: 1px solid #cbd5e1;
+                border: 1px solid var(--control-border, #cbd2c8);
                 border-radius: 999px;
+                background: var(--control-bg, #fffefa);
+                color: var(--dark-text-color, #1c2722);
                 font-size: 1rem;
                 line-height: 1.3;
                 transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -82,8 +201,8 @@
 
                 .autocomplete-container input:focus {
                     outline: none;
-                    border-color: var(--primary-color, #00bcd4);
-                    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+                    border-color: var(--primary-color, #0b7d45);
+                    box-shadow: var(--control-focus-ring, 0 0 0 3px rgba(11, 125, 69, 0.16));
                 }
 
         .autocomplete-items {
@@ -92,17 +211,17 @@
             left: 0;
             right: 0;
             padding: 0.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--surface-border-strong, rgba(28, 39, 34, 0.18));
             border-radius: 8px;
-            background: #fff;
+            background: var(--card-bg, #fffefa);
             width: 100%;
             max-height: min(12rem, 36vh);
             overflow-y: auto;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             box-sizing: border-box;
-            z-index: 9999;
+            z-index: 1003;
             scrollbar-width: thin;
-            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
+            scrollbar-color: rgba(11, 125, 69, 0.45) transparent;
         }
 
             .autocomplete-items div {
@@ -112,7 +231,7 @@
                 padding: 0.6rem 0.7rem;
                 border-radius: 6px;
                 box-sizing: border-box;
-                color: #2d3748;
+                color: #24332c;
                 cursor: pointer;
                 font-size: 1rem;
                 line-height: 1.25;
@@ -124,15 +243,15 @@
 
                 .autocomplete-items div:hover,
                 .autocomplete-active {
-                    background-color: rgba(0, 188, 212, 0.12);
-                    color: #243446;
+                    background-color: rgba(11, 125, 69, 0.12);
+                    color: #1c2722;
                 }
 
                 .autocomplete-items div strong {
                     padding: 0 0.12rem;
                     border-radius: 4px;
-                    background: rgba(0, 188, 212, 0.16);
-                    color: #0f5965;
+                    background: rgba(11, 125, 69, 0.16);
+                    color: var(--primary-color, #0b7d45);
                 }
 
         .error-message {
@@ -143,10 +262,10 @@
             display: block;
             margin-top: 0.55rem;
             padding: 0.55rem 0.7rem;
-            border: 1px solid rgba(220, 38, 38, 0.24);
+            border: 1px solid var(--error-border, rgba(179, 38, 30, 0.24));
             border-radius: 8px;
-            background: rgba(254, 242, 242, 0.94);
-            color: #b91c1c;
+            background: var(--error-bg, rgba(179, 38, 30, 0.08));
+            color: var(--error-text, #8f1f18);
             font-size: 0.9rem;
             font-weight: 700;
             line-height: 1.35;
@@ -161,6 +280,8 @@
             flex-direction: column;
             align-items: stretch;
             gap: 0.85rem;
+            order: 2;
+            margin-top: 0;
         }
 
         .character-selection-actions .option-button {
@@ -168,25 +289,136 @@
             min-width: 0;
             max-width: none;
             margin: 0;
+            gap: 0.35rem;
+            padding-inline: 1rem;
+            white-space: nowrap;
             box-sizing: border-box;
+        }
+
+        .character-selection-actions .option-button:disabled {
+            min-height: 48px;
+            background: var(--disabled-bg, #e2e1d6);
+            border: 1px solid var(--disabled-border, rgba(28, 39, 34, 0.14));
+            color: var(--disabled-text, #97a098);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .character-selection-actions .option-button i {
+            flex: 0 0 auto;
         }
 
         .character-selection-actions .back-button {
             margin-left: 0;
         }
 
-        @media (max-width: 600px) {
+        @media (min-width: 900px) {
             .character-selection-main {
-                padding: 2rem 1.35rem 2.75rem;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+                grid-template-rows: auto auto 1fr;
+                align-items: start;
+                column-gap: clamp(2rem, 5vw, 4rem);
+                row-gap: 0.85rem;
+                padding-top: clamp(3rem, 6vh, 4.75rem);
             }
 
             .character-selection-title {
-                margin-bottom: 1rem;
+                grid-column: 1;
+                grid-row: 1;
+                align-self: end;
+                max-width: 11ch;
+                margin-bottom: 0;
+                text-align: left;
+                font-size: clamp(3rem, 5.2vw, 4.85rem);
+                line-height: 0.95;
+                text-wrap: balance;
+            }
+
+            .character-selection-lede {
+                grid-column: 1;
+                grid-row: 2;
+                width: min(100%, 31rem);
+                margin: 0.2rem 0 0;
+                text-align: left;
+                font-size: 1rem;
+            }
+
+            .character-selection-panel {
+                grid-column: 2;
+                grid-row: 1 / span 3;
+                align-self: start;
+                width: 100%;
+                margin-top: 0.35rem;
+            }
+
+            .character-selection-scope {
+                grid-column: 1;
+                grid-row: 3;
+                width: min(100%, 31rem);
+                margin-top: 1rem;
+            }
+
+            .character-selection-visual.is-selected {
+                grid-column: 1;
+                grid-row: 3;
+                justify-self: start;
+                align-self: start;
+                margin: 1rem 0 0;
+            }
+
+            .character-selection-main:has(.character-selection-visual.is-selected) .character-selection-scope {
+                grid-row: 4;
+                margin-top: 0.15rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .character-selection-main {
+                padding: 2rem 1.35rem 2.75rem;
+                min-height: calc(100svh - 5rem);
+            }
+
+            .character-selection-title {
+                margin-bottom: 0.55rem;
                 font-size: 2rem;
             }
 
+            .character-selection-lede {
+                margin-bottom: 0.9rem;
+                font-size: var(--text-small, 0.875rem);
+                text-align: left;
+            }
+
             .character-selection-visual {
-                margin-bottom: 1.25rem;
+                order: 4;
+                margin: 1.35rem auto 0;
+            }
+
+            .character-selection-scope {
+                margin-top: 0.85rem;
+            }
+
+            .character-selection-visual {
+                margin-bottom: 0;
+            }
+
+            .character-selection-visual .illustration {
+                width: 96px;
+                height: 96px;
+            }
+
+            .autocomplete-wrapper {
+                order: 1;
+            }
+
+            .character-selection-actions {
+                order: 2;
+            }
+
+            .character-selection-actions .option-button {
+                min-height: 56px;
+                font-size: var(--text-body, 1rem);
             }
 
             .autocomplete-wrapper {
@@ -211,15 +443,20 @@
                 line-height: 1.05;
             }
 
+            .character-selection-lede {
+                max-width: 420px;
+                margin-bottom: 0.55rem;
+                font-size: 0.82rem;
+                line-height: 1.35;
+            }
+
             .character-selection-visual {
                 margin-bottom: 0.65rem;
             }
 
             .character-selection-visual .illustration {
-                width: auto;
-                max-width: min(100%, 240px);
-                max-height: 30dvh;
-                object-fit: contain;
+                width: 84px;
+                height: 84px;
             }
 
             .autocomplete-wrapper {
@@ -240,12 +477,23 @@
                 gap: 0.55rem;
             }
         }
+
+        @media (max-width: 360px) {
+            .character-selection-actions .option-button {
+                min-height: 52px;
+                padding-inline: 0.75rem;
+                font-size: 0.95rem;
+            }
+        }
     </style>
 </head>
 <body>
     <!--HEADER-->
     <main class="character-selection-main">
-        <h1 id="character-title" class="character-selection-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
+        <h1 id="character-title" class="character-selection-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Access athlete record</h1>
+        <p id="character-lede" class="character-selection-lede" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            Search the public standings roster to manage an athlete's proof, biomarker results, and profile details.
+        </p>
         <div class="character-selection-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
@@ -253,26 +501,41 @@
                 <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
             </picture>
         </div>
-        <div class="autocomplete-wrapper" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <div class="autocomplete-container">
-                <input type="text"
-                       id="athlete"
-                       name="athlete"
-                       required
-                       autocomplete="off"
-                       placeholder="Start typing your athlete name…">
-                <span id="athleteError" class="error-message"></span>
+        <section class="character-selection-panel" aria-label="Athlete record lookup" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <div class="character-selection-panel-header">Official athlete lookup</div>
+            <div class="character-selection-panel-body">
+                <div class="autocomplete-wrapper">
+                    <div class="autocomplete-container">
+                        <input type="text"
+                               id="athlete"
+                               name="athlete"
+                               aria-label="Athlete name"
+                               required
+                               autocomplete="off"
+                               placeholder="Search athlete name...">
+                        <span id="athleteError" class="error-message"></span>
+                    </div>
+                </div>
+                <div class="options-container character-selection-actions">
+                    <button disabled id="confirmBtn" class="option-button green"
+                            onclick="window.location.href='/dashboard'">
+                        Select an athlete to continue
+                    </button>
+                    <button class="option-button back-button" onclick="window.goBackOrHome()">
+                        <i class="fas fa-arrow-left"></i>&nbsp;Back
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="options-container character-selection-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button disabled id="confirmBtn" class="option-button green"
-                    onclick="window.location.href='/dashboard'">
-                Select&nbsp;<i class="fas fa-arrow-right"></i>
-            </button>
-            <button class="option-button back-button" onclick="window.goBackOrHome()">
-                <i class="fas fa-arrow-left"></i>&nbsp;Back
-            </button>
-        </div>
+        </section>
+        <section class="character-selection-scope" aria-label="Record access scope" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <strong class="character-selection-scope-title">Record tools</strong>
+            <p>This path is for competitors already listed in the standings. Select a record to manage official athlete data.</p>
+            <ul class="character-selection-scope-list" aria-label="Available record tools">
+                <li>Proof uploads</li>
+                <li>Biomarker results</li>
+                <li>Profile details</li>
+            </ul>
+        </section>
     </main>
     <!--FOOTER-->
     <script>
@@ -281,14 +544,6 @@
         let currentAthlete = null;
 
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(() => {
-                const viewTarget = document.querySelector('h1');
-                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-
-            // Set focus to the athlete input
-            athleteInput.focus();
-
             const confirmBtn = document.getElementById('confirmBtn');
             confirmBtn.addEventListener('click', () => {
                 // if we had a different athlete before, clear any PhenoAge data
@@ -421,13 +676,20 @@
         function selectAthlete(a) {
             athleteInput.value = a.Name;
             document.getElementById('character-title').textContent = a.Name;
+            const lede = document.getElementById('character-lede');
+            if (lede) {
+                lede.textContent = 'Open this competitor record to submit proof, update profile details, or add eligible blood-test results.';
+            }
+            const visual = document.querySelector('.character-selection-visual');
             document.querySelector('picture').innerHTML = `
                                                                                                             <img src="${a.ProfilePic}"
                                                                                                                     alt="${a.Name} headshot"
                                                                                                                     class="illustration"
                                                                                                                     loading="lazy">`;
+            if (visual) visual.classList.add('is-selected');
             confirmBtn.style.display = 'inline-block';
             confirmBtn.disabled = false;
+            confirmBtn.innerHTML = 'Open athlete record&nbsp;<i class="fas fa-arrow-right" aria-hidden="true"></i>';
             currentAthlete = a;
         }
     </script>

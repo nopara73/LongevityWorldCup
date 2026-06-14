@@ -4,15 +4,13 @@
    ========================= */
     :root{
         --portrait-size: 60px;          /* table portrait size */
-        --portrait-hover-scale: 1.1;    /* table hover scale */
-        --arrow-left: -15px;            /* base arrow position */
-        --arrow-hover-shift: calc((var(--portrait-size) * (var(--portrait-hover-scale) - 1)) / 2);
-        --arrow-cover-extra: 24px;      /* arrow width (20) + ~4px safety */
+        --portrait-hover-scale: 1.04;   /* table hover lift without destabilizing rows */
+        --status-marker-size: 18px;
         /* Amateur (pheno age) tier styling only */
-        --tier-amateur-bg: rgba(59, 130, 246, 0.06);
-        --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
-        --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
-        --tier-amateur-hover: rgba(59, 130, 246, 0.12);
+        --tier-amateur-bg: rgba(212, 175, 55, 0.07);
+        --tier-amateur-bg-even: rgba(212, 175, 55, 0.13);
+        --tier-amateur-border: rgba(143, 106, 14, 0.32);
+        --tier-amateur-hover: rgba(212, 175, 55, 0.16);
     }
 
     /* =========================
@@ -20,8 +18,8 @@
        ========================= */
     .visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
     .highlight{
-        background:rgba(0,188,212,.16); color:#10333a; border-radius:.28em; padding:0 .12em;
-        box-shadow:inset 0 -0.12em 0 rgba(255,64,129,.34);
+        background:rgba(11,125,69,.16); color:#15281e; border-radius:.28em; padding:0 .12em;
+        box-shadow:inset 0 -0.12em 0 rgba(212,175,55,.34);
     }
     .fade-out{ opacity:0; transition:opacity .4s ease; }
     .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
@@ -30,10 +28,22 @@
     .leaderboard table tbody tr.no-results td{ cursor:default; padding:1.5rem 1rem; }
     .no-results-empty-state{
         display:flex; flex-direction:column; align-items:center; gap:.85rem; width:min(100%, 380px); margin:0 auto;
-        padding:1.15rem 1rem; border:1px solid rgba(0,188,212,.18); border-radius:14px; background:rgba(0,188,212,.045);
+        padding:1.15rem 1rem; border:1px solid var(--surface-border-strong); border-radius:var(--radius-card, 8px); background:var(--surface-green-tint);
         box-sizing:border-box;
     }
     .no-results-empty-state p{ margin:0; }
+    .no-results-empty-title{
+        color:var(--primary-color);
+        font-size:1.05rem;
+        font-weight:800;
+        line-height:1.25;
+    }
+    .no-results-empty-detail{
+        color:var(--text-muted, #46554d);
+        font-size:.88rem;
+        font-weight:600;
+        line-height:1.35;
+    }
     .show-all-athletes-btn{
         min-height:44px; border:1px solid var(--primary-color); border-radius:999px; background:var(--card-bg); color:var(--primary-color);
         font:inherit; font-size:.9rem; font-weight:700; padding:.55rem 1rem; cursor:pointer; transform:none !important;
@@ -43,7 +53,7 @@
     .show-all-athletes-btn:hover,
     .show-all-athletes-btn:active,
     .show-all-athletes-btn:focus{
-        background:rgba(255,64,129,.08); color:var(--secondary-color); border-color:var(--secondary-color);
+        background:rgba(212,175,55,.08); color:var(--secondary-color); border-color:var(--secondary-color);
         outline:none; box-shadow:none; transform:none !important; font:inherit; font-size:.9rem; font-weight:700;
     }
     #comingSoon{ font-size:.5rem; font-weight:normal; }
@@ -76,8 +86,11 @@
 
     .leaderboard{
         display:flex; align-items:stretch; background-color:var(--card-bg);
-        border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
+        border:1px solid var(--surface-border, rgba(28,39,34,.12));
+        border-radius:var(--radius-panel, 10px); box-shadow:var(--surface-shadow, 0 4px 10px rgba(28,39,34,.08)); overflow:hidden; flex-grow:1;
     }
+    .leaderboard.is-sparse-ranking{ align-items:flex-start; }
+    .leaderboard.is-sparse-ranking .collapsed-title{ font-size:1.38rem; word-spacing:4px; padding:10px 0; }
 
     @keyframes skeletonShimmer{
         0%{ background-position:200% 0; }
@@ -207,13 +220,17 @@
 
     .leaderboard td{ text-align:center; }
 
+    .leaderboard table .sponsor-th,
+    .leaderboard table .sponsor-td{ display:none; }
+
     /* Scoped header styles – do NOT affect the modal info table */
     .leaderboard table th{
-        padding:1rem 1rem; text-align:center; background-color:rgba(0,188,212,.1);
+        padding:1rem 1rem; text-align:center; background-color:rgba(11,125,69,.1);
         color:var(--primary-color); font-weight:700; text-transform:uppercase; font-size:.9rem; letter-spacing:1px;
     }
     .leaderboard table th a{
         display:inline-flex;
+        flex-direction:column;
         align-items:center;
         justify-content:center;
         min-height:2rem;
@@ -221,23 +238,47 @@
         box-sizing:border-box;
         border-radius:6px;
     }
+    .leaderboard-score-header{
+        color:var(--primary-color);
+        text-decoration:none;
+    }
+    .leaderboard-score-header:hover,
+    .leaderboard-score-header:focus-visible{
+        color:#0a5c36;
+        outline:none;
+        background:rgba(11,125,69,.07);
+    }
+    .score-heading-label{
+        text-decoration:underline;
+        text-decoration-thickness:.08em;
+        text-underline-offset:.18em;
+    }
+    .score-heading-detail{
+        margin-top:.14rem;
+        color:#526056;
+        font-size:.68rem;
+        font-weight:800;
+        letter-spacing:.04em;
+        line-height:1.1;
+        text-transform:none;
+    }
     .leaderboard table th:nth-child(2){ text-align:left; }
-    .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
+    .leaderboard table tr:nth-child(even){ background-color:var(--surface-row-alt); }
 
-    /* Amateur (pheno age) tier – blueish hue; pro (Bortz) rows use default table styling */
+    /* Amateur (pheno age) tier: amber marks the Amateur field; Pro rows use default table styling. */
     .leaderboard table tbody tr.tier-amateur{
         background-color: var(--tier-amateur-bg);
-        border-left: var(--tier-amateur-border);
+        box-shadow: inset 0 0 0 1px var(--tier-amateur-border);
     }
     .leaderboard table tbody tr.tier-amateur:nth-child(even){
         background-color: var(--tier-amateur-bg-even);
     }
     .leaderboard table tbody tr.tier-amateur:hover{
         background-color: var(--tier-amateur-hover);
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+        box-shadow: inset 0 0 0 1px var(--tier-amateur-border), var(--surface-shadow);
     }
     .leaderboard table tbody tr.tier-separator{
-        background: linear-gradient(90deg, rgba(240, 244, 248, 0.6), rgba(59, 130, 246, 0.12));
+        background: linear-gradient(90deg, var(--card-bg), var(--surface-amber-tint));
         border-left: none;
         cursor: default;
         pointer-events: none;
@@ -252,8 +293,8 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--primary-color);
-        border-top: 1px solid rgba(0, 0, 0, 0.06);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-top: 1px solid var(--surface-border);
+        border-bottom: 1px solid var(--surface-border);
     }
     .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; }
     .tier-separator-cell .tier-separator-link{
@@ -272,13 +313,33 @@
     .tier-separator-cell .tier-separator-link:hover,
     .tier-separator-cell .tier-separator-link:focus-visible{
         color: var(--secondary-color);
-        background: rgba(0,188,212,.08);
+        background: rgba(11,125,69,.08);
     }
 
     .leaderboard table tbody tr{ cursor:pointer; }
     .leaderboard table tbody tr:hover{
         transform:translateY(-1px);
-        box-shadow:0 5px 14px rgba(0,0,0,.08);
+        box-shadow:var(--surface-shadow-lifted);
+    }
+
+    @media (min-width: 901px){
+        .leaderboard table th{ padding:.58rem 1rem; }
+        .leaderboard table td{ padding-top:.34rem; padding-bottom:.34rem; }
+        .leaderboard .athlete-td .portrait-wrapper{
+            --portrait-size: 46px;
+        }
+        .leaderboard .portrait{
+            border-width:2px;
+            margin:.22rem 0;
+        }
+        .rank{ font-size:1.12rem; }
+        .leaderboard .media-contact{
+            min-height:2rem;
+            margin:0;
+            padding:.3rem .62rem;
+            font-size:.82rem;
+        }
+        main .leaderboard-toolbar{ margin-bottom:.7rem; }
     }
 
     /* Let the Rank column auto-size (override old 15px rule) */
@@ -297,25 +358,32 @@
        4) Sidebar & filters
        ========================= */
     .sidebar{
-        position:relative; width:50px; padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
-        margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
+        position:relative; width:42px; min-height:68px; padding:0; background:var(--card-bg); border:1px solid var(--surface-border, rgba(28,39,34,.12)); border-radius:var(--radius-card, 8px); box-shadow:none;
+        margin-right:.45rem; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; transition:width .24s ease, padding .24s ease, box-shadow .2s ease;
         overflow:hidden; flex-shrink:0;
     }
     .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
         width:auto; max-height:calc(100vh - 2rem); padding:1rem; align-items:flex-start;
         overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
-        scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
+        scrollbar-width:thin; scrollbar-color:rgba(11,125,69,.55) transparent;
+        background:
+            linear-gradient(180deg, rgba(11,125,69,.035), rgba(255,254,250,0) 10rem),
+            var(--card-bg);
+        box-shadow:var(--surface-shadow-lifted, 0 8px 18px rgba(28,39,34,.12));
     }
     .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar,
     .sidebar.expanded::-webkit-scrollbar{ width:8px; }
     .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar-track,
     .sidebar.expanded::-webkit-scrollbar-track{ background:transparent; }
     .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar-thumb,
-    .sidebar.expanded::-webkit-scrollbar-thumb{ background:rgba(0,188,212,.45); border-radius:999px; border:2px solid var(--card-bg); }
+    .sidebar.expanded::-webkit-scrollbar-thumb{ background:rgba(11,125,69,.45); border-radius:999px; border:2px solid var(--card-bg); }
     .sidebar:hover:not(.button-collapsed)::-webkit-scrollbar-thumb:hover,
-    .sidebar.expanded::-webkit-scrollbar-thumb:hover{ background:rgba(0,188,212,.68); }
+    .sidebar.expanded::-webkit-scrollbar-thumb:hover{ background:rgba(11,125,69,.68); }
     .sidebar .filter-section{ display:none; }
     .sidebar:hover .filter-section, .sidebar.expanded .filter-section{ display:block; }
+    .leaderboard .sidebar:not(.expanded){
+        display:none;
+    }
 
     .sidebar.partially-expanded{ width:80px; }
     .sidebar-toggle{
@@ -325,29 +393,29 @@
     .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
     .sidebar-toggle.active i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state:not(.active){
-        background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.07)); border-color:var(--secondary-color);
-        box-shadow:0 0 0 3px rgba(255,64,129,.14), 0 8px 18px rgba(0,0,0,.1);
+        background:linear-gradient(180deg, var(--card-bg), var(--surface-amber-tint)); border-color:var(--secondary-color);
+        box-shadow:0 0 0 3px var(--surface-amber-tint), var(--surface-shadow-lifted);
     }
     .sidebar-toggle.has-active-state:not(.active) i{ color:var(--secondary-color); }
-    .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
+    .sidebar-toggle:hover{ background:var(--primary-color); transform:translateY(-1px); }
     .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
     .sidebar-toggle:hover i{ color:var(--card-bg); }
     .sidebar-toggle:focus-visible,
     .sidebar-toggle.is-keyboard-focus{
-        outline:2px solid var(--secondary-color); outline-offset:3px;
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(0,0,0,.12);
+        outline:2px solid var(--accent-bright, #43ee83); outline-offset:3px;
+        box-shadow:var(--focus-ring, 0 0 0 4px rgba(67,238,131,.26)), 0 6px 14px rgba(0,0,0,.12);
     }
     .sidebar-toggle:focus-visible i,
-    .sidebar-toggle.is-keyboard-focus i{ color:var(--secondary-color); }
+    .sidebar-toggle.is-keyboard-focus i{ color:var(--primary-color); }
     .sidebar-toggle.active:focus-visible,
     .sidebar-toggle.active.is-keyboard-focus{
-        border-color:var(--secondary-color);
-        box-shadow:0 0 0 4px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
+        border-color:var(--accent-bright, #43ee83);
+        box-shadow:var(--focus-ring, 0 0 0 4px rgba(67,238,131,.26)), 0 6px 14px rgba(11,125,69,.16);
     }
     .sidebar-toggle.active:focus-visible i,
     .sidebar-toggle.active.is-keyboard-focus i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state:not(.active):hover{
-        background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 10px 22px rgba(255,64,129,.24);
+        background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 0 0 3px var(--surface-amber-tint-strong), var(--surface-shadow-lifted);
     }
     .sidebar-toggle.has-active-state:not(.active):hover i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state::after{
@@ -356,7 +424,7 @@
     }
 
     .sidebar-close{
-        display:none; align-items:center; justify-content:center; background:rgba(0,188,212,.08); border:1px solid rgba(0,188,212,.22);
+        display:none; align-items:center; justify-content:center; background:var(--surface-green-tint); border:1px solid var(--surface-border-strong);
         font-size:1rem; color:var(--primary-color); cursor:pointer; position:absolute; top:.9rem; right:.9rem; z-index:10;
         transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
         width:44px; height:44px; border-radius:50%; box-sizing:border-box;
@@ -364,39 +432,85 @@
     .sidebar.expanded .sidebar-close{ display:block; }
     .sidebar-close i{ font-size:.95rem; line-height:1; }
     .sidebar-close:hover{
-        background:var(--primary-color); border-color:var(--primary-color); color:var(--card-bg); box-shadow:0 8px 18px rgba(0,188,212,.22);
-        outline:none; transform:scale(1.04);
+        background:var(--primary-color); border-color:var(--primary-color); color:var(--card-bg); box-shadow:0 8px 18px rgba(11,125,69,.22);
+        outline:none; transform:translateY(-1px);
     }
     .sidebar-close:focus-visible,
     .sidebar-close.is-keyboard-focus{
-        background:var(--card-bg); border-color:var(--secondary-color); color:var(--secondary-color);
-        outline:none; transform:scale(1.04); box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(255,64,129,.16);
+        background:var(--card-bg); border-color:var(--accent-bright, #43ee83); color:var(--primary-color);
+        outline:none; transform:translateY(-1px); box-shadow:var(--focus-ring, 0 0 0 4px rgba(67,238,131,.26)), 0 6px 14px rgba(11,125,69,.16);
     }
 
     .collapsed-title{
-        display:block; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
-        padding:15px 0; letter-spacing:1px; word-spacing:10px; font-family:'Orbitron', sans-serif;
-        background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
-        -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
+        display:block;
+        width:100%;
+        padding:.7rem 0 .8rem;
+        color:var(--primary-color);
+        font-size:0;
+        line-height:1;
+        text-align:center;
+        border-radius:var(--radius-card, 8px);
+    }
+    .collapsed-title::before{
+        content:"";
+        display:block;
+        width:20px;
+        height:2px;
+        margin:0 auto 5px;
+        border-radius:999px;
+        background:var(--primary-color);
+        box-shadow:0 6px 0 var(--primary-color), 0 12px 0 var(--primary-color);
+        opacity:.92;
+    }
+    .collapsed-title::after{
+        content:attr(data-filter-label);
+        display:block;
+        margin-top:1.35rem;
+        color:var(--text-subtle, #5d6b63);
+        font:800 .68rem/1 var(--font-body, Roboto, sans-serif);
+        letter-spacing:.08em;
+        text-transform:uppercase;
+        writing-mode:vertical-rl;
+        transform:rotate(180deg);
     }
     .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
     .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:100%; }
 
     .sidebar-title{
-        margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color);
-        display:flex; align-items:center; justify-content:left; border-bottom:2px solid var(--primary-color);
+        margin:0 0 1.1rem; padding:1rem 3.4rem 1rem 1rem; text-align:center; font-size:1.2rem; color:var(--primary-color);
+        display:flex; align-items:center; justify-content:left; border-bottom:0;
+        background:
+            linear-gradient(180deg, rgba(67,238,131,.08), rgba(67,238,131,0) 70%),
+            #030706;
+        color:#f8f7ef;
+        border-radius:var(--radius-card, 8px);
+        box-shadow:inset 0 -1px 0 rgba(248,247,239,.14);
     }
-    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; position:relative; }
+    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:1.65rem; position:relative; color:var(--accent-bright, #43ee83); }
     .sidebar.has-active-state .sidebar-title .sidebar-icon::after{
         content:''; position:absolute; top:0; right:-4px; width:12px; height:12px; border-radius:50%;
         background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
     }
-    .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:2rem; }
+    .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:.5rem; font-size:1.75rem; }
     .sidebar:hover .sidebar-title .sidebar-title-text,
     .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
+    .sidebar:not(:hover):not(.expanded) .sidebar-title{
+        width:100%;
+        min-height:4rem;
+        margin:0;
+        padding:.85rem 0 .75rem;
+        justify-content:center;
+        border-radius:var(--radius-card, 8px) var(--radius-card, 8px) 0 0;
+    }
+    .sidebar:not(:hover):not(.expanded) .sidebar-title .sidebar-icon{
+        font-size:1.55rem;
+    }
+    .sidebar:not(:hover):not(.expanded) .sidebar-title .sidebar-title-text{
+        display:none;
+    }
     .clear-sidebar-filters{
         display:none; align-items:center; gap:.35rem; min-height:36px; margin:.6rem 0 1rem; padding:.35rem .65rem;
-        color:#777; background:rgba(0,0,0,.035); border:1px solid rgba(0,0,0,.07); border-radius:999px;
+        color:#777; background:var(--surface-row-alt); border:1px solid var(--surface-border); border-radius:999px;
         font-size:.85rem; font-weight:700; cursor:pointer; line-height:1.2; visibility:hidden; pointer-events:none;
         box-sizing:border-box; transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
     }
@@ -406,40 +520,42 @@
     .clear-sidebar-filters:hover,
     .clear-sidebar-filters:focus,
     .clear-sidebar-filters:active{
-        color:var(--primary-color); background:rgba(0,188,212,.08); border-color:rgba(0,188,212,.24); outline:none;
+        color:var(--primary-color); background:rgba(11,125,69,.08); border-color:rgba(11,125,69,.24); outline:none;
     }
     .sidebar:hover .clear-sidebar-filters,
-    .sidebar.expanded .clear-sidebar-filters{ display:inline-flex; }
+    .sidebar.expanded .clear-sidebar-filters{ display:none; }
     .sidebar.has-active-state:hover .clear-sidebar-filters,
     .sidebar.has-active-state.expanded .clear-sidebar-filters{
-        visibility:visible; pointer-events:auto; color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
+        display:inline-flex; visibility:visible; pointer-events:auto; color:var(--secondary-color); background:var(--surface-amber-tint); border-color:var(--tier-amateur-border);
     }
     .clear-sidebar-filters:focus-visible{
-        color:var(--secondary-color); background:linear-gradient(90deg, rgba(255,64,129,.1), rgba(0,188,212,.06));
-        border-color:rgba(255,64,129,.42); outline:none; box-shadow:0 0 0 4px rgba(255,64,129,.14), 0 6px 14px rgba(255,64,129,.1);
+        color:var(--primary-color); background:rgba(11,125,69,.08);
+        border-color:rgba(67,238,131,.7); outline:none; box-shadow:var(--focus-ring, 0 0 0 4px rgba(67,238,131,.26)), 0 6px 14px rgba(11,125,69,.1);
     }
 
-    .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
+    .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:0; }
 
-    .filter-section{ margin-bottom:1.5rem; width:100%; }
+    .filter-section{ margin-bottom:1.25rem; width:100%; }
     .filter-section h3{
-        display:flex; align-items:center; gap:.5rem; margin-bottom:.55rem; color:var(--primary-color); font-size:1.2rem;
+        display:flex; align-items:center; gap:.5rem; margin:.1rem 0 .55rem; color:var(--primary-color); font-size:1.05rem;
         transition:color .2s ease;
     }
     .filter-section.has-active-filter h3{ color:var(--secondary-color); }
     .filter-section.has-active-filter h3::after{
         content:''; flex:1 1 auto; height:2px; border-radius:999px;
-        background:linear-gradient(90deg, rgba(255,64,129,.75), rgba(0,188,212,.14));
+        background:linear-gradient(90deg, rgba(212,175,55,.75), rgba(11,125,69,.14));
     }
     .filter-section ul{ list-style:none; padding:0; margin:0; display:grid; gap:.35rem; }
     .filter-section li{ margin:0; }
     .filter-section label{
-        display:flex; align-items:center; min-height:38px; padding:.42rem .55rem; border:1px solid rgba(0,0,0,.045);
-        border-radius:12px; box-sizing:border-box; cursor:pointer; color:#555; line-height:1.25;
-        background:rgba(0,0,0,.025); transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+        display:flex; align-items:center; min-height:38px; padding:.42rem .55rem; border:1px solid var(--surface-border);
+        border-radius:var(--radius-card, 8px); box-sizing:border-box; cursor:pointer; color:var(--text-muted, #46554d); line-height:1.25;
+        background:linear-gradient(180deg, rgba(255,254,250,.88), rgba(248,247,239,.72));
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.58);
+        transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
     }
     .filter-section label.is-zero-count:not(.active){
-        color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055); border-style:dashed;
+        color:var(--disabled-text, #97a098); background:transparent; border-color:var(--disabled-border, rgba(28,39,34,.12)); border-style:dashed;
         cursor:not-allowed; box-shadow:none; filter:grayscale(.65);
     }
     .filter-section label.is-zero-count:not(.active) input[type="checkbox"]{
@@ -451,29 +567,42 @@
     .lwc-flag-icon{
         flex:0 0 auto; margin-right:.4rem; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.08);
     }
+    /* League glyphs inherit label color so hover/active state changes carry
+       through the icon instead of leaving a fixed-color emoji behind. */
+    .filter-section .filter-glyph{
+        flex:0 0 auto; width:1.15em; margin-right:.4rem; text-align:center;
+        font-size:.92em; opacity:.78;
+    }
+    .filter-section label.active .filter-glyph{ opacity:1; }
     #athleteFlag .lwc-flag-icon{ margin-right:.45rem; vertical-align:-.08em; }
-    .filter-section label:hover{ color:var(--primary-color); background:rgba(0,188,212,.06); border-color:rgba(0,188,212,.18); }
+    .filter-section label:hover{
+        color:var(--primary-color);
+        background:var(--control-hover-bg);
+        border-color:var(--control-border-hover);
+        transform:translateY(-1px);
+    }
     .filter-section label.is-zero-count:not(.active):hover{
-        color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055);
+        color:#909090; background:transparent; border-color:var(--surface-border);
     }
     .filter-section label.active{
-        font-weight:bold; color:var(--secondary-color);
-        background:linear-gradient(90deg, rgba(255,64,129,.13), rgba(0,188,212,.08));
-        border-color:rgba(255,64,129,.38);
-        box-shadow:inset 4px 0 0 var(--secondary-color), inset 0 0 0 1px rgba(255,64,129,.08), 0 6px 14px rgba(255,64,129,.08);
+        font-weight:800;
+        color:var(--primary-color);
+        background:linear-gradient(90deg, var(--surface-green-tint-strong), rgba(255,254,250,.82));
+        border-color:var(--control-border-hover);
+        box-shadow:inset 0 0 0 1px rgba(67,238,131,.42), inset 0 1px 0 rgba(255,255,255,.72);
     }
-    .filter-section label.active input[type="checkbox"]{ accent-color:var(--secondary-color); }
+    .filter-section label.active input[type="checkbox"]{ accent-color:var(--primary-color); }
     .filter-section .filter-count{
         color:#666; font-size:.95em; font-weight:700;
     }
-    .filter-section label.active .filter-count{ color:var(--secondary-color); }
+    .filter-section label.active .filter-count{ color:var(--primary-color); }
     .filter-section label.is-zero-count:not(.active) .filter-count{ color:#909090; }
     .filter-section label:has(input[type="checkbox"]:focus-visible){
-        color:var(--secondary-color); border-color:rgba(255,64,129,.42);
-        background:linear-gradient(90deg, rgba(255,64,129,.08), rgba(0,188,212,.06));
-        box-shadow:0 0 0 4px rgba(255,64,129,.14);
+        color:var(--primary-color); border-color:var(--accent-bright);
+        background:var(--surface-green-tint);
+        box-shadow:var(--focus-ring);
     }
-    .filter-section input[type="checkbox"]:focus-visible{ outline:2px solid var(--secondary-color); outline-offset:2px; }
+    .filter-section input[type="checkbox"]:focus-visible{ outline:2px solid var(--accent-bright, #43ee83); outline-offset:2px; }
 
     /* =========================
        5) Search & toolbar (search + view badges on one line on desktop)
@@ -486,19 +615,26 @@
     @media (min-width: 769px){
         .leaderboard-toolbar{ flex-wrap:nowrap; }
     }
-    .ranking-explanation{
-        display:none; width:100%; box-sizing:border-box; margin:.25rem 0 1rem; padding:.72rem .9rem;
-        color:#4d5963; background:rgba(255,255,255,.78); border:1px solid rgba(0,188,212,.18);
-        border-left:4px solid var(--primary-color); border-radius:8px; box-shadow:0 6px 14px rgba(0,0,0,.06);
-        font-size:.95rem; line-height:1.42;
+    .leaderboard-sparse-state{
+        display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin:-.25rem 0 1rem; padding:.85rem 1rem;
+        border:1px solid var(--surface-border); border-radius:var(--radius-panel, 10px);
+        background:var(--card-bg);
+        box-shadow:var(--surface-shadow); color:var(--main-action-selected-color, #24332c);
     }
-    .ranking-explanation.is-visible{ display:block; }
-    .ranking-explanation strong{ color:var(--primary-color); }
+    .leaderboard-sparse-state[hidden]{ display:none; }
+    .leaderboard-sparse-copy{ display:grid; gap:.22rem; min-width:0; }
+    .leaderboard-sparse-title{ margin:0; font-size:.92rem; font-weight:800; color:var(--primary-color); }
+    .leaderboard-sparse-detail{ margin:0; font-size:.88rem; line-height:1.4; color:var(--text-muted, #46554d); }
+    .leaderboard-sparse-count{
+        flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; min-width:3.1rem; min-height:3.1rem; padding:.35rem .55rem;
+        border:1px solid var(--surface-border-strong); border-radius:999px; background:var(--surface-green-tint); color:var(--primary-color);
+        box-sizing:border-box; font-family:var(--display-font); font-size:1.55rem; line-height:1; font-weight:400; font-synthesis:none;
+    }
     .longevitymaxxing-promo{
         display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:.85rem; margin:0 0 1rem;
-        padding:.85rem 1rem; border:1px solid rgba(0,188,212,.18); border-left:4px solid var(--secondary-color);
-        border-radius:8px; background:linear-gradient(135deg, rgba(255,255,255,.9), rgba(0,188,212,.055) 58%, rgba(255,64,129,.055));
-        box-shadow:0 8px 18px rgba(0,0,0,.06); box-sizing:border-box;
+        padding:.85rem 1rem; border:1px solid var(--tier-amateur-border);
+        border-radius:8px; background:linear-gradient(135deg, var(--card-bg), var(--surface-green-tint) 58%, var(--surface-amber-tint));
+        box-shadow:var(--surface-shadow); box-sizing:border-box;
     }
     .longevitymaxxing-promo[hidden]{ display:none; }
     .longevitymaxxing-promo-text{
@@ -522,19 +658,19 @@
         display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.05rem;
     }
     .longevitymaxxing-promo-points span{
-        display:inline-flex; align-items:center; min-height:30px; padding:.25rem .6rem; border:1px solid rgba(0,0,0,.08);
-        border-radius:999px; background:rgba(255,255,255,.72); color:#52606d; font-size:.82rem; font-weight:700; box-sizing:border-box;
+        display:inline-flex; align-items:center; min-height:30px; padding:.25rem .6rem; border:1px solid var(--surface-border);
+        border-radius:999px; background:var(--card-bg); color:#52606d; font-size:.82rem; font-weight:700; box-sizing:border-box;
     }
     .longevitymaxxing-promo-action{
         display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; white-space:nowrap;
-        padding:.62rem .95rem; border:1px solid rgba(0,188,212,.36); border-radius:999px; background:rgba(255,255,255,.78); color:#167986;
-        font-weight:700; text-decoration:none; box-shadow:0 5px 12px rgba(0,0,0,.08);
+        padding:.62rem .95rem; border:1px solid var(--control-border-hover); border-radius:999px; background:var(--card-bg); color:var(--primary-color);
+        font-weight:700; text-decoration:none; box-shadow:var(--surface-shadow);
         transition:transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
     }
     .longevitymaxxing-promo-action:hover,
     .longevitymaxxing-promo-action:focus-visible{
-        background:rgba(0,188,212,.1); color:var(--primary-color); border-color:var(--primary-color); transform:translateY(-1px);
-        box-shadow:0 8px 16px rgba(0,188,212,.14); outline:none;
+        background:rgba(11,125,69,.1); color:var(--primary-color); border-color:var(--primary-color); transform:translateY(-1px);
+        box-shadow:0 8px 16px rgba(11,125,69,.14); outline:none;
     }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
@@ -543,9 +679,11 @@
         transition:border-color .3s ease, box-shadow .2s ease; outline:none; box-sizing:border-box;
     }
     #athleteSearch::placeholder{ color:#56666f; opacity:1; }
+    /* Focus speaks green everywhere on the site; amber stays reserved for
+       crowd/Guess-My-Age features, not interaction states. */
     #athleteSearch:focus{
-        border-color:var(--secondary-color);
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
+        border-color:#0b7d45;
+        box-shadow:0 0 0 4px rgba(67,238,131,.25), 0 4px 10px rgba(0,0,0,.08);
     }
     .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; transition:color .2s ease; }
     .search-container:focus-within .search-icon{ color:var(--secondary-color); }
@@ -556,17 +694,17 @@
         transition:opacity .3s ease, visibility .3s ease, color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
     }
     .clear-icon.visible{
-        opacity:1; visibility:visible; background:rgba(0,188,212,.09); border-color:rgba(0,188,212,.24);
+        opacity:1; visibility:visible; background:rgba(11,125,69,.09); border-color:rgba(11,125,69,.24);
     }
     .clear-icon:hover,
     .clear-icon:focus-visible{
         transform:translateY(-50%);
-        color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
+        color:var(--secondary-color); background:rgba(212,175,55,.08); border-color:rgba(212,175,55,.22);
         box-shadow:0 3px 8px rgba(0,0,0,.08);
     }
     .clear-icon:focus-visible{
-        outline:2px solid var(--secondary-color); outline-offset:2px;
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.1);
+        outline:2px solid var(--accent-bright, #43ee83); outline-offset:2px;
+        box-shadow:var(--focus-ring, 0 0 0 4px rgba(67,238,131,.26)), 0 4px 10px rgba(0,0,0,.1);
     }
 
     /* =========================
@@ -575,48 +713,57 @@
     .leaderboard-view-switcher{
         display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
     }
+    /* The selected chip flips to the opposite (dark-on-light) surface for
+       unmistakable contrast against the resting chips. */
+    .leaderboard-view-switcher{
+        --switch-label-color:var(--text-subtle, #5d6b63);
+        --switch-chip-color:var(--text-muted, #46554d);
+        --switch-chips-bg:rgba(0,0,0,.04);
+        --switch-chips-border:rgba(0,0,0,.08);
+        --switch-hover-bg:rgba(11,125,69,.08);
+        --switch-hover-color:var(--primary-color, #0b7d45);
+        --switch-checked-bg:var(--ink, #131b17);
+        --switch-checked-color:var(--paper, #f4f3ea);
+        --switch-checked-ring:rgba(19,27,23,.18);
+        --switch-checked-x-bg:rgba(244,243,234,.22);
+    }
     .leaderboard-view-switcher .view-switcher-label{
-        font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#666; margin-right:.25rem;
+        font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--switch-label-color); margin-right:.25rem;
     }
     .leaderboard-view-switcher .view-switcher-chips{
-        display:inline-flex; align-items:stretch; min-height:44px; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px;
+        display:inline-flex; align-items:stretch; min-height:44px; background:var(--switch-chips-bg); border:1px solid var(--switch-chips-border); border-radius:999px;
         padding:0; gap:0; box-sizing:border-box;
     }
     .leaderboard-view-switcher .view-badge{
         display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:.45rem 1rem; border-radius:999px;
-        border:none; background:transparent; color:#555;
+        border:none; background:transparent; color:var(--switch-chip-color);
         font-size:.85rem; font-weight:600; line-height:1.1; white-space:nowrap; box-sizing:border-box; cursor:pointer; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
     }
     .leaderboard-view-switcher .view-badge-suffix{
         margin-left:.25em;
     }
     .leaderboard-view-switcher .view-badge:hover{
-        background:rgba(0,188,212,.06); color:var(--primary-color);
+        background:var(--switch-hover-bg); color:var(--switch-hover-color);
     }
     .leaderboard-view-switcher input[name="leaderboardView"]{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
-        background:linear-gradient(180deg, var(--card-bg), rgba(0,188,212,.08)); color:var(--primary-color);
-        box-shadow:0 0 0 1px rgba(0,188,212,.32), 0 3px 9px rgba(0,0,0,.12);
+        background:var(--switch-checked-bg); color:var(--switch-checked-color);
+        box-shadow:0 0 0 1px var(--switch-checked-ring), 0 3px 9px rgba(0,0,0,.25);
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable{
         padding-right:.42rem;
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable::after{
         content:'×'; display:inline-flex; align-items:center; justify-content:center; width:1.1rem; height:1.1rem; margin-left:.4rem;
-        border-radius:50%; background:rgba(0,188,212,.12); color:var(--primary-color); font-size:.85rem; line-height:1; opacity:.88; font-weight:700;
+        border-radius:50%; background:var(--switch-checked-x-bg, rgba(244,243,234,.22)); color:inherit; font-size:.85rem; line-height:1; opacity:.88; font-weight:700;
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable:hover::after{
         opacity:1;
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge,
     .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge{
-        outline:2px solid var(--secondary-color); outline-offset:2px;
-        color:var(--secondary-color); background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.08));
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
-    }
-    .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge.is-clearable::after,
-    .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge.is-clearable::after{
-        background:rgba(255,64,129,.12); color:var(--secondary-color);
+        outline:2px solid #43ee83; outline-offset:2px;
+        box-shadow:0 0 0 4px rgba(67,238,131,.18), 0 4px 10px rgba(0,0,0,.3);
     }
 
     /* =========================
@@ -671,34 +818,37 @@
     }
 
     /* Rank-change wrapper */
-    .rank-change{ position: relative; display: inline-block; z-index: 0; }
+    .rank-change{ position: relative; display: inline-flex; align-items:center; z-index: 0; overflow:visible; }
     .rank-change img{ display:block; position:relative; z-index:1; }
 
-    /* Rings (green = rank-up only in table, blue = new athlete) */
-    .rank-change.rank-up img.portrait{ border-color:#2ecc71; }     /* no green ring on podium */
+    /* Rings: green = rank-up; amber = newly joined athlete. */
+    .rank-change.rank-up img.portrait{ border-color:var(--accent-bright, #43ee83); }     /* no green ring on podium */
     img.portrait.is-new,
     .rank-change img.portrait.is-new,
-    img.podium-portrait.is-new{ border-color:#3B82F6; }
+    img.podium-portrait.is-new{ border-color:var(--secondary-color, #8f6a0e); }
 
-    /* Arrow + Star bubbles share the same geometry — GLOBAL */
+    /* Status pins sit inside the portrait frame so rows stay aligned. */
     .rank-change .rank-arrow,
     .rank-change .new-bubble{
-        position:absolute; z-index:-1; left:var(--arrow-left); top:50%; transform:translateY(-50%);
-        width:20px; height:20px; border-radius:50% 0 0 50%;
-        color: rgb(255 255 255 / 80%); display:flex; align-items:center; justify-content:center;
-        font-size:12px; pointer-events:none; transition:left .3s ease;
+        position:absolute; z-index:2; left:2px; bottom:2px; transform:none;
+        width:var(--status-marker-size); height:var(--status-marker-size); border-radius:50%;
+        display:flex; align-items:center; justify-content:center; box-sizing:border-box;
+        font-size:9px; line-height:1; pointer-events:none;
+        box-shadow:0 0 0 1px var(--card-bg, #fffefa);
+        transition:background-color .2s ease, box-shadow .2s ease;
     }
-    /* Star icon size only (bubble size unchanged) */
-    .rank-change .new-bubble { font-size: 10px; line-height: 1; }
+    .rank-change .rank-arrow i,
+    .rank-change .new-bubble i{ line-height:1; }
+    .rank-change .new-bubble { font-size: 8px; }
     /* Individual colors */
-    .rank-change .rank-arrow{ background:#2ecc71; }  /* green up arrow */
-    .rank-change .new-bubble{ background:#3B82F6; }  /* blue star */
-    /* Hover shift for both bubbles */
+    .rank-change .rank-arrow{ background:var(--accent-bright, #43ee83); color:#04130a; }  /* green up arrow */
+    .rank-change .new-bubble{ background:var(--secondary-color, #8f6a0e); color:#fffefa; }  /* amber star */
+    /* Keep markers stable on hover; portrait hover already supplies feedback. */
     .rank-change:hover .rank-arrow,
     .rank-change:hover .new-bubble,
     .rank-change img:hover + .rank-arrow,
     .rank-change img:hover + .new-bubble{
-        left: calc(var(--arrow-left) + var(--arrow-cover-extra) + var(--arrow-hover-shift));
+        box-shadow:0 0 0 2px var(--card-bg, #fffefa), 0 2px 6px rgba(28,39,34,.25);
     }
     /* Never show bubbles on the podium */
     .podium .rank-arrow, .podium-item .rank-arrow{ display:none !important; }
@@ -708,14 +858,23 @@
     .portrait-wrapper{ position:relative; display:inline-block; }
     .leaderboard .athlete-td .portrait-wrapper{
         position:relative;
-        display:inline-block;
+        display:inline-flex;
+        align-items:center;
+        justify-content:flex-start;
+        flex:0 0 var(--portrait-size);
+        width:var(--portrait-size);
+        min-width:var(--portrait-size);
+        padding-left:0;
+        box-sizing:border-box;
+        overflow:visible;
+    }
+    .leaderboard .athlete-td .portrait-wrapper .rank-change{
         flex:0 0 var(--portrait-size);
         width:var(--portrait-size);
         min-width:var(--portrait-size);
     }
-    .leaderboard .athlete-td .portrait-wrapper .rank-change{
-        width:var(--portrait-size);
-        min-width:var(--portrait-size);
+    .leaderboard .athlete-td .portrait-wrapper .rank-change img.portrait{
+        margin:0;
     }
     .pro-badge{
         display:none;
@@ -747,26 +906,27 @@
     /* Badge scales with portrait size (container); desktop cap at 2.25rem */
     #athlete-profile.is-pro .pro-badge{
         display:inline-flex;
-        right:6%; bottom:-8%;
-        font-size:2.25rem;
-        font-size:min(2.25rem, 11cqw);
+        left:50%;
+        right:auto;
+        bottom:-0.65rem;
+        font-size:.86rem;
         font-weight:800;
-        letter-spacing:0.12em;
-        padding:0.4em 0.85em;
-        color:rgba(12,16,16,.94);
+        letter-spacing:0.1em;
+        padding:0.38em 0.8em;
+        color:var(--athlete-modal-text, rgba(255,255,255,.94));
         text-shadow:none;
-        background:linear-gradient(160deg, rgba(246,244,237,.96) 0%, rgba(210,215,212,.86) 100%);
-        border:2px solid rgba(255,255,255,.2);
-        border-radius:0.5em;
-        box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
-        transform:rotate(-12deg);
-        line-height:1.2;
+        background:rgba(7,11,9,.92);
+        border:1px solid var(--athlete-modal-border, rgba(246,244,237,.34));
+        border-radius:999px;
+        box-shadow:0 2px 8px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.1);
+        transform:translateX(-50%);
+        line-height:1;
         z-index:2;
         pointer-events:auto;
         user-select:none;
     }
     @media (min-width: 768px){
-        #athlete-profile.is-pro .pro-badge{ bottom:-7%; }
+        #athlete-profile.is-pro .pro-badge{ bottom:-0.7rem; }
     }
 
     /* =========================
@@ -776,18 +936,28 @@
     .podium-item{
         --podium-prize-panel-height: 82px;
         --podium-portrait-size: 112px;
-        position:relative; text-align:center; padding:.9rem 1rem calc(var(--podium-prize-panel-height) + 1rem); background:var(--card-bg); border-radius:15px;
-        box-shadow:0 10px 30px rgba(0,0,0,.1); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
+        position:relative; text-align:center; padding:.9rem 1rem calc(var(--podium-prize-panel-height) + 1rem); background:var(--card-bg); border:1px solid var(--surface-border, rgba(28,39,34,.12)); border-radius:var(--radius-panel, 10px);
+        box-shadow:var(--surface-shadow, 0 4px 10px rgba(28,39,34,.08)); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
         justify-content:flex-start; width:190px; min-height:230px; box-sizing:border-box; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
     }
     .podium .podium-item:hover{
-        transform: scale(1.05) !important; will-change: transform;
-        transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2);
+        transform: translateY(-2px) !important; will-change: transform;
+        transition: transform .2s ease, box-shadow .2s ease; box-shadow:var(--surface-shadow-lifted, 0 6px 14px rgba(28,39,34,.12));
     }
     .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
-    .podium-item.first{ --podium-portrait-size: 116px; order:2; height:340px; }
-    .podium-item.second{ --podium-portrait-size: 102px; order:1; height:322px; }
-    .podium-item.third{ --podium-portrait-size: 92px; order:3; height:306px; }
+    .podium-item.first{ --podium-portrait-size: 116px; order:2; height:380px; }
+    .podium-item.second{ --podium-portrait-size: 102px; order:1; height:364px; }
+    .podium-item.third{ --podium-portrait-size: 92px; order:3; height:356px; }
+
+    /* The score is the sport: on podium cards the years-reduced numeral speaks
+       in the display voice and outranks the prize money below it. */
+    .podium-score{ margin-top:.55rem; display:flex; flex-direction:column; align-items:center; line-height:1; }
+    .podium-score-number{
+        font-family:var(--display-font); font-weight:400; font-synthesis:none;
+        font-size:2.15rem; line-height:.95; color:#0b7d45; font-variant-numeric:tabular-nums;
+    }
+    .podium-item.first .podium-score-number{ font-size:2.45rem; }
+    .podium-score-caption{ margin-top:.34rem; font-size:.7rem; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:#5d6f66; }
 
     .podium-item-lower{
         position:absolute; bottom:0; width:100%; min-height:var(--podium-prize-panel-height); padding:10px 0; border-radius:0 0 15px 15px;
@@ -796,11 +966,21 @@
         box-sizing:border-box;
     }
     .podium-item-lower:hover{ clip-path:polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
-    .podium-item.first .podium-item-lower{ background:#FFF9C4; }
-    .podium-item.second .podium-item-lower{ background:#E0E0E0; }
-    .podium-item.third .podium-item-lower{ background:#D9C3A3; }
-    .prize-money{ font-weight:bold; font-size:1.55rem; color:#4caf50; margin-top:1px; }
-    .btc-amount{ margin-top:.62rem; font-weight:normal; font-size:.72rem; color:var(--dark-text-color); line-height:1.2; }
+    .podium-item-lower{ border-top:1px solid rgba(0,0,0,.07); }
+    .podium-item.first .podium-item-lower{ background:#f9efbb; }
+    .podium-item.second .podium-item-lower{ background:#e9e9e6; }
+    .podium-item.third .podium-item-lower{ background:#e6cfab; }
+    /* "Prize" names the money for cold visitors; the panel still click-scrolls
+       to the donation section that funds the pool. */
+    .prize-caption{
+        margin-top:.15rem; font-size:.62rem; font-weight:700; letter-spacing:.12em;
+        text-transform:uppercase; color:rgba(28,39,34,.55); line-height:1;
+    }
+    .prize-money{
+        font-family:var(--display-font); font-weight:400; font-synthesis:none;
+        font-size:1.7rem; letter-spacing:.01em; color:#0b7d45; margin-top:2px;
+    }
+    .btc-amount{ margin-top:.2rem; font-weight:normal; font-size:.72rem; color:var(--dark-text-color); line-height:1.2; }
 
     .podium-rank{
         position:absolute; top:-6px; left:10%; transform:translateX(-50%); background:#fff;
@@ -812,30 +992,47 @@
        8) Table row bits
        ========================= */
     .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
-    .age-reduction{ font-weight:700; color:#4caf50; text-align:left; }
+    .age-reduction{ font-weight:700; color:#0b7d45; text-align:left; }
     .athlete-td{
         display:flex;
         align-items:center;
         text-align:left;
-        gap:.5rem;
+        gap:.65rem;
     }
     .athlete-td .badge-section{ flex:0 0 auto; flex-wrap:nowrap; }
+
+    .athlete-identity{
+        display:grid;
+        gap:.18rem;
+        min-width:7.5rem;
+    }
 
     .athlete-name{
         color:var(--primary-color); text-decoration:underline; text-decoration-thickness:.08em; text-underline-offset:.18em; text-align:left; cursor:pointer;
         transition:color .2s ease-in-out, background-color .2s ease-in-out, box-shadow .2s ease-in-out;
-        display:inline-block; padding:.5rem .45rem; white-space:pre-wrap; border-radius:8px;
+        display:inline-block; width:max-content; max-width:100%; padding:.34rem .45rem .2rem; white-space:pre-wrap; border-radius:8px;
     }
     .athlete-name:hover{
-        color:var(--secondary-color); background-color:rgba(255,64,129,.08); box-shadow:inset 0 0 0 1px rgba(255,64,129,.12);
+        color:var(--secondary-color); background-color:rgba(212,175,55,.08); box-shadow:inset 0 0 0 1px rgba(212,175,55,.12);
+    }
+    .athlete-name:focus-visible{
+        color:var(--secondary-color);
+        background-color:rgba(11,125,69,.08);
+        box-shadow:inset 0 0 0 1px rgba(11,125,69,.28), 0 0 0 3px rgba(67,238,131,.24);
+        outline:none;
     }
     .podium .athlete-name{ font-size:1.1rem; padding-bottom:.2rem; }
 
     .media-contact{
-        color:rgba(255,64,129,.7); text-decoration:none; transition:color .2s ease-in-out; font-size:1.5rem; padding:.5rem; margin:10px 0;
+        display:inline-flex; align-items:center; justify-content:center; gap:.35rem; min-height:2.25rem; padding:.35rem .7rem; margin:10px 0;
+        color:#7d6117; background:rgba(212,175,55,.12); border:1px solid rgba(143,106,14,.24); border-radius:999px;
+        text-decoration:none; transition:color .2s ease-in-out, background-color .2s ease-in-out, border-color .2s ease-in-out;
+        font-size:.88rem; font-weight:800; line-height:1;
     }
-    .media-contact:hover{ color:var(--primary-color); }
-    .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
+    .media-contact:hover,
+    .media-contact:focus-visible{ color:var(--primary-color); background:rgba(11,125,69,.08); border-color:rgba(11,125,69,.26); outline:none; }
+    .media-contact i{ font-size:1rem; width:1rem; height:1rem; line-height:1rem; display:inline-block; text-align:center; vertical-align:middle; }
+    .media-contact-label{ display:inline-block; white-space:nowrap; }
 
     .personal-link-icon{
         display:inline-flex; align-items:center; justify-content:center; width:2rem; height:2rem;
@@ -844,7 +1041,7 @@
     }
     .personal-link-icon:first-of-type{ margin-left:0; }
     .personal-link-icon:hover,
-    .personal-link-icon:focus-visible{ color:var(--secondary-color); background-color:rgba(0,188,212,.08); }
+    .personal-link-icon:focus-visible{ color:var(--secondary-color); background-color:rgba(11,125,69,.08); }
     .podium-link-row{ display:inline-flex; align-items:center; justify-content:center; gap:0; }
     .podium-link-row .personal-link-icon{
         width:2rem;
@@ -856,14 +1053,17 @@
     .podium-link-row .personal-link-icon i{ width:auto; }
 
     .leaderboard table tbody tr{ scroll-margin-top:0; }
-    .leaderboard table tbody tr:target{ background:rgba(255,255,0,.35); transition:background-color 1.2s ease; }
+    .leaderboard table tbody tr:target{ background:var(--surface-amber-tint-strong); transition:background-color 1.2s ease; }
 
     /* =========================
        10) Modal
        ========================= */
+    /* Layering scale: page chrome (header/drawer) lives at 1000-1002, full-screen
+       overlays like the proof viewer and guess-my-age live at 10000+. The athlete
+       modal must own the whole viewport above the chrome but stay below those. */
     .modal{
-        display:none; position:fixed; z-index:3; left:0; top:0; width:100%; height:100%;
-        overflow:hidden; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+        display:none; position:fixed; z-index:9000; left:0; top:0; width:100%; height:100%;
+        overflow:hidden; background-color:var(--chrome-overlay-bg-soft); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
     }
     .modal.fade-out .modal-content,
     .modal.fade-out .modal-sticky-header{
@@ -889,6 +1089,11 @@
     .modal-content.is-loading #crowdAge,
     .modal-content.is-loading #crowdCount,
     .modal-content.is-loading #yourGuess,
+    .modal-content.is-loading #modalSummaryRank,
+    .modal-content.is-loading #modalSummaryScore,
+    .modal-content.is-loading #modalSummaryScoreLabel,
+    .modal-content.is-loading #modalSummarySubmissionCount,
+    .modal-content.is-loading #modalSummarySubmissionUnit,
     .modal-content.is-loading #modalBadgeStrip,
     .modal-content.is-loading #proofsGallery{
         visibility:hidden;
@@ -900,10 +1105,12 @@
         position:relative;
     }
     #detailsModal{
-        --athlete-modal-surface: var(--background-color, linear-gradient(120deg, #000000, #555555));
-        --athlete-modal-card: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
-        --athlete-modal-card-strong: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
-        --athlete-modal-card-hover: rgba(255,255,255,.16);
+        /* Diagonal charcoal gradient (not flat black) so the modal reads as a lit
+           surface floating above the page, like the production design did. */
+        --athlete-modal-surface: linear-gradient(120deg, #070b09, #2c3530 130%);
+        --athlete-modal-card: linear-gradient(180deg, var(--chrome-panel-bg-strong), var(--chrome-panel-bg));
+        --athlete-modal-card-strong: linear-gradient(180deg, rgba(248,247,239,.12), var(--chrome-panel-bg-strong));
+        --athlete-modal-card-hover: rgba(248,247,239,.14);
         --athlete-modal-text: rgba(255,255,255,.94);
         --athlete-modal-cream: rgba(246,244,237,.92);
         --athlete-modal-cream-soft: rgba(246,244,237,.18);
@@ -913,26 +1120,26 @@
         --athlete-modal-subtle: rgba(255,255,255,.48);
         --athlete-modal-border: rgba(246,244,237,.34);
         --athlete-modal-border-strong: rgba(246,244,237,.48);
-        --athlete-modal-shadow: 0 22px 60px rgba(0,0,0,.48);
+        --athlete-modal-shadow: 0 18px 46px rgba(0,0,0,.42);
         --athlete-modal-focus: 0 0 0 3px rgba(246,244,237,.28);
         --athlete-modal-chart-grid: rgba(255,255,255,.16);
-        --athlete-modal-chart-bortz: rgba(154,232,178,.96);
-        --athlete-modal-chart-pheno: rgba(135,229,229,.96);
+        --athlete-modal-chart-bortz: rgba(67,238,131,.96);
+        --athlete-modal-chart-pheno: rgba(240,201,98,.96);
         --athlete-modal-chart-biomarker: rgba(255,125,125,.96);
         --athlete-modal-chart-panel: rgba(8,10,10,.28);
         --athlete-modal-section-width: 640px;
     }
     #detailsModal.modal{
-        background-color: rgba(0,0,0,.72);
-        backdrop-filter: blur(10px) saturate(.8);
-        -webkit-backdrop-filter: blur(10px) saturate(.8);
+        background-color: var(--chrome-overlay-bg);
+        backdrop-filter: blur(2px) saturate(.9);
+        -webkit-backdrop-filter: blur(2px) saturate(.9);
     }
     #detailsModal .modal-content{
         background: var(--athlete-modal-surface);
         background-clip: padding-box;
         color: var(--athlete-modal-text);
         border: 1px solid var(--athlete-modal-border);
-        box-shadow: var(--athlete-modal-shadow), inset 0 0 0 1px rgba(246,244,237,.08);
+        box-shadow: var(--athlete-modal-shadow), inset 0 0 0 1px var(--chrome-panel-bg);
         isolation: isolate;
     }
     #detailsModal .modal-content::before{
@@ -944,7 +1151,7 @@
         z-index:0;
         background:
             radial-gradient(circle at 50% 0%, rgba(246,244,237,.11), transparent 32%),
-            radial-gradient(circle at 72% 8%, rgba(181,226,226,.06), transparent 26%),
+            radial-gradient(circle at 72% 8%, rgba(67,238,131,.045), transparent 26%),
             linear-gradient(180deg, rgba(255,255,255,.065), transparent 18%);
         opacity:.64;
     }
@@ -955,10 +1162,6 @@
     #detailsModal .modal-scroll-progress,
     #detailsModal .modal-sticky-header{
         position: sticky;
-    }
-    #detailsModal .modal-content > .gma-trollface-container{
-        position:absolute;
-        z-index:10000;
     }
     /* Remove border-radius on mobile immediately (before animation) */
     @media (max-width: 768px) {
@@ -1034,17 +1237,21 @@
         padding: 1.25rem 1.25rem .85rem;
         z-index: 30;
         isolation: isolate;
-        background: linear-gradient(180deg, rgba(17,19,19,.96), rgba(9,10,10,.92));
+        background:
+            radial-gradient(90% 150% at 50% -70%, rgba(67,238,131,.12), transparent 62%),
+            linear-gradient(180deg, #0b100d, #050908 86%);
         color: var(--athlete-modal-text);
         border-bottom: 1px solid var(--athlete-modal-border);
-        box-shadow: 0 12px 28px rgba(0,0,0,.22), inset 0 -1px 0 rgba(246,244,237,.06);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 10px 24px rgba(0,0,0,.28), inset 0 -1px 0 rgba(246,244,237,.08);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
     #detailsModal .modal-sticky-header.visible::before{
         top: -80px;
         height: 80px;
-        background: linear-gradient(180deg, rgba(4,5,5,.98), rgba(17,19,19,.96));
+        background: linear-gradient(180deg, #050908, #0b100d);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
     #detailsModal .modal-sticky-header .sticky-athlete-name{
         color: var(--athlete-modal-text);
@@ -1079,13 +1286,19 @@
         width:auto;
     }
     #detailsModal .modal-sticky-header .sticky-close-btn:hover,
-    #detailsModal .modal-sticky-header .sticky-close-btn:focus-visible,
-    #detailsModal #closeAthleteDetailsModal:hover,
-    #detailsModal #closeAthleteDetailsModal:focus-visible{
+    #detailsModal #closeAthleteDetailsModal:hover{
         color: #fff;
         background: rgba(246,244,237,.16);
         border-color: rgba(246,244,237,.56);
-        box-shadow: 0 0 0 3px rgba(246,244,237,.18), 0 10px 22px rgba(0,0,0,.26);
+        box-shadow: 0 10px 22px rgba(0,0,0,.26), inset 0 0 0 1px rgba(246,244,237,.16);
+        outline: none;
+    }
+    #detailsModal .modal-sticky-header .sticky-close-btn:focus-visible,
+    #detailsModal #closeAthleteDetailsModal:focus-visible{
+        color: #fff;
+        background: rgba(246,244,237,.12);
+        border-color: var(--accent-bright, #43ee83);
+        box-shadow: 0 0 0 2px rgba(67,238,131,.42), 0 6px 14px rgba(0,0,0,.22);
         outline: none;
     }
     .athlete-profile{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -1127,7 +1340,72 @@
     #detailsModal #athleteName{
         color: var(--athlete-modal-text);
         margin-bottom: .25rem;
+        font-family: var(--display-font);
+        font-weight: 400;
+        font-synthesis: none;
+        text-transform: uppercase;
+        letter-spacing: .03em;
         text-shadow: 0 2px 16px rgba(0,0,0,.45);
+    }
+    #detailsModal .modal-competition-summary{
+        display:grid;
+        grid-template-columns:minmax(0, .9fr) minmax(0, 1.4fr) minmax(0, .9fr);
+        gap:.55rem;
+        width:min(100%, var(--athlete-modal-section-width));
+        margin:.65rem auto .85rem;
+        box-sizing:border-box;
+    }
+    #detailsModal .modal-competition-summary-item{
+        min-width:0;
+        padding:.8rem .85rem;
+        border:1px solid rgba(246,244,237,.18);
+        border-radius:14px;
+        background:rgba(246,244,237,.075);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.055), 0 10px 24px rgba(0,0,0,.16);
+        text-align:left;
+    }
+    #detailsModal .modal-competition-summary-item > span{
+        display:block;
+        margin-bottom:.32rem;
+        color:rgba(246,244,237,.66);
+        font-size:.72rem;
+        font-weight:800;
+        letter-spacing:.08em;
+        line-height:1;
+        text-transform:uppercase;
+    }
+    #detailsModal .modal-competition-summary-item strong{
+        display:flex;
+        align-items:baseline;
+        gap:.32rem;
+        min-width:0;
+        color:var(--athlete-modal-text);
+        font-family:var(--display-font);
+        font-size:clamp(1.45rem, 3.7vw, 2.15rem);
+        font-weight:400;
+        font-synthesis:none;
+        line-height:.95;
+        letter-spacing:.02em;
+        text-transform:uppercase;
+        overflow-wrap:anywhere;
+    }
+    #detailsModal .modal-competition-summary-item small{
+        color:rgba(246,244,237,.7);
+        font-family:'Roboto', sans-serif;
+        font-size:.72rem;
+        font-weight:800;
+        letter-spacing:.06em;
+        line-height:1;
+        text-transform:uppercase;
+    }
+    #detailsModal .modal-competition-summary-item.is-score{
+        background:linear-gradient(180deg, rgba(67,238,131,.16), rgba(67,238,131,.07));
+        border-color:rgba(67,238,131,.42);
+    }
+    #detailsModal .modal-competition-summary-item.is-score strong{
+        color:var(--accent-bright);
+        font-size:clamp(2.05rem, 5vw, 3rem);
+        text-shadow:0 0 22px rgba(67,238,131,.18);
     }
     #detailsModal #athleteBio{
         width: min(100%, var(--athlete-modal-section-width));
@@ -1144,6 +1422,60 @@
         letter-spacing: -.01em;
         overflow-wrap:anywhere;
         word-break:normal;
+    }
+
+    @media (min-width: 769px) and (max-height: 820px) {
+        #detailsModal .modal-content{
+            height: calc(100vh - 32px);
+            max-height: calc(100vh - 32px);
+            margin: 16px auto;
+            padding-top: 14px;
+            padding-bottom: 16px;
+        }
+
+        #detailsModal #closeAthleteDetailsModal{
+            top: 22px;
+            left: 22px;
+        }
+
+        #detailsModal #athlete-profile .portrait-wrapper{
+            width: 34%;
+            max-width: 232px;
+        }
+
+        #detailsModal #athleteName{
+            margin-top: .35rem;
+            margin-bottom: .15rem;
+            font-size: clamp(2rem, 3.1vw, 2.45rem);
+            line-height: .98;
+        }
+
+        #athlete-profile.is-pro .pro-badge{
+            bottom: -.58rem;
+        }
+
+        #detailsModal .modal-competition-summary{
+            gap: .45rem;
+            margin: .48rem auto .58rem;
+        }
+
+        #detailsModal .modal-competition-summary-item{
+            padding: .62rem .72rem;
+            border-radius: var(--radius-card, 8px);
+        }
+
+        #detailsModal .modal-competition-summary-item > span{
+            margin-bottom: .24rem;
+            font-size: .66rem;
+        }
+
+        #detailsModal .modal-competition-summary-item strong{
+            font-size: clamp(1.32rem, 3vw, 1.78rem);
+        }
+
+        #detailsModal .modal-competition-summary-item.is-score strong{
+            font-size: clamp(1.9rem, 4.2vw, 2.42rem);
+        }
     }
 
     .athlete-info {
@@ -1218,8 +1550,8 @@
     #detailsModal .events-embed{
         background: var(--athlete-modal-card);
         border: 1px solid var(--athlete-modal-border);
-        border-radius: 22px;
-        box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
+        border-radius: 14px;
+        box-shadow: 0 8px 22px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.06);
     }
     #detailsModal .athlete-info{
         padding: 1.1rem 1.25rem;
@@ -1251,6 +1583,54 @@
     #detailsModal .athlete-info-table tr.athlete-info-group-first th,
     #detailsModal .athlete-info-table tr.athlete-info-group-first td{
         border-top: 0 !important;
+    }
+    #detailsModal .athlete-info-table{
+        display:block;
+        width:100%;
+        border-collapse:separate;
+    }
+    #detailsModal .athlete-info-table tbody{
+        display:grid;
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:.65rem;
+    }
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row){
+        display:grid;
+        align-content:start;
+        min-height:4.35rem;
+        padding:.72rem .78rem;
+        border:1px solid rgba(246,244,237,.11);
+        border-radius:10px;
+        background:rgba(248,247,239,.035);
+        box-sizing:border-box;
+    }
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) th,
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) td{
+        display:block;
+        width:auto;
+        padding:0 !important;
+        border:0 !important;
+        line-height:1.24;
+    }
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) th{
+        color:rgba(248,247,239,.62) !important;
+        font-size:.68rem;
+        font-weight:900;
+        letter-spacing:.04em !important;
+    }
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) td{
+        margin-top:.42rem;
+        color:var(--athlete-modal-text) !important;
+        font-size:.98rem;
+        font-weight:800;
+    }
+    #detailsModal .athlete-info-table tr:not(.athlete-info-divider-row) td a{
+        color:inherit;
+        text-decoration-thickness:.08em;
+        text-underline-offset:.14em;
+    }
+    #detailsModal .athlete-info-table tr.athlete-info-divider-row{
+        display:none;
     }
 
     /* Visual break between profile basics and age/performance details. */
@@ -1288,6 +1668,75 @@
     .athlete-links button{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
     .athlete-links a:hover,
     .athlete-links button:hover{ color:var(--secondary-color); }
+    #detailsModal .athlete-evidence-strip{
+        display:grid;
+        grid-template-columns:auto repeat(3, minmax(7.2rem, 1fr));
+        align-items:center;
+        justify-content:stretch;
+        gap:0;
+        width:min(100%, var(--athlete-modal-section-width));
+        margin:.65rem auto 1rem;
+        padding:0;
+        box-sizing:border-box;
+        overflow:hidden;
+        background:rgba(246,244,237,.055);
+        border:1px solid rgba(246,244,237,.18);
+        border-radius:var(--radius-panel,10px);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    #detailsModal .athlete-evidence-label{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        align-self:stretch;
+        min-height:2.65rem;
+        padding:0 .85rem;
+        border-right:1px solid rgba(246,244,237,.16);
+        background:rgba(67,238,131,.075);
+        color:var(--athlete-modal-muted);
+        font-size:.72rem;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:.075em;
+        white-space:nowrap;
+    }
+    #detailsModal .athlete-evidence-link{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:2.65rem;
+        padding:.4rem .75rem;
+        border:0;
+        border-left:1px solid rgba(246,244,237,.12);
+        border-radius:0;
+        background:transparent;
+        color:var(--athlete-modal-link);
+        font:inherit;
+        font-size:.86rem;
+        font-weight:800;
+        cursor:pointer;
+        transition:background-color .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+    #detailsModal .athlete-evidence-link:hover,
+    #detailsModal .athlete-evidence-link:focus-visible{
+        outline:none;
+        background:rgba(67,238,131,.1);
+        color:#fff;
+        box-shadow:inset 0 -2px 0 rgba(67,238,131,.62);
+    }
+    #detailsModal .athlete-evidence-count{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-width:1.35rem;
+        min-height:1.35rem;
+        margin-left:.3rem;
+        padding:0 .35rem;
+        border-radius:999px;
+        background:rgba(67,238,131,.18);
+        color:var(--accent-bright);
+        font-size:.75rem;
+    }
     #detailsModal .athlete-links{
         flex-direction: row;
         justify-content: center;
@@ -1295,12 +1744,12 @@
         gap: .65rem;
         width: min(100%, var(--athlete-modal-section-width));
         margin: 1rem auto 1.35rem;
-        padding: .6rem;
+        padding: .5rem;
         box-sizing: border-box;
-        background: rgba(246,244,237,.055);
-        border: 1px solid rgba(246,244,237,.16);
-        border-radius: 20px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 24px rgba(0,0,0,.15);
+        background: rgba(246,244,237,.04);
+        border: 1px solid rgba(246,244,237,.14);
+        border-radius: var(--radius-panel,10px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
     }
     #detailsModal .athlete-links a,
     #detailsModal .athlete-links button,
@@ -1312,10 +1761,10 @@
     #detailsModal .athlete-links button{
         min-height: 44px;
         padding: .55rem 1rem;
-        border: 1px solid var(--athlete-modal-cream-border);
+        border: 1px solid rgba(246,244,237,.28);
         border-radius: 999px;
-        background: rgba(246,244,237,.08);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(0,0,0,.18);
+        background: rgba(246,244,237,.07);
+        box-shadow:none;
         font-size: .95rem;
         font-weight: 700;
         font-family: inherit;
@@ -1394,8 +1843,8 @@
        11) Proofs & enlarged overlay
        ========================= */
     .proofs-gallery{ display:flex; flex-direction:column; align-items:stretch; gap:1rem; justify-content:center; padding:0; width:100%; }
-    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.08); }
-    .proof-item:hover{ transform: scale(1.05); }
+    .proof-item{ width:100%; height:auto; border-radius:var(--radius-card, 8px); overflow:hidden; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.08); }
+    .proof-item:hover{ transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.12); }
     .proof-item img{ display:block; width:auto; max-width:100%; height:auto; max-height:72vh; object-fit:contain; margin:0 auto; background:#fff; }
     .proofs-empty{ margin:.5rem 0 0; color:#666; text-align:center; font-size:.95rem; }
     #detailsModal .biomarkers-section,
@@ -1435,6 +1884,13 @@
         font-size:.85rem;
         font-weight:800;
         letter-spacing:.06em;
+    }
+    #detailsModal .proofs-section-lede{
+        margin:-.25rem 0 .85rem;
+        color:var(--athlete-modal-muted);
+        font-size:.9rem;
+        line-height:1.4;
+        text-align:left;
     }
     #detailsModal .biomarkers-section{
         overflow:hidden;
@@ -1494,7 +1950,7 @@
     }
     #detailsModal .biomarker-chart-controls option:checked{
         color:#fff;
-        background:#1f6fe5;
+        background:#0b7d45;
     }
     #detailsModal .biomarker-chart-controls select:focus-visible{
         outline:none;
@@ -1505,9 +1961,9 @@
         max-height:360px;
         margin-top:.15rem;
         border:1px solid rgba(246,244,237,.09);
-        border-radius:16px;
+        border-radius:12px;
         background:var(--athlete-modal-chart-panel);
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 10px 24px rgba(0,0,0,.15);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
         box-sizing:border-box;
     }
     #detailsModal .proofs-section{
@@ -1551,28 +2007,54 @@
     }
 
     .enlarged-portrait{
-        position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.92);
-        display:flex; justify-content:center; align-items:center; z-index:1000; cursor:pointer;
+        position:fixed; top:0; left:0; width:100%; height:100%; background:#030706;
+        display:flex; justify-content:center; align-items:flex-start; z-index:11000; cursor:pointer;
         box-sizing:border-box;
-        padding:max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
-        opacity:0; transform:scale(.95); transition:opacity .5s ease, transform .5s ease;
+        padding:max(2rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+        overflow:auto;
+        opacity:0; transform:scale(.98); transition:opacity .2s ease, transform .2s ease;
     }
     .enlarged-portrait.show{ opacity:1; transform:scale(1); filter:blur(0); }
+    #detailsModal:has(.enlarged-portrait.show) #closeAthleteDetailsModal{
+        opacity:0;
+        pointer-events:none;
+    }
     .enlarged-portrait .close-btn{
         position:absolute; top:max(16px, env(safe-area-inset-top)); left:max(16px, env(safe-area-inset-left)); font-size:1.9rem; color:rgba(255,255,255,.9); background:rgba(12,14,14,.78);
         width:48px; height:48px; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
         border:1px solid rgba(246,244,237,.26); box-shadow:0 10px 28px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.08);
-        transition:color .3s, background-color .3s, transform .2s; padding:0; z-index:1;
+        transition:color .2s ease, background-color .2s ease, border-color .2s ease; padding:0; z-index:1;
     }
-    .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
+    .enlarged-portrait .close-btn:hover,
+    .enlarged-portrait .close-btn:focus-visible{
+        color:var(--light-text-color);
+        background:rgba(0,0,0,.9);
+        border-color:rgba(67,238,131,.42);
+        outline:none;
+    }
     .enlarged-portrait img{
-        width:auto;
+        width:min(760px, calc(100vw - 7rem));
         height:auto;
-        max-width:min(900px, calc(100vw - 2rem));
-        max-height:calc(100vh - 2rem);
+        max-width:100%;
+        max-height:none;
         object-fit:contain;
         cursor:default;
         box-shadow:0 24px 70px rgba(0,0,0,.42);
+    }
+
+    @media (max-width: 600px) {
+        .enlarged-portrait{
+            align-items:flex-start;
+            overflow:auto;
+            padding-top:max(5rem, calc(env(safe-area-inset-top) + 4.75rem));
+            padding-bottom:max(1.25rem, env(safe-area-inset-bottom));
+        }
+        .enlarged-portrait img{
+            max-width:calc(100vw - 2rem);
+            width:auto;
+            max-height:none;
+            margin:0 auto;
+        }
     }
 
     /* =========================
@@ -1593,7 +2075,7 @@
         letter-spacing:.5px; margin:0; box-shadow:0 1px 2px rgba(0,0,0,.08);
     }
     .athlete-info-table .primary-stamp{
-        display:inline-block; padding:.2rem .5rem; border:1px solid var(--primary-color); border-radius:4px; background:rgba(0,188,212,.08);
+        display:inline-block; padding:.2rem .5rem; border:1px solid var(--primary-color); border-radius:4px; background:rgba(11,125,69,.08);
         letter-spacing:.5px; margin:0; box-shadow:0 1px 2px rgba(0,0,0,.08); color:var(--primary-color);
     }
     .athlete-info-table .golden-stamp{
@@ -1631,7 +2113,11 @@
             width:100%;
             max-width:100%;
         }
-        .leaderboard{ overflow:visible; }
+        .leaderboard{
+            overflow:hidden;
+            width:100%;
+            max-width:100%;
+        }
         .leaderboard table{
             width:100%;
             max-width:100%;
@@ -1649,7 +2135,7 @@
         .leaderboard table td .badge-section{ display:none; }
     }
 
-    @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+    @media (max-width: 900px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
         .content{
             padding-left:max(1rem, env(safe-area-inset-left));
             padding-right:max(1rem, env(safe-area-inset-right));
@@ -1680,7 +2166,7 @@
             overflow:hidden;
         }
         body.sidebar-drawer-open::before{
-            content:''; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.38);
+            content:''; position:fixed; inset:0; z-index:1000; background:rgba(3,7,6,.58);
             backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:auto; cursor:pointer;
         }
         .leaderboard-view-switcher{
@@ -1707,57 +2193,122 @@
             display:flex; align-items:center; gap:.45rem; flex:0 1 auto; min-width:0;
             width:min(100%, 26rem); max-width:100%; order:2;
         }
+        .leaderboard-sparse-state{
+            align-items:stretch; flex-direction:column; gap:.65rem;
+        }
+        .leaderboard-sparse-count{
+            align-self:flex-start; min-width:2.8rem; min-height:2.8rem; font-size:1.38rem;
+        }
 
         .sidebar-toggle{ align-self:center; width:44px; height:44px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
 
         .main-container{ flex-direction:column; }
         .leaderboard{ overflow:visible; }
         .sidebar{
-            width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
+            width:min(92vw, 360px); max-width:calc(100vw - 1rem); margin-right:0; margin-bottom:1rem;
             padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
-            position:fixed; top:0; left:0; height:100dvh; max-height:100dvh; align-items:stretch; border-radius:0 18px 18px 0;
-            background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-x:hidden; overflow-y:auto; transform:translateX(-105%);
+            position:fixed; top:0; left:0; height:100dvh; max-height:100dvh; align-items:stretch; border-radius:0 var(--radius-panel, 10px) var(--radius-panel, 10px) 0;
+            background:
+                linear-gradient(180deg, rgba(11,125,69,.045), rgba(255,254,250,0) 11rem),
+                var(--card-bg);
+            z-index:1002; box-shadow:0 20px 48px rgba(3,7,6,.36); overflow-x:hidden; overflow-y:auto; transform:translateX(-105%);
             visibility:hidden; pointer-events:none;
             transition:transform .3s ease-in-out, visibility 0s linear .3s; box-sizing:border-box; overscroll-behavior:contain;
-            -webkit-overflow-scrolling:touch; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
+            -webkit-overflow-scrolling:touch; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:rgba(11,125,69,.55) transparent;
+        }
+        .sidebar *{
+            max-width:100%;
+            min-width:0;
+            box-sizing:border-box;
         }
         .sidebar::-webkit-scrollbar{ width:8px; }
         .sidebar::-webkit-scrollbar-track{ background:transparent; }
-        .sidebar::-webkit-scrollbar-thumb{ background:rgba(0,188,212,.45); border-radius:999px; border:2px solid var(--card-bg); }
-        .sidebar::-webkit-scrollbar-thumb:hover{ background:rgba(0,188,212,.68); }
+        .sidebar::-webkit-scrollbar-thumb{ background:rgba(11,125,69,.45); border-radius:999px; border:2px solid var(--card-bg); }
+        .sidebar::-webkit-scrollbar-thumb:hover{ background:rgba(11,125,69,.68); }
         .sidebar.expanded::after{
-            content:''; position:fixed; top:5.4rem; left:calc(min(82vw, 320px) - .7rem); bottom:1rem; width:3px; border-radius:999px;
-            background:linear-gradient(to bottom, rgba(0,188,212,.08), rgba(0,188,212,.42), rgba(0,188,212,.08));
+            content:''; position:fixed; top:1rem; left:calc(min(92vw, 360px) - 1px); bottom:1rem; width:1px; border-radius:999px;
+            background:linear-gradient(to bottom, rgba(67,238,131,.12), rgba(11,125,69,.36), rgba(67,238,131,.12));
             pointer-events:none;
         }
         .sidebar.expanded{
-            display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem);
+            display:block; width:min(92vw, 360px); max-width:calc(100vw - 1rem);
             padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
             transform:translateX(0); visibility:visible; pointer-events:auto; transition-delay:0s;
         }
         .sidebar.expanded .filter-section{ display:block; }
         .sidebar .collapsed-title{ display:none; }
+        .sidebar.expanded .sidebar-close{ display:inline-flex; }
         .sidebar .sidebar-close{
-            position:sticky; top:calc(env(safe-area-inset-top) + .9rem); right:auto; margin-left:auto; margin-bottom:-44px;
+            position:absolute; top:calc(env(safe-area-inset-top) + 1.6rem); right:1.6rem; margin:0;
+            display:inline-flex; align-items:center; justify-content:center;
+            width:auto; min-width:4.9rem; min-height:2.45rem; padding:0 .78rem; border-radius:999px; gap:.38rem;
+            font-size:.86rem; font-weight:900; line-height:1;
+            color:#f8f7ef; background:#030706; border-color:rgba(248,247,239,.22);
+            box-shadow:0 8px 18px rgba(3,7,6,.18), inset 0 1px 0 rgba(248,247,239,.12);
         }
-        .sidebar .sidebar-title{ width:100%; padding:.75rem 2.75rem .75rem 0; }
+        .sidebar .sidebar-close i{
+            display:inline-flex; align-items:center; justify-content:center;
+            width:.8rem; height:.8rem; font-size:.78rem; line-height:1;
+        }
+        .sidebar .sidebar-close::after{
+            content:'Done'; display:inline-block; line-height:1;
+        }
+        .sidebar .sidebar-title{ width:100%; min-height:4.75rem; margin-bottom:1.2rem; padding:1rem 6.4rem 1rem 1rem; }
         .sidebar .sidebar-title .sidebar-title-text{ display:inline-block; }
+        @media (max-width: 360px){
+            .sidebar,
+            .sidebar.expanded{
+                width:min(95vw, 360px);
+                max-width:calc(100vw - .5rem);
+                padding-left:.75rem;
+                padding-right:.75rem;
+            }
+            .sidebar.expanded::after{
+                left:calc(min(95vw, 360px) - 1px);
+            }
+            .sidebar .sidebar-close{
+                right:1rem;
+                min-width:4.35rem;
+                padding:0 .62rem;
+            }
+            .sidebar .sidebar-title{
+                min-height:4.4rem;
+                padding:.92rem 5rem .92rem .8rem;
+            }
+            .sidebar .sidebar-title .sidebar-icon{
+                font-size:1.45rem;
+            }
+            .sidebar .sidebar-title .sidebar-title-text{
+                margin-left:.4rem;
+                font-size:1.5rem;
+                white-space:nowrap;
+            }
+        }
         .clear-sidebar-filters{ min-height:44px; align-items:center; align-self:flex-start; padding:.45rem .75rem; }
         .sidebar.has-active-state.expanded .clear-sidebar-filters{
             display:flex; width:max-content; position:sticky; top:calc(env(safe-area-inset-top) + 4rem); z-index:8; align-self:flex-end; margin-left:auto; margin-right:.75rem;
-            background:#fff6fa; box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(255,64,129,.16);
+            background:#fcf9ee; box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(212,175,55,.16);
         }
         .sidebar.has-active-state.expanded .clear-sidebar-filters:focus-visible{
-            box-shadow:0 0 0 8px var(--card-bg), 0 0 0 12px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
+            box-shadow:0 0 0 8px var(--card-bg), 0 0 0 12px rgba(67,238,131,.24), 0 6px 14px rgba(11,125,69,.16);
         }
-        .filter-section label{ min-height:44px; padding:.52rem .65rem; }
+        .filter-section label{
+            min-height:44px;
+            padding:.52rem .65rem;
+            width:100%;
+            max-width:100%;
+            overflow-wrap:anywhere;
+            word-break:normal;
+        }
         .content{ margin-left:0; }
 
         .podium{
             display:flex; flex-direction:row; justify-content:center; align-items:flex-end; gap:1.6rem; margin:0; padding:0; flex-wrap:wrap; width:100%;
         }
         .podium .athlete-name{ font-size:1.32rem; }
-        .podium-item{ width:100%; max-width:320px; padding:.85rem .85rem calc(var(--podium-prize-panel-height) + .7rem); }
+        /* The prize panel stacks caption + dollar + BTC taller on phones, so the
+           reserved panel height grows with it to keep the score caption clear. */
+        .podium-item{ --podium-prize-panel-height: 96px; width:100%; max-width:320px; padding:.85rem .85rem calc(var(--podium-prize-panel-height) + .7rem); }
         .podium-item.first{ --podium-portrait-size: 142px; order:1; height:auto; min-height:386px; }
         .podium-item.second{ --podium-portrait-size: 124px; order:2; height:auto; min-height:366px; }
         .podium-item.third{ --podium-portrait-size: 110px; order:3; height:auto; min-height:348px; }
@@ -1769,7 +2320,36 @@
         .podium .btc-amount{ margin-top:.75rem; font-size:.76rem; }
         .podium .prize-money{ font-size:1.8rem; }
 
-        .leaderboard table{ width:100%; table-layout:auto; }
+        .leaderboard table{
+            display:block;
+            width:100%;
+            max-width:100%;
+            table-layout:fixed;
+        }
+        .leaderboard table thead,
+        .leaderboard table tbody{
+            display:block;
+            width:100%;
+        }
+        .leaderboard table thead tr,
+        .leaderboard table tbody tr:not(.tier-separator):not(.no-results){
+            display:grid;
+            grid-template-columns:3.1rem minmax(0, 1fr) 5.4rem;
+            align-items:center;
+            width:100%;
+        }
+        .leaderboard table thead tr{
+            background-color:rgba(11,125,69,.1);
+        }
+        .leaderboard table th,
+        .leaderboard table td{
+            display:block;
+            min-width:0;
+            box-sizing:border-box;
+        }
+        .leaderboard table thead th{
+            background:transparent;
+        }
         .leaderboard table th:last-child,
         .leaderboard table td:last-child{ padding-right:0.5rem; }
         .leaderboard table .sponsor-th,
@@ -1786,24 +2366,85 @@
             padding:.82rem .55rem;
         }
         .leaderboard table td{ font-size:.8rem; }
-        .leaderboard table th:nth-child(4),
-        .leaderboard table td.age-reduction-td{
-            width:6.4rem;
-            min-width:6.4rem;
-            text-align:right;
-            padding-left:.4rem;
-            padding-right:1.1rem;
+        .leaderboard table th:nth-child(1){
+            grid-column:1;
         }
         .leaderboard table td.rank-td{
-            padding-left:1rem;
-            padding-right:.65rem;
+            grid-column:1;
+            width:auto;
+        }
+        .leaderboard table th:nth-child(2){
+            grid-column:2;
+        }
+        .leaderboard table td.athlete-td{
+            grid-column:2;
+            width:auto;
+        }
+        .leaderboard table th:nth-child(4),
+        .leaderboard table td.age-reduction-td{
+            grid-column:3;
+            width:auto;
+            text-align:right;
+            padding-left:.25rem;
+            padding-right:.55rem;
+            box-sizing:border-box;
+        }
+        .leaderboard table th:nth-child(4) a{
+            max-width:100%;
+            white-space:normal;
+        }
+        .leaderboard table th:nth-child(4) .score-heading-detail{
+            display:none;
+        }
+        .leaderboard table td.rank-td{
+            padding-left:.65rem;
+            padding-right:.35rem;
+        }
+        .leaderboard .rank{
+            font-size:1.05rem;
+        }
+        .leaderboard .athlete-td{
+            display:flex;
+            gap:.45rem;
+            align-items:center;
+            min-width:0;
+            padding-right:.25rem;
+            overflow:hidden;
+        }
+        .leaderboard .athlete-identity{
+            min-width:0;
+            max-width:100%;
+            gap:.12rem;
+        }
+        .leaderboard .athlete-name{
+            width:auto;
+            max-width:100%;
+            padding:.22rem .18rem .08rem;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+        }
+        .leaderboard .age-reduction{
+            display:block;
+            text-align:right;
+            white-space:nowrap;
+            font-size:.78rem;
+            line-height:1.15;
+        }
+        .leaderboard table tbody tr.no-results{
+            display:block;
+            width:100%;
+        }
+        .leaderboard table tbody tr.no-results td{
+            display:block;
+            width:100%;
         }
 
         @media (min-width: 601px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
             .leaderboard table th:nth-child(4),
             .leaderboard table td.age-reduction-td{
-                width:7.2rem;
-                min-width:7.2rem;
+                width:6.5rem;
+                min-width:0;
             }
 
             .leaderboard table th:nth-child(4) a{
@@ -1816,6 +2457,9 @@
 
         /* table portraits smaller on mobile */
         .leaderboard .portrait{ width:40px; height:40px; }
+        .leaderboard .rank-change .rank-arrow{
+            display:none;
+        }
 
         /* =========================
            Athlete info table — stacked layout so nothing is cut off
@@ -1826,24 +2470,28 @@
             table-layout: auto;
             display: block;
         }
+        #detailsModal .athlete-info-table tbody,
         .athlete-info-table tbody {
-            display: block;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.55rem;
         }
-        .athlete-info-table tr {
-            display: block;
-            padding: 0.18rem 0;
+        .athlete-info-table tr:not(.athlete-info-divider-row) {
+            display: grid;
+            min-height: 0;
+            padding: 0.72rem 0.78rem;
         }
         #detailsModal .athlete-info-table tr:not(:first-child):not(.athlete-info-divider-row) {
-            border-top: 1px solid rgba(246,244,237,.085);
-            margin-top: 0.08rem;
-            padding-top: 0.45rem;
+            border-top: 1px solid rgba(246,244,237,.11);
+            margin-top: 0;
+            padding-top: 0.72rem;
         }
         #detailsModal .athlete-info-table tr.athlete-info-group-first {
-            border-top: 0 !important;
+            border-top: 1px solid rgba(246,244,237,.11) !important;
             margin-top: 0;
         }
         .athlete-info-table tr.athlete-info-divider-row {
-            padding: 0.25rem 0;
+            display: none;
         }
         .athlete-info-table tr.athlete-info-divider-row td {
             padding: 0 !important;
@@ -1851,8 +2499,8 @@
         .athlete-info-table th,
         .athlete-info-table td {
             display: block;
-            width: 100%;
-            padding: 0.08rem 0 0.12rem 0;
+            width: auto;
+            padding: 0;
             white-space: normal;
             overflow-wrap: break-word;
             word-break: break-word;
@@ -1861,19 +2509,18 @@
         #detailsModal .athlete-info-table th,
         #detailsModal .athlete-info-table td {
             border-top: 0 !important;
-            padding-top: 0.08rem;
-            padding-bottom: 0.12rem;
+            padding-top: 0;
+            padding-bottom: 0;
         }
         .athlete-info-table th {
-            padding-bottom: 0.04rem;
-            font-size: 0.78em;
-            letter-spacing: 0.015em;
-            color: var(--secondary-color, #555);
+            padding-bottom: 0;
+            font-size: 0.68rem;
+            letter-spacing: 0.04em;
         }
         .athlete-info-table td {
             padding-top: 0;
             padding-left: 0;
-            margin: 0;
+            margin: 0.42rem 0 0;
             font-size: 0.96rem;
             line-height: 1.35;
         }
@@ -1911,10 +2558,10 @@
 
             .leaderboard table th:nth-child(4),
             .leaderboard table td.age-reduction-td {
-                width: 5.5rem;
-                min-width: 5.5rem;
+                width: 5.1rem;
+                min-width: 0;
                 padding-left: 0.25rem;
-                padding-right: 0.55rem;
+                padding-right: 0.4rem;
             }
 
             .leaderboard table th:nth-child(4) {
@@ -1940,7 +2587,13 @@
                 height: 36px;
             }
 
-            .leaderboard .athlete-td .portrait-wrapper,
+            .leaderboard .athlete-td .portrait-wrapper {
+                --status-marker-size:16px;
+                flex: 0 0 36px;
+                width: 36px;
+                min-width: 36px;
+                padding-left:0;
+            }
             .leaderboard .athlete-td .rank-change {
                 flex: 0 0 36px;
                 width: 36px;
@@ -1977,10 +2630,10 @@
 
             .leaderboard table th:nth-child(4),
             .leaderboard table td.age-reduction-td {
-                width: 5.5rem;
-                min-width: 5.5rem;
+                width: 5.1rem;
+                min-width: 0;
                 padding-left: 0.25rem;
-                padding-right: 0.55rem;
+                padding-right: 0.4rem;
             }
 
             .leaderboard table th:nth-child(4) {
@@ -2006,7 +2659,13 @@
                 height: 36px;
             }
 
-            .leaderboard .athlete-td .portrait-wrapper,
+            .leaderboard .athlete-td .portrait-wrapper {
+                --status-marker-size:16px;
+                flex: 0 0 36px;
+                width: 36px;
+                min-width: 36px;
+                padding-left:0;
+            }
             .leaderboard .athlete-td .rank-change {
                 flex: 0 0 36px;
                 width: 36px;
@@ -2034,12 +2693,49 @@
             border-radius:0 !important; /* Also remove rounded corners in guess-mode on mobile */
         }
         #athlete-profile .portrait-wrapper{
-            width:min(46vw, 188px);
+            width:clamp(128px, 40vw, 164px);
         }
         #detailsModal #athleteName{
             font-size:clamp(1.9rem, 7.5vw, 2.35rem);
             line-height:1.08;
-            margin-top:.75rem;
+            margin-top:.6rem;
+        }
+        #detailsModal .modal-competition-summary{
+            width:calc(100% - 1rem);
+            max-width:calc(100% - 1rem);
+            grid-template-columns:repeat(3, minmax(0, 1fr));
+            gap:.35rem;
+            margin:.5rem auto .65rem;
+        }
+        #detailsModal .modal-competition-summary-item{
+            padding:.52rem .42rem;
+            border-radius:12px;
+            text-align:center;
+        }
+        #detailsModal .modal-competition-summary-item strong{
+            justify-content:center;
+            font-size:clamp(1.25rem, 5.4vw, 1.7rem);
+        }
+        #detailsModal .modal-competition-summary-item.is-score strong{
+            font-size:clamp(1.65rem, 7vw, 2.1rem);
+        }
+        #detailsModal .modal-competition-summary-item > span,
+        #detailsModal .modal-competition-summary-item small{
+            font-size:.62rem;
+            letter-spacing:.05em;
+        }
+        @media (max-width:360px){
+            #detailsModal .modal-competition-summary{
+                grid-template-columns:repeat(2, minmax(0, 1fr));
+                gap:.38rem;
+            }
+            #detailsModal .modal-competition-summary-item.is-score{
+                grid-column:1 / -1;
+                order:-1;
+            }
+            #detailsModal .modal-competition-summary-item.is-score strong{
+                font-size:2.05rem;
+            }
         }
         #detailsModal #athleteBio,
         #detailsModal .athlete-info,
@@ -2047,25 +2743,53 @@
         #detailsModal .events-embed,
         #detailsModal .biomarkers-section,
         #detailsModal .proofs-section{
-            width:calc(100% - 1.5rem) !important;
-            max-width:calc(100% - 1.5rem) !important;
+            width:calc(100% - 1rem) !important;
+            max-width:calc(100% - 1rem) !important;
             margin-left:auto;
             margin-right:auto;
             box-sizing:border-box;
         }
         #detailsModal #athleteBio{
-            margin:.75rem auto 1rem;
-            padding:.85rem 1rem;
+            margin:.65rem auto .85rem;
+            padding:.75rem .85rem;
             border-radius:16px;
             text-wrap:balance;
         }
+        #detailsModal .athlete-evidence-strip{
+            width:calc(100% - 1rem);
+            max-width:calc(100% - 1rem);
+            grid-template-columns:repeat(3, minmax(0, 1fr));
+            align-items:stretch;
+            justify-content:stretch;
+            gap:0;
+            margin:.5rem auto .65rem;
+            padding:0;
+        }
+        #detailsModal .athlete-evidence-label{
+            grid-column:1 / -1;
+            justify-content:center;
+            min-height:2rem;
+            border-right:0;
+            border-bottom:1px solid rgba(246,244,237,.14);
+            background:rgba(67,238,131,.065);
+        }
+        #detailsModal .athlete-evidence-link{
+            min-height:2.25rem;
+            padding:.3rem .42rem;
+            border-left:0;
+            border-right:1px solid rgba(246,244,237,.12);
+            font-size:.8rem;
+        }
+        #detailsModal .athlete-evidence-link:last-child{
+            border-right:0;
+        }
         #detailsModal .athlete-links{
-            width:calc(100% - 1.5rem);
-            max-width:calc(100% - 1.5rem);
-            margin:.85rem auto 1rem;
-            padding:.55rem;
+            width:calc(100% - 1rem);
+            max-width:calc(100% - 1rem);
+            margin:.7rem auto .9rem;
+            padding:.45rem;
             border-radius:18px;
-            gap:.55rem;
+            gap:.45rem;
         }
         #detailsModal .athlete-links a,
         #detailsModal .athlete-links button{
@@ -2213,7 +2937,14 @@
             margin:.28rem 0;
         }
 
-        .leaderboard .athlete-td .portrait-wrapper,
+        .leaderboard .athlete-td .portrait-wrapper{
+            --status-marker-size:15px;
+            flex:0 0 34px;
+            width:34px;
+            min-width:34px;
+            padding-left:0;
+        }
+
         .leaderboard .athlete-td .rank-change{
             flex:0 0 34px;
             width:34px;
@@ -2257,6 +2988,11 @@
             line-height:1.05;
             margin-top:.3rem;
             margin-bottom:.1rem;
+        }
+
+        #detailsModal .modal-competition-summary{
+            width:calc(100% - 1rem);
+            max-width:calc(100% - 1rem);
         }
 
         #detailsModal #athleteBio,
@@ -2363,12 +3099,12 @@
                     <input type="radio" name="leaderboardView" id="view-ultimate" value="ultimate" checked aria-label="Ultimate ranking">
                     <label for="view-ultimate" class="view-badge view-badge-ultimate" title="Show the Ultimate League ranking.">Ultimate</label>
                     <input type="radio" name="leaderboardView" id="view-bortz" value="bortz" aria-label="Bortz Age ranking">
-                    <label for="view-bortz" class="view-badge view-badge-bortz is-clearable" title="Rank by bortz age (biological age). Click again to show default ranking.">Bortz<span class="view-badge-suffix">Age</span></label>
+                    <label for="view-bortz" class="view-badge view-badge-bortz is-clearable" title="Rank by Bortz Age: biological age from advanced blood-test markers. Click again to show default ranking.">Bortz<span class="view-badge-suffix">Age</span></label>
                     <input type="radio" name="leaderboardView" id="view-pheno" value="pheno" aria-label="Pheno Age ranking">
-                    <label for="view-pheno" class="view-badge view-badge-pheno is-clearable" title="Rank by pheno age. Click again to show default ranking.">Pheno<span class="view-badge-suffix">Age</span></label>
+                    <label for="view-pheno" class="view-badge view-badge-pheno is-clearable" title="Rank by Pheno Age: biological age from common blood-test markers. Click again to show default ranking.">Pheno<span class="view-badge-suffix">Age</span></label>
                     <input type="radio" name="leaderboardView" id="view-improvement" value="improvement" aria-label="Pheno Improvement ranking" tabindex="-1" aria-hidden="true">
                     <input type="radio" name="leaderboardView" id="view-crowd" value="crowd" aria-label="Crowd Age ranking">
-                    <label for="view-crowd" class="view-badge view-badge-crowd is-clearable" title="Rank by crowd age. Click again to show default ranking.">Crowd<span class="view-badge-suffix">Age</span></label>
+                    <label for="view-crowd" class="view-badge view-badge-crowd is-clearable" title="Rank by Crowd Age: visual age estimates from visitors after 100 accepted guesses. Click again to show default ranking.">Crowd<span class="view-badge-suffix">Age</span></label>
                     <input type="radio" name="leaderboardView" id="view-bortz-improvement" value="bortz-improvement" aria-label="Bortz Improvement ranking" tabindex="-1" aria-hidden="true">
                 </div>
             </div>
@@ -2387,10 +3123,16 @@
             </div>
         </div>
 
-        <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
+        <div id="leaderboardSparseState" class="leaderboard-sparse-state" hidden>
+            <div class="leaderboard-sparse-copy">
+                <p id="leaderboardSparseTitle" class="leaderboard-sparse-title"></p>
+                <p id="leaderboardSparseDetail" class="leaderboard-sparse-detail"></p>
+            </div>
+            <span id="leaderboardSparseCount" class="leaderboard-sparse-count" aria-hidden="true">0</span>
+        </div>
 
         <div class="leaderboard">
-            <div class="sidebar" id="leaderboardFilters">
+            <div class="sidebar" id="leaderboardFilters" aria-hidden="true">
                 <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-times"></i></button>
                 <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
@@ -2400,38 +3142,38 @@
                     <i class="fa fa-times clear-sidebar-filters-icon" aria-hidden="true"></i>
                     <span>Clear filters</span>
                 </span>
-                <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
+                <div class="collapsed-title" data-filter-label="Filters" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="filter-section" id="aging-clock-filter-section">
                     <h3>Aging clocks</h3>
                     <ul>
                         <li>
                             <label data-aging-clock-view="bortz">
                                 <input type="checkbox" name="agingClockView" value="bortz">
-                                🩸 Bortz Age (<span class="filter-count">0</span>)
+                                <i class="fas fa-droplet filter-glyph" aria-hidden="true"></i> Bortz Age (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="pheno">
                                 <input type="checkbox" name="agingClockView" value="pheno">
-                                🩸 Pheno Age (<span class="filter-count">0</span>)
+                                <i class="fas fa-droplet filter-glyph" aria-hidden="true"></i> Pheno Age (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="improvement">
                                 <input type="checkbox" name="agingClockView" value="improvement">
-                                📉 Pheno Improvement (<span class="filter-count">0</span>)
+                                <i class="fas fa-arrow-trend-down filter-glyph" aria-hidden="true"></i> Pheno Improvement (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="bortz-improvement">
                                 <input type="checkbox" name="agingClockView" value="bortz-improvement">
-                                📉 Bortz Improvement (<span class="filter-count">0</span>)
+                                <i class="fas fa-arrow-trend-down filter-glyph" aria-hidden="true"></i> Bortz Improvement (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="crowd">
                                 <input type="checkbox" name="agingClockView" value="crowd">
-                                👥 Crowd Age (<span class="filter-count">0</span>)
+                                <i class="fas fa-users filter-glyph" aria-hidden="true"></i> Crowd Age (<span class="filter-count">0</span>)
                             </label>
                         </li>
                     </ul>
@@ -2463,21 +3205,11 @@
                 <tr>
                     <th>Rank</th>
                     <th>Athlete</th>
-                    <th class="sponsor-th">
-                        Sponsor<br />
-                        <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
-                           onmouseover="this.style.color='var(--secondary-color)';"
-                           onmouseout="this.style.color='#999';">
-                                <span id="comingSoon">
-                                    coming soon
-                                </span>
-                        </a>
-                    </th>
-                    <th>
-                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
-                           onmouseover="this.style.color='var(--secondary-color)';"
-                           onmouseout="this.style.color='var(--primary-color)';">
-                            <span id="leaderboardMetricHeader">Age reduction</span>
+                    <th class="sponsor-th">Sponsor</th>
+                    <th class="score-th">
+                        <a href="/ruleset#point-system" class="leaderboard-score-header">
+                            <span id="leaderboardMetricHeader" class="score-heading-label">Score</span>
+                            <span id="leaderboardMetricSubheader" class="score-heading-detail">age reduction</span>
                         </a>
                     </th>
                     <th class="media-contact-th">Media contact</th>
@@ -2560,7 +3292,7 @@
                     </div>
                     <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
                 </div>
-                <span id="closeAthleteDetailsModal" class="close">&times;</span>
+                <button type="button" id="closeAthleteDetailsModal" class="close" aria-label="Close athlete details">&times;</button>
 
                 <div class="athlete-profile" id="athlete-profile">
                     <span class="portrait-wrapper">
@@ -2573,8 +3305,29 @@
                     </span>
                     <h2 id="athleteName"></h2>
 
+                    <div class="modal-competition-summary" aria-label="Competition summary">
+                        <div class="modal-competition-summary-item">
+                            <span>Rank</span>
+                            <strong id="modalSummaryRank">--</strong>
+                        </div>
+                        <div class="modal-competition-summary-item is-score">
+                            <span id="modalSummaryScoreLabel">Score</span>
+                            <strong><span id="modalSummaryScore">--</span><small>years</small></strong>
+                        </div>
+                        <div class="modal-competition-summary-item">
+                            <span>Submissions</span>
+                            <strong><span id="modalSummarySubmissionCount">0</span> <small id="modalSummarySubmissionUnit">submissions</small></strong>
+                        </div>
+                    </div>
+
                     <!--GUESS-MY-AGE-->
 
+                    <div class="athlete-evidence-strip" aria-label="Athlete record sections">
+                        <span class="athlete-evidence-label">Public record</span>
+                        <button type="button" class="athlete-evidence-link" data-modal-target="athlete-stats">Stats</button>
+                        <button type="button" class="athlete-evidence-link" data-modal-target="athlete-biomarkers">Biomarkers</button>
+                        <button type="button" class="athlete-evidence-link" data-modal-target="athlete-proofs">Proofs <span id="athleteProofCount" class="athlete-evidence-count">0</span></button>
+                    </div>
                     <div id="modalBadgeStrip" class="modal-badge-strip"></div>
                     <p id="athleteBio"></p>
                     <!--AGE-VISUALIZATION-->
@@ -2609,7 +3362,7 @@
                                 <td>
                                     <span id="notEmptyCrowdAgeContainer" style="display:none;">
             <span id="crowdAge">0</span> <span class="unit">years</span>,
-            <span id="crowdCount">0</span> guesses
+            <span id="crowdCount">0</span> <span id="crowdCountUnit">guesses</span>
           </span>
                                 </td>
                             </tr>
@@ -2667,10 +3420,10 @@
                         <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile">
                             <i class="fa fa-share-nodes"></i> Share
                         </button>
-                        <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
+                        <a id="personalLink" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
                             <i class="fa fa-link"></i> Personal page
                         </a>
-                        <a id="mediaContact" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Contact the athlete">
+                        <a id="mediaContact" target="_blank" rel="noopener" class="modal-link" aria-label="Contact the athlete">
                             <i class="fa fa-envelope"></i> Media contact
                         </a>
                     </div>
@@ -2687,22 +3440,23 @@
         <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
     </div>
 
-    <div class="events-embed" style="margin-top:16px">
-        <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
-    </div>
-
     <div class="proofs-section" id="athlete-proofs">
-        <h3>Proofs</h3>
+        <h3>Proof images</h3>
+        <p class="proofs-section-lede">Public proof attached to this athlete's biological-age records.</p>
         <div class="proofs-gallery" id="proofsGallery">
             <!-- Proof images will be inserted here -->
         </div>
+    </div>
+
+    <div class="events-embed" style="margin-top:16px">
+        <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
     </div>
 </template>
 
 <template id="enlargedPortraitTemplate">
     <div class="enlarged-portrait">
         <img src="" alt="" loading="lazy">
-        <span class="close-btn">&times;</span>
+        <button type="button" class="close-btn" aria-label="Close proof viewer">&times;</button>
     </div>
 </template>
 
@@ -2716,7 +3470,9 @@
                 <img src="" alt="" class="portrait" loading="lazy">
                 <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
             </span>
-            <span class="athlete-name" title="View stats"></span>
+            <span class="athlete-identity">
+                <span class="athlete-name" title="View stats"></span>
+            </span>
             <div class="badge-section"></div>
         </td>
         <td data-label="Sponsor" class="sponsor-td"></td>
@@ -3533,6 +4289,7 @@
                         generation: generation,
                         exclusiveLeague: athlete.ExclusiveLeague,
                         submissionCount: submissionCount,
+                        proofCount: Array.isArray(athlete.Proofs) ? athlete.Proofs.filter(Boolean).length : 0,
                         phenoAgeDifference: phenoAgeDifference,
                         phenoAgeImprovement: Number.isFinite(athlete.PhenoAgeImprovementFromWorst)
                             ? athlete.PhenoAgeImprovementFromWorst
@@ -3650,6 +4407,13 @@
                 athletesOrderedByPhenoAgeReduction = athleteResults.slice();
                 athletesOrderedByPhenoAgeReduction.sort(window.compareAthleteRankPhenoOnly);
 
+                window.dispatchEvent(new CustomEvent('lwc:leaderboard-ready', {
+                    detail: {
+                        athleteResults: athleteResults.slice(),
+                        crowdAgeMinimumGuessCount: CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT
+                    }
+                }));
+
                 const podiumCount = includePodium ? 3 : 0;
 
                 if (includePodium) {
@@ -3732,10 +4496,11 @@
                                                 ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
                                                 ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
                                             </div>
-                                            <div><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
+                                            <div class="podium-score"><span class="podium-score-number">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)}</span><span class="podium-score-caption">years reduced</span></div>
                                             <div class="podium-item-lower">
-                                                <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
+                                                <div class="prize-caption">Prize</div>
                                                 <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
+                                                <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
                                             </div>
                                         `;
 
@@ -3862,7 +4627,6 @@
                     const athleteNameSpan = athleteCell.querySelector('.athlete-name');
                     athleteNameSpan.innerHTML = formatAthleteNameForMobile(athlete.displayName);
                     athleteNameSpan.title = `View stats of ${athlete.displayName}`;
-
                     window.setBadges(athlete, athleteCell);
 
                     const displayAgeReduction = getDisplayAgeReductionValue(athlete);
@@ -3934,7 +4698,10 @@
                     const normalizedAthlete = window.slugifyName(athleteParam, false);
                     const athleteData = getAthleteData(normalizedAthlete);
                     if (athleteData) {
-                        fetchFullAthleteData(normalizedAthlete, athleteData);
+                        fetchFullAthleteData(normalizedAthlete, athleteData, {
+                            suppressGuessMyAge: new URLSearchParams(window.location.search).get('guessmyage') !== '1',
+                            markGuessSkipped: false
+                        });
                     } else {
                         // Redirect to the .NET 404 endpoint
                         window.location.href = '/error/404';
@@ -3986,9 +4753,6 @@
                             searchOrFilterApplied = true;
                         }
                     }
-                    const selectedViewRadio = document.querySelector('input[name="leaderboardView"]:checked');
-                    updateRankingExplanation(selectedViewRadio ? selectedViewRadio.value : 'ultimate');
-
                     if (searchOrFilterApplied) {
                         debounceFilterAthletes();
 
@@ -4148,12 +4912,25 @@
 
     // Function to attach click event listener to all athlete-name elements
     function attachAthleteNameClickListeners() {
-        const athleteNameElements = document.querySelectorAll('.athlete-name');
-
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
+            if (athleteNameElement.classList.contains('skeleton-shimmer')) return;
+            athleteNameElement.setAttribute('role', 'button');
+            athleteNameElement.setAttribute('tabindex', '0');
+            if (!athleteNameElement.getAttribute('aria-label')) {
+                const nameText = athleteNameElement.textContent.trim();
+                athleteNameElement.setAttribute('aria-label', nameText ? `Open athlete record for ${nameText}` : 'Open athlete record');
+            }
             athleteNameElement.removeEventListener('click', handleAthleteNameClick); // Remove existing listeners to prevent duplicates
+            athleteNameElement.removeEventListener('keydown', handleAthleteNameKeydown);
             athleteNameElement.addEventListener('click', handleAthleteNameClick);
+            athleteNameElement.addEventListener('keydown', handleAthleteNameKeydown);
         });
+    }
+
+    function handleAthleteNameKeydown(event) {
+        if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+        event.preventDefault();
+        handleAthleteNameClick(event);
     }
 
     function openEnlargedView(imgElement) {
@@ -4213,10 +4990,10 @@
         }
         return `${isEmail
             ? `<a href="mailto:${contact}" class="media-contact" aria-label="Email ${contact}" title="${tooltipText}">
-            ${window.getIcon(contact)}
+            ${window.getIcon(contact)}<span class="media-contact-label">Press</span>
            </a>`
             : `<a href="${contact.startsWith('http') ? contact : 'https://' + contact}" target="_blank" rel="noopener" class="media-contact" aria-label="Contact the athlete" title="${tooltipText}">
-            ${window.getIcon(contact)}
+            ${window.getIcon(contact)}<span class="media-contact-label">Press</span>
            </a>`
         }`;
     }
@@ -4236,6 +5013,7 @@
     let savedBodyScroll = 0;
     let savedBodyBackground = '';
     let currentAthleteModalRequestId = 0;
+    let athleteModalPreviousFocus = null;
     const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
 
     window.ensureChartJs = window.ensureChartJs || function () {
@@ -4338,12 +5116,32 @@
 
         const modalBadgeStrip = document.getElementById('modalBadgeStrip');
         if (modalBadgeStrip) modalBadgeStrip.innerHTML = '';
+        const proofCount = document.getElementById('athleteProofCount');
+        if (proofCount) proofCount.textContent = '0';
+        const modalSummaryRank = document.getElementById('modalSummaryRank');
+        if (modalSummaryRank) modalSummaryRank.textContent = '--';
+        const modalSummaryScoreLabel = document.getElementById('modalSummaryScoreLabel');
+        if (modalSummaryScoreLabel) modalSummaryScoreLabel.textContent = 'Score';
+        const modalSummaryScore = document.getElementById('modalSummaryScore');
+        if (modalSummaryScore) modalSummaryScore.textContent = '--';
+        const modalSummarySubmissionCount = document.getElementById('modalSummarySubmissionCount');
+        if (modalSummarySubmissionCount) modalSummarySubmissionCount.textContent = '0';
+        const modalSummarySubmissionUnit = document.getElementById('modalSummarySubmissionUnit');
+        if (modalSummarySubmissionUnit) modalSummarySubmissionUnit.textContent = 'submissions';
         const athleteBio = document.getElementById('athleteBio');
         if (athleteBio) athleteBio.textContent = '';
         const personalLinkElement = document.getElementById('personalLink');
-        if (personalLinkElement) personalLinkElement.style.display = 'none';
+        if (personalLinkElement) {
+            personalLinkElement.removeAttribute('href');
+            personalLinkElement.removeAttribute('title');
+            personalLinkElement.style.display = 'none';
+        }
         const mediaContactElement = document.getElementById('mediaContact');
-        if (mediaContactElement) mediaContactElement.style.display = 'none';
+        if (mediaContactElement) {
+            mediaContactElement.removeAttribute('href');
+            mediaContactElement.removeAttribute('title');
+            mediaContactElement.style.display = 'none';
+        }
         const proofsGallery = document.getElementById('proofsGallery');
         if (proofsGallery) proofsGallery.innerHTML = '';
 
@@ -4361,8 +5159,17 @@
         }
 
         if (modal.style.display !== "block") {
+            athleteModalPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             modal.style.display = "block";
             lockBodyScroll();
+            requestAnimationFrame(() => {
+                try {
+                    closeBtn?.focus({ preventScroll: true, focusVisible: true });
+                }
+                catch {
+                    closeBtn?.focus({ preventScroll: true });
+                }
+            });
         }
 
         return modalContent;
@@ -4564,6 +5371,23 @@
         });
     }
 
+    document.addEventListener('click', function(event) {
+        const trigger = event.target.closest('[data-modal-target]');
+        if (!trigger) return;
+
+        const modalContent = document.querySelector('.modal-content');
+        if (!modalContent || modal.style.display !== "block") return;
+
+        const target = document.getElementById(trigger.getAttribute('data-modal-target'));
+        if (!target) return;
+
+        event.preventDefault();
+        target.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'start'
+        });
+    });
+
     // Initialize keyboard navigation
     setupModalKeyboardNavigation();
     
@@ -4633,6 +5457,16 @@
             history.replaceState({}, "", originalAthletelessURL);
 
             resetPageTitle();
+
+            if (athleteModalPreviousFocus && typeof athleteModalPreviousFocus.focus === 'function') {
+                try {
+                    athleteModalPreviousFocus.focus({ preventScroll: true });
+                }
+                catch {
+                    athleteModalPreviousFocus.focus();
+                }
+            }
+            athleteModalPreviousFocus = null;
         }, 400);
     }
 
@@ -4757,7 +5591,7 @@
 
         const hasResults = Number.isFinite(count) && count > 0;
         const totalCount = Array.isArray(athleteResults) && athleteResults.length > 0 ? athleteResults.length : count;
-        const label = hasActiveLeaderboardState() && hasResults ? 'VIEW THIS LEADERBOARD' : 'VIEW ALL ATHLETES';
+        const label = hasActiveLeaderboardState() && hasResults ? 'VIEW SELECTED STANDINGS' : 'VIEW FULL STANDINGS';
         const displayCount = hasResults ? count : totalCount;
         button.dataset.useDefaultLeaderboardUrl = hasResults ? 'false' : 'true';
         button.textContent = Number.isFinite(displayCount) ? `${label} (${displayCount})` : label;
@@ -4875,7 +5709,6 @@
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         syncAgingClockFilters(currentLeaderboardView);
         updateActiveFilterSections();
-        updateRankingExplanation(currentLeaderboardView);
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
         const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -4927,13 +5760,21 @@
         };
 
         const metricHeader = document.getElementById('leaderboardMetricHeader');
-        const metricLabel = currentLeaderboardView === 'improvement'
-            ? 'Improvement'
-            : currentLeaderboardView === 'bortz-improvement'
-                ? 'Bortz improvement'
-                : 'Age reduction';
+        const metricSubheader = document.getElementById('leaderboardMetricSubheader');
+        const metricCopy = {
+            ultimate: { label: 'Score', detail: 'Bortz then Pheno' },
+            bortz: { label: 'Bortz score', detail: 'more negative wins' },
+            pheno: { label: 'Pheno score', detail: 'more negative wins' },
+            improvement: { label: 'Improvement', detail: 'latest minus worst' },
+            'bortz-improvement': { label: 'Bortz improvement', detail: 'latest minus worst' },
+            crowd: { label: 'Crowd score', detail: '100+ guesses' }
+        }[currentLeaderboardView] || { label: 'Score', detail: 'age reduction' };
+        const metricLabel = metricCopy.label;
         if (metricHeader) {
             metricHeader.textContent = metricLabel;
+        }
+        if (metricSubheader) {
+            metricSubheader.textContent = metricCopy.detail;
         }
         document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
             cell.setAttribute('data-label', metricLabel);
@@ -5054,8 +5895,8 @@
         updateViewAllAthletesButton(unslicedFilteredAthletes.length);
 
         // Determine if filters are used (league track counts only when exactly one selected)
-        const filtersUsed = selectedDivisions.length > 0 || selectedFlags.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 ||
-            leagueTrackFilterActive || currentLeaderboardView !== 'ultimate';
+        const nonViewFiltersUsed = selectedDivisions.length > 0 || selectedFlags.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 || leagueTrackFilterActive;
+        const filtersUsed = nonViewFiltersUsed || currentLeaderboardView !== 'ultimate';
         const searchUsed = uniqueSearchTerms.length > 0;
 
         // If filters are used, reassign ranks starting from 1
@@ -5197,9 +6038,10 @@
         });
 
         updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView);
+        updateSparseLeaderboardState(currentLeaderboardView, tableVisibleAthletes.length, baseList.length, searchUsed, nonViewFiltersUsed);
 
         // Display "No Results Found" if Necessary
-        displayNoResults(tableRows, podiumItems, query);
+        displayNoResults(tableRows, podiumItems, query, currentLeaderboardView);
 
         // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
         if (hidePodiumRowsInTable) {
@@ -5253,22 +6095,37 @@
         history.replaceState({}, "", url.toString());
     }
 
-    function updateRankingExplanation(currentLeaderboardView) {
-        const explanation = document.getElementById('rankingExplanation');
-        if (!explanation) return;
+    function updateSparseLeaderboardState(currentLeaderboardView, visibleCount, eligibleCount, searchUsed, nonViewFiltersUsed) {
+        const sparseState = document.getElementById('leaderboardSparseState');
+        const sparseTitle = document.getElementById('leaderboardSparseTitle');
+        const sparseDetail = document.getElementById('leaderboardSparseDetail');
+        const sparseCount = document.getElementById('leaderboardSparseCount');
+        const leaderboardShell = document.querySelector('.leaderboard');
+        if (!sparseState || !sparseTitle || !sparseDetail || !sparseCount || !leaderboardShell) return;
 
-        const explanations = {
-            ultimate: '<strong>Ultimate leaderboard</strong> ranks athletes first by bortz, then by pheno age reductions.',
-            bortz: '<strong>Bortz age</strong> estimates biological age from advanced blood-test markers.',
-            pheno: '<strong>Pheno age</strong> estimates biological age from common blood-test markers.',
-            improvement: '<strong>Pheno improvement</strong> ranks latest eligible pheno age against each athlete’s worst eligible pheno age.',
-            'bortz-improvement': '<strong>Bortz improvement</strong> ranks latest eligible bortz age against each athlete’s worst eligible bortz age.',
-            crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they pass 100 guesses.'
-        };
+        const copy = {
+            crowd: {
+                label: 'Crowd Age field',
+                detail: 'Crowd Age only admits athletes with at least 100 accepted guesses. A short board is expected until more profiles qualify.'
+            },
+            improvement: {
+                label: 'Pheno improvement field',
+                detail: "Improvement boards need enough result history to compare latest eligible age against each athlete's worst eligible age."
+            },
+            'bortz-improvement': {
+                label: 'Bortz improvement field',
+                detail: "Improvement boards need enough result history to compare latest eligible Bortz Age against each athlete's worst eligible Bortz Age."
+            }
+        }[currentLeaderboardView];
 
-        const html = explanations[currentLeaderboardView] || '';
-        explanation.innerHTML = html;
-        explanation.classList.toggle('is-visible', html.length > 0);
+        const shouldShow = Boolean(copy) && !searchUsed && !nonViewFiltersUsed && visibleCount > 0 && visibleCount <= 3;
+        sparseState.hidden = !shouldShow;
+        leaderboardShell.classList.toggle('is-sparse-ranking', shouldShow);
+        if (!shouldShow) return;
+
+        sparseTitle.textContent = `${eligibleCount} ${eligibleCount === 1 ? 'athlete qualifies' : 'athletes qualify'} for this ${copy.label}.`;
+        sparseDetail.textContent = copy.detail;
+        sparseCount.textContent = String(eligibleCount);
     }
 
     function updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
@@ -5465,7 +6322,7 @@
         });
     }
 
-    function displayNoResults(tableRows, podiumItems, query) {
+    function displayNoResults(tableRows, podiumItems, query, currentLeaderboardView) {
         // Remove existing no-results message if any
         const existingMessage = document.querySelector('.no-results');
         if (existingMessage) {
@@ -5473,17 +6330,34 @@
         }
 
         // Check if any rows or podium items are visible
-        const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
+        const athleteRows = document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]');
+        const anyVisible = Array.from(athleteRows).some(row => row.style.display !== 'none');
 
         if (!anyVisible) {
             const tableBody = document.querySelector('.leaderboard table tbody');
             const noResults = document.createElement('tr');
+            const viewLabel = {
+                ultimate: 'Ultimate standings',
+                bortz: 'Bortz Age field',
+                pheno: 'Pheno Age field',
+                improvement: 'Pheno improvement field',
+                'bortz-improvement': 'Bortz improvement field',
+                crowd: 'Crowd Age field'
+            }[currentLeaderboardView] || 'standings';
+            const hasSearch = Boolean(query);
+            const title = hasSearch
+                ? 'No athletes match this search.'
+                : `No eligible athletes in the ${viewLabel} yet.`;
+            const detail = hasSearch
+                ? 'Clear the search or filters to return to the official standings.'
+                : 'This view only admits athletes with enough public proof for the selected score.';
             noResults.classList.add('no-results');
             noResults.innerHTML = `
                 <td colspan="6">
                     <div class="no-results-empty-state">
-                        <p>No athletes match this leaderboard.</p>
-                        <button type="button" class="show-all-athletes-btn">Show all athletes</button>
+                        <p class="no-results-empty-title">${title}</p>
+                        <p class="no-results-empty-detail">${detail}</p>
+                        <button type="button" class="show-all-athletes-btn">Show full standings</button>
                     </div>
                 </td>`;
             tableBody.appendChild(noResults);
@@ -5650,6 +6524,22 @@
         });
     });
 
+    // Sidebar chrome stays monochrome: multicolor emoji glyphs fight the dark
+    // green sidebar, so league filters render Font Awesome icons that inherit
+    // text color. Form selects elsewhere keep the emoji helpers (options can't
+    // render HTML). Country flags stay emoji — that's their identity.
+    const FILTER_GLYPH_CLASSES = {
+        division: { "men's": "fa-mars", "women's": "fa-venus", "open": "fa-mars-and-venus" },
+        track: { "amateur": "fa-graduation-cap", "professional": "fa-trophy" },
+        generation: { "silent generation": "fa-radio", "baby boomers": "fa-tv", "gen x": "fa-desktop", "millennials": "fa-laptop", "gen z": "fa-mobile-screen", "gen alpha": "fa-rocket" },
+        exclusive: { "prosperan": "fa-umbrella-beach" }
+    };
+
+    function filterGlyph(kind, value) {
+        const cls = (FILTER_GLYPH_CLASSES[kind] || {})[(value || '').toLowerCase()];
+        return cls ? `<i class="fas ${cls} filter-glyph" aria-hidden="true"></i>` : '';
+    }
+
     function generateDivisionFilters(athletes) {
         const filterSection = document.querySelector('#division-filter-section ul');
         filterSection.innerHTML = ''; // Clear existing filters if any
@@ -5663,7 +6553,7 @@
         // Generate the filter items with icons and counts
         Object.keys(divisionCounts).forEach(division => {
             const count = divisionCounts[division];
-            const icon = window.TryGetDivisionIcon(division);
+            const icon = filterGlyph('division', division);
 
             const li = document.createElement('li');
             li.innerHTML = `
@@ -5721,7 +6611,7 @@
         orderedGenerations.forEach(generation => {
             const count = generationCounts[generation] || 0;
             if (count > 0) { // Only show generations with at least one athlete
-                const icon = window.TryGetGenerationIcon(generation);
+                const icon = filterGlyph('generation', generation);
 
                 const li = document.createElement('li');
                 li.innerHTML = `
@@ -5753,7 +6643,7 @@
             li.innerHTML = `
             <label data-exclusive-league="Prosperan">
                 <input type="checkbox" name="exclusiveLeague" value="Prosperan">
-                🏝️ Prosperan (<span class="filter-count">${prosperanCount}</span>)
+                ${filterGlyph('exclusive', 'Prosperan')} Prosperan (<span class="filter-count">${prosperanCount}</span>)
             </label>
         `;
             filterSection.appendChild(li);
@@ -5780,7 +6670,7 @@
         ];
 
         tracks.forEach(({ value, label, count }) => {
-            const icon = window.TryGetLeagueTrackIcon ? window.TryGetLeagueTrackIcon(value) : '';
+            const icon = filterGlyph('track', value);
             const li = document.createElement('li');
             li.innerHTML = `
                 <label data-league-track="${value}">
@@ -5882,8 +6772,8 @@
             return;
         }
 
-        // Fetch the full athlete JSON data
-        fetchFullAthleteData(athleteNameText, athleteData);
+        // Open records proof-first from leaderboard surfaces; Guess My Age remains available through explicit guess links.
+        fetchFullAthleteData(athleteNameText, athleteData, { suppressGuessMyAge: true, markGuessSkipped: false });
     }
 
     function getAthleteRow(element) {
@@ -6031,6 +6921,7 @@
 
         const athleteSlug = window.slugifyName(athleteNameText, true);
         const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
+        const markGuessSkipped = !(options && options.markGuessSkipped === false);
         const requestId = ++currentAthleteModalRequestId;
         const modalContent = resetModalForLoading(athleteSlug);
 
@@ -6146,7 +7037,9 @@
                 const seen = sessionStorage.getItem('gmaSeen');
 
                 if (suppressGuessMyAge) {
-                    markAthleteSkippedForGuessMyAge(athleteSlug);
+                    if (markGuessSkipped) {
+                        markAthleteSkippedForGuessMyAge(athleteSlug);
+                    }
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
                 } else if (skipAll) {
@@ -6375,6 +7268,33 @@
         }
 
         document.getElementById('athleteRank').innerHTML = rankText;
+        const modalSummaryRank = document.getElementById('modalSummaryRank');
+        if (modalSummaryRank) {
+            modalSummaryRank.textContent = Number.isFinite(ultimateRank) ? `#${ultimateRank}` : 'Unranked';
+        }
+        const modalSummaryScoreLabel = document.getElementById('modalSummaryScoreLabel');
+        const modalSummaryScore = document.getElementById('modalSummaryScore');
+        const hasBortzScore = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
+        const summaryScore = hasBortzScore ? athleteData.bortzAgeReduction : athleteData.ageReduction;
+        if (modalSummaryScoreLabel) {
+            modalSummaryScoreLabel.textContent = hasBortzScore ? 'Bortz score' : 'Pheno score';
+        }
+        if (modalSummaryScore) {
+            modalSummaryScore.textContent = Number.isFinite(summaryScore)
+                ? (summaryScore >= 0 ? '+' : '') + summaryScore.toFixed(1)
+                : '--';
+        }
+        const modalSummarySubmissionCount = document.getElementById('modalSummarySubmissionCount');
+        const modalSummarySubmissionUnit = document.getElementById('modalSummarySubmissionUnit');
+        const summarySubmissionCount = Number.isFinite(athleteData.submissionCount)
+            ? athleteData.submissionCount
+            : (Array.isArray(fullAthleteData.Biomarkers) ? fullAthleteData.Biomarkers.length : 0);
+        if (modalSummarySubmissionCount) {
+            modalSummarySubmissionCount.textContent = String(summarySubmissionCount);
+        }
+        if (modalSummarySubmissionUnit) {
+            modalSummarySubmissionUnit.textContent = summarySubmissionCount === 1 ? 'submission' : 'submissions';
+        }
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').innerHTML = renderFlagLabel(fullAthleteData.Flag);
@@ -6417,6 +7337,8 @@
             personalLinkElement.style.display = 'flex';
             personalLinkElement.title = `Visit personal page of ${modalDisplayName}`;
         } else {
+            personalLinkElement.removeAttribute('href');
+            personalLinkElement.removeAttribute('title');
             personalLinkElement.style.display = 'none';
         }
 
@@ -6429,6 +7351,8 @@
             mediaContactElement.style.display = 'flex';
             mediaContactElement.title = isEmail ? `Email ${modalDisplayName}` : `Contact ${modalDisplayName}`;
         } else {
+            mediaContactElement.removeAttribute('href');
+            mediaContactElement.removeAttribute('title');
             mediaContactElement.style.display = 'none';
         }
 
@@ -6770,8 +7694,8 @@
 
     function prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores) {
         const hasBortzAge = bortzAges.some(v => v != null && Number.isFinite(Number(v)));
-        const bortzColor = getAthleteModalCssVar('--athlete-modal-chart-bortz', 'rgba(154,232,178,.96)');
-        const phenoColor = getAthleteModalCssVar('--athlete-modal-chart-pheno', 'rgba(135,229,229,.96)');
+        const bortzColor = getAthleteModalCssVar('--athlete-modal-chart-bortz', 'rgba(67,238,131,.96)');
+        const phenoColor = getAthleteModalCssVar('--athlete-modal-chart-pheno', 'rgba(240,201,98,.96)');
         const biomarkerOverlayColor = getAthleteModalCssVar('--athlete-modal-chart-biomarker', 'rgba(255,125,125,.96)');
         const pointBorderColor = 'rgba(8,10,10,.94)';
         const pointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
@@ -6781,7 +7705,7 @@
                 label: 'Bortz Age',
                 data: bortzAges,
                 borderColor: bortzColor,
-                backgroundColor: 'rgba(154,232,178,.14)',
+                backgroundColor: 'rgba(67,238,131,.14)',
                 pointBackgroundColor: bortzColor,
                 pointBorderColor: pointBorderColor,
                 pointBorderWidth: 2,
@@ -6799,7 +7723,7 @@
             label: 'Pheno Age',
             data: phenoAges,
             borderColor: phenoColor,
-            backgroundColor: 'rgba(135,229,229,.14)',
+            backgroundColor: 'rgba(240,201,98,.14)',
             pointBackgroundColor: phenoColor,
             pointBorderColor: pointBorderColor,
             pointBorderWidth: 2,
@@ -7015,10 +7939,12 @@
         const proofs = Array.isArray(fullAthleteData && fullAthleteData.Proofs)
             ? fullAthleteData.Proofs.filter(Boolean)
             : [];
+        const proofCount = document.getElementById('athleteProofCount');
+        if (proofCount) proofCount.textContent = String(proofs.length);
         if (proofs.length === 0) {
             const empty = document.createElement('p');
             empty.className = 'proofs-empty';
-            empty.textContent = 'No public proofs available yet.';
+            empty.textContent = 'No public proof is attached to this athlete record yet.';
             proofsGallery.appendChild(empty);
             return;
         }
@@ -7047,7 +7973,7 @@
     const sidebar = document.querySelector('.sidebar');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
-    const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
+    const mobileDrawerMediaQuery = window.matchMedia('(max-width: 900px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
 
     function isMobileDrawerViewport() {
         return mobileDrawerMediaQuery.matches;
@@ -7213,7 +8139,7 @@
         if (!isMobileDrawer && !options.skipScroll && canAutoScroll()) {
             document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
                 behavior: 'smooth',
-                block: 'start',
+                block: 'nearest',
             });
         }
     }
@@ -7349,6 +8275,8 @@
             notEmptyCrowdContainer.style.display = 'block';
             document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
             document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
+            const crowdCountUnit = document.getElementById('crowdCountUnit');
+            if (crowdCountUnit) crowdCountUnit.textContent = crowdCount === 1 ? 'guess' : 'guesses';
         }
     }
 
