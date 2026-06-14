@@ -36,9 +36,9 @@
         .proof-upload-visual .illustration {
             width: min(100%, 408px);
             max-width: 408px;
-            border: 1px solid rgba(15, 23, 42, 0.24);
+            border: 1px solid rgba(28, 39, 34, 0.2);
             margin-bottom: 0;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
             box-sizing: border-box;
         }
 
@@ -47,12 +47,12 @@
             max-width: 408px;
             margin: 0 auto;
             padding: 0.9rem 1.05rem 0.35rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid rgba(28, 39, 34, 0.12);
             border-bottom: 0;
             border-radius: 8px 8px 0 0;
-            background: rgba(248, 250, 252, 0.92);
+            background: rgba(255, 254, 250, 0.92);
             box-sizing: border-box;
-            color: #334155;
+            color: var(--text-soft, #33423b);
             line-height: 1.45;
             text-align: center;
         }
@@ -62,15 +62,15 @@
             max-width: 408px;
             margin: 0 auto 1.35rem;
             padding: 0.35rem 1.05rem 0.9rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid rgba(28, 39, 34, 0.12);
             border-top: 0;
             border-radius: 0 0 8px 8px;
-            background: rgba(248, 250, 252, 0.92);
+            background: rgba(255, 254, 250, 0.92);
             box-sizing: border-box;
-            color: #475569;
+            color: var(--text-muted, #46554d);
             font-size: 0.9rem;
             line-height: 1.45;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(28, 39, 34, 0.04);
         }
 
         .proof-upload-copy:empty,
@@ -100,17 +100,17 @@
         }
 
         .proof-upload-final-actions .back-button {
-            background: #fff;
-            border: 1px solid rgba(96, 125, 139, 0.16);
-            color: #526d7a;
+            background: var(--card-bg, #fffefa);
+            border: 1px solid rgba(28, 39, 34, 0.14);
+            color: var(--text-muted, #46554d);
             font-weight: 600;
             margin-left: 0;
-            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
         }
 
         .proof-upload-primary-action .option-button {
             font-weight: 700;
-            box-shadow: 0 6px 12px rgba(15, 23, 42, 0.14);
+            box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
         }
 
         .proof-upload-primary-action .camera-capture-action {
@@ -123,7 +123,7 @@
             justify-content: center;
             gap: 0.65rem;
             min-height: 1.25rem;
-            color: #64748b;
+            color: var(--text-subtle, #5d6b63);
             font-size: 0.85rem;
             font-weight: 700;
             line-height: 1;
@@ -135,7 +135,7 @@
             content: "";
             height: 1px;
             flex: 1 1 auto;
-            background: rgba(100, 116, 139, 0.22);
+            background: rgba(28, 39, 34, 0.18);
         }
 
         .proof-upload-primary-action .option-button i {
@@ -143,13 +143,13 @@
         }
 
         .proof-upload-primary-action .option-button.green {
-            box-shadow: 0 6px 12px rgba(46, 125, 50, 0.18);
+            box-shadow: var(--cta-green-shadow, inset 0 1px 0 rgba(255,255,255,.35), 0 2px 10px rgba(46,219,111,.24));
         }
 
         .proof-upload-final-actions .option-button:disabled {
-            background: #eef2f7 !important;
-            border: 1px solid rgba(100, 116, 139, 0.14);
-            color: #64748b;
+            background: var(--disabled-bg, #e2e1d6) !important;
+            border: 1px solid var(--disabled-border, rgba(28, 39, 34, 0.12));
+            color: var(--disabled-text, #97a098);
             box-shadow: none !important;
             cursor: not-allowed;
             opacity: 1;
@@ -157,9 +157,9 @@
         }
 
         .proof-upload-final-actions .option-button:disabled:hover {
-            background: #eef2f7 !important;
-            border-color: rgba(100, 116, 139, 0.14);
-            color: #64748b;
+            background: var(--disabled-bg, #e2e1d6) !important;
+            border-color: var(--disabled-border, rgba(28, 39, 34, 0.12));
+            color: var(--disabled-text, #97a098);
             box-shadow: none !important;
             transform: none;
         }
@@ -186,12 +186,12 @@
                 min-height: 42px;
                 margin: 0 0 0.75rem;
                 padding: 0.6rem 0.85rem;
-                border: 1px solid rgba(22, 163, 74, 0.22);
+                border: 1px solid rgba(11, 125, 69, 0.22);
                 border-radius: 8px;
-                background: rgba(240, 253, 244, 0.94);
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 1px 2px rgba(15, 23, 42, 0.04);
+                background: var(--success-bg, rgba(11, 125, 69, 0.1));
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 1px 2px rgba(28, 39, 34, 0.04);
                 box-sizing: border-box;
-                color: #166534;
+                color: var(--success-text, #075f35);
                 font-weight: 700;
                 line-height: 1.25;
             }
@@ -201,10 +201,10 @@
                 display: block !important;
                 margin: 0 !important;
                 padding: 0.45rem;
-                border: 1px solid rgba(15, 23, 42, 0.14);
+                border: 1px solid rgba(28, 39, 34, 0.14);
                 border-radius: 8px;
-                background: #fff;
-                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+                background: var(--card-bg, #fffefa);
+                box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
                 overflow: hidden;
             }
 
@@ -219,7 +219,7 @@
                 max-width: 100% !important;
                 border: 0 !important;
                 border-radius: 6px;
-                background: #f8fafc;
+                background: #f7f6ee;
                 object-fit: contain;
             }
 
@@ -230,11 +230,11 @@
                 min-height: 44px;
                 min-width: 44px;
                 padding: 0.45rem 0.75rem !important;
-                background-color: #b91c1c !important;
+                background-color: var(--danger-color, #b3261e) !important;
                 color: var(--light-text-color);
                 border: none;
                 border-radius: 999px !important;
-                box-shadow: 0 3px 8px rgba(127, 29, 29, 0.28);
+                box-shadow: 0 3px 8px rgba(143, 31, 24, 0.28);
                 box-sizing: border-box;
                 cursor: pointer;
                 font-size: 0.8rem;
@@ -246,22 +246,22 @@
             max-width: 408px;
             margin: 1.25rem auto 1.35rem;
             padding: 0.9rem 1.05rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid rgba(28, 39, 34, 0.14);
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: rgba(255, 254, 250, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(28, 39, 34, 0.04);
             box-sizing: border-box;
-            color: #222;
+            color: #1c2722;
         }
 
         #biomarker-checklist h4 {
             margin: 0 0 0.35rem !important;
-            color: #111827;
+            color: #1c2722;
         }
 
         #biomarker-checklist p {
             margin: 0 !important;
-            color: #334155;
+            color: var(--text-soft, #33423b);
             line-height: 1.35;
         }
 
@@ -479,11 +479,6 @@
         setSubmitButtonLabel();
 
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(() => {
-                const viewTarget = document.querySelector('h1');
-                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-
             document.getElementById('character-title').textContent = getAthleteDisplayName();
 
             const mainProofInstructions = document.getElementById('mainProofInstructions');
@@ -635,7 +630,7 @@
 
         function setSubmitButtonLabel() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = 'Submit new results&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.innerHTML = 'Submit new results&nbsp;<i class="fas fa-arrow-right" aria-hidden="true"></i>';
             submitButton.setAttribute('type', 'submit');
         }
     </script>

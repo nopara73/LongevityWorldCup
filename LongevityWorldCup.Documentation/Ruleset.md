@@ -1,5 +1,5 @@
 # Ruleset
-The Longevity World Cup is a competition between longevity athletes. The goal is to improve the results of biological aging clocks.
+The Longevity World Cup is a public competition between longevity athletes. These rules define who can compete, which biological-aging clocks count, how scores are calculated, and how final standings lock.
 
 ## Seasons & schedule
 - A **Season** is the yearly competition window for **seasonal clocks** (for example the Season 2026 [bortz age](https://www.nature.com/articles/s42003-023-05456-z) competition).
@@ -35,10 +35,10 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 
 ### General questions
 #### Who can participate in the Longevity World Cup?
-Anyone interested in longevity and capable of submitting valid test results can participate.
+Anyone who can submit eligible biomarker results and proof can compete.
 
 #### How do I register for the competition?
-Apply through the [Longevity World Cup website](https://www.longevityworldcup.com/).
+Apply through the [Longevity World Cup website](https://www.longevityworldcup.com/play).
 
 ![image](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
 
@@ -134,13 +134,14 @@ Your profile picture must show you facing the camera, but you can edit it freely
 Through the [Athlete Dashboard](https://www.longevityworldcup.com/play/character-selection.html) or by sending us an email to `hi@longevityworldcup.com`.
 
 #### What will sponsorships include?
-Sponsorships are planned for future seasons. Future packages will let companies sponsor athletes for website visibility.
+No sponsor placements are active in the standings unless they are announced in a published season notice. Future sponsor support must not change ranking order, eligibility, proof requirements, or prize-pool accounting.
 
 #### What if Bitcoin's value changes significantly?
 [1 BTC = 1 BTC](https://old.reddit.com/r/Bitcoin/comments/w1di0k/please_understand_what_1_btc_1_btc_really_means/)
 
 ## Where to go next
 
+- [Apply to compete](/play)
 - [About Longevity World Cup](/about)
 - [History of Longevity as a Sport](/history)
 - [Leaderboard](/leaderboard)

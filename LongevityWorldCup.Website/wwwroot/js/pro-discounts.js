@@ -2,7 +2,7 @@ const PRO_BASE_PRICE_USD = 100;
 const PERFECT_GUESS_KEY = "gmaHasPerfectGuess";
 const PERFECT_GUESS_DISCOUNT = 10;
 const BADGE_BG_DEFAULT = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;";
-const BADGE_BG_PERSONAL = "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;";
+const BADGE_BG_PERSONAL = "background: linear-gradient(135deg, var(--accent-bright, #43ee83), var(--primary-color, #0b7d45)); border: 2px solid var(--success-text, #075f35); color: #04130a;";
 const BADGE_BG_BLACK = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;";
 
 function canonicalizeBadgeLabel(label) {

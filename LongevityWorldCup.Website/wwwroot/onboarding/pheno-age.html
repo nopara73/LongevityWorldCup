@@ -14,9 +14,10 @@
             padding: 1rem 1.25rem;
             box-sizing: border-box;
             border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: #f8f9fa;
-            font-size: 0.95rem;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            background: var(--card-bg, #fffefa);
+            font-size: var(--text-body, 1rem);
+            line-height: var(--leading-body, 1.55);
             text-align: center;
             overflow-wrap: break-word;
         }
@@ -54,13 +55,13 @@
 
         /* Error Highlighting */
         .errorNaN {
-            border: 2px solid red;
+            border: 2px solid var(--danger-color, #b3261e);
         }
 
         .privacy-note {
-            font-size: 0.9rem;
-            color: #4a5568;
-            line-height: 1.45;
+            font-size: var(--text-ui, 0.9375rem);
+            color: #46554d;
+            line-height: var(--leading-body, 1.55);
             margin: 0.65rem 0 0;
         }
 
@@ -98,7 +99,7 @@
                 margin-top: 0;
                 margin-left: 0;
                 padding: 0.5rem;
-                border: 1px solid #ccc;
+                border: 1px solid var(--control-border, #cbd2c8);
                 border-radius: 4px;
                 width: auto;
                 min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
@@ -173,7 +174,7 @@
             width: 200%;
             height: 200%;
             transform: translate(-50%, -50%);
-            background: radial-gradient(circle at 30% 30%, rgba(0, 188, 212, 0.08) 0%, rgba(76, 175, 80, 0.04) 40%, transparent 70%);
+            background: radial-gradient(circle at 30% 30%, rgba(11, 125, 69, 0.08) 0%, rgba(11, 125, 69, 0.04) 40%, transparent 70%);
             animation: bioAgeBgPulse 12s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
@@ -198,7 +199,7 @@
         /* Label text styling */
         #validAgeInput > div:first-child {
             font-size: 0.875rem;
-            color: #64748b;
+            color: #5d6b63;
             text-align: center;
             margin-bottom: 1.5rem;
             opacity: 0;
@@ -227,24 +228,27 @@
         }
 
         #animatedAge {
+            /* The moment-of-truth numeral speaks in the brand display voice,
+               like the hero score and modal numerals. */
+            font-family: var(--display-font);
             font-size: 6.5rem;
-            font-weight: 800;
+            font-weight: 400;
+            font-synthesis: none;
             text-align: center;
             display: block;
-            color: #00bcd4;
-            background: linear-gradient(135deg, #00bcd4 0%, #4CAF50 100%);
+            color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color, #0b7d45), var(--accent-bright, #43ee83));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             text-shadow: none;
             line-height: 1;
-            letter-spacing: -3px;
+            letter-spacing: 0;
             opacity: 0;
             transform: scale(0.4) translateY(30px);
             transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
             position: relative;
             z-index: 1;
-            font-family: 'Roboto', sans-serif;
         }
 
         #phenoAgeResult.show #animatedAge {
@@ -261,7 +265,7 @@
             transform: translate(-50%, -50%);
             width: 140%;
             height: 140%;
-            background: radial-gradient(circle, rgba(0, 188, 212, 0.15) 0%, rgba(76, 175, 80, 0.1) 50%, transparent 75%);
+            background: radial-gradient(circle, rgba(11, 125, 69, 0.15) 0%, rgba(11, 125, 69, 0.1) 50%, transparent 75%);
             border-radius: 50%;
             z-index: -1;
             opacity: 0;
@@ -316,38 +320,38 @@
 
         /* Color variations based on performance */
         #animatedAge.age-excellent {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         #animatedAge.age-excellent::after {
-            background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, rgba(39, 174, 96, 0.1) 50%, transparent 75%);
+            background: radial-gradient(circle, rgba(46, 219, 111, 0.2) 0%, rgba(11, 155, 83, 0.1) 50%, transparent 75%);
         }
 
         #animatedAge.age-good {
-            background: linear-gradient(135deg, #00bcd4 0%, #4CAF50 100%);
+            background: linear-gradient(135deg, var(--primary-color, #0b7d45), var(--accent-bright, #43ee83));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         #animatedAge.age-average {
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            background: linear-gradient(135deg, var(--secondary-color, #8f6a0e), var(--warning-color, #8f6a0e));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         #animatedAge.age-average::after {
-            background: radial-gradient(circle, rgba(255, 152, 0, 0.15) 0%, rgba(245, 124, 0, 0.1) 50%, transparent 75%);
+            background: radial-gradient(circle, rgba(199, 127, 10, 0.15) 0%, rgba(154, 99, 9, 0.1) 50%, transparent 75%);
         }
 
         /* Years text styling */
         #yearsText {
             font-size: 1.25rem;
-            color: #64748b;
+            color: #5d6b63;
             text-align: center;
             margin-top: 1rem;
             opacity: 0;
@@ -376,7 +380,7 @@
 
             #animatedAge {
                 font-size: 5rem;
-                letter-spacing: -2px;
+                letter-spacing: 0;
             }
 
             #validAgeInput > div:first-child {
@@ -404,7 +408,7 @@
 
             #animatedAge {
                 font-size: 4rem;
-                letter-spacing: -1.5px;
+                letter-spacing: 0;
             }
 
             #validAgeInput > div:first-child {
@@ -449,14 +453,14 @@
             justify-content: space-between;
             gap: 0.85rem;
             padding: 0.65rem 0.75rem;
-            border: 1px solid rgba(148, 163, 184, 0.24);
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
             border-radius: 8px;
-            background: #fff;
+            background: var(--card-bg, #fffefa);
         }
 
             .label-toggle-group label {
                 font-size: 1rem;
-                color: #333;
+                color: #24332c;
             }
 
         .negative-toggle {
@@ -487,7 +491,7 @@
             left: 0;
             right: 0;
             bottom: 6px;
-            background-color: #ccc;
+            background-color: var(--disabled-bg, #e2e1d6);
             transition: 0.4s;
             border-radius: 999px;
         }
@@ -499,17 +503,17 @@
                 width: 24px;
                 left: 4px;
                 bottom: 4px;
-                background-color: white;
+                background-color: var(--card-bg, #fffefa);
                 transition: 0.4s;
                 border-radius: 50%;
             }
 
         .toggle-label input:focus-visible + .slider {
-            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
+            box-shadow: 0 0 0 3px rgba(11, 125, 69, 0.18);
         }
 
         .toggle-label input:checked + .slider {
-            background-color: #f4a6a6; /* Pale red */
+            background-color: var(--warning-bg, rgba(212, 175, 55, 0.12));
         }
 
             .toggle-label input:checked + .slider:before {
@@ -518,30 +522,30 @@
 
         .bioageform-toggle-text {
             font-size: 1rem;
-            color: #2d3748;
+            color: #24332c;
             font-weight: 600;
             line-height: 1.3;
         }
 
         /* Mini-card container */
         .biomarker-card {
-            border: 1px solid rgba(148, 163, 184, 0.32);
-            border-radius: 10px;
+            border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+            border-radius: var(--radius-card, 8px);
             margin-bottom: 0.9rem;
             overflow: hidden;
-            background: #fff;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: var(--card-bg, #fffefa);
+            box-shadow: 0 1px 2px rgba(28, 39, 34, 0.04);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
             .biomarker-card.active {
-                border-color: rgba(0, 188, 212, 0.38);
-                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+                border-color: rgba(11, 125, 69, 0.38);
+                box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             }
 
         /* Header bar */
         .biomarker-card-header {
-            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            background: linear-gradient(180deg, #ffffff, #f7f6ee);
             padding: 0.78rem 1rem;
             min-height: 48px;
             box-sizing: border-box;
@@ -550,19 +554,25 @@
             justify-content: space-between;
             align-items: center;
             gap: 0.75rem;
-            color: #2d3748;
+            color: #24332c;
             font-weight: 600;
             line-height: 1.25;
             transition: background-color 0.2s ease, color 0.2s ease;
         }
 
             .biomarker-card-header:hover {
-                background: #f1f5f9;
+                background: #f1f3ec;
+            }
+
+            .biomarker-card-header:focus-visible {
+                outline: none;
+                background: rgba(11, 125, 69, 0.08);
+                box-shadow: inset 0 0 0 2px rgba(11, 125, 69, 0.38), 0 0 0 3px rgba(67, 238, 131, 0.22);
             }
 
             .biomarker-card.active .biomarker-card-header {
-                background: #f8feff;
-                color: #1f2937;
+                background: #f3faf3;
+                color: #1c2722;
             }
 
         /* Toggle icon */
@@ -574,8 +584,8 @@
             width: 26px;
             height: 26px;
             border-radius: 999px;
-            background: rgba(0, 188, 212, 0.1);
-            color: #2d3748;
+            background: rgba(11, 125, 69, 0.1);
+            color: #24332c;
             font-weight: bold;
             font-size: 1.1rem;
             line-height: 1;
@@ -585,7 +595,7 @@
         .biomarker-card.active .toggle-icon {
             background: var(--primary-color);
             color: #fff;
-            box-shadow: 0 2px 6px rgba(0, 188, 212, 0.26);
+            box-shadow: 0 2px 6px rgba(11, 125, 69, 0.26);
         }
 
         /* Hidden content by default */
@@ -597,8 +607,8 @@
         }
 
         .biomarker-card.active .biomarker-card-content {
-            border-top: 1px solid rgba(148, 163, 184, 0.24);
-            background: #fbfdff;
+            border-top: 1px solid rgba(141, 153, 142, 0.24);
+            background: #fbfdfa;
             max-height: none !important;
             padding: 0.75rem 1rem !important;
         }
@@ -682,35 +692,57 @@
             }
 
         .lwc-wizard-nav {
-            display: flex;
-            justify-content: center;
-            gap: 0;
-            margin: -0.25rem 0 0.25rem 0;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin: -0.1rem 0 0.55rem;
+            padding: 0.35rem;
+            border: 1px solid rgba(28, 39, 34, 0.12);
+            border-radius: 10px;
+            background: #f7f6ee;
             user-select: none;
         }
 
         .lwc-dot {
-            width: 44px;
-            height: 44px;
-            display: inline-flex;
+            width: auto;
+            min-width: 0;
+            min-height: 44px;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
             align-items: center;
-            justify-content: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.55rem;
             box-sizing: border-box;
-            border-radius: 50%;
-            border: 0;
+            border-radius: 8px;
+            border: 1px solid transparent;
             background: transparent;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            color: #5d6b63;
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
         }
 
         .lwc-dot::before {
-            content: "";
-            width: 12px;
-            height: 12px;
-            box-sizing: border-box;
-            border-radius: 50%;
-            border: 2px solid #b8bec5;
-            background: transparent;
-            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+            content: none;
+        }
+
+        .lwc-dot-index {
+            display: inline-grid;
+            place-items: center;
+            width: 1.55rem;
+            height: 1.55rem;
+            border: 1px solid rgba(93, 107, 99, 0.28);
+            border-radius: 999px;
+            background: #fffdf6;
+            font-size: 0.78rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .lwc-dot-label {
+            min-width: 0;
+            font-size: 0.82rem;
+            font-weight: 800;
+            line-height: 1.15;
+            overflow-wrap: anywhere;
         }
 
         @media (hover: hover) and (pointer: fine) {
@@ -719,7 +751,9 @@
             }
 
             .lwc-dot:not(.lwc-dot--on):hover {
-                background: rgba(0, 188, 212, 0.08);
+                background: rgba(11, 125, 69, 0.08);
+                border-color: rgba(11, 125, 69, 0.18);
+                color: #1c2722;
             }
         }
 
@@ -728,15 +762,21 @@
             pointer-events: none;
         }
 
-        .lwc-dot.lwc-dot--on::before {
-            background: #4CAF50;
-            border-color: #4CAF50;
-            transform: scale(1.08);
+        .lwc-dot.lwc-dot--on {
+            border-color: rgba(11, 125, 69, 0.28);
+            background: rgba(11, 125, 69, 0.12);
+            color: #1c2722;
+        }
+
+        .lwc-dot.lwc-dot--on .lwc-dot-index {
+            border-color: #0b7d45;
+            background: #0b7d45;
+            color: #fff;
         }
 
         .lwc-dot:focus-visible {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
+            box-shadow: 0 0 0 3px rgba(11, 125, 69, 0.18);
         }
 
 
@@ -756,6 +796,37 @@
             margin: 1.35rem auto 0;
             line-height: 1.2;
             white-space: nowrap;
+        }
+
+        @media (min-width: 901px) and (min-height: 700px) {
+            #mainPageTitleH2 {
+                margin-top: 1.75rem;
+                margin-bottom: 1.15rem;
+                font-size: clamp(2.25rem, 3.8vw, 3rem);
+            }
+
+            .lab-reassurance {
+                margin-top: 0;
+                padding: 0.8rem 1rem;
+                line-height: 1.42;
+            }
+
+            .bioageform {
+                margin: 1.25rem auto 0;
+                padding: 0.85rem;
+            }
+
+            .bioageform fieldset {
+                margin-top: 1rem;
+                padding: 0.85rem 1rem 1.1rem;
+            }
+
+            .bioageform input,
+            .bioageform select {
+                min-height: 42px;
+                padding-top: 0.55rem;
+                padding-bottom: 0.55rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -794,7 +865,7 @@
             }
 
             .lwc-dot {
-                height: 34px;
+                min-height: 34px;
             }
         }
     </style>
@@ -805,13 +876,19 @@
         <div class="lwc-steps-shell" id="lwcStepsShell">
             <!--MAIN-PROGRESS-BAR-->
             <h1 id="mainPageTitleH2" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-                This is <span style="color:#b22222">blood</span> sport
+                Calculate <span style="color:var(--primary-color)">Pheno</span> Age
             </h1>
-            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong>, known as <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">pheno age</a>:</p>
+            <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Enter blood-test values to estimate <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a> and preview rank.</p>
             <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-                <div class="lwc-wizard-nav" aria-hidden="true">
-                    <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
-                    <div class="lwc-dot" id="lwcDot2" role="button" tabindex="0" aria-label="Go to Step 2"></div>
+                <div class="lwc-wizard-nav" aria-label="Calculator steps">
+                    <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to age and date step" aria-current="step">
+                        <span class="lwc-dot-index" aria-hidden="true">1</span>
+                        <span class="lwc-dot-label">Age & date</span>
+                    </div>
+                    <div class="lwc-dot" id="lwcDot2" role="button" tabindex="0" aria-label="Go to biomarkers step">
+                        <span class="lwc-dot-index" aria-hidden="true">2</span>
+                        <span class="lwc-dot-label">Biomarkers</span>
+                    </div>
                 </div>
                 <section id="lwc-step-1" class="lwc-step lwc-step--active lwc-step--visible" aria-labelledby="lwcStep1Title">
 
@@ -851,7 +928,7 @@
                             <option value="" disabled selected>Select day</option>
                         </select>
 
-                        <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
+                        <p class="privacy-note" id="privacyNote">To hide your exact birthday, leave month and day as December 31. This protects privacy but can slightly lower your ranking because chronological age is part of the score.</p>
                     </fieldset>
 
                     <!-- Blood Draw Details -->
@@ -859,7 +936,7 @@
                         <legend>Blood draw date:</legend>
                         <p class="privacy-note">When did you get your blood test done?</p>
                         <div class="input-group lwc-date-flex">
-                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+                            <input type="date" id="blood-draw-date" name="blood-draw-date" aria-label="Blood draw date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
                         </div>
                     </fieldset>
                     <div class="lwc-step-actions">
@@ -881,13 +958,13 @@
                     <fieldset>
                         <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 White blood cell count (WBC)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="wbc" name="wbc" aria-label="White blood cell count" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">10⁹/L</option>
@@ -898,13 +975,13 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 Lymphocytes
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="lymphocyte" name="lymphocyte" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="lymphocyte" name="lymphocyte" aria-label="Lymphocytes" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="lymphocyteUnit" class="visually-hidden">Select unit for Lymphocytes</label>
                                     <select id="lymphocyteUnit" name="lymphocyteUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
@@ -916,13 +993,13 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 Mean corpuscular volume (MCV)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="mcv" name="mcv" aria-label="Mean corpuscular volume" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="mcvUnit" class="visually-hidden">MCV unit</label>
                                     <select id="mcvUnit" name="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">fL</option>
@@ -932,13 +1009,13 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 Red cell distribution width (RDW, RDW-CV)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="rcdw" name="rcdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="rcdw" name="rcdw" aria-label="Red cell distribution width" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="rcdwUnit" class="visually-hidden">RDW unit</label>
                                     <select id="rcdwUnit" name="rcdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
@@ -951,13 +1028,13 @@
                     <fieldset>
                         <legend><i class="fas fa-droplet category-icon" aria-hidden="true"></i>Liver</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 Albumin
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="albumin" name="albumin" aria-label="Albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="albuminUnit" class="visually-hidden">Albumin unit</label>
                                     <select id="albuminUnit" name="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">g/L</option>
@@ -968,13 +1045,13 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 Alkaline phosphatase (ALP)
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="ap" name="ap" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="ap" name="ap" aria-label="Alkaline phosphatase" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="apUnit" class="visually-hidden">ALP unit</label>
                                     <select id="apUnit" name="apUnit" aria-label="ALP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">U/L</option>
@@ -988,13 +1065,13 @@
                     <fieldset>
                         <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 Creatinine
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="creatinine" name="creatinine" aria-label="Creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="creatinineUnit" class="visually-hidden">Creatinine unit</label>
                                     <select id="creatinineUnit" name="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">µmol/L</option>
@@ -1008,13 +1085,13 @@
                     <fieldset>
                         <legend><i class="fas fa-fire category-icon" aria-hidden="true"></i>Metabolism</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 Glucose
                                 <span class="toggle-icon">+</span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="glucose" name="glucose" aria-label="Glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="glucoseUnit" class="visually-hidden">Glucose unit</label>
                                     <select id="glucoseUnit" name="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
@@ -1028,7 +1105,7 @@
                     <fieldset>
                         <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 C-reactive protein (CRP)
                                 <span class="toggle-icon">+</span>
                             </div>
@@ -1045,7 +1122,7 @@
                                     </div>
 
                                     <div class="input-group">
-                                        <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <input type="number" id="crp" name="crp" aria-label="C-reactive protein" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <label for="crpUnit" class="visually-hidden">CRP unit</label>
                                         <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                             <option value="10">mg/L</option>
@@ -1058,8 +1135,8 @@
                     </fieldset>
 
                     <!-- Calculate Button -->
-                    <button type="submit" class="option-button grey bioage-calculate-button" aria-label="Calculate your biological age">
-                        <i class="fas fa-heartbeat"></i>&nbsp;Calculate my biological&nbsp;age
+                    <button type="submit" class="option-button grey bioage-calculate-button" aria-label="Calculate my Pheno Age">
+                        <i class="fas fa-heartbeat"></i>&nbsp;Calculate my Pheno&nbsp;Age
                     </button>
                 </section>
             </form>
@@ -1072,7 +1149,7 @@
                 </div>
                 <div id="yearsText">years</div>
             </div>
-            <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: #8B0000; background-color: #FAD2D2; padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
+            <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: var(--error-text); background-color: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
                 <i class="fas fa-ambulance"></i> <i class="fas fa-hospital"></i> <i class="fas fa-clinic-medical"></i>
             </div>
@@ -1722,7 +1799,8 @@
 
         // --- LWC step state ---
         let lwcCurrentStep = 1;
-        function lwcSetStep(step) {
+        function lwcSetStep(step, options) {
+            const shouldFocus = Boolean(options && options.focus);
             lwcCurrentStep = step;
             const s1 = document.getElementById('lwc-step-1');
             const s2 = document.getElementById('lwc-step-2');
@@ -1759,13 +1837,17 @@
 
                 d1.setAttribute('aria-disabled', step === 1 ? 'true' : 'false');
                 d2.setAttribute('aria-disabled', step === 2 ? 'true' : 'false');
+                d1.setAttribute('aria-current', step === 1 ? 'step' : 'false');
+                d2.setAttribute('aria-current', step === 2 ? 'step' : 'false');
 
                 d1.tabIndex = step === 1 ? -1 : 0;
                 d2.tabIndex = step === 2 ? -1 : 0;
             }
 
 
-            // focus niceties
+            if (!shouldFocus) return;
+
+            // focus niceties for explicit step changes
             if (step === 1) {
                 const y = document.getElementById('dob-year');
                 if (y) y.focus();
@@ -1812,13 +1894,13 @@
             if (toStep2Btn) {
                 toStep2Btn.addEventListener('click', () => {
                     if (!lwcValidateStep1()) return;
-                    lwcSetStep(2);
+                    lwcSetStep(2, { focus: true });
                 });
             }
             if (toStep1Btn) {
                 toStep1Btn.addEventListener('click', () => {
                     try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
-                    lwcSetStep(1);
+                    lwcSetStep(1, { focus: true });
                 });
             }
 
@@ -1826,8 +1908,8 @@
             const dot1 = document.getElementById('lwcDot1');
             const dot2 = document.getElementById('lwcDot2');
 
-            function activateDot1() { lwcSetStep(1); }
-            function activateDot2() { if (lwcValidateStep1()) lwcSetStep(2); }
+            function activateDot1() { lwcSetStep(1, { focus: true }); }
+            function activateDot2() { if (lwcValidateStep1()) lwcSetStep(2, { focus: true }); }
 
             if (dot1) {
                 dot1.addEventListener('click', activateDot1);
@@ -2291,7 +2373,7 @@
 
         // Wire up all biomarker‐card headers
         document.querySelectorAll('.biomarker-card-header').forEach(header => {
-            header.addEventListener('click', function handler() {
+            const toggleBiomarkerCard = function () {
                 const card = header.parentNode;
                 const content = card.querySelector('.biomarker-card-content');
                 const icon = header.querySelector('.toggle-icon');
@@ -2304,8 +2386,9 @@
                         content.style.maxHeight = content.scrollHeight + 'px';
                         content.style.paddingTop = '0.75rem';
                         content.style.paddingBottom = '0.75rem';
-                        header.style.pointerEvents = 'none';
                         header.style.cursor = 'default';
+                        header.setAttribute('aria-disabled', 'true');
+                        header.tabIndex = -1;
                         icon.style.display = 'none';
                     }
                     return;
@@ -2326,6 +2409,13 @@
                     content.style.paddingTop = '0';
                     content.style.paddingBottom = '0';
                 }
+            };
+
+            header.addEventListener('click', toggleBiomarkerCard);
+            header.addEventListener('keydown', function (event) {
+                if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+                event.preventDefault();
+                toggleBiomarkerCard();
             });
         });
 
@@ -2397,7 +2487,7 @@
 
             // if we're on Step 1, validate then advance — no calculation yet
             if (lwcCurrentStep === 1) {
-                if (lwcValidateStep1()) lwcSetStep(2);
+                if (lwcValidateStep1()) lwcSetStep(2, { focus: true });
                 return;
             }
 

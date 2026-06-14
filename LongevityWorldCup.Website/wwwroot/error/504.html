@@ -8,14 +8,14 @@
   <style>
     :root {
       color-scheme: light;
-      --ink: #25282d;
-      --muted: #5d6672;
-      --paper: #f7f4ed;
-      --line: #2e2b27;
-      --cyan: #00a9c2;
-      --pink: #e8407d;
-      --green: #168c5a;
-      --shadow: 0 18px 40px rgba(37, 40, 45, 0.16);
+      --ink: #1c2722;
+      --muted: #46554d;
+      --paper: #f4f3ea;
+      --panel: #fffefa;
+      --line: rgba(28, 39, 34, 0.14);
+      --accent: #0b7d45;
+      --danger: #b3261e;
+      --shadow: 0 4px 10px rgba(28, 39, 34, 0.08);
     }
 
     * {
@@ -35,9 +35,7 @@
       padding: 1rem;
       font-family: Roboto, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--ink);
-      background:
-        linear-gradient(90deg, rgba(46, 43, 39, 0.045) 1px, transparent 1px) 0 0 / 36px 36px,
-        var(--paper);
+      background: var(--paper);
     }
 
     a {
@@ -46,10 +44,10 @@
 
     .error-card {
       width: min(100%, 820px);
-      border: 3px solid var(--line);
-      border-radius: 8px;
-      background: #fffdf8;
-      box-shadow: 10px 10px 0 var(--line), var(--shadow);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
       overflow: hidden;
     }
 
@@ -60,8 +58,11 @@
       justify-content: space-between;
       gap: 0.9rem;
       padding: 0.75rem 1rem;
-      border-bottom: 3px solid var(--line);
-      background: #fff;
+      border-bottom: 1px solid rgba(248, 247, 239, 0.14);
+      color: #f8f7ef;
+      background:
+        radial-gradient(80% 120% at 50% 0%, rgba(67, 238, 131, 0.14), transparent 62%),
+        linear-gradient(180deg, #050908, #030706);
     }
 
     .brand {
@@ -75,10 +76,9 @@
     .mark {
       width: 2.15rem;
       height: 2.15rem;
-      border: 2px solid var(--line);
+      border: 1px solid rgba(248, 247, 239, 0.18);
       border-radius: 8px;
-      background: #fff;
-      box-shadow: 3px 3px 0 var(--line);
+      background: rgba(248, 247, 239, 0.08);
       flex: 0 0 auto;
       overflow: hidden;
     }
@@ -89,14 +89,15 @@
       display: block;
       object-fit: contain;
       padding: 0.16rem;
+      filter: invert(1) grayscale(1) brightness(1.35);
     }
 
     .code {
       padding: 0.28rem 0.55rem;
-      border: 2px solid var(--line);
-      border-radius: 8px;
-      color: var(--pink);
-      background: #fff;
+      border: 1px solid rgba(179, 38, 30, 0.26);
+      border-radius: 999px;
+      color: var(--danger);
+      background: rgba(179, 38, 30, 0.08);
       font-size: 0.84rem;
       font-weight: 900;
       line-height: 1.1;
@@ -113,10 +114,9 @@
 
     .visual {
       margin: 0;
-      border: 2px solid var(--line);
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fff;
-      box-shadow: 5px 5px 0 var(--line);
+      background: var(--panel);
       overflow: hidden;
     }
 
@@ -130,6 +130,10 @@
 
     h1 {
       margin: 0;
+      font-family: "Anton", Impact, Haettenschweiler, "Arial Narrow Bold", Roboto, sans-serif;
+      font-weight: 400;
+      font-synthesis: none;
+      text-transform: uppercase;
       font-size: clamp(2.45rem, 7vw, 4.5rem);
       line-height: 0.95;
       letter-spacing: 0;
@@ -138,7 +142,7 @@
 
     .joke {
       margin: 1rem 0 0;
-      color: #353b44;
+      color: var(--ink);
       font-size: clamp(1.12rem, 2.2vw, 1.35rem);
       line-height: 1.42;
       font-weight: 800;
@@ -158,39 +162,39 @@
       margin-top: 1.35rem;
     }
 
-    button {
+    .retry-button {
       min-height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0 1rem;
-      border: 2px solid var(--line);
-      border-radius: 8px;
-      box-shadow: 4px 4px 0 var(--line);
+      border: 0;
+      border-radius: 999px;
       font: inherit;
       font-weight: 900;
       text-decoration: none;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     }
 
-    button {
-      color: #fff;
-      background: var(--green);
+    .retry-button {
+      color: #06100b;
+      background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+      box-shadow: 0 4px 10px rgba(11, 125, 69, 0.18);
     }
 
-    button:hover {
-      transform: translate(1px, 1px);
-      box-shadow: 3px 3px 0 var(--line);
+    .retry-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(11, 125, 69, 0.24);
     }
 
-    button:focus-visible {
-      outline: 3px solid rgba(0, 169, 194, 0.38);
+    .retry-button:focus-visible {
+      outline: 3px solid rgba(11, 125, 69, 0.38);
       outline-offset: 4px;
     }
 
     @media (prefers-reduced-motion: reduce) {
-      button {
+      .retry-button {
         transition: none;
       }
     }
@@ -205,7 +209,12 @@
         grid-template-columns: 1fr;
       }
 
+      .card-body section {
+        order: 1;
+      }
+
       .visual {
+        order: 2;
         width: min(100%, 280px);
         justify-self: center;
       }
@@ -222,7 +231,7 @@
       }
 
       .actions,
-      button {
+      .retry-button {
         width: 100%;
       }
     }
@@ -247,10 +256,10 @@
 
       <section>
         <h1 id="page-title">We'll be right back</h1>
-        <p class="joke">Brief pause. No retirement.</p>
+        <p class="joke">Temporary outage. Standings will return shortly.</p>
         <p class="note">A fresh version is deploying. Please try again in a moment.</p>
         <div class="actions">
-          <button type="button" onclick="window.location.reload()">Try again</button>
+          <button type="button" class="retry-button" onclick="window.location.reload()">Try again</button>
         </div>
       </section>
     </div>

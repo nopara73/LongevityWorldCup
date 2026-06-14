@@ -247,7 +247,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("weekday: \"short\"", javascript);
         Assert.DoesNotContain("setText(\"lmxBoardTitle\", \"Starting grid\");", javascript);
         Assert.Contains("function renderRosterBoard", javascript);
-        Assert.Contains("people signed up", javascript);
+        Assert.Contains("public board opens with first check-ins", javascript);
         Assert.DoesNotContain("email confirmed", javascript);
         Assert.Contains("renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);", javascript);
         Assert.Contains("function pendingCallTimeLabel", javascript);
@@ -257,7 +257,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Your first check-in email arrives the morning after Day 1. Nothing is due before then.", javascript);
         Assert.Contains("Practice check-in", javascript);
         Assert.Contains("Counts for checked-in days and streak, not points.", javascript);
-        Assert.Contains("later days ramp", javascript);
+        Assert.Contains("later days carry more point weight", javascript);
         Assert.Contains("Peak points/day", javascript);
         Assert.Contains("cell.countsForScore === false", javascript);
         Assert.Contains(".lmx-cell.practice", css);

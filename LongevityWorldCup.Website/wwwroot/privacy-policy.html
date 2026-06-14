@@ -8,14 +8,21 @@
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://longevityworldcup.com/privacy">
     <style>
+        /* Standalone page, but it follows the site architecture: content lives
+           on the light paper surface; dark belongs to chrome only. */
         :root {
-            color-scheme: dark;
-            --bg: #0f1115;
-            --panel: #171b22;
-            --text: #eef2f7;
-            --muted: #c4ccd8;
-            --line: #293243;
-            --accent: #72c16b;
+            color-scheme: light;
+            --bg: #f4f3ea;
+            --panel: #fffefa;
+            --text: #1c2722;
+            --muted: #3d473f;
+            --line: rgba(28, 39, 34, 0.12);
+            --accent: #0b7d45;
+            --chrome: #050908;
+            --chrome-line: rgba(248, 247, 239, 0.14);
+            --light: #f8f7ef;
+            --surface-shadow: 0 4px 10px rgba(28, 39, 34, 0.08);
+            --radius-panel: 10px;
         }
 
         * {
@@ -27,9 +34,7 @@
             max-width: 100%;
             overflow-x: clip;
             font-family: Roboto, Arial, sans-serif;
-            background:
-                radial-gradient(circle at top right, rgba(114, 193, 107, 0.14), transparent 30%),
-                linear-gradient(180deg, #0c0f14 0%, #121720 100%);
+            background: var(--bg);
             color: var(--text);
             line-height: 1.6;
         }
@@ -40,25 +45,46 @@
         }
 
         .card {
-            background: rgba(23, 27, 34, 0.92);
+            background: var(--panel);
             border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 32px;
-            box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+            border-radius: var(--radius-panel);
+            box-shadow: var(--surface-shadow);
+            overflow: hidden;
+        }
+
+        .policy-header {
+            padding: 24px 32px 22px;
+            background:
+                radial-gradient(120% 100% at 50% -35%, rgba(67, 238, 131, 0.11), transparent 62%),
+                linear-gradient(180deg, #0a120e, var(--chrome) 78%);
+            color: var(--light);
+            border-bottom: 1px solid var(--chrome-line);
+        }
+
+        .policy-body {
+            padding: 28px 32px 32px;
         }
 
         h1 {
             margin: 0 0 8px;
-            font-family: Orbitron, Roboto, Arial, sans-serif;
+            font-family: Impact, Haettenschweiler, "Arial Narrow Bold", Roboto, sans-serif;
+            font-weight: 400;
+            font-synthesis: none;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
             font-size: 2.4rem;
             line-height: 1.15;
             overflow-wrap: anywhere;
         }
 
+        .policy-header h1 {
+            color: inherit;
+        }
+
         h2 {
             margin: 34px 0 10px;
             padding-top: 22px;
-            border-top: 1px solid rgba(168, 176, 191, 0.18);
+            border-top: 1px solid var(--line);
             font-size: 20px;
             line-height: 1.25;
         }
@@ -79,24 +105,27 @@
         }
 
         .lead {
-            margin: 0 0 24px;
-            color: var(--text);
+            margin: 0;
+            color: rgba(248, 247, 239, 0.78);
             max-width: 64ch;
         }
 
         .meta {
-            display: inline-block;
-            margin-bottom: 20px;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: rgba(114, 193, 107, 0.12);
-            color: var(--accent);
-            font-size: 14px;
-            font-weight: 700;
+            display: block;
+            margin-bottom: 10px;
+            color: #43ee83;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-transform: uppercase;
         }
 
         a {
             color: var(--accent);
+            font-weight: 700;
+            text-decoration-thickness: 0.08em;
+            text-underline-offset: 0.14em;
         }
 
         ul {
@@ -115,16 +144,19 @@
             }
 
             .card {
-                border-radius: 16px;
-                padding: 22px 20px 28px;
+                border-radius: var(--radius-panel);
+            }
+
+            .policy-header {
+                padding: 22px 20px 20px;
+            }
+
+            .policy-body {
+                padding: 24px 20px 28px;
             }
 
             h1 {
                 font-size: 2rem;
-            }
-
-            .meta {
-                margin-bottom: 16px;
             }
 
             h2 {
@@ -136,10 +168,13 @@
 <body>
     <div class="wrap">
         <div class="card">
-            <div class="meta">Longevity World Cup</div>
-            <h1>Privacy policy</h1>
-            <p class="lead">This page explains how Longevity World Cup handles information related to the website and its Threads and Facebook integrations.</p>
+            <div class="policy-header">
+                <div class="meta">Legal record</div>
+                <h1>Privacy policy</h1>
+                <p class="lead">How Longevity World Cup handles website operations and social publishing integrations.</p>
+            </div>
 
+            <div class="policy-body">
             <h2>Who we are</h2>
             <p>Longevity World Cup operates the website at <a href="https://longevityworldcup.com/">longevityworldcup.com</a> and related social publishing workflows, including Threads and Facebook.</p>
 
@@ -165,6 +200,7 @@
 
             <h2>Contact</h2>
             <p>If you have questions about this privacy policy or want to request deletion of data directly controlled by Longevity World Cup, contact: <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>.</p>
+            </div>
         </div>
     </div>
 </body>

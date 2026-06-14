@@ -1,5 +1,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#050908" />
 <meta name="description" content="{{SEO_DESCRIPTION}}" />
 <meta name="robots" content="{{SEO_ROBOTS}}" />
 <link rel="canonical" href="{{SEO_CANONICAL_URL}}" />
@@ -42,6 +43,10 @@
 <!-- Preconnect for FontAwesome and CDN -->
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous">
+
+<!-- Brand fonts: preload so display type and body text render on first paint -->
+<link rel="preload" href="{{ASSET_FONT_ANTON}}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ASSET_ROBOTO_REGULAR}}" as="font" type="font/woff2" crossorigin>
 
 <!-- Existing Stylesheets -->
 <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style" crossorigin="anonymous">

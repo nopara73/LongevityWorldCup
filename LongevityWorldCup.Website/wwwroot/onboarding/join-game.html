@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Longevity World Cup - Join game</title>
+    <title>Longevity World Cup - Apply to compete</title>
     <!--HEAD-->
     <style>
       /* Hide the join-game button in the header */
@@ -11,26 +11,162 @@
 
       /* Single content column so title, intro, and cards share the same width */
       .join-game-content {
-        max-width: 1100px;
+        max-width: 1160px;
         margin: 0 auto;
       }
 
       .join-game-content h1 {
-        margin-bottom: 0;
-        text-align: center;
+        margin: 0 0 0.85rem;
+        text-align: left;
       }
 
       .track-cards {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin: 2rem 0;
+        gap: 1.25rem;
+        margin: 1.35rem 0 2rem;
         align-items: start;
       }
 
-      @media (max-width: 700px) {
+      .track-quick-choice {
+        display: none;
+      }
+
+      .track-proof-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.55rem;
+        margin-top: 0;
+      }
+
+      .track-proof-links a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0.32rem 0.8rem;
+        border: 1px solid rgba(28, 39, 34, 0.14);
+        border-radius: var(--radius-control, 999px);
+        background: rgba(255, 254, 250, 0.72);
+        color: #1c2722;
+        font-size: var(--text-small, 0.875rem);
+        font-weight: 700;
+        line-height: var(--leading-ui, 1.35);
+        text-decoration: none;
+      }
+
+      .track-proof-links a:hover,
+      .track-proof-links a:focus-visible {
+        border-color: rgba(11, 125, 69, 0.32);
+        background: rgba(11, 125, 69, 0.08);
+        color: var(--primary-color);
+        outline: none;
+        box-shadow: var(--control-focus-ring, 0 0 0 3px rgba(11, 125, 69, 0.16));
+      }
+
+      @media (max-width: 900px) {
+        .join-game-content h1 {
+          text-align: center;
+        }
+
+        .track-proof-links {
+          justify-content: center;
+          margin-top: 0.85rem;
+        }
+
+        .track-quick-choice {
+          display: grid;
+          gap: 0.75rem;
+          margin: 1.1rem 0 1.35rem;
+        }
+
+        .track-quick-button {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 0.65rem;
+          align-items: center;
+          min-height: 56px;
+          padding: 0.72rem 0.85rem;
+          border: 1px solid rgba(28, 39, 34, 0.14);
+          border-radius: 10px;
+          box-sizing: border-box;
+          color: #1c2722;
+          font: inherit;
+          text-align: left;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(28, 39, 34, 0.08);
+        }
+
+        .track-quick-button strong {
+          display: block;
+          font-family: var(--display-font);
+          font-size: 1.2rem;
+          font-weight: 400;
+          font-synthesis: none;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .track-quick-button span {
+          display: block;
+          margin-top: 0.2rem;
+          color: var(--text-subtle, #5d6b63);
+          font-size: 0.82rem;
+          font-weight: 700;
+          line-height: 1.25;
+        }
+
+        .track-quick-button::after {
+          content: "\f061";
+          display: inline-grid;
+          place-items: center;
+          width: 2rem;
+          height: 2rem;
+          border-radius: 999px;
+          font-family: "Font Awesome 6 Free";
+          font-weight: 900;
+          background: rgba(28, 39, 34, 0.09);
+        }
+
+        .track-quick-button.pro {
+          border-color: rgba(11, 125, 69, 0.32);
+          background: var(--cta-green-gradient, linear-gradient(180deg, #50f191, #2edb6f));
+          color: #06100b;
+          box-shadow: var(--cta-green-shadow, inset 0 1px 0 rgba(255,255,255,.35), 0 2px 10px rgba(46,219,111,.24));
+        }
+
+        .track-quick-button.pro span {
+          color: rgba(6, 16, 11, 0.72);
+        }
+
+        .track-quick-button.pro::after {
+          background: rgba(6, 16, 11, 0.14);
+        }
+
+        .track-quick-button.amateur {
+          border-color: rgba(11, 125, 69, 0.24);
+          background: var(--card-bg, #fffefa);
+          color: var(--primary-color, #0b7d45);
+        }
+
+        .track-quick-button.amateur span {
+          color: var(--text-muted, #46554d);
+        }
+
+        .track-quick-button.amateur::after {
+          background: rgba(11, 125, 69, 0.1);
+          color: var(--primary-color, #0b7d45);
+        }
+
+        .track-quick-button:focus-visible {
+          outline: 2px solid rgba(67, 238, 131, 0.6);
+          outline-offset: 3px;
+        }
+
         .track-cards {
           grid-template-columns: 1fr;
+          margin-top: 1.25rem;
         }
       }
 
@@ -46,10 +182,10 @@
       .track-card {
         position: relative;
         padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid #e8e8e8;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        background: #fff;
+        border-radius: var(--radius-panel, 10px);
+        border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+        box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
+        background: var(--card-bg, #fffefa);
         display: grid;
         grid-template-rows: auto auto auto auto;
         min-height: 0;
@@ -62,22 +198,23 @@
       /* Pro card has 5 grid children (ribbon, h2, tagline, details, cta): row 1 forced to 0 so content aligns with Amateur card */
       .track-card.pro {
         grid-template-rows: minmax(0, 0) auto auto auto auto;
+        order: -1;
       }
 
       /* Ribbon lives in a slot so it’s anchored to the card corner, not the grid area */
       .track-card.pro .track-card-ribbon-slot {
         grid-row: 1;
-        position: relative;
-        width: 100%;
-        height: 0;
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: auto;
+        height: auto;
         min-height: 0;
         overflow: visible;
+        z-index: 2;
       }
       .track-card.pro .track-card-ribbon-slot .track-card-ribbon {
-        position: absolute;
-        /* Card has padding 1.5rem; slot is in content box so offset ribbon to card corner */
-        top: -1.5rem;
-        right: -1.5rem;
+        position: static;
       }
       /* Explicit row placement so content flows top-to-bottom with no stray gap */
       .track-card h2 { grid-row: 1; }
@@ -91,8 +228,8 @@
       .track-card.pro .card-cta { grid-row: 5; }
 
       .track-card:hover {
-        border-color: #b0bec5;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: rgba(11, 125, 69, 0.35);
+        box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
       }
 
       .track-card:focus {
@@ -100,17 +237,17 @@
       }
 
       .track-card:focus-visible {
-        outline: 2px solid var(--primary-color, #3498db);
+        outline: 2px solid var(--primary-color, #0b7d45);
         outline-offset: 2px;
       }
 
       .track-card.pro:hover {
-        border-color: var(--main-action-color, #2e7d32);
-        box-shadow: 0 6px 20px rgba(46, 125, 50, 0.2);
+        border-color: var(--primary-color, #0b7d45);
+        box-shadow: var(--cta-green-shadow-hover, inset 0 1px 0 rgba(255,255,255,.35), var(--focus-ring), 0 4px 14px rgba(46,219,111,.28));
       }
 
       .track-card.pro:focus-visible {
-        outline-color: var(--main-action-color, #2e7d32);
+        outline-color: var(--primary-color, #0b7d45);
       }
 
       .track-card h2 {
@@ -122,16 +259,20 @@
 
       .track-card h2 .track-name {
         display: inline;
+        font-family: var(--display-font);
         font-size: 1.85rem;
-        font-weight: 800;
-        color: #111;
+        font-weight: 400;
+        font-synthesis: none;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--ink, #111);
       }
 
       .track-card h2 .track-label {
         display: inline;
         font-size: 1.05rem;
         font-weight: 600;
-        color: #555;
+          color: var(--text-muted, #46554d);
       }
 
       @media (min-width: 700px) {
@@ -141,25 +282,80 @@
       }
 
       @media (min-width: 900px) {
+        body:has(.join-game-content) header {
+          padding: 0.72rem 0 0.88rem;
+        }
+
+        body:has(.join-game-content) .header-link > .main-logo-image {
+          width: 54px;
+          margin-bottom: 0.34rem;
+        }
+
+        body:has(.join-game-content) .bannertext {
+          font-size: clamp(1.85rem, 3vw, 2.15rem);
+        }
+
+        body:has(.join-game-content) .tagline {
+          font-size: 0.95rem;
+        }
+
+        .join-game-content h1 {
+          margin-top: 2.1rem;
+          margin-bottom: 0.65rem;
+          font-size: clamp(2.75rem, 4.1vw, 3.25rem);
+          line-height: 0.95;
+        }
+
+        .lab-reassurance {
+          padding: 0.68rem 0.85rem;
+        }
+
+        .track-proof-links a {
+          min-height: 30px;
+          padding: 0.24rem 0.72rem;
+        }
+
+        .track-cards {
+          gap: 1rem;
+          margin-top: 1rem;
+        }
+
+        .track-card {
+          padding: 1.25rem;
+        }
+
         .track-card h2 .track-name {
-          font-size: 2.35rem;
+          font-size: 2.15rem;
         }
         .track-card h2 .track-label {
           font-size: 1.15rem;
+        }
+
+        .track-card .card-cta {
+          margin-top: 0.8rem;
+        }
+
+        .track-card .track-card-details {
+          padding-top: 0.35rem;
+        }
+
+        .biomarkers-section {
+          margin-top: 0.55rem;
+          padding: 0.62rem 0.8rem 0.72rem;
         }
       }
 
       .track-card-benefit {
         margin: 0 0 1rem;
         font-size: 0.95rem;
-        color: #64748b;
+        color: var(--text-subtle, #5d6b63);
         line-height: 1.4;
       }
 
       .track-card-tagline {
         margin: 0.25rem 0 0.35rem;
         font-size: 0.9rem;
-        color: #64748b;
+        color: var(--text-subtle, #5d6b63);
         line-height: 1.4;
       }
 
@@ -173,22 +369,22 @@
 
       .track-card:not(.pro) .track-card-tagline a,
       .track-card:not(.pro) .track-card-meta a {
-        color: #475569;
+        color: var(--text-muted, #46554d);
       }
 
       .track-card:not(.pro) .track-card-tagline a:hover,
       .track-card:not(.pro) .track-card-meta a:hover {
-        color: #334155;
+        color: var(--text-soft, #33423b);
       }
 
       .track-card.pro .track-card-tagline a,
       .track-card.pro .track-card-meta a {
-        color: #166534;
+        color: var(--primary-color, #0b7d45);
       }
 
       .track-card.pro .track-card-tagline a:hover,
       .track-card.pro .track-card-meta a:hover {
-        color: #14532d;
+        color: #075f35;
         text-decoration: underline;
       }
 
@@ -202,7 +398,7 @@
         margin: 0 0 0.5rem;
         padding: 0;
         font-size: 0.9rem;
-        color: #555;
+        color: var(--text-muted, #46554d);
         display: grid;
         grid-template-columns: minmax(6.5em, auto) 1fr;
         gap: 0.5rem 1rem;
@@ -211,13 +407,13 @@
 
       .track-card-meta dt {
         font-weight: 600;
-        color: #64748b;
+        color: var(--text-subtle, #5d6b63);
       }
 
       .track-card-meta dd {
         margin: 0;
         font-size: 0.95rem;
-        color: #1e293b;
+        color: var(--main-action-selected-color, #24332c);
       }
 
       .track-card-meta dd a {
@@ -232,12 +428,12 @@
       .entry-aside {
         font-size: 0.82em;
         font-style: italic;
-        color: #64748b;
+        color: var(--text-subtle, #5d6b63);
         font-weight: 400;
       }
 
       .track-card.pro .track-card-meta .entry-aside {
-        color: #4b7c59;
+        color: var(--success-text, #075f35);
       }
 
       .track-card li {
@@ -249,31 +445,28 @@
         margin-top: 0.75rem;
         padding: 0.72rem 0.9rem 0.85rem;
         border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        background: #f8fafc;
-        border-left: 3px solid #64748b;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
+        background: var(--surface-row-alt, rgba(28, 39, 34, 0.035));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
       }
 
       .track-card:not(.pro) .biomarkers-section {
-        background: #f1f5f9;
-        border-color: #e2e8f0;
-        border-left-color: #64748b;
+        background: var(--surface-row-alt, rgba(28, 39, 34, 0.035));
+        border-color: var(--surface-border, rgba(28, 39, 34, 0.12));
       }
 
       .track-card:not(.pro) .biomarkers-section .biomarker-count {
-        color: #475569;
+        color: var(--text-muted, #46554d);
       }
 
       .track-card:not(.pro) .biomarkers-section .bio-icon {
-        color: #64748b;
+        color: var(--text-subtle, #5d6b63);
       }
 
       .track-card.pro .biomarkers-section {
-        background: #ecfdf5;
-        border-color: #bbf7d0;
-        border-left-color: var(--main-action-color, #16a34a);
-        box-shadow: 0 1px 2px rgba(22, 163, 74, 0.08);
+        background: var(--success-bg, rgba(11, 125, 69, 0.1));
+        border-color: rgba(11, 125, 69, 0.22);
+        box-shadow: 0 1px 2px rgba(11, 125, 69, 0.08);
       }
 
       .track-card .biomarkers-section .biomarker-count {
@@ -281,12 +474,12 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: #475569;
+        color: var(--text-muted, #46554d);
         margin: 0 0 0.45rem;
       }
 
       .track-card.pro .biomarkers-section .biomarker-count {
-        color: #166534;
+        color: var(--success-text, #075f35);
       }
 
       .track-card .biomarker-count {
@@ -309,11 +502,11 @@
         margin: 0.12rem 0;
         font-size: 0.8rem;
         line-height: 1.28;
-        color: #334155;
+        color: var(--text-soft, #33423b);
       }
 
       .track-card.pro .biomarkers-section .card-bio-list li {
-        color: #14532d;
+        color: var(--success-text, #075f35);
       }
 
       .biomarkers-section .card-bio-list .bio-icon {
@@ -321,7 +514,7 @@
       }
 
       .track-card.pro .biomarkers-section .bio-icon {
-        color: #15803d;
+        color: var(--primary-color, #0b7d45);
       }
 
       .card-bio-list li {
@@ -334,7 +527,7 @@
         width: 1.15em;
         text-align: center;
         margin-right: 0.36rem;
-        color: #5a6c7d;
+        color: var(--text-subtle, #5d6b63);
         font-size: 0.9em;
         vertical-align: middle;
       }
@@ -353,6 +546,48 @@
         justify-content: center;
       }
 
+      .track-card .option-button.grey.track-secondary-cta {
+        background: var(--card-bg, #fffefa);
+        border: 1px solid rgba(11, 125, 69, 0.3);
+        color: var(--primary-color, #0b7d45);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.48), 0 2px 8px rgba(28,39,34,.08);
+      }
+
+      .track-card .option-button.grey.track-secondary-cta:hover,
+      .track-card .option-button.grey.track-secondary-cta:focus-visible {
+        background: var(--surface-green-tint, rgba(11,125,69,.08));
+        border-color: rgba(11, 125, 69, 0.46);
+        color: #06100b;
+        box-shadow: 0 0 0 4px rgba(67,238,131,.16), 0 4px 12px rgba(28,39,34,.12);
+      }
+
+      @media (min-width: 701px) {
+        .track-card {
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .track-card.pro {
+          grid-template-rows: minmax(0, 0) auto auto auto auto;
+        }
+
+        .track-card .card-cta {
+          grid-row: 3;
+          margin: 1rem 0 0.65rem;
+        }
+
+        .track-card .track-card-details {
+          grid-row: 4;
+        }
+
+        .track-card.pro .card-cta {
+          grid-row: 4;
+        }
+
+        .track-card.pro .track-card-details {
+          grid-row: 5;
+        }
+      }
+
       .track-card-badge {
         display: inline-block;
         margin-bottom: 0;
@@ -362,18 +597,16 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--main-action-color, #2e7d32);
-        background: rgba(46, 125, 50, 0.12);
+        color: var(--primary-color, #0b7d45);
+        background: var(--surface-green-tint-strong, rgba(11,125,69,.14));
         border-radius: 6px;
       }
 
       .track-card-ribbon.prize-money {
-        position: absolute;
-        top: 0;
-        right: 0;
-        overflow: hidden;
-        width: 100px;
-        height: 100px;
+        position: static;
+        overflow: visible;
+        width: auto;
+        height: auto;
         z-index: 0;
         pointer-events: none;
       }
@@ -387,7 +620,7 @@
 
       /* Keep title clear of the prize-money ribbon */
       .track-card.pro h2 {
-        padding-right: 4rem;
+        padding-right: 6.5rem;
       }
 
       @media (max-width: 360px) {
@@ -411,29 +644,24 @@
 
       /* Only the direct child is the ribbon band; .btc-symbol stays inline on it */
       .track-card-ribbon.prize-money > span {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 0.35rem;
-        position: absolute;
-        right: -38px;
-        top: 24px;
-        width: 135px;
-        padding: 6px 12px;
+        position: static;
+        width: auto;
+        padding: 0.3rem 0.6rem;
         font-size: 0.7rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         white-space: nowrap;
-        color: #5c4a0a;
-        background: linear-gradient(
-          135deg,
-          #f7931a 0%,
-          #ffc107 50%,
-          #f7931a 100%
-        );
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-        transform: rotate(45deg);
+        color: var(--secondary-color, #8f6a0e);
+        background: var(--surface-amber-tint, rgba(212, 175, 55, 0.12));
+        border: 1px solid rgba(143, 106, 14, 0.22);
+        border-radius: 999px;
+        box-shadow: none;
+        transform: none;
       }
 
       .track-card-ribbon.prize-money .btc-symbol {
@@ -445,10 +673,7 @@
 
       @media (max-width: 1100px) {
         .track-card-ribbon.prize-money > span {
-          right: -32px;
-          top: 22px;
-          width: 132px;
-          padding: 5px 10px;
+          padding: 0.28rem 0.5rem;
           font-size: 0.62rem;
           letter-spacing: 0.035em;
         }
@@ -456,8 +681,7 @@
 
       @media (max-width: 360px) {
         .track-card.pro .track-card-ribbon-slot .track-card-ribbon {
-          top: -0.75rem;
-          right: -0.75rem;
+          position: static;
         }
 
         .track-card-ribbon.prize-money {
@@ -472,7 +696,7 @@
           max-width: 6.8rem;
           gap: 0.22rem;
           padding: 0.28rem 0.45rem;
-          border-radius: 0 9px 0 9px;
+          border-radius: 999px;
           font-size: 0.56rem;
           letter-spacing: 0.025em;
           line-height: 1.1;
@@ -490,25 +714,45 @@
         font-size: 0.7rem;
         letter-spacing: 0.06em;
         border-radius: 6px;
-        color: #546e7a;
-        background: rgba(84, 110, 122, 0.1);
-        border: 1px solid rgba(84, 110, 122, 0.2);
+        color: var(--text-muted, #46554d);
+        background: var(--surface-row-alt, rgba(28, 39, 34, 0.035));
+        border: 1px solid var(--surface-border, rgba(28, 39, 34, 0.12));
       }
 
       .track-card.pro {
-        border-color: var(--main-action-color, #2e7d32);
-        box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
-        background: #f0fdf4;
+        border-color: var(--primary-color, #0b7d45);
+        box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28,39,34,.12));
+        background: var(--surface-green-tint, rgba(11,125,69,.08));
       }
 
       .lab-reassurance {
-        margin: 1.5rem 0 0;
-        padding: 1rem 1.25rem;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.25rem;
+        margin: 0;
+        padding: 0.82rem 1rem;
+        border-radius: var(--radius-panel, 10px);
+        border: 1px solid rgba(11, 125, 69, 0.16);
+        background: var(--surface-green-tint, rgba(11, 125, 69, 0.08));
+        color: var(--text-soft, #33423b);
         font-size: 0.95rem;
-        text-align: center;
+        line-height: var(--leading-ui, 1.35);
+        text-align: left;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+      }
+
+      .lab-reassurance > span:first-child {
+        min-width: 0;
+      }
+
+      @media (max-width: 900px) {
+        .lab-reassurance {
+          display: block;
+          margin-top: 0;
+          padding: 0.9rem 1rem;
+          text-align: center;
+        }
       }
 
       .pro-entry-cell {
@@ -521,10 +765,10 @@
       .pro-discount-note {
         margin-top: 0;
         padding: 0.5rem 0.6rem;
-        border: 1px solid #cde7d2;
+        border: 1px solid rgba(11, 125, 69, 0.22);
         border-radius: 6px;
-        background: #f3faf3;
-        color: #18461f;
+        background: var(--success-bg, rgba(11, 125, 69, 0.1));
+        color: var(--success-text, #075f35);
         font-size: 0.82rem;
         line-height: 1.35;
         width: 100%;
@@ -577,7 +821,7 @@
       <!--MAIN-PROGRESS-BAR-->
       <div class="join-game-content">
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-          How bad do you want it?
+          Choose your competition track
         </h1>
 
         <div
@@ -586,8 +830,23 @@
           data-aos-duration="700"
           data-aos-delay="300"
         >
-          To calculate your biological age, get a <strong>blood test</strong>.
-          Your next choice determines which biomarkers need testing:
+          <span>
+            Choose the track your proof supports. <strong>Pro</strong>
+            requires Bortz Age + Pheno Age; <strong>Amateur</strong> ranks on Pheno Age.
+          </span>
+          <span class="track-proof-links" aria-label="Competition proof and rules">
+            <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Inspect standings</a>
+            <a href="/ruleset" target="_blank" rel="noopener noreferrer">Read official rules</a>
+          </span>
+        </div>
+
+        <div class="track-quick-choice" aria-label="Choose competition track">
+          <button type="button" class="track-quick-button pro" onclick="startProApplication()">
+            <span><strong>Apply for Pro</strong>2026 season, Bortz + Pheno proof</span>
+          </button>
+          <button type="button" class="track-quick-button amateur" onclick="startAmateurApplication()">
+            <span><strong>Apply as Amateur</strong>$10 entry, Pheno Age ranking</span>
+          </button>
         </div>
 
         <div
@@ -602,13 +861,13 @@
               <span class="track-label">athlete</span>
             </h2>
             <p class="track-card-tagline">
-              Ranked after pros in the
+              Ranks below Pro athletes in the
               <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
             </p>
             <div class="track-card-details">
               <dl class="track-card-meta">
                 <dt>Testing window:</dt>
-                <dd>unrestricted</dd>
+                <dd>any eligible date</dd>
                 <dt>Entry:</dt>
                 <dd class="entry-cell"><span class="pro-new-price">$10</span></dd>
                 <dt>Aging clock:</dt>
@@ -664,10 +923,10 @@
             </div>
             <div class="card-cta">
               <button
-                class="option-button grey"
+                class="option-button grey track-secondary-cta"
                 onclick="startAmateurApplication()"
               >
-                Start amateur
+                Apply as Amateur
               </button>
             </div>
           </article>
@@ -685,7 +944,7 @@
               <span class="track-label">athlete</span>
             </h2>
             <p class="track-card-tagline">
-              Ranked ahead of amateurs in the
+              Ranks ahead of Amateur athletes in the
               <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
             </p>
             <div class="track-card-details">
@@ -805,7 +1064,7 @@
                 class="option-button green"
                 onclick="startProApplication()"
               >
-                Go pro
+                Apply for Pro
               </button>
             </div>
           </article>
@@ -916,7 +1175,7 @@
         if (note) note.style.display = "none";
         if (proEntryCell) proEntryCell.classList.remove("has-discount");
         if (amateurEntryCell) amateurEntryCell.classList.remove("has-discount");
-        if (goProJoinButton) goProJoinButton.textContent = "Go pro";
+        if (goProJoinButton) goProJoinButton.textContent = "Apply for Pro";
         return true;
       }
 
@@ -939,7 +1198,7 @@
           ? window.proDiscounts.createPriceHtml(result)
           : createPriceHtmlFallback(result);
         proEntryPrice.innerHTML = priceHtml;
-        goProJoinButton.textContent = "Go pro";
+        goProJoinButton.textContent = "Apply for Pro";
 
         if (!Array.isArray(result.components) || result.components.length === 0) {
           breakdown.textContent = "";

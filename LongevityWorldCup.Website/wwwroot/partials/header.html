@@ -1,14 +1,101 @@
 <style>
     :root {
-        --primary-color: #00bcd4;
-        --secondary-color: #ff4081;
-        --background-color: linear-gradient(120deg, #000000, #555555);
-        --header-to-body-bg: linear-gradient(120deg, #eaeaea, #cccccc);
-        --dark-text-color: #333;
-        --light-text-color: white;
-        --card-bg: #fcfcfc;
-        --main-action-color: linear-gradient(135deg, #4CAF50, #66BB6A);
-        --main-action-selected-color: linear-gradient(135deg, #388E3C, #4CAF50);
+        /* Scoreboard palette: dark chrome carries off-white ink and bright green
+           numerals; light pages invert it (warm paper, near-black ink, dark green
+           accents). Legacy variable names are kept so existing pages restyle
+           themselves without markup changes. */
+        --ink: #131b17;
+        --paper: #f4f3ea;
+        --accent-bright: #43ee83;
+        --accent-soft: rgba(67, 238, 131, 0.16);
+        --primary-color: #0b7d45;
+        --secondary-color: #8f6a0e;
+        --success-color: #0b7d45;
+        --success-text: #075f35;
+        --success-bg: rgba(11, 125, 69, 0.1);
+        --danger-color: #b3261e;
+        --danger-text: #8f1f18;
+        --danger-bg: rgba(179, 38, 30, 0.08);
+        --warning-color: #8f6a0e;
+        --warning-bg: rgba(212, 175, 55, 0.12);
+        --background-color: #050908;
+        --header-to-body-bg: #f4f3ea;
+        --dark-text-color: #1c2722;
+        --text-soft: #33423b;
+        --text-muted: #46554d;
+        --text-subtle: #5d6b63;
+        --light-text-color: #f8f7ef;
+        --card-bg: #fffefa;
+        --main-action-color: #131b17;
+        --main-action-selected-color: #24332c;
+        --secondary-action-bg: #5d6f66;
+        --secondary-action-bg-hover: #4c5d54;
+        --secondary-action-shadow: 0 4px 10px rgba(28, 39, 34, 0.18);
+        --surface-border: rgba(28, 39, 34, 0.12);
+        --surface-border-strong: rgba(28, 39, 34, 0.18);
+        --surface-shadow: 0 4px 10px rgba(28, 39, 34, 0.08);
+        --surface-shadow-lifted: 0 6px 14px rgba(28, 39, 34, 0.12);
+        --surface-row-alt: rgba(28, 39, 34, 0.035);
+        --surface-row-hover: rgba(11, 125, 69, 0.07);
+        --surface-green-tint: rgba(11, 125, 69, 0.08);
+        --surface-green-tint-strong: rgba(11, 125, 69, 0.14);
+        --surface-amber-tint: rgba(212, 175, 55, 0.12);
+        --surface-amber-tint-strong: rgba(212, 175, 55, 0.18);
+        --chrome-border: rgba(248, 247, 239, 0.14);
+        --chrome-border-strong: rgba(248, 247, 239, 0.24);
+        --chrome-panel-bg: rgba(248, 247, 239, 0.06);
+        --chrome-panel-bg-strong: rgba(248, 247, 239, 0.1);
+        --chrome-overlay-bg: rgba(3, 7, 6, 0.72);
+        --chrome-overlay-bg-soft: rgba(3, 7, 6, 0.58);
+        --chrome-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+        --chrome-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.2);
+        --cta-green-gradient: linear-gradient(180deg, #50f191, #2edb6f);
+        --cta-green-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 10px rgba(46, 219, 111, 0.24);
+        --cta-green-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.35), var(--focus-ring), 0 4px 14px rgba(46, 219, 111, 0.28);
+        --control-bg: #fffefa;
+        --control-border: #cbd2c8;
+        --control-border-hover: rgba(11, 125, 69, 0.32);
+        --control-border-focus: #0b7d45;
+        --control-hover-bg: rgba(11, 125, 69, 0.06);
+        --control-focus-ring: 0 0 0 3px rgba(11, 125, 69, 0.16);
+        --error-bg: rgba(179, 38, 30, 0.08);
+        --error-border: rgba(179, 38, 30, 0.24);
+        --error-text: #8f1f18;
+        --radius-card: 8px;
+        --radius-panel: 10px;
+        --radius-field: 4px;
+        --radius-control: 999px;
+        --space-2xs: 0.25rem;
+        --space-xs: 0.5rem;
+        --space-sm: 0.75rem;
+        --space-md: 1rem;
+        --space-lg: 1.5rem;
+        --space-xl: 2rem;
+        --space-2xl: 3rem;
+        --space-3xl: 4rem;
+        --font-body: 'Roboto', sans-serif;
+        --text-caption: 0.75rem;
+        --text-meta: 0.8125rem;
+        --text-small: 0.875rem;
+        --text-ui: 0.9375rem;
+        --text-body: 1rem;
+        --text-lead: 1.125rem;
+        --text-title: 1.5rem;
+        --leading-flat: 1;
+        --leading-tight: 1.12;
+        --leading-ui: 1.35;
+        --leading-body: 1.55;
+        --leading-reading: 1.68;
+        --tracking-label: 0.06em;
+        --tracking-display: 0.02em;
+        --focus-ring: 0 0 0 4px rgba(67, 238, 131, 0.26);
+        --disabled-focus-ring: 0 0 0 3px rgba(151, 160, 152, 0.22);
+        --disabled-bg: #e2e1d6;
+        --disabled-text: #97a098;
+        --disabled-border: rgba(28, 39, 34, 0.12);
+        /* Anton ships with the site so the condensed scoreboard voice survives on
+           iOS/Android, where Impact and its relatives do not exist. */
+        --display-font: "Anton", Impact, Haettenschweiler, "Arial Narrow Bold", "Roboto", sans-serif;
         --gma-gold: #FFD700;
         --gma-gold-light: #ffd700;
         --gma-gold-dark: #d4af37;
@@ -40,31 +127,41 @@
         src: url('{{ASSET_ROBOTO_BOLD}}') format('woff2');
     }
 
-    /* Orbitron Font Face */
     @font-face {
-        font-family: 'Orbitron';
+        font-family: 'Anton';
         font-style: normal;
-        font-weight: 700;
+        font-weight: 400;
         font-display: swap;
-        src: url('{{ASSET_ORBITRON_BOLD}}') format('woff2');
+        src: url('{{ASSET_FONT_ANTON}}') format('woff2');
     }
 
     .tagline {
         display: block;
-        margin-top: 0.65rem;
-        font-size: clamp(1rem, 1.5vw, 1.1rem);
+        margin-top: 0.5rem;
+        font-size: clamp(0.92rem, 1.4vw, 1rem);
         font-weight: 400;
-        color: #e2e8f0;
+        color: rgba(248, 247, 239, 0.72);
         letter-spacing: 0.04em;
     }
 
     body {
-        font-family: 'Roboto', sans-serif;
+        font-family: var(--font-body);
+        font-size: var(--text-body);
+        line-height: var(--leading-body);
+        font-kerning: normal;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
         margin: 0;
         padding: 0;
         background: var(--header-to-body-bg);
         color: var(--dark-text-color);
         scroll-behavior: smooth;
+    }
+
+    /* Default link color for anchors that pages do not restyle, so plain links
+       match the brand accent instead of browser blue. */
+    a {
+        color: var(--primary-color);
     }
 
     main {
@@ -75,7 +172,11 @@
 
     /* Header Styles */
     header {
-        background: var(--background-color);
+        /* Subtle top sheen keeps the dark chrome from reading flat — same depth
+           cue production used, recast in the scoreboard green. */
+        background:
+            radial-gradient(120% 100% at 50% -35%, rgba(67, 238, 131, 0.09), transparent 62%),
+            linear-gradient(180deg, #0a120e, var(--background-color) 78%);
         color: var(--light-text-color);
         text-align: center;
         padding: clamp(0.95rem, 2vw, 1.2rem) 0 clamp(1.05rem, 2.2vw, 1.35rem);
@@ -84,7 +185,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.3); /* Adds depth */
+        border-bottom: 1px solid var(--chrome-border);
     }
 
     .main-logo-image {
@@ -104,27 +205,43 @@
     }
 
     .bannertext {
-        text-align: center; /* Optional */
+        text-align: center;
         box-sizing: border-box;
-        font-size: clamp(1.95rem, 4.4vw, 2.45rem);
-        line-height: 1.08;
-        font-weight: 700;
-        text-transform: capitalize;
-        letter-spacing: 0.05em;
+        font-family: var(--display-font);
+        font-size: clamp(2.1rem, 4.6vw, 2.7rem);
+        line-height: 1;
+        font-weight: 400;
+        font-synthesis: none;
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-display);
         position: relative;
-        text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35);
         max-width: 100%;
         padding: 0 1rem;
     }
 
     h1 {
-        text-align: center; /* Optional */
-        font-size: 2.7rem;
-        font-weight: 700;
-        letter-spacing: 2px;
+        text-align: center;
+        font-family: var(--display-font);
+        font-size: clamp(2.3rem, 5vw, 3rem);
+        font-weight: 400;
+        font-synthesis: none;
+        line-height: 1;
+        letter-spacing: var(--tracking-display);
+        text-transform: uppercase;
+        text-wrap: balance;
         position: relative;
-        text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
         padding: 0 1rem;
+    }
+
+    /* Page titles sit directly under the slim chrome bar on most pages; Anton's
+       tall caps fill the whole line box, so without extra margin the title looks
+       glued to the bar. scroll-margin keeps auto-scrolled titles (leaderboard)
+       from sliding under the fixed sticky bar. */
+    main > h1,
+    .join-game-content > h1,
+    .lwc-steps-shell > h1 {
+        margin-top: clamp(2.8rem, 5vw, 3.4rem);
+        scroll-margin-top: 5.75rem;
     }
 
     h2 {
@@ -148,20 +265,21 @@
         padding: 0.75rem 1.65rem;
         font-size: clamp(1.08rem, 1.7vw, 1.25rem);
         line-height: 1;
-        background: var(--main-action-color);
-        color: var(--light-text-color);
+        /* The one bright-green fill on the chrome: the primary CTA owns the accent. */
+        background: var(--cta-green-gradient);
+        color: #04130a;
+        font-weight: 700;
         border: none;
-        border-radius: 150px;
+        border-radius: 999px;
         cursor: pointer;
-        transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow */
-        animation: glow 1s ease-in-out 3;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
         position: relative;
         z-index: 1;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 0.35rem;
+        box-shadow: var(--cta-green-shadow);
     }
 
     .join-game-middle {
@@ -195,11 +313,12 @@
         pointer-events: all;
     }
 
-    .join-game:hover {
-        background: var(--main-action-selected-color);
-        transform: scale(1.04) rotate(1deg); /* Slight enlarge and tilt effect */
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.26), 0 0 16px rgba(72, 187, 120, 0.45); /* Enhanced shadow and glow */
-        transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    .join-game:hover,
+    .join-game:focus-visible {
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+        box-shadow: var(--cta-green-shadow-hover);
+        outline: none;
     }
 
     .scrolled-button {
@@ -214,26 +333,16 @@
         padding: 0.55rem 1rem;
         box-sizing: border-box;
         font-size: 1rem;
-        background: var(--main-action-color);
-        transition: transform 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
 
-        .scrolled-button:hover {
-            background: var(--main-action-selected-color);
-            transform: scale(1.04);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.26), 0 0 16px rgba(72, 187, 120, 0.45); /* Enhanced shadow and glow */
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        .scrolled-button:hover,
+        .scrolled-button:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            box-shadow: var(--cta-green-shadow-hover);
+            outline: none;
         }
-
-    @keyframes glow {
-        0%, 100% {
-            box-shadow: 0 0 4px rgba(179, 229, 252, 0.65), 0 0 10px rgba(179, 229, 252, 0.45), 0 0 16px rgba(207, 216, 220, 0.36);
-        }
-
-        50% {
-            box-shadow: 0 0 10px rgba(207, 216, 220, 0.5), 0 0 18px rgba(179, 229, 252, 0.5), 0 0 26px rgba(179, 229, 252, 0.36);
-        }
-    }
 
     .header-link {
         text-decoration: none;
@@ -250,8 +359,8 @@
         max-width: 400px;
         display: block;
         margin: 0 auto 1.5rem;
-        border: 4px solid var(--dark-text-color);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        border: 4px solid var(--surface-border-strong);
+        box-shadow: var(--surface-shadow-lifted);
         border-radius: 8px;
     }
 
@@ -267,13 +376,14 @@
     .option-button {
         padding: 1rem 2rem;
         margin: 0.5rem 0;
-        font-size: 1.2rem;
-        background: linear-gradient(135deg, var(--primary-color, #3498db), #4fa3e8); /* Subtle gradient */
+        font-size: var(--text-lead);
+        line-height: var(--leading-tight);
+        background: var(--main-action-color);
         color: var(--light-text-color);
         border: none;
-        border-radius: 50px;
+        border-radius: 999px;
         cursor: pointer;
-        transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
         width: 80%;
         max-width: 400px;
         min-height: 60px;
@@ -281,75 +391,97 @@
         display: flex;
         justify-content: center;
         align-items: center; /* Vertically center the text */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
     }
 
         .option-button:hover {
-            background: linear-gradient(135deg, #4fa3e8, #5eb2f2); /* Brightened gradient */
-            transform: scale(1.03); /* Slight enlarge effect */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+            background: var(--main-action-selected-color);
+            transform: translateY(-1px);
+            box-shadow: var(--focus-ring);
+        }
+
+        .option-button:active {
+            transform: translateY(0);
+            box-shadow: 0 0 0 3px rgba(67, 238, 131, 0.22);
         }
 
         .option-button:focus-visible {
-            outline: 3px solid rgba(0, 188, 212, 0.78);
-            outline-offset: 4px;
-            box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.82), 0 6px 12px rgba(0, 0, 0, 0.18);
+            outline: none;
+            box-shadow: var(--focus-ring);
         }
 
-        /* Specific styles for different buttons */
+        /* Secondary action: solid but muted sage fill — still a real button, just
+           visibly quieter than the ink/green primaries. */
         .option-button.grey {
-            background: linear-gradient(135deg, #607D8B, #78909C); /* Subtle gradient */
+            background: var(--secondary-action-bg);
+            color: var(--light-text-color);
+            box-shadow: var(--secondary-action-shadow);
         }
 
-            /* Hover effects for specific buttons */
             .option-button.grey:hover {
-                background: linear-gradient(135deg, #455A64, #607D8B); /* Darker gradient */
+                background: var(--secondary-action-bg-hover);
+                box-shadow: 0 0 0 4px rgba(67, 238, 131, 0.2), 0 4px 10px rgba(28, 39, 34, 0.22);
             }
 
+        /* Green = the forward/primary action, same accent as the header PLAY pill. */
         .option-button.green {
-            background: var(--main-action-color);
+            background: var(--cta-green-gradient);
+            color: #04130a;
+            font-weight: 700;
+            box-shadow: var(--cta-green-shadow);
         }
 
             .option-button.green:hover {
-                background: var(--main-action-selected-color);
+                background: var(--cta-green-gradient);
+                filter: brightness(1.06);
+                box-shadow: var(--cta-green-shadow-hover);
             }
 
+            .option-button.green:active {
+                filter: brightness(0.98);
+                transform: translateY(0);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 0 3px rgba(67, 238, 131, 0.24);
+            }
+
+    /* Disabled reads as "switched off", not "broken": clearly grayer than the
+       paper surface, with muted (not readable-dark) text and zero depth cues. */
     button.option-button:disabled {
-        background: #eef2f7 !important;
-        border: 1px solid rgba(100, 116, 139, 0.16);
-        color: #64748b;
+        background: var(--disabled-bg) !important;
+        border: 1px solid var(--disabled-border);
+        color: var(--disabled-text);
         opacity: 1;
-        /* Prevent all pointer events */
         pointer-events: none;
         cursor: not-allowed;
-        /* Remove depth cues */
         box-shadow: none !important;
         transform: none;
-        /* Disable text selection */
         user-select: none;
     }
 
         button.option-button:disabled:hover {
-            background: #eef2f7 !important;
-            border-color: rgba(100, 116, 139, 0.16);
-            color: #64748b;
+            background: var(--disabled-bg) !important;
+            border-color: var(--disabled-border);
+            color: var(--disabled-text);
             box-shadow: none !important;
             transform: none;
         }
 
+        button.option-button:disabled:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(151, 160, 152, 0.22) !important;
+        }
+
     /* Adjust the back button styling */
     .back-button {
-        background: #F5F5F5; /* Neutral background */
-        color: #607D8B; /* Icon and text color */
+        background: transparent;
+        color: var(--text-muted);
         border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-        transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+        box-shadow: inset 0 0 0 1px rgba(28, 39, 34, 0.28);
+        transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         min-width: 100px; /* Match "Next" button width */
         min-height: 44px;
         height: auto;
         font-size: 1rem; /* Adjust font size for consistency */
         padding: 0.5rem 1.5rem;
-        border-radius: 30px; /* Keep consistent rounding */
+        border-radius: var(--radius-control);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -358,9 +490,20 @@
     }
 
         .back-button:hover {
-            background: #ECEFF1; /* Slightly darker neutral */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
-            transform: scale(1.05); /* Slight hover effect */
+            background: rgba(28, 39, 34, 0.06);
+            box-shadow: inset 0 0 0 1px rgba(28, 39, 34, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .back-button:focus-visible {
+            outline: none;
+            background: rgba(11, 125, 69, 0.06);
+            box-shadow: inset 0 0 0 1px rgba(11, 125, 69, 0.42), var(--focus-ring);
+        }
+
+        .back-button:active {
+            transform: translateY(0);
+            background: rgba(28, 39, 34, 0.08);
         }
 
     .close {
@@ -379,13 +522,19 @@
         padding: 0; /* Ensure no padding distorts shape */
         border-radius: 50%; /* Ensures circular shape */
         cursor: pointer;
-        transition: color 0.3s ease, transform 0.2s ease;
+        transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-        .close:hover,
-        .close:focus {
-            color: #e74c3c; /* Brighter red for visibility on hover */
-            transform: scale(1.1); /* Subtle zoom */
+        .close:hover {
+            color: var(--primary-color);
+            background: rgba(11, 125, 69, 0.08);
+        }
+
+        .close:focus-visible {
+            color: var(--primary-color);
+            background: rgba(11, 125, 69, 0.08);
+            outline: none;
+            box-shadow: var(--focus-ring);
         }
 
     .no-scroll {
@@ -414,7 +563,7 @@
 
     #custom-alert {
         border: none;
-        border-radius: 15px;
+        border-radius: var(--radius-panel);
         padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
         max-width: 400px;
         width: 90%;
@@ -424,14 +573,14 @@
         color: var(--dark-text-color);
         text-align: center;
         font-family: 'Roboto', sans-serif;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--surface-shadow-lifted);
         animation: fadeInDialog 0.3s ease-out;
     }
 
         #custom-alert::backdrop {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            background: var(--chrome-overlay-bg-soft);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
         }
 
         #custom-alert p {
@@ -449,15 +598,21 @@
             background: var(--main-action-color);
             color: var(--light-text-color);
             border: none;
-            border-radius: 25px;
+            border-radius: var(--radius-control);
             cursor: pointer;
             transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--surface-shadow);
         }
 
             #custom-alert button:hover {
                 background: var(--main-action-selected-color);
-                transform: scale(1.05);
+                transform: translateY(-1px);
+                box-shadow: var(--focus-ring), var(--surface-shadow-lifted);
+            }
+
+            #custom-alert button:focus-visible {
+                outline: none;
+                box-shadow: var(--focus-ring), var(--surface-shadow-lifted);
             }
 
     @keyframes fadeInDialog {
@@ -489,7 +644,7 @@
         padding: 0.25rem 0.4rem;
         border-radius: 6px;
         box-sizing: border-box;
-        color: #0f172a;
+        color: #1c2722;
         font-weight: normal;
         line-height: 1.25;
         cursor: pointer;
@@ -497,7 +652,7 @@
     }
 
     #biomarker-checklist .biomarker-item:hover {
-        background: rgba(0, 188, 212, 0.08);
+        background: rgba(11, 125, 69, 0.08);
     }
 
     #biomarker-checklist .biomarker-checkbox {
@@ -505,11 +660,11 @@
         width: 18px;
         height: 18px;
         margin: 0;
-        accent-color: var(--primary-color, #00bcd4);
+        accent-color: var(--primary-color, #0b7d45);
     }
 
     #biomarker-checklist .biomarker-checkbox:focus-visible {
-        outline: 3px solid rgba(0, 188, 212, 0.22);
+        outline: 3px solid rgba(67, 238, 131, 0.45);
         outline-offset: 2px;
     }
 
@@ -523,20 +678,20 @@
     /* LOADING DIALOG */
     #loading-dialog {
         border: none;
-        border-radius: 15px;
+        border-radius: var(--radius-panel);
         padding: max(2rem, env(safe-area-inset-top)) max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(2rem, env(safe-area-inset-left));
         max-width: 200px;
         max-height: calc(100dvh - 1.5rem);
         background: var(--card-bg);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: var(--surface-shadow-lifted);
         text-align: center;
         animation: fadeInDialog 0.3s ease-out;
     }
 
         #loading-dialog::backdrop {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            background: var(--chrome-overlay-bg-soft);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
         }
 
     .loader {
@@ -568,7 +723,7 @@
         display: none;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid var(--chrome-border);
         transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .site-sticky-header.visible {
@@ -581,9 +736,9 @@
         left: 0;
         right: 0;
         height: 40px;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
+        background: linear-gradient(to bottom, rgba(3, 7, 6, 0.16), var(--chrome-overlay-bg-soft));
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
         pointer-events: none;
         z-index: -1;
     }
@@ -605,11 +760,12 @@
         height: 32px;
     }
     .site-sticky-header-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: capitalize;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        font-family: var(--display-font);
+        font-size: 1.15rem;
+        font-weight: 400;
+        font-synthesis: none;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
     }
     @media (prefers-reduced-motion: reduce) {
         .site-sticky-header {
@@ -620,6 +776,13 @@
     @media (max-width: 768px) {
         main {
             margin-top: 1.2rem;
+        }
+
+        main > h1,
+        .join-game-content > h1,
+        .lwc-steps-shell > h1 {
+            margin-top: 3rem;
+            scroll-margin-top: 5.5rem;
         }
 
         header {
@@ -644,19 +807,91 @@
             max-width: calc(100vw - 3rem);
         }
 
+        body:has(.bioageform) header,
+        body:has(.convergence-main) header,
+        body:has(.proof-upload-main) header,
+        body:has(.play-menu-hero) header,
+        body:has(.character-selection-main) header,
+        body:has(.character-dashboard-main) header,
+        body:has(.edit-profile-main) header {
+            padding: 0.62rem 0 0.78rem;
+        }
+
+        body:has(.bioageform) .header-link > .main-logo-image,
+        body:has(.convergence-main) .header-link > .main-logo-image,
+        body:has(.proof-upload-main) .header-link > .main-logo-image,
+        body:has(.play-menu-hero) .header-link > .main-logo-image,
+        body:has(.character-selection-main) .header-link > .main-logo-image,
+        body:has(.character-dashboard-main) .header-link > .main-logo-image,
+        body:has(.edit-profile-main) .header-link > .main-logo-image {
+            width: 46px;
+            margin-bottom: 0.32rem;
+        }
+
+        body:has(.bioageform) .bannertext,
+        body:has(.convergence-main) .bannertext,
+        body:has(.proof-upload-main) .bannertext,
+        body:has(.play-menu-hero) .bannertext,
+        body:has(.character-selection-main) .bannertext,
+        body:has(.character-dashboard-main) .bannertext,
+        body:has(.edit-profile-main) .bannertext {
+            font-size: 1.65rem;
+        }
+
+        body:has(.bioageform) .tagline,
+        body:has(.convergence-main) .tagline,
+        body:has(.proof-upload-main) .tagline,
+        body:has(.play-menu-hero) .tagline,
+        body:has(.character-selection-main) .tagline,
+        body:has(.character-dashboard-main) .tagline,
+        body:has(.edit-profile-main) .tagline {
+            display: none;
+        }
+
+        body:has(.bioageform) .join-game:not(.scrolled-button),
+        body:has(.convergence-main) .join-game:not(.scrolled-button),
+        body:has(.proof-upload-main) .join-game:not(.scrolled-button),
+        body:has(.play-menu-hero) .join-game:not(.scrolled-button),
+        body:has(.character-selection-main) .join-game:not(.scrolled-button),
+        body:has(.character-dashboard-main) .join-game:not(.scrolled-button),
+        body:has(.edit-profile-main) .join-game:not(.scrolled-button) {
+            display: none;
+        }
+
+        body:has(.bioageform) main,
+        body:has(.convergence-main) main,
+        body:has(.proof-upload-main) main,
+        body:has(.play-menu-hero) main,
+        body:has(.character-selection-main) main,
+        body:has(.character-dashboard-main) main,
+        body:has(.edit-profile-main) main {
+            margin-top: 0.85rem;
+        }
+
+        body:has(.bioageform) main > h1,
+        body:has(.bioageform) .lwc-steps-shell > h1,
+        body:has(.convergence-main) main > h1,
+        body:has(.proof-upload-main) main > h1,
+        body:has(.character-selection-main) main > h1,
+        body:has(.character-dashboard-main) main > h1,
+        body:has(.edit-profile-main) main > h1 {
+            margin-top: 1.2rem;
+            scroll-margin-top: 4.25rem;
+        }
+
         .scrolled-button {
             top: max(0.35rem, env(safe-area-inset-top, 0px));
-            right: max(0.5rem, env(safe-area-inset-right, 0px));
-            min-width: 4.25rem;
-            padding: 0.55rem 0.85rem;
-            font-size: 0.95rem;
+            right: max(0.75rem, env(safe-area-inset-right, 0px));
+            min-width: 4.65rem;
+            padding: 0.55rem 0.8rem;
+            font-size: 0.9rem;
             z-index: 1001;
         }
 
         .site-sticky-header {
             justify-content: flex-start;
             padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-            padding-right: calc(max(0.5rem, env(safe-area-inset-right, 0px)) + 5.25rem);
+            padding-right: calc(max(0.75rem, env(safe-area-inset-right, 0px)) + 5.15rem);
         }
 
         .site-sticky-header-link {
@@ -664,53 +899,124 @@
         }
 
         .site-sticky-header-title {
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 1.02rem;
+            letter-spacing: 0.01em;
+        }
+    }
+
+    /* Keep the full wordmark readable on the narrowest phones instead of truncating */
+    @media (max-width: 374px) {
+        .site-sticky-header-title {
+            font-size: 0.9rem;
+            letter-spacing: 0;
+        }
+
+        .site-sticky-header-logo {
+            width: 24px;
+            height: 24px;
+        }
+
+        .site-sticky-header-link {
+            gap: 0.35rem;
         }
     }
 
     @media (max-width: 600px) {
+        header {
+            padding-top: 0.85rem;
+            padding-bottom: 1rem;
+        }
+
+        .header-link > .main-logo-image {
+            width: 64px;
+            margin-bottom: 0.45rem;
+        }
+
         .bannertext {
-            font-size: 2rem;
+            font-size: 1.82rem;
             letter-spacing: 0;
             max-width: calc(100vw - 1.25rem);
         }
 
         .tagline {
-            font-size: 0.96rem;
+            margin-top: 0.35rem;
+            font-size: 0.88rem;
         }
 
         .join-game {
-            padding-inline: 1.45rem;
+            margin-top: 0.75rem;
+            padding: 0.68rem 1.3rem;
+            font-size: 1rem;
         }
     }
 
     @media (max-width: 420px) and (max-height: 820px) {
         header {
-            padding-top: 1.05rem;
-            padding-bottom: 1.35rem;
+            padding-top: 0.72rem;
+            padding-bottom: 0.9rem;
         }
 
         .header-link > .main-logo-image {
-            width: 86px;
-            margin-bottom: 0.7rem;
+            width: 58px;
+            margin-bottom: 0.38rem;
         }
 
         .bannertext {
-            font-size: 1.9rem;
+            font-size: 1.7rem;
             line-height: 1.05;
             max-width: calc(100vw - 1.25rem);
         }
 
         .tagline {
-            margin-top: 0.5rem;
-            font-size: 0.95rem;
+            margin-top: 0.3rem;
+            font-size: 0.84rem;
         }
 
         .join-game {
-            margin-top: 0.9rem;
-            padding: 0.75rem 1.45rem;
-            font-size: 1.08rem;
+            margin-top: 0.65rem;
+            padding: 0.62rem 1.2rem;
+            font-size: 0.96rem;
+        }
+
+        body:has(.bioageform) header,
+        body:has(.convergence-main) header,
+        body:has(.proof-upload-main) header,
+        body:has(.play-menu-hero) header,
+        body:has(.character-selection-main) header,
+        body:has(.character-dashboard-main) header,
+        body:has(.edit-profile-main) header {
+            padding: 0.58rem 0 0.7rem;
+        }
+
+        body:has(.bioageform) .header-link > .main-logo-image,
+        body:has(.convergence-main) .header-link > .main-logo-image,
+        body:has(.proof-upload-main) .header-link > .main-logo-image,
+        body:has(.play-menu-hero) .header-link > .main-logo-image,
+        body:has(.character-selection-main) .header-link > .main-logo-image,
+        body:has(.character-dashboard-main) .header-link > .main-logo-image,
+        body:has(.edit-profile-main) .header-link > .main-logo-image {
+            width: 44px;
+            margin-bottom: 0.3rem;
+        }
+
+        body:has(.bioageform) .bannertext,
+        body:has(.convergence-main) .bannertext,
+        body:has(.proof-upload-main) .bannertext,
+        body:has(.play-menu-hero) .bannertext,
+        body:has(.character-selection-main) .bannertext,
+        body:has(.character-dashboard-main) .bannertext,
+        body:has(.edit-profile-main) .bannertext {
+            font-size: 1.55rem;
+        }
+
+        body:has(.bioageform) .join-game:not(.scrolled-button),
+        body:has(.convergence-main) .join-game:not(.scrolled-button),
+        body:has(.proof-upload-main) .join-game:not(.scrolled-button),
+        body:has(.play-menu-hero) .join-game:not(.scrolled-button),
+        body:has(.character-selection-main) .join-game:not(.scrolled-button),
+        body:has(.character-dashboard-main) .join-game:not(.scrolled-button),
+        body:has(.edit-profile-main) .join-game:not(.scrolled-button) {
+            display: none;
         }
     }
 
@@ -740,7 +1046,7 @@
     }
     /* Always reserve space so scrollIntoView/anchor links are not covered by the sticky bar (works on load and when sticky is visible) */
     html {
-        scroll-padding-top: 52px;
+        scroll-padding-top: 72px;
     }
 </style>
 
@@ -756,16 +1062,16 @@
              decoding="async">
         <div class="bannertext">Longevity World&nbsp;Cup</div>
         <span class="tagline">
-            longevity leaderboards
+            global age-reversal sport
         </span>
     </a>
-    <button onclick="window.location.href='/play'" class="join-game" aria-label="Play the game">
-        <strong>PLAY</strong>
+    <button onclick="window.location.href='/play'" class="join-game" aria-label="Apply to compete">
+        <strong>ENTER</strong>
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
-        <strong class="join-game-end">GAME</strong>
+        <strong class="join-game-end">FIELD</strong>
     </button>
-    <button onclick="window.location.href='/play'" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
-        <strong>PLAY</strong>
+    <button onclick="window.location.href='/play'" class="join-game scrolled-button" aria-label="Apply to compete" style="display: none;">
+        <strong>APPLY</strong>
     </button>
     <dialog id="custom-alert" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message">
         <h2 id="custom-alert-title" class="visually-hidden">Alert</h2>
@@ -810,18 +1116,24 @@
     function handleScroll(scrollPos) {
         const compactLandscape = window.matchMedia('(max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
         const mainJoinButtonVisible = joinGameBtn && window.getComputedStyle(joinGameBtn).display !== 'none';
+        const mainHeader = document.querySelector('header[role="banner"]');
+        const stickyHeader = document.getElementById('site-sticky-header');
+        const scrolledChromeActive = scrollPos > 100 && (mainJoinButtonVisible || compactLandscape);
 
-        if (scrolledJoinButton && scrollPos > 100 && (mainJoinButtonVisible || compactLandscape)) {
+        if (scrolledJoinButton && scrolledChromeActive) {
             scrolledJoinButton.style.display = 'inline-flex';
         } else if (scrolledJoinButton) {
             scrolledJoinButton.style.display = 'none';
         }
-        const mainHeader = document.querySelector('header[role="banner"]');
-        const stickyHeader = document.getElementById('site-sticky-header');
+
+        if (joinGameBtn) {
+            joinGameBtn.style.visibility = scrolledChromeActive ? 'hidden' : '';
+        }
+
         /* Show when scroll header would completely cover the main header: main header is entirely under the sticky bar. Sticky height when visible; fallback 52 if not yet measured. */
         const stickyHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
         const threshold = mainHeader ? Math.max(0, mainHeader.offsetHeight - stickyHeight) : -1;
-        const willBeVisible = mainHeader && stickyHeader ? scrollPos >= threshold : false;
+        const willBeVisible = mainHeader && stickyHeader ? scrollPos >= threshold || scrolledChromeActive : false;
         if (mainHeader && stickyHeader) {
             if (willBeVisible) {
                 stickyHeader.classList.add('visible');

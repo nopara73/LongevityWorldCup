@@ -1,14 +1,17 @@
 <style>
     /* Footer Styles */
     .footer {
-        background: var(--background-color);
+        /* Mirrors the header band's sheen so the dark chrome bookends match. */
+        background:
+            radial-gradient(120% 100% at 50% 135%, rgba(67, 238, 131, 0.07), transparent 62%),
+            linear-gradient(0deg, #0a120e, var(--background-color) 78%);
         color: var(--light-text-color);
         padding: 1.75rem 0 1.6rem;
         margin-top: 4rem;
         position: relative;
         width: 100%;
         clear: both;
-        box-shadow: 0px -3px 10px rgba(0, 0, 0, 0.3); /* Adds depth to footer */
+        border-top: 1px solid rgba(248, 247, 239, 0.14);
     }
 
     .footer-link {
@@ -29,17 +32,17 @@
     }
 
         .footer-link:hover {
-            color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.08);
+            color: var(--accent-bright);
+            background: rgba(248, 247, 239, 0.08);
             transform: translateX(4px);
         }
 
         .footer-link:focus-visible {
-            color: var(--primary-color);
-            background: rgba(0, 188, 212, 0.12);
-            outline: 2px solid rgba(0, 188, 212, 0.72);
+            color: var(--accent-bright);
+            background: rgba(67, 238, 131, 0.1);
+            outline: 2px solid rgba(67, 238, 131, 0.6);
             outline-offset: 3px;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+            box-shadow: none;
         }
 
         .footer-link i {
@@ -67,6 +70,17 @@
         gap: 0.05rem;
         margin: 0;
         align-items: flex-start;
+    }
+
+    .footer-column-title {
+        margin: 0 0 0.35rem;
+        padding: 0 0.65rem;
+        color: rgba(248, 247, 239, 0.62);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        line-height: 1.2;
+        text-transform: uppercase;
     }
 
     @media (max-width: 768px) {
@@ -101,6 +115,10 @@
             font-size: 0.9rem;
         }
 
+        .footer-column-title {
+            padding-inline: 0.45rem;
+        }
+
         .footer-link i {
             width: 1.1rem;
             margin-right: 0.55rem;
@@ -111,6 +129,7 @@
 <footer class="footer" style="margin-top: 1.5rem;">
     <div class="footer-container">
         <div class="footer-column">
+            <h2 class="footer-column-title">Project</h2>
             <a href="https://merch.longevityworldcup.com/" target="_blank" rel="noopener" class="footer-link" aria-label="Shop Longevity World Cup merchandise">
                 <i class="fas fa-store"></i> Merch
             </a>
@@ -131,6 +150,7 @@
             </a>
         </div>
         <div class="footer-column">
+            <h2 class="footer-column-title">Social</h2>
             <a href="https://x.com/LongevityWorldC" target="_blank" rel="noopener" class="footer-link" aria-label="Follow Longevity World Cup on X">
                 <i class="fab fa-twitter"></i> X
             </a>

@@ -5,9 +5,9 @@
         text-align: center;
         padding: 0.5rem 0.75rem;
         background: var(--card-bg, #fff);
-        border-radius: 16px;
-        border: 1px solid var(--border-color, rgba(0,0,0,0.06));
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        border-radius: var(--radius-card, 8px);
+        border: 1px solid var(--surface-border, rgba(28,39,34,0.12));
+        box-shadow: var(--surface-shadow, 0 4px 10px rgba(28,39,34,0.08));
     }
     .age-radar-wrapper {
         position: relative;
@@ -29,18 +29,20 @@
         margin-top: 1rem;
         padding: 0.75rem 1rem;
         border-radius: 12px;
-        background: linear-gradient(135deg, rgba(0,188,212,0.06) 0%, rgba(0,188,212,0.02) 100%);
-        border: 1px solid rgba(0,188,212,0.12);
+        background: linear-gradient(135deg, rgba(11, 125, 69,0.06) 0%, rgba(11, 125, 69,0.02) 100%);
+        border: 1px solid rgba(11, 125, 69,0.12);
         line-height: 1.4;
         max-width: 320px;
         margin-left: auto;
         margin-right: auto;
     }
     .age-radar-summary .age-diff {
-        font-size: 1.35rem;
-        font-weight: 800;
+        font-family: var(--display-font);
+        font-size: 1.6rem;
+        font-weight: 400;
+        font-synthesis: none;
         font-variant-numeric: tabular-nums;
-        letter-spacing: -0.03em;
+        letter-spacing: 0;
         color: var(--dark-text-color, #1a1a1a);
         white-space: nowrap;
     }
@@ -48,7 +50,7 @@
         font-size: 0.75rem;
         font-weight: 600;
         letter-spacing: 0.02em;
-        color: var(--primary-color, #00bcd4);
+        color: var(--primary-color, #0b7d45);
         white-space: nowrap;
     }
     .age-radar-summary .age-bio-age {
@@ -56,7 +58,7 @@
         font-size: 0.7rem;
         font-weight: 500;
         font-variant-numeric: tabular-nums;
-        color: var(--muted-color, #64748b);
+        color: var(--muted-color, #5d6b63);
         white-space: nowrap;
         margin-top: 0.25rem;
     }
@@ -70,13 +72,15 @@
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        background: linear-gradient(145deg, rgba(0,188,212,0.08) 0%, rgba(76,175,80,0.06) 100%);
-        border: 2px solid rgba(0,188,212,0.2);
+        background: linear-gradient(145deg, rgba(11, 125, 69,0.08) 0%, rgba(11, 125, 69,0.06) 100%);
+        border: 2px solid rgba(11, 125, 69,0.2);
         box-shadow: 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
     }
     .age-radar-fallback .age-diff {
-        font-size: 1.2rem;
-        font-weight: 800;
+        font-family: var(--display-font);
+        font-size: 1.45rem;
+        font-weight: 400;
+        font-synthesis: none;
         font-variant-numeric: tabular-nums;
         color: var(--dark-text-color, #1a1a1a);
         white-space: nowrap;
@@ -86,7 +90,7 @@
         font-weight: 600;
         letter-spacing: 0.03em;
         margin-top: 0.2rem;
-        color: var(--primary-color, #00bcd4);
+        color: var(--primary-color, #0b7d45);
         white-space: nowrap;
     }
     .age-radar-fallback .age-bio-age {
@@ -105,7 +109,7 @@
     .age-radar-summary.negative { background: linear-gradient(135deg, rgba(198,40,40,0.06) 0%, rgba(198,40,40,0.02) 100%); border-color: rgba(198,40,40,0.2); }
     .age-radar-caption {
         font-size: 0.7rem;
-        color: var(--muted-color, #64748b);
+        color: var(--muted-color, #5d6b63);
         margin-top: 0;
         margin-bottom: 0;
         max-width: 280px;
@@ -146,29 +150,29 @@
     }
     .age-clock-switch [role="tab"]:hover {
         background: rgba(0,0,0,0.06);
-        color: var(--primary-color, #00bcd4);
+        color: var(--primary-color, #0b7d45);
     }
     .age-clock-switch [role="tab"][aria-selected="true"] {
         background: var(--card-bg, #fff);
-        color: var(--primary-color, #00bcd4);
+        color: var(--primary-color, #0b7d45);
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
     .age-clock-switch [role="tab"]:focus-visible {
-        outline: 2px solid var(--primary-color, #00bcd4);
+        outline: 2px solid var(--primary-color, #0b7d45);
         outline-offset: 2px;
     }
     #detailsModal .age-visualization {
         width: min(100%, var(--athlete-modal-section-width, 640px));
         box-sizing: border-box;
-        padding: .95rem 1rem 1.05rem;
+        padding: .85rem 1rem 1rem;
         background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
         border-color: var(--athlete-modal-border, rgba(255,255,255,.16));
-        border-radius: 22px;
-        box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
+        border-radius: var(--radius-panel, 10px);
+        box-shadow: 0 8px 22px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.06);
         color: var(--athlete-modal-text, rgba(255,255,255,.94));
     }
     #detailsModal .age-radar-wrapper {
-        width: clamp(230px, 55vw, 340px);
+        width: clamp(250px, 58vw, 360px);
     }
     #detailsModal .age-radar-summary,
     #detailsModal .age-radar-fallback {
@@ -202,13 +206,23 @@
         border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     }
     #detailsModal .age-clock-switch [role="tablist"] {
-        background: rgba(0,0,0,.22);
-        border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 20px rgba(0,0,0,.16);
+        width: min(100%, 21rem);
+        background: rgba(246,244,237,.055);
+        border: 1px solid rgba(246,244,237,.24);
+        border-radius: var(--radius-panel, 10px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+        padding: 3px;
+        gap: 3px;
     }
     #detailsModal .age-clock-switch [role="tab"] {
+        flex: 1 1 0;
+        min-height: 40px;
+        padding: .55rem .85rem;
         color: var(--athlete-modal-cream, rgba(246,244,237,.92));
         border: 1px solid transparent;
+        border-radius: calc(var(--radius-panel, 10px) - 3px);
+        font-size: .78rem;
+        font-weight: 800;
     }
     #detailsModal .age-clock-switch [role="tab"]:hover,
     #detailsModal .age-clock-switch [role="tab"]:focus-visible {
@@ -216,10 +230,10 @@
         color: #fff;
     }
     #detailsModal .age-clock-switch [role="tab"][aria-selected="true"] {
-        background: var(--athlete-modal-cream, rgba(246,244,237,.92));
-        color: rgba(12,16,16,.94);
-        border-color: rgba(255,255,255,.78);
-        box-shadow: 0 8px 18px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.72);
+        background: rgba(246,244,237,.16);
+        color: #fff;
+        border-color: rgba(246,244,237,.3);
+        box-shadow: inset 0 -2px 0 rgba(67,238,131,.72);
     }
     @media (max-width: 768px) {
         #detailsModal .age-visualization {
@@ -229,7 +243,7 @@
             margin-right: auto;
         }
         #detailsModal .age-radar-wrapper {
-            width: min(100%, 280px);
+            width: min(100%, 320px);
         }
         #detailsModal .age-radar-summary {
             max-width: 100%;

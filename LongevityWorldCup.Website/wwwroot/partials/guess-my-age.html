@@ -1,74 +1,77 @@
 <style>
-    /* 🎉 Pop-banner styles */
+    /* Result toast styles */
     .gma-pop-banner {
         position: fixed;
-        top: 20%;
-        left: 60%;
-        transform: translate(-50%, -50%) scale(0);
-        padding: 1rem 2rem;
-        background: var(--primary-color);
+        top: auto;
+        bottom: max(1rem, env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translate(-50%, 8px);
+        opacity: 0;
+        width: max-content;
+        max-width: calc(100vw - 2rem);
+        padding: 0.75rem 1rem;
+        background: var(--primary-color, #0b7d45);
         color: #fff;
-        font-size: 2rem;
-        font-weight: 700;
-        border-radius: 1rem;
+        font-size: var(--text-ui, 0.9375rem);
+        font-weight: 800;
+        line-height: var(--leading-ui, 1.35);
+        border-radius: var(--radius-card, 8px);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.25);
+        gap: 0.4rem;
+        text-shadow: none;
+        text-align: center;
+        box-shadow: 0 12px 26px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.12);
         z-index: 10002;
         pointer-events: none;
     }
 
         .gma-pop-banner.show {
-            animation: gma-pop-slide-in 0.4s cubic-bezier(.4,0,.2,1) forwards, gma-pop-shake 0.3s ease-in-out 0.4s 1 both;
+            animation: gma-pop-slide-in 0.18s ease-out forwards;
         }
 
         .gma-pop-banner.hide {
             animation: gma-pop-slide-out 0.3s ease-in forwards;
         }
 
-        /* make the bullseye banner gold */
-        .gma-pop-banner.gma-pop-banner--golden {
-            background: var(--gma-gold) !important;
+        .gma-pop-banner.gma-pop-banner--exact {
+            background: var(--secondary-color, #8f6a0e) !important;
             color: #fff !important;
-            box-shadow: 0 0 12px rgba(255,215,0,0.8);
         }
 
     @keyframes gma-pop-slide-in {
         from {
-            transform: translate(-50%, -60%) scale(0);
+            transform: translate(-50%, 8px);
             opacity: 0;
         }
 
         to {
-            transform: translate(-50%, -50%) scale(1);
+            transform: translate(-50%, 0);
             opacity: 1;
         }
     }
 
     @keyframes gma-pop-slide-out {
         from {
-            transform: translate(-50%, -50%) scale(1);
+            transform: translate(-50%, 0);
             opacity: 1;
         }
 
         to {
-            transform: translate(-50%, -40%) scale(0);
+            transform: translate(-50%, 8px);
             opacity: 0;
         }
     }
 
     .modal-content.guess-mode #guessAgeContainer .gma-slider-wrap,
     .modal-content.guess-mode #guessAgeContainer .gma-actions {
-        opacity: 0;
-        /* ⚡️ use CSS vars so we can override on repeat views */
-        animation: fadeIn var(--gma-duration, 0.35s) ease-out forwards;
-        animation-delay: var(--gma-delay, .85s);
+        opacity: 1;
+        animation: none;
     }
 
     .modal-content.guess-mode.gma-fast #guessAgeContainer {
-        /* ⚡️ much snappier on repeat visits */
+        /* keep repeat visits immediate */
         --gma-duration: 0.2s;
         --gma-delay: 0.3s;
     }
@@ -91,6 +94,10 @@
 
     #detailsModal .modal-content.guess-mode {
         overflow: hidden;
+        height: auto;
+        min-height: 0;
+        max-height: calc(100dvh - 2rem);
+        align-self: center;
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile {
@@ -101,10 +108,10 @@
         align-items: center;
         justify-content: flex-start;
         gap: 0;
-        height: 100%;
+        height: auto;
         min-height: 0;
         box-sizing: border-box;
-        padding-block: clamp(3rem, 4.5vh, 4rem) clamp(0.5rem, 2vh, 1.5rem);
+        padding-block: clamp(2.25rem, 4vh, 3rem) clamp(1.25rem, 2.6vh, 2rem);
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
@@ -117,12 +124,12 @@
         margin: 0 0 var(--gma-portrait-gap);
     }
 
-    /* ✨ card container */
+    /* card container */
     .gma-card {
         width: min(420px, 90%);
         margin-inline: auto;
         background: var(--card-bg);
-        border-radius: 1.25rem;
+        border-radius: var(--radius-panel, 10px);
         padding: 2rem 2.25rem 2.5rem;
         text-align: center;
     }
@@ -136,7 +143,7 @@
         border-radius: 50%;
         overflow: hidden;
         background: var(--card-bg);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        box-shadow: var(--surface-shadow);
     }
 
         .gma-avatar img {
@@ -153,7 +160,7 @@
     /* apply the same headline styles to both */
     .gma-heading,
     .chrono-age-heading {
-        font-size: 3rem;
+        font-size: 2.5rem;
         margin: 0 0 2.5rem;
         color: var(--dark-text-color);
         font-weight: 700;
@@ -168,6 +175,7 @@
     /* let the slider wrap fill all of that */
     .gma-slider-wrap {
         position: relative;
+        isolation: isolate;
         width: 90%;
         max-width: none; /* override any upstream caps */
         margin: 2rem auto; /* 2rem top/bottom, auto left/right to center */
@@ -193,7 +201,7 @@
             border-radius: 50%;
             background: var(--primary-color);
             border: 4px solid #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        box-shadow: var(--surface-shadow-lifted);
             cursor: pointer;
             transition: transform .2s ease;
         }
@@ -216,7 +224,7 @@
             border-radius: 50%;
             background: var(--primary-color);
             border: 4px solid #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            box-shadow: var(--surface-shadow-lifted);
             transition: transform .2s ease;
         }
 
@@ -233,7 +241,7 @@
         border: 2px solid var(--primary-color);
         border-radius: 2rem;
         transition: transform 0.15s ease, box-shadow 0.15s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: var(--surface-shadow-lifted);
         pointer-events: none;
         white-space: nowrap;
         z-index: 10002;
@@ -252,7 +260,7 @@
         border: 2px solid var(--primary-color);
         border-radius: 2rem;
         transition: transform 0.15s ease, box-shadow 0.15s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: var(--surface-shadow-lifted);
         pointer-events: none;
         white-space: nowrap;
         z-index: 10002;
@@ -385,20 +393,10 @@
             font-size: 2rem;
         }
 
-        /* reduce emoji size on small screens */
-        .gma-highfive-emoji,
-        .gma-cry-emoji,
-        .gma-eyes-emoji {
-            width: clamp(80px, 30vw, 140px) !important;
-            height: clamp(80px, 30vw, 140px) !important;
-            font-size: clamp(80px, 30vw, 140px) !important;
-        }
-
         /* shrink pop-banner text on mobile */
         .gma-pop-banner {
-            font-size: 1.2rem;
-            padding: 0.5rem 1rem;
-            gap: 0.25rem;
+            font-size: var(--text-small, 0.875rem);
+            padding: 0.65rem 0.85rem;
         }
     }
 
@@ -417,94 +415,29 @@
         transition: opacity .1s ease, height .1s ease, padding .1s ease !important;
     }
 
-    /* full-screen slide-up trollface overlay */
-    .gma-trollface-container {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 100%;
-        bottom: -100%;
-        background: transparent;
-        overflow: hidden;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        animation: gmaTrollSlideUpOverlay 2s ease-out forwards;
-    }
-
-    @keyframes gmaTrollSlideUpOverlay {
-        from {
-            bottom: -100%;
-        }
-
-        to {
-            bottom: 0;
-        }
-    }
-
-    .gma-trollface-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    /* 🚀 fast-mode “boom” for the heading */
-    @keyframes gmaBoom {
-        0% {
-            transform: scale(0.5);
-            opacity: 0;
-        }
-
-        70% {
-            transform: scale(1.2);
-        }
-
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-    }
-
-    /* disable the slow typewriter + pop in instantly */
+    /* keep repeat visits immediate */
     .modal-content.guess-mode.gma-fast .gma-heading {
-        opacity: 0; /* start hidden */
-        animation: gmaBoom 0.3s cubic-bezier(.4,0,.2,1) forwards !important;
+        opacity: 1;
+        animation: none !important;
     }
 
-    /* slam in slider & buttons super-fast */
+    /* keep slider & buttons immediately available */
     .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-slider-wrap,
     .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-actions {
-        opacity: 0; /* start hidden */
-        animation: fadeIn 0.2s ease-out forwards !important;
-        animation-delay: 0.25s !important;
+        opacity: 1;
+        animation: none !important;
     }
 
     .gma-heading,
     .chrono-age-heading {
-        overflow: hidden;
-        white-space: nowrap;
+        overflow: visible;
+        white-space: normal;
         display: inline-block;
         max-width: 100%;
         box-sizing: border-box;
         line-height: 1.08;
         text-align: center;
-        /* steps() can take a var() number for the step count */
-        animation: typing 2s steps(var(--ch), end) forwards;
-    }
-
-    @keyframes typing {
-        from {
-            width: 0;
-        }
-        /* multiply the integer in --ch by 1ch */
-        to {
-            width: min(calc(var(--ch) * 1.35ch), 100%);
-        }
-    }
-
-    .chrono-age-heading--boom {
-        animation: gmaBoom 0.3s cubic-bezier(.4,0,.2,1) forwards;
+        animation: none;
     }
 
     @keyframes fadeOutButtons {
@@ -535,7 +468,8 @@
         }
     }
 
-    #gmaRealBubble.gma-real-bubble-glow {
+    #gmaRealBubble.gma-real-bubble-glow,
+    #gmaBubble.gma-real-bubble-glow {
         animation: gmaRealBubbleGlow 1.8s ease-in-out forwards;
     }
 
@@ -546,59 +480,6 @@
         transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
-    @keyframes gma-pop-shake {
-        0%, 100% {
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        25% {
-            transform: translate(calc(-50% - 5px), calc(-50% + 5px)) scale(1.02);
-        }
-
-        50% {
-            transform: translate(calc(-50% + 5px), calc(-50% - 5px)) scale(0.98);
-        }
-
-        75% {
-            transform: translate(calc(-50% - 5px), calc(-50% - 5px)) scale(1.01);
-        }
-    }
-
-    /* ⏰ Time-icons raining down */
-    .gma-time-icon {
-        position: fixed;
-        pointer-events: none;
-        font-family: "Font Awesome 5 Free";
-        font-weight: 900;
-        font-size: 2rem;
-        color: var(--primary-color);
-        will-change: transform, opacity;
-        /* first shake/bounce 4 times at 0.3s each, then start the fall */
-        animation: gma-time-shake 0.3s ease-in-out 0s 4 alternate both, gma-time-float 3s ease-out 1.2s forwards;
-        z-index: 10001;
-    }
-
-    @keyframes gma-time-float {
-        to {
-            transform: translateY(100vh) rotate(360deg) scale(0.5);
-            opacity: 0;
-        }
-    }
-
-    @keyframes gma-time-shake {
-        0% {
-            transform: translateX(0) rotate(0deg);
-        }
-
-        50% {
-            transform: translateX(10px) rotate(10deg);
-        }
-
-        100% {
-            transform: translateX(-10px) rotate(-10deg);
-        }
-    }
-
     /* Smooth transitions on track, thumb & bubbles */
     #gmaRange,
     #gmaBubble,
@@ -606,222 +487,72 @@
         transition: background 0.5s ease, border-color 0.5s ease, color 0.5s ease;
     }
 
-    /* GOLDEN SLIDER TRACK */
-    .gma-card.celebrate-exact #gmaRange {
-        background: linear-gradient( 90deg, var(--gma-gold) 0%, var(--gma-gold) var(--percent, 50%), #d1d5db var(--percent, 50%), #d1d5db 100% ) !important;
-    }
-
-        /* GOLDEN THUMB for WebKit */
-        .gma-card.celebrate-exact #gmaRange::-webkit-slider-thumb {
-            background: var(--gma-gold) !important;
-        }
-
-        /* GOLDEN THUMB for Firefox */
-        .gma-card.celebrate-exact #gmaRange::-moz-range-thumb {
-            background: var(--gma-gold) !important;
-        }
-
-    /* GOLDEN BUBBLES */
-    .gma-card.celebrate-exact #gmaBubble,
-    .gma-card.celebrate-exact #gmaRealBubble {
-        background: var(--gma-gold) !important;
-        border-color: var(--gma-gold) !important;
-        color: #fff !important;
-    }
-
-    @keyframes goldenGlow {
-        0%, 100% {
-            box-shadow: 0 0 10px rgba(255,215,0,0.8);
-        }
-
-        50% {
-            box-shadow: 0 0 20px rgba(255,215,0,1);
-        }
-    }
-
-    .gma-card.celebrate-exact #gmaRange {
-        animation: goldenGlow 2s ease-in-out infinite;
-    }
-
-    /* 1) A metallic gradient track with a soft glow */
-    .gma-card.celebrate-exact #gmaRange {
-        background: linear-gradient( 90deg, var(--gma-gold-dark) 0%, var(--gma-gold-light) 40%, var(--gma-gold-shine) 60%, #d1d5db 100% ) !important;
-        box-shadow: inset 0 0 5px rgba(0,0,0,0.2), 0 0 8px rgba(255,215,0,0.6);
-    }
-
-        /* 2) A glowing, polished thumb */
-        .gma-card.celebrate-exact #gmaRange::-webkit-slider-thumb {
-            background: var(--gma-gold-light) !important;
-            box-shadow: 0 0 8px rgba(255,215,0,0.8), 0 0 0 3px #fff;
-        }
-
-        .gma-card.celebrate-exact #gmaRange::-moz-range-thumb {
-            background: var(--gma-gold-light) !important;
-            box-shadow: 0 0 8px rgba(255,215,0,0.8), 0 0 0 3px #fff;
-        }
-
-    /* 3) Shiny, gradient bubbles with matching border & text-shadow */
-    .gma-card.celebrate-exact #gmaBubble,
-    .gma-card.celebrate-exact #gmaRealBubble {
-        background: linear-gradient( 135deg, var(--gma-gold-light), var(--gma-gold-shine) ) !important;
-        border: 2px solid var(--gma-gold-dark) !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 12px rgba(255,215,0,0.5);
-        color: #333 !important; /* darker text for contrast */
-        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    }
-
-    .gma-time-icon.gma-time-icon--golden {
-        color: var(--gma-gold) !important;
-        text-shadow: 0 0 5px rgba(255,215,0,0.8);
-    }
-
-    /* High-five emoji animation */
-    .gma-highfive-emoji {
-        position: fixed;
-        width: 200px; /* was 400px */
-        height: 200px; /* was 400px */
-        pointer-events: none;
-        font-size: 15rem; /* was 30rem */
-        transform-origin: center center;
-        animation: gma-highfive-pop 0.8s ease-out forwards;
-        will-change: transform, opacity;
-        z-index: 10003;
-    }
-
-    @keyframes gma-highfive-pop {
-        0% {
-            transform: scale(0) rotate(-30deg);
-            opacity: 0;
-        }
-
-        50% {
-            transform: scale(1.2) rotate(0deg);
-            opacity: 1;
-        }
-
-        100% {
-            transform: scale(1) rotate(15deg);
-            opacity: 0;
-        }
-    }
-
-    /* 😭 Crying-face emoji animation */
-    .gma-cry-emoji {
-        position: fixed;
-        width: 200px;
-        height: 200px;
-        pointer-events: none;
-        font-size: 15rem;
-        transform-origin: center center;
-        animation: gma-cry-pop 0.8s ease-out forwards;
-        will-change: transform, opacity;
-        z-index: 10003;
-    }
-
-    @keyframes gma-cry-pop {
-        0% {
-            transform: scale(0) rotate(-30deg);
-            opacity: 0;
-        }
-
-        50% {
-            transform: scale(1.2) rotate(0deg);
-            opacity: 1;
-        }
-
-        100% {
-            transform: scale(1) rotate(15deg);
-            opacity: 0;
-        }
-    }
-
-    /* 👀 “eyes” emoji animation */
-    .gma-eyes-emoji {
-        position: fixed;
-        width: 200px;
-        height: 200px;
-        pointer-events: none;
-        font-size: 15rem;
-        transform-origin: center center;
-        animation: gma-eyes-pop 0.8s ease-out forwards;
-        will-change: transform, opacity;
-        z-index: 10003;
-    }
-
-    @keyframes gma-eyes-pop {
-        0% {
-            transform: scale(0) rotate(-30deg);
-            opacity: 0;
-        }
-
-        50% {
-            transform: scale(1.2) rotate(0deg);
-            opacity: 1;
-        }
-
-        100% {
-            transform: scale(1) rotate(15deg);
-            opacity: 0;
-        }
-    }
-
     #detailsModal .gma-card {
         width: min(680px, calc(100% - 2rem));
         margin-top: 0;
         margin-bottom: 0;
         box-sizing: border-box;
-        background: linear-gradient(180deg, rgba(246,244,237,.105), rgba(246,244,237,.055));
+        background: linear-gradient(180deg, rgba(246,244,237,.095), rgba(246,244,237,.045));
         color: var(--athlete-modal-text, rgba(255,255,255,.94));
-        border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-        box-shadow: 0 18px 42px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.1);
-        padding: 1.65rem 2rem 2rem;
+        border: 1px solid rgba(246,244,237,.32);
+        box-shadow: 0 18px 46px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+        padding: 1.35rem 1.65rem 1.55rem;
     }
     #detailsModal .gma-avatar {
         background: rgba(255,255,255,.08);
-        box-shadow: 0 10px 24px rgba(0,0,0,.28);
+        box-shadow: var(--chrome-shadow-soft);
     }
     #detailsModal .gma-heading,
     #detailsModal .chrono-age-heading {
         color: var(--athlete-modal-text, rgba(255,255,255,.94));
-        font-size: clamp(2.1rem, 4.5vw, 2.75rem);
-        margin-bottom: clamp(1.55rem, 3vh, 2rem);
-        text-shadow: 0 2px 16px rgba(0,0,0,.4);
+        font-family: var(--font-sans, system-ui, sans-serif);
+        font-size: clamp(0.95rem, 1.7vw, 1.12rem);
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: clamp(1.15rem, 2.4vh, 1.5rem);
+        text-shadow: none;
+        text-decoration: none;
+        position: relative;
+        z-index: 2;
     }
     #detailsModal #gmaRange {
-        background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
+        background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
     }
     #detailsModal #gmaRange::-moz-range-track {
-        background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
+        background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
     }
     #detailsModal #gmaRange::-webkit-slider-thumb {
-        background: linear-gradient(145deg, rgba(246,244,237,.98), rgba(202,207,204,.92));
+        background: rgba(246,244,237,.98);
         border-color: rgba(255,255,255,.95);
-        box-shadow: 0 8px 20px rgba(0,0,0,.35);
+        box-shadow: 0 10px 24px rgba(0,0,0,.34), 0 0 0 1px rgba(3,7,6,.18);
     }
     #detailsModal #gmaRange::-moz-range-thumb {
-        background: linear-gradient(145deg, rgba(246,244,237,.98), rgba(202,207,204,.92));
+        background: rgba(246,244,237,.98);
         border-color: rgba(255,255,255,.95);
-        box-shadow: 0 8px 20px rgba(0,0,0,.35);
+        box-shadow: 0 10px 24px rgba(0,0,0,.34), 0 0 0 1px rgba(3,7,6,.18);
     }
     #detailsModal #gmaBubble,
     #detailsModal #gmaRealBubble {
         background: rgba(10,12,12,.96);
         color: var(--athlete-modal-cream, rgba(246,244,237,.92));
-        border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-        box-shadow: 0 12px 28px rgba(0,0,0,.42), 0 0 0 1px rgba(255,255,255,.08);
+        border-color: rgba(246,244,237,.34);
+        border-radius: var(--radius-card, 8px);
+        box-shadow: 0 12px 28px rgba(0,0,0,.32), 0 0 0 1px rgba(255,255,255,.08);
     }
     #detailsModal #gmaBubble::after,
     #detailsModal #gmaRealBubble::after {
         background: rgba(10,12,12,.96);
-        border-left-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-        border-bottom-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+        border-left-color: rgba(246,244,237,.34);
+        border-bottom-color: rgba(246,244,237,.34);
     }
     #detailsModal .gma-btn {
-        box-shadow: 0 10px 22px rgba(0,0,0,.22);
+        box-shadow: var(--chrome-shadow-soft);
     }
     #detailsModal .gma-btn:focus-visible {
         outline: none;
-        box-shadow: var(--athlete-modal-focus, 0 0 0 3px rgba(0,188,212,.34)), 0 10px 22px rgba(0,0,0,.22);
+        box-shadow: var(--athlete-modal-focus, 0 0 0 3px rgba(11, 125, 69,.34)), var(--chrome-shadow-soft);
     }
     #detailsModal .gma-btn--ghost {
         background: rgba(246,244,237,.06);
@@ -834,17 +565,13 @@
         background: var(--athlete-modal-cream, rgba(246,244,237,.92));
     }
     #detailsModal .gma-btn--primary {
-        background: var(--athlete-modal-cream, rgba(246,244,237,.92));
-        color: rgba(12,16,16,.94);
-        box-shadow: 0 12px 26px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.72);
+        background: var(--primary-color);
+        color: #fff;
+        box-shadow: 0 12px 24px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.18);
     }
     #detailsModal .gma-btn--primary:hover,
     #detailsModal .gma-btn--primary:focus-visible {
         filter: brightness(1.04);
-    }
-    #detailsModal .gma-card.celebrate-exact {
-        border-color: rgba(255,215,0,.52);
-        box-shadow: 0 0 28px rgba(255,215,0,.18), 0 16px 36px rgba(0,0,0,.28);
     }
     #detailsModal .gma-card.gma-done {
         display: none !important;
@@ -854,9 +581,9 @@
     }
     @media (max-width: 768px) {
         #detailsModal .modal-content.guess-mode #athlete-profile {
-            --gma-portrait-gap: clamp(1.5rem, 3.5vh, 2.5rem);
-            --gma-portrait-size: clamp(180px, min(70vw, 36vh), 320px);
-            padding-block: clamp(3.5rem, 5.5vh, 4.5rem) clamp(0.5rem, 2vh, 1.25rem);
+            --gma-portrait-gap: clamp(1rem, 2.6vh, 1.55rem);
+            --gma-portrait-size: clamp(168px, min(58vw, 29vh), 250px);
+            padding-block: clamp(2.75rem, 4.6vh, 3.5rem) clamp(0.5rem, 2vh, 1.25rem);
         }
         #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
             width: var(--gma-portrait-size);
@@ -864,10 +591,45 @@
         }
         #detailsModal .gma-card {
             width: 100%;
-            padding: 1.75rem 1.25rem 2rem;
+            padding: 1.05rem 1rem 1.15rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-heading,
+        #detailsModal .modal-content.guess-mode .chrono-age-heading {
+            margin-bottom: 1rem;
         }
         #detailsModal .gma-slider-wrap {
-            width: 86%;
+            width: 84%;
+            margin: 0.95rem auto 1.15rem;
+            padding-top: 3.25rem;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange {
+            height: 2.45rem;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
+            width: 54px;
+            height: 54px;
+        }
+        #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
+            width: 54px;
+            height: 54px;
+        }
+        #detailsModal .modal-content.guess-mode #gmaBubble,
+        #detailsModal .modal-content.guess-mode #gmaRealBubble {
+            top: 0;
+            bottom: auto;
+            font-size: 1.9rem;
+            padding: 0.55rem 0.85rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-actions {
+            gap: 0.65rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-btn {
+            min-height: 44px;
+            padding: 0.72rem 1rem;
+            font-size: 1rem;
+        }
+        #detailsModal .modal-content.guess-mode .gma-btn--ghost {
+            min-width: 0;
         }
     }
 
@@ -911,17 +673,17 @@
         }
     }
 
-    @media (min-width: 769px) and (max-height: 760px) {
+    @media (min-width: 769px) and (max-height: 820px) {
         #detailsModal .modal-content.guess-mode {
             box-sizing: border-box;
-            height: 96vh;
-            max-height: 96vh;
-            margin: 1vh auto;
+            height: auto;
+            max-height: calc(100dvh - 1rem);
+            margin: .5rem auto;
         }
         #detailsModal .modal-content.guess-mode #athlete-profile {
-            --gma-portrait-gap: .8rem;
-            --gma-portrait-size: clamp(150px, min(34vw, 28vh), 230px);
-            padding-block: 2.25rem .5rem;
+            --gma-portrait-gap: 1rem;
+            --gma-portrait-size: clamp(150px, min(34vw, 30vh), 240px);
+            padding-block: 1.65rem 1.25rem;
         }
         #detailsModal .modal-content.guess-mode .gma-card {
             width: min(620px, calc(100% - 2rem));
@@ -1037,8 +799,8 @@
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
-    <h3 class="gma-heading">Guess my age!</h3>
-    <h3 class="chrono-age-heading" style="display: none;">My real age is:</h3>
+    <h3 class="gma-heading">Visual age estimate</h3>
+    <h3 class="chrono-age-heading" style="display: none;">Actual age</h3>
 
     <div class="gma-slider-wrap">
         <input type="range"
@@ -1046,13 +808,13 @@
                max="130"
                value="33"
                id="gmaRange"
-               aria-label="Guess athlete’s age — 1 to 130 years" />
+               aria-label="Estimate athlete chronological age, 1 to 130 years" />
 
         <output for="gmaRange" id="gmaBubble">33</output>
     </div>
 
     <div class="gma-actions">
-        <button id="gmaSkipAll" class="gma-btn gma-btn--ghost" style="display: none;" title="The Guess my age game will no longer appear for any athlete">Skip all</button>
+        <button id="gmaSkipAll" class="gma-btn gma-btn--ghost" style="display: none;" title="Hide age estimates for every athlete">Skip all</button>
         <button class="gma-btn gma-btn--ghost">Skip</button>
         <button class="gma-btn gma-btn--primary">Submit</button>
     </div>
@@ -1060,41 +822,6 @@
 
 <script>
     /* === Guess-My-Age bindings for the new widget === */
-    const gmaConfettiSrc = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1';
-    let gmaConfettiPromise = null;
-
-    function loadGmaConfetti() {
-        if (typeof window.confetti === 'function') {
-            return Promise.resolve(window.confetti);
-        }
-
-        if (gmaConfettiPromise) {
-            return gmaConfettiPromise;
-        }
-
-        gmaConfettiPromise = new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = gmaConfettiSrc;
-            script.async = true;
-            script.crossOrigin = 'anonymous';
-            script.onload = () => {
-                if (typeof window.confetti === 'function') {
-                    resolve(window.confetti);
-                } else {
-                    reject(new Error('canvas-confetti loaded without exposing window.confetti'));
-                }
-            };
-            script.onerror = () => reject(new Error('Failed to load canvas-confetti'));
-            document.head.appendChild(script);
-        }).catch(error => {
-            console.error(error);
-            gmaConfettiPromise = null;
-            return null;
-        });
-
-        return gmaConfettiPromise;
-    }
-
     const gmaRange = document.getElementById('gmaRange');
     const gmaDefaultValue = gmaRange.value;
 
@@ -1103,10 +830,6 @@
 
     const heading = gmaCard.querySelector('.gma-heading');
     const chronoHeading = gmaCard.querySelector('.chrono-age-heading');
-
-    heading.style.setProperty('--ch', heading.textContent.length);
-    chronoHeading.style.setProperty('--ch', chronoHeading.textContent.length);
-    heading.classList.add('typing');
 
     const modalContent = document.querySelector('.modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
@@ -1122,13 +845,13 @@
                 setGuessMyAgeParam(true);
                 // hide the chrono prompt again
                 chronoHeading.style.display = 'none';
-                chronoHeading.classList.remove('typing', 'chrono-age-heading--boom');
                 // restore the original prompt
                 heading.style.display = '';
                 gmaActions.classList.remove('gma-actions-hide');
                 gmaCard.classList.remove('gma-done');
 
                 gmaBubble.classList.remove('gma-bubble-inactive');
+                gmaBubble.classList.remove('gma-real-bubble-glow');
 
                 const oldRealBubble = document.getElementById('gmaRealBubble');
                 if (oldRealBubble) oldRealBubble.remove();
@@ -1137,8 +860,6 @@
                 gmaRange.disabled = false;
                 gmaRange.style.pointerEvents = '';
                 syncRange();
-
-                gmaCard.classList.remove('celebrate-exact');
             }
             if (mutation.attributeName === 'class' && !modalContent.classList.contains('guess-mode')) {
                 setGuessMyAgeParam(false);
@@ -1164,12 +885,6 @@
         // 1) grab the *user’s* guess before we start animating
         const userGuess = +gmaRange.value;
 
-        // if they chose the absolute min or max, we’ll troll them instead of collapsing
-        if (gmaRange.value === gmaRange.min || gmaRange.value === gmaRange.max) {
-            gmaTriggerTrollAnimation();
-            return;
-        }
-
         // 1) hide the slider & buttons
         gmaActions.classList.add('gma-actions-hide');
         gmaRange.disabled = true;
@@ -1179,22 +894,13 @@
         heading.style.display = 'none';
         chronoHeading.style.display = 'inline-block';
 
-        // 3) clear old animations, force reflow
-        chronoHeading.classList.remove('typing', 'chrono-age-heading--boom');
-        void chronoHeading.offsetWidth;
-
-        // 4) run typewriter or boom
-        if (!sessionStorage.getItem('gmaSubmittedOnce')) {
-            chronoHeading.classList.add('typing');
-            sessionStorage.setItem('gmaSubmittedOnce', 'true');
-        } else {
-            chronoHeading.classList.add('chrono-age-heading--boom');
-        }
+        // 3) keep the result prompt immediate; the reveal waits for the API response.
 
         const btn = e.currentTarget;
 
-        // 5) fire the existing API call immediately, stash the result
+        // 4) fire the existing API call immediately, stash the result
         let gmaResultData;
+        let revealStarted = false;
         fetch(
             `/api/Guess/athlete-age?athleteName=${encodeURIComponent(modalContent.dataset.athleteSlug)}&ageGuess=${gmaRange.value}`,
             { method: 'POST' }
@@ -1211,146 +917,49 @@
                     gmaResultData = data;
                     updateCrowdContainer(data.crowdAge, data.crowdCount);
 
-                    if (userGuess < data.actualAge) {
-                        animateHighFive();
-                    } else if (userGuess > data.actualAge) {
-                        animateCry();
-                    } else {
-                        animateEyes();
-                    }
-
                 }
             })
-            .catch(error => console.error('Error submitting guess:', error));
+            .catch(error => console.error('Error submitting guess:', error))
+            .finally(() => window.setTimeout(revealRealAge, 150));
 
-        // wait for the “typing” or “boom” animation to finish, then animate the second bubble
-        const onChronoAnimEnd = event => {
-            if (event.animationName === 'typing' || event.animationName === 'gmaBoom') {
-                chronoHeading.removeEventListener('animationend', onChronoAnimEnd);
+        function revealRealAge() {
+            if (revealStarted) return;
+            revealStarted = true;
+            const guessed = userGuess;
+            const actual = gmaResultData ? +gmaResultData.actualAge : guessed;
+            const crowd = gmaResultData ? gmaResultData.crowdAge : 0;
+            const rawCrowdCount = gmaResultData ? gmaResultData.crowdCount : 0;
+            const crowdCount = rawCrowdCount === 1 ? 0 : rawCrowdCount;
 
-                const startAge = +gmaRange.value;
-                const realAge = gmaResultData ? +gmaResultData.actualAge : startAge;
+            const oldRealBubble = document.getElementById('gmaRealBubble');
+            if (oldRealBubble) oldRealBubble.remove();
 
-                // create and style the new bubble
-                const sliderWrap = document.querySelector('.gma-slider-wrap');
-                const realBubble = document.createElement('output');
-                realBubble.id = 'gmaRealBubble';
-                realBubble.className = 'gma-real-bubble';
-                realBubble.setAttribute('for', 'gmaRange');
-                realBubble.textContent = startAge;
-                sliderWrap.appendChild(realBubble);
+            gmaRange.value = actual;
+            syncRange();
+            gmaBubble.classList.add('gma-real-bubble-glow');
 
-                // position it over the slider at the guessed value
-                const clampPct = pct => Math.min(Math.max(pct, 5), 95);
-                const startPct = clampPct((startAge / gmaRange.max) * 100);
-                Object.assign(realBubble.style, {
-                    position: 'absolute',
-                    bottom: 'calc(50% + 0.5rem)',
-                    left: `${startPct}%`,
-                    transform: 'translateX(-50%)'
-                });
+            const userError = Math.abs(actual - guessed);
+            const crowdError = (crowd === 0 || crowdCount === 0) ? 0 : Math.abs(actual - crowd);
 
-                // remove any left-transition so tick() moves it in perfect sync
-                realBubble.style.transition = 'none';
-
-                // count once per year, then pause before hiding
-                const diff = realAge - startAge;
-                const minStep = 30;
-                const maxStep = 200;
-                let currentAge = startAge;
-
-                // if the guess is within 50 years, first bounce further away, then come back
-                const absDiff = Math.abs(diff);
-                const clamp = v => Math.min(Math.max(v, +gmaRange.min), +gmaRange.max);
-
-                const rawBounce = diff > 0
-                    ? clamp(startAge + (50 - absDiff))
-                    : clamp(startAge - (50 - absDiff));
-
-                const bounceTargets = (absDiff < 50 && clamp(rawBounce) !== clamp(realAge))
-                    ? [clamp(rawBounce), clamp(realAge)]
-                    : [clamp(realAge)];
-
-                // prepare segments and overall distance for continuous easing
-                const segments = bounceTargets.map((target, idx) => ({
-                    start: idx === 0 ? startAge : bounceTargets[idx - 1],
-                    end: target
-                }));
-                const totalDistance = segments.reduce((sum, seg) => sum + Math.abs(seg.end - seg.start), 0);
-
-                function animateSegment(index, distSoFar = 0) {
-                    const seg = segments[index];
-                    let age = seg.start;
-                    const step = seg.end > seg.start ? 1 : -1;
-
-                    function segmentTick() {
-                        age += step;
-                        realBubble.textContent = age;
-                        gmaRange.value = age;
-                        const pct = (age / gmaRange.max) * 100;
-                        gmaRange.style.setProperty('--percent', `${pct}%`);
-                        realBubble.style.left = `${pct}%`;
-
-                        // continuous easing based on overall journey
-                        const travelled = distSoFar + Math.abs(age - seg.start);
-                        const t = travelled / totalDistance;
-                        const delay = minStep + (maxStep - minStep) * Math.pow(t, 2);
-
-                        if (age === seg.end) {
-                            if (index + 1 < segments.length) {
-                                animateSegment(index + 1, distSoFar + Math.abs(seg.end - seg.start));
-                            } else {
-                                realBubble.classList.add('gma-real-bubble-glow');
-                                gmaBubble.classList.add('gma-bubble-inactive');
-
-                                const guessed = startAge;
-                                const actual = realAge;
-                                const crowd = gmaResultData.crowdAge;
-
-                                // If this is the first guess then it's 1, including our guess. Let's make it 0.
-                                // However it can also be 0 if our guess is invalid.
-                                const crowdCount = (gmaResultData.crowdCount === 1) ? 0 : gmaResultData.crowdCount;
-
-                                const userError = Math.abs(actual - guessed);
-
-                                // It's kinda flawed because crowd guess here includes ours, but whatever. After sufficiently big numbers it shouldn't matter.
-                                const crowdError = (crowd === 0 || crowdCount === 0) ? 0 : Math.abs(actual - crowd);
-
-                                if (userError === 0) {
-                                    // exact hit!
-                                    if (window.proDiscounts && typeof window.proDiscounts.setPerfectGuessMarker === "function") {
-                                        window.proDiscounts.setPerfectGuessMarker();
-                                    }
-                                    gmaCard.classList.add('celebrate-exact');
-                                    popBanner(true, false);
-                                } else if (crowdCount === 0) {
-                                    popBanner(false, true);
-                                } else if (userError < crowdError) {
-                                    // beat the crowd!
-                                    gmaCard.classList.add('celebrate-better');
-                                    popBanner(false, false);
-                                }
-
-                                setTimeout(() => hideCard({
-                                    currentTarget: btn,
-                                    originalGuess: userGuess,
-                                    isFirstGuess: gmaResultData && crowdCount === 1,
-                                    isExactGuess: userError === 0
-                                }), 5000);
-                            }
-                        } else {
-                            setTimeout(segmentTick, delay);
-                        }
-                    }
-
-                    segmentTick();
+            if (userError === 0) {
+                if (window.proDiscounts && typeof window.proDiscounts.setPerfectGuessMarker === "function") {
+                    window.proDiscounts.setPerfectGuessMarker();
                 }
-
-                animateSegment(0);
-
+                popBanner(true, false);
+            } else if (crowdCount === 0) {
+                popBanner(false, true);
+            } else if (userError < crowdError) {
+                gmaCard.classList.add('celebrate-better');
+                popBanner(false, false);
             }
-        };
-        chronoHeading.addEventListener('animationend', onChronoAnimEnd);
+
+            setTimeout(() => hideCard({
+                currentTarget: btn,
+                originalGuess: userGuess,
+                isFirstGuess: gmaResultData && crowdCount === 1,
+                isExactGuess: userError === 0
+            }), 2600);
+        }
 
     });
 
@@ -1395,66 +1004,25 @@
         modalContent.scrollLeft = 0;
     }
 
-    function gmaTriggerTrollAnimation() {
-        const modalContent = document.querySelector('.modal-content');
-
-        // make sure our card is the positioning context…
-        modalContent.style.position = 'relative';
-        // …and once we start trolling, show everything (so our iframe isn’t stuck hidden)
-        modalContent.classList.remove('guess-mode');
-
-        // grab the guess card itself so we can append into it
-        const guessContainer = document.getElementById('guessAgeContainer');
-
-        // create and show trollface
-        const trollDiv = document.createElement('div');
-        trollDiv.id = 'gmaTrollfaceContainer';
-        trollDiv.className = 'gma-trollface-container';
-        const trollImg = document.createElement('img');
-        trollImg.src = '{{ASSET_TROLLFACE}}';
-        trollImg.alt = 'Trollface';
-        trollDiv.appendChild(trollImg);
-        modalContent.appendChild(trollDiv);
-
-        // halfway through the slide-up, start the rickroll
-        setTimeout(() => {
-            window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-            return;
-        }, 2000); // 2s == halfway through the 4s slide-up
-    }
-
     function popBanner(isExact, isFirst) {
         const b = document.createElement('div');
         if (isExact) {
-            b.textContent = '🎯🎯🎯 Bullseye! 🎯🎯🎯';
+            b.textContent = 'Exact estimate recorded';
         }
         else if (isFirst) {
-            b.textContent = '🥇 First to guess! 🥇';
+            b.textContent = 'First estimate recorded';
         }
         else {
-            b.textContent = '🎉 You beat the crowd! 🏆';
+            b.textContent = 'Beat the crowd average';
         }
         b.classList.add('gma-pop-banner');
         if (isExact) {
-            b.classList.add('gma-pop-banner--golden');
+            b.classList.add('gma-pop-banner--exact');
         }
 
         document.body.appendChild(b);
         requestAnimationFrame(() => {
             b.classList.add('show');
-
-            if (!isFirst) {
-                let maxConfetties = 5;
-                if (isExact) {
-                    maxConfetties = 30;
-                }
-                for (let i = 0; i < maxConfetties; i++) {
-                    setTimeout(() => {
-                        spawnTimeIcons();
-                        spawnConfetti();
-                    }, i * 300);
-                }
-            }
         });
 
         setTimeout(() => {
@@ -1462,102 +1030,6 @@
             b.addEventListener('animationend', () => b.remove());
         }, 6000);
 
-    }
-
-    function spawnTimeIcons() {
-        const icons = [
-            'clock',
-            'stopwatch',
-            'history',
-            'hourglass',
-            'hourglass-start',
-            'hourglass-half',
-            'hourglass-end',
-            'calendar',
-            'calendar-check',
-            'calendar-times',
-            'calendar-alt'
-        ];
-
-        const total = 200;
-        for (let i = 0; i < total; i++) {
-            const el = document.createElement('i');
-            const icon = icons[Math.floor(Math.random() * icons.length)];
-            el.className = `gma-time-icon fas fa-${icon}`;
-
-            if (document.querySelector('.gma-card.celebrate-exact')) {
-                el.classList.add('gma-time-icon--golden');
-            }
-
-            el.style.left = `${Math.random() * 100}%`;
-            el.style.top = `${Math.random() * 100}%`;
-            el.style.animationDelay = `${Math.random() * 0.5}s`;
-            document.body.appendChild(el);
-            el.addEventListener('animationend', () => el.remove());
-        }
-    }
-
-    function spawnConfetti() {
-        // now pick a fresh random position
-        const randomX = 0.1 + Math.random() * 0.8; // clamp X between 0.1–0.9
-        const randomY = 0.1 + Math.random() * 0.8; // clamp Y between 0.1–0.9
-
-        loadGmaConfetti().then(confetti => {
-            if (!confetti) return;
-
-            confetti({
-                particleCount: 300,
-                spread: 120,
-                origin: { x: randomX, y: randomY },
-                zIndex: 5
-            });
-        });
-    }
-
-    function animateHighFive() {
-        const img = document.getElementById('modalProfilePic');
-        const rect = img.getBoundingClientRect();
-        const emoji = document.createElement('div');
-        emoji.textContent = '🙌';
-        emoji.classList.add('gma-highfive-emoji');
-        // center the emoji over the profile pic
-        emoji.classList.add('gma-highfive-emoji');
-        document.body.appendChild(emoji);
-        // measure actual emoji size and center it
-        const { width: ew, height: eh } = emoji.getBoundingClientRect();
-        emoji.style.left = `${rect.left + rect.width / 2 - ew / 2}px`;
-        emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
-
-        document.body.appendChild(emoji);
-        emoji.addEventListener('animationend', () => emoji.remove());
-    }
-
-    function animateCry() {
-        const img = document.getElementById('modalProfilePic');
-        const rect = img.getBoundingClientRect();
-        const emoji = document.createElement('div');
-        emoji.textContent = '😭';
-        emoji.classList.add('gma-cry-emoji');
-        document.body.appendChild(emoji);
-        // center
-        const { width: ew, height: eh } = emoji.getBoundingClientRect();
-        emoji.style.left = `${rect.left + rect.width / 2 - ew / 2}px`;
-        emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
-        emoji.addEventListener('animationend', () => emoji.remove());
-    }
-
-    function animateEyes() {
-        const img = document.getElementById('modalProfilePic');
-        const rect = img.getBoundingClientRect();
-        const emoji = document.createElement('div');
-        emoji.textContent = '👀';
-        emoji.classList.add('gma-eyes-emoji');
-        document.body.appendChild(emoji);
-        // center
-        const { width: ew, height: eh } = emoji.getBoundingClientRect();
-        emoji.style.left = `${rect.left + rect.width / 2 - ew / 2}px`;
-        emoji.style.top = `${rect.top + rect.height / 2 - eh / 2}px`;
-        emoji.addEventListener('animationend', () => emoji.remove());
     }
     function setGuessMyAgeParam(active) {
         const url = new URL(window.location.href);

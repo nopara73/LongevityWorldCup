@@ -1,11 +1,17 @@
 <style>
     /* In-page progress: compact dots, no bar, all three labels (full journey) */
     .progress-container {
-        width: calc(100% - 30px);
-        max-width: 800px;
-        margin: 40px auto;
+        width: 100vw;
+        max-width: none;
+        margin: -1.35rem calc(50% - 50vw) 1.6rem;
         position: relative;
-        padding: 20px 0 28px;
+        padding: 0.7rem max(1rem, calc((100vw - 800px) / 2));
+        box-sizing: border-box;
+        background:
+            radial-gradient(90% 160% at 50% -80%, rgba(67, 238, 131, 0.1), transparent 62%),
+            var(--background-color, #050908);
+        border-top: 1px solid var(--chrome-border, rgba(248, 247, 239, 0.14));
+        border-bottom: 1px solid var(--chrome-border, rgba(248, 247, 239, 0.14));
     }
 
     .progress-bar {
@@ -16,7 +22,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 12px;
+        gap: 0;
         position: relative;
     }
 
@@ -24,57 +30,78 @@
         position: relative;
         text-align: center;
         z-index: 2;
-        min-width: 80px; /* enough room for each label so Test / Calculate / Submit don't overlap */
+        min-width: 96px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        color: rgba(248, 247, 239, 0.68);
     }
 
     .stage-dot {
-        width: 14px;
-        height: 14px;
-        background: var(--card-bg);
-        border: 2px solid #999;
+        flex: 0 0 auto;
+        width: 10px;
+        height: 10px;
+        background: transparent;
+        border: 2px solid currentColor;
         border-radius: 50%;
-        margin: 0 auto;
         transition: all 0.3s ease;
         position: relative;
         z-index: 2;
     }
 
+    .stage:not(:last-child)::after {
+        content: "";
+        width: 16px;
+        height: 1px;
+        margin-left: 0.45rem;
+        background: rgba(248, 247, 239, 0.22);
+    }
+
     .stage.completed .stage-dot {
-        border-color: #666;
-        background: #666;
+        background: currentColor;
     }
 
     .stage.active .stage-dot {
-        border-color: var(--dark-text-color);
-        background: var(--dark-text-color);
+        background: var(--light-text-color, #f8f7ef);
     }
 
     /* In-page: all three labels visible (full journey) */
     .stage-label {
-        position: absolute;
-        top: 24px;
-        left: 50%;
-        transform: translateX(-50%);
         white-space: nowrap;
-        color: #999;
-        font-family: Arial, sans-serif;
-        font-size: 14px;
-        font-weight: bold;
+        color: currentColor;
+        font-family: 'Roboto', sans-serif;
+        font-size: var(--text-caption, 0.75rem);
+        font-weight: 800;
+        letter-spacing: var(--tracking-label, 0.06em);
+        text-transform: uppercase;
         transition: color 0.3s ease;
     }
 
     .stage.active .stage-label {
-        color: var(--dark-text-color);
+        color: var(--light-text-color, #f8f7ef);
         line-height: 1;
-        padding: 0.3rem 0.55rem;
-        border: 1px solid rgba(45, 55, 72, 0.14);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.92);
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     }
 
     .stage.completed .stage-label {
-        color: #666;
+        color: rgba(248, 247, 239, 0.78);
+    }
+
+    @media (max-width: 360px) {
+        .stage {
+            min-width: 78px;
+            gap: 0.35rem;
+        }
+
+        .stage:not(:last-child)::after {
+            width: 8px;
+            margin-left: 0.35rem;
+        }
+
+        .stage-label {
+            font-size: 0.68rem;
+            letter-spacing: 0.04em;
+        }
     }
 
     /* Sticky progress row (under LWC bar): same dark strip as header */
@@ -128,15 +155,17 @@
     }
 
     #site-sticky-progress .sticky-stage-label {
-        font-family: Arial, sans-serif;
-        font-size: 13px;
-        font-weight: bold;
+        font-family: 'Roboto', sans-serif;
+        font-size: var(--text-caption, 0.75rem);
+        font-weight: 800;
+        letter-spacing: var(--tracking-label, 0.06em);
+        text-transform: uppercase;
         color: var(--light-text-color);
         line-height: 1;
-        padding: 0.3rem 0.55rem;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.08);
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
     }
 
 </style>
@@ -145,15 +174,15 @@
         <div class="progress-fill" id="progressFill"></div>
     </div>
     <div class="stages">
-        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200" role="group" aria-label="Test – hardship" title="Hardship">
+        <div class="stage" id="stage1" data-aos="fade" data-aos-duration="700" data-aos-delay="200" role="group" aria-label="Choose league" title="Choose league">
             <div class="stage-dot"></div>
-            <div class="stage-label">Test</div>
+            <div class="stage-label">Choose</div>
         </div>
-        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250" role="group" aria-label="Calculate – moment of truth" title="Moment of truth">
+        <div class="stage" id="stage2" data-aos="fade" data-aos-duration="700" data-aos-delay="250" role="group" aria-label="Calculate biological age" title="Calculate biological age">
             <div class="stage-dot"></div>
             <div class="stage-label">Calculate</div>
         </div>
-        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300" role="group" aria-label="Submit – convergence" title="Convergence">
+        <div class="stage" id="stage3" data-aos="fade" data-aos-duration="700" data-aos-delay="300" role="group" aria-label="Submit proof" title="Submit proof">
             <div class="stage-dot"></div>
             <div class="stage-label">Submit</div>
         </div>
@@ -167,11 +196,11 @@
         <span class="sticky-dot" data-stage="2"></span>
         <span class="sticky-dot" data-stage="3"></span>
     </div>
-    <span class="sticky-stage-label" id="stickyStageLabel">Test</span>
+    <span class="sticky-stage-label" id="stickyStageLabel">Step 1 / 3 · Choose</span>
 </div>
 
 <script>
-    var MAIN_PROGRESS_STAGE_LABELS = ['Test', 'Calculate', 'Submit'];
+    var MAIN_PROGRESS_STAGE_LABELS = ['Choose', 'Calculate', 'Submit'];
 
     (function () {
         document.addEventListener('DOMContentLoaded', function () {
@@ -186,7 +215,17 @@
                     var progressHeight = 44; /* #site-sticky-progress when visible */
                     var topOffset = headerHeight + progressHeight;
                     var contentTop = contentStart.getBoundingClientRect().top + (window.scrollY || window.pageYOffset);
-                    var targetScroll = contentTop - topOffset;
+                    /* Leave breathing room below the fixed bars so the page title
+                       doesn't land glued to the dark strip. */
+                    var targetScroll = contentTop - topOffset - 28;
+                    var fullHeader = document.querySelector('body > header');
+                    var fullHeaderHeight = (fullHeader && fullHeader.offsetHeight) || 0;
+                    /* Avoid awkward half-scrolled brand chrome. If the calculated
+                       landing would only shave the top off the main header, keep
+                       the full compact header visible instead. */
+                    if (targetScroll > 0 && fullHeaderHeight && targetScroll < fullHeaderHeight - 8) {
+                        targetScroll = 0;
+                    }
                     window.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
                 }
             }, 500);
@@ -285,7 +324,7 @@
 
         if (stickyLabel && stickyRow && currentStage >= 1 && currentStage <= 3) {
             var label = MAIN_PROGRESS_STAGE_LABELS[currentStage - 1];
-            stickyLabel.textContent = label;
+                stickyLabel.textContent = 'Step ' + currentStage + ' / ' + stickyDots.length + ' · ' + label;
             stickyRow.setAttribute('aria-label', 'Current step: ' + label);
         }
 

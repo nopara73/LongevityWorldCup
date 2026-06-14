@@ -10,17 +10,17 @@ Longevity World Cup exists for the opposite reason. It is a sport for time. Inst
 
 ## What it is
 
-Longevity World Cup is an open competition where longevity athletes rank by improving biological age measures.
+Longevity World Cup is a public scoreboard for age-reversal athletes. Competitors submit blood-test results and proof, then rank against the field.
 
-The scoreboard is built around biomarker data and biological aging clocks. Athletes submit result data, the competition calculates biological age, and the leaderboard ranks athletes by Age reduction: how far their biological age is below their chronological age.
+The score is age reduction: biological age minus chronological age. More negative scores rank higher because the athlete's measured biological age is further below their chronological age.
 
 That gives longevity practice a number, a season, rivals, and a public record. It turns private health optimization into longevity sport.
 
 ## Why I started it
 
-Games are powerful because they turn difficult work into something people voluntarily come back to. If the rules are clear and the scoreboard matters, people train harder, compare notes, and improve together.
+A public sport changes behavior because the rules are visible and the scoreboard matters. When athletes can inspect the field, they train harder, compare notes, and improve together.
 
-Longevity may be the most useful game we can build, because the scarce resource is time. Chronological age cannot be played. Biological age can be measured, compared, improved, and improved again as better clocks emerge.
+Longevity is worth making competitive because the scarce resource is time. Chronological age cannot be played. Biological age can be measured, compared, improved, and improved again as better clocks emerge.
 
 Before starting the competition, I spent more than a year interviewing longevity athletes in long form. The [Immortal Combat podcast](https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL) now has 60+ conversations with athletes, researchers, and builders trying to understand what actually moves the field forward.
 
@@ -48,6 +48,7 @@ But the project is not just me. Klaus Townsend created the [Longevity World Cup 
 
 ## Where to go next
 
+- [Apply to compete](/play): Start an application or manage an existing athlete record.
 - [Leaderboard](/leaderboard): See the current competition standings.
 - [Ruleset](/ruleset): Read the tracks, seasons, ranking rules, and prize mechanics.
 - [History](/history): Follow how longevity became a sport.
