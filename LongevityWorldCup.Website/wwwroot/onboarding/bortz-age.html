@@ -893,7 +893,7 @@
             <p id="mainInstructions" class="lab-reassurance" data-aos="fade" data-aos-duration="700" data-aos-delay="300">Calculate your <strong>biological age</strong> with two clocks at once: <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener">bortz age</a> and <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">pheno age</a></p>
             <section id="bortzLabAccessPanel" class="lab-access-panel" data-aos="fade" data-aos-duration="700" data-aos-delay="325" aria-labelledby="bortzLabAccessTitle" hidden>
                 <h2 id="bortzLabAccessTitle">Need the blood panel?</h2>
-                <p>This US panel covers the biomarkers for both bortz age and pheno age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion.</p>
+                <p id="bortzLabAccessDescription">This US panel covers the biomarkers for both bortz age and pheno age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion.</p>
                 <a id="bortzLabAccessLink" class="lab-access-link" href="https://www.ultalabtests.com/partners/conqueragingordietrying/test/conquer-aging-or-die-trying-bortz-biological-age-panel" target="_blank" rel="noopener noreferrer">
                     Open Ulta panel&nbsp;<i class="fas fa-external-link-alt" aria-hidden="true"></i>
                 </a>
@@ -1409,18 +1409,47 @@
 
         function initializeBortzLabAccessGate() {
             const panel = document.getElementById('bortzLabAccessPanel');
+            const description = document.getElementById('bortzLabAccessDescription');
             const link = document.getElementById('bortzLabAccessLink');
-            if (!panel || !link) return;
+            if (!panel || !description || !link) return;
 
             const blockedStates = new Set(['HI', 'NY', 'NJ', 'RI']);
+            const labAccessByCountry = {
+                US: {
+                    href: 'https://www.ultalabtests.com/partners/conqueragingordietrying/test/conquer-aging-or-die-trying-bortz-biological-age-panel',
+                    linkLabel: 'Open Ulta panel',
+                    descriptionHtml: 'This US panel covers the biomarkers for both bortz age and pheno age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion.'
+                },
+                NZ: {
+                    href: 'https://merch.longevityworldcup.com/product/ultimate-league-test-package-new-zealand/',
+                    linkLabel: 'Open New Zealand panel',
+                    descriptionHtml: 'This New Zealand panel covers the biomarkers for bortz age. Created by <a href="/athlete/klaus-townsend" target="_blank" rel="noopener noreferrer">Klaus Townsend</a>. It also includes 40% off the entry fee.'
+                }
+            };
+
+            function showPanel(config) {
+                description.innerHTML = config.descriptionHtml;
+                link.href = config.href;
+                link.innerHTML = `${config.linkLabel}&nbsp;<i class="fas fa-external-link-alt" aria-hidden="true"></i>`;
+                panel.hidden = false;
+                return true;
+            }
 
             function revealIfEligible(countryCode, regionCode) {
                 const country = String(countryCode || '').trim().toUpperCase();
                 const region = String(regionCode || '').trim().toUpperCase();
-                const isEligible = country === 'US' && region && !blockedStates.has(region);
+                const config = labAccessByCountry[country];
+                const isEligible = !!config && (
+                    country === 'NZ' ||
+                    (country === 'US' && region && !blockedStates.has(region))
+                );
 
-                panel.hidden = !isEligible;
-                return isEligible;
+                if (isEligible) {
+                    return showPanel(config);
+                }
+
+                panel.hidden = true;
+                return false;
             }
 
             function getLocalPreviewGeo() {
@@ -1430,10 +1459,10 @@
                 if (!isLocalhost) return null;
 
                 const value = new URLSearchParams(window.location.search).get('labGeo');
-                const match = value && value.trim().toUpperCase().match(/^([A-Z]{2})-([A-Z]{2})$/);
+                const match = value && value.trim().toUpperCase().match(/^([A-Z]{2})(?:-([A-Z0-9]{2,3}))?$/);
                 if (!match) return null;
 
-                return { countryCode: match[1], regionCode: match[2] };
+                return { countryCode: match[1], regionCode: match[2] || '' };
             }
 
             function readCachedEligibility() {
