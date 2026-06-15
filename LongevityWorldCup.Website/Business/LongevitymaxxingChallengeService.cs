@@ -20,6 +20,7 @@ public sealed class LongevitymaxxingChallengeService
     private const string ChallengeName = "Longevitymaxxing Challenge";
     private const int RawDailyMaxScore = 8;
     private const int PracticeCheckInDay = 1;
+    private const int MaxConsecutiveMissedScoredDaysForDailyReminders = 3;
     private const double FinalDayScoreMultiplier = 1.4d;
     public const int MaxProfilePictureUploadBytes = 32 * 1024 * 1024;
     public const int MaxCheckInPhotoCount = 4;
@@ -616,6 +617,10 @@ public sealed class LongevitymaxxingChallengeService
                 continue;
 
             if (checkIns.TryGetValue(participant.Id, out var byDay) && byDay.ContainsKey(challengeDay.Value))
+                continue;
+            byDay ??= [];
+
+            if (CountConsecutiveMissedScoredDays(settings, participant, byDay, targetDate) >= MaxConsecutiveMissedScoredDaysForDailyReminders)
                 continue;
 
             if (WasReminderSent(participant.Id, challengeDay.Value, "daily"))
@@ -1300,6 +1305,32 @@ public sealed class LongevitymaxxingChallengeService
 
     private static bool CountsForScore(int challengeDay)
         => challengeDay != PracticeCheckInDay;
+
+    private static int CountConsecutiveMissedScoredDays(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        DateOnly targetDate)
+    {
+        var tz = ResolveTimeZone(participant.TimeZoneId);
+        var joinedAt = participant.ConfirmedAtUtc ?? participant.CreatedAtUtc;
+        var joinedLocalDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(joinedAt, tz).DateTime);
+        var missed = 0;
+
+        for (var date = targetDate; date >= settings.StartDate && date >= joinedLocalDate; date = date.AddDays(-1))
+        {
+            var challengeDay = DayFromDate(settings, date);
+            if (challengeDay is null || !CountsForScore(challengeDay.Value))
+                continue;
+
+            if (byDay.ContainsKey(challengeDay.Value))
+                break;
+
+            missed++;
+        }
+
+        return missed;
+    }
 
     private static int GetScoredPoints(CheckInRecord checkIn, int durationDays)
         => GetScoredPoints(checkIn.ChallengeDay, checkIn.Score, durationDays);

@@ -466,6 +466,61 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task DailyReminderCandidatesStopAfterThreeConsecutiveMissedScoredDays()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync("missed@example.com", "Missed Max");
+
+        var beforeThreshold = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-11T08:05:00Z"));
+        Assert.Single(beforeThreshold);
+        Assert.Equal(3, beforeThreshold[0].ChallengeDay);
+
+        Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-12T08:05:00Z")));
+    }
+
+    [Fact]
+    public async Task DailyReminderMissThresholdIgnoresScoredDaysBeforeLateSignup()
+    {
+        using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-12T22:00:00Z");
+        var signup = DateTimeOffset.Parse("2026-06-10T12:00:00Z");
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "late-missed@example.com",
+            "Late Missy",
+            "UTC",
+            null,
+            []), signup);
+        await fixture.Service.ConfirmAsync(ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"), signup.AddMinutes(1));
+
+        var candidates = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
+
+        var candidate = Assert.Single(candidates);
+        Assert.Equal(4, candidate.ChallengeDay);
+    }
+
+    [Fact]
+    public async Task DailyReminderMissThresholdResumesAfterParticipantChecksIn()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("resume@example.com", "Resume Rae");
+
+        Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-12T08:05:00Z")));
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            4,
+            1,
+            1,
+            1,
+            1,
+            null), DateTimeOffset.Parse("2026-06-12T09:00:00Z"));
+
+        var resumed = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-13T08:05:00Z"));
+
+        var reminder = Assert.Single(resumed);
+        Assert.Equal(5, reminder.ChallengeDay);
+    }
+
+    [Fact]
     public async Task DailyReminderEmailIncludesUpdatedCallSchedule()
     {
         using var fixture = TestChallengeFixture.Create();
