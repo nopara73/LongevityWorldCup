@@ -19,6 +19,9 @@ public sealed class LabAccessPanelTests
         Assert.Contains("country === 'NZ'", html);
         Assert.Contains("labGeo", html);
         Assert.Contains("REQUEST_COUNTRY_CODE", html);
+        Assert.Contains("getBrowserLocaleGeo", html);
+        Assert.Contains("Pacific/Auckland", html);
+        Assert.Contains("match[1] === 'NZ' || match[1] === 'US'", html);
     }
 
     [Fact]
@@ -33,6 +36,9 @@ public sealed class LabAccessPanelTests
         Assert.Contains("country === 'NZ'", html);
         Assert.Contains("labGeo", html);
         Assert.Contains("REQUEST_COUNTRY_CODE", html);
+        Assert.Contains("getBrowserLocaleGeo", html);
+        Assert.Contains("Pacific/Auckland", html);
+        Assert.Contains("match[1] === 'NZ'", html);
     }
 
     [Theory]

@@ -1232,6 +1232,34 @@
                 return { countryCode: match[1] };
             }
 
+            function getBrowserLocaleGeo() {
+                try {
+                    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    if (timeZone === 'Pacific/Auckland' || timeZone === 'Pacific/Chatham') {
+                        return { countryCode: 'NZ' };
+                    }
+                } catch (_) { /* ignore */ }
+
+                const languages = [];
+                try {
+                    if (Array.isArray(navigator.languages)) {
+                        languages.push(...navigator.languages);
+                    }
+                    if (navigator.language) {
+                        languages.push(navigator.language);
+                    }
+                } catch (_) { /* ignore */ }
+
+                for (const language of languages) {
+                    const match = String(language || '').trim().toUpperCase().match(/[-_]([A-Z]{2})(?:\b|$)/);
+                    if (match && match[1] === 'NZ') {
+                        return { countryCode: 'NZ' };
+                    }
+                }
+
+                return null;
+            }
+
             function readCachedEligibility() {
                 try {
                     const raw = localStorage.getItem(PHENO_LAB_GEO_CACHE_KEY);
@@ -1260,6 +1288,12 @@
             }
 
             if (revealIfEligible(REQUEST_COUNTRY_CODE)) {
+                return;
+            }
+
+            const browserGeo = getBrowserLocaleGeo();
+            if (browserGeo) {
+                revealIfEligible(browserGeo.countryCode);
                 return;
             }
 

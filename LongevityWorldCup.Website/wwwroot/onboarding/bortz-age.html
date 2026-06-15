@@ -1475,6 +1475,37 @@
                 return { countryCode: match[1], regionCode: match[2] || '' };
             }
 
+            function getBrowserLocaleGeo() {
+                try {
+                    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    if (timeZone === 'Pacific/Auckland' || timeZone === 'Pacific/Chatham') {
+                        return { countryCode: 'NZ', regionCode: '' };
+                    }
+                    if (timeZone === 'Pacific/Honolulu') {
+                        return { countryCode: 'US', regionCode: 'HI' };
+                    }
+                } catch (_) { /* ignore */ }
+
+                const languages = [];
+                try {
+                    if (Array.isArray(navigator.languages)) {
+                        languages.push(...navigator.languages);
+                    }
+                    if (navigator.language) {
+                        languages.push(navigator.language);
+                    }
+                } catch (_) { /* ignore */ }
+
+                for (const language of languages) {
+                    const match = String(language || '').trim().toUpperCase().match(/[-_]([A-Z]{2})(?:\b|$)/);
+                    if (match && (match[1] === 'NZ' || match[1] === 'US')) {
+                        return { countryCode: match[1], regionCode: '' };
+                    }
+                }
+
+                return null;
+            }
+
             function readCachedEligibility() {
                 try {
                     const raw = localStorage.getItem(BORTZ_LAB_GEO_CACHE_KEY);
@@ -1504,6 +1535,12 @@
             }
 
             if (revealIfEligible(REQUEST_COUNTRY_CODE, '')) {
+                return;
+            }
+
+            const browserGeo = getBrowserLocaleGeo();
+            if (browserGeo) {
+                revealIfEligible(browserGeo.countryCode, browserGeo.regionCode, { allowUnknownUsRegion: true });
                 return;
             }
 
