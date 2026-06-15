@@ -35,18 +35,18 @@ public sealed class LongevitymaxxingChallengeService
     private const int CallScheduleUpdateNoticeDay = 0;
     private const string CallScheduleUpdateReminderKind = "call-schedule-update";
     private static readonly DateOnly CurrentChallengeStartDate = new(2026, 6, 8);
-    private static readonly TimeOnly[] DefaultSundayCallTimesUtc = [new(6, 30), new(13, 0), new(16, 0)];
+    private static readonly TimeOnly[] DefaultSundayCallTimesUtc = [new(6, 30)];
     private static readonly IReadOnlyDictionary<string, string[]> BuiltInCallSlotStartsAtUtc = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
     {
-        ["kickoff:kickoff-a"] = ["2026-06-08T06:30:00Z"],
+        ["kickoff:kickoff-a"] = ["2026-06-08T06:30:00Z", CurrentChallengeKickoffStartsAtUtc],
         ["kickoff:kickoff-b"] = ["2026-06-08T13:00:00Z", CurrentChallengeKickoffStartsAtUtc],
-        ["kickoff:kickoff-c"] = ["2026-06-08T16:00:00Z"],
+        ["kickoff:kickoff-c"] = ["2026-06-08T16:00:00Z", CurrentChallengeKickoffStartsAtUtc],
         ["midpoint:midpoint-a"] = ["2026-06-15T06:30:00Z"],
-        ["midpoint:midpoint-b"] = ["2026-06-15T13:00:00Z"],
-        ["midpoint:midpoint-c"] = ["2026-06-15T16:00:00Z"],
+        ["midpoint:midpoint-b"] = ["2026-06-15T13:00:00Z", "2026-06-15T06:30:00Z"],
+        ["midpoint:midpoint-c"] = ["2026-06-15T16:00:00Z", "2026-06-15T06:30:00Z"],
         ["finale:finale-a"] = ["2026-06-22T06:30:00Z"],
-        ["finale:finale-b"] = ["2026-06-22T13:00:00Z"],
-        ["finale:finale-c"] = ["2026-06-22T16:00:00Z"]
+        ["finale:finale-b"] = ["2026-06-22T13:00:00Z", "2026-06-22T06:30:00Z"],
+        ["finale:finale-c"] = ["2026-06-22T16:00:00Z", "2026-06-22T06:30:00Z"]
     };
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly EmailAddressAttribute EmailValidator = new();
@@ -931,7 +931,7 @@ public sealed class LongevitymaxxingChallengeService
             .ToList();
         var calls = ShouldUseSundayDefaultCalls(start, configuredCalls)
             ? BuildSundayDefaultCalls(start, durationDays)
-            : ApplyCurrentChallengeKickoffOverride(start, configuredCalls);
+            : ApplyCurrentChallengeCallOverrides(start, configuredCalls);
         var callSelectionCloses = ParseDateTimeOffset(
             cfg.CallSelectionClosesAtUtc,
             GetDefaultCallSelectionClosesAtUtc(calls, signupCloses));
@@ -960,14 +960,8 @@ public sealed class LongevitymaxxingChallengeService
 
         return calls.All(call =>
         {
-            var expectedSlotIds = new HashSet<string>(
-                Enumerable.Range(0, DefaultSundayCallTimesUtc.Length)
-                    .Select(index => $"{call.Key}-{(char)('a' + index)}"),
-                StringComparer.OrdinalIgnoreCase);
-            return call.CandidateSlots.Count == expectedSlotIds.Count
-                   && call.CandidateSlots.All(slot =>
-                       expectedSlotIds.Contains(slot.Id) &&
-                       SlotMatchesBuiltInTemplate(call.Key, slot));
+            return call.CandidateSlots.Count > 0 &&
+                   call.CandidateSlots.All(slot => SlotMatchesBuiltInTemplate(call.Key, slot));
         });
     }
 
@@ -1009,7 +1003,7 @@ public sealed class LongevitymaxxingChallengeService
         return new CallSettings(key, label, null, slots);
     }
 
-    private static IReadOnlyList<CallSettings> ApplyCurrentChallengeKickoffOverride(
+    private static IReadOnlyList<CallSettings> ApplyCurrentChallengeCallOverrides(
         DateOnly start,
         IReadOnlyList<CallSettings> calls)
     {
@@ -1019,21 +1013,42 @@ public sealed class LongevitymaxxingChallengeService
         return calls
             .Select(call =>
             {
-                if (!string.Equals(call.Key, "kickoff", StringComparison.Ordinal))
+                var startsAt = GetCurrentChallengeCallStartUtc(call.Key);
+                if (startsAt is null)
                     return call;
 
-                var kickoffSlot = new LongevitymaxxingCallSlot(
-                    CurrentChallengeKickoffSlotId,
-                    ParseDateTimeOffset(CurrentChallengeKickoffStartsAtUtc, DateTimeOffset.UtcNow).ToUniversalTime().ToString("o"));
-                var slots = call.CandidateSlots
-                    .Where(slot => !string.Equals(slot.Id, CurrentChallengeKickoffSlotId, StringComparison.OrdinalIgnoreCase))
-                    .Prepend(kickoffSlot)
+                var slots = call.CandidateSlots.Count == 0
+                    ? [new LongevitymaxxingCallSlot(GetCanonicalCallSlotId(call.Key), startsAt.Value.ToString("o", CultureInfo.InvariantCulture))]
+                    : call.CandidateSlots
+                    .Select(slot => new LongevitymaxxingCallSlot(
+                        slot.Id,
+                        startsAt.Value.ToString("o", CultureInfo.InvariantCulture)))
                     .ToList();
 
                 return call with { CandidateSlots = slots };
             })
             .ToList();
     }
+
+    private static DateTimeOffset? GetCurrentChallengeCallStartUtc(string callKey)
+    {
+        var date = callKey switch
+        {
+            "kickoff" => CurrentChallengeStartDate.AddDays(-1),
+            "midpoint" => CurrentChallengeStartDate.AddDays(7),
+            "finale" => CurrentChallengeStartDate.AddDays(14),
+            _ => (DateOnly?)null
+        };
+
+        return date is null
+            ? null
+            : new DateTimeOffset(date.Value.ToDateTime(DefaultSundayCallTimesUtc[0]), TimeSpan.Zero);
+    }
+
+    private static string GetCanonicalCallSlotId(string callKey)
+        => string.Equals(callKey, "kickoff", StringComparison.Ordinal)
+            ? CurrentChallengeKickoffSlotId
+            : $"{callKey}-a";
 
     private static DateTimeOffset GetDefaultCallSelectionClosesAtUtc(
         IReadOnlyList<CallSettings> calls,
