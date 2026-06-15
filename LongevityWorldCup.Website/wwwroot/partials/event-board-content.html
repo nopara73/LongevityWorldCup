@@ -1793,11 +1793,9 @@
                             return isSafeHttpUrl(v) ? v : "";
                         })();
 
-                        const episodeHtml = (podcastUrl && openLinksInNewTab)
+                        const episodeHtml = podcastUrl
                             ? `<a href="${esc(podcastUrl)}" target="_blank" rel="noopener">episode</a>`
-                            : ((linkNames && podcastUrl)
-                                ? `<a href="${esc(podcastUrl)}" target="_top" rel="noopener">episode</a>`
-                                : `episode`);
+                            : `episode`;
 
                         msgHtml = `<span class="event-inline-text">${nameWithRank} was featured in a new ${episodeHtml} of our podcast</span>`;
                     } else if (
