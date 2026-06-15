@@ -216,10 +216,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function clampHabitValue", javascript);
         Assert.Contains("Locked-in days", javascript);
         Assert.Contains("const fullDays = checkedCells.filter(cell => isLockedInDay(cell, categories)).length;", javascript);
-        Assert.Contains("const scoredFullDays = scoredCells.filter(cell => isLockedInDay(cell, categories)).length;", javascript);
         Assert.Contains("function isLockedInDay", javascript);
-        Assert.Contains("`${scoredFullDays} scored + practice`", javascript);
-        Assert.Contains("dashboardStat(\"Points\"", javascript);
+        Assert.DoesNotContain("lockedInDetail", javascript);
+        Assert.DoesNotContain("scored days", javascript);
+        Assert.DoesNotContain("scoredFullDays", javascript);
+        Assert.Contains("dashboardStat(\"Locked-in days\", String(fullDays), \"\", \"fa-calendar-check\")", javascript);
+        Assert.Contains("dashboardStat(\"Points\", scoredCells.length ? String(totalPoints) : \"-\", \"\", \"fa-chart-line\")", javascript);
         Assert.Contains("row.totalPoints", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);

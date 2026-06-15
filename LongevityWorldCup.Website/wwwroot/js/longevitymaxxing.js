@@ -456,12 +456,6 @@
         const best = rankedSummaries[0];
         const focus = [...rankedSummaries].reverse()[0];
         const fullDays = checkedCells.filter(cell => isLockedInDay(cell, categories)).length;
-        const scoredFullDays = scoredCells.filter(cell => isLockedInDay(cell, categories)).length;
-        const lockedInDetail = fullDays > scoredFullDays
-            ? `${scoredFullDays} scored + practice`
-            : scoredCells.length
-                ? `${scoredFullDays} scored`
-                : "practice only";
         const totalPoints = row && typeof row.totalPoints === "number"
             ? row.totalPoints
             : scoredCells.reduce((sum, cell) => sum + (typeof cell.score === "number" ? cell.score : 0), 0);
@@ -486,8 +480,8 @@
             <div class="lmx-dashboard-stats" aria-label="Personal challenge stats">
                 ${dashboardStat("Best", best ? best.category.label : "-", best ? `${Math.round(best.rate * 100)}%` : "-", best ? best.category.icon : "fa-arrow-trend-up", best ? best.category.tone : "")}
                 ${dashboardStat("Focus", focus ? focus.category.label : "-", focus ? `${Math.round(focus.rate * 100)}%` : "-", focus ? focus.category.icon : "fa-crosshairs", focus ? focus.category.tone : "")}
-                ${dashboardStat("Locked-in days", String(fullDays), lockedInDetail, "fa-calendar-check")}
-                ${dashboardStat("Points", scoredCells.length ? String(totalPoints) : "-", scoredCells.length ? `${scoredCells.length} scored days` : "not started", "fa-chart-line")}
+                ${dashboardStat("Locked-in days", String(fullDays), "", "fa-calendar-check")}
+                ${dashboardStat("Points", scoredCells.length ? String(totalPoints) : "-", "", "fa-chart-line")}
             </div>
             <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time">
                 <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
@@ -571,7 +565,7 @@
             <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
             <span>${esc(label)}</span>
             <strong>${esc(value)}</strong>
-            <em>${esc(detail)}</em>
+            ${detail ? `<em>${esc(detail)}</em>` : ""}
         </div>`;
     }
 
