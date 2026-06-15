@@ -1070,7 +1070,7 @@ public sealed class LongevitymaxxingChallengeService
             checkIns.TryGetValue(p.Id, out var byDay);
             byDay ??= [];
             var checkedInDays = byDay.Count;
-            var totalPoints = byDay.Values.Sum(c => GetScoredPoints(c, settings.DurationDays));
+            var totalPoints = byDay.Values.Sum(c => GetScoredPoints(c, byDay, settings.DurationDays));
             var currentStreak = CalculateCurrentStreak(settings, p, byDay, now);
             var latest = byDay.Values
                 .Select(c => c.CheckedInAtUtc)
@@ -1083,7 +1083,7 @@ public sealed class LongevitymaxxingChallengeService
                     ? new LongevitymaxxingDayCell(
                         day,
                         true,
-                        CountsForScore(day) ? GetScoredPoints(checkIn, settings.DurationDays) : null,
+                        CountsForScore(day) ? GetScoredPoints(checkIn, byDay, settings.DurationDays) : null,
                         CountsForScore(day),
                         checkIn.Sleep,
                         checkIn.Exercise,
@@ -1332,8 +1332,11 @@ public sealed class LongevitymaxxingChallengeService
         return missed;
     }
 
-    private static int GetScoredPoints(CheckInRecord checkIn, int durationDays)
-        => GetScoredPoints(checkIn.ChallengeDay, checkIn.Score, durationDays);
+    private static int GetScoredPoints(
+        CheckInRecord checkIn,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        int durationDays)
+        => GetScoredPoints(checkIn.ChallengeDay, GetEffectiveRawScore(checkIn, byDay), durationDays);
 
     private static int GetScoredPoints(int challengeDay, int rawScore, int durationDays)
     {
@@ -1342,6 +1345,32 @@ public sealed class LongevitymaxxingChallengeService
 
         return (int)Math.Round(rawScore * GetScoreMultiplier(challengeDay, durationDays), MidpointRounding.AwayFromZero);
     }
+
+    private static int GetEffectiveRawScore(CheckInRecord checkIn, IReadOnlyDictionary<int, CheckInRecord> byDay)
+    {
+        if (checkIn.Score >= RawDailyMaxScore || !IsForgivableSlip(checkIn))
+            return checkIn.Score;
+
+        return byDay.TryGetValue(checkIn.ChallengeDay - 1, out var previous) && IsPerfect(previous)
+            ? RawDailyMaxScore
+            : checkIn.Score;
+    }
+
+    private static bool IsForgivableSlip(CheckInRecord checkIn)
+    {
+        var values = new[] { checkIn.Sleep, checkIn.Exercise, checkIn.Nutrition, checkIn.Vices };
+        var noCount = values.Count(value => value == 0);
+        var somewhatCount = values.Count(value => value == 1);
+
+        return noCount == 1 && somewhatCount == 0
+            || noCount == 0 && somewhatCount is 1 or 2;
+    }
+
+    private static bool IsPerfect(CheckInRecord checkIn)
+        => checkIn.Sleep == 2
+            && checkIn.Exercise == 2
+            && checkIn.Nutrition == 2
+            && checkIn.Vices == 2;
 
     private static double GetScoreMultiplier(int challengeDay, int durationDays)
     {

@@ -283,7 +283,7 @@
             setText("lmxBoardMeta", `${(state.leaderboard || []).length} people signed up · starts ${formatDateLabel(state.startDate)}`);
         } else {
             setText("lmxBoardTitle", state.phase === "completed" ? "Final leaderboard" : "Live leaderboard");
-            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · Day 1 practice · later days ramp · checked-in days rank first`);
+            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · later days score higher · slipping one territory once a day ok, but never two days in a row`);
         }
         setText("lmxSignupKicker", state.signupOpen ? "free signup" : "signup closed");
         setText("lmxSignupTitle", state.signupOpen ? (preStartSignup ? `Join free before ${formatDateLabel(state.startDate)}` : "Join free today") : "Signup is closed");

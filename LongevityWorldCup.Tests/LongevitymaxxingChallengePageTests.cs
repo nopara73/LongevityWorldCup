@@ -303,7 +303,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Your first check-in email arrives the morning after Day 1. Nothing is due before then.", javascript);
         Assert.Contains("Practice check-in", javascript);
         Assert.Contains("Counts for checked-in days and streak, not points.", javascript);
-        Assert.Contains("later days ramp", javascript);
+        Assert.Contains("later days score higher", javascript);
+        Assert.Contains("slipping one territory once a day ok, but never two days in a row", javascript);
         Assert.Contains("Peak points/day", javascript);
         Assert.Contains("cell.countsForScore === false", javascript);
         Assert.Contains(".lmx-cell.practice", css);
