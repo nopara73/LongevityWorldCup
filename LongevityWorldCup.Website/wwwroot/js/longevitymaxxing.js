@@ -562,7 +562,7 @@
 
         const value = clampHabitValue(cell[category.key]);
         classes.push(value >= 2 ? "full" : value > 0 ? "partial" : "missed");
-        return `<span class="${classes.join(" ")}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}">${value}</span>`;
+        return `<span class="${classes.join(" ")}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}"></span>`;
     }
 
     function dashboardStat(label, value, detail, icon, tone) {

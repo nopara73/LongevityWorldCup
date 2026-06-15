@@ -245,6 +245,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("formatCheckInDate(day.date)", javascript);
         Assert.Contains(".lmx-dashboard-grid", css);
         Assert.Contains(".lmx-category-day.partial", css);
+        Assert.Contains("background: linear-gradient(90deg, #bbf7d0 0 50%, #ffffff 50% 100%);", css);
+        Assert.DoesNotContain("${value}</span>", javascript);
+        Assert.DoesNotContain(".lmx-category-day.partial {\r\n    background: #fde68a;", css);
         Assert.Contains(".lmx-dashboard-stats", css);
         Assert.Contains("function revealSignupDetailsBeforeSubmit()", javascript);
         Assert.Contains("setStatus(\"lmxSignupStatus\", \"Check these once, then join.\", false);", javascript);

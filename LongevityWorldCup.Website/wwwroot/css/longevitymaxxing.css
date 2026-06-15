@@ -568,24 +568,21 @@
 .lmx-category-day.full {
     background: #bbf7d0;
     border-color: rgba(22, 163, 74, 0.35);
-    color: #14532d;
 }
 
 .lmx-category-day.partial {
-    background: #fde68a;
-    border-color: rgba(217, 119, 6, 0.28);
-    color: #92400e;
+    background: linear-gradient(90deg, #bbf7d0 0 50%, #ffffff 50% 100%);
+    border-color: rgba(22, 163, 74, 0.35);
 }
 
 .lmx-category-day.missed {
-    background: #fee2e2;
-    border-color: rgba(220, 38, 38, 0.22);
-    color: #991b1b;
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.14);
 }
 
 .lmx-category-day.empty {
-    background: repeating-linear-gradient(135deg, #f8fafc, #f8fafc 4px, #eef2f7 4px, #eef2f7 8px);
-    color: transparent;
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.10);
 }
 
 .lmx-category-day.practice {
