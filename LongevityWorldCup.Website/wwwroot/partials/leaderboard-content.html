@@ -678,31 +678,37 @@
     .rank-change.rank-up img.portrait{ border-color:#2ecc71; }     /* no green ring on podium */
     img.portrait.is-new,
     .rank-change img.portrait.is-new,
-    img.podium-portrait.is-new{ border-color:#3B82F6; }
+    img.podium-portrait.is-new{
+        border-color:#3B82F6;
+        box-shadow:0 0 0 2px rgba(59,130,246,.16);
+    }
+    .leaderboard img.portrait.is-new.is-new-revealed{
+        animation:newAthleteRingPulse 1.15s cubic-bezier(.16,1,.3,1) 2 both;
+    }
+    @keyframes newAthleteRingPulse{
+        0%{ box-shadow:0 0 0 2px rgba(59,130,246,.42), 0 0 0 0 rgba(59,130,246,.42); }
+        45%{ box-shadow:0 0 0 2px rgba(59,130,246,.26), 0 0 0 14px rgba(59,130,246,.3), 0 0 18px rgba(59,130,246,.3); }
+        78%{ box-shadow:0 0 0 2px rgba(59,130,246,.18), 0 0 0 20px rgba(59,130,246,0); }
+        100%{ box-shadow:0 0 0 2px rgba(59,130,246,.16); }
+    }
+    @media (prefers-reduced-motion: reduce){
+        .leaderboard img.portrait.is-new.is-new-revealed{ animation:none; }
+    }
 
-    /* Arrow + Star bubbles share the same geometry — GLOBAL */
-    .rank-change .rank-arrow,
-    .rank-change .new-bubble{
+    /* Rank-up arrow bubble */
+    .rank-change .rank-arrow{
         position:absolute; z-index:-1; left:var(--arrow-left); top:50%; transform:translateY(-50%);
         width:20px; height:20px; border-radius:50% 0 0 50%;
         color: rgb(255 255 255 / 80%); display:flex; align-items:center; justify-content:center;
         font-size:12px; pointer-events:none; transition:left .3s ease;
     }
-    /* Star icon size only (bubble size unchanged) */
-    .rank-change .new-bubble { font-size: 10px; line-height: 1; }
-    /* Individual colors */
     .rank-change .rank-arrow{ background:#2ecc71; }  /* green up arrow */
-    .rank-change .new-bubble{ background:#3B82F6; }  /* blue star */
-    /* Hover shift for both bubbles */
     .rank-change:hover .rank-arrow,
-    .rank-change:hover .new-bubble,
-    .rank-change img:hover + .rank-arrow,
-    .rank-change img:hover + .new-bubble{
+    .rank-change img:hover + .rank-arrow{
         left: calc(var(--arrow-left) + var(--arrow-cover-extra) + var(--arrow-hover-shift));
     }
-    /* Never show bubbles on the podium */
+    /* Never show rank-up bubbles on the podium */
     .podium .rank-arrow, .podium-item .rank-arrow{ display:none !important; }
-    .podium .new-bubble, .podium-item .new-bubble{ display:none !important; }
 
     /* PRO badge overlay – table only (not on podium); white text, black frame */
     .portrait-wrapper{ position:relative; display:inline-block; }
@@ -3075,7 +3081,7 @@
         const wrapper = ensureRankChangeWrapper(imgEl);
 
         // If "new" is active, never show the green arrow
-        if (imgEl.classList.contains('is-new') || wrapper.querySelector('.new-bubble')) {
+        if (imgEl.classList.contains('is-new')) {
             wrapper.classList.remove('rank-up');
             const existing = wrapper.querySelector('.rank-arrow');
             if (existing) existing.remove();
@@ -3105,24 +3111,56 @@
     }
 
     function applyNewUI(imgEl) {
-        const wrapper = ensureRankChangeWrapper(imgEl);
-
-        let bubble = wrapper.querySelector('.new-bubble');
-        if (!bubble) {
-            bubble = document.createElement('span');
-            bubble.className = 'new-bubble';
-            bubble.innerHTML = '<i class="fa fa-star" aria-hidden="true"></i>';
-            wrapper.appendChild(bubble);
-        }
         const msg = 'New athlete';
-        bubble.title = msg;
-        bubble.setAttribute('aria-label', msg);
-        imgEl.title = msg; // show tooltip when hovering the portrait
+        imgEl.title = msg;
+        imgEl.classList.remove('is-new-revealed');
+        revealNewAthleteOnView(imgEl);
 
         // Ensure any green bits are cleared
+        const wrapper = imgEl.closest('.rank-change');
+        if (!wrapper) return;
         wrapper.classList.remove('rank-up');
         const arrow = wrapper.querySelector('.rank-arrow');
         if (arrow) arrow.remove();
+        const legacyBubble = wrapper.querySelector('.new-bubble');
+        if (legacyBubble) legacyBubble.remove();
+    }
+
+    const newAthleteRevealTargets = new Set();
+    let newAthleteRevealFrame = 0;
+    let newAthleteRevealListening = false;
+
+    function revealNewAthleteOnView(imgEl) {
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        newAthleteRevealTargets.add(imgEl);
+        if (!newAthleteRevealListening) {
+            newAthleteRevealListening = true;
+            window.addEventListener('scroll', scheduleNewAthleteRevealCheck, { passive: true });
+            window.addEventListener('resize', scheduleNewAthleteRevealCheck);
+        }
+        scheduleNewAthleteRevealCheck();
+    }
+
+    function scheduleNewAthleteRevealCheck() {
+        if (newAthleteRevealFrame) return;
+        newAthleteRevealFrame = requestAnimationFrame(checkNewAthleteReveals);
+    }
+
+    function checkNewAthleteReveals() {
+        newAthleteRevealFrame = 0;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        newAthleteRevealTargets.forEach(imgEl => {
+            if (!imgEl.isConnected) {
+                newAthleteRevealTargets.delete(imgEl);
+                return;
+            }
+            const rect = imgEl.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            if (rect.top < viewportHeight * .82 && rect.bottom > viewportHeight * .18) {
+                imgEl.classList.add('is-new-revealed');
+                newAthleteRevealTargets.delete(imgEl);
+            }
+        });
     }
 
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {

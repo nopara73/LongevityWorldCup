@@ -4,7 +4,7 @@ This file records durable UI decisions for Longevity World Cup. Keep it short: a
 
 ## Principles
 
-- Text should earn its place. Do not add explanatory UI copy, labels, hints, subtitles, or helper text unless the user would otherwise hesitate, misunderstand, or fail. Prefer clearer layout, stronger affordance, better grouping, or more obvious controls before adding words.
+- Text should earn its place. Do not add explanatory UI copy, labels, hints, subtitles, or helper text unless the concept cannot be made clear through layout, affordance, grouping, placement, or a more self-evident visual cue. When a symbol, badge, color, or marker is misunderstood, first improve or replace the visual pattern itself; add words only after the non-text options fail.
 
 ## Decisions
 
