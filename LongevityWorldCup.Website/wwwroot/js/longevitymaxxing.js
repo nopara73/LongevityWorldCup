@@ -435,23 +435,149 @@
     }
 
     function renderChallengeVisuals(state) {
-        const strip = document.getElementById("lmxDayStrip");
-        if (!strip) return;
+        const track = document.getElementById("lmxTrack");
+        if (!track) return;
 
-        const checkedDays = new Set();
-        (state.leaderboard || []).forEach(row => {
-            (row.cells || []).forEach(cell => {
-                if (cell.checkedIn) checkedDays.add(cell.challengeDay);
-            });
-        });
+        if (!participantState) {
+            track.innerHTML = "";
+            return;
+        }
 
+        const participant = participantState.participant || {};
+        const row = (state.leaderboard || []).find(item => item.participantId === participant.id);
+        const cells = normalizeDashboardCells(row, state);
+        const scoredCells = cells.filter(cell => cell.checkedIn && cell.countsForScore !== false);
+        const checkedCells = cells.filter(cell => cell.checkedIn);
+        const categories = dashboardCategories();
+        const summaries = categories.map(category => categorySummary(category, cells, scoredCells));
+        const rankedSummaries = summaries
+            .filter(item => item.max > 0)
+            .sort((a, b) => b.rate - a.rate || b.total - a.total || a.category.label.localeCompare(b.category.label));
+        const best = rankedSummaries[0];
+        const focus = [...rankedSummaries].reverse()[0];
+        const fullDays = scoredCells.filter(cell => categories.every(category => Number(cell[category.key]) >= 2)).length;
+        const totalPoints = row && typeof row.totalPoints === "number"
+            ? row.totalPoints
+            : scoredCells.reduce((sum, cell) => sum + (typeof cell.score === "number" ? cell.score : 0), 0);
         const today = new Date().toISOString().slice(0, 10);
-        strip.innerHTML = (state.days || []).map(day => {
-            const classes = ["lmx-track-day"];
-            if (checkedDays.has(day.challengeDay)) classes.push("done");
-            if (day.date === today) classes.push("today");
-            return `<span class="${classes.join(" ")}" title="Day ${day.challengeDay} · ${escAttr(formatCheckInDate(day.date))}">${day.challengeDay}</span>`;
+        const dayHeaders = cells.map(cell => {
+            const classes = ["lmx-dashboard-day"];
+            if (cell.date === today) classes.push("today");
+            if (cell.countsForScore === false) classes.push("practice");
+            return `<span class="${classes.join(" ")}" title="${escAttr(dayTitle(cell))}">${cell.challengeDay}</span>`;
         }).join("");
+        const rows = summaries.map(summary => categoryDashboardRow(summary, cells, today)).join("");
+        const emptyLabel = state.phase === "signup" || state.phase === "roster" ? "Starts soon" : "No check-ins";
+
+        track.innerHTML = `
+            <div class="lmx-dashboard-head">
+                <div>
+                    <span class="lmx-mini-label">your trend</span>
+                    <h2>Category dashboard</h2>
+                </div>
+                <strong>${checkedCells.length ? `${checkedCells.length}/${state.durationDays || cells.length} days` : emptyLabel}</strong>
+            </div>
+            <div class="lmx-dashboard-stats" aria-label="Personal challenge stats">
+                ${dashboardStat("Best", best ? best.category.label : "-", best ? `${Math.round(best.rate * 100)}%` : "-", best ? best.category.icon : "fa-arrow-trend-up", best ? best.category.tone : "")}
+                ${dashboardStat("Focus", focus ? focus.category.label : "-", focus ? `${Math.round(focus.rate * 100)}%` : "-", focus ? focus.category.icon : "fa-crosshairs", focus ? focus.category.tone : "")}
+                ${dashboardStat("Locked-in days", String(fullDays), scoredCells.length ? `${scoredCells.length} scored` : "practice only", "fa-calendar-check")}
+                ${dashboardStat("Points", scoredCells.length ? String(totalPoints) : "-", scoredCells.length ? `${scoredCells.length} scored days` : "not started", "fa-chart-line")}
+            </div>
+            <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time">
+                <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
+                    <div role="columnheader">Category</div>
+                    <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
+                </div>
+                ${rows}
+            </div>`;
+    }
+
+    function normalizeDashboardCells(row, state) {
+        const byDay = new Map(((row && row.cells) || []).map(cell => [cell.challengeDay, cell]));
+        return (state.days || []).map(day => {
+            const cell = byDay.get(day.challengeDay) || {
+                challengeDay: day.challengeDay,
+                checkedIn: false,
+                score: null,
+                countsForScore: day.challengeDay !== 1,
+                sleep: null,
+                exercise: null,
+                nutrition: null,
+                vices: null
+            };
+            return { ...cell, date: day.date };
+        });
+    }
+
+    function dashboardCategories() {
+        return [
+            { key: "sleep", label: "Sleep", icon: "fa-moon", tone: "sleep" },
+            { key: "exercise", label: "Exercise", icon: "fa-dumbbell", tone: "exercise" },
+            { key: "nutrition", label: "Nutrition", icon: "fa-bowl-food", tone: "nutrition" },
+            { key: "vices", label: "Vices", icon: "fa-shield-halved", tone: "vices" }
+        ];
+    }
+
+    function categorySummary(category, cells, scoredCells) {
+        const denominatorCells = scoredCells.length ? scoredCells : cells.filter(cell => cell.checkedIn);
+        const total = denominatorCells.reduce((sum, cell) => sum + clampHabitValue(cell[category.key]), 0);
+        const max = denominatorCells.length * 2;
+        return {
+            category,
+            total,
+            max,
+            rate: max > 0 ? total / max : 0
+        };
+    }
+
+    function categoryDashboardRow(summary, cells, today) {
+        const category = summary.category;
+        const width = summary.max > 0 ? Math.round(summary.rate * 100) : 0;
+        const dayCells = cells.map(cell => categoryDayCell(category, cell, today)).join("");
+        return `<div class="lmx-dashboard-row" role="row">
+            <div class="lmx-dashboard-category ${escAttr(category.tone)}" role="cell">
+                <i class="fas ${escAttr(category.icon)}" aria-hidden="true"></i>
+                <span>${esc(category.label)}</span>
+                <strong>${summary.max > 0 ? `${summary.total}/${summary.max}` : "-"}</strong>
+                <div class="lmx-dashboard-bar" aria-hidden="true"><span style="width:${width}%"></span></div>
+            </div>
+            <div class="lmx-dashboard-days" role="cell" aria-label="${escAttr(`${category.label} by challenge day`)}">${dayCells}</div>
+        </div>`;
+    }
+
+    function categoryDayCell(category, cell, today) {
+        const classes = ["lmx-category-day"];
+        if (cell.date === today) classes.push("today");
+        if (cell.countsForScore === false) classes.push("practice");
+        if (!cell.checkedIn) {
+            classes.push("empty");
+            return `<span class="${classes.join(" ")}" title="${escAttr(`${dayTitle(cell)}: no check-in`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: no check-in`)}"></span>`;
+        }
+
+        const value = clampHabitValue(cell[category.key]);
+        classes.push(value >= 2 ? "full" : value > 0 ? "partial" : "missed");
+        return `<span class="${classes.join(" ")}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}">${value}</span>`;
+    }
+
+    function dashboardStat(label, value, detail, icon, tone) {
+        const toneClass = tone ? ` ${escAttr(tone)}` : "";
+        return `<div class="lmx-dashboard-stat${toneClass}">
+            <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
+            <span>${esc(label)}</span>
+            <strong>${esc(value)}</strong>
+            <em>${esc(detail)}</em>
+        </div>`;
+    }
+
+    function clampHabitValue(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? Math.max(0, Math.min(2, number)) : 0;
+    }
+
+    function dayTitle(cell) {
+        const date = cell.date ? ` · ${formatCheckInDate(cell.date)}` : "";
+        const practice = cell.countsForScore === false ? " · practice" : "";
+        return `Day ${cell.challengeDay}${date}${practice}`;
     }
 
     function renderPanels(state) {
@@ -474,6 +600,8 @@
         toggle("lmxNotesPanel", hasParticipant && !checkInOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
+        toggle("lmxHabitHeading", !hasParticipant);
+        toggle("lmxHabitGrid", !hasParticipant);
         toggle("lmxTrack", hasParticipant && dashboardMode && !checkInOnly);
         toggle("lmxMetrics", hasParticipant && dashboardMode && !checkInOnly);
         toggle("lmxBoardSection", !checkInOnly);
