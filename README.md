@@ -24,7 +24,7 @@ https://www.longevityworldcup.com/
 ### Get The Requirements
 
 1. Get Git: https://git-scm.com/downloads
-2. Get .NET 8.0 SDK: https://dotnet.microsoft.com/download
+2. Get .NET 10 SDK: https://dotnet.microsoft.com/download
 3. Disable .NET's telemetry by executing in the terminal `export DOTNET_CLI_TELEMETRY_OPTOUT=1` on Linux and macOS or `setx DOTNET_CLI_TELEMETRY_OPTOUT 1` on Windows.
 4. Get Visual Studio with ASP.NET web development installed: https://visualstudio.microsoft.com/
 

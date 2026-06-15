@@ -876,33 +876,49 @@
         }
 
         @media (min-width: 901px) and (min-height: 700px) {
+            .progress-container {
+                margin-bottom: 0.9rem;
+                padding-top: 0.55rem;
+                padding-bottom: 0.55rem;
+            }
+
             #mainPageTitleH2 {
-                margin-top: 1.75rem;
-                margin-bottom: 1.15rem;
-                font-size: clamp(2.25rem, 3.8vw, 3rem);
+                margin-top: 1rem;
+                margin-bottom: 0.75rem;
+                font-size: clamp(2.05rem, 3.3vw, 2.65rem);
             }
 
             .lab-reassurance {
                 margin-top: 0;
-                padding: 0.8rem 1rem;
-                line-height: 1.42;
+                padding: 0.62rem 0.9rem;
+                line-height: 1.35;
             }
 
             .bioageform {
-                margin: 1.25rem auto 0;
-                padding: 0.85rem;
+                margin: 0.8rem auto 0;
+                padding: 0.65rem;
             }
 
             .bioageform fieldset {
-                margin-top: 1rem;
-                padding: 0.85rem 1rem 1.1rem;
+                margin-top: 0.75rem;
+                padding: 0.72rem 0.9rem 0.85rem;
             }
 
             .bioageform input,
             .bioageform select {
                 min-height: 42px;
-                padding-top: 0.55rem;
-                padding-bottom: 0.55rem;
+                padding-top: 0.48rem;
+                padding-bottom: 0.48rem;
+            }
+
+            .privacy-note {
+                margin-top: 0.5rem;
+                font-size: var(--text-small, 0.875rem);
+                line-height: 1.42;
+            }
+
+            .lwc-wizard-nav {
+                margin-bottom: 0.35rem;
             }
         }
 
@@ -1043,7 +1059,7 @@
                         <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <!-- White Blood Cell Count (from pheno age page) -->
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">
                                 White blood cell count (WBC)
                                 <span class="toggle-icon">+</span>
                             </div>
@@ -1060,7 +1076,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Lymphocytes <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Lymphocytes <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="lymphocyte_percentage" name="lymphocyte_percentage" aria-label="Lymphocytes" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1075,7 +1091,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Neutrophils <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Neutrophils <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="neutrophil_percentage" name="neutrophil_percentage" aria-label="Neutrophils" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1090,7 +1106,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Monocytes <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Monocytes <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="monocyte_percentage" name="monocyte_percentage" aria-label="Monocytes" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1105,7 +1121,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Red blood cell count (RBC) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Red blood cell count (RBC) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="rbc" name="rbc" aria-label="Red blood cell count" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1119,7 +1135,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Mean corpuscular volume (MCV) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Mean corpuscular volume (MCV) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="mcv" name="mcv" aria-label="Mean corpuscular volume" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1132,7 +1148,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Mean corpuscular hemoglobin (MCH) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Mean corpuscular hemoglobin (MCH) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="mch" name="mch" aria-label="Mean corpuscular hemoglobin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1145,7 +1161,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Red cell distribution width (RDW, RDW-CV) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Red cell distribution width (RDW, RDW-CV) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="rdw" name="rdw" aria-label="Red cell distribution width" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1161,7 +1177,7 @@
                     <fieldset>
                         <legend><i class="fas fa-droplet category-icon" aria-hidden="true"></i>Liver</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Albumin <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Albumin <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="albumin" name="albumin" aria-label="Albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1175,7 +1191,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Alanine aminotransferase (ALT, ALAT) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Alanine aminotransferase (ALT, ALAT) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="alt" name="alt" aria-label="Alanine aminotransferase" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1189,7 +1205,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Alkaline phosphatase (ALP) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Alkaline phosphatase (ALP) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="alp" name="alp" aria-label="Alkaline phosphatase" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1203,7 +1219,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Gamma-glutamyl transferase (GGT) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Gamma-glutamyl transferase (GGT) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="ggt" name="ggt" aria-label="Gamma-glutamyl transferase" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1220,7 +1236,7 @@
                     <fieldset>
                         <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Urea/BUN <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Urea/BUN <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="urea" name="urea" aria-label="Urea or BUN" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1235,7 +1251,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Creatinine <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Creatinine <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="creatinine" name="creatinine" aria-label="Creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1249,7 +1265,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Cystatin C <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Cystatin C <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="cystatin_c" name="cystatin_c" aria-label="Cystatin C" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1266,7 +1282,7 @@
                     <fieldset>
                         <legend><i class="fas fa-fire category-icon" aria-hidden="true"></i>Metabolism</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Glucose <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Glucose <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="glucose" name="glucose" aria-label="Glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1280,7 +1296,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Hemoglobin A1c (HbA1c) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Hemoglobin A1c (HbA1c) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="hba1c" name="hba1c" aria-label="Hemoglobin A1c" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1296,7 +1312,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Total cholesterol <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Total cholesterol <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="cholesterol" name="cholesterol" aria-label="Total cholesterol" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1310,7 +1326,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Apolipoprotein A1 (ApoA1) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Apolipoprotein A1 (ApoA1) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="apoa1" name="apoa1" aria-label="Apolipoprotein A1" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1327,7 +1343,7 @@
                     <fieldset>
                         <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">C-reactive protein (CRP) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">C-reactive protein (CRP) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="crp-container">
                                     <div class="label-toggle-group">
@@ -1355,7 +1371,7 @@
                     <fieldset>
                         <legend><i class="fas fa-capsules category-icon" aria-hidden="true"></i>Hormones</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Sex hormone-binding globulin (SHBG) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Sex hormone-binding globulin (SHBG) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="shbg" name="shbg" aria-label="Sex hormone-binding globulin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1369,7 +1385,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Vitamin D (25-OH) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header" role="button" tabindex="0" aria-expanded="false">Vitamin D (25-OH) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="vitamin_d" name="vitamin_d" aria-label="Vitamin D 25-OH" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1403,8 +1419,7 @@
                 </div>
             </div>
             <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: var(--error-text); background-color: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
-                The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
-                <i class="fas fa-ambulance"></i> <i class="fas fa-hospital"></i> <i class="fas fa-clinic-medical"></i>
+                The calculated result looks outside the expected range. Double-check every value and unit before submitting.
             </div>
             <div id="bortzAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
         </div>
@@ -1558,6 +1573,52 @@
                 } catch (_) { /* ignore */ }
             }
 
+            function inferGeoFromTimeZone() {
+                try {
+                    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+                    if (timeZone === 'Pacific/Auckland' || timeZone === 'Pacific/Chatham') {
+                        return { countryCode: 'NZ', regionCode: '' };
+                    }
+
+                    const usRegionByTimeZone = {
+                        'America/Anchorage': 'AK',
+                        'America/Boise': 'ID',
+                        'America/Chicago': 'IL',
+                        'America/Denver': 'CO',
+                        'America/Detroit': 'MI',
+                        'America/Indiana/Indianapolis': 'IN',
+                        'America/Indiana/Knox': 'IN',
+                        'America/Indiana/Marengo': 'IN',
+                        'America/Indiana/Petersburg': 'IN',
+                        'America/Indiana/Tell_City': 'IN',
+                        'America/Indiana/Vevay': 'IN',
+                        'America/Indiana/Vincennes': 'IN',
+                        'America/Indiana/Winamac': 'IN',
+                        'America/Juneau': 'AK',
+                        'America/Kentucky/Louisville': 'KY',
+                        'America/Kentucky/Monticello': 'KY',
+                        'America/Los_Angeles': 'CA',
+                        'America/Menominee': 'MI',
+                        'America/Metlakatla': 'AK',
+                        'America/New_York': 'NY',
+                        'America/Nome': 'AK',
+                        'America/North_Dakota/Beulah': 'ND',
+                        'America/North_Dakota/Center': 'ND',
+                        'America/North_Dakota/New_Salem': 'ND',
+                        'America/Phoenix': 'AZ',
+                        'America/Sitka': 'AK',
+                        'America/Yakutat': 'AK',
+                        'Pacific/Honolulu': 'HI'
+                    };
+
+                    if (usRegionByTimeZone[timeZone]) {
+                        return { countryCode: 'US', regionCode: usRegionByTimeZone[timeZone] };
+                    }
+                } catch (_) { /* ignore */ }
+
+                return null;
+            }
+
             const previewGeo = getLocalPreviewGeo();
             if (previewGeo) {
                 revealIfEligible(previewGeo.countryCode, previewGeo.regionCode);
@@ -1570,18 +1631,14 @@
                 return;
             }
 
-            fetch('https://ipapi.co/json/', { cache: 'no-store' })
-                .then(response => response.ok ? response.json() : null)
-                .then(location => {
-                    if (!location) return;
-                    const countryCode = location.country_code || location.country || '';
-                    const regionCode = location.region_code || '';
-                    writeCachedEligibility(countryCode, regionCode);
-                    revealIfEligible(countryCode, regionCode);
-                })
-                .catch(() => {
-                    panel.hidden = true;
-                });
+            const inferredGeo = inferGeoFromTimeZone();
+            if (inferredGeo) {
+                writeCachedEligibility(inferredGeo.countryCode, inferredGeo.regionCode);
+                revealIfEligible(inferredGeo.countryCode, inferredGeo.regionCode);
+                return;
+            }
+
+            panel.hidden = true;
         }
 
         initializeBortzLabAccessGate();
@@ -1869,7 +1926,7 @@
                 const requiredCount = window.BortzAge.features.length - 1; // exclude age
                 if (touchedBiomarkers.size < requiredCount) {
                     document.getElementById('continueButton').classList.remove('show');
-                    customAlert(`😱 Need to submit all ${requiredCount} biomarkers!`);
+                    customAlert(`Enter all ${requiredCount} biomarkers to continue.`);
                     return;
                 }
             }
@@ -2745,7 +2802,7 @@
 
         function proceedToNextPage() {
             if (isUpdate && touchedBiomarkers.size === 0) {
-                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                customAlert('Enter new biomarker data before continuing.');
                 return;
             }
 
@@ -3056,7 +3113,7 @@
 
         // Wire up all biomarker‐card headers
         document.querySelectorAll('.biomarker-card-header').forEach(header => {
-            header.addEventListener('click', function handler() {
+            const toggleBiomarkerCard = function () {
                 const card = header.parentNode;
                 const content = card.querySelector('.biomarker-card-content');
                 const icon = header.querySelector('.toggle-icon');
@@ -3069,8 +3126,9 @@
                         content.style.maxHeight = content.scrollHeight + 'px';
                         content.style.paddingTop = '0.75rem';
                         content.style.paddingBottom = '0.75rem';
-                        header.style.pointerEvents = 'none';
                         header.style.cursor = 'default';
+                        header.setAttribute('aria-disabled', 'true');
+                        header.tabIndex = -1;
                         icon.style.display = 'none';
                     }
                     return;
@@ -3091,6 +3149,13 @@
                     content.style.paddingTop = '0';
                     content.style.paddingBottom = '0';
                 }
+            };
+
+            header.addEventListener('click', toggleBiomarkerCard);
+            header.addEventListener('keydown', function (event) {
+                if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+                event.preventDefault();
+                toggleBiomarkerCard();
             });
         });
 

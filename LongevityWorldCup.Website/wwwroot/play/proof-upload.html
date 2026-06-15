@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Longevity World Cup - Proof Upload</title>
+    <title>Submit Proof | Longevity World Cup</title>
     <!--HEAD-->
     <style>
         /* Hide the join-game button in the header */
@@ -29,13 +29,13 @@
         }
 
         .proof-upload-visual {
-            margin: 0 auto 1.45rem;
+            margin: 1.35rem auto 0;
             text-align: center;
         }
 
         .proof-upload-visual .illustration {
-            width: min(100%, 408px);
-            max-width: 408px;
+            width: min(100%, 340px);
+            max-width: 340px;
             border: 1px solid rgba(28, 39, 34, 0.2);
             margin-bottom: 0;
             box-shadow: var(--surface-shadow-lifted, 0 6px 14px rgba(28, 39, 34, 0.12));
@@ -265,6 +265,46 @@
             line-height: 1.35;
         }
 
+        @media (min-width: 900px) {
+            .proof-upload-main {
+                max-width: 980px;
+                display: grid;
+                grid-template-columns: minmax(360px, 408px) minmax(280px, 340px);
+                justify-content: center;
+                align-items: start;
+                column-gap: 3rem;
+                row-gap: 0;
+            }
+
+            .proof-upload-title {
+                grid-column: 1 / -1;
+            }
+
+            .proof-upload-copy,
+            .proof-upload-copy.smaller-text,
+            .options-container.proof-upload-primary-action,
+            #proofImageContainer,
+            #biomarker-checklist,
+            .options-container.proof-upload-final-actions {
+                grid-column: 1;
+            }
+
+            .proof-upload-visual {
+                grid-column: 2;
+                grid-row: 2 / span 6;
+                margin: 0;
+                align-self: stretch;
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                padding-top: 0.1rem;
+            }
+
+            .proof-upload-visual .illustration {
+                width: 100%;
+            }
+        }
+
         @media (max-width: 600px) {
             .proof-upload-main {
                 padding: 1.5rem 1.35rem 4.25rem;
@@ -276,11 +316,11 @@
             }
 
             .proof-upload-visual {
-                margin-bottom: 1rem;
+                margin-top: 1rem;
             }
 
             .proof-upload-visual .illustration {
-                width: min(100%, 312px);
+                width: min(100%, 284px);
             }
 
             .proof-upload-copy {
@@ -305,11 +345,11 @@
             }
 
             .proof-upload-visual {
-                margin-bottom: 1rem;
+                margin-top: 0.9rem;
             }
 
             .proof-upload-visual .illustration {
-                width: min(100%, 260px);
+                width: min(100%, 232px);
             }
 
             .proof-upload-copy {
@@ -348,7 +388,7 @@
             }
 
             .proof-upload-visual {
-                margin-bottom: 0.55rem;
+                margin-top: 0.55rem;
             }
 
             .proof-upload-visual .illustration {
@@ -403,13 +443,6 @@
     <!--HEADER-->
     <main class="proof-upload-main">
         <h1 id="character-title" class="proof-upload-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
-        <div class="proof-upload-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="../assets/content-images/proof.webp" type="image/webp">
-                <source srcset="../assets/content-images/proof.jpg" type="image/jpeg">
-                <img src="../assets/content-images/proof.jpg" alt="Illustration of uploading lab proof documents" class="illustration" loading="lazy">
-            </picture>
-        </div>
         <p id="mainProofInstructions" class="proof-upload-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350"></p>
         <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
 
@@ -436,6 +469,14 @@
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
+        </div>
+
+        <div class="proof-upload-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300" aria-hidden="true">
+            <picture>
+                <source srcset="../assets/content-images/proof.webp" type="image/webp">
+                <source srcset="../assets/content-images/proof.jpg" type="image/jpeg">
+                <img src="../assets/content-images/proof.jpg" alt="" class="illustration" loading="lazy">
+            </picture>
         </div>
     </main>
     <!--FOOTER-->

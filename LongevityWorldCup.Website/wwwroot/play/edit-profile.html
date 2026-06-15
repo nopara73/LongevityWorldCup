@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Longevity World Cup - Edit Profile</title>
+    <title>Edit Athlete Profile | Longevity World Cup</title>
     <!--HEAD-->
     <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css">
     <style>
@@ -475,14 +475,14 @@
                     <i class="fa fa-image"></i>
                     Change profile picture
                 </button>
-                <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
-                <input type="file" id="profileCameraInputModal" accept="image/*" capture="user" style="display: none;">
+                <input type="file" id="profilePicInputModal" accept="image/*" aria-label="Upload profile picture" style="display: none;">
+                <input type="file" id="profileCameraInputModal" accept="image/*" capture="user" aria-label="Take profile picture" style="display: none;">
                 <button type="button" id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture" aria-label="Restore profile picture">
                     <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <select id="divisionDisplaySelect"></select>
+                <select id="divisionDisplaySelect" aria-label="Division"></select>
                 <button type="button" id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division" aria-label="Restore division">
                     <i class="fa fa-undo" aria-hidden="true"></i>
                 </button>
@@ -491,6 +491,7 @@
                 <input type="text"
                        id="flagDisplayInput"
                        name="flagDisplay"
+                       aria-label="Country or flag"
                        autocomplete="off"
                        placeholder="Type or select a flag…">
                 <button type="button" id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
@@ -501,6 +502,7 @@
                 <input type="text"
                        id="personalLinkInput"
                        name="personalLink"
+                       aria-label="Public site or profile URL"
                        inputmode="url"
                        autocomplete="off"
                        placeholder="Public site or profile URL">
@@ -512,6 +514,7 @@
                 <input type="text"
                        id="mediaContactInput"
                        name="mediaContact"
+                       aria-label="Media email or public contact link"
                        autocomplete="off"
                        placeholder="Media email or public contact link">
                 <button type="button" id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
@@ -521,6 +524,7 @@
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <textarea id="whyDisplayInput"
                           name="whyDisplay"
+                          aria-label="Short public athlete statement"
                           rows="3"
                           placeholder="Short public athlete statement"></textarea>
 

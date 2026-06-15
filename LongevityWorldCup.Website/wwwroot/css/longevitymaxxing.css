@@ -1009,6 +1009,19 @@
     border-color: rgba(67, 238, 131, 0.62);
 }
 
+.lmx-board-legend .lmx-habit-key {
+    min-width: 4.2rem;
+    gap: 0.34rem;
+    background: rgba(248, 247, 239, 0.07);
+    color: rgba(248, 247, 239, 0.86);
+    letter-spacing: 0;
+}
+
+.lmx-board-legend .lmx-habit-key i {
+    font-size: 0.74rem;
+    line-height: 1;
+}
+
 .lmx-board-wrap.signup-roster .lmx-board-legend span {
     display: none;
 }
@@ -1369,6 +1382,51 @@
     background: var(--surface-green-tint-strong, rgba(11,125,69,.14));
     color: var(--success-text, #075f35);
     border-color: var(--control-border-hover, rgba(11,125,69,.32));
+}
+
+.lmx-cell-breakdown {
+    flex-direction: column;
+    gap: 0.12rem;
+    padding: 0.15rem;
+    line-height: 1;
+}
+
+.lmx-cell-score {
+    display: block;
+    min-height: 0.72rem;
+    font-size: 0.7rem;
+    line-height: 1;
+}
+
+.lmx-habit-marks {
+    display: grid;
+    grid-template-columns: repeat(4, 0.38rem);
+    gap: 0.08rem;
+    justify-content: center;
+}
+
+.lmx-habit-mark {
+    width: 0.38rem;
+    height: 0.38rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-size: 0;
+    line-height: 0;
+}
+
+.lmx-habit-mark.full {
+    background: currentColor;
+}
+
+.lmx-habit-mark.partial {
+    background: linear-gradient(to top, currentColor 50%, transparent 50%);
+}
+
+.lmx-habit-mark.missed {
+    background: transparent;
+    opacity: 0.62;
 }
 
 .lmx-podium {

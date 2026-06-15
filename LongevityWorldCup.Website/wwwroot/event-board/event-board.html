@@ -128,12 +128,6 @@
     history.replaceState({}, '', '/events' + (window.location.search || '') + (window.location.hash || ''));
 
     function initEventBoard() {
-        const titleEl = document.getElementById('eventBoardTitle');
-        if (titleEl && titleEl.scrollIntoView) {
-            setTimeout(() => {
-                titleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-        }
         if (typeof window.loadEventsTable === 'function') {
             window.loadEventsTable(Infinity, false);
         } else {

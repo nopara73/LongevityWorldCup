@@ -237,6 +237,29 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 }
 
 @media (max-width:768px){
+    .leaderboard table .badge-section{
+        gap:.12rem;
+    }
+    .leaderboard table .badge-class{
+        width:19px!important;
+        height:19px!important;
+        min-width:19px!important;
+        min-height:19px!important;
+        flex-basis:19px;
+        font-size:.64rem;
+    }
+    .leaderboard table .badge-class i{
+        font-size:.82em;
+    }
+    .leaderboard table .badge-class.badge-overflow-count{
+        width:auto!important;
+        min-width:20px!important;
+        height:19px!important;
+        min-height:19px!important;
+        padding:0 .24rem;
+        font-size:.62rem;
+    }
+
     #detailsModal .modal-badge-strip{
         display:flex;
         flex-wrap:wrap;

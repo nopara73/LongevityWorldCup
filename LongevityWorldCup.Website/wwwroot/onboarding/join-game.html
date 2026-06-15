@@ -624,8 +624,20 @@
       }
 
       @media (max-width: 360px) {
+        .track-card.pro {
+          grid-template-rows: auto auto auto auto auto;
+        }
+
+        .track-card.pro .track-card-ribbon-slot {
+          position: static;
+          grid-row: 2;
+          justify-self: start;
+          margin-bottom: 0.35rem;
+        }
+
         .track-card.pro h2 {
-          padding-right: 2.5rem;
+          grid-row: 1;
+          padding-right: 0;
         }
 
         .track-card-meta {

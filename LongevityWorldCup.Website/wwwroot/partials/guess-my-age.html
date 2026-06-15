@@ -126,12 +126,43 @@
 
     /* card container */
     .gma-card {
+        position: relative;
         width: min(420px, 90%);
         margin-inline: auto;
         background: var(--card-bg);
         border-radius: var(--radius-panel, 10px);
         padding: 2rem 2.25rem 2.5rem;
         text-align: center;
+    }
+
+    .gma-close-btn {
+        position: absolute;
+        top: .7rem;
+        right: .7rem;
+        z-index: 4;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(0,0,0,.16);
+        border-radius: 50%;
+        background: rgba(255,255,255,.86);
+        color: var(--dark-text-color);
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(0,0,0,.18);
+        transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+    }
+
+    .gma-close-btn:hover,
+    .gma-close-btn:focus-visible {
+        background: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(0,0,0,.22);
+        outline: none;
     }
 
     /* avatar with subtle hover zoom */
@@ -516,6 +547,8 @@
         text-decoration: none;
         position: relative;
         z-index: 2;
+        box-sizing: border-box;
+        padding-inline: 3.25rem;
     }
     #detailsModal #gmaRange {
         background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
@@ -799,6 +832,7 @@
 </style>
 
 <div id="guessAgeContainer" class="gma-card">
+    <button type="button" id="gmaClose" class="gma-close-btn" aria-label="Skip visual age estimate and close athlete details" title="Close">&times;</button>
     <h3 class="gma-heading">Visual age estimate</h3>
     <h3 class="chrono-age-heading" style="display: none;">Actual age</h3>
 
@@ -970,6 +1004,12 @@
     if (gmaSkipAll) {
         gmaSkipAll.addEventListener('click', hideCard);
     }
+    const gmaClose = document.getElementById('gmaClose');
+    if (gmaClose) {
+        gmaClose.addEventListener('click', function () {
+            hideCard({ currentTarget: gmaClose, forceSkip: true, closeAfter: true });
+        });
+    }
 
     function hideCard(e) {
         // if they clicked “Skip All”, set global flag
@@ -987,7 +1027,7 @@
             : gmaRange.value;
 
         let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-        const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
+        const isSkip = Boolean(e.forceSkip) || e.currentTarget.classList.contains('gma-btn--ghost');
 
         allGuesses[athleteSlug] = {
             value: isSkip ? null : guessValue,
@@ -1002,6 +1042,10 @@
         modalContent.classList.remove('guess-mode');
         modalContent.scrollTop = 0;
         modalContent.scrollLeft = 0;
+
+        if (e.closeAfter && typeof closeModal === 'function') {
+            window.setTimeout(closeModal, 0);
+        }
     }
 
     function popBanner(isExact, isFirst) {
