@@ -232,8 +232,10 @@
                 renderAll();
                 return;
             } catch (err) {
-                safeStorageRemove(STORAGE_KEY);
-                accessToken = null;
+                if (isAuthFailure(err)) {
+                    safeStorageRemove(STORAGE_KEY);
+                    accessToken = null;
+                }
             }
         }
 
@@ -1511,9 +1513,15 @@
         }
 
         if (!response.ok) {
-            throw new Error(data.message || response.statusText || "Request failed");
+            const err = new Error(data.message || response.statusText || "Request failed");
+            err.status = response.status;
+            throw err;
         }
         return data;
+    }
+
+    function isAuthFailure(err) {
+        return err && (err.status === 401 || err.status === 403);
     }
 
     async function withButton(button, work, busyText) {

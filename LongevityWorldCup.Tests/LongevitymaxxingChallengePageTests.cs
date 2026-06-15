@@ -196,6 +196,9 @@ public sealed class LongevitymaxxingChallengePageTests
         var css = await client.GetStringAsync("/css/longevitymaxxing.css");
 
         Assert.Contains("const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];", javascript);
+        Assert.Contains("if (isAuthFailure(err))", javascript);
+        Assert.Contains("err.status = response.status;", javascript);
+        Assert.Contains("function isAuthFailure(err)", javascript);
         Assert.Contains("const checkInOnly = pendingCheckInDays.length > 0;", javascript);
         Assert.Contains("const publicClosed = !hasParticipant && !state.signupOpen;", javascript);
         Assert.Contains("hero.classList.toggle(\"public-board-only\", publicClosed);", javascript);
