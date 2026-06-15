@@ -215,6 +215,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function categoryDayCell", javascript);
         Assert.Contains("function clampHabitValue", javascript);
         Assert.Contains("Locked-in days", javascript);
+        Assert.Contains("const fullDays = checkedCells.filter(cell => isLockedInDay(cell, categories)).length;", javascript);
+        Assert.Contains("const scoredFullDays = scoredCells.filter(cell => isLockedInDay(cell, categories)).length;", javascript);
+        Assert.Contains("function isLockedInDay", javascript);
+        Assert.Contains("`${scoredFullDays} scored + practice`", javascript);
         Assert.Contains("dashboardStat(\"Points\"", javascript);
         Assert.Contains("row.totalPoints", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
