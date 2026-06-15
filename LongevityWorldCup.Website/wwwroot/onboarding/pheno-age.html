@@ -1198,6 +1198,7 @@
         const bloodDrawDateInput = document.getElementById('blood-draw-date');
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PHENO_LAB_GEO_CACHE_KEY = 'phenoLabGeoEligibility';
+        const REQUEST_COUNTRY_CODE = '{{REQUEST_COUNTRY_CODE}}';
 
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
@@ -1255,6 +1256,10 @@
             const previewGeo = getLocalPreviewGeo();
             if (previewGeo) {
                 revealIfEligible(previewGeo.countryCode);
+                return;
+            }
+
+            if (revealIfEligible(REQUEST_COUNTRY_CODE)) {
                 return;
             }
 

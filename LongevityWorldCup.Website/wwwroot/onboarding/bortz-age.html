@@ -1377,6 +1377,7 @@
         const bloodDrawDateInput = document.getElementById('blood-draw-date');
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const BORTZ_LAB_GEO_CACHE_KEY = 'bortzLabGeoEligibility';
+        const REQUEST_COUNTRY_CODE = '{{REQUEST_COUNTRY_CODE}}';
 
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
@@ -1418,34 +1419,43 @@
                 US: {
                     href: 'https://www.ultalabtests.com/partners/conqueragingordietrying/test/conquer-aging-or-die-trying-bortz-biological-age-panel',
                     linkLabel: 'Open Ulta panel',
-                    descriptionHtml: 'This US panel covers the biomarkers for both bortz age and pheno age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion.'
+                    descriptionHtml: 'This US panel covers the biomarkers for both bortz age and pheno age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion.',
+                    unknownRegionDescriptionHtml: 'This US panel covers the biomarkers for both bortz age and pheno age. Created by <a href="/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a>, the 2025 champion. Available in most US states; not available in Hawaii, New York, New Jersey, or Rhode Island.'
                 },
                 NZ: {
                     href: 'https://merch.longevityworldcup.com/product/ultimate-league-test-package-new-zealand/',
                     linkLabel: 'Open New Zealand panel',
-                    descriptionHtml: 'This New Zealand panel covers the biomarkers for bortz age. Created by <a href="/athlete/klaus-townsend" target="_blank" rel="noopener noreferrer">Klaus Townsend</a>. It also includes 40% off the entry fee.'
+                    descriptionHtml: 'This New Zealand panel covers the biomarkers for bortz age. Created by <a href="/athlete/klaus-townsend" target="_blank" rel="noopener noreferrer">Klaus Townsend</a>. It also includes 70% off the entry fee.'
                 }
             };
 
-            function showPanel(config) {
-                description.innerHTML = config.descriptionHtml;
+            function showPanel(config, descriptionHtml) {
+                description.innerHTML = descriptionHtml || config.descriptionHtml;
                 link.href = config.href;
                 link.innerHTML = `${config.linkLabel}&nbsp;<i class="fas fa-external-link-alt" aria-hidden="true"></i>`;
                 panel.hidden = false;
                 return true;
             }
 
-            function revealIfEligible(countryCode, regionCode) {
+            function revealIfEligible(countryCode, regionCode, options) {
                 const country = String(countryCode || '').trim().toUpperCase();
                 const region = String(regionCode || '').trim().toUpperCase();
                 const config = labAccessByCountry[country];
+                const allowUnknownUsRegion = !!(options && options.allowUnknownUsRegion);
+                const hasKnownUsRegion = country === 'US' && !!region;
+                const isUnknownUsRegion = country === 'US' && !region;
                 const isEligible = !!config && (
                     country === 'NZ' ||
-                    (country === 'US' && region && !blockedStates.has(region))
+                    (hasKnownUsRegion && !blockedStates.has(region)) ||
+                    (isUnknownUsRegion && allowUnknownUsRegion)
                 );
 
                 if (isEligible) {
-                    return showPanel(config);
+                    return showPanel(
+                        config,
+                        isUnknownUsRegion && config.unknownRegionDescriptionHtml
+                            ? config.unknownRegionDescriptionHtml
+                            : config.descriptionHtml);
                 }
 
                 panel.hidden = true;
@@ -1489,27 +1499,43 @@
 
             const previewGeo = getLocalPreviewGeo();
             if (previewGeo) {
-                revealIfEligible(previewGeo.countryCode, previewGeo.regionCode);
+                revealIfEligible(previewGeo.countryCode, previewGeo.regionCode, { allowUnknownUsRegion: true });
+                return;
+            }
+
+            if (revealIfEligible(REQUEST_COUNTRY_CODE, '')) {
                 return;
             }
 
             const cached = readCachedEligibility();
             if (cached) {
-                revealIfEligible(cached.countryCode, cached.regionCode);
+                revealIfEligible(cached.countryCode, cached.regionCode, { allowUnknownUsRegion: true });
                 return;
             }
 
             fetch('https://ipapi.co/json/', { cache: 'no-store' })
                 .then(response => response.ok ? response.json() : null)
                 .then(location => {
-                    if (!location) return;
+                    if (!location) {
+                        revealIfEligible(REQUEST_COUNTRY_CODE, '', { allowUnknownUsRegion: true });
+                        return;
+                    }
                     const countryCode = location.country_code || location.country || '';
                     const regionCode = location.region_code || '';
                     writeCachedEligibility(countryCode, regionCode);
-                    revealIfEligible(countryCode, regionCode);
+                    if (!revealIfEligible(countryCode, regionCode, { allowUnknownUsRegion: true })) {
+                        const country = String(countryCode || '').trim().toUpperCase();
+                        const region = String(regionCode || '').trim().toUpperCase();
+                        const hasKnownBlockedUsRegion = country === 'US' && region && blockedStates.has(region);
+                        if (!hasKnownBlockedUsRegion) {
+                            revealIfEligible(REQUEST_COUNTRY_CODE, '', { allowUnknownUsRegion: true });
+                        }
+                    }
                 })
                 .catch(() => {
-                    panel.hidden = true;
+                    if (!revealIfEligible(REQUEST_COUNTRY_CODE, '', { allowUnknownUsRegion: true })) {
+                        panel.hidden = true;
+                    }
                 });
         }
 
