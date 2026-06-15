@@ -483,11 +483,13 @@ public sealed class LongevitymaxxingChallengeServiceTests
             fixture.Service.BuildStopUrl(reminder.StopToken));
 
         Assert.Contains("Updated call schedule:", content.TextBody);
-        Assert.Contains("- Kickoff: 2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.Contains("- Midpoint:", content.TextBody);
-        Assert.Contains("- Finale:", content.TextBody);
+        Assert.Contains("- Kickoff: 2026-06-08 15:00 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("- Midpoint: 2026-06-15 08:30 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("- Finale: 2026-06-21 08:30 (Europe/Budapest)", content.TextBody);
         Assert.Contains("Call link: https://meet.example.test", content.TextBody);
         Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
+        Assert.DoesNotContain("- Kickoff: 2026-06-07 08:30", content.TextBody);
+        Assert.DoesNotContain("2026-06-22 15:00", content.TextBody);
         Assert.Empty(content.Attachments);
 
         fixture.Service.MarkCallScheduleUpdateNoticeSent(reminder.ParticipantId, DateTimeOffset.Parse("2026-06-09T11:06:00Z"));
@@ -562,18 +564,18 @@ public sealed class LongevitymaxxingChallengeServiceTests
             "Call Casey",
             [new("kickoff", "kickoff-b")]);
 
-        var candidates = fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z"));
+        var candidates = fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T13:05:00Z"));
         var reminder = Assert.Single(candidates);
         Assert.Equal("kickoff", reminder.CallKey);
         Assert.Equal("24h", reminder.ReminderKind);
-        Assert.Equal("2026-06-07T06:30:00.0000000+00:00", reminder.StartsAtUtc);
+        Assert.Equal("2026-06-08T13:00:00.0000000+00:00", reminder.StartsAtUtc);
         Assert.Equal("UTC", reminder.TimeZoneId);
         Assert.Equal(3, reminder.Calls.Count);
 
-        Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
+        Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-07T13:05:00Z")));
 
-        fixture.Service.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, DateTimeOffset.Parse("2026-06-06T06:36:00Z"));
-        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:37:00Z")));
+        fixture.Service.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, DateTimeOffset.Parse("2026-06-07T13:06:00Z"));
+        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T13:07:00Z")));
     }
 
     [Fact]
@@ -586,16 +588,17 @@ public sealed class LongevitymaxxingChallengeServiceTests
             [new("kickoff", "kickoff-b")],
             timeZoneId: "Europe/Budapest");
 
-        var reminder = Assert.Single(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
+        var reminder = Assert.Single(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T13:05:00Z")));
         var content = SmtpLongevitymaxxingEmailSender.BuildCallReminderEmailContent(
             reminder,
             fixture.Service.BuildAccessUrl(reminder.AccessToken),
             fixture.Service.BuildStopUrl(reminder.StopToken));
 
         Assert.Contains("Call link:\nhttps://meet.example.test", content.TextBody);
-        Assert.Contains("2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("2026-06-08 15:00 (Europe/Budapest)", content.TextBody);
         Assert.Contains("Participant page:\nhttps://example.test/longevitymaxxing?", content.TextBody);
-        Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
+        Assert.DoesNotContain("2026-06-08 13:00 UTC", content.TextBody);
+        Assert.DoesNotContain("2026-06-07 08:30", content.TextBody);
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.DoesNotContain("Full call schedule:", content.TextBody);
         Assert.DoesNotContain("- Midpoint:", content.TextBody);
@@ -630,7 +633,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 Assert.Equal("https://meet.example.test", call.VideoCallUrl);
             });
         });
-        Assert.Equal("2026-06-07T06:30:00.0000000+00:00", candidates[0].Calls.Single(call => call.Key == "kickoff").SelectedSlot?.StartsAtUtc);
+        Assert.Equal("2026-06-08T13:00:00.0000000+00:00", candidates[0].Calls.Single(call => call.Key == "kickoff").SelectedSlot?.StartsAtUtc);
 
         fixture.Service.MarkChallengeStartSent(candidates[0].ParticipantId, DateTimeOffset.Parse("2026-06-08T00:02:00Z"));
 
@@ -660,9 +663,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
         Assert.Contains("Call link: https://meet.example.test", content.TextBody);
-        Assert.Contains("2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.Contains("- Finale: 2026-06-22 08:30 (Europe/Budapest)", content.TextBody);
-        Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
+        Assert.Contains("- Kickoff: 2026-06-08 15:00 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("- Midpoint: 2026-06-15 08:30 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("- Finale: 2026-06-21 08:30 (Europe/Budapest)", content.TextBody);
+        Assert.DoesNotContain("2026-06-08 13:00 UTC", content.TextBody);
+        Assert.DoesNotContain("2026-06-07 08:30", content.TextBody);
         Assert.DoesNotContain("2026-06-22 15:00", content.TextBody);
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.Contains("- Kickoff:", content.TextBody);
@@ -862,8 +867,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
                             Label = "Kickoff",
                             CandidateSlots =
                             [
-                                new() { Id = "kickoff-a", StartsAtUtc = "2026-06-07T18:00:00Z" },
-                                new() { Id = "kickoff-b", StartsAtUtc = "2026-06-08T02:00:00Z" }
+                                new() { Id = "kickoff-a", StartsAtUtc = "2026-06-08T06:30:00Z" },
+                                new() { Id = "kickoff-b", StartsAtUtc = "2026-06-08T13:00:00Z" },
+                                new() { Id = "kickoff-c", StartsAtUtc = "2026-06-08T16:00:00Z" }
                             ]
                         },
                         new()
@@ -872,7 +878,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                             Label = "Midpoint",
                             CandidateSlots =
                             [
-                                new() { Id = "midpoint-a", StartsAtUtc = "2026-06-14T18:00:00Z" },
+                                new() { Id = "midpoint-a", StartsAtUtc = "2026-06-15T06:30:00Z" },
                                 new() { Id = "midpoint-b", StartsAtUtc = "2026-06-15T13:00:00Z" },
                                 new() { Id = "midpoint-c", StartsAtUtc = "2026-06-15T16:00:00Z" }
                             ]
@@ -883,7 +889,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                             Label = "Finale",
                             CandidateSlots =
                             [
-                                new() { Id = "finale-a", StartsAtUtc = "2026-06-22T18:00:00Z" },
+                                new() { Id = "finale-a", StartsAtUtc = "2026-06-22T06:30:00Z" },
                                 new() { Id = "finale-b", StartsAtUtc = "2026-06-22T13:00:00Z" },
                                 new() { Id = "finale-c", StartsAtUtc = "2026-06-22T16:00:00Z" }
                             ]

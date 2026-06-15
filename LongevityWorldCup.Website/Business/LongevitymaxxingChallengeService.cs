@@ -30,23 +30,22 @@ public sealed class LongevitymaxxingChallengeService
     private const int CheckInPhotoQuality = 82;
     private const string GravatarMissingCacheVersion = "v4";
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
-    private const string CurrentChallengeKickoffSlotId = "kickoff-b";
-    private const string CurrentChallengeKickoffStartsAtUtc = "2026-06-07T06:30:00Z";
+    private const string CurrentChallengeFinaleStartsAtUtc = "2026-06-21T06:30:00Z";
     private const int CallScheduleUpdateNoticeDay = 0;
-    private const string CallScheduleUpdateReminderKind = "call-schedule-update";
+    private const string CallScheduleUpdateReminderKind = "call-schedule-update-2026-finale-sunday";
     private static readonly DateOnly CurrentChallengeStartDate = new(2026, 6, 8);
     private static readonly TimeOnly[] DefaultSundayCallTimesUtc = [new(6, 30)];
     private static readonly IReadOnlyDictionary<string, string[]> BuiltInCallSlotStartsAtUtc = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
     {
-        ["kickoff:kickoff-a"] = ["2026-06-08T06:30:00Z", CurrentChallengeKickoffStartsAtUtc],
-        ["kickoff:kickoff-b"] = ["2026-06-08T13:00:00Z", CurrentChallengeKickoffStartsAtUtc],
-        ["kickoff:kickoff-c"] = ["2026-06-08T16:00:00Z", CurrentChallengeKickoffStartsAtUtc],
+        ["kickoff:kickoff-a"] = ["2026-06-08T06:30:00Z", "2026-06-07T06:30:00Z"],
+        ["kickoff:kickoff-b"] = ["2026-06-08T13:00:00Z", "2026-06-07T06:30:00Z"],
+        ["kickoff:kickoff-c"] = ["2026-06-08T16:00:00Z", "2026-06-07T06:30:00Z"],
         ["midpoint:midpoint-a"] = ["2026-06-15T06:30:00Z"],
         ["midpoint:midpoint-b"] = ["2026-06-15T13:00:00Z", "2026-06-15T06:30:00Z"],
         ["midpoint:midpoint-c"] = ["2026-06-15T16:00:00Z", "2026-06-15T06:30:00Z"],
-        ["finale:finale-a"] = ["2026-06-22T06:30:00Z"],
-        ["finale:finale-b"] = ["2026-06-22T13:00:00Z", "2026-06-22T06:30:00Z"],
-        ["finale:finale-c"] = ["2026-06-22T16:00:00Z", "2026-06-22T06:30:00Z"]
+        ["finale:finale-a"] = ["2026-06-22T06:30:00Z", CurrentChallengeFinaleStartsAtUtc],
+        ["finale:finale-b"] = ["2026-06-22T13:00:00Z", "2026-06-22T06:30:00Z", CurrentChallengeFinaleStartsAtUtc],
+        ["finale:finale-c"] = ["2026-06-22T16:00:00Z", "2026-06-22T06:30:00Z", CurrentChallengeFinaleStartsAtUtc]
     };
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly EmailAddressAttribute EmailValidator = new();
@@ -1010,45 +1009,28 @@ public sealed class LongevitymaxxingChallengeService
         if (start != CurrentChallengeStartDate)
             return calls;
 
+        var finaleStartsAt = ParseDateTimeOffset(CurrentChallengeFinaleStartsAtUtc, DateTimeOffset.UtcNow)
+            .ToUniversalTime()
+            .ToString("o", CultureInfo.InvariantCulture);
+
         return calls
             .Select(call =>
             {
-                var startsAt = GetCurrentChallengeCallStartUtc(call.Key);
-                if (startsAt is null)
+                if (!string.Equals(call.Key, "finale", StringComparison.Ordinal))
                     return call;
 
                 var slots = call.CandidateSlots.Count == 0
-                    ? [new LongevitymaxxingCallSlot(GetCanonicalCallSlotId(call.Key), startsAt.Value.ToString("o", CultureInfo.InvariantCulture))]
+                    ? [new LongevitymaxxingCallSlot("finale-a", finaleStartsAt)]
                     : call.CandidateSlots
                     .Select(slot => new LongevitymaxxingCallSlot(
                         slot.Id,
-                        startsAt.Value.ToString("o", CultureInfo.InvariantCulture)))
+                        finaleStartsAt))
                     .ToList();
 
                 return call with { CandidateSlots = slots };
             })
             .ToList();
     }
-
-    private static DateTimeOffset? GetCurrentChallengeCallStartUtc(string callKey)
-    {
-        var date = callKey switch
-        {
-            "kickoff" => CurrentChallengeStartDate.AddDays(-1),
-            "midpoint" => CurrentChallengeStartDate.AddDays(7),
-            "finale" => CurrentChallengeStartDate.AddDays(14),
-            _ => (DateOnly?)null
-        };
-
-        return date is null
-            ? null
-            : new DateTimeOffset(date.Value.ToDateTime(DefaultSundayCallTimesUtc[0]), TimeSpan.Zero);
-    }
-
-    private static string GetCanonicalCallSlotId(string callKey)
-        => string.Equals(callKey, "kickoff", StringComparison.Ordinal)
-            ? CurrentChallengeKickoffSlotId
-            : $"{callKey}-a";
 
     private static DateTimeOffset GetDefaultCallSelectionClosesAtUtc(
         IReadOnlyList<CallSettings> calls,
