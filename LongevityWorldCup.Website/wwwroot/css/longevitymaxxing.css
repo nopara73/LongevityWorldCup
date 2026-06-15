@@ -47,7 +47,8 @@
 }
 
 .lmx-topline,
-.lmx-scale {
+.lmx-scale,
+.lmx-board-legend {
     display: flex;
     align-items: center;
     gap: 0.45rem;
@@ -926,6 +927,24 @@
     color: #64748b;
     font-size: 0.88rem;
     line-height: 1.35;
+}
+
+.lmx-board-legend .lmx-habit-key {
+    min-width: 4.2rem;
+    min-height: 1.8rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.34rem;
+    background: #eef2ff;
+    color: #3730a3;
+    letter-spacing: 0;
+}
+
+.lmx-board-legend .lmx-habit-key i {
+    font-size: 0.74rem;
+    line-height: 1;
 }
 
 .lmx-phase {
