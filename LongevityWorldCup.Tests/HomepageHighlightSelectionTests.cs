@@ -35,6 +35,28 @@ public sealed class HomepageHighlightSelectionTests
             "Fresh homepage Events must beat stale historical Events from the same athlete before lifetime importance is compared.");
     }
 
+    [Fact]
+    public void HomepagePodcastEpisodeLinks_OpenInNewTab()
+    {
+        var repoRoot = FindRepoRoot();
+        var eventBoardHtml = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "partials",
+            "event-board-content.html"));
+
+        var podcastStart = eventBoardHtml.IndexOf("badgeKey === \"podcast\"", StringComparison.Ordinal);
+        Assert.True(podcastStart >= 0, "Could not find podcast highlight rendering.");
+
+        var podcastEnd = eventBoardHtml.IndexOf("msgHtml = `<span class=\"event-inline-text\"", podcastStart, StringComparison.Ordinal);
+        Assert.True(podcastEnd > podcastStart, "Could not find end of podcast episode link rendering.");
+
+        var podcastRendering = eventBoardHtml[podcastStart..podcastEnd];
+        Assert.Contains("target=\"_blank\" rel=\"noopener\">episode</a>", podcastRendering);
+        Assert.DoesNotContain("target=\"_top\" rel=\"noopener\">episode</a>", podcastRendering);
+    }
+
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
     {
         var startDirectory = Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory;
