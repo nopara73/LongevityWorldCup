@@ -218,6 +218,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function habitCellTitle", javascript);
         Assert.DoesNotContain("data-label=\"Days\"", javascript);
         Assert.DoesNotContain("data-label=\"Streak\"", javascript);
+        Assert.DoesNotContain("lmx-badge", javascript);
+        Assert.DoesNotContain(".lmx-badge", css);
         Assert.Contains("Need participant access?", javascript);
         Assert.Contains("Already joined or opened this page in a new browser?", javascript);
         Assert.Contains("Send participant link", javascript);

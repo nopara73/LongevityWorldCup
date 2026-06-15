@@ -614,7 +614,6 @@
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name);
-            const badges = publicViewer ? "" : (row.badges || []).map(b => `<span class="lmx-badge">${esc(b)}</span>`).join("");
             const cells = (row.cells || []).map(cell => {
                 if (!cell.checkedIn) return `<div class="lmx-cell empty" title="Day ${cell.challengeDay}"></div>`;
                 if (cell.countsForScore === false) {
@@ -623,7 +622,7 @@
                 return scoredDayCellHtml(cell);
             }).join("");
             return `<div class="lmx-board-row" role="row">
-                <div class="lmx-name" role="cell">${participant}<div class="lmx-badges">${badges}</div></div>
+                <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score">${row.totalPoints}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
             </div>`;
