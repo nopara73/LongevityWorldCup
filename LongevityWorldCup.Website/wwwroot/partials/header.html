@@ -344,6 +344,28 @@
             outline: none;
         }
 
+    body:has(.bioageform) header {
+        padding: 0.62rem 0 0.78rem;
+    }
+
+    body:has(.bioageform) .header-link > .main-logo-image {
+        width: 48px;
+        margin-bottom: 0.32rem;
+    }
+
+    body:has(.bioageform) .bannertext {
+        font-size: 1.75rem;
+        letter-spacing: var(--tracking-display);
+    }
+
+    body:has(.bioageform) .tagline {
+        display: none;
+    }
+
+    body:has(.bioageform) main {
+        margin-top: 0.85rem;
+    }
+
     .header-link {
         text-decoration: none;
         color: inherit; /* Inherit the color from the parent element */
@@ -904,10 +926,36 @@
         }
     }
 
+    @media (max-width: 480px) {
+        .site-sticky-header {
+            justify-content: flex-start;
+            padding-left: 0.75rem;
+            padding-right: 112px;
+        }
+
+        .site-sticky-header-link {
+            justify-content: flex-start;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .site-sticky-header-title {
+            min-width: 0;
+            font-size: clamp(0.72rem, 4vw, 0.98rem);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .scrolled-button {
+            right: 0.75rem;
+            padding-inline: 0.9rem;
+        }
+    }
+
     /* Keep the full wordmark readable on the narrowest phones instead of truncating */
     @media (max-width: 374px) {
         .site-sticky-header-title {
-            font-size: 0.9rem;
+            font-size: clamp(0.7rem, 4vw, 0.9rem);
             letter-spacing: 0;
         }
 

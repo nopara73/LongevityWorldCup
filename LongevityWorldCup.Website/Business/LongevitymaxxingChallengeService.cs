@@ -956,8 +956,16 @@ public sealed class LongevitymaxxingChallengeService
             var badges = BuildBadges(settings, p.Id, byDay, currentStreak, categoryLeaders);
             var cells = Enumerable.Range(1, settings.DurationDays)
                 .Select(day => byDay.TryGetValue(day, out var checkIn)
-                    ? new LongevitymaxxingDayCell(day, true, CountsForScore(day) ? GetScoredPoints(checkIn, settings.DurationDays) : null, CountsForScore(day))
-                    : new LongevitymaxxingDayCell(day, false, null, CountsForScore(day)))
+                    ? new LongevitymaxxingDayCell(
+                        day,
+                        true,
+                        CountsForScore(day) ? GetScoredPoints(checkIn, settings.DurationDays) : null,
+                        CountsForScore(day),
+                        CountsForScore(day) ? checkIn.Sleep : null,
+                        CountsForScore(day) ? checkIn.Exercise : null,
+                        CountsForScore(day) ? checkIn.Nutrition : null,
+                        CountsForScore(day) ? checkIn.Vices : null)
+                    : new LongevitymaxxingDayCell(day, false, null, CountsForScore(day), null, null, null, null))
                 .ToList();
 
             return new LongevitymaxxingLeaderboardRow(

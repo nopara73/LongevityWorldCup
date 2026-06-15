@@ -29,11 +29,11 @@
             padding: 1.1rem 1.15rem 1rem;
             box-sizing: border-box;
             border-radius: 8px;
-            border: 1px solid rgba(0, 188, 212, 0.22);
-            background: linear-gradient(180deg, #ffffff, #f8feff);
-            color: #2d3748;
+            border: 1px solid rgba(11, 125, 69, 0.22);
+            background: linear-gradient(180deg, var(--card-bg, #fffefa), var(--paper, #f4f3ea));
+            color: #24332c;
             text-align: center;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+            box-shadow: var(--surface-shadow, 0 4px 10px rgba(28, 39, 34, 0.08));
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -41,20 +41,20 @@
 
         .lab-access-panel h2 {
             margin: 0;
-            font-size: 1.08rem;
-            line-height: 1.25;
+            font-size: var(--text-lead, 1.125rem);
+            line-height: var(--leading-tight, 1.12);
             color: var(--dark-text-color);
         }
 
         .lab-access-panel p {
             margin: 0.45rem auto 0;
-            font-size: 0.95rem;
-            line-height: 1.45;
+            font-size: var(--text-ui, 0.9375rem);
+            line-height: var(--leading-body, 1.55);
             max-width: 32rem;
         }
 
         .lab-access-panel a:not(.option-button) {
-            color: #0f7f90;
+            color: #0b7d45;
             font-weight: 700;
             text-decoration: none;
         }
@@ -72,23 +72,23 @@
             margin: 0.75rem auto 0;
             padding: 0.45rem 0.85rem;
             box-sizing: border-box;
-            border: 1px solid rgba(0, 188, 212, 0.28);
+            border: 1px solid rgba(11, 125, 69, 0.28);
             border-radius: 8px;
-            background: #fff;
-            color: #0f7f90;
-            font-size: 0.95rem;
+            background: var(--card-bg, #fffefa);
+            color: #0b7d45;
+            font-size: var(--text-ui, 0.9375rem);
             font-weight: 700;
-            line-height: 1.2;
+            line-height: var(--leading-tight, 1.12);
             text-decoration: none;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 1px 2px rgba(28, 39, 34, 0.04);
             transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .lab-access-link:hover {
-            border-color: rgba(0, 188, 212, 0.48);
-            background: #f8feff;
-            color: #096978;
-            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+            border-color: rgba(11, 125, 69, 0.48);
+            background: #f3faf3;
+            color: #075f35;
+            box-shadow: 0 3px 8px rgba(28, 39, 34, 0.08);
         }
 
         .lab-access-panel[hidden] {
@@ -872,33 +872,49 @@
         }
 
         @media (min-width: 901px) and (min-height: 700px) {
+            .progress-container {
+                margin-bottom: 0.9rem;
+                padding-top: 0.55rem;
+                padding-bottom: 0.55rem;
+            }
+
             #mainPageTitleH2 {
-                margin-top: 1.75rem;
-                margin-bottom: 1.15rem;
-                font-size: clamp(2.25rem, 3.8vw, 3rem);
+                margin-top: 1rem;
+                margin-bottom: 0.75rem;
+                font-size: clamp(2.05rem, 3.3vw, 2.65rem);
             }
 
             .lab-reassurance {
                 margin-top: 0;
-                padding: 0.8rem 1rem;
-                line-height: 1.42;
+                padding: 0.62rem 0.9rem;
+                line-height: 1.35;
             }
 
             .bioageform {
-                margin: 1.25rem auto 0;
-                padding: 0.85rem;
+                margin: 0.8rem auto 0;
+                padding: 0.65rem;
             }
 
             .bioageform fieldset {
-                margin-top: 1rem;
-                padding: 0.85rem 1rem 1.1rem;
+                margin-top: 0.75rem;
+                padding: 0.72rem 0.9rem 0.85rem;
             }
 
             .bioageform input,
             .bioageform select {
                 min-height: 42px;
-                padding-top: 0.55rem;
-                padding-bottom: 0.55rem;
+                padding-top: 0.48rem;
+                padding-bottom: 0.48rem;
+            }
+
+            .privacy-note {
+                margin-top: 0.5rem;
+                font-size: var(--text-small, 0.875rem);
+                line-height: 1.42;
+            }
+
+            .lwc-wizard-nav {
+                margin-bottom: 0.35rem;
             }
         }
 
@@ -1230,8 +1246,7 @@
                 <div id="yearsText">years</div>
             </div>
             <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: var(--error-text); background-color: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
-                The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
-                <i class="fas fa-ambulance"></i> <i class="fas fa-hospital"></i> <i class="fas fa-clinic-medical"></i>
+                The calculated result looks outside the expected range. Double-check every value and unit before submitting.
             </div>
             <div id="phenoAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
         </div>
@@ -1329,6 +1344,17 @@
                 } catch (_) { /* ignore */ }
             }
 
+            function inferGeoFromTimeZone() {
+                try {
+                    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+                    if (timeZone === 'Pacific/Auckland' || timeZone === 'Pacific/Chatham') {
+                        return { countryCode: 'NZ' };
+                    }
+                } catch (_) { /* ignore */ }
+
+                return null;
+            }
+
             const previewGeo = getLocalPreviewGeo();
             if (previewGeo) {
                 revealIfEligible(previewGeo.countryCode);
@@ -1341,17 +1367,14 @@
                 return;
             }
 
-            fetch('https://ipapi.co/json/', { cache: 'no-store' })
-                .then(response => response.ok ? response.json() : null)
-                .then(location => {
-                    if (!location) return;
-                    const countryCode = location.country_code || location.country || '';
-                    writeCachedEligibility(countryCode);
-                    revealIfEligible(countryCode);
-                })
-                .catch(() => {
-                    panel.hidden = true;
-                });
+            const inferredGeo = inferGeoFromTimeZone();
+            if (inferredGeo) {
+                writeCachedEligibility(inferredGeo.countryCode);
+                revealIfEligible(inferredGeo.countryCode);
+                return;
+            }
+
+            panel.hidden = true;
         }
 
         initializePhenoLabAccessGate();
@@ -1530,7 +1553,7 @@
             if (isUpdate) {
                 if (touchedBiomarkers.size < 9) {
                     document.getElementById('continueButton').classList.remove('show');
-                    customAlert('😱 Need to submit all 9 biomarkers!');
+                    customAlert('Enter all 9 biomarkers to continue.');
                     return;
                 }
             }
@@ -2276,7 +2299,7 @@
 
         function proceedToNextPage() {
             if (isUpdate && touchedBiomarkers.size === 0) {
-                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                customAlert('Enter new biomarker data before continuing.');
                 return;
             }
 

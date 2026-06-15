@@ -317,23 +317,24 @@
             justify-content: space-between;
             gap: 1rem;
             color: var(--lwc-hero-ink);
-            font-size: clamp(0.75rem, 1.8vw, 0.92rem);
+            font-size: clamp(0.86rem, 1.25vw, 1.05rem);
             line-height: 1;
             font-weight: 700;
+            letter-spacing: 0.02em;
         }
 
         .lwc-home-hero-brand {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.62rem;
             color: inherit;
             text-decoration: none;
             white-space: nowrap;
         }
 
         .lwc-home-hero-brand img {
-            width: 1.125rem;
-            height: 1.125rem;
+            width: 1.45rem;
+            height: 1.45rem;
             object-fit: contain;
             filter: invert(1) brightness(1.45);
         }
@@ -565,6 +566,15 @@
             text-align: center;
         }
 
+        .lwc-home-hero-arena-placeholder.is-empty {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 9rem;
+            color: rgba(248, 247, 239, 0.82);
+        }
+
         .lwc-home-hero-arena-athlete {
             appearance: none;
             -webkit-appearance: none;
@@ -572,7 +582,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            min-height: 16.8rem;
+            min-height: 19.5rem;
             padding: 0.9rem 0.7rem 0.8rem;
             color: var(--lwc-hero-ink);
             font: inherit;
@@ -583,7 +593,6 @@
 
         .lwc-home-hero-arena-athlete.first {
             order: 1;
-            min-height: 19.5rem;
             border-color: rgba(212, 175, 55, 0.46);
             background: linear-gradient(180deg, rgba(248, 247, 239, 0.14), rgba(212, 175, 55, 0.08));
         }
@@ -614,8 +623,8 @@
         }
 
         .lwc-home-hero-arena-athlete img {
-            width: clamp(4.25rem, 6.2vw, 5.5rem);
-            height: clamp(4.25rem, 6.2vw, 5.5rem);
+            width: clamp(5rem, 7vw, 6.35rem);
+            height: clamp(5rem, 7vw, 6.35rem);
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid rgba(67, 238, 131, 0.72);
@@ -623,8 +632,6 @@
         }
 
         .lwc-home-hero-arena-athlete.first img {
-            width: clamp(5rem, 7vw, 6.35rem);
-            height: clamp(5rem, 7vw, 6.35rem);
             border-color: rgba(212, 175, 55, 0.9);
         }
 
@@ -1205,6 +1212,20 @@
                 padding: 1rem 1.125rem 1.05rem;
             }
 
+            .lwc-home-hero-nav {
+                font-size: clamp(0.75rem, 3vw, 0.86rem);
+                letter-spacing: 0;
+            }
+
+            .lwc-home-hero-brand {
+                gap: 0.5rem;
+            }
+
+            .lwc-home-hero-brand img {
+                width: 1.125rem;
+                height: 1.125rem;
+            }
+
             .lwc-home-hero-mark {
                 width: 36rem;
                 left: -9rem;
@@ -1316,6 +1337,11 @@
                 min-height: 6.5rem;
                 padding: 0.55rem 0.35rem;
                 font-size: 0.68rem;
+            }
+
+            .lwc-home-hero-arena-placeholder.is-empty {
+                min-height: 5rem;
+                padding: 0.65rem;
             }
 
             .lwc-home-hero-arena-athlete,
@@ -3432,7 +3458,16 @@
                         ? event.detail.crowdAgeMinimumGuessCount
                         : 100;
                     const picks = buildHeadlinePicks(athletes, crowdAgeMinimumGuessCount);
-                    if (picks.length < 3) return;
+                    if (picks.length < 3) {
+                        const empty = document.createElement('div');
+                        empty.className = 'lwc-home-hero-arena-placeholder is-empty';
+                        empty.textContent = athletes.length > 0
+                            ? 'Standings are filling in.'
+                            : 'Standings awaiting athlete data.';
+                        preview.replaceChildren(empty);
+                        preview.classList.add('is-loaded');
+                        return;
+                    }
 
                     const fragment = document.createDocumentFragment();
                     const rankClasses = ['first', 'second', 'third'];

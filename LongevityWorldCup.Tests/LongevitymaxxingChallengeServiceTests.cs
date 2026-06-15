@@ -333,6 +333,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.True(aliceDay1.CheckedIn);
         Assert.False(aliceDay1.CountsForScore);
         Assert.Null(aliceDay1.Score);
+        Assert.Null(aliceDay1.Sleep);
+        Assert.Null(aliceDay1.Exercise);
+        Assert.Null(aliceDay1.Nutrition);
+        Assert.Null(aliceDay1.Vices);
         Assert.DoesNotContain("Sleep", alicePractice.Badges);
 
         fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
@@ -347,6 +351,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var scoredState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
         Assert.Equal("Bob", scoredState.Leaderboard[0].DisplayName);
         Assert.Equal(8, scoredState.Leaderboard[0].TotalPoints);
+        var bobDay2 = scoredState.Leaderboard[0].Cells.Single(cell => cell.ChallengeDay == 2);
+        Assert.Equal(2, bobDay2.Sleep);
+        Assert.Equal(2, bobDay2.Exercise);
+        Assert.Equal(2, bobDay2.Nutrition);
+        Assert.Equal(2, bobDay2.Vices);
         Assert.Equal("Alice", scoredState.Leaderboard[1].DisplayName);
         Assert.Equal(0, scoredState.Leaderboard[1].TotalPoints);
     }

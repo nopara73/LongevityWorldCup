@@ -188,7 +188,6 @@
         color:transparent;
     }
 
-    .leaderboard table tbody.loading-skeleton .sponsor-td,
     .leaderboard table tbody.loading-skeleton .age-reduction,
     .leaderboard table tbody.loading-skeleton .media-contact-td{
         color:transparent;
@@ -219,9 +218,6 @@
     .leaderboard > table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
 
     .leaderboard td{ text-align:center; }
-
-    .leaderboard table .sponsor-th,
-    .leaderboard table .sponsor-td{ display:none; }
 
     /* Scoped header styles – do NOT affect the modal info table */
     .leaderboard table th{
@@ -612,8 +608,35 @@
     }
     .leaderboard-toolbar .search-wrapper{ margin-bottom:0; }
     .leaderboard-toolbar .leaderboard-view-switcher{ margin-bottom:0; }
+    .leaderboard-ranking-explainer{
+        flex:1 1 100%;
+        order:3;
+        margin:-.15rem 0 0;
+        padding:.82rem .95rem;
+        border:1px solid var(--surface-border, rgba(28,39,34,.12));
+        border-radius:var(--radius-card, 8px);
+        background:var(--card-bg, #fffefa);
+        box-shadow:var(--surface-shadow, 0 4px 10px rgba(28,39,34,.08));
+        color:var(--text-soft, #33423b);
+        font-size:.92rem;
+        line-height:1.42;
+    }
+    .leaderboard-ranking-explainer strong{
+        color:var(--primary-color, #0b7d45);
+        font-weight:800;
+    }
+    .leaderboard-ranking-explainer a{
+        color:var(--primary-color, #0b7d45);
+        font-weight:800;
+        text-decoration:underline;
+        text-underline-offset:.16em;
+    }
     @media (min-width: 769px){
-        .leaderboard-toolbar{ flex-wrap:nowrap; }
+        .leaderboard-toolbar{ flex-wrap:wrap; }
+        .leaderboard-ranking-explainer{
+            order:4;
+            margin-top:-.25rem;
+        }
     }
     .leaderboard-sparse-state{
         display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin:-.25rem 0 1rem; padding:.85rem 1rem;
@@ -626,7 +649,7 @@
     .leaderboard-sparse-title{ margin:0; font-size:.92rem; font-weight:800; color:var(--primary-color); }
     .leaderboard-sparse-detail{ margin:0; font-size:.88rem; line-height:1.4; color:var(--text-muted, #46554d); }
     .leaderboard-sparse-count{
-        flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; min-width:3.1rem; min-height:3.1rem; padding:.35rem .55rem;
+        flex:0 0 auto; display:none; align-items:center; justify-content:center; min-width:3.1rem; min-height:3.1rem; padding:.35rem .55rem;
         border:1px solid var(--surface-border-strong); border-radius:999px; background:var(--surface-green-tint); color:var(--primary-color);
         box-sizing:border-box; font-family:var(--display-font); font-size:1.55rem; line-height:1; font-weight:400; font-synthesis:none;
     }
@@ -2126,13 +2149,16 @@
         .leaderboard table tbody tr:hover{
             transform:none;
         }
-        .leaderboard table .sponsor-th,
-        .leaderboard table .sponsor-td,
         .leaderboard table .media-contact-th,
         .leaderboard table .media-contact-td{
             display:none;
         }
-        .leaderboard table td .badge-section{ display:none; }
+        .leaderboard table td .badge-section{
+            display:flex;
+            flex-wrap:nowrap;
+            max-width:7.4rem;
+            overflow:hidden;
+        }
     }
 
     @media (max-width: 900px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
@@ -2185,13 +2211,22 @@
         .leaderboard-view-switcher .view-badge-suffix{
             display:none;
         }
+        .leaderboard-ranking-explainer{
+            order:2;
+            width:min(100%, 26rem);
+            max-width:100%;
+            margin:0;
+            padding:.78rem .9rem;
+            font-size:.92rem;
+            box-sizing:border-box;
+        }
         .search-container{ flex:1 1 auto; min-width:0; width:auto; max-width:none; margin-top:0; margin-right:0; }
-        #athleteSearch{ padding:.5rem 5.4rem .5rem 1rem; font-size:1rem; }
+        #athleteSearch{ padding:.5rem 4.35rem .5rem 1rem; font-size:1rem; }
         .search-icon{ right:1rem; }
         .clear-icon{ right:2.2rem; }
         .search-wrapper{
             display:flex; align-items:center; gap:.45rem; flex:0 1 auto; min-width:0;
-            width:min(100%, 26rem); max-width:100%; order:2;
+            width:min(100%, 26rem); max-width:100%; order:3;
         }
         .leaderboard-sparse-state{
             align-items:stretch; flex-direction:column; gap:.65rem;
@@ -2352,13 +2387,16 @@
         }
         .leaderboard table th:last-child,
         .leaderboard table td:last-child{ padding-right:0.5rem; }
-        .leaderboard table .sponsor-th,
-        .leaderboard table .sponsor-td{ display:none; }
         .leaderboard table .media-contact-th,
         .leaderboard table .media-contact-td{ display:none; }
-        .leaderboard table th:nth-child(4),
-        .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
-        .leaderboard table td .badge-section{ display:none; }
+        .leaderboard table th.score-th,
+        .leaderboard table td.age-reduction-td{ padding-right:0.5rem; }
+        .leaderboard table td .badge-section{
+            display:flex;
+            flex-wrap:nowrap;
+            max-width:7rem;
+            overflow:hidden;
+        }
         .leaderboard table th{
             font-size:.66rem;
             line-height:1.05;
@@ -2380,7 +2418,7 @@
             grid-column:2;
             width:auto;
         }
-        .leaderboard table th:nth-child(4),
+        .leaderboard table th.score-th,
         .leaderboard table td.age-reduction-td{
             grid-column:3;
             width:auto;
@@ -2389,11 +2427,11 @@
             padding-right:.55rem;
             box-sizing:border-box;
         }
-        .leaderboard table th:nth-child(4) a{
+        .leaderboard table th.score-th a{
             max-width:100%;
             white-space:normal;
         }
-        .leaderboard table th:nth-child(4) .score-heading-detail{
+        .leaderboard table th.score-th .score-heading-detail{
             display:none;
         }
         .leaderboard table td.rank-td{
@@ -2404,14 +2442,22 @@
             font-size:1.05rem;
         }
         .leaderboard .athlete-td{
-            display:flex;
-            gap:.45rem;
+            display:grid;
+            grid-template-columns:var(--leaderboard-mobile-portrait-size, 38px) minmax(0, 1fr);
+            column-gap:.45rem;
+            row-gap:.12rem;
             align-items:center;
             min-width:0;
             padding-right:.25rem;
             overflow:hidden;
         }
+        .leaderboard .athlete-td .portrait-wrapper{
+            grid-column:1;
+            grid-row:1 / span 2;
+        }
         .leaderboard .athlete-identity{
+            grid-column:2;
+            grid-row:1;
             min-width:0;
             max-width:100%;
             gap:.12rem;
@@ -2423,6 +2469,14 @@
             overflow:hidden;
             text-overflow:ellipsis;
             white-space:nowrap;
+        }
+        .leaderboard table td .badge-section{
+            grid-column:2;
+            grid-row:2;
+            max-width:100%;
+            min-width:0;
+            gap:.12rem;
+            align-self:start;
         }
         .leaderboard .age-reduction{
             display:block;
@@ -2441,13 +2495,13 @@
         }
 
         @media (min-width: 601px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-            .leaderboard table th:nth-child(4),
+            .leaderboard table th.score-th,
             .leaderboard table td.age-reduction-td{
                 width:6.5rem;
                 min-width:0;
             }
 
-            .leaderboard table th:nth-child(4) a{
+            .leaderboard table th.score-th a{
                 white-space:nowrap;
                 letter-spacing:.02em;
                 padding-left:.1rem;
@@ -2556,7 +2610,7 @@
                 font-size: 0.76rem;
             }
 
-            .leaderboard table th:nth-child(4),
+            .leaderboard table th.score-th,
             .leaderboard table td.age-reduction-td {
                 width: 5.1rem;
                 min-width: 0;
@@ -2564,12 +2618,12 @@
                 padding-right: 0.4rem;
             }
 
-            .leaderboard table th:nth-child(4) {
+            .leaderboard table th.score-th {
                 text-align: center;
                 padding-right: 0.25rem;
             }
 
-            .leaderboard table th:nth-child(4) a {
+            .leaderboard table th.score-th a {
                 display: inline-flex;
                 max-width: 5.4rem;
                 line-height: 1.12;
@@ -2628,7 +2682,7 @@
                 font-size: 0.76rem;
             }
 
-            .leaderboard table th:nth-child(4),
+            .leaderboard table th.score-th,
             .leaderboard table td.age-reduction-td {
                 width: 5.1rem;
                 min-width: 0;
@@ -2636,12 +2690,12 @@
                 padding-right: 0.4rem;
             }
 
-            .leaderboard table th:nth-child(4) {
+            .leaderboard table th.score-th {
                 text-align: center;
                 padding-right: 0.25rem;
             }
 
-            .leaderboard table th:nth-child(4) a {
+            .leaderboard table th.score-th a {
                 display: inline-flex;
                 max-width: 5.4rem;
                 line-height: 1.12;
@@ -2898,10 +2952,20 @@
             font-size:.78rem;
         }
 
+        .leaderboard-ranking-explainer{
+            order:2;
+            flex:1 1 100%;
+            width:100%;
+            max-width:none;
+            padding:.55rem .7rem;
+            font-size:.78rem;
+            line-height:1.3;
+        }
+
         .search-wrapper{
             width:auto;
             flex:1 1 17rem;
-            order:0;
+            order:3;
             justify-content:flex-end;
         }
 
@@ -3108,6 +3172,7 @@
                     <input type="radio" name="leaderboardView" id="view-bortz-improvement" value="bortz-improvement" aria-label="Bortz Improvement ranking" tabindex="-1" aria-hidden="true">
                 </div>
             </div>
+            <p id="leaderboardRankingExplainer" class="leaderboard-ranking-explainer" aria-live="polite"><strong>Ultimate standings</strong> rank Pro Bortz Age before Amateur Pheno Age. More reduction ranks higher. <a href="/ruleset#point-system-ranking">How ranking works</a>.</p>
             <div class="search-wrapper">
                 <div class="search-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
                     <label for="athleteSearch" class="visually-hidden">Search athletes</label>
@@ -3148,31 +3213,31 @@
                     <ul>
                         <li>
                             <label data-aging-clock-view="bortz">
-                                <input type="checkbox" name="agingClockView" value="bortz">
+                                <input type="checkbox" name="agingClockView" value="bortz" aria-label="Filter by Bortz Age">
                                 <i class="fas fa-droplet filter-glyph" aria-hidden="true"></i> Bortz Age (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="pheno">
-                                <input type="checkbox" name="agingClockView" value="pheno">
+                                <input type="checkbox" name="agingClockView" value="pheno" aria-label="Filter by Pheno Age">
                                 <i class="fas fa-droplet filter-glyph" aria-hidden="true"></i> Pheno Age (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="improvement">
-                                <input type="checkbox" name="agingClockView" value="improvement">
+                                <input type="checkbox" name="agingClockView" value="improvement" aria-label="Filter by Pheno Improvement">
                                 <i class="fas fa-arrow-trend-down filter-glyph" aria-hidden="true"></i> Pheno Improvement (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="bortz-improvement">
-                                <input type="checkbox" name="agingClockView" value="bortz-improvement">
+                                <input type="checkbox" name="agingClockView" value="bortz-improvement" aria-label="Filter by Bortz Improvement">
                                 <i class="fas fa-arrow-trend-down filter-glyph" aria-hidden="true"></i> Bortz Improvement (<span class="filter-count">0</span>)
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="crowd">
-                                <input type="checkbox" name="agingClockView" value="crowd">
+                                <input type="checkbox" name="agingClockView" value="crowd" aria-label="Filter by Crowd Age">
                                 <i class="fas fa-users filter-glyph" aria-hidden="true"></i> Crowd Age (<span class="filter-count">0</span>)
                             </label>
                         </li>
@@ -3205,7 +3270,6 @@
                 <tr>
                     <th>Rank</th>
                     <th>Athlete</th>
-                    <th class="sponsor-th">Sponsor</th>
                     <th class="score-th">
                         <a href="/ruleset#point-system" class="leaderboard-score-header">
                             <span id="leaderboardMetricHeader" class="score-heading-label">Score</span>
@@ -3223,7 +3287,6 @@
                         <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
                         <span class="athlete-name skeleton-shimmer"></span>
                     </td>
-                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 </tr>
@@ -3233,7 +3296,6 @@
                         <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
                         <span class="athlete-name skeleton-shimmer"></span>
                     </td>
-                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 </tr>
@@ -3243,7 +3305,6 @@
                         <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
                         <span class="athlete-name skeleton-shimmer"></span>
                     </td>
-                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 </tr>
@@ -3253,7 +3314,6 @@
                         <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
                         <span class="athlete-name skeleton-shimmer"></span>
                     </td>
-                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 </tr>
@@ -3263,7 +3323,6 @@
                         <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
                         <span class="athlete-name skeleton-shimmer"></span>
                     </td>
-                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 </tr>
@@ -3273,7 +3332,6 @@
                         <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
                         <span class="athlete-name skeleton-shimmer"></span>
                     </td>
-                    <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                     <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 </tr>
@@ -3475,7 +3533,6 @@
             </span>
             <div class="badge-section"></div>
         </td>
-        <td data-label="Sponsor" class="sponsor-td"></td>
         <td data-label="Age reduction" class="age-reduction-td">
             <span class="age-reduction"></span>
         </td>
@@ -4418,7 +4475,7 @@
 
                 if (includePodium) {
                     // Fetch the total prize fund from the backend API and calculate prize money
-                    fetch('/api/bitcoin/total-received')
+                    fetch('/api/bitcoin/total-received', { keepalive: true })
                         .then(response => response.json())
                         .then(data => {
                             const totalReceivedSatoshis = data.totalReceivedSatoshis;
@@ -4426,24 +4483,35 @@
                             const prizeFundBTC = totalReceivedBTC * 0.9; // 90% of total received
 
                             // Fetch current BTC to USD exchange rate
-                            fetch(`/api/bitcoin/btcusd`)
+                            fetch(`/api/bitcoin/btcusd`, { keepalive: true })
                                 .then(response => response.json())
+                                .catch(error => {
+                                    if (document.visibilityState === 'hidden') return null;
+                                    console.warn('BTC exchange rate unavailable; showing BTC prizes only.', error);
+                                    return null;
+                                })
                                 .then(tickerData => {
-                                    const btcToUsdRate = tickerData.btcToUsdRate;
+                                    const btcToUsdRate = Number(tickerData?.btcToUsdRate);
+                                    const hasUsdRate = Number.isFinite(btcToUsdRate) && btcToUsdRate > 0;
 
                                     // Calculate prize moneys
                                     const firstPlaceBTC = prizeFundBTC * 0.6;
                                     const secondPlaceBTC = prizeFundBTC * 0.25;
                                     const thirdPlaceBTC = prizeFundBTC * 0.15;
 
-                                    const firstPlaceUSD = firstPlaceBTC * btcToUsdRate;
-                                    const secondPlaceUSD = secondPlaceBTC * btcToUsdRate;
-                                    const thirdPlaceUSD = thirdPlaceBTC * btcToUsdRate;
-
                                     const prizeMoney = {
-                                        1: { btc: firstPlaceBTC.toFixed(8) + " BTC", amount: "$" + firstPlaceUSD.toFixed(2) },
-                                        2: { btc: secondPlaceBTC.toFixed(8) + " BTC", amount: "$" + secondPlaceUSD.toFixed(2) },
-                                        3: { btc: thirdPlaceBTC.toFixed(8) + " BTC", amount: "$" + thirdPlaceUSD.toFixed(2) }
+                                        1: {
+                                            btc: hasUsdRate ? firstPlaceBTC.toFixed(8) + " BTC" : "",
+                                            amount: hasUsdRate ? "$" + (firstPlaceBTC * btcToUsdRate).toFixed(2) : firstPlaceBTC.toFixed(8) + " BTC"
+                                        },
+                                        2: {
+                                            btc: hasUsdRate ? secondPlaceBTC.toFixed(8) + " BTC" : "",
+                                            amount: hasUsdRate ? "$" + (secondPlaceBTC * btcToUsdRate).toFixed(2) : secondPlaceBTC.toFixed(8) + " BTC"
+                                        },
+                                        3: {
+                                            btc: hasUsdRate ? thirdPlaceBTC.toFixed(8) + " BTC" : "",
+                                            amount: hasUsdRate ? "$" + (thirdPlaceBTC * btcToUsdRate).toFixed(2) : thirdPlaceBTC.toFixed(8) + " BTC"
+                                        }
                                     };
                                     // Get the top three athletes from athleteResults
                                     const topThree = athleteResults.slice(0, 3);
@@ -4500,7 +4568,7 @@
                                             <div class="podium-item-lower">
                                                 <div class="prize-caption">Prize</div>
                                                 <div class="prize-money">${prizeMoney[athlete.rank].amount}</div>
-                                                <div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>
+                                                ${prizeMoney[athlete.rank].btc ? `<div class="btc-amount">(${prizeMoney[athlete.rank].btc})</div>` : ''}
                                             </div>
                                         `;
 
@@ -4547,14 +4615,6 @@
                                         performFilter();
                                     }
                                 })
-                                .catch(error => {
-                                    const podium = document.querySelector('.podium');
-                                    if (podium) {
-                                        podium.innerHTML = '';
-                                        podium.setAttribute('aria-busy', 'false');
-                                    }
-                                    console.error('Error fetching BTC exchange rate:', error);
-                                });
                         })
                         .catch(error => {
                             const podium = document.querySelector('.podium');
@@ -4596,7 +4656,7 @@
                         const sep = document.createElement('tr');
                         sep.className = 'tier-separator';
                         sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
-                        sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
+                        sep.innerHTML = '<td colspan="4" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
                         tableBody.appendChild(sep);
                     }
                     if (rowWillBeVisibleInTable) {
@@ -4678,6 +4738,10 @@
                     tableBody.appendChild(row);
                 });
 
+                if (athleteResults.length === 0) {
+                    displayNoResults([], [], '', 'ultimate');
+                }
+
                 const hash = window.location.hash;
                 if (hash && /^#rank-\d+$/.test(hash)) {
                     const el = document.querySelector(hash);
@@ -4708,12 +4772,16 @@
                     }
                 } else {
                     let searchOrFilterApplied = false; // Flag to check if filter was applied
+                    let shouldAutoScrollToSearch = false;
                     const searchParam = new URLSearchParams(window.location.search).get('search') || '';
+                    const searchInput = document.getElementById('athleteSearch');
                     if (searchParam) {
                         var query = decodeURIComponent(searchParam);
-                        const searchInput = document.getElementById('athleteSearch');
-                        searchInput.value = query;
+                        if (searchInput) {
+                            searchInput.value = query;
+                        }
                         searchOrFilterApplied = true;
+                        shouldAutoScrollToSearch = true;
                     }
 
                     const filtersParam = new URLSearchParams(window.location.search).get('filters');
@@ -4731,6 +4799,7 @@
                             });
                         });
                         searchOrFilterApplied = true;
+                        shouldAutoScrollToSearch = true;
                     } else if (leagueRouteState.filterLabel) {
                         const normalizedFilter = leagueRouteState.filterLabel.trim().toLowerCase();
                         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
@@ -4739,6 +4808,7 @@
                             }
                         });
                         searchOrFilterApplied = true;
+                        shouldAutoScrollToSearch = true;
                     }
 
                     const rawViewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
@@ -4756,12 +4826,17 @@
                     if (searchOrFilterApplied) {
                         debounceFilterAthletes();
 
-                        // Even here scroll to the search when filter applied because the table kinda starts there conceptually
-                        setTimeout(() => {
-                            if (canAutoScroll()) {
-                                searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        }, 1000);
+                        if (shouldAutoScrollToSearch) {
+                            const scrollTarget = document.getElementById('leaderboardRankingExplainer') || searchInput;
+                            setTimeout(() => {
+                                if (canAutoScroll() && scrollTarget) {
+                                    scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }, 1000);
+                        }
+                    }
+                    else {
+                        performFilter();
                     }
                 }
 
@@ -4779,7 +4854,7 @@
                     tableBody.setAttribute('aria-busy', 'false');
                     tableBody.removeAttribute('data-hydrating');
                     if (!hasServerRenderedLeaderboardRows(tableBody)) {
-                        tableBody.innerHTML = '<tr><td colspan="5" class="no-results">Failed to load leaderboard.</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="4" class="no-results">Failed to load leaderboard.</td></tr>';
                     }
                 }
                 const podium = document.querySelector('.podium');
@@ -4825,7 +4900,6 @@
                     <span class="portrait-wrapper"><span class="leaderboard-portrait-skeleton skeleton-shimmer"></span></span>
                     <span class="athlete-name skeleton-shimmer"></span>
                 </td>
-                <td data-label="Sponsor" class="sponsor-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 <td data-label="Age reduction" class="age-reduction-td"><span class="age-reduction leaderboard-skeleton-block skeleton-shimmer"></span></td>
                 <td data-label="Media contact" class="media-contact-td"><span class="leaderboard-skeleton-block skeleton-shimmer"></span></td>
             </tr>
@@ -5683,6 +5757,23 @@
         return `${url.pathname}${url.search}${url.hash}`;
     };
 
+    function updateRankingExplainer(currentLeaderboardView) {
+        const explainer = document.getElementById('leaderboardRankingExplainer');
+        if (!explainer) return;
+
+        const rulesLink = '<a href="/ruleset#point-system-ranking">How ranking works</a>';
+        const copyByView = {
+            ultimate: `<strong>Ultimate standings</strong> rank Pro Bortz Age before Amateur Pheno Age. More reduction ranks higher. ${rulesLink}.`,
+            bortz: `<strong>Bortz Age</strong> ranks eligible Pro blood tests by age reduction. ${rulesLink}.`,
+            pheno: `<strong>Pheno Age</strong> ranks eligible Amateur blood tests by age reduction. ${rulesLink}.`,
+            improvement: `<strong>Pheno Improvement</strong> ranks latest Pheno Age against worst eligible Pheno Age. ${rulesLink}.`,
+            'bortz-improvement': `<strong>Bortz Improvement</strong> ranks latest Bortz Age against worst eligible Bortz Age. ${rulesLink}.`,
+            crowd: `<strong>Crowd Age</strong> ranks athletes with 100+ accepted guesses by visual age reduction. ${rulesLink}.`
+        };
+
+        explainer.innerHTML = copyByView[currentLeaderboardView] || copyByView.ultimate;
+    }
+
     function performFilter() {
         // Get selected divisions
         const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
@@ -5709,6 +5800,7 @@
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         syncAgingClockFilters(currentLeaderboardView);
         updateActiveFilterSections();
+        updateRankingExplainer(currentLeaderboardView);
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
         const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -5898,6 +5990,15 @@
         const nonViewFiltersUsed = selectedDivisions.length > 0 || selectedFlags.length > 0 || selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 || leagueTrackFilterActive;
         const filtersUsed = nonViewFiltersUsed || currentLeaderboardView !== 'ultimate';
         const searchUsed = uniqueSearchTerms.length > 0;
+        const selectionNarrowsGroup = (name, selectedLength) => {
+            const total = document.querySelectorAll(`input[name="${name}"]`).length;
+            return selectedLength > 0 && total > 0 && selectedLength < total;
+        };
+        const sparseFiltersUsed = selectionNarrowsGroup('division', selectedDivisions.length)
+            || selectedFlags.length > 0
+            || selectionNarrowsGroup('generation', selectedGenerations.length)
+            || selectedExclusiveLeagues.length > 0
+            || leagueTrackFilterActive;
 
         // If filters are used, reassign ranks starting from 1
         if (filtersUsed && !searchUsed) {
@@ -6038,7 +6139,7 @@
         });
 
         updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView);
-        updateSparseLeaderboardState(currentLeaderboardView, tableVisibleAthletes.length, baseList.length, searchUsed, nonViewFiltersUsed);
+        updateSparseLeaderboardState(currentLeaderboardView, tableVisibleAthletes.length, baseList.length, searchUsed, sparseFiltersUsed);
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query, currentLeaderboardView);
@@ -6104,17 +6205,29 @@
         if (!sparseState || !sparseTitle || !sparseDetail || !sparseCount || !leaderboardShell) return;
 
         const copy = {
+            ultimate: {
+                label: 'Ultimate standings',
+                detail: 'Eligible Bortz or Pheno scores only; more records appear as public proof qualifies.'
+            },
+            bortz: {
+                label: 'Bortz Age field',
+                detail: 'Eligible Pro Bortz Age scores only; more records appear as blood tests qualify.'
+            },
+            pheno: {
+                label: 'Pheno Age field',
+                detail: 'Eligible Amateur Pheno Age scores only; more records appear as blood tests qualify.'
+            },
             crowd: {
                 label: 'Crowd Age field',
-                detail: 'Crowd Age only admits athletes with at least 100 accepted guesses. A short board is expected until more profiles qualify.'
+                detail: 'Requires at least 100 accepted guesses; more profiles qualify as guesses accumulate.'
             },
             improvement: {
                 label: 'Pheno improvement field',
-                detail: "Improvement boards need enough result history to compare latest eligible age against each athlete's worst eligible age."
+                detail: "Requires enough result history to compare latest eligible age against each athlete's worst eligible age."
             },
             'bortz-improvement': {
                 label: 'Bortz improvement field',
-                detail: "Improvement boards need enough result history to compare latest eligible Bortz Age against each athlete's worst eligible Bortz Age."
+                detail: "Requires enough Bortz history to compare latest eligible Bortz Age against each athlete's worst eligible Bortz Age."
             }
         }[currentLeaderboardView];
 
@@ -6123,7 +6236,10 @@
         leaderboardShell.classList.toggle('is-sparse-ranking', shouldShow);
         if (!shouldShow) return;
 
-        sparseTitle.textContent = `${eligibleCount} ${eligibleCount === 1 ? 'athlete qualifies' : 'athletes qualify'} for this ${copy.label}.`;
+        const countText = `${eligibleCount} ${eligibleCount === 1 ? 'athlete qualifies' : 'athletes qualify'}`;
+        sparseTitle.textContent = currentLeaderboardView === 'ultimate'
+            ? `${countText} in ${copy.label}.`
+            : `${countText} for this ${copy.label}.`;
         sparseDetail.textContent = copy.detail;
         sparseCount.textContent = String(eligibleCount);
     }
@@ -6345,19 +6461,34 @@
                 crowd: 'Crowd Age field'
             }[currentLeaderboardView] || 'standings';
             const hasSearch = Boolean(query);
-            const title = hasSearch
+            const noAthleteData = Array.isArray(athleteResults) && athleteResults.length === 0 && !hasSearch;
+            const viewEmptyDetail = {
+                ultimate: 'Athletes appear after an eligible official score is accepted.',
+                bortz: 'Pro athletes appear after an eligible Bortz Age score qualifies.',
+                pheno: 'Amateur athletes appear after an eligible Pheno Age score qualifies.',
+                improvement: 'Athletes appear after enough eligible Pheno history is recorded.',
+                'bortz-improvement': 'Athletes appear after enough eligible Bortz history is recorded.',
+                crowd: 'Athletes appear after 100 accepted age guesses.'
+            }[currentLeaderboardView] || 'Athletes appear after enough official data qualifies.';
+            const title = noAthleteData
+                ? 'Standings data is unavailable.'
+                : hasSearch
                 ? 'No athletes match this search.'
                 : `No eligible athletes in the ${viewLabel} yet.`;
-            const detail = hasSearch
+            const detail = noAthleteData
+                ? 'The official board will refresh when athlete records load.'
+                : hasSearch
                 ? 'Clear the search or filters to return to the official standings.'
-                : 'This view only admits athletes with enough public proof for the selected score.';
+                : viewEmptyDetail;
+            const actionLabel = noAthleteData ? 'Reload standings' : 'Show full standings';
+            const actionAttribute = noAthleteData ? ' data-empty-action="reload"' : '';
             noResults.classList.add('no-results');
             noResults.innerHTML = `
                 <td colspan="6">
                     <div class="no-results-empty-state">
                         <p class="no-results-empty-title">${title}</p>
                         <p class="no-results-empty-detail">${detail}</p>
-                        <button type="button" class="show-all-athletes-btn">Show full standings</button>
+                        <button type="button" class="show-all-athletes-btn"${actionAttribute}>${actionLabel}</button>
                     </div>
                 </td>`;
             tableBody.appendChild(noResults);
@@ -6470,6 +6601,10 @@
         if (!event.target.closest('.show-all-athletes-btn')) return;
 
         event.preventDefault();
+        if (event.target.closest('.show-all-athletes-btn').dataset.emptyAction === 'reload') {
+            window.location.reload();
+            return;
+        }
         showAllAthletes();
     });
 
@@ -6554,12 +6689,13 @@
         Object.keys(divisionCounts).forEach(division => {
             const count = divisionCounts[division];
             const icon = filterGlyph('division', division);
+            const labelText = division.charAt(0).toUpperCase() + division.slice(1);
 
             const li = document.createElement('li');
             li.innerHTML = `
         <label data-division="${division}">
-            <input type="checkbox" name="division" value="${division}">
-            ${icon} ${division.charAt(0).toUpperCase() + division.slice(1)} (<span class="filter-count">${count}</span>)
+            <input type="checkbox" name="division" value="${division}" aria-label="Filter by ${labelText}">
+            ${icon} ${labelText} (<span class="filter-count">${count}</span>)
         </label>
     `;
             filterSection.appendChild(li);
@@ -6581,7 +6717,7 @@
                 const li = document.createElement('li');
                 li.innerHTML = `
             <label data-flag="${escapeHtml(name)}" data-flag-key="${escapeHtml(flagKey)}">
-                <input type="checkbox" name="flag" value="${escapeHtml(name)}">
+                <input type="checkbox" name="flag" value="${escapeHtml(name)}" aria-label="Filter by ${escapeHtml(name)} flag">
                 ${renderFlagLabel(name)} (<span class="filter-count">${count}</span>)
             </label>
         `;
@@ -6616,7 +6752,7 @@
                 const li = document.createElement('li');
                 li.innerHTML = `
             <label data-generation="${generation}">
-                <input type="checkbox" name="generation" value="${generation}">
+                <input type="checkbox" name="generation" value="${generation}" aria-label="Filter by ${generation}">
                 ${icon} ${generation} (<span class="filter-count">${count}</span>)
             </label>
         `;
@@ -6642,7 +6778,7 @@
             const li = document.createElement('li');
             li.innerHTML = `
             <label data-exclusive-league="Prosperan">
-                <input type="checkbox" name="exclusiveLeague" value="Prosperan">
+                <input type="checkbox" name="exclusiveLeague" value="Prosperan" aria-label="Filter by Prosperan">
                 ${filterGlyph('exclusive', 'Prosperan')} Prosperan (<span class="filter-count">${prosperanCount}</span>)
             </label>
         `;
@@ -6674,7 +6810,7 @@
             const li = document.createElement('li');
             li.innerHTML = `
                 <label data-league-track="${value}">
-                    <input type="checkbox" name="leagueTrack" value="${value}">
+                    <input type="checkbox" name="leagueTrack" value="${value}" aria-label="Filter by ${label} track">
                     ${icon} ${label} (<span class="filter-count">${count}</span>)
                 </label>
             `;

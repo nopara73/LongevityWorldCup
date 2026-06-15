@@ -872,7 +872,7 @@
             <label>
                 <span>Title</span>
                 <div class="editor-wrap">
-                    <input id="titleInput" type="text" value="New community update is live" />
+                    <input id="titleInput" type="text" value="New community update is live" aria-label="Event title" />
                 </div>
             </label>
 
@@ -888,11 +888,11 @@
             <div>
                 <div style="margin-bottom:6px;font-size:13px;">Send to</div>
                 <div class="checks">
-                    <label class="check"><input id="sendWebpage" type="checkbox" checked /><span>Webpage</span></label>
-                    <label class="check"><input id="sendSlack" type="checkbox" checked /><span>Slack</span></label>
-                    <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
-                    <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
-                    <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
+                    <label class="check"><input id="sendWebpage" type="checkbox" checked aria-label="Send to webpage" /><span>Webpage</span></label>
+                    <label class="check"><input id="sendSlack" type="checkbox" checked aria-label="Send to Slack" /><span>Slack</span></label>
+                    <label class="check"><input id="sendX" type="checkbox" checked aria-label="Send to X" /><span>X</span></label>
+                    <label class="check"><input id="sendThreads" type="checkbox" aria-label="Send to Threads" /><span>Threads</span></label>
+                    <label class="check"><input id="sendFacebook" type="checkbox" aria-label="Send to Facebook" /><span>Facebook</span></label>
                 </div>
             </div>
 
@@ -900,7 +900,7 @@
                 <h2>Direct Queue</h2>
                 <label>
                     <span>Secret</span>
-                    <input id="designerSecretInput" type="password" autocomplete="off" />
+                    <input id="designerSecretInput" type="password" autocomplete="off" aria-label="Designer secret" />
                 </label>
                 <div class="payload-actions">
                     <button id="generateSecretHashBtn" class="secondary" type="button">Generate Config Hash</button>
@@ -930,7 +930,7 @@
 
             <details class="payload-box">
                 <summary>Manual server command fallback</summary>
-                <textarea id="commandOutput" class="token" readonly></textarea>
+                <textarea id="commandOutput" class="token" readonly aria-label="Manual server command"></textarea>
                 <div class="payload-actions">
                     <button id="copyCommandBtn" class="secondary" type="button">Copy Command</button>
                     <div id="copyState" style="font-size:12px;color:var(--muted);"></div>
