@@ -3,7 +3,7 @@ namespace LongevityWorldCup.Website.Business;
 public static class DiscountCodes
 {
     public const string MightyKlaus = "mightyklaus";
-    public const decimal MightyKlausPercent = 40m;
+    public const decimal MightyKlausPercent = 70m;
 
     public static string? Normalize(string? value)
     {

@@ -126,7 +126,8 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_LONGEVITYMAXXING_JS}}", _assetVersionProvider.AppendVersion("/js/longevitymaxxing.js"))
                         .Replace("{{ASSET_CUSTOM_EVENT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/custom_event.png"))
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
-                        .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"));
+                        .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"))
+                        .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context));
                     bodyContent = ApplySharedAssetPlaceholders(bodyContent);
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
@@ -245,6 +246,20 @@ namespace LongevityWorldCup.Website.Middleware
             var canonicalPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
             return string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
                    !context.Request.QueryString.HasValue;
+        }
+
+        private static string GetRequestCountryCode(HttpContext context)
+        {
+            var countryCode = context.Request.Headers["CF-IPCountry"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(countryCode))
+            {
+                return string.Empty;
+            }
+
+            countryCode = countryCode.Trim().ToUpperInvariant();
+            return countryCode.Length == 2 && countryCode.All(static c => c is >= 'A' and <= 'Z')
+                ? countryCode
+                : string.Empty;
         }
 
         private static string ResolveWebRootPath(IWebHostEnvironment environment)
