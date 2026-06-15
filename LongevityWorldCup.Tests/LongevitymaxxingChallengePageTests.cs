@@ -211,9 +211,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("lmx-cell-strip", javascript);
         Assert.DoesNotContain("S/E/N/V dots show habit gaps", javascript);
         Assert.Contains("function scoredDayCellHtml", javascript);
+        Assert.Contains("function practiceDayCellHtml", javascript);
+        Assert.Contains("lmx-cell lmx-cell-breakdown practice", javascript);
         Assert.Contains("function habitBreakdown", javascript);
         Assert.Contains("function habitCellTitle", javascript);
-        Assert.Contains("data-label=\"Days\"", javascript);
+        Assert.DoesNotContain("data-label=\"Days\"", javascript);
+        Assert.DoesNotContain("data-label=\"Streak\"", javascript);
         Assert.Contains("Need participant access?", javascript);
         Assert.Contains("Already joined or opened this page in a new browser?", javascript);
         Assert.Contains("Send participant link", javascript);

@@ -1080,10 +1080,10 @@ public sealed class LongevitymaxxingChallengeService
                         true,
                         CountsForScore(day) ? GetScoredPoints(checkIn, settings.DurationDays) : null,
                         CountsForScore(day),
-                        CountsForScore(day) ? checkIn.Sleep : null,
-                        CountsForScore(day) ? checkIn.Exercise : null,
-                        CountsForScore(day) ? checkIn.Nutrition : null,
-                        CountsForScore(day) ? checkIn.Vices : null)
+                        checkIn.Sleep,
+                        checkIn.Exercise,
+                        checkIn.Nutrition,
+                        checkIn.Vices)
                     : new LongevitymaxxingDayCell(day, false, null, CountsForScore(day), null, null, null, null))
                 .ToList();
 

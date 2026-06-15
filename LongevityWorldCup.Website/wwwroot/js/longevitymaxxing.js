@@ -618,26 +618,36 @@
             const cells = (row.cells || []).map(cell => {
                 if (!cell.checkedIn) return `<div class="lmx-cell empty" title="Day ${cell.challengeDay}"></div>`;
                 if (cell.countsForScore === false) {
-                    return `<div class="lmx-cell practice" title="Day ${cell.challengeDay}: practice check-in" aria-label="Day ${cell.challengeDay}: practice check-in">P</div>`;
+                    return practiceDayCellHtml(cell);
                 }
                 return scoredDayCellHtml(cell);
             }).join("");
             return `<div class="lmx-board-row" role="row">
                 <div class="lmx-name" role="cell">${participant}<div class="lmx-badges">${badges}</div></div>
-                <div class="lmx-number" role="cell" data-label="Days">${row.checkedInDays}</div>
                 <div class="lmx-number" role="cell" data-label="Score">${row.totalPoints}</div>
-                ${publicViewer ? "" : `<div class="lmx-number" role="cell" data-label="Streak">${row.currentStreak}</div>`}
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
             </div>`;
         }).join("");
 
         board.innerHTML = `<div class="lmx-board-row header" role="row">
             <div role="columnheader">Participant</div>
-            <div role="columnheader">Days</div>
             <div role="columnheader">Score</div>
-            ${publicViewer ? "" : `<div role="columnheader">Streak</div>`}
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
         </div>${rows || emptyBoardRow(state.durationDays || 14, publicViewer)}`;
+    }
+
+    function practiceDayCellHtml(cell) {
+        const breakdown = habitBreakdown(cell);
+        const title = practiceCellTitle(cell, breakdown);
+        if (!breakdown.length) {
+            return `<div class="lmx-cell practice" title="${escAttr(title)}" aria-label="${escAttr(title)}">P</div>`;
+        }
+
+        const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
+        return `<div class="lmx-cell lmx-cell-breakdown practice" title="${escAttr(title)}" aria-label="${escAttr(title)}">
+            <span class="lmx-cell-score">P</span>
+            <span class="lmx-habit-marks">${marks}</span>
+        </div>`;
     }
 
     function scoredDayCellHtml(cell) {
@@ -684,6 +694,15 @@
         return `Day ${cell.challengeDay}: ${score} points. ${pieces.join(", ")}${missedText}`;
     }
 
+    function practiceCellTitle(cell, breakdown) {
+        if (!breakdown.length) return `Day ${cell.challengeDay}: practice check-in`;
+
+        const pieces = breakdown.map(item => `${item.label} ${item.value}/2`);
+        const missed = breakdown.filter(item => item.value < 2).map(item => item.label.toLowerCase());
+        const missedText = missed.length ? `. Missing: ${missed.join(", ")}` : ". Full practice day";
+        return `Day ${cell.challengeDay}: practice check-in. ${pieces.join(", ")}${missedText}`;
+    }
+
     function habitMarkClass(value) {
         if (value >= 2) return "lmx-habit-mark full";
         if (value > 0) return "lmx-habit-mark partial";
@@ -716,9 +735,7 @@
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">No one has joined yet</span>
             </div>
-            <div class="lmx-number" role="cell" data-label="Days">0</div>
             <div class="lmx-number" role="cell" data-label="Score">0</div>
-            ${publicViewer ? "" : `<div class="lmx-number" role="cell" data-label="Streak">0</div>`}
             <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${Array.from({ length: durationDays }, () => `<div class="lmx-cell empty"></div>`).join("")}</div>
         </div>`;
     }

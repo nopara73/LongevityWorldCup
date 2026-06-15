@@ -369,10 +369,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.True(aliceDay1.CheckedIn);
         Assert.False(aliceDay1.CountsForScore);
         Assert.Null(aliceDay1.Score);
-        Assert.Null(aliceDay1.Sleep);
-        Assert.Null(aliceDay1.Exercise);
-        Assert.Null(aliceDay1.Nutrition);
-        Assert.Null(aliceDay1.Vices);
+        Assert.Equal(2, aliceDay1.Sleep);
+        Assert.Equal(2, aliceDay1.Exercise);
+        Assert.Equal(2, aliceDay1.Nutrition);
+        Assert.Equal(2, aliceDay1.Vices);
         Assert.DoesNotContain("Sleep", alicePractice.Badges);
 
         fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
