@@ -213,6 +213,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function scoredDayCellHtml", javascript);
         Assert.Contains("function practiceDayCellHtml", javascript);
         Assert.Contains("lmx-cell lmx-cell-breakdown practice", javascript);
+        Assert.Contains("fa fa-rocket", javascript);
         Assert.Contains("function habitBreakdown", javascript);
         Assert.Contains("function habitCellTitle", javascript);
         Assert.DoesNotContain("data-label=\"Days\"", javascript);

@@ -640,12 +640,12 @@
         const breakdown = habitBreakdown(cell);
         const title = practiceCellTitle(cell, breakdown);
         if (!breakdown.length) {
-            return `<div class="lmx-cell practice" title="${escAttr(title)}" aria-label="${escAttr(title)}">P</div>`;
+            return `<div class="lmx-cell practice" title="${escAttr(title)}" aria-label="${escAttr(title)}"><i class="fa fa-rocket" aria-hidden="true"></i></div>`;
         }
 
         const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
         return `<div class="lmx-cell lmx-cell-breakdown practice" title="${escAttr(title)}" aria-label="${escAttr(title)}">
-            <span class="lmx-cell-score">P</span>
+            <span class="lmx-cell-score"><i class="fa fa-rocket" aria-hidden="true"></i></span>
             <span class="lmx-habit-marks">${marks}</span>
         </div>`;
     }
