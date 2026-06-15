@@ -152,24 +152,29 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task ParticipantWithoutUploadedPictureFallsBackToCachedGravatar()
+    public async Task ParticipantWithoutUploadedPictureWarmsCachedGravatarWithoutBlocking()
     {
         using var gravatar = CreatePngStream();
-        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+        using var gravatarGate = new ManualResetEventSlim(false);
+        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
         var access = await fixture.ConfirmParticipantAsync("gravatar@example.com", "Gravatar Gail");
 
         var state = fixture.Service.GetParticipantState(access);
 
-        Assert.NotNull(state.Participant.ProfileImageUrl);
-        Assert.Contains(".gravatar.webp?v=", state.Participant.ProfileImageUrl);
+        Assert.Null(state.Participant.ProfileImageUrl);
         var row = Assert.Single(state.Public.Leaderboard);
         Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
-        Assert.DoesNotContain("gravatar.com", state.Participant.ProfileImageUrl);
-        Assert.Single(fixture.Http.Requests);
 
+        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(1)));
+        gravatarGate.Set();
+        Assert.True(SpinWait.SpinUntil(() =>
+            fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
+            TimeSpan.FromSeconds(2)));
         var cached = fixture.Service.GetParticipantState(access);
 
-        Assert.Equal(state.Participant.ProfileImageUrl, cached.Participant.ProfileImageUrl);
+        Assert.Contains(".gravatar.webp?v=", cached.Participant.ProfileImageUrl);
+        Assert.DoesNotContain("gravatar.com", cached.Participant.ProfileImageUrl);
+        Assert.Equal(cached.Participant.ProfileImageUrl, cached.Public.Leaderboard.Single().ProfileImageUrl);
         Assert.Single(fixture.Http.Requests);
     }
 
@@ -207,6 +212,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
             profileImageResponse: profileImage.ToArray());
         var access = await fixture.ConfirmParticipantAsync("plain@example.com", "molnard");
 
+        Assert.True(SpinWait.SpinUntil(() =>
+            fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
+            TimeSpan.FromSeconds(2)));
         var state = fixture.Service.GetParticipantState(access);
 
         Assert.NotNull(state.Participant.ProfileImageUrl);
@@ -224,6 +232,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
         using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
         var access = await fixture.ConfirmParticipantAsync("linked-gravatar@example.com", "Linked Gail", athleteLink: "/athlete/linked-gail");
 
+        Assert.True(SpinWait.SpinUntil(() =>
+            fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
+            TimeSpan.FromSeconds(2)));
         var state = fixture.Service.GetParticipantState(access);
 
         Assert.Equal("/athlete/linked-gail", state.Participant.AthleteUrl);
@@ -238,8 +249,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
     public async Task UploadedChallengeProfilePictureTakesPriorityOverGravatar()
     {
         using var gravatar = CreatePngStream();
-        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray());
+        using var gravatarGate = new ManualResetEventSlim(false);
+        using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
         var access = await fixture.ConfirmParticipantAsync("priority@example.com", "Priority Pat");
+        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(1)));
+        gravatarGate.Set();
+        Assert.True(SpinWait.SpinUntil(() =>
+            fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
+            TimeSpan.FromSeconds(2)));
         fixture.Http.Requests.Clear();
         using var upload = CreatePngStream();
         var file = CreatePngFormFile(upload);

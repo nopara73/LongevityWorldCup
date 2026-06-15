@@ -180,8 +180,23 @@ public sealed class DatabaseManager : IDisposable
         {
         }
 
-        _sqlite.Dispose();
-        _gate.Dispose();
+        var gateTaken = false;
+        try
+        {
+            _gate.Wait();
+            gateTaken = true;
+            _sqlite.Dispose();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            if (gateTaken)
+                _gate.Release();
+
+            _gate.Dispose();
+        }
     }
 
     private void ApplyPragmas(int busyTimeoutMs)

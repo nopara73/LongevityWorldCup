@@ -49,6 +49,7 @@ public sealed class LongevitymaxxingChallengeService
         ["finale:finale-c"] = ["2026-06-22T16:00:00Z", "2026-06-22T06:30:00Z", CurrentChallengeFinaleStartsAtUtc]
     };
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
+    private static readonly SemaphoreSlim ProfilePictureWarmupSlots = new(2);
     private static readonly EmailAddressAttribute EmailValidator = new();
     private static readonly string[] CategoryNames = ["Sleep", "Exercise", "Nutrition", "Vices"];
 
@@ -278,6 +279,7 @@ public sealed class LongevitymaxxingChallengeService
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var participant = RequireParticipantByAccessToken(accessToken);
+        QueueProfilePictureWarmups([participant]);
         var participantSummary = ToParticipantSummary(participant);
         var publicState = GetPublicState(now);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
@@ -2022,15 +2024,6 @@ public sealed class LongevitymaxxingChallengeService
         return null;
     }
 
-    private string? BuildProfilePictureUrl(ParticipantRecord participant)
-    {
-        var cached = BuildCachedProfilePictureUrl(participant);
-        if (!string.IsNullOrWhiteSpace(cached))
-            return cached;
-
-        return TryBuildGravatarProfilePictureUrl(participant);
-    }
-
     private void QueueProfilePictureWarmups(IReadOnlyList<ParticipantRecord> participants)
     {
         foreach (var participant in participants)
@@ -2041,8 +2034,9 @@ public sealed class LongevitymaxxingChallengeService
             if (!_profilePictureWarmups.TryAdd(participant.Id, 0))
                 continue;
 
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
+                await ProfilePictureWarmupSlots.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     _ = TryBuildGravatarProfilePictureUrl(participant);
@@ -2053,6 +2047,7 @@ public sealed class LongevitymaxxingChallengeService
                 }
                 finally
                 {
+                    ProfilePictureWarmupSlots.Release();
                     _profilePictureWarmups.TryRemove(participant.Id, out _);
                 }
             });
@@ -2289,7 +2284,7 @@ public sealed class LongevitymaxxingChallengeService
             participant.TimeZoneId,
             participant.AthleteSlug,
             BuildAthleteUrl(participant.AthleteSlug),
-            BuildProfilePictureUrl(participant),
+            BuildCachedProfilePictureUrl(participant),
             participant.StoppedEmailsAtUtc is not null);
     }
 
