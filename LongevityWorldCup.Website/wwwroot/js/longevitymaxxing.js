@@ -834,7 +834,7 @@
             const current = typeof existing[q.key] === "number" ? existing[q.key] : 1;
             const buttons = ANSWERS.map(answer => `<button type="button" data-value="${answer.value}" aria-pressed="${answer.value === current ? "true" : "false"}">${answer.label}</button>`).join("");
             return `<div class="lmx-question" data-key="${q.key}">
-                <div class="lmx-question-label"><i class="fas ${q.icon}" aria-hidden="true"></i><span>${q.title} — ${q.text}</span></div>
+                <div class="lmx-question-label"><i class="fas ${q.icon}" aria-hidden="true"></i><span>${q.text}</span></div>
                 <div class="lmx-segmented">${buttons}</div>
             </div>`;
         }).join("");
