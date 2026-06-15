@@ -31,6 +31,8 @@ public sealed class LongevitymaxxingChallengeService
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
     private const string CurrentChallengeKickoffSlotId = "kickoff-b";
     private const string CurrentChallengeKickoffStartsAtUtc = "2026-06-07T06:30:00Z";
+    private const int CallScheduleUpdateNoticeDay = 0;
+    private const string CallScheduleUpdateReminderKind = "call-schedule-update";
     private static readonly DateOnly CurrentChallengeStartDate = new(2026, 6, 8);
     private static readonly TimeOnly[] DefaultSundayCallTimesUtc = [new(6, 30), new(13, 0), new(16, 0)];
     private static readonly IReadOnlyDictionary<string, string[]> BuiltInCallSlotStartsAtUtc = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
@@ -625,6 +627,7 @@ public sealed class LongevitymaxxingChallengeService
                 participant.StopToken,
                 challengeDay.Value,
                 targetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                calls.Count > 0 && !WasCallScheduleUpdateNoticeSent(participant.Id),
                 calls));
         }
 
@@ -633,6 +636,9 @@ public sealed class LongevitymaxxingChallengeService
 
     public void MarkDailyReminderSent(string participantId, int challengeDay, DateTimeOffset? nowUtc = null)
         => MarkReminderSent(participantId, challengeDay, "daily", nowUtc);
+
+    public void MarkCallScheduleUpdateNoticeSent(string participantId, DateTimeOffset? nowUtc = null)
+        => MarkReminderSent(participantId, CallScheduleUpdateNoticeDay, CallScheduleUpdateReminderKind, nowUtc);
 
     public IReadOnlyList<LongevitymaxxingChallengeStartCandidate> GetChallengeStartCandidates(DateTimeOffset? nowUtc = null)
     {
@@ -1666,6 +1672,9 @@ public sealed class LongevitymaxxingChallengeService
             return cmd.ExecuteScalar() is not null;
         });
     }
+
+    private bool WasCallScheduleUpdateNoticeSent(string participantId)
+        => WasReminderSent(participantId, CallScheduleUpdateNoticeDay, CallScheduleUpdateReminderKind);
 
     private bool WasCallReminderSent(string participantId, string callKey, string reminderKind)
     {

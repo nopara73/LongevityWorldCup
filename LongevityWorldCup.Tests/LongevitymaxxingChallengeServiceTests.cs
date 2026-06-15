@@ -440,6 +440,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             timeZoneId: "Europe/Budapest");
 
         var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T11:05:00Z")));
+        Assert.True(reminder.IncludeCallScheduleUpdate);
         var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
             reminder,
             fixture.Service.BuildAccessUrl(reminder.AccessToken),
@@ -452,6 +453,16 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Contains("Call link: https://meet.example.test", content.TextBody);
         Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
         Assert.Empty(content.Attachments);
+
+        fixture.Service.MarkCallScheduleUpdateNoticeSent(reminder.ParticipantId, DateTimeOffset.Parse("2026-06-09T11:06:00Z"));
+
+        var laterReminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T11:07:00Z")));
+        Assert.False(laterReminder.IncludeCallScheduleUpdate);
+        var laterContent = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
+            laterReminder,
+            fixture.Service.BuildAccessUrl(laterReminder.AccessToken),
+            fixture.Service.BuildStopUrl(laterReminder.StopToken));
+        Assert.DoesNotContain("Updated call schedule:", laterContent.TextBody);
     }
 
     [Fact]
