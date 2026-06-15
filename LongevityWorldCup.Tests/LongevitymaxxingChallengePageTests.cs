@@ -86,12 +86,34 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("\"challengeName\":\"Longevitymaxxing Challenge\"", json);
         Assert.Contains("\"startDate\":\"2026-06-08\"", json);
         Assert.Contains("\"signupClosesAtUtc\":\"2026-06-09T22:00:00.0000000+00:00\"", json);
+        Assert.Contains("\"startsAtUtc\":\"2026-06-07T06:30:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T06:30:00.0000000+00:00\"", json);
-        Assert.Contains("\"startsAtUtc\":\"2026-06-08T13:00:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T16:00:00.0000000+00:00\"", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-09T02:00:00.0000000+00:00\"", json);
         Assert.DoesNotContain("kem-kfpt-bhs", json);
         Assert.DoesNotContain("videoCallUrl", json);
+    }
+
+    [Fact]
+    public async Task LongevitymaxxingPublicState_RegeneratesBuiltInCallDefaultsOnSundaysForFutureCompetition()
+    {
+        using var factory = CreateFactory(new Config
+        {
+            LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig
+            {
+                StartDate = "2099-06-08",
+                SignupClosesAtUtc = "2099-06-09T22:00:00Z"
+            }
+        });
+        using var client = factory.CreateClient();
+
+        var json = await client.GetStringAsync("/api/longevitymaxxing/state");
+
+        Assert.Contains("\"startDate\":\"2099-06-08\"", json);
+        Assert.Contains("\"startsAtUtc\":\"2099-06-07T06:30:00.0000000+00:00\"", json);
+        Assert.Contains("\"startsAtUtc\":\"2099-06-14T06:30:00.0000000+00:00\"", json);
+        Assert.Contains("\"startsAtUtc\":\"2099-06-21T06:30:00.0000000+00:00\"", json);
+        Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-08T06:30:00.0000000+00:00\"", json);
     }
 
     [Fact]
