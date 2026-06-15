@@ -5,6 +5,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
@@ -57,6 +58,7 @@ public sealed class LongevitymaxxingChallengeService
     private readonly IWebHostEnvironment _environment;
     private readonly ILongevitymaxxingEmailSender _email;
     private readonly ILogger<LongevitymaxxingChallengeService> _logger;
+    private readonly IAthleteSnapshotProvider? _athletes;
     private readonly ConcurrentDictionary<string, byte> _profilePictureWarmups = new(StringComparer.Ordinal);
 
     public LongevitymaxxingChallengeService(
@@ -65,7 +67,8 @@ public sealed class LongevitymaxxingChallengeService
         IHttpClientFactory httpClientFactory,
         IWebHostEnvironment environment,
         ILongevitymaxxingEmailSender email,
-        ILogger<LongevitymaxxingChallengeService> logger)
+        ILogger<LongevitymaxxingChallengeService> logger,
+        IAthleteSnapshotProvider? athletes = null)
     {
         _db = db;
         _config = config;
@@ -73,6 +76,7 @@ public sealed class LongevitymaxxingChallengeService
         _environment = environment;
         _email = email;
         _logger = logger;
+        _athletes = athletes;
         EnsureTables();
     }
 
@@ -1058,6 +1062,7 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset now)
     {
         var categoryLeaders = BuildCategoryLeaders(checkIns);
+        var athleteTieBreaks = BuildAthleteTieBreaks();
         var rows = participants.Select(p =>
         {
             checkIns.TryGetValue(p.Id, out var byDay);
@@ -1085,26 +1090,96 @@ public sealed class LongevitymaxxingChallengeService
                     : new LongevitymaxxingDayCell(day, false, null, CountsForScore(day), null, null, null, null))
                 .ToList();
 
-            return new LongevitymaxxingLeaderboardRow(
-                p.Id,
-                p.DisplayName,
-                BuildAthleteUrl(p.AthleteSlug),
-                BuildCachedProfilePictureUrl(p),
-                checkedInDays,
-                totalPoints,
-                currentStreak,
-                cells,
-                badges,
-                latest?.ToString("o"));
+            return (
+                Row: new LongevitymaxxingLeaderboardRow(
+                    p.Id,
+                    p.DisplayName,
+                    BuildAthleteUrl(p.AthleteSlug),
+                    BuildCachedProfilePictureUrl(p),
+                    checkedInDays,
+                    totalPoints,
+                    currentStreak,
+                    cells,
+                    badges,
+                    latest?.ToString("o")),
+                TieBreak: GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug));
         })
-        .OrderByDescending(r => r.CheckedInDays)
-        .ThenByDescending(r => r.TotalPoints)
-        .ThenByDescending(r => r.CurrentStreak)
-        .ThenBy(r => r.LatestCheckInAtUtc is null ? DateTimeOffset.MaxValue : DateTimeOffset.Parse(r.LatestCheckInAtUtc, CultureInfo.InvariantCulture))
-        .ThenBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase)
+        .OrderByDescending(r => r.Row.CheckedInDays)
+        .ThenByDescending(r => r.Row.TotalPoints)
+        .ThenByDescending(r => r.Row.CurrentStreak)
+        .ThenByDescending(r => r.TieBreak.IsOnLeaderboard)
+        .ThenBy(r => r.TieBreak.CurrentPlacement ?? int.MaxValue)
+        .ThenBy(r => r.TieBreak.DateOfBirthUtc ?? DateTime.MaxValue)
+        .ThenBy(r => r.Row.LatestCheckInAtUtc is null ? DateTimeOffset.MaxValue : DateTimeOffset.Parse(r.Row.LatestCheckInAtUtc, CultureInfo.InvariantCulture))
+        .ThenBy(r => r.Row.DisplayName, StringComparer.OrdinalIgnoreCase)
+        .Select(r => r.Row)
         .ToList();
 
         return rows;
+    }
+
+    private Dictionary<string, AthleteTieBreak> BuildAthleteTieBreaks()
+    {
+        var result = new Dictionary<string, AthleteTieBreak>(StringComparer.OrdinalIgnoreCase);
+        var snapshot = _athletes?.GetAthletesSnapshot();
+        if (snapshot is null)
+            return result;
+
+        foreach (var athlete in snapshot.OfType<JsonObject>())
+        {
+            var slug = athlete["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug))
+                continue;
+
+            var placement = TryReadCurrentPlacement(athlete);
+            result[slug] = new AthleteTieBreak(
+                placement is not null,
+                placement,
+                TryReadDateOfBirthUtc(athlete));
+        }
+
+        return result;
+    }
+
+    private static AthleteTieBreak GetAthleteTieBreak(
+        IReadOnlyDictionary<string, AthleteTieBreak> athleteTieBreaks,
+        string? athleteSlug)
+    {
+        return !string.IsNullOrWhiteSpace(athleteSlug) &&
+            athleteTieBreaks.TryGetValue(athleteSlug, out var tieBreak)
+                ? tieBreak
+                : AthleteTieBreak.None;
+    }
+
+    private static int? TryReadCurrentPlacement(JsonObject athlete)
+    {
+        return athlete["CurrentPlacement"] is JsonValue currentPlacement &&
+            currentPlacement.TryGetValue<int>(out var placement) &&
+            placement > 0
+                ? placement
+                : null;
+    }
+
+    private static DateTime? TryReadDateOfBirthUtc(JsonObject athlete)
+    {
+        if (athlete["DateOfBirth"] is not JsonObject dob)
+            return null;
+
+        try
+        {
+            return new DateTime(
+                dob["Year"]!.GetValue<int>(),
+                dob["Month"]!.GetValue<int>(),
+                dob["Day"]!.GetValue<int>(),
+                0,
+                0,
+                0,
+                DateTimeKind.Utc);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private IReadOnlyList<string> BuildBadges(
@@ -2275,6 +2350,11 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset? StoppedEmailsAtUtc,
         DateTimeOffset CreatedAtUtc,
         DateTimeOffset UpdatedAtUtc);
+
+    private sealed record AthleteTieBreak(bool IsOnLeaderboard, int? CurrentPlacement, DateTime? DateOfBirthUtc)
+    {
+        public static readonly AthleteTieBreak None = new(false, null, null);
+    }
 
     private sealed record GravatarAvatar(string Url, byte[] Bytes);
 

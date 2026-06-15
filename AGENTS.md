@@ -36,6 +36,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Longevitymaxxing Challenge built-in call defaults use Sunday call dates for future competitions; the June 2026 kickoff keeps a one-off Sunday 08:30 GMT+2 override on the selected kickoff slot.
 - Longevitymaxxing Challenge daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - Longevitymaxxing Challenge habit points use a small day-weight ramp after Day 1: Day 2 starts at the raw 8-point maximum and the final day peaks at 11 points.
+- Longevitymaxxing Challenge leaderboard ties after challenge performance metrics prefer participants linked to a currently placed Longevity athlete profile, then better current placement, then older linked athletes by date of birth.
 - Challenge uploads and Gravatar fallbacks are challenge-only profile pictures; linked Longevity athlete profile pictures stay the display priority and must not be created or modified from challenge images.
 
 ## Ranking Logic Must Stay Aligned

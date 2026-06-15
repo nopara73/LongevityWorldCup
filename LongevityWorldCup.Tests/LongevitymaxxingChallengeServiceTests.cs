@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
+using System.Text.Json.Nodes;
 using System.Threading;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -306,6 +307,41 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var participantState = fixture.Service.GetParticipantState(alice, DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
         Assert.Contains(participantState.Notes, note => note.Note == "perfect start");
         Assert.Contains(participantState.Notes, note => note.Note == "still returned");
+    }
+
+    [Fact]
+    public async Task LeaderboardBreaksPerformanceTiesByMainLeaderboardRankThenOlderAthlete()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        fixture.AddAthleteTieBreak("young-ranked", currentPlacement: 2, birthYear: 1990, birthMonth: 1, birthDay: 1);
+        fixture.AddAthleteTieBreak("older-ranked", currentPlacement: 3, birthYear: 1970, birthMonth: 1, birthDay: 1);
+        fixture.AddAthleteTieBreak("same-rank-old", currentPlacement: 5, birthYear: 1975, birthMonth: 1, birthDay: 1);
+        fixture.AddAthleteTieBreak("same-rank-young", currentPlacement: 5, birthYear: 1985, birthMonth: 1, birthDay: 1);
+
+        var plain = await fixture.ConfirmParticipantAsync("plain@example.com", "Aaron Plain");
+        var young = await fixture.ConfirmParticipantAsync("young@example.com", "Young Ranked", athleteLink: "/athlete/young-ranked");
+        var older = await fixture.ConfirmParticipantAsync("older@example.com", "Zelda Older", athleteLink: "/athlete/older-ranked");
+        var sameRankOld = await fixture.ConfirmParticipantAsync("same-old@example.com", "Same Rank Old", athleteLink: "/athlete/same-rank-old");
+        var sameRankYoung = await fixture.ConfirmParticipantAsync("same-young@example.com", "Same Rank Young", athleteLink: "/athlete/same-rank-young");
+
+        var checkInAt = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        foreach (var access in new[] { plain, young, older, sameRankOld, sameRankYoung })
+        {
+            fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+                access,
+                1,
+                2,
+                2,
+                2,
+                2,
+                null), checkInAt);
+        }
+
+        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:00Z"));
+
+        Assert.Equal(
+            ["Young Ranked", "Zelda Older", "Same Rank Old", "Same Rank Young", "Aaron Plain"],
+            publicState.Leaderboard.Select(row => row.DisplayName).ToArray());
     }
 
     [Fact]
@@ -767,12 +803,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
             DatabaseManager db,
             FakeEmailSender email,
             FakeHttpClientFactory http,
+            FakeAthleteSnapshotProvider athletes,
             LongevitymaxxingChallengeService service)
         {
             ContentRoot = root;
             Db = db;
             Email = email;
             Http = http;
+            Athletes = athletes;
             Service = service;
         }
 
@@ -780,6 +818,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         public DatabaseManager Db { get; }
         public FakeEmailSender Email { get; }
         public FakeHttpClientFactory Http { get; }
+        public FakeAthleteSnapshotProvider Athletes { get; }
         public LongevitymaxxingChallengeService Service { get; }
 
         public static TestChallengeFixture Create(
@@ -795,6 +834,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             var db = new DatabaseManager(dbPath: Path.Combine(root, "challenge.db"));
             var email = new FakeEmailSender();
             var http = new FakeHttpClientFactory(gravatarResponse, profileJson, profileImageResponse, gravatarGate);
+            var athletes = new FakeAthleteSnapshotProvider();
             var env = new FakeEnvironment(root);
             var config = new Config
             {
@@ -851,8 +891,24 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 http,
                 env,
                 email,
-                NullLogger<LongevitymaxxingChallengeService>.Instance);
-            return new TestChallengeFixture(root, db, email, http, service);
+                NullLogger<LongevitymaxxingChallengeService>.Instance,
+                athletes);
+            return new TestChallengeFixture(root, db, email, http, athletes, service);
+        }
+
+        public void AddAthleteTieBreak(string slug, int? currentPlacement, int birthYear, int birthMonth, int birthDay)
+        {
+            Athletes.Snapshot.Add(new JsonObject
+            {
+                ["AthleteSlug"] = slug,
+                ["CurrentPlacement"] = currentPlacement,
+                ["DateOfBirth"] = new JsonObject
+                {
+                    ["Year"] = birthYear,
+                    ["Month"] = birthMonth,
+                    ["Day"] = birthDay
+                }
+            });
         }
 
         public async Task<string> ConfirmParticipantAsync(
@@ -899,6 +955,13 @@ public sealed class LongevitymaxxingChallengeServiceTests
             Db.Dispose();
             try { Directory.Delete(ContentRoot, recursive: true); } catch { }
         }
+    }
+
+    private sealed class FakeAthleteSnapshotProvider : IAthleteSnapshotProvider
+    {
+        public JsonArray Snapshot { get; } = [];
+
+        public JsonArray GetAthletesSnapshot() => (JsonArray)Snapshot.DeepClone();
     }
 
     private sealed class FakeEmailSender : ILongevitymaxxingEmailSender
