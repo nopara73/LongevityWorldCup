@@ -46,6 +46,8 @@ public sealed class LongevitymaxxingReminderJob(
                     _challenge.BuildStopUrl(reminder.StopToken),
                     context.CancellationToken).ConfigureAwait(false);
                 _challenge.MarkDailyReminderSent(reminder.ParticipantId, reminder.ChallengeDay, now);
+                if (reminder.IncludeCallScheduleUpdate)
+                    _challenge.MarkCallScheduleUpdateNoticeSent(reminder.ParticipantId, now);
             }
             catch (Exception ex)
             {

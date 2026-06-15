@@ -75,7 +75,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             ? "This first check-in counts for checked-in days and streak, not points. Use it to learn the sleep, exercise, nutrition, and vices flow."
             : "Sleep. Exercise. Nutrition. Vices. Keep the board moving.";
         var schedule = BuildScheduleBlock(reminder.Calls, reminder.TimeZoneId);
-        var scheduleUpdate = reminder.Calls.Any(call => call.SelectedSlot is not null)
+        var scheduleUpdate = reminder.IncludeCallScheduleUpdate && reminder.Calls.Any(call => call.SelectedSlot is not null)
             ? $"Updated call schedule:\n{schedule}\n\n"
             : "";
 
