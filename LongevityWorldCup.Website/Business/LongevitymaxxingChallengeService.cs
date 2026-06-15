@@ -29,6 +29,22 @@ public sealed class LongevitymaxxingChallengeService
     private const int CheckInPhotoQuality = 82;
     private const string GravatarMissingCacheVersion = "v4";
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
+    private const string CurrentChallengeKickoffSlotId = "kickoff-b";
+    private const string CurrentChallengeKickoffStartsAtUtc = "2026-06-07T06:30:00Z";
+    private static readonly DateOnly CurrentChallengeStartDate = new(2026, 6, 8);
+    private static readonly TimeOnly[] DefaultSundayCallTimesUtc = [new(6, 30), new(13, 0), new(16, 0)];
+    private static readonly IReadOnlyDictionary<string, string[]> BuiltInCallSlotStartsAtUtc = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["kickoff:kickoff-a"] = ["2026-06-08T06:30:00Z"],
+        ["kickoff:kickoff-b"] = ["2026-06-08T13:00:00Z", CurrentChallengeKickoffStartsAtUtc],
+        ["kickoff:kickoff-c"] = ["2026-06-08T16:00:00Z"],
+        ["midpoint:midpoint-a"] = ["2026-06-15T06:30:00Z"],
+        ["midpoint:midpoint-b"] = ["2026-06-15T13:00:00Z"],
+        ["midpoint:midpoint-c"] = ["2026-06-15T16:00:00Z"],
+        ["finale:finale-a"] = ["2026-06-22T06:30:00Z"],
+        ["finale:finale-b"] = ["2026-06-22T13:00:00Z"],
+        ["finale:finale-c"] = ["2026-06-22T16:00:00Z"]
+    };
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly EmailAddressAttribute EmailValidator = new();
     private static readonly string[] CategoryNames = ["Sleep", "Exercise", "Nutrition", "Vices"];
@@ -572,6 +588,10 @@ public sealed class LongevitymaxxingChallengeService
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings();
+        TrySelectCallSlots(now);
+        var calls = BuildParticipantCalls(settings)
+            .Where(call => call.SelectedSlot is not null)
+            .ToList();
         var participants = GetConfirmedParticipants()
             .Where(p => p.StoppedEmailsAtUtc is null)
             .ToList();
@@ -600,10 +620,12 @@ public sealed class LongevitymaxxingChallengeService
                 participant.Id,
                 participant.Email,
                 participant.DisplayName,
+                participant.TimeZoneId,
                 participant.AccessToken,
                 participant.StopToken,
                 challengeDay.Value,
-                targetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+                targetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                calls));
         }
 
         return candidates;
@@ -886,7 +908,7 @@ public sealed class LongevitymaxxingChallengeService
         var durationDays = cfg.DurationDays is >= 1 and <= 31 ? cfg.DurationDays : 14;
         var signupCloses = ParseDateTimeOffset(cfg.SignupClosesAtUtc, new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero));
         var reminderHour = Math.Clamp(cfg.DailyReminderHourLocal, 0, 23);
-        var calls = cfg.Calls
+        var configuredCalls = cfg.Calls
             .Where(c => !string.IsNullOrWhiteSpace(c.Key))
             .Select(c => new CallSettings(
                 NormalizeKey(c.Key),
@@ -897,6 +919,9 @@ public sealed class LongevitymaxxingChallengeService
                     .Select(s => new LongevitymaxxingCallSlot(s.Id.Trim(), ParseDateTimeOffset(s.StartsAtUtc, DateTimeOffset.UtcNow).ToUniversalTime().ToString("o")))
                     .ToList()))
             .ToList();
+        var calls = ShouldUseSundayDefaultCalls(start, configuredCalls)
+            ? BuildSundayDefaultCalls(start, durationDays)
+            : ApplyCurrentChallengeKickoffOverride(start, configuredCalls);
         var callSelectionCloses = ParseDateTimeOffset(
             cfg.CallSelectionClosesAtUtc,
             GetDefaultCallSelectionClosesAtUtc(calls, signupCloses));
@@ -912,6 +937,92 @@ public sealed class LongevitymaxxingChallengeService
             string.IsNullOrWhiteSpace(cfg.SlackRoomUrl) ? null : cfg.SlackRoomUrl.Trim(),
             string.IsNullOrWhiteSpace(cfg.VideoCallUrl) ? null : cfg.VideoCallUrl.Trim(),
             calls);
+    }
+
+    private static bool ShouldUseSundayDefaultCalls(DateOnly start, IReadOnlyList<CallSettings> calls)
+        => start != CurrentChallengeStartDate && (calls.Count == 0 || LooksLikeBuiltInCallTemplate(calls));
+
+    private static bool LooksLikeBuiltInCallTemplate(IReadOnlyList<CallSettings> calls)
+    {
+        var expectedKeys = new HashSet<string>(["kickoff", "midpoint", "finale"], StringComparer.Ordinal);
+        if (calls.Count != expectedKeys.Count || calls.Any(call => !expectedKeys.Contains(call.Key)))
+            return false;
+
+        return calls.All(call =>
+        {
+            var expectedSlotIds = new HashSet<string>(
+                Enumerable.Range(0, DefaultSundayCallTimesUtc.Length)
+                    .Select(index => $"{call.Key}-{(char)('a' + index)}"),
+                StringComparer.OrdinalIgnoreCase);
+            return call.CandidateSlots.Count == expectedSlotIds.Count
+                   && call.CandidateSlots.All(slot =>
+                       expectedSlotIds.Contains(slot.Id) &&
+                       SlotMatchesBuiltInTemplate(call.Key, slot));
+        });
+    }
+
+    private static bool SlotMatchesBuiltInTemplate(string callKey, LongevitymaxxingCallSlot slot)
+    {
+        if (!BuiltInCallSlotStartsAtUtc.TryGetValue($"{callKey}:{slot.Id}", out var allowedStartsAtUtc))
+            return false;
+
+        var startsAt = ParseDateTimeOffset(slot.StartsAtUtc, DateTimeOffset.MinValue).ToUniversalTime();
+        return allowedStartsAtUtc
+            .Select(value => ParseDateTimeOffset(value, DateTimeOffset.MinValue).ToUniversalTime())
+            .Any(value => value == startsAt);
+    }
+
+    private static IReadOnlyList<CallSettings> BuildSundayDefaultCalls(DateOnly start, int durationDays)
+    {
+        var midpointOffsetDays = Math.Max(0, (durationDays / 2) - 1);
+        var finalOffsetDays = Math.Max(0, durationDays - 1);
+        return
+        [
+            BuildSundayDefaultCall("kickoff", "Kickoff", start.AddDays(-1)),
+            BuildSundayDefaultCall("midpoint", "Midpoint", start.AddDays(midpointOffsetDays)),
+            BuildSundayDefaultCall("finale", "Finale", start.AddDays(finalOffsetDays))
+        ];
+    }
+
+    private static CallSettings BuildSundayDefaultCall(string key, string label, DateOnly date)
+    {
+        var slots = DefaultSundayCallTimesUtc
+            .Select((time, index) =>
+            {
+                var startsAtUtc = new DateTimeOffset(date.ToDateTime(time), TimeSpan.Zero);
+                return new LongevitymaxxingCallSlot(
+                    $"{key}-{(char)('a' + index)}",
+                    startsAtUtc.ToString("o", CultureInfo.InvariantCulture));
+            })
+            .ToList();
+
+        return new CallSettings(key, label, null, slots);
+    }
+
+    private static IReadOnlyList<CallSettings> ApplyCurrentChallengeKickoffOverride(
+        DateOnly start,
+        IReadOnlyList<CallSettings> calls)
+    {
+        if (start != CurrentChallengeStartDate)
+            return calls;
+
+        return calls
+            .Select(call =>
+            {
+                if (!string.Equals(call.Key, "kickoff", StringComparison.Ordinal))
+                    return call;
+
+                var kickoffSlot = new LongevitymaxxingCallSlot(
+                    CurrentChallengeKickoffSlotId,
+                    ParseDateTimeOffset(CurrentChallengeKickoffStartsAtUtc, DateTimeOffset.UtcNow).ToUniversalTime().ToString("o"));
+                var slots = call.CandidateSlots
+                    .Where(slot => !string.Equals(slot.Id, CurrentChallengeKickoffSlotId, StringComparison.OrdinalIgnoreCase))
+                    .Prepend(kickoffSlot)
+                    .ToList();
+
+                return call with { CandidateSlots = slots };
+            })
+            .ToList();
     }
 
     private static DateTimeOffset GetDefaultCallSelectionClosesAtUtc(

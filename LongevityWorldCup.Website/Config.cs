@@ -192,7 +192,7 @@ namespace LongevityWorldCup.Website
                 CandidateSlots =
                 [
                     new() { Id = "kickoff-a", StartsAtUtc = "2026-06-08T06:30:00Z" },
-                    new() { Id = "kickoff-b", StartsAtUtc = "2026-06-08T13:00:00Z" },
+                    new() { Id = "kickoff-b", StartsAtUtc = "2026-06-07T06:30:00Z" },
                     new() { Id = "kickoff-c", StartsAtUtc = "2026-06-08T16:00:00Z" }
                 ]
             },

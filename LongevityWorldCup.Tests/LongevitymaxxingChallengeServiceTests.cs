@@ -430,6 +430,31 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task DailyReminderEmailIncludesUpdatedCallSchedule()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync(
+            "daily-call@example.com",
+            "Daily Call Dana",
+            [new("kickoff", "kickoff-b"), new("midpoint", "midpoint-a"), new("finale", "finale-a")],
+            timeZoneId: "Europe/Budapest");
+
+        var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T11:05:00Z")));
+        var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
+            reminder,
+            fixture.Service.BuildAccessUrl(reminder.AccessToken),
+            fixture.Service.BuildStopUrl(reminder.StopToken));
+
+        Assert.Contains("Updated call schedule:", content.TextBody);
+        Assert.Contains("- Kickoff: 2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("- Midpoint:", content.TextBody);
+        Assert.Contains("- Finale:", content.TextBody);
+        Assert.Contains("Call link: https://meet.example.test", content.TextBody);
+        Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
+        Assert.Empty(content.Attachments);
+    }
+
+    [Fact]
     public async Task ResendSendsLinkByEmailWithoutReturningAccessState()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -448,7 +473,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     [Fact]
     public async Task CallSelectionUsesTopVotedSlotAndVideoLinkIsParticipantOnly()
     {
-        using var fixture = TestChallengeFixture.Create();
+        using var fixture = TestChallengeFixture.Create(callSelectionClosesAtUtc: "2026-06-06T18:00:00Z");
         var one = await fixture.ConfirmParticipantAsync(
             "one@example.com",
             "One",
@@ -490,18 +515,18 @@ public sealed class LongevitymaxxingChallengeServiceTests
             "Call Casey",
             [new("kickoff", "kickoff-b")]);
 
-        var candidates = fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T02:05:00Z"));
+        var candidates = fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z"));
         var reminder = Assert.Single(candidates);
         Assert.Equal("kickoff", reminder.CallKey);
         Assert.Equal("24h", reminder.ReminderKind);
-        Assert.Equal("2026-06-08T02:00:00.0000000+00:00", reminder.StartsAtUtc);
+        Assert.Equal("2026-06-07T06:30:00.0000000+00:00", reminder.StartsAtUtc);
         Assert.Equal("UTC", reminder.TimeZoneId);
         Assert.Equal(3, reminder.Calls.Count);
 
-        Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-07T02:05:00Z")));
+        Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
 
-        fixture.Service.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, DateTimeOffset.Parse("2026-06-07T02:06:00Z"));
-        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T02:07:00Z")));
+        fixture.Service.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, DateTimeOffset.Parse("2026-06-06T06:36:00Z"));
+        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:37:00Z")));
     }
 
     [Fact]
@@ -514,16 +539,16 @@ public sealed class LongevitymaxxingChallengeServiceTests
             [new("kickoff", "kickoff-b")],
             timeZoneId: "Europe/Budapest");
 
-        var reminder = Assert.Single(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-07T02:05:00Z")));
+        var reminder = Assert.Single(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
         var content = SmtpLongevitymaxxingEmailSender.BuildCallReminderEmailContent(
             reminder,
             fixture.Service.BuildAccessUrl(reminder.AccessToken),
             fixture.Service.BuildStopUrl(reminder.StopToken));
 
         Assert.Contains("Call link:\nhttps://meet.example.test", content.TextBody);
-        Assert.Contains("2026-06-08 04:00 (Europe/Budapest)", content.TextBody);
+        Assert.Contains("2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
         Assert.Contains("Participant page:\nhttps://example.test/longevitymaxxing?", content.TextBody);
-        Assert.DoesNotContain("2026-06-08 02:00 UTC", content.TextBody);
+        Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.DoesNotContain("Full call schedule:", content.TextBody);
         Assert.DoesNotContain("- Midpoint:", content.TextBody);
@@ -588,8 +613,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Contains("Timezone: Europe/Budapest", content.TextBody);
         Assert.Contains("Call link: https://meet.example.test", content.TextBody);
-        Assert.Contains("2026-06-08 04:00 (Europe/Budapest)", content.TextBody);
-        Assert.DoesNotContain("2026-06-08 02:00 UTC", content.TextBody);
+        Assert.Contains("2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
+        Assert.DoesNotContain("2026-06-07 06:30 UTC", content.TextBody);
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.Contains("- Kickoff:", content.TextBody);
         Assert.Contains("- Midpoint:", content.TextBody);
@@ -751,6 +776,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             string? profileJson = null,
             byte[]? profileImageResponse = null,
             string? signupClosesAtUtc = null,
+            string? callSelectionClosesAtUtc = null,
             ManualResetEventSlim? gravatarGate = null)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-lmx-tests", Guid.NewGuid().ToString("N"));
@@ -771,6 +797,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                     StartDate = "2026-06-08",
                     PublicBaseUrl = "https://example.test/ignored-path",
                     SignupClosesAtUtc = signupClosesAtUtc ?? "2026-06-08T00:00:00Z",
+                    CallSelectionClosesAtUtc = callSelectionClosesAtUtc,
                     DailyReminderHourLocal = 8,
                     SlackInviteUrl = "https://slack.example.test",
                     VideoCallUrl = "https://meet.example.test",

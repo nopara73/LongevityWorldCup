@@ -46,23 +46,8 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
     public Task SendDailyReminderAsync(LongevitymaxxingReminderCandidate reminder, string checkInUrl, string stopUrl, CancellationToken ct = default)
     {
-        var isPractice = reminder.ChallengeDay == 1;
-        var lead = isPractice
-            ? $"Day {reminder.ChallengeDay} practice check-in is ready. Check in for {reminder.TargetDate}:"
-            : $"Day {reminder.ChallengeDay} is ready. Check in for {reminder.TargetDate}:";
-        var guidance = isPractice
-            ? "This first check-in counts for checked-in days and streak, not points. Use it to learn the sleep, exercise, nutrition, and vices flow."
-            : "Sleep. Exercise. Nutrition. Vices. Keep the board moving.";
-
-        var body =
-            $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-            $"{lead}\n" +
-            $"{checkInUrl}\n\n" +
-            $"{guidance}\n\n" +
-            $"Stop challenge emails: {stopUrl}\n\n" +
-            "Longevity World Cup";
-
-        return SendAsync(reminder.Email, reminder.DisplayName, $"Longevitymaxxing Day {reminder.ChallengeDay} check-in", body, ct);
+        var content = BuildDailyReminderEmailContent(reminder, checkInUrl, stopUrl);
+        return SendAsync(reminder.Email, reminder.DisplayName, content.Subject, content.TextBody, ct, content.Attachments);
     }
 
     public Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopUrl, CancellationToken ct = default)
@@ -75,6 +60,38 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
     {
         var content = BuildChallengeStartEmailContent(start, challengeUrl, stopUrl);
         return SendAsync(start.Email, start.DisplayName, content.Subject, content.TextBody, ct, content.Attachments);
+    }
+
+    internal static LongevitymaxxingEmailContent BuildDailyReminderEmailContent(
+        LongevitymaxxingReminderCandidate reminder,
+        string checkInUrl,
+        string stopUrl)
+    {
+        var isPractice = reminder.ChallengeDay == 1;
+        var lead = isPractice
+            ? $"Day {reminder.ChallengeDay} practice check-in is ready. Check in for {reminder.TargetDate}:"
+            : $"Day {reminder.ChallengeDay} is ready. Check in for {reminder.TargetDate}:";
+        var guidance = isPractice
+            ? "This first check-in counts for checked-in days and streak, not points. Use it to learn the sleep, exercise, nutrition, and vices flow."
+            : "Sleep. Exercise. Nutrition. Vices. Keep the board moving.";
+        var schedule = BuildScheduleBlock(reminder.Calls, reminder.TimeZoneId);
+        var scheduleUpdate = reminder.Calls.Any(call => call.SelectedSlot is not null)
+            ? $"Updated call schedule:\n{schedule}\n\n"
+            : "";
+
+        var body =
+            $"Hi {SafeName(reminder.DisplayName)},\n\n" +
+            $"{lead}\n" +
+            $"{checkInUrl}\n\n" +
+            $"{guidance}\n\n" +
+            $"{scheduleUpdate}" +
+            $"Stop challenge emails: {stopUrl}\n\n" +
+            "Longevity World Cup";
+
+        return new LongevitymaxxingEmailContent(
+            $"Longevitymaxxing Day {reminder.ChallengeDay} check-in",
+            body,
+            []);
     }
 
     internal static LongevitymaxxingEmailContent BuildCallReminderEmailContent(
@@ -196,8 +213,8 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             .ToList();
 
         return callLines.Count == 0
-            ? "Full call schedule: not selected yet."
-            : "Full call schedule:\n" + string.Join("\n", callLines);
+            ? "not selected yet."
+            : string.Join("\n", callLines);
     }
 
     private static string FormatCallLine(LongevitymaxxingParticipantCall call, string timeZoneId)

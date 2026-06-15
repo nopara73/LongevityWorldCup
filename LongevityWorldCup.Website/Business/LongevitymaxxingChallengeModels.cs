@@ -135,10 +135,12 @@ public sealed record LongevitymaxxingReminderCandidate(
     string ParticipantId,
     string Email,
     string DisplayName,
+    string TimeZoneId,
     string AccessToken,
     string StopToken,
     int ChallengeDay,
-    string TargetDate);
+    string TargetDate,
+    IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
 
 public sealed record LongevitymaxxingCallReminderCandidate(
     string ParticipantId,
