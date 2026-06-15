@@ -3208,6 +3208,7 @@
     function checkRowReveals() {
         rowRevealFrame = 0;
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const revealLeadPx = 120;
         rowRevealTargets.forEach((revealedClass, markerEl) => {
             if (!markerEl.isConnected) {
                 rowRevealTargets.delete(markerEl);
@@ -3215,7 +3216,7 @@
             }
             const rect = markerEl.getBoundingClientRect();
             if (rect.width <= 0 || rect.height <= 0) return;
-            if (rect.top < viewportHeight * .78 && rect.bottom > viewportHeight * .18) {
+            if (rect.top < viewportHeight + revealLeadPx && rect.bottom > -revealLeadPx) {
                 enqueueRowReveal(markerEl, revealedClass);
                 rowRevealTargets.delete(markerEl);
             }
