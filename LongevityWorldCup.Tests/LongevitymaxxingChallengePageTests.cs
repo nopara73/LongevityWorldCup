@@ -50,7 +50,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("daily max", html);
         Assert.Contains("peak points/day", html);
         Assert.Contains("points/day", html);
-        Assert.Contains("Score colors and habit key", html);
+        Assert.DoesNotContain("Score colors and habit key", html);
         Assert.Contains("fa-moon", html);
         Assert.Contains("fa-dumbbell", html);
         Assert.Contains("fa-bowl-food", html);
