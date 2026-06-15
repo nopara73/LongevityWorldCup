@@ -189,33 +189,36 @@ namespace LongevityWorldCup.Website
             {
                 Key = "kickoff",
                 Label = "Kickoff",
+                SelectedSlotId = "kickoff-b",
                 CandidateSlots =
                 [
-                    new() { Id = "kickoff-a", StartsAtUtc = "2026-06-07T06:30:00Z" },
-                    new() { Id = "kickoff-b", StartsAtUtc = "2026-06-07T06:30:00Z" },
-                    new() { Id = "kickoff-c", StartsAtUtc = "2026-06-07T06:30:00Z" }
+                    new() { Id = "kickoff-a", StartsAtUtc = "2026-06-08T06:30:00Z" },
+                    new() { Id = "kickoff-b", StartsAtUtc = "2026-06-08T13:00:00Z" },
+                    new() { Id = "kickoff-c", StartsAtUtc = "2026-06-08T16:00:00Z" }
                 ]
             },
             new()
             {
                 Key = "midpoint",
                 Label = "Midpoint",
+                SelectedSlotId = "midpoint-a",
                 CandidateSlots =
                 [
                     new() { Id = "midpoint-a", StartsAtUtc = "2026-06-15T06:30:00Z" },
-                    new() { Id = "midpoint-b", StartsAtUtc = "2026-06-15T06:30:00Z" },
-                    new() { Id = "midpoint-c", StartsAtUtc = "2026-06-15T06:30:00Z" }
+                    new() { Id = "midpoint-b", StartsAtUtc = "2026-06-15T13:00:00Z" },
+                    new() { Id = "midpoint-c", StartsAtUtc = "2026-06-15T16:00:00Z" }
                 ]
             },
             new()
             {
                 Key = "finale",
                 Label = "Finale",
+                SelectedSlotId = "finale-b",
                 CandidateSlots =
                 [
-                    new() { Id = "finale-a", StartsAtUtc = "2026-06-22T06:30:00Z" },
-                    new() { Id = "finale-b", StartsAtUtc = "2026-06-22T06:30:00Z" },
-                    new() { Id = "finale-c", StartsAtUtc = "2026-06-22T06:30:00Z" }
+                    new() { Id = "finale-a", StartsAtUtc = "2026-06-21T06:30:00Z" },
+                    new() { Id = "finale-b", StartsAtUtc = "2026-06-21T06:30:00Z" },
+                    new() { Id = "finale-c", StartsAtUtc = "2026-06-21T06:30:00Z" }
                 ]
             }
         ];

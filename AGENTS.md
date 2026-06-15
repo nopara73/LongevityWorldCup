@@ -33,7 +33,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Keep the Longevitymaxxing Challenge separate from Ultimate League ranking, biological age placements, and athlete badges, even when challenge results appear as Events/highlights.
 - Longevitymaxxing Challenge signup may remain open during active challenge days when configured; late participants join the current challenge and catch up through normal eligible check-ins.
 - Longevitymaxxing Challenge call times may be selected before signup closes when needed for 24-hour call reminders.
-- Longevitymaxxing Challenge built-in call defaults use Sunday call dates for future competitions; the June 2026 kickoff keeps a one-off Sunday 08:30 GMT+2 override on the selected kickoff slot.
+- Longevitymaxxing Challenge built-in call defaults use Sunday 08:30 GMT+2 call dates for future competitions. The June 2026 finale has a one-off Sunday 08:30 GMT+2 override; the already-completed June 2026 kickoff keeps its historical selected time.
 - Longevitymaxxing Challenge daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - Longevitymaxxing Challenge habit points use a small day-weight ramp after Day 1: Day 2 starts at the raw 8-point maximum and the final day peaks at 11 points.
 - Longevitymaxxing Challenge leaderboard ties after challenge performance metrics prefer participants linked to a currently placed Longevity athlete profile, then better current placement, then older linked athletes by date of birth.

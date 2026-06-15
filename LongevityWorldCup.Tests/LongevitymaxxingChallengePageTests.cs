@@ -88,13 +88,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("\"challengeName\":\"Longevitymaxxing Challenge\"", json);
         Assert.Contains("\"startDate\":\"2026-06-08\"", json);
         Assert.Contains("\"signupClosesAtUtc\":\"2026-06-09T22:00:00.0000000+00:00\"", json);
-        Assert.Contains("\"startsAtUtc\":\"2026-06-07T06:30:00.0000000+00:00\"", json);
+        Assert.Contains("\"startsAtUtc\":\"2026-06-08T13:00:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-15T06:30:00.0000000+00:00\"", json);
-        Assert.Contains("\"startsAtUtc\":\"2026-06-22T06:30:00.0000000+00:00\"", json);
-        Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-08T13:00:00.0000000+00:00\"", json);
-        Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-08T16:00:00.0000000+00:00\"", json);
-        Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-15T13:00:00.0000000+00:00\"", json);
-        Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-15T16:00:00.0000000+00:00\"", json);
+        Assert.Contains("\"startsAtUtc\":\"2026-06-21T06:30:00.0000000+00:00\"", json);
+        Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-07T06:30:00.0000000+00:00\"", json);
+        Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-22T06:30:00.0000000+00:00\"", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-22T13:00:00.0000000+00:00\"", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-22T16:00:00.0000000+00:00\"", json);
         Assert.DoesNotContain("\"startsAtUtc\":\"2026-06-09T02:00:00.0000000+00:00\"", json);
