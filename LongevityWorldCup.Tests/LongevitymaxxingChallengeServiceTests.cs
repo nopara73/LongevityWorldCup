@@ -438,6 +438,72 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task DailySlipGetsMaxPointsOnlyAfterActuallyPerfectPreviousDay()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("slip@example.com", "Slip Sam");
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            1,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            2,
+            0,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            3,
+            2,
+            1,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-11T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            4,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-12T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            5,
+            2,
+            1,
+            1,
+            2,
+            null), DateTimeOffset.Parse("2026-06-13T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            6,
+            0,
+            1,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-14T08:00:00Z"));
+
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-14T09:00:00Z"));
+        var row = Assert.Single(state.Leaderboard);
+
+        Assert.Equal(8, row.Cells.Single(cell => cell.ChallengeDay == 2).Score);
+        Assert.Equal(7, row.Cells.Single(cell => cell.ChallengeDay == 3).Score);
+        Assert.Equal(9, row.Cells.Single(cell => cell.ChallengeDay == 4).Score);
+        Assert.Equal(9, row.Cells.Single(cell => cell.ChallengeDay == 5).Score);
+        Assert.Equal(6, row.Cells.Single(cell => cell.ChallengeDay == 6).Score);
+        Assert.Equal(39, row.TotalPoints);
+    }
+
+    [Fact]
     public async Task DailyReminderCandidatesSkipCompletedTargetDayAndStoppedEmails()
     {
         using var fixture = TestChallengeFixture.Create();
