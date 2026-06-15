@@ -473,7 +473,6 @@
             <div class="lmx-dashboard-head">
                 <div>
                     <span class="lmx-mini-label">your trend</span>
-                    <h2>Category dashboard</h2>
                 </div>
                 <strong>${checkedCells.length ? `${checkedCells.length}/${state.durationDays || cells.length} days` : emptyLabel}</strong>
             </div>
@@ -485,7 +484,7 @@
             </div>
             <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time">
                 <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
-                    <div role="columnheader">Category</div>
+                    <div aria-hidden="true"></div>
                     <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
                 </div>
                 ${rows}
