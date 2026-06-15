@@ -11,7 +11,7 @@
     const MAX_NOTE_PHOTOS = 4;
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const QUESTIONS = [
-        { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you sleep well at night?" },
+        { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you intentionally challenge or rest your body yesterday?" },
         { key: "nutrition", icon: "fa-bowl-food", title: "Nutrition", text: "By your own standards, did you eat healthy yesterday?" },
         { key: "vices", icon: "fa-shield-halved", title: "Vices", text: "Were your vices under control yesterday?" }
