@@ -206,7 +206,17 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxParticipantTools\", !checkInOnly);", javascript);
         Assert.Contains("toggle(\"lmxTitlePanel\", !checkInOnly && !publicClosed);", javascript);
         Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant);", javascript);
+        Assert.Contains("toggle(\"lmxHabitHeading\", !hasParticipant);", javascript);
+        Assert.Contains("toggle(\"lmxHabitGrid\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode && !checkInOnly);", javascript);
+        Assert.Contains("Category dashboard", javascript);
+        Assert.Contains("function normalizeDashboardCells", javascript);
+        Assert.Contains("function categoryDashboardRow", javascript);
+        Assert.Contains("function categoryDayCell", javascript);
+        Assert.Contains("function clampHabitValue", javascript);
+        Assert.Contains("Locked-in days", javascript);
+        Assert.Contains("dashboardStat(\"Points\"", javascript);
+        Assert.Contains("row.totalPoints", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
         Assert.DoesNotContain("S/E/N/V dots show habit gaps", javascript);
@@ -229,6 +239,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function checkInSwitcherHtml", javascript);
         Assert.Contains("function getPendingCheckInDays", javascript);
         Assert.Contains("formatCheckInDate(day.date)", javascript);
+        Assert.Contains(".lmx-dashboard-grid", css);
+        Assert.Contains(".lmx-category-day.partial", css);
+        Assert.Contains(".lmx-dashboard-stats", css);
         Assert.Contains("function revealSignupDetailsBeforeSubmit()", javascript);
         Assert.Contains("setStatus(\"lmxSignupStatus\", \"Check these once, then join.\", false);", javascript);
         Assert.Contains("free signup", javascript);
