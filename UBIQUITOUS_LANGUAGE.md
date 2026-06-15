@@ -47,6 +47,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Longevitymaxxing Challenge** leaderboard ties after challenge performance metrics prefer participants linked to a currently placed Longevity athlete profile, then better current placement, then older linked athletes by date of birth.
 - **Longevitymaxxing Challenge** call times may be selected before signup closes for 24-hour reminders.
 - **Longevitymaxxing Challenge** daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
+- **Longevitymaxxing Challenge** daily reminder emails stop after 3 consecutive missed scored days. Day 1 practice does not count, and days before a late participant's local signup date do not count.
 - **Longevitymaxxing Challenge** profile pictures are challenge-only unless a linked **Longevity athlete** profile picture exists. Uploaded challenge images outrank cached Gravatar fallbacks.
 
 ## Naming Notes
